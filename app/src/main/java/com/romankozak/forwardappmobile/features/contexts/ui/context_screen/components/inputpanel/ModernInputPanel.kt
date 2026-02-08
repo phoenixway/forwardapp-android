@@ -72,6 +72,7 @@ fun ModernInputPanel(
     onShowDisplayPropertiesClick: () -> Unit,
     suggestions: List<String>,
     onSuggestionClick: (String) -> Unit,
+    enabledCapabilitiesOverride: Set<CapabilityId>? = null,
     onAddScript: (() -> Unit)? = null,
 ) {
     // Об'єднуємо старі прапорці та нові ID в єдиний Set можливостей
@@ -87,8 +88,9 @@ fun ModernInputPanel(
             enableAttachments,
             isProjectManagementEnabled,
             experimentalCapabilityIds,
+            enabledCapabilitiesOverride,
         ) {
-            buildSet {
+            enabledCapabilitiesOverride ?: buildSet {
                 // 1. Додаємо старі прапорці (Legacy/UI)
                 if (enableInbox) add(CapabilityId("inbox"))
                 if (enableLog) add(CapabilityId("log"))

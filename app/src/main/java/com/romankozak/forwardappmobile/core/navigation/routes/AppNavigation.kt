@@ -35,9 +35,6 @@ import com.romankozak.forwardappmobile.features.attachments.specific_types.scrip
 import com.romankozak.forwardappmobile.features.attachments.specific_types.script.ScriptEditorScreen
 import com.romankozak.forwardappmobile.features.attachments.specific_types.script.ScriptsLibraryScreen
 import com.romankozak.forwardappmobile.features.attachments.ui.library.AttachmentsLibraryScreen
-import com.romankozak.forwardappmobile.features.context_lab.ContextLabScreen
-import com.romankozak.forwardappmobile.features.context_lab.ContextLabViewModel
-import com.romankozak.forwardappmobile.features.context_lab.hierarchy_screen.ExperimentalHierarchyScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_chooser.FilterableListChooserScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_chooser.FilterableListChooserViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_configuration.ProjectStructureScreen
@@ -81,7 +78,6 @@ const val GOAL_LISTS_ROUTE = "goal_lists_screen"
 const val AI_INSIGHTS_ROUTE = "ai_insights_screen"
 const val LIFE_STATE_ROUTE = "life_state_screen"
 const val SELECTIVE_IMPORT_ROUTE = "selective_import_screen?fileUri={fileUri}"
-const val CONTEXT_LAB_ROUTE = "context_lab_screen"
 const val PLACEHOLDER_ROUTE = "placeholder_screen/{viewId}/{screenId}"
 const val KANBAN_ROUTE = "kanban_screen"
 const val VET_CASE_SUMMARY_ROUTE = "vet_case_summary_screen"
@@ -195,7 +191,6 @@ private fun NavGraphBuilder.mainGraph(
                 syncDataViewModel.jsonString = json
                 navController.navigate("sync_screen")
             },
-            onNavigateToContextLab = { navController.navigate(CONTEXT_LAB_ROUTE) },
             onNavigateToAttachments = { navController.navigate("attachments_library_screen") },
             onNavigateToScripts = { navController.navigate("scripts_library_screen") },
             onNavigateToRecentItem = { item: RecentItem ->
@@ -543,10 +538,6 @@ private fun NavGraphBuilder.mainGraph(
 
     composable("tactical_management_screen") { TacticalManagementScreen() }
 
-    composable(CONTEXT_LAB_ROUTE) {
-        val viewModel: ContextLabViewModel = hiltViewModel()
-        ContextLabScreen(viewModel = viewModel, navController = navController)
-    }
 
     composable(EXPERIMENTAL_HIERARCHY_ROUTE) {
         ExperimentalHierarchyScreen()

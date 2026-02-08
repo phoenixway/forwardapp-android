@@ -23,6 +23,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
+import com.romankozak.forwardappmobile.core.capability.CapabilityId
+import com.romankozak.forwardappmobile.core.context.ContextViewPolicy
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,6 +45,7 @@ fun BrowserNavigationBar(
     onViewChange: (ContextViewMode) -> Unit,
     onImportFromMarkdown: () -> Unit,
     onExportToMarkdown: () -> Unit,
+    enabledCapabilities: Set<CapabilityId> = emptySet(),
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -119,6 +122,7 @@ fun BrowserNavigationBar(
                 onViewChange = onViewChange,
                 onImportFromMarkdown = onImportFromMarkdown,
                 onExportToMarkdown = onExportToMarkdown,
+                enabledCapabilities = enabledCapabilities,
             )
         }
     }
@@ -138,6 +142,7 @@ private fun RightButtons(
     onViewChange: (ContextViewMode) -> Unit,
     onImportFromMarkdown: () -> Unit,
     onExportToMarkdown: () -> Unit,
+    enabledCapabilities: Set<CapabilityId>,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Surface(
@@ -145,7 +150,12 @@ private fun RightButtons(
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
         ) {
             Row(modifier = Modifier.height(36.dp), verticalAlignment = Alignment.CenterVertically) {
-                val views = listOf(ContextViewMode.BACKLOG, ContextViewMode.INBOX)
+                val views =
+                    if (enabledCapabilities.isNotEmpty()) {
+                        ContextViewPolicy.availableViews(enabledCapabilities)
+                    } else {
+                        listOf(ContextViewMode.BACKLOG, ContextViewMode.INBOX)
+                    }
                 views.forEach { viewMode ->
                     val isSelected = currentView == viewMode
                     Box(

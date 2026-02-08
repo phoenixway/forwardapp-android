@@ -611,11 +611,6 @@ class ContextHierarchyScreenViewModel
                     }
                 }
 
-                is ContextHierarchyScreenEvent.NavigateToContextLab -> {
-                    viewModelScope.launch {
-                        _uiEventChannel.send(ProjectUiEvent.Navigate(NavTarget.ContextLab))
-                    }
-                }
 
                 is ContextHierarchyScreenEvent.NavigateToStrategicManagement -> {
                     if (uiState.value.featureToggles[FeatureFlag.StrategicManagement] == true) {

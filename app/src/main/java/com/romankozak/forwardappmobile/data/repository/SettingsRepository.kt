@@ -187,7 +187,6 @@ class SettingsRepository
                 FeatureFlag.AiChat -> BuildConfig.IS_EXPERIMENTAL_BUILD
                 FeatureFlag.AiInsights -> BuildConfig.IS_EXPERIMENTAL_BUILD
                 FeatureFlag.AiLifeManagement -> BuildConfig.IS_EXPERIMENTAL_BUILD
-                FeatureFlag.ContextLab -> BuildConfig.IS_EXPERIMENTAL_BUILD
             }
 
         val featureTogglesFlow: Flow<Map<FeatureFlag, Boolean>> =

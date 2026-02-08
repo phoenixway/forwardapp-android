@@ -5,10 +5,13 @@ import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.capability.CapabilityRegistry
 import com.romankozak.forwardappmobile.core.capability.CapabilitySet
 import com.romankozak.forwardappmobile.core.capability.InMemoryCapabilityRegistry
+import com.romankozak.forwardappmobile.core.context.ContextCapabilitiesResolver
 import com.romankozak.forwardappmobile.core.context.ContextController
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.ContextRole
 import com.romankozak.forwardappmobile.core.context.ContextState
+import com.romankozak.forwardappmobile.core.context.ContextSessionStore
+import com.romankozak.forwardappmobile.core.context.DefaultContextState
 import com.romankozak.forwardappmobile.core.context.DefaultContextController
 import com.romankozak.forwardappmobile.core.context.ViewId
 import com.romankozak.forwardappmobile.core.context.ViewSet
@@ -21,7 +24,6 @@ import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 import com.romankozak.forwardappmobile.domain.lifecontext.DefaultLifeContextProcessor
 import com.romankozak.forwardappmobile.domain.lifecontext.LifeContextProcessor
 import com.romankozak.forwardappmobile.domain.lifecontext.LifeContextRule
-import com.romankozak.forwardappmobile.features.context_lab.ContextLabController
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -51,27 +53,29 @@ object LogicModule {
     @Singleton
     fun provideContextController(): ContextController {
         val initial =
-            object : ContextState {
-                override val id = ContextId("default")
-                override val features = CapabilitySet(emptySet())
-                override val views = ViewSet(emptySet(), ViewId("main"))
-
-                // Додаємо дефолтну конфігурацію для задоволення інтерфейсу ConfigurableState
-                override val config =
+            DefaultContextState(
+                id = ContextId("default"),
+                features = CapabilitySet(emptySet()),
+                views = ViewSet(emptySet(), ViewId("main")),
+                config =
                     ContextConfiguration(
                         id = "initial_default",
                         contextId = "default",
-                    )
-            }
+                    ),
+            )
         return DefaultContextController(initial)
     }
 
     @Provides
     @Singleton
-    fun provideContextLabController(
-        roles: Map<String, ContextRole>,
-        viewRegistry: ViewRegistry,
-    ): ContextLabController = ContextLabController(roles, viewRegistry)
+    fun provideContextCapabilitiesResolver(): ContextCapabilitiesResolver = ContextCapabilitiesResolver()
+
+    @Provides
+    @Singleton
+    fun provideContextSessionStore(
+        contextController: ContextController,
+        capabilitiesResolver: ContextCapabilitiesResolver,
+    ): ContextSessionStore = ContextSessionStore(contextController, capabilitiesResolver)
 
     @Provides
     @Singleton

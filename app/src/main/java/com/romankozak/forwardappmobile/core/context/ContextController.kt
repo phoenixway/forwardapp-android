@@ -1,19 +1,29 @@
 package com.romankozak.forwardappmobile.core.context
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+
 interface ContextController {
-    fun current(): ContextState
+    val state: StateFlow<ContextState>
+
+    fun current(): ContextState = state.value
 
     fun update(block: (ContextState) -> ContextState)
+
+    fun set(state: ContextState)
 }
 
 class DefaultContextController(
     initial: ContextState,
 ) : ContextController {
-    private var state = initial
-
-    override fun current() = state
+    private val _state = MutableStateFlow(initial)
+    override val state: StateFlow<ContextState> = _state
 
     override fun update(block: (ContextState) -> ContextState) {
-        state = block(state)
+        _state.value = block(_state.value)
+    }
+
+    override fun set(state: ContextState) {
+        _state.value = state
     }
 }

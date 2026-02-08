@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.romankozak.forwardappmobile.core.capability.CapabilityId
+import com.romankozak.forwardappmobile.core.context.ContextViewPolicy
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionType
@@ -25,16 +27,25 @@ fun AdaptiveTopBar(
     onMoreActions: (GoalActionType) -> Unit,
     onInboxClick: () -> Unit,
     currentViewMode: ContextViewMode? = null,
+    enabledCapabilities: Set<CapabilityId> = emptySet(),
     modifier: Modifier = Modifier,
     windowInsets: WindowInsets = WindowInsets.statusBars,
 ) {
     val topPadding = windowInsets.asPaddingValues().calculateTopPadding()
+    val availableViews =
+        if (enabledCapabilities.isNotEmpty()) {
+            ContextViewPolicy.availableViews(enabledCapabilities)
+        } else {
+            emptyList()
+        }
+    val displayViewMode =
+        currentViewMode?.takeIf { availableViews.isEmpty() || it in availableViews }
 
     Column(modifier = modifier.padding(top = topPadding)) {
         if (isSelectionModeActive) {
             ListTitleBar(
                 project = project?.copy(isContextManagementEnabled = false),
-                currentViewMode = currentViewMode,
+                currentViewMode = displayViewMode,
                 onInboxClick = onInboxClick,
             )
             MultiSelectTopAppBar(
@@ -50,7 +61,7 @@ fun AdaptiveTopBar(
         } else {
             ListTitleBar(
                 project = project,
-                currentViewMode = currentViewMode,
+                currentViewMode = displayViewMode,
                 onInboxClick = onInboxClick,
             )
         }

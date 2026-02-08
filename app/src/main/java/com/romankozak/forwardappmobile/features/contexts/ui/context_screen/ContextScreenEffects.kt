@@ -15,6 +15,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
@@ -199,7 +200,7 @@ fun GoalDetailEffects(
         val recordId = uiState.inboxRecordToHighlight
         val recordsAreLoaded = inboxRecords.isNotEmpty()
         if (recordId != null && recordsAreLoaded && uiState.currentViewMode != ContextViewMode.INBOX) {
-            if (inboxRecords.any { it.id == recordId }) {
+            if (inboxRecords.any { it.id == recordId } && viewModel.hasCapability(CapabilityId("inbox"))) {
                 Log.d(TAG, "Highlight requested. Switching to INBOX view.")
                 viewModel.onProjectViewChange(ContextViewMode.INBOX)
             }

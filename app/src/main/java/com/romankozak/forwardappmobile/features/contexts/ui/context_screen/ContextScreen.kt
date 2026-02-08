@@ -39,6 +39,7 @@ import com.romankozak.forwardappmobile.features.common.components.holdmenu2.Hold
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.ModernInputPanel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.topbar.AdaptiveTopBar
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.topbar.BrowserNavigationBar
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs.EditLogEntryDialog
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs.GoalDetailDialogs
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs.ProjectDisplayPropertiesDialog
@@ -169,6 +170,7 @@ private fun ProjectScaffold(
     val canGoBack by viewModel.canGoBack.collectAsStateWithLifecycle()
     val canGoForward by viewModel.canGoForward.collectAsStateWithLifecycle()
     val suggestions by viewModel.autocompleteSuggestions.collectAsStateWithLifecycle()
+    val sessionState by viewModel.contextSessionState.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
@@ -304,29 +306,55 @@ private fun ProjectScaffold(
                         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                         colors = CardDefaults.cardColors(containerColor = topBarContainerColor),
                     ) {
-                        AdaptiveTopBar(
-                            isSelectionModeActive = uiState.isSelectionModeActive,
-                            project = project,
-                            selectedCount = uiState.selectedItemIds.size,
-                            areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
-                            onClearSelection = { viewModel.selectionHandler.clearSelection() },
-                            onSelectAll = { viewModel.selectionHandler.selectAllItems() },
-                            onDelete = { viewModel.selectionHandler.deleteSelectedItems(uiState.selectedItemIds) },
-                            onMoreActions = { actionType ->
-                                viewModel.selectionHandler.onBulkActionRequest(
-                                    actionType,
-                                    uiState.selectedItemIds,
+                        Column {
+                            AdaptiveTopBar(
+                                isSelectionModeActive = uiState.isSelectionModeActive,
+                                project = project,
+                                selectedCount = uiState.selectedItemIds.size,
+                                areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
+                                onClearSelection = { viewModel.selectionHandler.clearSelection() },
+                                onSelectAll = { viewModel.selectionHandler.selectAllItems() },
+                                onDelete = { viewModel.selectionHandler.deleteSelectedItems(uiState.selectedItemIds) },
+                                onMoreActions = { actionType ->
+                                    viewModel.selectionHandler.onBulkActionRequest(
+                                        actionType,
+                                        uiState.selectedItemIds,
+                                    )
+                                },
+                                onInboxClick = {
+                                    val today = System.currentTimeMillis()
+                                    navController.navigate("day_plan_screen/$today?startTab=INBOX")
+                                },
+                                onMarkAsComplete = { viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds) },
+                                onMarkAsIncomplete = { viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds) },
+                                currentViewMode = uiState.currentViewMode,
+                                enabledCapabilities = sessionState.enabledCapabilities,
+                                windowInsets = WindowInsets.statusBars,
+                            )
+
+                            if (!uiState.isSelectionModeActive) {
+                                BrowserNavigationBar(
+                                    canGoBack = canGoBack,
+                                    onBackClick = { viewModel.onBackPressed() },
+                                    onForwardClick = { viewModel.onForwardPressed() },
+                                    onHomeClick = { viewModel.onHomeClick() },
+                                    isAttachmentsExpanded = project?.isAttachmentsExpanded == true,
+                                    onToggleAttachments = viewModel::onToggleAttachmentsExpanded,
+                                    onEditList = {
+                                        navController.navigate("project_settings_screen?projectId=${project?.id}")
+                                    },
+                                    onShareList = { viewModel.onExportBacklogToMarkdownRequest() },
+                                    onDeleteList = { viewModel.deleteCurrentProject() },
+                                    menuExpanded = menuExpanded,
+                                    onMenuExpandedChange = { menuExpanded = it },
+                currentView = sessionState.currentView,
+                                    onViewChange = { newView -> viewModel.onProjectViewChange(newView) },
+                                    onImportFromMarkdown = viewModel::onImportBacklogFromMarkdownRequest,
+                                    onExportToMarkdown = viewModel::onExportBacklogToMarkdownRequest,
+                                    enabledCapabilities = sessionState.enabledCapabilities,
                                 )
-                            },
-                            onInboxClick = {
-                                val today = System.currentTimeMillis()
-                                navController.navigate("day_plan_screen/$today?startTab=INBOX")
-                            },
-                            onMarkAsComplete = { viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds) },
-                            onMarkAsIncomplete = { viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds) },
-                            currentViewMode = uiState.currentViewMode,
-                            windowInsets = WindowInsets.statusBars,
-                        )
+                            }
+                        }
                     }
                 }
             },
@@ -355,9 +383,10 @@ private fun ProjectScaffold(
                 modifier =
                     Modifier
                         .padding(paddingValues)
-                        .glitch(trigger = uiState.currentViewMode),
+                        .glitch(trigger = sessionState.currentView),
                 viewModel = viewModel,
                 uiState = uiState,
+                currentViewMode = sessionState.currentView,
                 listState = listState,
                 inboxListState = inboxListState,
                 onEditLog = viewModel::onEditLogEntry,
@@ -464,7 +493,7 @@ private fun ProjectBottomBar(
                 onSetReminder = { viewModel.onSetReminderForProject() },
                 menuExpanded = menuExpanded,
                 onMenuExpandedChange = onMenuExpandedChange,
-                currentView = uiState.currentViewMode,
+                currentView = sessionState.currentView,
                 onViewChange = { newView -> viewModel.onProjectViewChange(newView) },
                 onImportFromMarkdown = viewModel::onImportFromMarkdownRequest,
                 onExportToMarkdown = viewModel::onExportToMarkdownRequest,
@@ -483,6 +512,7 @@ private fun ProjectBottomBar(
                 enableBacklog = uiState.enableBacklog,
                 enableDashboard = uiState.enableDashboard,
                 enableAttachments = uiState.enableAttachments,
+                enabledCapabilitiesOverride = sessionState.enabledCapabilities,
                 // ------------------------------------
                 modifier =
                     Modifier

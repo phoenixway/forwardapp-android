@@ -92,7 +92,6 @@ fun DashboardBottomBar(
     onShowWifiImport: () -> Unit,
     onNavigateToAttachments: () -> Unit,
     onNavigateToScripts: () -> Unit,
-    onNavigateToContextLab: () -> Unit,
     onShowAbout: () -> Unit,
     featureToggles: Map<FeatureFlag, Boolean>,
     recentViewModel: RecentViewModel = hiltViewModel(),
@@ -184,14 +183,6 @@ fun DashboardBottomBar(
                             showMoreBottomSheet = false
                         }
                         onNavigateToScripts()
-                    }
-                },
-                onNavigateToContextLab = {
-                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
-                        if (!modalSheetState.isVisible) {
-                            showMoreBottomSheet = false
-                        }
-                        onNavigateToContextLab()
                     }
                 },
                 onShowAbout = {
@@ -382,7 +373,6 @@ private fun MoreBottomSheetContent(
     onShowImportExportSheet: () -> Unit,
     onNavigateToAttachments: () -> Unit,
     onNavigateToScripts: () -> Unit,
-    onNavigateToContextLab: () -> Unit,
     onShowAbout: () -> Unit,
     onNavigateToSettings: () -> Unit,
     featureToggles: Map<FeatureFlag, Boolean>,
@@ -473,21 +463,6 @@ private fun MoreBottomSheetContent(
                     Icon(Icons.Default.Code, contentDescription = "Scripts Library")
                     Spacer(modifier = Modifier.width(16.dp))
                     Text("Scripts")
-                }
-            }
-            val showContextLab = featureToggles[FeatureFlag.ContextLab] == true
-            if (showContextLab) {
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable(onClick = onNavigateToContextLab)
-                            .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(Icons.Default.Science, contentDescription = "Context Lab")
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text("Context Lab")
                 }
             }
             Row(

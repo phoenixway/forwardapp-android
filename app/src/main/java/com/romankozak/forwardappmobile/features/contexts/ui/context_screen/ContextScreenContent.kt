@@ -52,6 +52,7 @@ fun GoalDetailContent(
     modifier: Modifier = Modifier,
     viewModel: ContextScreenViewModel,
     uiState: ContextUiState,
+    currentViewMode: ContextViewMode,
     listState: LazyListState,
     inboxListState: LazyListState,
     onEditLog: (ContextLog) -> Unit,
@@ -70,7 +71,7 @@ fun GoalDetailContent(
     val isSelectionModeActive = uiState.isSelectionModeActive
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
 
-    when (uiState.currentViewMode) {
+    when (currentViewMode) {
         ContextViewMode.BACKLOG -> {
             val listContent by viewModel.listContent.collectAsStateWithLifecycle()
             BacklogListScreen(
@@ -229,7 +230,7 @@ fun GoalDetailContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text = "${uiState.currentViewMode.displayName()} View - Coming Soon!",
+                    text = "${currentViewMode.displayName()} View - Coming Soon!",
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

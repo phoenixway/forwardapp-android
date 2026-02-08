@@ -168,5 +168,4 @@ sealed interface ContextHierarchyScreenEvent {
 
     object NavigateToTacticsScreen : ContextHierarchyScreenEvent
 
-    object NavigateToContextLab : ContextHierarchyScreenEvent
 }

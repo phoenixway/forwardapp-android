@@ -15,7 +15,8 @@ import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.*
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
-import com.romankozak.forwardappmobile.core.gate.CapabilityGate
+import com.romankozak.forwardappmobile.core.context.ContextCommand
+import com.romankozak.forwardappmobile.core.context.ContextSessionStore
 import com.romankozak.forwardappmobile.core.navigation.*
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.*
@@ -56,33 +57,11 @@ import java.util.Locale
 import javax.inject.Inject
 import android.content.Context as AndroidContext
 
-private fun ContextViewMode.toCapabilityId(): CapabilityId {
-    return when (this) {
-        ContextViewMode.ADVANCED -> CapabilityId("advanced")
-        else -> CapabilityId(this.name.lowercase(Locale.ROOT))
-    }
-}
-
-private fun ContextViewMode.orderPriority() =
-    when (this) {
-        ContextViewMode.DASHBOARD -> 0
-        ContextViewMode.BACKLOG -> 1
-        ContextViewMode.INBOX -> 2
-        ContextViewMode.ADVANCED -> 3
-        ContextViewMode.ATTACHMENTS -> 4
-        ContextViewMode.DIRECTION -> 5
-        ContextViewMode.NOTES -> 6
-        ContextViewMode.LOG -> 7
-        ContextViewMode.ARTIFACT -> 8
-        ContextViewMode.VET_CASE -> 9
-    }
-
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
 class ContextScreenViewModel
     @Inject
     constructor(
-        private val capabilityGate: CapabilityGate,
         private val searchUseCase: SearchUseCase,
         private val application: Application,
         private val contextRepository: ContextRepository,
@@ -110,7 +89,7 @@ class ContextScreenViewModel
         private val contextStructureRepository: ContextStructureRepository,
         private val contextArtifactRepository: ContextArtifactRepository,
         private val contextTimeTrackingRepository: ContextTimeTrackingRepository,
-        private val capabilityHandler: ContextCapabilityHandler = ContextCapabilityHandler(),
+        private val contextSessionStore: ContextSessionStore,
     ) : ViewModel(),
         ItemActionHandler.ResultListener,
         InputHandler.ResultListener,
@@ -128,10 +107,11 @@ class ContextScreenViewModel
         val canGoBack: StateFlow<Boolean> get() = enhancedNavigationManager.canGoBack
         val canGoForward: StateFlow<Boolean> get() = enhancedNavigationManager.canGoForward
         lateinit var enhancedNavigationManager: EnhancedNavigationManager
+        val contextSessionState: StateFlow<com.romankozak.forwardappmobile.core.context.ContextSessionState> =
+            contextSessionStore.state
 
         // State managers - делегування логіки
         internal val stateManager = ContextStateManager(viewModelScope)
-        private val capabilityManager = ContextCapabilityManager(capabilityGate, capabilityHandler)
         private val tagManager = TagManager(contextRepository, viewModelScope)
         private val activityManager =
             ActivityManager(
@@ -294,6 +274,7 @@ class ContextScreenViewModel
             ProjectNavigationHandler(
                 contextRepository,
                 stateManager,
+                contextSessionStore,
                 this,
                 viewModelScope,
             )
@@ -432,41 +413,27 @@ data.context?.let { project ->
                     recentItemsRepository.logProjectAccess(project)
                 }
             }
-                            capabilityManager.updateCapabilities(data.config)
-
-                            val capabilities = capabilityManager.getEnabledCapabilities()
                             stateManager.updateState { currentState ->
-                                val availableViews =
-                                    ContextViewMode.entries
-                                        .filter { mode -> capabilities.contains(mode.toCapabilityId()) }
-                                        .sortedBy { it.orderPriority() }
-                                        .reversed()
-
-                                val firstAvailable = availableViews.firstOrNull() ?: ContextViewMode.DASHBOARD
-
-                                val newViewMode =
-                                    run {
-                                        val savedMode =
-                                            data.context
-                                                ?.defaultViewModeName
-                                                ?.let { runCatching { ContextViewMode.valueOf(it) }.getOrNull() }
-                                        when {
-                                            savedMode != null && savedMode in availableViews -> savedMode
-                                            currentState.currentViewMode in availableViews -> currentState.currentViewMode
-                                            else -> firstAvailable
-                                        }
-                                    }
+                                val session =
+                                    contextSessionStore.dispatch(
+                                        ContextCommand.SyncFromConfig(
+                                            contextId = data.context?.id ?: currentState.context?.id.orEmpty(),
+                                            config = data.config,
+                                            preferredViewName = data.context?.defaultViewModeName,
+                                            currentView = currentState.currentViewMode,
+                                        ),
+                                    )
 
                                 currentState.copy(
-                                    enableInbox = capabilities.contains(CapabilityId("inbox")),
-                                    enableLog = capabilities.contains(CapabilityId("log")),
-                                    enableArtifact = capabilities.contains(CapabilityId("artifact")),
-                                    enableBacklog = capabilities.contains(CapabilityId("backlog")),
-                                    enableDashboard = capabilities.contains(CapabilityId("dashboard")),
-                                    enableAttachments = capabilities.contains(CapabilityId("attachments")),
-                                    isProjectManagementEnabled = capabilities.contains(CapabilityId("advanced")),
+                                    enableInbox = session.enabledCapabilities.contains(CapabilityId("inbox")),
+                                    enableLog = session.enabledCapabilities.contains(CapabilityId("log")),
+                                    enableArtifact = session.enabledCapabilities.contains(CapabilityId("artifact")),
+                                    enableBacklog = session.enabledCapabilities.contains(CapabilityId("backlog")),
+                                    enableDashboard = session.enabledCapabilities.contains(CapabilityId("dashboard")),
+                                    enableAttachments = session.enabledCapabilities.contains(CapabilityId("attachments")),
+                                    isProjectManagementEnabled = session.enabledCapabilities.contains(CapabilityId("advanced")),
                                     experimentalCapabilityIds = data.config.experimentalCapabilityIds,
-                                    currentViewMode = newViewMode,
+                                    currentViewMode = session.currentView,
                                 )
                             }
                         }
@@ -550,11 +517,22 @@ data.context?.let { project ->
 
         // Delegated methods
         fun onProjectViewChange(mode: ContextViewMode) {
-            stateManager.switchViewMode(mode)
+            val session = contextSessionStore.dispatch(ContextCommand.SelectView(mode))
+            val resolved = session.currentView
+            stateManager.switchViewMode(resolved)
             val contextId = contextIdFlow.value
             if (contextId.isBlank()) return
             viewModelScope.launch(ioDispatcher) {
-                contextRepository.updateContextViewMode(contextId, mode)
+                contextRepository.updateContextViewMode(contextId, resolved)
+            }
+        }
+
+        fun onToggleAttachmentsExpanded() {
+            val context = uiState.value.context ?: return
+            viewModelScope.launch(ioDispatcher) {
+                contextRepository.updateContext(
+                    context.copy(isAttachmentsExpanded = !context.isAttachmentsExpanded),
+                )
             }
         }
 
@@ -586,7 +564,8 @@ data.context?.let { project ->
         }
 
         // Capabilities
-        fun hasCapability(capabilityId: CapabilityId) = capabilityManager.hasCapability(capabilityId)
+        fun hasCapability(capabilityId: CapabilityId) =
+            contextSessionStore.state.value.enabledCapabilities.contains(capabilityId)
 
         // Markdown Export/Import
         fun onExportBacklogToMarkdown() {
