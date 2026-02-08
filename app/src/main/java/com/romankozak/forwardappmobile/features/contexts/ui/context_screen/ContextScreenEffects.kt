@@ -15,6 +15,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
@@ -53,6 +54,10 @@ fun GoalDetailEffects(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+    val currentDestination by navController.currentBackStackEntryAsState()
+    LaunchedEffect(currentDestination) {
+        Timber.tag("DirectionLinkNav").i("Nav destination changed: %s", currentDestination?.destination?.route)
+    }
 
     val displayList =
         remember(listContent, list?.isAttachmentsExpanded) {

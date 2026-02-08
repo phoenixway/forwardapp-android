@@ -315,6 +315,7 @@ class ContextScreenViewModel
                 contextIdFlow
                     .drop(1)
                     .collect {
+                        Timber.tag("DirectionLinkNav").i("contextIdFlow changed: %s", it)
                         stateManager.updateState { it.copy(isContextSwitching = true) }
                         _listContent.value = emptyList()
                     }
@@ -456,6 +457,12 @@ data.context?.let { project ->
                                         ),
                                     )
 
+                                Timber.tag("DirectionLinkNav").i(
+                                    "ContextLoaded: id=%s defaultView=%s resolved=%s",
+                                    data.context?.id,
+                                    data.context?.defaultViewModeName,
+                                    session.currentView,
+                                )
                                 currentState.copy(
                                     enableInbox = session.enabledCapabilities.contains(CapabilityId("inbox")),
                                     enableLog = session.enabledCapabilities.contains(CapabilityId("log")),
