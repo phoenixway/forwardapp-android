@@ -89,12 +89,13 @@ class SyncFileService @Inject constructor(
         try {
             val jsonResult = contentProvider.readText(uriString)
             val jsonString = jsonResult.getOrThrow()
+            val normalizedJson = sanitizeIncomingBackupJson(jsonString)
 
-            if (jsonString.isBlank()) {
+            if (normalizedJson.isBlank()) {
                 Timber.tag(tag).w( "Parse failed: Backup file is empty or blank.")
                 return@withContext Result.failure(Exception("Backup file is empty"))
             }
-            val backupData = gson.fromJson(jsonString, FullAppBackup::class.java)
+            val backupData = gson.fromJson(normalizedJson, FullAppBackup::class.java)
             Timber.tag(tag).d( "Successfully parsed backup file object.")
             Result.success(backupData)
         } catch (e: Exception) {
@@ -143,9 +144,10 @@ class SyncFileService @Inject constructor(
         try {
             val jsonResult = contentProvider.readText(uriString)
             val jsonString = jsonResult.getOrThrow()
-            val jsonObject = JsonParser.parseString(jsonString).asJsonObject
+            val normalizedJson = sanitizeIncomingBackupJson(jsonString)
+            val jsonObject = JsonParser.parseString(normalizedJson).asJsonObject
 
-            val backupData = gson.fromJson(jsonString, FullAppBackup::class.java)
+            val backupData = gson.fromJson(normalizedJson, FullAppBackup::class.java)
 
             val snapshotBundleToApply =
                 when {
@@ -160,11 +162,11 @@ class SyncFileService @Inject constructor(
                     // Some external exports may store SnapshotBundle as top-level JSON.
                     hasSnapshotBundleKeys(jsonObject) -> {
                         Timber.tag(tag).d("Detected raw SnapshotBundle payload.")
-                        gson.fromJson(jsonString, SnapshotBundle::class.java)
+                        gson.fromJson(normalizedJson, SnapshotBundle::class.java)
                     }
                     hasDatabaseContentKeys(jsonObject) -> {
                         Timber.tag(tag).d("Detected raw DatabaseContent payload. Migrating to SnapshotBundle...")
-                        val databaseContent = gson.fromJson(jsonString, DatabaseContent::class.java)
+                        val databaseContent = gson.fromJson(normalizedJson, DatabaseContent::class.java)
                         legacyMigrationMapper.toSnapshotBundle(databaseContent)
                     }
                     else -> {
@@ -208,5 +210,12 @@ class SyncFileService @Inject constructor(
             bundle.inbox.isEmpty() &&
             bundle.logs.isEmpty() &&
             bundle.directionItems.isEmpty()
+    }
+
+    private fun sanitizeIncomingBackupJson(rawJson: String): String {
+        return rawJson.replace(
+            Regex("\"experimentalCapabilityIds\"\\s*:\\s*null"),
+            "\"experimentalCapabilityIds\":[]",
+        )
     }
 }

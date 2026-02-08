@@ -20,7 +20,7 @@ class MergeRepository @Inject constructor(
         .create()
 
     suspend fun createSyncReport(jsonString: String): SyncReport {
-        val backup = gson.fromJson(jsonString, FullAppBackup::class.java)
+        val backup = gson.fromJson(sanitizeIncomingBackupJson(jsonString), FullAppBackup::class.java)
         val incomingDb = backup.database ?: return SyncReport(emptyList())
 
         val localProjects = mergeLocalDataSource.getContexts().associateBy { it.id }
@@ -193,5 +193,12 @@ suspend fun createSyncReport(bundle: SnapshotBundle): SyncReport {
             Log.e(TAG, "Failed to apply server changes from snapshot", e)
             Result.failure(e)
         }
+    }
+
+    private fun sanitizeIncomingBackupJson(rawJson: String): String {
+        return rawJson.replace(
+            Regex("\"experimentalCapabilityIds\"\\s*:\\s*null"),
+            "\"experimentalCapabilityIds\":[]",
+        )
     }
 }
