@@ -157,7 +157,7 @@ fun DirectionView(
                                             )
                                             Spacer(modifier = Modifier.size(6.dp))
                                             Text(
-                                                text = "Linked to: $linkedName",
+                                                text = linkedName,
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.primary,
                                                 maxLines = 1,

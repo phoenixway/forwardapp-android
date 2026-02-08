@@ -68,7 +68,6 @@ import com.romankozak.forwardappmobile.features.vet_case.VetCaseHistoryScreen
 import com.romankozak.forwardappmobile.features.vet_case.VetCaseSummaryScreen
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import java.net.URLDecoder
 import java.net.URLEncoder
 
@@ -102,7 +101,6 @@ fun AppNavigation(syncDataViewModel: SyncDataViewModel) {
             when (command) {
                 is NavigationCommand.Navigate -> {
                     val options = command.builder
-                    Timber.tag("DirectionLinkNav").i("NavCommand.Navigate: route=%s", command.route)
                     navController.navigate(command.route, options ?: {})
                 }
 
@@ -269,7 +267,7 @@ private fun NavGraphBuilder.mainGraph(
 
     composable(
         route =
-            "goal_detail_screen/{listId}?goalId={goalId}&itemIdToHighlight={itemIdToHighlight}&inboxRecordIdToHighlight={inboxRecordIdToHighlight}&initialViewMode={initialViewMode}",
+            "goal_detail_screen/{listId}?goalId={goalId}&itemIdToHighlight={itemIdToHighlight}&inboxRecordIdToHighlight={inboxRecordIdToHighlight}&initialViewMode={initialViewMode}&originContextId={originContextId}",
         arguments =
             listOf(
                 navArgument("listId") { type = NavType.StringType },
@@ -286,6 +284,10 @@ private fun NavGraphBuilder.mainGraph(
                     nullable = true
                 },
                 navArgument("initialViewMode") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("originContextId") {
                     type = NavType.StringType
                     nullable = true
                 },

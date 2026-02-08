@@ -15,7 +15,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import androidx.navigation.compose.currentBackStackEntryAsState
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
@@ -26,7 +25,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
-import timber.log.Timber
 
 private const val TAG = "SendDebug"
 
@@ -54,10 +52,7 @@ fun GoalDetailEffects(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
-    val currentDestination by navController.currentBackStackEntryAsState()
-    LaunchedEffect(currentDestination) {
-        Timber.tag("DirectionLinkNav").i("Nav destination changed: %s", currentDestination?.destination?.route)
-    }
+    // Removed temporary nav logging
 
     val displayList =
         remember(listContent, list?.isAttachmentsExpanded) {
@@ -77,17 +72,11 @@ fun GoalDetailEffects(
                     if (event.target is com.romankozak.forwardappmobile.core.navigation.NavTarget.ContextDetail &&
                         currentListId == event.target.contextId
                     ) {
-                        Timber.tag("DirectionLinkNav").i("Navigate skipped (same context): %s", route)
                         return@collect
                     }
                     val isContextRoute = route.startsWith("goal_detail_screen/")
                     if (isContextRoute) {
                         val currentDestId = navController.currentBackStackEntry?.destination?.id
-                        Timber.tag("DirectionLinkNav").i(
-                            "Navigate(context-replace): route=%s currentDestId=%s",
-                            route,
-                            currentDestId,
-                        )
                         navController.navigate(route) {
                             if (currentDestId != null) {
                                 popUpTo(currentDestId) { inclusive = true }
@@ -97,13 +86,11 @@ fun GoalDetailEffects(
                         }
                         viewModel.consumeLinkedContextReplace()
                     } else if (viewModel.consumeLinkedContextReplace()) {
-                        Timber.tag("DirectionLinkNav").i("Navigate(replace): route=%s", route)
                         navController.navigate(route) {
                             launchSingleTop = true
                             restoreState = false
                         }
                     } else {
-                        Timber.tag("DirectionLinkNav").i("Navigate: route=%s", route)
                         navController.navigate(route)
                     }
                 }

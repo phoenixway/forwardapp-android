@@ -11,6 +11,7 @@ sealed interface NavTarget {
         val itemIdToHighlight: String? = null,
         val inboxRecordIdToHighlight: String? = null,
         val initialViewMode: String? = null,
+        val originContextId: String? = null,
     ) : NavTarget
 
     // -------- CONTENT --------

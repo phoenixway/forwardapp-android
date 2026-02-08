@@ -5,7 +5,6 @@ import android.app.Application
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.util.Log
-import timber.log.Timber
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
@@ -124,6 +123,7 @@ class ContextScreenViewModel
 
         // Handlers - делегування дій
         private val contextIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
+        private val originContextId: String? = savedStateHandle.get<String>("originContextId")
         private val _listContent = MutableStateFlow<List<BacklogItemContent>>(emptyList())
         val listContent: StateFlow<List<BacklogItemContent>> = _listContent.asStateFlow()
 
@@ -316,7 +316,6 @@ class ContextScreenViewModel
                 contextIdFlow
                     .drop(1)
                     .collect {
-                        Timber.tag("DirectionLinkNav").i("contextIdFlow changed: %s", it)
                         stateManager.updateState { it.copy(isContextSwitching = true) }
                         _listContent.value = emptyList()
                     }
@@ -467,12 +466,6 @@ data.context?.let { project ->
                                         )
                                     }
 
-                                Timber.tag("DirectionLinkNav").i(
-                                    "ContextLoaded: id=%s defaultView=%s resolved=%s",
-                                    data.context?.id,
-                                    preferredViewName,
-                                    session.currentView,
-                                )
                                 val enableInbox = session.enabledCapabilities.contains(CapabilityId("inbox"))
                                 val enableLog = session.enabledCapabilities.contains(CapabilityId("log"))
                                 val enableArtifact = session.enabledCapabilities.contains(CapabilityId("artifact"))
@@ -519,6 +512,19 @@ data.context?.let { project ->
         }
     }
     override fun onBackPressed(): Boolean {
+        val originId = originContextId
+        val currentId = contextIdFlow.value
+        if (!originId.isNullOrBlank() && originId != currentId) {
+            savedStateHandle.remove<String>("originContextId")
+            viewModelScope.launch {
+                _uiEventFlow.emit(
+                    UiEvent.Navigate(
+                        NavTarget.ContextDetail(contextId = originId),
+                    ),
+                )
+            }
+            return true
+        }
         viewModelScope.launch {
             // Прибираємо null, бо це значення за замовчуванням (виправляє WEAK_WARNING)
             _uiEventFlow.emit(UiEvent.ShowSnackbar("Повернення..."))
@@ -1397,13 +1403,15 @@ data.context?.let { project ->
             if (isLinkedNavigationInProgress) return
             isLinkedNavigationInProgress = true
             viewModelScope.launch {
-                Timber.tag("DirectionLinkNav").i(
-                    "openLinkedContext: from=%s to=%s",
-                    currentId,
-                    contextId,
-                )
                 pendingLinkedContextReplace = true
-                _uiEventFlow.tryEmit(UiEvent.Navigate(NavTarget.ContextDetail(contextId = contextId)))
+                _uiEventFlow.tryEmit(
+                    UiEvent.Navigate(
+                        NavTarget.ContextDetail(
+                            contextId = contextId,
+                            originContextId = currentId,
+                        ),
+                    ),
+                )
                 kotlinx.coroutines.delay(500)
                 isLinkedNavigationInProgress = false
             }

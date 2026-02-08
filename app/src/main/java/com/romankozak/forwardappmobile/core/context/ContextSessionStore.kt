@@ -60,13 +60,6 @@ class ContextSessionStore(
         val availableViews = ContextViewPolicy.availableViews(enabled)
         val preferred = preferredViewName?.let { runCatching { ContextViewMode.valueOf(it) }.getOrNull() }
         val resolved = ContextViewPolicy.resolveView(availableViews, preferred, currentView)
-        timber.log.Timber.tag("DirectionLinkNav").i(
-            "syncFromConfig: context=%s preferred=%s current=%s resolved=%s",
-            contextId,
-            preferredViewName,
-            currentView,
-            resolved,
-        )
 
         val newState =
             ContextSessionState(

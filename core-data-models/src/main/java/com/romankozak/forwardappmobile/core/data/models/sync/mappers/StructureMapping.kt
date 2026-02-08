@@ -87,6 +87,7 @@ fun ContextConfiguration.toSnapshot(): ContextConfigurationSnapshot = ContextCon
     // ВИПРАВЛЕНО: Entity має String?, а Snapshot очікує String.
     // Додаємо значення за замовчуванням (fallback).
     basePresetCode = this.basePresetCode ?: "DEFAULT",
+    experimentalCapabilityIds = this.experimentalCapabilityIds,
 
     // ВИПРАВЛЕНО: IDE каже, що applyMode в Entity вже є non-nullable String.
     // Тому оператор ?: "DEFAULT" тут зайвий (Redundant).
@@ -112,6 +113,7 @@ fun ContextConfigurationSnapshot.toEntity(): ContextConfiguration = ContextConfi
     id = id,
     contextId = contextId,
     basePresetCode = basePresetCode,
+    experimentalCapabilityIds = experimentalCapabilityIds,
     applyMode = applyMode,
     enableInbox = enableInbox,
     enableLog = enableLog,
