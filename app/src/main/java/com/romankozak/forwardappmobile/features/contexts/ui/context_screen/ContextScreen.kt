@@ -351,48 +351,57 @@ private fun ProjectScaffold(
                 }
             },
         ) { paddingValues ->
-            GoalDetailContent(
-                modifier =
-                    Modifier
-                        .padding(paddingValues)
-                        .glitch(trigger = sessionState.currentView),
-                viewModel = viewModel,
-                uiState = uiState,
-                currentViewMode = sessionState.currentView,
-                listState = listState,
-                inboxListState = inboxListState,
-                onEditLog = viewModel::onEditLogEntry,
-                onDeleteLog = viewModel::onDeleteLogEntry,
-                onSaveArtifact = viewModel::onSaveArtifact,
-                onEditArtifact = viewModel::onEditArtifact,
-                onRemindersClick = { item ->
-                    // Використовуємо 'as?', щоб не падати, якщо прийшов не той тип
-                    val safeItem = item as? BacklogItemContent
+            if (uiState.isContextSwitching) {
+                Box(
+                    modifier =
+                        Modifier
+                            .padding(paddingValues)
+                            .fillMaxSize(),
+                )
+            } else {
+                GoalDetailContent(
+                    modifier =
+                        Modifier
+                            .padding(paddingValues)
+                            .glitch(trigger = sessionState.currentView),
+                    viewModel = viewModel,
+                    uiState = uiState,
+                    currentViewMode = sessionState.currentView,
+                    listState = listState,
+                    inboxListState = inboxListState,
+                    onEditLog = viewModel::onEditLogEntry,
+                    onDeleteLog = viewModel::onDeleteLogEntry,
+                    onSaveArtifact = viewModel::onSaveArtifact,
+                    onEditArtifact = viewModel::onEditArtifact,
+                    onRemindersClick = { item ->
+                        // Використовуємо 'as?', щоб не падати, якщо прийшов не той тип
+                        val safeItem = item as? BacklogItemContent
 
-                    if (safeItem != null) {
-                        selectedItemForReminders = safeItem
-                        showRemindersListDialog = true
-                    } else {
-                        // Це допоможе вам побачити в логах, що саме прилітає насправді
-                        Log.e("TYPE_ERROR", "Очікували BacklogItemContent, але прийшло: ${item::class.java.simpleName}")
-                    }
-                },
-                onShowProjectProperties = {
-                    menuExpanded = false
-                    navController.navigate("project_settings_screen?projectId=${project?.id}")
-                },
-                onSwitchView = viewModel::onProjectViewChange,
-                onLinkDirectionRequest = { itemId ->
-                    viewModel.onLinkDirectionItemRequest(itemId)
-                },
-                onUnlinkDirectionRequest = { itemId ->
-                    viewModel.onUnlinkDirectionItem(itemId)
-                },
-                onOpenLinkedDirectionContext = { contextId ->
-                    viewModel.openLinkedContext(contextId)
-                },
-                linkedContextNames = uiState.linkedContextNames,
-            )
+                        if (safeItem != null) {
+                            selectedItemForReminders = safeItem
+                            showRemindersListDialog = true
+                        } else {
+                            // Це допоможе вам побачити в логах, що саме прилітає насправді
+                            Log.e("TYPE_ERROR", "Очікували BacklogItemContent, але прийшло: ${item::class.java.simpleName}")
+                        }
+                    },
+                    onShowProjectProperties = {
+                        menuExpanded = false
+                        navController.navigate("project_settings_screen?projectId=${project?.id}")
+                    },
+                    onSwitchView = viewModel::onProjectViewChange,
+                    onLinkDirectionRequest = { itemId ->
+                        viewModel.onLinkDirectionItemRequest(itemId)
+                    },
+                    onUnlinkDirectionRequest = { itemId ->
+                        viewModel.onUnlinkDirectionItem(itemId)
+                    },
+                    onOpenLinkedDirectionContext = { contextId ->
+                        viewModel.openLinkedContext(contextId)
+                    },
+                    linkedContextNames = uiState.linkedContextNames,
+                )
+            }
         }
 
         HoldMenu2Overlay(

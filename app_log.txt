@@ -1,3 +1,3 @@
-2026-02-08 18:04:10.470 I/DirectionLinkNav: NavCommand.Navigate: route=goal_detail_screen/d13c6109-7357-4491-9e9e-7a9109b7a5c7
-2026-02-08 18:04:12.353 I/DirectionLinkNav: openLinkedContext: from=d13c6109-7357-4491-9e9e-7a9109b7a5c7 to=8bb0b2da-b6f6-4661-92fd-b5bf2eec5d4e
-2026-02-08 18:04:12.357 I/DirectionLinkNav: Navigate(replace): current=d13c6109-7357-4491-9e9e-7a9109b7a5c7 route=goal_detail_screen/8bb0b2da-b6f6-4661-92fd-b5bf2eec5d4e
+2026-02-08 18:56:50.991 I/DirectionLinkNav: NavCommand.Navigate: route=goal_detail_screen/d13c6109-7357-4491-9e9e-7a9109b7a5c7
+2026-02-08 18:56:54.009 I/DirectionLinkNav: openLinkedContext: from=d13c6109-7357-4491-9e9e-7a9109b7a5c7 to=sys_personal-management
+2026-02-08 18:56:54.012 I/DirectionLinkNav: Navigate(replace-context): current=d13c6109-7357-4491-9e9e-7a9109b7a5c7 route=goal_detail_screen/sys_personal-management

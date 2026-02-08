@@ -161,6 +161,7 @@ data class ContextUiState(
     val reminders: List<Reminder> = emptyList(),
     val recentItems: List<RecentItem> = emptyList(),
     val notes: List<LegacyNoteEntity> = emptyList(),
+    val isContextSwitching: Boolean = false,
     // UI State - View Mode & Navigation
     val currentViewMode: ContextViewMode = ContextViewMode.DASHBOARD,
     val currentTab: ContextManagementTab = ContextManagementTab.Dashboard,

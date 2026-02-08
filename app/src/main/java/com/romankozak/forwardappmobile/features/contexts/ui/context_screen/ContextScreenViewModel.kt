@@ -315,8 +315,8 @@ class ContextScreenViewModel
                 contextIdFlow
                     .drop(1)
                     .collect {
+                        stateManager.updateState { it.copy(isContextSwitching = true) }
                         _listContent.value = emptyList()
-                        stateManager.clear()
                     }
             }
         }
@@ -466,12 +466,14 @@ data.context?.let { project ->
                                     isProjectManagementEnabled = session.enabledCapabilities.contains(CapabilityId("advanced")),
                                     experimentalCapabilityIds = data.config.experimentalCapabilityIds,
                                     currentViewMode = session.currentView,
+                                    isContextSwitching = false,
                                 )
                             }
                         }
                         is ContextData.Empty -> {
                             _listContent.value = emptyList()
                             stateManager.clear()
+                            stateManager.updateState { it.copy(isContextSwitching = false) }
                         }
                     }
                 }
