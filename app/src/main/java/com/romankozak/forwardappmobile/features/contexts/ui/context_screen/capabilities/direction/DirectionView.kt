@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capa
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,6 +20,7 @@ import androidx.compose.material.icons.outlined.DragIndicator
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.LinkOff
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -118,10 +118,6 @@ fun DirectionView(
                                 modifier =
                                     Modifier
                                         .fillMaxWidth()
-                                        .clickable(
-                                            enabled = item.linkedContextId != null,
-                                            onClick = { onOpenLinkedContext(item.linkedContextId!!) },
-                                        )
                                         .padding(horizontal = 12.dp, vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
@@ -152,13 +148,22 @@ fun DirectionView(
                                     if (item.linkedContextId != null) {
                                         val linkedName = linkedContextNames[item.linkedContextId] ?: "Linked context"
                                         Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = linkedName,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                        )
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.Link,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(14.dp),
+                                            )
+                                            Spacer(modifier = Modifier.size(6.dp))
+                                            Text(
+                                                text = "Linked to: $linkedName",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        }
                                     }
                                 }
                                 IconButton(
@@ -193,6 +198,20 @@ fun DirectionView(
                                         imageVector = if (item.linkedContextId == null) Icons.Outlined.Link else Icons.Outlined.LinkOff,
                                         contentDescription = if (item.linkedContextId == null) "Link direction" else "Unlink direction",
                                     )
+                                }
+                                if (item.linkedContextId != null) {
+                                    IconButton(
+                                        onClick = { onOpenLinkedContext(item.linkedContextId!!) },
+                                        colors =
+                                            IconButtonDefaults.iconButtonColors(
+                                                contentColor = MaterialTheme.colorScheme.primary,
+                                            ),
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                                            contentDescription = "Open linked context",
+                                        )
+                                    }
                                 }
                                 IconButton(
                                     onClick = { onDeleteItem(item.id) },

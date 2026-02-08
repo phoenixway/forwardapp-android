@@ -188,6 +188,7 @@ class ContextScreenViewModel
 
         private var pendingAttachmentShare: BacklogItemContent? = null
         private var pendingDirectionLinkItemId: String? = null
+        private var isLinkedNavigationInProgress: Boolean = false
 
         // Exposed StateFlows
         val uiState: StateFlow<ContextUiState> = stateManager.uiState
@@ -1329,6 +1330,25 @@ data.context?.let { project ->
             val item = uiState.value.directionItems.firstOrNull { it.id == itemId } ?: return
             viewModelScope.launch(ioDispatcher) {
                 directionRepository.updateDirectionItem(item.copy(linkedContextId = linkedContextId))
+            }
+        }
+
+        fun openLinkedContext(contextId: String) {
+            val currentId = contextIdFlow.value
+            if (contextId.isBlank() || contextId == currentId) {
+                showSnackbar("Це поточний контекст.", null)
+                return
+            }
+            if (isLinkedNavigationInProgress) return
+            isLinkedNavigationInProgress = true
+            viewModelScope.launch {
+                val projectName =
+                    withContext(ioDispatcher) {
+                        contextRepository.getContextById(contextId)?.name ?: "Context"
+                    }
+                enhancedNavigationManager.navigateToProject(contextId, projectName)
+                kotlinx.coroutines.delay(500)
+                isLinkedNavigationInProgress = false
             }
         }
 

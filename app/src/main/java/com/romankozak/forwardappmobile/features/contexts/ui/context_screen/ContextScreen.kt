@@ -396,7 +396,7 @@ private fun ProjectScaffold(
                     viewModel.onUnlinkDirectionItem(itemId)
                 },
                 onOpenLinkedDirectionContext = { contextId ->
-                    viewModel.requestNavigation("goal_detail_screen/$contextId")
+                    viewModel.openLinkedContext(contextId)
                 },
                 linkedContextNames = uiState.linkedContextNames,
             )
