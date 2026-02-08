@@ -290,13 +290,6 @@ private fun ProjectScaffold(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
-                                .sharedElement(
-                                    sharedContentState = rememberSharedContentState(key = "project-card-$projectId"),
-                                    animatedVisibilityScope = animatedVisibilityScope,
-                                    boundsTransform = { _, _ ->
-                                        tween(durationMillis = 600, easing = FastOutSlowInEasing)
-                                    },
-                                )
                                 .graphicsLayer {
                                     scaleX = glow
                                     scaleY = glow
