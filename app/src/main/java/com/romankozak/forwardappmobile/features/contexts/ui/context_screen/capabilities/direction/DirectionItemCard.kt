@@ -24,6 +24,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -41,6 +42,7 @@ fun DirectionItemCard(
     onDelete: () -> Unit,
     onOpenLinkedContext: (String) -> Unit,
 ) {
+    val linkedContextId = item.linkedContextId
     val elevation by animateDpAsState(
         targetValue = if (isDragging) 6.dp else 0.dp,
         label = "directionElevation",
@@ -79,7 +81,7 @@ fun DirectionItemCard(
                     overflow = TextOverflow.Ellipsis,
                 )
 
-                if (item.linkedContextId != null) {
+                if (linkedContextId != null) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
@@ -91,7 +93,7 @@ fun DirectionItemCard(
                             modifier = Modifier.weight(1f),
                         )
                         IconButton(
-                            onClick = { onOpenLinkedContext(item.linkedContextId) },
+                            onClick = { onOpenLinkedContext(linkedContextId) },
                             colors =
                                 IconButtonDefaults.iconButtonColors(
                                     contentColor = MaterialTheme.colorScheme.primary,
