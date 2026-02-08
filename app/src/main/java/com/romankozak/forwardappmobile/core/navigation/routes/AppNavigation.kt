@@ -82,7 +82,6 @@ const val PLACEHOLDER_ROUTE = "placeholder_screen/{viewId}/{screenId}"
 const val KANBAN_ROUTE = "kanban_screen"
 const val VET_CASE_SUMMARY_ROUTE = "vet_case_summary_screen"
 const val VET_CASE_HISTORY_ROUTE = "vet_case_history_screen"
-const val EXPERIMENTAL_HIERARCHY_ROUTE = "experimental_hierarchy_screen"
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -538,10 +537,6 @@ private fun NavGraphBuilder.mainGraph(
 
     composable("tactical_management_screen") { TacticalManagementScreen() }
 
-
-    composable(EXPERIMENTAL_HIERARCHY_ROUTE) {
-        ExperimentalHierarchyScreen()
-    }
 
     composable(AI_INSIGHTS_ROUTE) { AiInsightsScreen(navController = navController) }
 
