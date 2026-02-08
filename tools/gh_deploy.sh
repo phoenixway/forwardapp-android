@@ -153,15 +153,16 @@ echo -e "${GREEN}Build successful. Downloading artifact...${NC}"
 
 # ------------------ DOWNLOAD ------------------
 
-TMP_DL_DIR=".tmp/forwardapp_gh_build_$RUN_ID"
-mkdir -p "$TMP_DL_DIR"
+mkdir -p "$DIST_DIR"
 
 gh run download "$RUN_ID" \
     -n "$ARTIFACT_NAME" \
-    -D "$TMP_DL_DIR"
+    -D "$DIST_DIR"
 
-APK_FILE=$(find "$TMP_DL_DIR" -name "*universal*.apk" | head -n 1)
-[ -z "$APK_FILE" ] && APK_FILE=$(find "$TMP_DL_DIR" -name "*arm64-v8a*.apk" | head -n 1)
+ARTIFACT_DIR="$DIST_DIR/$ARTIFACT_NAME"
+
+APK_FILE=$(find "$ARTIFACT_DIR" -name "*universal*.apk" | head -n 1)
+[ -z "$APK_FILE" ] && APK_FILE=$(find "$ARTIFACT_DIR" -name "*arm64-v8a*.apk" | head -n 1)
 
 if [ -z "$APK_FILE" ]; then
     echo -e "${RED}APK not found in artifact.${NC}"
@@ -173,13 +174,21 @@ echo -e "${GREEN}Downloaded: $F_NAME${NC}"
 
 # ------------------ DEPLOY ------------------
 
-if [ "$HOST" == "pc" ]; then
-    mkdir -p "$DIST_DIR"
-    cp "$APK_FILE" "$DIST_DIR/"
-    echo -e "${GREEN}Saved to: $DIST_DIR/$F_NAME${NC}"
+SAVED_APK="$APK_FILE"
+echo -e "${GREEN}Saved to: $SAVED_APK${NC}"
+
+if [ "$HOST" == "device" ]; then
+    echo ""
+    read -p "Встановити APK через install_apk.sh? [y/N]: " install_choice
+    if [[ "$install_choice" =~ ^[Yy]$ ]]; then
+        if [ ! -x "$INSTALL_SCRIPT" ]; then
+            echo -e "${RED}Install script not found or not executable: $INSTALL_SCRIPT${NC}"
+        else
+            "$INSTALL_SCRIPT" "$SAVED_APK"
+        fi
+    fi
 fi
 
 show_logging_advice "$RUN_ID"
 
-rm -rf "$TMP_DL_DIR"
 echo -e "\n${BLUE}Done.${NC}"

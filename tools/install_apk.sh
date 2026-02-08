@@ -79,19 +79,26 @@ if echo "$RISH_COPY_OUTPUT" | rg -q "Request timeout"; then
 fi
 
 # --- Встановлення ---
-info "Встановлення APK"
-RISH_INSTALL_OUTPUT=$(~/bin/rish -c "pm install -r /tmp/app.apk" 2>&1 || true)
+while true; do
+  info "Встановлення APK"
+  RISH_INSTALL_OUTPUT=$(~/bin/rish -c "pm install -r /tmp/app.apk" 2>&1 || true)
 
-if echo "$RISH_INSTALL_OUTPUT" | rg -q "Request timeout"; then
-  die "Timeout під час встановлення (Shizuku недоступний)"
-fi
+  if echo "$RISH_INSTALL_OUTPUT" | rg -q "Request timeout"; then
+    warn "Timeout під час встановлення (Shizuku недоступний)"
+  fi
 
-if echo "$RISH_INSTALL_OUTPUT" | rg -q "Success"; then
-  success "APK встановлено успішно"
-else
-  die "pm install завершився помилкою:
+  if echo "$RISH_INSTALL_OUTPUT" | rg -q "Success"; then
+    success "APK встановлено успішно"
+    break
+  fi
+
+  warn "pm install завершився помилкою:
 $RISH_INSTALL_OUTPUT"
-fi
+  read -p "Повторити встановлення? [y/N]: " retry_choice
+  if [[ ! "$retry_choice" =~ ^[Yy]$ ]]; then
+    die "Встановлення перервано користувачем"
+  fi
+done
 
 # --- Cleanup ---
 info "Очищення тимчасових файлів"

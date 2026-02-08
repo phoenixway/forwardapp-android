@@ -191,6 +191,7 @@ class ContextScreenViewModel
         private var pendingDirectionLinkItemId: String? = null
         private var isLinkedNavigationInProgress: Boolean = false
         private var pendingLinkedContextReplace: Boolean = false
+        private var lastSyncKey: Triple<String, String?, ContextViewMode>? = null
 
         // Exposed StateFlows
         val uiState: StateFlow<ContextUiState> = stateManager.uiState
@@ -447,34 +448,64 @@ data.context?.let { project ->
                 }
             }
                             stateManager.updateState { currentState ->
+                                val contextId = data.context?.id ?: currentState.context?.id.orEmpty()
+                                val preferredViewName = data.context?.defaultViewModeName
+                                val syncKey = Triple(contextId, preferredViewName, currentState.currentViewMode)
                                 val session =
-                                    contextSessionStore.dispatch(
-                                        ContextCommand.SyncFromConfig(
-                                            contextId = data.context?.id ?: currentState.context?.id.orEmpty(),
-                                            config = data.config,
-                                            preferredViewName = data.context?.defaultViewModeName,
-                                            currentView = currentState.currentViewMode,
-                                        ),
-                                    )
+                                    if (lastSyncKey == syncKey) {
+                                        contextSessionStore.state.value
+                                    } else {
+                                        lastSyncKey = syncKey
+                                        contextSessionStore.dispatch(
+                                            ContextCommand.SyncFromConfig(
+                                                contextId = contextId,
+                                                config = data.config,
+                                                preferredViewName = preferredViewName,
+                                                currentView = currentState.currentViewMode,
+                                            ),
+                                        )
+                                    }
 
                                 Timber.tag("DirectionLinkNav").i(
                                     "ContextLoaded: id=%s defaultView=%s resolved=%s",
                                     data.context?.id,
-                                    data.context?.defaultViewModeName,
+                                    preferredViewName,
                                     session.currentView,
                                 )
-                                currentState.copy(
-                                    enableInbox = session.enabledCapabilities.contains(CapabilityId("inbox")),
-                                    enableLog = session.enabledCapabilities.contains(CapabilityId("log")),
-                                    enableArtifact = session.enabledCapabilities.contains(CapabilityId("artifact")),
-                                    enableBacklog = session.enabledCapabilities.contains(CapabilityId("backlog")),
-                                    enableDashboard = session.enabledCapabilities.contains(CapabilityId("dashboard")),
-                                    enableAttachments = session.enabledCapabilities.contains(CapabilityId("attachments")),
-                                    isProjectManagementEnabled = session.enabledCapabilities.contains(CapabilityId("advanced")),
-                                    experimentalCapabilityIds = data.config.experimentalCapabilityIds,
-                                    currentViewMode = session.currentView,
-                                    isContextSwitching = false,
-                                )
+                                val enableInbox = session.enabledCapabilities.contains(CapabilityId("inbox"))
+                                val enableLog = session.enabledCapabilities.contains(CapabilityId("log"))
+                                val enableArtifact = session.enabledCapabilities.contains(CapabilityId("artifact"))
+                                val enableBacklog = session.enabledCapabilities.contains(CapabilityId("backlog"))
+                                val enableDashboard = session.enabledCapabilities.contains(CapabilityId("dashboard"))
+                                val enableAttachments = session.enabledCapabilities.contains(CapabilityId("attachments"))
+                                val isProjectManagementEnabled = session.enabledCapabilities.contains(CapabilityId("advanced"))
+
+                                if (currentState.enableInbox == enableInbox &&
+                                    currentState.enableLog == enableLog &&
+                                    currentState.enableArtifact == enableArtifact &&
+                                    currentState.enableBacklog == enableBacklog &&
+                                    currentState.enableDashboard == enableDashboard &&
+                                    currentState.enableAttachments == enableAttachments &&
+                                    currentState.isProjectManagementEnabled == isProjectManagementEnabled &&
+                                    currentState.experimentalCapabilityIds == data.config.experimentalCapabilityIds &&
+                                    currentState.currentViewMode == session.currentView &&
+                                    !currentState.isContextSwitching
+                                ) {
+                                    currentState
+                                } else {
+                                    currentState.copy(
+                                        enableInbox = enableInbox,
+                                        enableLog = enableLog,
+                                        enableArtifact = enableArtifact,
+                                        enableBacklog = enableBacklog,
+                                        enableDashboard = enableDashboard,
+                                        enableAttachments = enableAttachments,
+                                        isProjectManagementEnabled = isProjectManagementEnabled,
+                                        experimentalCapabilityIds = data.config.experimentalCapabilityIds,
+                                        currentViewMode = session.currentView,
+                                        isContextSwitching = false,
+                                    )
+                                }
                             }
                         }
                         is ContextData.Empty -> {
