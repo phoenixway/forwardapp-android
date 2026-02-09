@@ -91,7 +91,7 @@ fun ModernInputPanel(
             experimentalCapabilityIds,
             enabledCapabilitiesOverride,
         ) {
-            enabledCapabilitiesOverride ?: buildSet {
+            buildSet {
                 // 1. Додаємо старі прапорці (Legacy/UI)
                 if (enableInbox) add(CapabilityId("inbox"))
                 if (enableLog) add(CapabilityId("log"))
@@ -106,6 +106,10 @@ fun ModernInputPanel(
                     val normalized = runCatching { id.raw.trim() }.getOrNull()?.takeIf { it.isNotEmpty() } ?: return@forEach
                     add(CapabilityId(normalized))
                 }
+
+                // 3. Session override додаємо зверху, але не замінюємо локальні прапорці повністю.
+                // Це дозволяє уникнути коротких станів, коли сесія ще не пересинхронизована.
+                enabledCapabilitiesOverride?.forEach { add(it) }
             }
         }
 
