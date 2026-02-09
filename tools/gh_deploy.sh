@@ -19,6 +19,15 @@ BUILD_LOG="$PROJECT_ROOT/build.log"
 ERROR_LOG="$PROJECT_ROOT/error.log"
 
 RUN_ID=""
+KEEP_ALL_APKS="false"
+
+for arg in "$@"; do
+    case "$arg" in
+        --keep-all-apks)
+            KEEP_ALL_APKS="true"
+            ;;
+    esac
+done
 
 # ------------------ SAFE LOGGING ------------------
 
@@ -163,6 +172,15 @@ gh run download "$RUN_ID" \
     -D "$ARTIFACT_DIR"
 
 APK_FILE=$(find "$ARTIFACT_DIR" -name "*universal*.apk" | head -n 1)
+
+if [ "$KEEP_ALL_APKS" != "true" ]; then
+    if [ -n "$APK_FILE" ]; then
+        find "$ARTIFACT_DIR" -name "*.apk" ! -name "*universal*.apk" -delete
+    else
+        echo -e "${YELLOW}Universal APK не знайдено, залишаю всі APK у dist.${NC}"
+    fi
+fi
+
 [ -z "$APK_FILE" ] && APK_FILE=$(find "$ARTIFACT_DIR" -name "*arm64-v8a*.apk" | head -n 1)
 
 if [ -z "$APK_FILE" ]; then

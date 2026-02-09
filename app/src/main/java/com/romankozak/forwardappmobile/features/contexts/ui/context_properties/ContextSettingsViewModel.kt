@@ -136,6 +136,7 @@ class ContextSettingsViewModel
             id: CapabilityId,
             config: ContextConfiguration?,
         ): Boolean {
+            if (id.raw == "dashboard") return true
             if (config == null) return id.raw != "advanced" // дефолтні налаштування для порожнього конфігу
 
             // Перевірка через роль
@@ -287,7 +288,7 @@ class ContextSettingsViewModel
                         enableLog = presetCapabilities.contains(CapabilityId("log")),
                         enableArtifact = presetCapabilities.contains(CapabilityId("artifact")),
                         enableAdvanced = presetCapabilities.contains(CapabilityId("advanced")),
-                        enableDashboard = presetCapabilities.contains(CapabilityId("dashboard")),
+                        enableDashboard = true,
                         enableBacklog = presetCapabilities.contains(CapabilityId("backlog")),
                         enableAttachments = presetCapabilities.contains(CapabilityId("attachments")),
                         enableAutoLinkSubprojects = presetCapabilities.contains(CapabilityId("auto_link_subprojects")),

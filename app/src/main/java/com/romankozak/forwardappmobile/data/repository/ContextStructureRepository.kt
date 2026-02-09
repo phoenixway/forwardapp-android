@@ -39,7 +39,7 @@ class ContextStructureRepository
                         enableLog = capabilities.contains("log"),
                         enableArtifact = capabilities.contains("artifact"),
                         enableAdvanced = capabilities.contains("advanced"),
-                        enableDashboard = capabilities.contains("dashboard"),
+                        enableDashboard = true,
                         enableBacklog = capabilities.contains("backlog"),
                         enableAttachments = capabilities.contains("attachments"),
                         enableAutoLinkSubprojects = capabilities.contains("auto_link_subprojects"),

@@ -6,6 +6,8 @@ import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
 // import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
 
 fun ContextConfiguration.has(id: CapabilityId): Boolean {
+    if (id.raw == "dashboard") return true
+
     // 1. Виправлено: activeCapabilities -> experimentalCapabilityIds
     // 2. Виправлено: baseRoleCode -> basePresetCode
     // 3. Додано перевірку на null для basePresetCode
