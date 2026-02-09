@@ -1471,3 +1471,19 @@ val MIGRATION_101_102 =
             )
         }
     }
+
+val MIGRATION_102_103 =
+    object : Migration(102, 103) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `day_tasks` ADD COLUMN `linkedProjectIds` TEXT")
+            db.execSQL("ALTER TABLE `day_tasks` ADD COLUMN `linkedAttachmentIds` TEXT")
+        }
+    }
+
+val MIGRATION_103_104 =
+    object : Migration(103, 104) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `day_plans` ADD COLUMN `linkedProjectIds` TEXT")
+            db.execSQL("ALTER TABLE `day_plans` ADD COLUMN `linkedAttachmentIds` TEXT")
+        }
+    }

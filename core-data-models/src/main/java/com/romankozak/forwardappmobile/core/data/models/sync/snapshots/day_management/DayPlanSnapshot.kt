@@ -6,6 +6,8 @@ data class DayPlanSnapshot(
     @SerializedName("id") val id: String,
     @SerializedName("date") val date: Long,
     @SerializedName("name") val name: String?,
+    @SerializedName("linkedProjectIds") val linkedProjectIds: List<String>?,
+    @SerializedName("linkedAttachmentIds") val linkedAttachmentIds: List<String>?,
     @SerializedName("status") val status: String,
     @SerializedName("reflection") val reflection: String?,
     @SerializedName("energyLevel") val energyLevel: Int?,

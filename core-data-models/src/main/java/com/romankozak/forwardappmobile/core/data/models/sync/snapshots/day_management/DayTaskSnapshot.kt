@@ -9,6 +9,8 @@ data class DayTaskSnapshot(
     @SerializedName("description") val description: String?,
     @SerializedName("goalId") val goalId: String?,
     @SerializedName("projectId") val projectId: String?,
+    @SerializedName("linkedProjectIds") val linkedProjectIds: List<String>?,
+    @SerializedName("linkedAttachmentIds") val linkedAttachmentIds: List<String>?,
     @SerializedName("activityRecordId") val activityRecordId: String?,
     @SerializedName("recurringTaskId") val recurringTaskId: String?,
     @SerializedName("taskType") val taskType: String?,

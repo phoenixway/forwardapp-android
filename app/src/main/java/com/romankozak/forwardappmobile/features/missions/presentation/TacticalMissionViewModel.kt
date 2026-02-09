@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.AddTacticalMissionUseCase
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.DeleteTacticalMissionUseCase
@@ -33,6 +34,7 @@ class TacticalMissionViewModel
         private val missionRepository: MissionRepository,
         private val contextRepository: ContextRepository,
         private val attachmentsRepository: AttachmentsRepository,
+        private val settingsRepository: SettingsRepository,
     ) : ViewModel() {
         private val _missions = MutableStateFlow<List<TacticalMission>>(emptyList())
         val missions: StateFlow<List<TacticalMission>> = _missions.asStateFlow()
@@ -45,6 +47,12 @@ class TacticalMissionViewModel
 
         private val _isAddMissionDialogOpen = MutableStateFlow(false)
         val isAddMissionDialogOpen: StateFlow<Boolean> = _isAddMissionDialogOpen.asStateFlow()
+
+        private val _boardLinkedProjectIds = MutableStateFlow<List<String>>(emptyList())
+        val boardLinkedProjectIds: StateFlow<List<String>> = _boardLinkedProjectIds.asStateFlow()
+
+        private val _boardLinkedAttachmentIds = MutableStateFlow<List<String>>(emptyList())
+        val boardLinkedAttachmentIds: StateFlow<List<String>> = _boardLinkedAttachmentIds.asStateFlow()
 
         init {
             loadMissions()
@@ -63,6 +71,14 @@ class TacticalMissionViewModel
                     _attachmentOptions.value = results.mapNotNull { it.toAttachmentOption() }
                     // Переконайтеся, що toAttachmentOption() визначено для AttachmentLibraryQueryResult
                 }
+                .launchIn(viewModelScope)
+
+            settingsRepository.tacticalLinkedProjectIdsFlow
+                .onEach { ids -> _boardLinkedProjectIds.value = ids.toList() }
+                .launchIn(viewModelScope)
+
+            settingsRepository.tacticalLinkedAttachmentIdsFlow
+                .onEach { ids -> _boardLinkedAttachmentIds.value = ids.toList() }
                 .launchIn(viewModelScope)
         }
 
@@ -158,6 +174,26 @@ class TacticalMissionViewModel
 
         fun dismissAddMissionDialog() {
             _isAddMissionDialogOpen.value = false
+        }
+
+        fun addBoardProjectLink(projectId: String) {
+            val updated = (_boardLinkedProjectIds.value + projectId).distinct().toSet()
+            viewModelScope.launch { settingsRepository.setTacticalLinkedProjectIds(updated) }
+        }
+
+        fun removeBoardProjectLink(projectId: String) {
+            val updated = _boardLinkedProjectIds.value.filterNot { it == projectId }.toSet()
+            viewModelScope.launch { settingsRepository.setTacticalLinkedProjectIds(updated) }
+        }
+
+        fun addBoardAttachmentLink(attachmentId: String) {
+            val updated = (_boardLinkedAttachmentIds.value + attachmentId).distinct().toSet()
+            viewModelScope.launch { settingsRepository.setTacticalLinkedAttachmentIds(updated) }
+        }
+
+        fun removeBoardAttachmentLink(attachmentId: String) {
+            val updated = _boardLinkedAttachmentIds.value.filterNot { it == attachmentId }.toSet()
+            viewModelScope.launch { settingsRepository.setTacticalLinkedAttachmentIds(updated) }
         }
     }
 

@@ -77,7 +77,6 @@ fun ProjectHierarchyScreenScaffold(
 ) {
     val holdMenuController = rememberHoldMenu2()
     val listState = rememberLazyListState()
-    var showContextSheet by remember { mutableStateOf(false) }
     var showSearchHistorySheet by remember { mutableStateOf(false) }
 
     val backHandlerEnabled by remember(uiState.subStateStack, uiState.currentBreadcrumbs, uiState.areAnyProjectsExpanded) {
@@ -188,16 +187,9 @@ fun ProjectHierarchyScreenScaffold(
                             onHomeClick = { onEvent(ContextHierarchyScreenEvent.HomeClick) },
                             onStrManagementClick = { onEvent(ContextHierarchyScreenEvent.NavigateToStrategicManagement) },
                             strategicManagementEnabled = uiState.featureToggles[FeatureFlag.StrategicManagement] == true,
-                            aiChatEnabled = uiState.featureToggles[FeatureFlag.AiChat] == true,
-                            aiInsightsEnabled = uiState.featureToggles[FeatureFlag.AiInsights] == true,
-                            aiLifeManagementEnabled = uiState.featureToggles[FeatureFlag.AiLifeManagement] == true,
                             isExpanded = uiState.isBottomNavExpanded,
                             onExpandedChange = { expanded -> onEvent(ContextHierarchyScreenEvent.BottomNavExpandedChange(expanded)) },
-                            onAiChatClick = { onEvent(ContextHierarchyScreenEvent.NavigateToChat) },
                             onActivityTrackerClick = { onEvent(ContextHierarchyScreenEvent.NavigateToActivityTracker) },
-                            onInsightsClick = { onEvent(ContextHierarchyScreenEvent.NavigateToAiInsights) },
-                            onLifeStateClick = { onEvent(ContextHierarchyScreenEvent.NavigateToLifeState) },
-                            onContextsClick = { showContextSheet = true },
                             onEvent = onEvent,
                         )
                     }
@@ -318,17 +310,6 @@ fun ProjectHierarchyScreenScaffold(
             onDismiss = { onEvent(ContextHierarchyScreenEvent.HideHistory) },
         )
     }
-
-    ContextBottomSheet(
-        showSheet = showContextSheet,
-        onDismiss = { showContextSheet = false },
-        contexts = uiState.allContexts,
-        contextMarkerToEmojiMap = uiState.contextMarkerToEmojiMap,
-        onContextSelected = {
-            onEvent(ContextHierarchyScreenEvent.ContextSelected(it))
-            showContextSheet = false
-        },
-    )
 
     SearchHistoryBottomSheet(
         showSheet = showSearchHistorySheet,

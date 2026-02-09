@@ -407,6 +407,8 @@ class SettingsRepository
         val mediumTagKey = stringPreferencesKey("medium_planning_tag")
         val longTagKey = stringPreferencesKey("long_planning_tag")
         private val isBottomNavExpandedKey = booleanPreferencesKey("is_bottom_nav_expanded")
+        private val tacticalLinkedProjectIdsKey = stringSetPreferencesKey("tactical_linked_project_ids")
+        private val tacticalLinkedAttachmentIdsKey = stringSetPreferencesKey("tactical_linked_attachment_ids")
 
         companion object {
             val OLLAMA_FAST_MODEL_KEY = stringPreferencesKey("ollama_fast_model")
@@ -779,6 +781,38 @@ class SettingsRepository
         suspend fun saveBottomNavExpanded(isExpanded: Boolean) {
             context.dataStore.edit { settings ->
                 settings[isBottomNavExpandedKey] = isExpanded
+            }
+        }
+
+        val tacticalLinkedProjectIdsFlow: Flow<Set<String>> =
+            context.dataStore.data
+                .map { preferences ->
+                    try {
+                        preferences[tacticalLinkedProjectIdsKey] ?: emptySet()
+                    } catch (e: ClassCastException) {
+                        emptySet()
+                    }
+                }
+
+        val tacticalLinkedAttachmentIdsFlow: Flow<Set<String>> =
+            context.dataStore.data
+                .map { preferences ->
+                    try {
+                        preferences[tacticalLinkedAttachmentIdsKey] ?: emptySet()
+                    } catch (e: ClassCastException) {
+                        emptySet()
+                    }
+                }
+
+        suspend fun setTacticalLinkedProjectIds(ids: Set<String>) {
+            context.dataStore.edit { settings ->
+                settings[tacticalLinkedProjectIdsKey] = ids
+            }
+        }
+
+        suspend fun setTacticalLinkedAttachmentIds(ids: Set<String>) {
+            context.dataStore.edit { settings ->
+                settings[tacticalLinkedAttachmentIdsKey] = ids
             }
         }
 

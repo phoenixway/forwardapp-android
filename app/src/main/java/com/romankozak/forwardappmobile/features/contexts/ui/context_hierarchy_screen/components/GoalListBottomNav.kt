@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components
 
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,8 +12,6 @@ import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.UnfoldLess
 import androidx.compose.material.icons.outlined.*
-import androidx.compose.material.icons.outlined.AccountTree
-import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.TrackChanges
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,10 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
@@ -134,95 +129,6 @@ private fun PlanningModeSelector(
 }
 
 @Composable
-internal fun MoreActionsBottomNavButton(
-    onInsightsClick: () -> Unit,
-    onAiChatClick: () -> Unit,
-    onLifeStateClick: () -> Unit,
-    onContextsClick: () -> Unit,
-    aiChatEnabled: Boolean,
-    aiInsightsEnabled: Boolean,
-    aiLifeManagementEnabled: Boolean,
-) {
-    var showMenu by remember { mutableStateOf(false) }
-    val primary = MaterialTheme.colorScheme.primary
-
-    Column(
-        modifier =
-            Modifier
-                .clip(RoundedCornerShape(14.dp))
-                .clickable { showMenu = true }
-                .padding(6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(primary.copy(alpha = 0.10f))
-                    .border(
-                        width = 1.dp,
-                        color = primary.copy(alpha = 0.22f),
-                        shape = CircleShape,
-                    ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.MoreVert,
-                contentDescription = "More Actions",
-                tint = primary.copy(alpha = 0.9f),
-                modifier = Modifier.size(24.dp),
-            )
-        }
-
-        DropdownMenu(
-            expanded = showMenu,
-            onDismissRequest = { showMenu = false },
-            offset = DpOffset(0.dp, (-50).dp), // Adjust offset to position above the button
-        ) {
-            DropdownMenuItem(
-                text = { Text("Contexts") },
-                leadingIcon = { Icon(Icons.Outlined.AccountTree, contentDescription = "Contexts") },
-                onClick = {
-                    onContextsClick()
-                    showMenu = false
-                },
-            )
-            if (aiLifeManagementEnabled) {
-                DropdownMenuItem(
-                    text = { Text("AI Life-Management") },
-                    leadingIcon = { Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI Life-Management") },
-                    onClick = {
-                        onLifeStateClick()
-                        showMenu = false
-                    },
-                )
-            }
-            if (aiInsightsEnabled) {
-                DropdownMenuItem(
-                    text = { Text("Insights") },
-                    leadingIcon = { Icon(Icons.Outlined.Lightbulb, contentDescription = "Insights") },
-                    onClick = {
-                        onInsightsClick()
-                        showMenu = false
-                    },
-                )
-            }
-            if (aiChatEnabled) {
-                DropdownMenuItem(
-                    text = { Text("AI-Chat") },
-                    leadingIcon = { Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI-Chat") },
-                    onClick = {
-                        onAiChatClick()
-                        showMenu = false
-                    },
-                )
-            }
-        }
-    }
-}
-
-@Composable
 internal fun ExpandingProjectHierarchyBottomNav(
     onToggleSearch: (Boolean) -> Unit,
     onGlobalSearchClick: () -> Unit,
@@ -235,22 +141,11 @@ internal fun ExpandingProjectHierarchyBottomNav(
     onHomeClick: () -> Unit,
     onStrManagementClick: () -> Unit,
     strategicManagementEnabled: Boolean,
-    aiChatEnabled: Boolean,
-    aiInsightsEnabled: Boolean,
-    aiLifeManagementEnabled: Boolean,
     isExpanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
-    onAiChatClick: () -> Unit,
     onActivityTrackerClick: () -> Unit,
-    onInsightsClick: () -> Unit,
-    onLifeStateClick: () -> Unit,
-    onContextsClick: () -> Unit,
     onEvent: (ContextHierarchyScreenEvent) -> Unit,
 ) {
-    var showMoreMenu by remember { mutableStateOf(false) }
-    val haptic = LocalHapticFeedback.current
-    val arrowRotation by animateFloatAsState(targetValue = if (isExpanded) 180f else 0f, label = "arrowAnimation")
-
     Surface(
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
@@ -273,15 +168,6 @@ internal fun ExpandingProjectHierarchyBottomNav(
                 ModernBottomNavButton(text = "Згорнути", icon = Icons.Filled.UnfoldLess, onClick = onHomeClick)
                 CommandDeckNavButton(onClick = onShowCommandDeck)
                 ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)
-                MoreActionsBottomNavButton(
-                    onInsightsClick = onInsightsClick,
-                    onAiChatClick = onAiChatClick,
-                    onLifeStateClick = onLifeStateClick,
-                    aiChatEnabled = aiChatEnabled,
-                    aiInsightsEnabled = aiInsightsEnabled,
-                    aiLifeManagementEnabled = aiLifeManagementEnabled,
-                    onContextsClick = onContextsClick,
-                )
             }
         }
     }

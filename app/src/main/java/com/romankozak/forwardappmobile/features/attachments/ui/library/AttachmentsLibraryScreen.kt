@@ -84,6 +84,17 @@ fun AttachmentsLibraryScreen(
             }
     }
 
+    LaunchedEffect(navController, viewModel) {
+        navController.currentBackStackEntry
+            ?.savedStateHandle
+            ?.remove<String>("attachment_library_query")
+            ?.let { query ->
+                if (query.isNotBlank()) {
+                    viewModel.onQueryChange(query)
+                }
+            }
+    }
+
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {

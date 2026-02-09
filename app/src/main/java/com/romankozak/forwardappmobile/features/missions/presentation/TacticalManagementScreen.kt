@@ -37,76 +37,137 @@ import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTok
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusRow
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedTrailingActionButton
+import com.romankozak.forwardappmobile.ui.components.ScopeLinkItem
+import com.romankozak.forwardappmobile.ui.components.ScreenScopeLinksPanel
 import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TacticalManagementScreen(viewModel: TacticalMissionViewModel = hiltViewModel()) {
+fun TacticalManagementScreen(
+    onLinkedProjectClick: (String) -> Unit = {},
+    onLinkedAttachmentClick: (String) -> Unit = {},
+    viewModel: TacticalMissionViewModel = hiltViewModel(),
+) {
     val missions by viewModel.missions.collectAsState()
     val attachmentOptions by viewModel.attachmentOptions.collectAsState()
     val projectOptions by viewModel.projectOptions.collectAsState()
+    val boardLinkedProjectIds by viewModel.boardLinkedProjectIds.collectAsState()
+    val boardLinkedAttachmentIds by viewModel.boardLinkedAttachmentIds.collectAsState()
     val showAddDialog by viewModel.isAddMissionDialogOpen.collectAsState()
     var editingMission by remember { mutableStateOf<TacticalMission?>(null) }
+    var showProjectChooser by remember { mutableStateOf(false) }
+    var showAttachmentChooser by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        ScreenScopeLinksPanel(
+            title = "Посилання для тактичного циклу",
+            contextLinks =
+                boardLinkedProjectIds.map { id ->
+                    ScopeLinkItem(
+                        id = id,
+                        title = projectOptions.firstOrNull { it.id == id }?.name ?: "Контекст ${id.take(8)}",
+                    )
+                },
+            attachmentLinks =
+                boardLinkedAttachmentIds.map { id ->
+                    ScopeLinkItem(
+                        id = id,
+                        title = attachmentOptions.firstOrNull { it.id == id }?.name ?: "Вкладення ${id.take(8)}",
+                    )
+                },
+            onAddContextClick = { showProjectChooser = true },
+            onAddAttachmentClick = { showAttachmentChooser = true },
+            onContextClick = onLinkedProjectClick,
+            onAttachmentClick = onLinkedAttachmentClick,
+            onContextRemove = viewModel::removeBoardProjectLink,
+            onAttachmentRemove = viewModel::removeBoardAttachmentLink,
+            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+        )
+
         TacticalMissionList(
             missions = missions,
             onMissionToggled = { viewModel.toggleMissionCompleted(it) },
             onMissionDeleted = { viewModel.deleteMission(it.id) },
             onMissionEdited = { editingMission = it },
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.weight(1f),
             attachmentLabel = { id ->
                 attachmentOptions.firstOrNull { it.id == id }?.name ?: id
             },
             projectLabel = { id ->
                 projectOptions.firstOrNull { it.id == id }?.name ?: id
             },
+            onLinkedProjectClick = onLinkedProjectClick,
+            onLinkedAttachmentClick = onLinkedAttachmentClick,
         )
+    }
 
-        if (showAddDialog) {
-            AddMissionDialog(
-                attachmentOptions = attachmentOptions,
-                onDismiss = viewModel::dismissAddMissionDialog,
-                onConfirm = { title, description, deadline, projects, attachments ->
-                    viewModel.addMission(title, description, deadline, projects, attachments)
-                    viewModel.dismissAddMissionDialog()
-                },
-            )
-        }
+    if (showAddDialog) {
+        AddMissionDialog(
+            attachmentOptions = attachmentOptions,
+            onDismiss = viewModel::dismissAddMissionDialog,
+            onConfirm = { title, description, deadline, projects, attachments ->
+                viewModel.addMission(title, description, deadline, projects, attachments)
+                viewModel.dismissAddMissionDialog()
+            },
+        )
+    }
 
-        editingMission?.let { mission ->
-            Dialog(
-                onDismissRequest = { editingMission = null },
-                properties = DialogProperties(usePlatformDefaultWidth = false),
+    editingMission?.let { mission ->
+        Dialog(
+            onDismissRequest = { editingMission = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            Surface(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background),
             ) {
-                Surface(
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.background),
-                ) {
-                    MissionEditorScreen(
-                        mission = mission,
-                        attachmentOptions = attachmentOptions,
-                        projectOptions = projectOptions,
-                        onDismiss = { editingMission = null },
-                        onConfirm = { title, desc, deadline, projects, attachments ->
-                            viewModel.updateMission(
-                                mission.id,
-                                title,
-                                desc,
-                                deadline,
-                                projects,
-                                attachments,
-                            )
-                            editingMission = null
-                        },
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
+                MissionEditorScreen(
+                    mission = mission,
+                    attachmentOptions = attachmentOptions,
+                    projectOptions = projectOptions,
+                    onDismiss = { editingMission = null },
+                    onConfirm = { title, desc, deadline, projects, attachments ->
+                        viewModel.updateMission(
+                            mission.id,
+                            title,
+                            desc,
+                            deadline,
+                            projects,
+                            attachments,
+                        )
+                        editingMission = null
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
         }
+    }
+
+    if (showProjectChooser) {
+        ProjectChooserScreen(
+            options = projectOptions,
+            preselected = boardLinkedProjectIds.toSet(),
+            onDismiss = { showProjectChooser = false },
+            onConfirm = { selected ->
+                selected.forEach(viewModel::addBoardProjectLink)
+                showProjectChooser = false
+            },
+        )
+    }
+
+    if (showAttachmentChooser) {
+        AttachmentChooserScreen(
+            options = attachmentOptions,
+            preselected = boardLinkedAttachmentIds.toSet(),
+            onDismiss = { showAttachmentChooser = false },
+            onConfirm = { selected ->
+                selected.forEach(viewModel::addBoardAttachmentLink)
+                showAttachmentChooser = false
+            },
+        )
     }
 }
 
@@ -279,6 +340,8 @@ fun TacticalMissionList(
     modifier: Modifier = Modifier,
     attachmentLabel: (String) -> String,
     projectLabel: (String) -> String,
+    onLinkedProjectClick: (String) -> Unit,
+    onLinkedAttachmentClick: (String) -> Unit,
 ) {
     LazyColumn(
         modifier = modifier.padding(16.dp),
@@ -292,6 +355,8 @@ fun TacticalMissionList(
                 onMissionEdited = { onMissionEdited(mission) },
                 attachmentLabel = attachmentLabel,
                 projectLabel = projectLabel,
+                onLinkedProjectClick = onLinkedProjectClick,
+                onLinkedAttachmentClick = onLinkedAttachmentClick,
             )
         }
     }
@@ -305,6 +370,8 @@ fun TacticalMissionItem(
     onMissionEdited: () -> Unit,
     attachmentLabel: (String) -> String,
     projectLabel: (String) -> String,
+    onLinkedProjectClick: (String) -> Unit,
+    onLinkedAttachmentClick: (String) -> Unit,
 ) {
     val onSurface = MaterialTheme.colorScheme.onSurface
     val colorScheme = MaterialTheme.colorScheme
@@ -420,6 +487,7 @@ fun TacticalMissionItem(
                                         icon = Icons.Outlined.Topic,
                                         text = projectLabel(projectId),
                                         contentColor = MaterialTheme.colorScheme.primary,
+                                        onClick = { onLinkedProjectClick(projectId) },
                                     ),
                                 )
                             }
@@ -429,6 +497,7 @@ fun TacticalMissionItem(
                                         icon = Icons.Outlined.Attachment,
                                         text = attachmentLabel(attachmentId),
                                         contentColor = MaterialTheme.colorScheme.secondary,
+                                        onClick = { onLinkedAttachmentClick(attachmentId) },
                                     ),
                                 )
                             }

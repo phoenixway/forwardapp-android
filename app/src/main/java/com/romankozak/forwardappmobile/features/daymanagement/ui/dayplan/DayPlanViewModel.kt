@@ -3,7 +3,9 @@ package com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
+import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
@@ -12,6 +14,9 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceRule
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
+import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
+import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -39,9 +44,18 @@ data class DayTaskWithReminder(
     val parentInfo: ParentInfo? = null,
 )
 
+data class LinkOption(
+    val id: String,
+    val name: String,
+)
+
 data class DayPlanUiState(
     val dayPlan: DayPlan? = null,
     val tasks: List<DayTaskWithReminder> = emptyList(),
+    val availableProjects: List<LinkOption> = emptyList(),
+    val availableAttachments: List<LinkOption> = emptyList(),
+    val linkedProjectTitles: Map<String, String> = emptyMap(),
+    val linkedAttachmentTitles: Map<String, String> = emptyMap(),
     val isLoading: Boolean = true,
     val error: String? = null,
     val isRefreshing: Boolean = false,
@@ -63,6 +77,8 @@ class DayPlanViewModel
     constructor(
         private val dayManagementRepository: DayManagementRepository,
         private val reminderRepository: ReminderRepository,
+        private val contextDao: ContextDao,
+        private val attachmentsRepository: AttachmentsRepository,
     ) : ViewModel() {
         init {
             Log.d("DayPlanViewModel", "DayPlanViewModel initialized.")
@@ -115,15 +131,61 @@ class DayPlanViewModel
                                 }
                             }
 
-                    combine(dayPlanFlow, tasksFlow) { dayPlan, tasks ->
+                    val contextsFlow = contextDao.getAllContextsFlow()
+                    val attachmentLibraryFlow = attachmentsRepository.getAttachmentLibraryItems()
+
+                    combine(dayPlanFlow, tasksFlow, contextsFlow, attachmentLibraryFlow) { dayPlan, tasks, contexts, attachments ->
                         Log.d(
                             "DayPlanViewModel",
                             "UI State combine: dayPlanId=${dayPlan?.id}, tasksCount=${tasks.size} (before creating DayPlanUiState)",
                         )
+                        val linkedProjectIds =
+                            (tasks
+                                .flatMap { it.dayTask.linkedProjectIds.orEmpty() }
+                                + dayPlan?.linkedProjectIds.orEmpty())
+                                .toSet()
+                        val linkedAttachmentIds =
+                            (tasks
+                                .flatMap { it.dayTask.linkedAttachmentIds.orEmpty() }
+                                + dayPlan?.linkedAttachmentIds.orEmpty())
+                                .toSet()
+                        val linkedProjectTitles =
+                            contexts
+                                .asSequence()
+                                .filter { it.id in linkedProjectIds }
+                                .associate { it.id to it.name.ifBlank { compactId(it.id) } }
+                        val availableProjects =
+                            contexts
+                                .asSequence()
+                                .map { LinkOption(it.id, it.name.ifBlank { compactId(it.id) }) }
+                                .sortedBy { it.name.lowercase() }
+                                .toList()
+                        val availableAttachments =
+                            attachments
+                                .asSequence()
+                                .mapNotNull { result ->
+                                    resolveAttachmentTitle(result)?.let { LinkOption(result.id, it) }
+                                }
+                                .sortedBy { it.name.lowercase() }
+                                .toList()
+                        val linkedAttachmentTitles =
+                            attachments
+                                .asSequence()
+                                .filter { it.id in linkedAttachmentIds }
+                                .mapNotNull { result ->
+                                    resolveAttachmentTitle(result)?.let { title ->
+                                        result.id to title
+                                    }
+                                }
+                                .toMap()
                         val highestCompletedPoints = dayManagementRepository.getHighestCompletedPointsAcrossPlans()
                         DayPlanUiState(
                             dayPlan = dayPlan,
                             tasks = sortTasksWithOrder(tasks),
+                            availableProjects = availableProjects,
+                            availableAttachments = availableAttachments,
+                            linkedProjectTitles = linkedProjectTitles,
+                            linkedAttachmentTitles = linkedAttachmentTitles,
                             isLoading = false,
                             isRefreshing = false,
                             isToday = dayPlan?.let { isTimestampToday(it.date) } ?: true,
@@ -141,6 +203,24 @@ class DayPlanViewModel
                     started = SharingStarted.WhileSubscribed(5000),
                     initialValue = DayPlanUiState(isLoading = true),
                 )
+
+        private fun resolveAttachmentTitle(result: AttachmentLibraryQueryResult): String? =
+            result.noteName?.takeIf { it.isNotBlank() }
+                ?: result.checklistName?.takeIf { it.isNotBlank() }
+                ?: parseLinkTitle(result.linkDisplayName)
+                ?: result.contextName?.takeIf { it.isNotBlank() }
+                ?: compactId(result.id)
+
+        private fun parseLinkTitle(linkDisplayNameJson: String?): String? {
+            if (linkDisplayNameJson.isNullOrBlank()) return null
+            return runCatching { Gson().fromJson(linkDisplayNameJson, RelatedLink::class.java) }
+                .getOrNull()
+                ?.let { link ->
+                    link.displayName?.takeIf { it.isNotBlank() } ?: link.target.takeIf { it.isNotBlank() }
+                }
+        }
+
+        private fun compactId(id: String): String = id.take(8)
 
         private val _isAddTaskDialogOpen = MutableStateFlow(false)
         val isAddTaskDialogOpen: StateFlow<Boolean> = _isAddTaskDialogOpen.asStateFlow()
@@ -162,6 +242,54 @@ class DayPlanViewModel
         fun loadDataForPlan(dayPlanId: String) {
             Log.d("DayPlanViewModel", "Loading data for plan: $dayPlanId")
             _planId.value = dayPlanId
+        }
+
+        fun addPlanProjectLink(projectId: String) {
+            val planId = _planId.value ?: return
+            viewModelScope.launch(Dispatchers.IO) {
+                val current = dayManagementRepository.getPlanById(planId) ?: return@launch
+                dayManagementRepository.updatePlanLinks(
+                    planId = planId,
+                    linkedProjectIds = (current.linkedProjectIds.orEmpty() + projectId).distinct(),
+                    linkedAttachmentIds = current.linkedAttachmentIds.orEmpty(),
+                )
+            }
+        }
+
+        fun removePlanProjectLink(projectId: String) {
+            val planId = _planId.value ?: return
+            viewModelScope.launch(Dispatchers.IO) {
+                val current = dayManagementRepository.getPlanById(planId) ?: return@launch
+                dayManagementRepository.updatePlanLinks(
+                    planId = planId,
+                    linkedProjectIds = current.linkedProjectIds.orEmpty().filterNot { it == projectId },
+                    linkedAttachmentIds = current.linkedAttachmentIds.orEmpty(),
+                )
+            }
+        }
+
+        fun addPlanAttachmentLink(attachmentId: String) {
+            val planId = _planId.value ?: return
+            viewModelScope.launch(Dispatchers.IO) {
+                val current = dayManagementRepository.getPlanById(planId) ?: return@launch
+                dayManagementRepository.updatePlanLinks(
+                    planId = planId,
+                    linkedProjectIds = current.linkedProjectIds.orEmpty(),
+                    linkedAttachmentIds = (current.linkedAttachmentIds.orEmpty() + attachmentId).distinct(),
+                )
+            }
+        }
+
+        fun removePlanAttachmentLink(attachmentId: String) {
+            val planId = _planId.value ?: return
+            viewModelScope.launch(Dispatchers.IO) {
+                val current = dayManagementRepository.getPlanById(planId) ?: return@launch
+                dayManagementRepository.updatePlanLinks(
+                    planId = planId,
+                    linkedProjectIds = current.linkedProjectIds.orEmpty(),
+                    linkedAttachmentIds = current.linkedAttachmentIds.orEmpty().filterNot { it == attachmentId },
+                )
+            }
         }
 
         fun openAddTaskDialog() {

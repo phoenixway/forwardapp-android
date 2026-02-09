@@ -68,6 +68,10 @@ fun TaskList(
     onSublistClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     onParentInfoClick: (ParentInfo) -> Unit,
+    onLinkedProjectClick: (String) -> Unit,
+    onLinkedAttachmentClick: (String) -> Unit,
+    projectLabel: (String) -> String,
+    attachmentLabel: (String) -> String,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
     var internalTasks by remember(tasks) { mutableStateOf(tasks) }
@@ -141,6 +145,10 @@ fun TaskList(
                                     onLongPress = { onTaskLongPress(taskWithReminder) },
                                     dragHandleModifier = Modifier.draggableHandle(),
                                     onParentInfoClick = onParentInfoClick,
+                                    onLinkedProjectClick = onLinkedProjectClick,
+                                    onLinkedAttachmentClick = onLinkedAttachmentClick,
+                                    projectLabel = projectLabel,
+                                    attachmentLabel = attachmentLabel,
                                 )
                             }
                         }
@@ -188,7 +196,11 @@ fun TaskItem(
     onLongPress: () -> Unit,
     modifier: Modifier = Modifier,
     dragHandleModifier: Modifier = Modifier,
-    onParentInfoClick: (ParentInfo) -> Unit, // Add this line
+    onParentInfoClick: (ParentInfo) -> Unit,
+    onLinkedProjectClick: (String) -> Unit,
+    onLinkedAttachmentClick: (String) -> Unit,
+    projectLabel: (String) -> String,
+    attachmentLabel: (String) -> String,
 ) {
     val task = taskWithReminder.dayTask
 
@@ -241,7 +253,11 @@ fun TaskItem(
                 TaskMetaInfo(
                     taskWithReminder = taskWithReminder,
                     modifier = Modifier.padding(top = 4.dp),
-                    onParentInfoClick = onParentInfoClick, // Add this line
+                    onParentInfoClick = onParentInfoClick,
+                    onLinkedProjectClick = onLinkedProjectClick,
+                    onLinkedAttachmentClick = onLinkedAttachmentClick,
+                    projectLabel = projectLabel,
+                    attachmentLabel = attachmentLabel,
                 )
             }
 
@@ -261,7 +277,11 @@ fun TaskItem(
 private fun TaskMetaInfo(
     taskWithReminder: DayTaskWithReminder,
     modifier: Modifier = Modifier,
-    onParentInfoClick: (ParentInfo) -> Unit, // Add this line
+    onParentInfoClick: (ParentInfo) -> Unit,
+    onLinkedProjectClick: (String) -> Unit,
+    onLinkedAttachmentClick: (String) -> Unit,
+    projectLabel: (String) -> String,
+    attachmentLabel: (String) -> String,
 ) {
     val task = taskWithReminder.dayTask
     val metaItems =
@@ -294,7 +314,29 @@ private fun TaskMetaInfo(
                         icon = if (parentInfo.type == ParentType.GOAL) Icons.Default.TrackChanges else Icons.Default.Topic,
                         text = parentInfo.title,
                         contentColor = if (parentInfo.type == ParentType.GOAL) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
-                        onClick = { onParentInfoClick(parentInfo) }, // Add this line
+                        onClick = { onParentInfoClick(parentInfo) },
+                    ),
+                )
+            }
+            task.linkedProjectIds.orEmpty().distinct().forEach { linkedProjectId ->
+                if (linkedProjectId != taskWithReminder.parentInfo?.projectId && linkedProjectId != task.projectId) {
+                    add(
+                        UnifiedStatusChipSpec(
+                            icon = Icons.Default.Topic,
+                            text = projectLabel(linkedProjectId),
+                            contentColor = MaterialTheme.colorScheme.tertiary,
+                            onClick = { onLinkedProjectClick(linkedProjectId) },
+                        ),
+                    )
+                }
+            }
+            task.linkedAttachmentIds.orEmpty().distinct().forEach { attachmentId ->
+                add(
+                    UnifiedStatusChipSpec(
+                        icon = Icons.Outlined.Checklist,
+                        text = attachmentLabel(attachmentId),
+                        contentColor = MaterialTheme.colorScheme.secondary,
+                        onClick = { onLinkedAttachmentClick(attachmentId) },
                     ),
                 )
             }

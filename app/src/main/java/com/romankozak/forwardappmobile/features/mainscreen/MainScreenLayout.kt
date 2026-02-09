@@ -40,6 +40,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
+import com.romankozak.forwardappmobile.core.navigation.routes.GOAL_LISTS_ROUTE
 import com.romankozak.forwardappmobile.core.navigation.routes.STRATEGIC_MANAGEMENT_ROUTE
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementScreen
@@ -480,7 +481,28 @@ fun MainScreenLayout(
                             StrategicArcScreen(navController = navController)
                         }
                         CommandDeckTab.Tactics -> {
-                            TacticalManagementScreen()
+                            TacticalManagementScreen(
+                                onLinkedProjectClick = { projectId ->
+                                    navController.navigate(GOAL_LISTS_ROUTE) {
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                    runCatching {
+                                        navController.getBackStackEntry(GOAL_LISTS_ROUTE)
+                                            .savedStateHandle["projectIdToReveal"] = projectId
+                                    }
+                                },
+                                onLinkedAttachmentClick = { attachmentId ->
+                                    navController.navigate("attachments_library_screen") {
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                    runCatching {
+                                        navController.getBackStackEntry("attachments_library_screen")
+                                            .savedStateHandle["attachment_library_query"] = attachmentId
+                                    }
+                                },
+                            )
                         }
                         CommandDeckTab.Today -> {
                             DayManagementScreen(mainNavController = navController, startTab = "PLAN")

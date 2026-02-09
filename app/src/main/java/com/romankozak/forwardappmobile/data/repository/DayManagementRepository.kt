@@ -54,6 +54,11 @@ class DayManagementRepository
 
         fun getPlanByIdStream(planId: String): Flow<DayPlan?> = dayPlanDao.getPlanByIdStream(planId)
 
+        suspend fun getPlanById(planId: String): DayPlan? =
+            withContext(ioDispatcher) {
+                dayPlanDao.getPlanById(planId)
+            }
+
         fun getPlanForDate(date: Long): Flow<DayPlan?> = dayPlanDao.getPlanForDate(getDayStart(date))
 
         suspend fun getPlanIdForDate(date: Long): String? =
@@ -112,6 +117,23 @@ class DayManagementRepository
             dayPlanDao.update(
                 plan.copy(
                     reflection = reflection,
+                    updatedAt = System.currentTimeMillis(),
+                    syncedAt = null,
+                    version = plan.version + 1,
+                ),
+            )
+        }
+
+        suspend fun updatePlanLinks(
+            planId: String,
+            linkedProjectIds: List<String>,
+            linkedAttachmentIds: List<String>,
+        ) = withContext(ioDispatcher) {
+            val plan = dayPlanDao.getPlanById(planId) ?: return@withContext
+            dayPlanDao.update(
+                plan.copy(
+                    linkedProjectIds = linkedProjectIds.distinct(),
+                    linkedAttachmentIds = linkedAttachmentIds.distinct(),
                     updatedAt = System.currentTimeMillis(),
                     syncedAt = null,
                     version = plan.version + 1,
@@ -193,6 +215,8 @@ class DayManagementRepository
                         description = params.description,
                         goalId = params.goalId,
                         projectId = params.projectId,
+                        linkedProjectIds = params.linkedProjectIds ?: emptyList(),
+                        linkedAttachmentIds = params.linkedAttachmentIds ?: emptyList(),
                         priority = params.priority,
                         scheduledTime = params.scheduledTime,
                         estimatedDurationMinutes = params.estimatedDurationMinutes,
@@ -234,6 +258,7 @@ class DayManagementRepository
                         description = goal.description,
                         goalId = goalId,
                         projectId = projectId, // Крок 2.2: Передаємо знайдений projectId
+                        linkedProjectIds = listOf(projectId),
                         scheduledTime = scheduledTime,
                         priority = mapImportanceToPriority(goal.valueImportance),
                         taskType = BacklogItemTypeValues.GOAL,
@@ -258,6 +283,7 @@ class DayManagementRepository
                         title = project.name,
                         description = project.description,
                         projectId = projectId,
+                        linkedProjectIds = listOf(projectId),
                         scheduledTime = scheduledTime,
                         priority = mapImportanceToPriority(project.valueImportance),
                         taskType = BacklogItemTypeValues.SUBLIST,

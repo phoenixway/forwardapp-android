@@ -40,7 +40,13 @@ import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.AddTaskDialog
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.TaskList
+import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentChooserScreen
+import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
+import com.romankozak.forwardappmobile.features.missions.presentation.ProjectChooserScreen
+import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
 import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
+import com.romankozak.forwardappmobile.ui.components.ScopeLinkItem
+import com.romankozak.forwardappmobile.ui.components.ScreenScopeLinksPanel
 import com.romankozak.forwardappmobile.ui.common.MatrixRainView
 import kotlinx.coroutines.delay
 
@@ -115,6 +121,8 @@ fun DayPlanScreen(
     val hapticFeedback = LocalHapticFeedback.current
     val isEditTaskDialogOpen by viewModel.isEditTaskDialogOpen.collectAsState()
     var showReminderDialog by remember { mutableStateOf(false) }
+    var showProjectChooser by remember { mutableStateOf(false) }
+    var showAttachmentChooser by remember { mutableStateOf(false) }
     val taskToDelete by viewModel.showDeleteConfirmationDialog.collectAsState()
     val taskToEdit by viewModel.showEditConfirmationDialog.collectAsState()
 
@@ -207,6 +215,38 @@ fun DayPlanScreen(
                             val totalPointsAvailable = tasks.sumOf { it.dayTask.points.coerceAtLeast(0) }
                             val completedTasksCount = tasks.count { it.dayTask.completed }
                             val totalTasksCount = tasks.size
+                            val planLinkedProjectIds = uiState.dayPlan?.linkedProjectIds.orEmpty()
+                            val planLinkedAttachmentIds = uiState.dayPlan?.linkedAttachmentIds.orEmpty()
+
+                            ScreenScopeLinksPanel(
+                                title = "Посилання для управління днем",
+                                contextLinks =
+                                    planLinkedProjectIds.map { id ->
+                                        ScopeLinkItem(id = id, title = uiState.linkedProjectTitles[id] ?: "Контекст ${id.take(8)}")
+                                    },
+                                attachmentLinks =
+                                    planLinkedAttachmentIds.map { id ->
+                                        ScopeLinkItem(id = id, title = uiState.linkedAttachmentTitles[id] ?: "Вкладення ${id.take(8)}")
+                                    },
+                                onAddContextClick = { showProjectChooser = true },
+                                onAddAttachmentClick = { showAttachmentChooser = true },
+                                onContextClick = { contextId ->
+                                    navController.navigate("goal_detail_screen/$contextId")
+                                },
+                                onAttachmentClick = { attachmentId ->
+                                    navController.navigate("attachments_library_screen") {
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                    runCatching {
+                                        navController.getBackStackEntry("attachments_library_screen")
+                                            .savedStateHandle["attachment_library_query"] = attachmentId
+                                    }
+                                },
+                                onContextRemove = viewModel::removePlanProjectLink,
+                                onAttachmentRemove = viewModel::removePlanAttachmentLink,
+                                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                            )
 
                             TaskList(
                                 tasks = tasks,
@@ -220,7 +260,7 @@ fun DayPlanScreen(
                                 },
                                 onToggleTask = { taskId -> viewModel.toggleTaskCompletion(taskId) },
                                 onSublistClick = onNavigateToProject,
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier.weight(1f),
                                 onParentInfoClick = { parentInfo ->
                                     when (parentInfo.type) {
                                         ParentType.PROJECT -> {
@@ -241,6 +281,25 @@ fun DayPlanScreen(
                                                 }
                                         }
                                     }
+                                },
+                                onLinkedProjectClick = { contextId ->
+                                    navController.navigate("goal_detail_screen/$contextId")
+                                },
+                                onLinkedAttachmentClick = { attachmentId ->
+                                    navController.navigate("attachments_library_screen") {
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                    runCatching {
+                                        navController.getBackStackEntry("attachments_library_screen")
+                                            .savedStateHandle["attachment_library_query"] = attachmentId
+                                    }
+                                },
+                                projectLabel = { contextId ->
+                                    uiState.linkedProjectTitles[contextId] ?: "Контекст ${contextId.take(8)}"
+                                },
+                                attachmentLabel = { attachmentId ->
+                                    uiState.linkedAttachmentTitles[attachmentId] ?: "Вкладення ${attachmentId.take(8)}"
                                 },
                             )
                         }
@@ -285,6 +344,30 @@ fun DayPlanScreen(
                 )
             },
             initialPriority = TaskPriority.MEDIUM,
+        )
+    }
+
+    if (showProjectChooser) {
+        ProjectChooserScreen(
+            options = uiState.availableProjects.map { ProjectOption(it.id, it.name) },
+            preselected = uiState.dayPlan?.linkedProjectIds.orEmpty().toSet(),
+            onDismiss = { showProjectChooser = false },
+            onConfirm = { selected ->
+                selected.forEach(viewModel::addPlanProjectLink)
+                showProjectChooser = false
+            },
+        )
+    }
+
+    if (showAttachmentChooser) {
+        AttachmentChooserScreen(
+            options = uiState.availableAttachments.map { AttachmentOption(it.id, it.name) },
+            preselected = uiState.dayPlan?.linkedAttachmentIds.orEmpty().toSet(),
+            onDismiss = { showAttachmentChooser = false },
+            onConfirm = { selected ->
+                selected.forEach(viewModel::addPlanAttachmentLink)
+                showAttachmentChooser = false
+            },
         )
     }
 

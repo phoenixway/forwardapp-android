@@ -32,6 +32,8 @@ data class NewTaskParameters(
     val order: Long? = null,
     val taskType: String? = null,
     val points: Int = 0,
+    val linkedProjectIds: List<String>? = null,
+    val linkedAttachmentIds: List<String>? = null,
 )
 
 @Entity(tableName = "day_plans")
@@ -39,6 +41,8 @@ data class DayPlan(
     @PrimaryKey @SerializedName("id") val id: String = UUID.randomUUID().toString(),
     @SerializedName("date") val date: Long,
     @SerializedName("name") val name: String? = null,
+    @SerializedName("linkedProjectIds") val linkedProjectIds: List<String>? = emptyList(),
+    @SerializedName("linkedAttachmentIds") val linkedAttachmentIds: List<String>? = emptyList(),
     @SerializedName("status") val status: DayStatus = DayStatus.PLANNED,
     @SerializedName("reflection") val reflection: String? = null,
     @SerializedName("energyLevel") val energyLevel: Int? = null,
@@ -104,6 +108,8 @@ data class DayTask(
     @SerializedName("description") val description: String? = null,
     @SerializedName("goalId") val goalId: String? = null,
     @SerializedName(value = "projectId", alternate = ["contextId"]) val projectId: String? = null,
+    @SerializedName("linkedProjectIds") val linkedProjectIds: List<String>? = emptyList(),
+    @SerializedName("linkedAttachmentIds") val linkedAttachmentIds: List<String>? = emptyList(),
     @SerializedName("activityRecordId") val activityRecordId: String? = null,
     @SerializedName("recurringTaskId") val recurringTaskId: String? = null,
     @SerializedName("taskType") val taskType: String? = null,

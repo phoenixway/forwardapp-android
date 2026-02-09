@@ -186,21 +186,14 @@ internal fun OptimizedExpandingProjectHierarchyBottomNav(
     currentMode: PlanningMode,
     onPlanningModeChange: (PlanningMode) -> Unit,
     planningModesEnabled: Boolean,
-    onContextsClick: () -> Unit,
     onRecentsClick: () -> Unit,
     onDayPlanClick: () -> Unit,
     onHomeClick: () -> Unit,
     onStrManagementClick: () -> Unit,
     strategicManagementEnabled: Boolean,
-    aiChatEnabled: Boolean,
-    aiInsightsEnabled: Boolean,
-    aiLifeManagementEnabled: Boolean,
     isExpanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
-    onAiChatClick: () -> Unit,
     onActivityTrackerClick: () -> Unit,
-    onInsightsClick: () -> Unit,
-    onLifeStateClick: () -> Unit,
     onEvent: (ContextHierarchyScreenEvent) -> Unit,
 ) {
     val stableOnHomeClick = remember { { onHomeClick() } }
@@ -209,7 +202,6 @@ internal fun OptimizedExpandingProjectHierarchyBottomNav(
     val stableOnRecentsClick = remember { { onRecentsClick() } }
     val stableOnActivityTrackerClick = remember { { onActivityTrackerClick() } }
     val stableOnShowCommandDeck = remember { { onShowCommandDeck() } }
-    val stableOnContextsClick = remember { { onContextsClick() } }
 
     ExpandingProjectHierarchyBottomNav(
         onToggleSearch = stableOnToggleSearch,
@@ -218,21 +210,14 @@ internal fun OptimizedExpandingProjectHierarchyBottomNav(
         currentMode = currentMode,
         onPlanningModeChange = onPlanningModeChange,
         planningModesEnabled = planningModesEnabled,
-        onContextsClick = stableOnContextsClick,
         onRecentsClick = stableOnRecentsClick,
         onDayPlanClick = stableOnDayPlanClick,
         onHomeClick = stableOnHomeClick,
         onStrManagementClick = onStrManagementClick,
         strategicManagementEnabled = strategicManagementEnabled,
-        aiChatEnabled = aiChatEnabled,
-        aiInsightsEnabled = aiInsightsEnabled,
-        aiLifeManagementEnabled = aiLifeManagementEnabled,
         isExpanded = isExpanded,
         onExpandedChange = onExpandedChange,
-        onAiChatClick = onAiChatClick,
         onActivityTrackerClick = stableOnActivityTrackerClick,
-        onInsightsClick = onInsightsClick,
-        onLifeStateClick = onLifeStateClick,
         onEvent = onEvent,
     )
 }
