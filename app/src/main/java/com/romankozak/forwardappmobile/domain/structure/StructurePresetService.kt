@@ -26,6 +26,16 @@ class StructurePresetService
             contextId: String,
             presetCode: String,
         ) {
+            contextRepository.getContextById(contextId)?.let { context ->
+                if (context.roleCode != presetCode) {
+                    contextRepository.updateContext(
+                        context.copy(
+                            roleCode = presetCode,
+                            updatedAt = System.currentTimeMillis(),
+                        ),
+                    )
+                }
+            }
             contextStructureRepository.applyPresetToContext(contextId, presetCode)
             applyContextStructure(contextId)
         }
