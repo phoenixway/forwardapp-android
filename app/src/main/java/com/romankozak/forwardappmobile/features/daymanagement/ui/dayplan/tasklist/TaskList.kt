@@ -116,10 +116,10 @@ fun TaskList(
                                 }
                             val dayTaskContainerColor =
                                 when (itemState) {
-                                    UnifiedItemState.COMPLETED -> colorScheme.surfaceContainerLow
-                                    UnifiedItemState.DEFAULT -> colorScheme.primaryContainer.copy(alpha = 0.18f)
+                                    UnifiedItemState.COMPLETED -> colorScheme.secondaryContainer.copy(alpha = 0.28f)
+                                    UnifiedItemState.DEFAULT -> colorScheme.primaryContainer.copy(alpha = 0.34f)
                                     UnifiedItemState.SELECTED -> colorScheme.surfaceContainerHighest
-                                    UnifiedItemState.OVERDUE -> colorScheme.errorContainer.copy(alpha = 0.35f)
+                                    UnifiedItemState.OVERDUE -> colorScheme.errorContainer.copy(alpha = 0.50f)
                                     UnifiedItemState.DISABLED -> colorScheme.surfaceVariant.copy(alpha = 0.6f)
                                 }
                             val dayTaskBorderColor =

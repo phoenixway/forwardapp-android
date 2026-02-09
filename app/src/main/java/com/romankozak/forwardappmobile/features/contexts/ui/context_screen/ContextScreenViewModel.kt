@@ -1417,10 +1417,15 @@ data.context?.let { project ->
         ) {
             viewModelScope.launch {
                 val currentList = _listContent.value.toMutableList()
+                if (from !in currentList.indices || to !in currentList.indices) return@launch
                 val movedItem = currentList.removeAt(from)
                 currentList.add(to, movedItem)
                 _listContent.value = currentList
-                // TODO: save order to repository
+                val reorderedBacklogItems =
+                    currentList.mapIndexed { index, content ->
+                        content.backlogItem.copy(order = index.toLong())
+                    }
+                listItemRepository.updateListItemsOrder(reorderedBacklogItems)
             }
         }
 

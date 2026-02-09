@@ -320,9 +320,9 @@ fun TacticalMissionItem(
         }
     val missionContainerColor =
         when (itemState) {
-            UnifiedItemState.COMPLETED -> colorScheme.secondaryContainer.copy(alpha = 0.20f)
-            UnifiedItemState.OVERDUE -> colorScheme.errorContainer.copy(alpha = 0.42f)
-            UnifiedItemState.DEFAULT -> colorScheme.tertiaryContainer.copy(alpha = 0.24f)
+            UnifiedItemState.COMPLETED -> colorScheme.secondaryContainer.copy(alpha = 0.36f)
+            UnifiedItemState.OVERDUE -> colorScheme.errorContainer.copy(alpha = 0.58f)
+            UnifiedItemState.DEFAULT -> colorScheme.tertiaryContainer.copy(alpha = 0.40f)
             UnifiedItemState.SELECTED -> colorScheme.surfaceContainerHighest
             UnifiedItemState.DISABLED -> colorScheme.surfaceVariant.copy(alpha = 0.6f)
         }
@@ -342,8 +342,7 @@ fun TacticalMissionItem(
         borderColorOverride = missionBorderColor,
         modifier =
             Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp)),
+                .fillMaxWidth(),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(

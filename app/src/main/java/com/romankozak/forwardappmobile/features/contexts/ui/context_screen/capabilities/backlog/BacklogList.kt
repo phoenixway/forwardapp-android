@@ -53,10 +53,22 @@ fun BacklogListScreen(
     onCopyContent: (BacklogItemContent) -> Unit,
     onResetSwipe: (String) -> Unit,
 ) {
-    val reorderableState = rememberReorderableLazyListState(listState) { from, to -> onMove(from.index, to.index) }
+    val sortedItems = remember(items) { items.withCompletedAtEnd() }
+    val reorderableState =
+        rememberReorderableLazyListState(listState) { from, to ->
+            if (sortedItems.isEmpty()) return@rememberReorderableLazyListState
+            val safeFromIndex = from.index.coerceIn(0, sortedItems.lastIndex)
+            val safeToIndex = to.index.coerceIn(0, sortedItems.lastIndex)
+            val fromItem = sortedItems[safeFromIndex]
+            val toItem = sortedItems[safeToIndex]
+            val originalFrom = items.indexOfFirst { it.backlogItem.id == fromItem.backlogItem.id }
+            val originalTo = items.indexOfFirst { it.backlogItem.id == toItem.backlogItem.id }
+            if (originalFrom >= 0 && originalTo >= 0) {
+                onMove(originalFrom, originalTo)
+            }
+        }
     var showBottomSheet by remember { mutableStateOf(false) }
     var selectedItemForActions by remember { mutableStateOf<BacklogItemContent?>(null) }
-    val sortedItems = remember(items) { items.withCompletedAtEnd() }
     val completedStartIndex = remember(sortedItems) { sortedItems.indexOfFirst { it.isCompleted() } }
     val completedCount =
         remember(sortedItems) {
