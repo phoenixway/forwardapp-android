@@ -43,7 +43,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 
 @Composable
 fun ContextLinkList(
-    title: String,
+    title: String? = null,
     items: List<Context>,
     onAddClick: () -> Unit,
     onItemClick: (Context) -> Unit,
@@ -71,13 +71,16 @@ fun ContextLinkList(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = if (title.isNullOrBlank()) Arrangement.End else Arrangement.Start,
             ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.weight(1f),
-                )
+                if (!title.isNullOrBlank()) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
                 FilledTonalIconButton(
                     onClick = onAddClick,
                     shape = RoundedCornerShape(12.dp),

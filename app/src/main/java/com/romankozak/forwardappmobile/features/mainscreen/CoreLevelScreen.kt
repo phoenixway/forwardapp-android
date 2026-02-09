@@ -3,7 +3,6 @@ package com.romankozak.forwardappmobile.features.mainscreen
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,7 +52,6 @@ fun CoreLevelScreen(
         }
     } else {
         ContextLinkList(
-            title = "Ядро",
             items = uiState.projects,
             onAddClick = {
                 val disabledIds = uiState.projects.joinToString(",") { it.id }

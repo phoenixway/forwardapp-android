@@ -116,7 +116,6 @@ private fun DashboardContent(
         }
 
     ContextLinkList(
-        title = "Стратегія",
         items = sortedProjects,
         onAddClick = {
             val disabledIds = sortedProjects.joinToString(",") { it.id }

@@ -136,10 +136,8 @@ private fun PlanningModeSelector(
 @Composable
 internal fun MoreActionsBottomNavButton(
     onInsightsClick: () -> Unit,
-    onShowReminders: () -> Unit,
     onAiChatClick: () -> Unit,
     onLifeStateClick: () -> Unit,
-    onTacticsClick: () -> Unit, // Added
     onContextsClick: () -> Unit,
     aiChatEnabled: Boolean,
     aiInsightsEnabled: Boolean,
@@ -190,14 +188,6 @@ internal fun MoreActionsBottomNavButton(
                     showMenu = false
                 },
             )
-            DropdownMenuItem(
-                text = { Text("Tactics") },
-                leadingIcon = { Icon(Icons.Outlined.MilitaryTech, contentDescription = "Tactics") },
-                onClick = {
-                    onTacticsClick()
-                    showMenu = false
-                },
-            )
             if (aiLifeManagementEnabled) {
                 DropdownMenuItem(
                     text = { Text("AI Life-Management") },
@@ -218,14 +208,6 @@ internal fun MoreActionsBottomNavButton(
                     },
                 )
             }
-            DropdownMenuItem(
-                text = { Text("Reminders") },
-                leadingIcon = { Icon(Icons.Outlined.Notifications, contentDescription = "Reminders") },
-                onClick = {
-                    onShowReminders()
-                    showMenu = false
-                },
-            )
             if (aiChatEnabled) {
                 DropdownMenuItem(
                     text = { Text("AI-Chat") },
@@ -261,9 +243,7 @@ internal fun ExpandingProjectHierarchyBottomNav(
     onAiChatClick: () -> Unit,
     onActivityTrackerClick: () -> Unit,
     onInsightsClick: () -> Unit,
-    onShowReminders: () -> Unit,
     onLifeStateClick: () -> Unit,
-    onTacticsClick: () -> Unit, // Added
     onContextsClick: () -> Unit,
     onEvent: (ContextHierarchyScreenEvent) -> Unit,
 ) {
@@ -295,10 +275,8 @@ internal fun ExpandingProjectHierarchyBottomNav(
                 ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)
                 MoreActionsBottomNavButton(
                     onInsightsClick = onInsightsClick,
-                    onShowReminders = onShowReminders,
                     onAiChatClick = onAiChatClick,
                     onLifeStateClick = onLifeStateClick,
-                    onTacticsClick = onTacticsClick,
                     aiChatEnabled = aiChatEnabled,
                     aiInsightsEnabled = aiInsightsEnabled,
                     aiLifeManagementEnabled = aiLifeManagementEnabled,

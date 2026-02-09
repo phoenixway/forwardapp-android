@@ -200,9 +200,7 @@ internal fun OptimizedExpandingProjectHierarchyBottomNav(
     onAiChatClick: () -> Unit,
     onActivityTrackerClick: () -> Unit,
     onInsightsClick: () -> Unit,
-    onShowReminders: () -> Unit,
     onLifeStateClick: () -> Unit,
-    onTacticsClick: () -> Unit,
     onEvent: (ContextHierarchyScreenEvent) -> Unit,
 ) {
     val stableOnHomeClick = remember { { onHomeClick() } }
@@ -234,9 +232,7 @@ internal fun OptimizedExpandingProjectHierarchyBottomNav(
         onAiChatClick = onAiChatClick,
         onActivityTrackerClick = stableOnActivityTrackerClick,
         onInsightsClick = onInsightsClick,
-        onShowReminders = onShowReminders,
         onLifeStateClick = onLifeStateClick,
-        onTacticsClick = onTacticsClick,
         onEvent = onEvent,
     )
 }

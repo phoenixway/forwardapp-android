@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.AlternateEmail
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.DashboardCustomize
@@ -79,7 +80,9 @@ fun DashboardBottomBar(
     onNavigateToInbox: () -> Unit,
     onNavigateToReminders: () -> Unit,
     onNavigateToPresets: () -> Unit,
+    onNavigateToAiChat: () -> Unit,
     onNavigateToAiInsights: () -> Unit,
+    onNavigateToAiLifeManagement: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToRecentItem: (RecentItem) -> Unit,
     // New lambdas for Import/Export actions
@@ -171,6 +174,30 @@ fun DashboardBottomBar(
                             showMoreBottomSheet = false
                         }
                         onNavigateToAiInsights()
+                    }
+                },
+                onNavigateToProjectHierarchy = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onNavigateToProjectHierarchy()
+                    }
+                },
+                onNavigateToAiChat = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onNavigateToAiChat()
+                    }
+                },
+                onNavigateToAiLifeManagement = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onNavigateToAiLifeManagement()
                     }
                 },
                 onShowImportExportSheet = {
@@ -384,7 +411,10 @@ private fun MoreBottomSheetContent(
     onNavigateToReminders: () -> Unit,
     onNavigateToProjectSearch: () -> Unit,
     onNavigateToPresets: () -> Unit,
+    onNavigateToProjectHierarchy: () -> Unit,
+    onNavigateToAiChat: () -> Unit,
     onNavigateToAiInsights: () -> Unit,
+    onNavigateToAiLifeManagement: () -> Unit,
     onShowImportExportSheet: () -> Unit,
     onNavigateToAttachments: () -> Unit,
     onNavigateToScripts: () -> Unit,
@@ -413,6 +443,48 @@ private fun MoreBottomSheetContent(
                 Icon(Icons.Outlined.Search, contentDescription = "Search in projects")
                 Spacer(modifier = Modifier.width(16.dp))
                 Text("Search in projects")
+            }
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onNavigateToProjectHierarchy)
+                        .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Outlined.AccountTree, contentDescription = "Contexts")
+                Spacer(modifier = Modifier.width(16.dp))
+                Text("Contexts")
+            }
+            val aiLifeManagementEnabled = featureToggles[FeatureFlag.AiLifeManagement] == true
+            if (aiLifeManagementEnabled) {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onNavigateToAiLifeManagement)
+                            .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI Life-Management")
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("AI Life-Management")
+                }
+            }
+            val aiChatEnabled = featureToggles[FeatureFlag.AiChat] == true
+            if (aiChatEnabled) {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onNavigateToAiChat)
+                            .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Outlined.AutoAwesome, contentDescription = "AI-Chat")
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("AI-Chat")
+                }
             }
             Row(
                 modifier =

@@ -196,9 +196,7 @@ fun ProjectHierarchyScreenScaffold(
                             onAiChatClick = { onEvent(ContextHierarchyScreenEvent.NavigateToChat) },
                             onActivityTrackerClick = { onEvent(ContextHierarchyScreenEvent.NavigateToActivityTracker) },
                             onInsightsClick = { onEvent(ContextHierarchyScreenEvent.NavigateToAiInsights) },
-                            onShowReminders = { onEvent(ContextHierarchyScreenEvent.GoToReminders) },
                             onLifeStateClick = { onEvent(ContextHierarchyScreenEvent.NavigateToLifeState) },
-                            onTacticsClick = { onEvent(ContextHierarchyScreenEvent.NavigateToTacticsScreen) },
                             onContextsClick = { showContextSheet = true },
                             onEvent = onEvent,
                         )

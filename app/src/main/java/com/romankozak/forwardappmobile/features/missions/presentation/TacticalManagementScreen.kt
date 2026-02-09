@@ -49,16 +49,13 @@ fun TacticalManagementScreen(viewModel: TacticalMissionViewModel = hiltViewModel
     val showAddDialog by viewModel.isAddMissionDialogOpen.collectAsState()
     var editingMission by remember { mutableStateOf<TacticalMission?>(null) }
 
-    Scaffold { padding ->
+    Box(modifier = Modifier.fillMaxSize()) {
         TacticalMissionList(
             missions = missions,
             onMissionToggled = { viewModel.toggleMissionCompleted(it) },
             onMissionDeleted = { viewModel.deleteMission(it.id) },
             onMissionEdited = { editingMission = it },
-            modifier =
-                Modifier
-                    .padding(padding)
-                    .fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
             attachmentLabel = { id ->
                 attachmentOptions.firstOrNull { it.id == id }?.name ?: id
             },
