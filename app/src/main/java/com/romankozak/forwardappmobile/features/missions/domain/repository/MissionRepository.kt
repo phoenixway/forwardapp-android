@@ -44,13 +44,13 @@ class MissionRepository
             missionId: Long,
             attachmentIds: List<String>,
         ) {
-            val sanitizedIncoming =
-                attachmentIds
-                    .asSequence()
-                    .map { it.trim() }
-                    .filter { it.isNotBlank() }
-                    .filter { id -> tacticalMissionDao.attachmentExists(id) }
-                    .toSet()
+            val sanitizedIncoming = mutableSetOf<String>()
+            attachmentIds.forEach { rawId ->
+                val id = rawId.trim()
+                if (id.isNotBlank() && tacticalMissionDao.attachmentExists(id)) {
+                    sanitizedIncoming.add(id)
+                }
+            }
             val existing = tacticalMissionDao.getAttachmentIdsForMission(missionId).toSet()
             val toAdd = sanitizedIncoming - existing
             val toDelete = existing - sanitizedIncoming
