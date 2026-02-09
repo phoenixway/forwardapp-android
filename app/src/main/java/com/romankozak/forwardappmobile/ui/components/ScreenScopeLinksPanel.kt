@@ -26,7 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberSaveable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,8 +52,8 @@ fun ScreenScopeLinksPanel(
     onAttachmentRemove: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var contextsExpanded by rememberSaveable { mutableStateOf(true) }
-    var attachmentsExpanded by rememberSaveable { mutableStateOf(true) }
+    var contextsExpanded by remember { mutableStateOf(true) }
+    var attachmentsExpanded by remember { mutableStateOf(true) }
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
