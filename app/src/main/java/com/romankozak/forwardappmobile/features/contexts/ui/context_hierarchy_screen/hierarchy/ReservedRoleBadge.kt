@@ -27,6 +27,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
 import java.util.Locale
 
@@ -81,21 +82,22 @@ fun ReservedRoleBadge(
     val glowModifier =
         if (style.glow) {
             Modifier.shadow(
-                elevation = 5.dp,
+                elevation = 4.dp,
                 shape = shape,
-                ambientColor = style.tint.copy(alpha = 0.20f),
-                spotColor = style.tint.copy(alpha = 0.20f),
+                ambientColor = style.tint.copy(alpha = 0.18f),
+                spotColor = style.tint.copy(alpha = 0.18f),
             )
         } else {
             Modifier
         }
+    val badgeHeight = if (style.symbol != null) 19.dp else 18.dp
 
     Surface(
         modifier =
             modifier
                 .then(glowModifier)
                 .semantics { contentDescription = roleLabel }
-                .height(18.dp)
+                .height(badgeHeight)
                 .defaultMinSize(minWidth = 18.dp),
         shape = shape,
         color = style.tint.copy(alpha = 0.12f),
@@ -106,37 +108,42 @@ fun ReservedRoleBadge(
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Box(
-                modifier =
-                    Modifier
-                        .size(12.dp)
-                        .background(
-                            brush =
-                                Brush.verticalGradient(
-                                    listOf(
-                                        Color.White.copy(alpha = 0.10f),
-                                        Color.Transparent,
-                                    ),
+            when {
+                style.icon != null -> {
+                    Box(
+                        modifier =
+                            Modifier
+                                .size(12.dp)
+                                .background(
+                                    brush =
+                                        Brush.verticalGradient(
+                                            listOf(
+                                                Color.White.copy(alpha = 0.10f),
+                                                Color.Transparent,
+                                            ),
+                                        ),
+                                    shape = RoundedCornerShape(999.dp),
                                 ),
-                            shape = RoundedCornerShape(999.dp),
-                        ),
-                contentAlignment = Alignment.Center,
-            ) {
-                when {
-                    style.icon != null -> {
-                    Icon(
-                        imageVector = style.icon,
-                        contentDescription = null,
-                        modifier = Modifier.size(12.dp),
-                    )
-                }
-                    style.symbol != null -> {
-                        Text(
-                            text = style.symbol,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = style.icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(12.dp),
                         )
                     }
+                }
+                style.symbol != null -> {
+                    Text(
+                        text = style.symbol,
+                        style =
+                            MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 10.sp,
+                                lineHeight = 10.sp,
+                                letterSpacing = 0.sp,
+                            ),
+                        fontWeight = FontWeight.SemiBold,
+                    )
                 }
             }
         }
