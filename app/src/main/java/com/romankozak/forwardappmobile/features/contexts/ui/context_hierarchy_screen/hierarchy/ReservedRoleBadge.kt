@@ -81,15 +81,15 @@ fun ReservedRoleBadge(
         modifier =
             modifier
                 .then(glowModifier)
-                .height(20.dp)
-                .defaultMinSize(minWidth = 20.dp),
+                .height(18.dp)
+                .defaultMinSize(minWidth = 18.dp),
         shape = shape,
         color = style.tint.copy(alpha = 0.14f),
         contentColor = style.tint,
         border = BorderStroke(1.dp, style.tint.copy(alpha = 0.35f)),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             when {
@@ -98,7 +98,7 @@ fun ReservedRoleBadge(
                         imageVector = style.icon,
                         contentDescription = null,
                         tint = style.tint,
-                        modifier = Modifier.height(12.dp),
+                        modifier = Modifier.height(11.dp),
                     )
                 }
                 style.symbol != null -> {
