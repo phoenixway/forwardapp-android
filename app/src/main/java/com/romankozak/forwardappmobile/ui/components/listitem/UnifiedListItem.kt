@@ -47,6 +47,8 @@ fun UnifiedListItemSurface(
     isSelected: Boolean,
     state: UnifiedItemState = UnifiedItemState.DEFAULT,
     modifier: Modifier = Modifier,
+    containerColorOverride: Color? = null,
+    borderColorOverride: Color? = null,
     contentPadding: PaddingValues =
         PaddingValues(
             horizontal = UnifiedListItemTokens.HorizontalPadding,
@@ -71,17 +73,19 @@ fun UnifiedListItemSurface(
             UnifiedItemState.DISABLED -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
             UnifiedItemState.DEFAULT -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
         }
+    val finalContainerColor = containerColorOverride ?: containerColor
+    val finalBorderColor = borderColorOverride ?: borderColor
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(UnifiedListItemTokens.CornerRadius),
-        color = containerColor,
+        color = finalContainerColor,
         shadowElevation = if (resolvedState == UnifiedItemState.SELECTED) 5.dp else 2.dp,
         tonalElevation = if (resolvedState == UnifiedItemState.SELECTED) 4.dp else 2.dp,
         border =
             if (resolvedState == UnifiedItemState.SELECTED) {
-                BorderStroke(2.dp, borderColor)
+                BorderStroke(2.dp, finalBorderColor)
             } else {
-                BorderStroke(1.dp, borderColor)
+                BorderStroke(1.dp, finalBorderColor)
             },
     ) {
         Column(modifier = Modifier.padding(contentPadding), content = content)

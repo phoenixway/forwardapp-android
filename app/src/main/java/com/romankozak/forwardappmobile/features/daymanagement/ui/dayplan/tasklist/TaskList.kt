@@ -107,14 +107,34 @@ fun TaskList(
                                     .fillMaxWidth()
                                     .padding(vertical = elevation / 8),
                         ) {
+                            val colorScheme = MaterialTheme.colorScheme
+                            val itemState =
+                                if (taskWithReminder.dayTask.completed) {
+                                    UnifiedItemState.COMPLETED
+                                } else {
+                                    UnifiedItemState.DEFAULT
+                                }
+                            val dayTaskContainerColor =
+                                when (itemState) {
+                                    UnifiedItemState.COMPLETED -> colorScheme.surfaceContainerLow
+                                    UnifiedItemState.DEFAULT -> colorScheme.primaryContainer.copy(alpha = 0.18f)
+                                    UnifiedItemState.SELECTED -> colorScheme.surfaceContainerHighest
+                                    UnifiedItemState.OVERDUE -> colorScheme.errorContainer.copy(alpha = 0.35f)
+                                    UnifiedItemState.DISABLED -> colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                                }
+                            val dayTaskBorderColor =
+                                when (itemState) {
+                                    UnifiedItemState.COMPLETED -> colorScheme.outlineVariant.copy(alpha = 0.55f)
+                                    UnifiedItemState.DEFAULT -> colorScheme.primary.copy(alpha = 0.30f)
+                                    UnifiedItemState.SELECTED -> colorScheme.primary.copy(alpha = 0.4f)
+                                    UnifiedItemState.OVERDUE -> colorScheme.error.copy(alpha = 0.45f)
+                                    UnifiedItemState.DISABLED -> colorScheme.outlineVariant.copy(alpha = 0.35f)
+                                }
                             UnifiedListItemSurface(
                                 isSelected = isDragging,
-                                state =
-                                    if (taskWithReminder.dayTask.completed) {
-                                        UnifiedItemState.COMPLETED
-                                    } else {
-                                        UnifiedItemState.DEFAULT
-                                    },
+                                state = itemState,
+                                containerColorOverride = dayTaskContainerColor,
+                                borderColorOverride = dayTaskBorderColor,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 TaskItem(

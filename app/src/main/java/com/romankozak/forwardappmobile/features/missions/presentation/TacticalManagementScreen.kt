@@ -307,19 +307,39 @@ fun TacticalMissionItem(
     projectLabel: (String) -> String,
 ) {
     val onSurface = MaterialTheme.colorScheme.onSurface
+    val colorScheme = MaterialTheme.colorScheme
 
     val overdue =
         System.currentTimeMillis() > mission.deadline &&
             mission.status != MissionStatus.COMPLETED
+    val itemState =
+        when {
+            mission.status == MissionStatus.COMPLETED -> UnifiedItemState.COMPLETED
+            overdue -> UnifiedItemState.OVERDUE
+            else -> UnifiedItemState.DEFAULT
+        }
+    val missionContainerColor =
+        when (itemState) {
+            UnifiedItemState.COMPLETED -> colorScheme.secondaryContainer.copy(alpha = 0.20f)
+            UnifiedItemState.OVERDUE -> colorScheme.errorContainer.copy(alpha = 0.42f)
+            UnifiedItemState.DEFAULT -> colorScheme.tertiaryContainer.copy(alpha = 0.24f)
+            UnifiedItemState.SELECTED -> colorScheme.surfaceContainerHighest
+            UnifiedItemState.DISABLED -> colorScheme.surfaceVariant.copy(alpha = 0.6f)
+        }
+    val missionBorderColor =
+        when (itemState) {
+            UnifiedItemState.COMPLETED -> colorScheme.secondary.copy(alpha = 0.35f)
+            UnifiedItemState.OVERDUE -> colorScheme.error.copy(alpha = 0.50f)
+            UnifiedItemState.DEFAULT -> colorScheme.tertiary.copy(alpha = 0.38f)
+            UnifiedItemState.SELECTED -> colorScheme.primary.copy(alpha = 0.4f)
+            UnifiedItemState.DISABLED -> colorScheme.outlineVariant.copy(alpha = 0.35f)
+        }
 
     UnifiedListItemSurface(
         isSelected = false,
-        state =
-            when {
-                mission.status == MissionStatus.COMPLETED -> UnifiedItemState.COMPLETED
-                overdue -> UnifiedItemState.OVERDUE
-                else -> UnifiedItemState.DEFAULT
-            },
+        state = itemState,
+        containerColorOverride = missionContainerColor,
+        borderColorOverride = missionBorderColor,
         modifier =
             Modifier
                 .fillMaxWidth()
