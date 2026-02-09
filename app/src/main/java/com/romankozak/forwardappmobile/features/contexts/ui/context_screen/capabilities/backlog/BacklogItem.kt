@@ -4,12 +4,12 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -50,6 +50,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusVa
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.MarkdownText
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.StatusIconsRow
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 
 @Composable
@@ -86,6 +87,7 @@ fun BacklogItem(
         is BacklogItemContent.SublistItem -> {
             InternalSubprojectItem(
                 subproject = item.project,
+                reminders = item.reminders,
                 reorderableScope = reorderableScope,
                 modifier = modifier,
                 onItemClick = onItemClick,
@@ -132,7 +134,8 @@ private fun InternalGoalItem(
             badgeText = MaterialTheme.colorScheme.primary,
         )
 
-    Surface(
+    UnifiedListItemSurface(
+        isSelected = isSelected,
         modifier =
             modifier
                 .fillMaxWidth()
@@ -141,25 +144,7 @@ private fun InternalGoalItem(
                     onClick = onItemClick,
                     onLongClick = onLongClick,
                 ),
-        shape = RoundedCornerShape(16.dp),
-        color = Color.Transparent,
-        shadowElevation =
-            if (isSelected) {
-                4.dp
-            } else if (goal.completed) {
-                0.dp
-            } else {
-                1.dp
-            },
-        tonalElevation = if (isSelected) 3.dp else 0.dp,
-        border =
-            if (isSelected) {
-                BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
-            } else if (goal.completed) {
-                BorderStroke(1.5.dp, completedColors.border)
-            } else {
-                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-            },
+        contentPadding = PaddingValues(0.dp),
     ) {
         Box(
             modifier =
@@ -282,6 +267,7 @@ private fun CompletedBadge(
 @Composable
 private fun InternalSubprojectItem(
     subproject: Context,
+    reminders: List<Reminder>,
     reorderableScope: ReorderableCollectionItemScope,
     modifier: Modifier = Modifier,
     onItemClick: () -> Unit,
@@ -325,7 +311,8 @@ private fun InternalSubprojectItem(
             badgeText = MaterialTheme.colorScheme.secondary,
         )
 
-    Surface(
+    UnifiedListItemSurface(
+        isSelected = isSelected,
         modifier =
             modifier
                 .fillMaxWidth()
@@ -334,25 +321,7 @@ private fun InternalSubprojectItem(
                     onClick = onItemClick,
                     onLongClick = onLongClick,
                 ),
-        shape = RoundedCornerShape(16.dp),
-        color = Color.Transparent,
-        shadowElevation =
-            if (isSelected) {
-                4.dp
-            } else if (subproject.isCompleted) {
-                0.dp
-            } else {
-                1.dp
-            },
-        tonalElevation = if (isSelected) 3.dp else 0.dp,
-        border =
-            if (isSelected) {
-                BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
-            } else if (subproject.isCompleted) {
-                BorderStroke(1.5.dp, completedColors.border)
-            } else {
-                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-            },
+        contentPadding = PaddingValues(0.dp),
     ) {
         Box(
             modifier =
@@ -425,8 +394,10 @@ private fun InternalSubprojectItem(
                         modifier = if (subproject.isCompleted) Modifier.alpha(0.65f) else Modifier,
                     )
 
+                    val reminder = reminders.firstOrNull()
                     val shouldShowStatusIcons =
                         (subproject.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
+                            (reminder != null) ||
                             (enrichedParsedData.icons.isNotEmpty()) ||
                             (!subproject.description.isNullOrBlank()) ||
                             (!subproject.relatedLinks.isNullOrEmpty())
@@ -441,7 +412,7 @@ private fun InternalSubprojectItem(
                                 StatusIconsRow(
                                     project = subproject,
                                     parsedData = enrichedParsedData,
-                                    reminder = null,
+                                    reminder = reminder,
                                     emojiToHide = null,
                                     onRelatedLinkClick = onRelatedLinkClick,
                                 )

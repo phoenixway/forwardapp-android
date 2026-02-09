@@ -158,7 +158,7 @@ private fun RecentItemCard(
                 }
             }
             Text(
-                text = item.displayName,
+                text = item.displayName.ifBlank { fallbackRecentItemTitle(item) },
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                 color = color,
                 maxLines = 3,
@@ -177,3 +177,12 @@ private fun getColorsForType(type: RecentItemType): Color {
         RecentItemType.OBSIDIAN_LINK -> MaterialTheme.colorScheme.primaryContainer
     }
 }
+
+private fun fallbackRecentItemTitle(item: RecentItem): String =
+    when (item.type) {
+        RecentItemType.PROJECT -> "Контекст"
+        RecentItemType.NOTE -> "Нотатка"
+        RecentItemType.NOTE_DOCUMENT -> "Документ"
+        RecentItemType.CHECKLIST -> "Чекліст"
+        RecentItemType.OBSIDIAN_LINK -> item.target.ifBlank { "Посилання" }
+    }

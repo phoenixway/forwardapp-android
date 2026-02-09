@@ -2,11 +2,9 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.comp
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material3.*
@@ -24,6 +22,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.GoalItemViewModel
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
@@ -49,21 +48,13 @@ fun GoalItem(
         viewModel(key = goal.hashCode().toString(), factory = GoalItemViewModelFactory(goal, parsedData, reminder))
     val shouldShowStatusIcons by viewModel.shouldShowStatusIcons.collectAsState()
 
-    Surface(
+    UnifiedListItemSurface(
+        isSelected = isSelected,
         modifier =
             modifier
                 .fillMaxWidth()
                 .padding(vertical = 6.dp, horizontal = 8.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        shadowElevation = if (isSelected) 4.dp else 1.dp,
-        tonalElevation = if (isSelected) 3.dp else 1.dp,
-        border =
-            if (isSelected) {
-                BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-            } else {
-                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-            },
+        contentPadding = PaddingValues(0.dp),
     ) {
         Box(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),

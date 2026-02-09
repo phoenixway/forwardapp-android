@@ -8,7 +8,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -19,15 +18,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,6 +53,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.compo
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.NoteIndicatorBadge
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.TagType
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
@@ -80,21 +79,13 @@ fun ProjectItem(
     val reminder = reminders.firstOrNull()
     val parsedData = rememberParsedText(project.name, contextMarkerToEmojiMap)
 
-    Surface(
+    UnifiedListItemSurface(
+        isSelected = isSelected,
         modifier =
             modifier
                 .fillMaxWidth()
                 .padding(vertical = 6.dp, horizontal = 8.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        shadowElevation = if (isSelected) 4.dp else 1.dp,
-        tonalElevation = if (isSelected) 3.dp else 1.dp,
-        border =
-            if (isSelected) {
-                BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-            } else {
-                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-            },
+        contentPadding = PaddingValues(0.dp),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),

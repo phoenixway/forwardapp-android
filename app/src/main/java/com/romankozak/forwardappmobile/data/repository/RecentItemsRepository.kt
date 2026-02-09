@@ -27,7 +27,10 @@ class RecentItemsRepository
             val existingItem = recentItemDao.getRecentItemById(project.id)
             val recentItem =
                 if (existingItem != null) {
-                    existingItem.copy(lastAccessed = System.currentTimeMillis())
+                    existingItem.copy(
+                        lastAccessed = System.currentTimeMillis(),
+                        displayName = project.name,
+                    )
                 } else {
                     RecentItem(
                         id = project.id,
@@ -45,7 +48,10 @@ class RecentItemsRepository
             val existingItem = recentItemDao.getRecentItemById(note.id)
             val recentItem =
                 if (existingItem != null) {
-                    existingItem.copy(lastAccessed = System.currentTimeMillis())
+                    existingItem.copy(
+                        lastAccessed = System.currentTimeMillis(),
+                        displayName = note.title,
+                    )
                 } else {
                     RecentItem(
                         id = note.id,
@@ -63,7 +69,10 @@ class RecentItemsRepository
             val existingItem = recentItemDao.getRecentItemById(document.id)
             val recentItem =
                 if (existingItem != null) {
-                    existingItem.copy(lastAccessed = System.currentTimeMillis())
+                    existingItem.copy(
+                        lastAccessed = System.currentTimeMillis(),
+                        displayName = document.name,
+                    )
                 } else {
                     RecentItem(
                         id = document.id,
@@ -99,7 +108,10 @@ class RecentItemsRepository
             val existingItem = recentItemDao.getRecentItemById(link.target)
             val recentItem =
                 if (existingItem != null) {
-                    existingItem.copy(lastAccessed = System.currentTimeMillis())
+                    existingItem.copy(
+                        lastAccessed = System.currentTimeMillis(),
+                        displayName = link.displayName ?: link.target,
+                    )
                 } else {
                     RecentItem(
                         id = link.target,
