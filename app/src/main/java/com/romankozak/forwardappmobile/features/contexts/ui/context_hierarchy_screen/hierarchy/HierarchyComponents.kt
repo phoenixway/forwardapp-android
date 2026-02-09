@@ -55,7 +55,6 @@ import com.mohamedrejeb.compose.dnd.DragAndDropState
 import com.mohamedrejeb.compose.dnd.drag.DraggableItem
 import com.mohamedrejeb.compose.dnd.drop.dropTarget
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyItem
@@ -63,7 +62,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
-import java.util.Locale
 
 // Remove SharedTransition imports for now - they seem to be causing issues
 // import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -285,37 +283,6 @@ fun ProjectRow(
                 modifier = Modifier.padding(start = indentation),
             )
         }
-    }
-}
-
-@Composable
-private fun ReservedRoleBadge(
-    roleCode: String?,
-    modifier: Modifier = Modifier,
-) {
-    val normalized = roleCode?.trim()?.lowercase(Locale.ROOT)
-    val badge =
-        when (normalized) {
-            ContextRoleRegistry.ROLE_PROJECT -> "✓" to Color(0xFF2E7D32)
-            ContextRoleRegistry.ROLE_DIRECTION -> "↑" to Color(0xFF1565C0)
-            ContextRoleRegistry.ROLE_MAIN_BEACON -> "✦" to Color(0xFFEF6C00)
-            ContextRoleRegistry.ROLE_MANAGEMENT -> "⚙" to Color(0xFF6A1B9A)
-            else -> null
-        } ?: return
-
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(8.dp),
-        color = badge.second.copy(alpha = 0.16f),
-        contentColor = badge.second,
-    ) {
-        Text(
-            text = badge.first,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-        )
     }
 }
 
