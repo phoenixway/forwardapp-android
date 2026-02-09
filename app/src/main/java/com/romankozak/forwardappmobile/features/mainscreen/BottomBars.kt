@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -361,6 +362,7 @@ fun DashboardBottomBar(
         BarButton(
             icon = middleCenterIcon,
             onClick = onMiddleCenterClick,
+            onLongClick = onNavigateToProjectSearch,
             label = middleCenterLabel,
             enabled = middleCenterEnabled,
         )
@@ -579,22 +581,30 @@ private fun BarButton(
     icon: ImageVector,
     label: String,
     onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
     enabled: Boolean = true,
 ) {
     val primary = MaterialTheme.colorScheme.primary
+    val interactionSource = remember { MutableInteractionSource() }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier =
             Modifier
                 .clip(RoundedCornerShape(14.dp))
-                .clickable(
+                .combinedClickable(
                     enabled = enabled,
-                    interactionSource = remember { MutableInteractionSource() },
+                    interactionSource = interactionSource,
                     indication = null,
-                ) {
-                    if (enabled) onClick()
-                }
+                    onClick = {
+                        if (enabled) onClick()
+                    },
+                    onLongClick = {
+                        if (enabled) {
+                            onLongClick?.invoke()
+                        }
+                    },
+                )
                 .padding(6.dp),
     ) {
         Box(
