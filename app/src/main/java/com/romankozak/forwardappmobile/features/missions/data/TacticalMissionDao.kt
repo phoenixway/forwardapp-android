@@ -46,6 +46,9 @@ interface TacticalMissionDao {
     )
     suspend fun getAttachmentIdsForMission(missionId: Long): List<String>
 
+    @Query("SELECT EXISTS(SELECT 1 FROM attachments WHERE id = :attachmentId)")
+    suspend fun attachmentExists(attachmentId: String): Boolean
+
     // --- Backup Methods ---
     @Query("SELECT * FROM tactical_missions")
     suspend fun getAllMissionsSync(): List<TacticalMission>

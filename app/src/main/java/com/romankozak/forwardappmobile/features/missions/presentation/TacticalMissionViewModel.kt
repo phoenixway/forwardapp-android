@@ -147,7 +147,9 @@ class TacticalMissionViewModel
                     MissionStatus.COMPLETED
                 }
             val updatedMission = mission.copy(status = updatedStatus)
-            updateMission(updatedMission)
+            viewModelScope.launch {
+                updateTacticalMissionUseCase(updatedMission)
+            }
         }
 
         fun openAddMissionDialog() {

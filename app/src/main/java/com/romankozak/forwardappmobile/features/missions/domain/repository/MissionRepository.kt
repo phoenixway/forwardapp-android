@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.missions.domain.repository
 
+import android.util.Log
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMissionAttachmentCrossRef
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
@@ -13,6 +14,8 @@ class MissionRepository
     constructor(
         private val tacticalMissionDao: TacticalMissionDao,
     ) {
+        private val tag = "MissionRepository"
+
         fun getMissionsForProject(projectId: String): Flow<List<TacticalMission>> {
             return tacticalMissionDao.getMissionsForProject(projectId)
         }
@@ -41,13 +44,23 @@ class MissionRepository
             missionId: Long,
             attachmentIds: List<String>,
         ) {
+            val sanitizedIncoming =
+                attachmentIds
+                    .asSequence()
+                    .map { it.trim() }
+                    .filter { it.isNotBlank() }
+                    .filter { id -> tacticalMissionDao.attachmentExists(id) }
+                    .toSet()
             val existing = tacticalMissionDao.getAttachmentIdsForMission(missionId).toSet()
-            val incoming = attachmentIds.toSet()
-            val toAdd = incoming - existing
-            val toDelete = existing - incoming
+            val toAdd = sanitizedIncoming - existing
+            val toDelete = existing - sanitizedIncoming
             toAdd.forEach { id ->
                 val crossRef = TacticalMissionAttachmentCrossRef(missionId = missionId, attachmentId = id)
-                tacticalMissionDao.insertMissionAttachmentCrossRef(crossRef)
+                runCatching {
+                    tacticalMissionDao.insertMissionAttachmentCrossRef(crossRef)
+                }.onFailure { error ->
+                    Log.w(tag, "Skip invalid mission attachment link missionId=$missionId attachmentId=$id", error)
+                }
             }
             toDelete.forEach { id ->
                 tacticalMissionDao.deleteMissionAttachmentCrossRef(missionId, id)
