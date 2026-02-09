@@ -79,8 +79,8 @@ fun UnifiedListItemSurface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(UnifiedListItemTokens.CornerRadius),
         color = finalContainerColor,
-        shadowElevation = if (resolvedState == UnifiedItemState.SELECTED) 5.dp else 2.dp,
-        tonalElevation = if (resolvedState == UnifiedItemState.SELECTED) 4.dp else 2.dp,
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
         border =
             if (resolvedState == UnifiedItemState.SELECTED) {
                 BorderStroke(2.dp, finalBorderColor)

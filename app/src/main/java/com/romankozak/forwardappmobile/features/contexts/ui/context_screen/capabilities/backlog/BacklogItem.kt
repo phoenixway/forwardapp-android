@@ -236,7 +236,7 @@ private fun InternalGoalItem(
                 IconButton(
                     modifier =
                         with(reorderableScope) {
-                            Modifier.longPressDraggableHandle(
+                            Modifier.draggableHandle(
                                 onDragStarted = {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                                 },
@@ -431,7 +431,7 @@ private fun InternalSubprojectItem(
                 IconButton(
                     modifier =
                         with(reorderableScope) {
-                            Modifier.longPressDraggableHandle(
+                            Modifier.draggableHandle(
                                 onDragStarted = {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                                 },
