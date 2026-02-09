@@ -3,6 +3,8 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_configurati
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
+import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
+import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,6 +28,7 @@ class StructurePresetsViewModel
     constructor(
         private val structurePresetDao: StructurePresetDao,
         private val structurePresetItemDao: StructurePresetItemDao,
+        private val contextStructureRepository: ContextStructureRepository,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(StructurePresetsUiState())
         val uiState: StateFlow<StructurePresetsUiState> = _uiState.asStateFlow()
@@ -36,6 +39,7 @@ class StructurePresetsViewModel
 
         private fun observePresets() {
             viewModelScope.launch {
+                contextStructureRepository.ensureReservedBaseRolePresets()
                 structurePresetDao.getAll().collectLatest { presets ->
                     val selected = _uiState.value.selectedPreset
                     val newSelected = selected ?: presets.firstOrNull()
@@ -62,6 +66,16 @@ class StructurePresetsViewModel
                         description = description,
                     )
                 structurePresetDao.insertPreset(preset)
+            }
+        }
+
+        fun removePreset(preset: ContextRoleProfile) {
+            if (ContextRoleRegistry.isReservedBaseRole(preset.code)) return
+            viewModelScope.launch {
+                structurePresetDao.deleteById(preset.id)
+                if (_uiState.value.selectedPreset?.id == preset.id) {
+                    _uiState.update { it.copy(selectedPreset = null) }
+                }
             }
         }
     }

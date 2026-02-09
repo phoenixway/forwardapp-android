@@ -21,6 +21,9 @@ interface StructurePresetDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPreset(preset: ContextRoleProfile)
 
+    @Query("DELETE FROM structure_presets WHERE id = :id")
+    suspend fun deleteById(id: String)
+
     // --- Backup Methods ---
     @Query("SELECT * FROM structure_presets")
     suspend fun getAllSync(): List<ContextRoleProfile>

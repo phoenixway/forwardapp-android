@@ -110,13 +110,17 @@ private fun AttachmentItemCard(
             Modifier
                 .fillMaxWidth()
                 .combinedClickable(onClick = { onItemClick(item) }),
-        shape = RoundedCornerShape(16.dp),
-        tonalElevation = 1.dp,
-        shadowElevation = 1.dp,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
-        color = Color.Transparent,
+        shape = RoundedCornerShape(18.dp),
+        tonalElevation = 2.dp,
+        shadowElevation = 3.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
-        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Column(modifier = Modifier.padding(vertical = 10.dp)) {
+            AttachmentTypeBadge(
+                item = item,
+                modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 6.dp),
+            )
             when (item) {
                 is BacklogItemContent.LinkItem -> {
                     LinkItemRow(
@@ -150,12 +154,45 @@ private fun AttachmentItemCard(
             }
 
             AttachmentActionsRow(
-                modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 2.dp),
+                modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 4.dp),
                 onShareAttachment = { onShareAttachment(item) },
                 onDeleteItem = { onDeleteItem(item) },
                 onDeleteCompletely = { onDeleteCompletely(item) },
             )
         }
+    }
+}
+
+@Composable
+private fun AttachmentTypeBadge(
+    item: BacklogItemContent,
+    modifier: Modifier = Modifier,
+) {
+    val text =
+        when (item) {
+            is BacklogItemContent.LinkItem ->
+                when (item.link.linkData.type) {
+                    com.romankozak.forwardappmobile.core.data.models.entities.LinkType.OBSIDIAN -> "Obsidian"
+                    com.romankozak.forwardappmobile.core.data.models.entities.LinkType.URL -> "URL"
+                    com.romankozak.forwardappmobile.core.data.models.entities.LinkType.CONTEXT -> "Контекст"
+                    else -> "Посилання"
+                }
+            is BacklogItemContent.NoteDocumentItem -> "Документ"
+            is BacklogItemContent.ChecklistItem -> "Чекліст"
+            else -> "Вкладення"
+        }
+
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+        )
     }
 }
 
@@ -172,11 +209,15 @@ private fun AttachmentActionsRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Spacer(modifier = Modifier.weight(1f))
-        IconButton(
+        FilledTonalIconButton(
             onClick = {
                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 onShareAttachment()
             },
+            colors =
+                IconButtonDefaults.filledTonalIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f),
+                ),
         ) {
             Icon(
                 imageVector = Icons.Default.Share,
@@ -185,11 +226,15 @@ private fun AttachmentActionsRow(
                 modifier = Modifier.size(20.dp),
             )
         }
-        IconButton(
+        FilledTonalIconButton(
             onClick = {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onDeleteCompletely()
             },
+            colors =
+                IconButtonDefaults.filledTonalIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.65f),
+                ),
         ) {
             Icon(
                 imageVector = Icons.Filled.DeleteForever,
@@ -198,11 +243,15 @@ private fun AttachmentActionsRow(
                 modifier = Modifier.size(20.dp),
             )
         }
-        IconButton(
+        FilledTonalIconButton(
             onClick = {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onDeleteItem()
             },
+            colors =
+                IconButtonDefaults.filledTonalIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f),
+                ),
         ) {
             Icon(
                 imageVector = Icons.Default.Close,

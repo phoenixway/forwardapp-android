@@ -135,6 +135,8 @@ fun MainScreenLayout(
     val showWifiImportDialog by commandDeckViewModel.showWifiImportDialog.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val contextUiState by contextHierarchyViewModel.uiState.collectAsStateWithLifecycle()
+    val dayPlanViewModel: DayPlanViewModel = hiltViewModel()
+    val dayPlanUiState by dayPlanViewModel.uiState.collectAsState()
     var showAboutDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(commandDeckViewModel) {
@@ -195,8 +197,6 @@ fun MainScreenLayout(
                         )
 
                     MAIN_SCREEN_TODAY_ROUTE -> {
-                        val dayPlanViewModel: DayPlanViewModel = hiltViewModel()
-                        val dayPlanUiState by dayPlanViewModel.uiState.collectAsState()
                         val activityTrackerViewModel: ActivityTrackerViewModel = hiltViewModel()
                         val activityLog by activityTrackerViewModel.activityLog.collectAsStateWithLifecycle()
 
@@ -215,18 +215,6 @@ fun MainScreenLayout(
                         FAHeader(
                             layout =
                                 TodayHeader(
-                                    onNavigateToPreviousDay = {
-                                        Log.d("TodayTab", "onNavigateToPreviousDay callback invoked.")
-                                        dayPlanViewModel.navigateToPreviousDay()
-                                    },
-                                    onNavigateToNextDay = {
-                                        Log.d(
-                                            "TodayTab",
-                                            "onNavigateToNextDay callback invoked. Enabled: ${!dayPlanUiState.isToday}",
-                                        )
-                                        dayPlanViewModel.navigateToNextDay()
-                                    },
-                                    isNextDayNavigationEnabled = !dayPlanUiState.isToday,
                                     date = dayPlanUiState.dayPlan?.date,
                                 ),
                             backgroundStyle = FAHeaderBackground.CommandDeck,
@@ -291,6 +279,18 @@ fun MainScreenLayout(
                                 onShowAbout = { showAboutDialog = true },
                                 featureToggles = contextUiState.featureToggles,
                                 onNavigateToRecentItem = onNavigateToRecentItem,
+                                onNavigateToPreviousDay = {
+                                    Log.d("TodayTab", "onNavigateToPreviousDay callback invoked.")
+                                    dayPlanViewModel.navigateToPreviousDay()
+                                },
+                                onNavigateToNextDay = {
+                                    Log.d(
+                                        "TodayTab",
+                                        "onNavigateToNextDay callback invoked. Enabled: ${!dayPlanUiState.isToday}",
+                                    )
+                                    dayPlanViewModel.navigateToNextDay()
+                                },
+                                isNextDayNavigationEnabled = !dayPlanUiState.isToday,
                                 recentViewModel = recentViewModel,
                             )
                         MAIN_SCREEN_TODAY_ROUTE ->

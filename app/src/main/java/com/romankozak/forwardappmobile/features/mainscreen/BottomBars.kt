@@ -97,6 +97,14 @@ fun DashboardBottomBar(
     quickActionIcon: ImageVector = Icons.Outlined.History,
     quickActionLabel: String = "Recent",
     onQuickActionClick: (() -> Unit)? = null,
+    middleLeftIcon: ImageVector = Icons.Outlined.Radar,
+    middleLeftLabel: String = "Tracker",
+    onMiddleLeftClick: () -> Unit = onNavigateToTracker,
+    middleLeftEnabled: Boolean = true,
+    middleCenterIcon: ImageVector = Icons.Outlined.AlternateEmail,
+    middleCenterLabel: String = "Contexts",
+    onMiddleCenterClick: () -> Unit = onNavigateToProjectHierarchy,
+    middleCenterEnabled: Boolean = true,
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -344,15 +352,17 @@ fun DashboardBottomBar(
         )
 
         BarButton(
-            icon = Icons.Outlined.Radar,
-            label = "Tracker",
-            onClick = onNavigateToTracker,
+            icon = middleLeftIcon,
+            label = middleLeftLabel,
+            onClick = onMiddleLeftClick,
+            enabled = middleLeftEnabled,
         )
 
         BarButton(
-            icon = Icons.Outlined.AlternateEmail,
-            onClick = onNavigateToProjectHierarchy,
-            label = "Contexts",
+            icon = middleCenterIcon,
+            onClick = onMiddleCenterClick,
+            label = middleCenterLabel,
+            enabled = middleCenterEnabled,
         )
         BarButton(
             icon = quickActionIcon,
@@ -569,6 +579,7 @@ private fun BarButton(
     icon: ImageVector,
     label: String,
     onClick: () -> Unit,
+    enabled: Boolean = true,
 ) {
     val primary = MaterialTheme.colorScheme.primary
 
@@ -578,9 +589,12 @@ private fun BarButton(
             Modifier
                 .clip(RoundedCornerShape(14.dp))
                 .clickable(
+                    enabled = enabled,
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
-                ) { onClick() }
+                ) {
+                    if (enabled) onClick()
+                }
                 .padding(6.dp),
     ) {
         Box(
@@ -596,7 +610,11 @@ private fun BarButton(
                     ),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(icon, contentDescription = label, tint = primary.copy(alpha = 0.9f))
+            Icon(
+                icon,
+                contentDescription = label,
+                tint = if (enabled) primary.copy(alpha = 0.9f) else primary.copy(alpha = 0.35f),
+            )
         }
     }
 }

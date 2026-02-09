@@ -5,18 +5,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,9 +28,6 @@ import androidx.compose.ui.unit.sp
  */
 @Composable
 fun TodayHeader(
-    onNavigateToPreviousDay: () -> Unit,
-    onNavigateToNextDay: () -> Unit,
-    isNextDayNavigationEnabled: Boolean,
     date: Long?,
     statsText: String? = null,
 ): HeaderLayout {
@@ -108,27 +98,6 @@ fun TodayHeader(
                         color = primaryColor,
                         fontWeight = FontWeight.Bold,
                     )
-                }
-                Row(modifier = Modifier.offset(y = 4.dp)) {
-                    IconButton(onClick = onNavigateToPreviousDay, modifier = Modifier.padding(start = 8.dp)) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Попередній день",
-                            tint = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                    IconButton(onClick = onNavigateToNextDay, enabled = isNextDayNavigationEnabled) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = "Наступний день",
-                            tint =
-                                if (isNextDayNavigationEnabled) {
-                                    MaterialTheme.colorScheme.onSurface
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                                },
-                        )
-                    }
                 }
             }
         },

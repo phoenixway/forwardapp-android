@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
+import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 
@@ -108,9 +109,10 @@ fun StructurePresetsScreen(
                         preset = preset,
                         onSelect = { viewModel.selectPreset(preset) },
                         onEdit = { navigateToEditor(preset.id, null) },
-                        onRemove = { /* TODO */ },
+                        onRemove = { viewModel.removePreset(preset) },
                         onClone = { navigateToEditor(null, preset.id) },
                         isSelected = preset.id == uiState.selectedPreset?.id,
+                        canRemove = !ContextRoleRegistry.isReservedBaseRole(preset.code),
                     )
                 }
             }
@@ -128,6 +130,7 @@ private fun PresetRow(
     onRemove: () -> Unit,
     onClone: () -> Unit,
     isSelected: Boolean,
+    canRemove: Boolean,
 ) {
     Row(
         modifier =
@@ -151,7 +154,7 @@ private fun PresetRow(
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             IconButton(onClick = onEdit) { Icon(Icons.Default.Edit, contentDescription = "Edit") }
             IconButton(onClick = onClone) { Icon(Icons.Default.ContentCopy, contentDescription = "Clone") }
-            IconButton(onClick = onRemove) { Icon(Icons.Default.Delete, contentDescription = "Remove") }
+            IconButton(onClick = onRemove, enabled = canRemove) { Icon(Icons.Default.Delete, contentDescription = "Remove") }
             IconButton(onClick = onSelect) { Icon(Icons.Default.Check, contentDescription = "Select") }
         }
     }

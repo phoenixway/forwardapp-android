@@ -1,8 +1,10 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfileItem
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
+import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureWithItems
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
@@ -21,6 +23,35 @@ class ContextStructureRepository
         private val structurePresetDao: StructurePresetDao,
         private val structurePresetItemDao: StructurePresetItemDao,
     ) {
+        suspend fun ensureReservedBaseRolePresets() {
+            val now = System.currentTimeMillis()
+            ContextRoleRegistry.getReservedBaseRoleDefinitions().forEach { definition ->
+                val existing = structurePresetDao.getByCode(definition.code)
+                val capabilities = definition.capabilities.map { it.raw }.toSet()
+
+                val preset =
+                    ContextRoleProfile(
+                        id = existing?.id ?: "reserved_preset_${definition.code}",
+                        code = definition.code,
+                        label = definition.label,
+                        description = definition.description,
+                        enableInbox = capabilities.contains("inbox"),
+                        enableLog = capabilities.contains("log"),
+                        enableArtifact = capabilities.contains("artifact"),
+                        enableAdvanced = capabilities.contains("advanced"),
+                        enableDashboard = capabilities.contains("dashboard"),
+                        enableBacklog = capabilities.contains("backlog"),
+                        enableAttachments = capabilities.contains("attachments"),
+                        enableAutoLinkSubprojects = capabilities.contains("auto_link_subprojects"),
+                        createdAt = existing?.createdAt ?: now,
+                        updatedAt = now,
+                        version = existing?.version ?: 0,
+                        isDeleted = false,
+                    )
+                structurePresetDao.insertPreset(preset)
+            }
+        }
+
         suspend fun ensureStructure(
             contextId: String,
             basePresetCode: String? = null,
@@ -58,6 +89,7 @@ class ContextStructureRepository
             contextId: String,
             presetCode: String,
         ) {
+            ensureReservedBaseRolePresets()
             val preset = structurePresetDao.getByCode(presetCode) ?: return
             val structure = ensureStructure(contextId, basePresetCode = preset.code)
             val updatedStructure =

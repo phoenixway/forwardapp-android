@@ -831,18 +831,26 @@ data.context?.let { project ->
                     enhancedNavigationManager.navigateToProject(contextId, projectName)
                     return@launch
                 } else if (route.startsWith(HANDLE_LINK_CLICK_ROUTE)) {
-                    val target = route.substringAfter(HANDLE_LINK_CLICK_ROUTE + "/")
+                    val rawTarget = route.substringAfter(HANDLE_LINK_CLICK_ROUTE + "/")
+                    val target = runCatching { URLDecoder.decode(rawTarget, "UTF-8") }.getOrDefault(rawTarget)
                     val link =
-                        listContent.value
+                        (listContent.value + attachmentItems.value)
                             .filterIsInstance<BacklogItemContent.LinkItem>()
                             .map { it.link.linkData }
-                            .find { it.target == target }
+                            .find { it.target == target || runCatching { URLEncoder.encode(it.target, "UTF-8") }.getOrNull() == rawTarget }
                     if (link != null) {
                         onLinkItemClick(link)
                     } else {
+                        val obsidianNoteTarget = extractObsidianNoteTarget(target)
                         val project =
                             withContext(ioDispatcher) { contextRepository.getContextById(target) }
                         when {
+                            obsidianNoteTarget != null -> {
+                                openObsidianNote(obsidianNoteTarget)
+                            }
+                            target.startsWith("obsidian://") -> {
+                                _uiEventFlow.tryEmit(UiEvent.OpenUri(target))
+                            }
                             project != null -> {
                                 enhancedNavigationManager.navigateToProject(project.id, project.name)
                             }
@@ -936,6 +944,34 @@ data.context?.let { project ->
             }
         }
 
+        private fun extractObsidianNoteTarget(target: String): String? {
+            val trimmed = target.trim()
+            if (trimmed.startsWith("[[") && trimmed.endsWith("]]") && trimmed.length > 4) {
+                return trimmed.substring(2, trimmed.length - 2).trim().takeIf { it.isNotBlank() }
+            }
+            if (!trimmed.startsWith("obsidian://")) {
+                return null
+            }
+            val encodedFile =
+                Regex("""[?&]file=([^&]+)""").find(trimmed)?.groupValues?.get(1)
+                    ?: Regex("""[?&]name=([^&]+)""").find(trimmed)?.groupValues?.get(1)
+            return encodedFile
+                ?.takeIf { it.isNotBlank() }
+                ?.let { runCatching { URLDecoder.decode(it, "UTF-8") }.getOrDefault(it) }
+        }
+
+        private suspend fun openObsidianNote(noteTarget: String) {
+            val vaultName = settingsRepository.obsidianVaultNameFlow.first()
+            if (vaultName.isBlank()) {
+                _uiEventFlow.tryEmit(UiEvent.ShowSnackbar("Назву Obsidian сховища не встановлено."))
+                return
+            }
+            val encodedVault = URLEncoder.encode(vaultName, "UTF-8")
+            val encodedNoteName = URLEncoder.encode(noteTarget, "UTF-8")
+            val uri = "obsidian://open?vault=$encodedVault&file=$encodedNoteName"
+            _uiEventFlow.tryEmit(UiEvent.OpenUri(uri))
+        }
+
         fun onLinkItemClick(link: RelatedLink) {
             Log.d(TAG, "onLinkItemClick: Clicked link with type=${link.type}, target=${link.target}")
             viewModelScope.launch {
@@ -948,8 +984,9 @@ data.context?.let { project ->
                         recentItemsRepository.logObsidianLinkAccess(link)
                         val vaultName = settingsRepository.obsidianVaultNameFlow.first()
                         if (vaultName.isNotBlank()) {
+                            val encodedVault = URLEncoder.encode(vaultName, "UTF-8")
                             val encodedNoteName = URLEncoder.encode(link.target, "UTF-8")
-                            val uri = "obsidian://open?vault=$vaultName&file=$encodedNoteName"
+                            val uri = "obsidian://open?vault=$encodedVault&file=$encodedNoteName"
                             _uiEventFlow.tryEmit(UiEvent.OpenUri(uri))
                         } else {
                             _uiEventFlow.tryEmit(UiEvent.ShowSnackbar("Obsidian vault name is not configured."))

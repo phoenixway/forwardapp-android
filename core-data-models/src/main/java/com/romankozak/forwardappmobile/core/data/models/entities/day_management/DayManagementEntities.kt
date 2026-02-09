@@ -17,6 +17,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskStatus
 import java.time.DayOfWeek
+import java.util.Locale
 import java.util.UUID
 
 data class NewTaskParameters(
@@ -196,6 +197,23 @@ class DailyPlanConverters {
 
     @TypeConverter
     fun toDayOfWeekList(data: String?): List<DayOfWeek>? {
-        return data?.split(",")?.map { DayOfWeek.valueOf(it) }
+        if (data.isNullOrBlank()) return null
+
+        val parsedDays =
+            data
+                .split(",")
+                .mapNotNull { rawDay ->
+                    val normalized = rawDay.trim()
+                    if (normalized.isEmpty()) return@mapNotNull null
+
+                    normalized.toIntOrNull()?.let { numericDay ->
+                        if (numericDay in 1..7) return@mapNotNull DayOfWeek.of(numericDay)
+                    }
+
+                    runCatching { DayOfWeek.valueOf(normalized.uppercase(Locale.ROOT)) }.getOrNull()
+                }
+                .distinct()
+
+        return parsedDays.ifEmpty { null }
     }
 }

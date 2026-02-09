@@ -11,6 +11,8 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
 import android.net.Uri
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -48,6 +50,9 @@ fun TodayBottomPanel(
     onShowAbout: () -> Unit,
     featureToggles: Map<FeatureFlag, Boolean>,
     onNavigateToRecentItem: (RecentItem) -> Unit,
+    onNavigateToPreviousDay: () -> Unit,
+    onNavigateToNextDay: () -> Unit,
+    isNextDayNavigationEnabled: Boolean,
     dayPlanViewModel: DayPlanViewModel = hiltViewModel(),
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
@@ -94,6 +99,13 @@ fun TodayBottomPanel(
                 quickActionIcon = Icons.Outlined.Add,
                 quickActionLabel = "Додати ціль",
                 onQuickActionClick = { dayPlanViewModel.openAddTaskDialog() },
+                middleLeftIcon = Icons.AutoMirrored.Filled.ArrowBack,
+                middleLeftLabel = "Попередній",
+                onMiddleLeftClick = onNavigateToPreviousDay,
+                middleCenterIcon = Icons.AutoMirrored.Filled.ArrowForward,
+                middleCenterLabel = "Наступний",
+                onMiddleCenterClick = onNavigateToNextDay,
+                middleCenterEnabled = isNextDayNavigationEnabled,
                 recentViewModel = recentViewModel,
             )
         }

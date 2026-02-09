@@ -60,6 +60,7 @@ class ContextSettingsViewModel
             }
 
             viewModelScope.launch {
+                contextStructureRepository.ensureReservedBaseRolePresets()
                 structurePresetDao.getAll().collect { presets ->
                     _uiState.update { it.copy(availablePresets = presets) }
                 }

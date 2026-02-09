@@ -58,6 +58,7 @@ class ProjectStructureViewModel
 
         private fun observePresets() {
             viewModelScope.launch {
+                contextStructureRepository.ensureReservedBaseRolePresets()
                 structurePresetDao.getAll().collect { presets ->
                     _uiState.update { it.copy(presets = presets) }
                 }
