@@ -1,7 +1,6 @@
 package com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist
 
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,9 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Topic
@@ -31,7 +28,6 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.*
-import androidx.compose.material3.IconToggleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,7 +36,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
@@ -52,10 +47,12 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayTaskWithReminder
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentInfo
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentType
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedCheckboxStyle
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemCheckbox
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemState
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTokens
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedMetaChip
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusRow
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedTrailingActionButton
 import sh.calvin.reorderable.ReorderableItem
@@ -135,6 +132,7 @@ fun TaskList(
                                 state = itemState,
                                 containerColorOverride = dayTaskContainerColor,
                                 borderColorOverride = dayTaskBorderColor,
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 TaskItem(
@@ -200,47 +198,15 @@ fun TaskItem(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-            IconToggleButton(
+            UnifiedItemCheckbox(
                 checked = task.completed,
                 onCheckedChange = { onToggle() },
-                modifier = Modifier.size(32.dp),
-            ) {
-                Surface(
-                    shape = CircleShape,
-                    color =
-                        if (task.completed) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            Color.Transparent
-                        },
-                    border =
-                        if (!task.completed) {
-                            BorderStroke(
-                                2.dp,
-                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                            )
-                        } else {
-                            null
-                        },
-                    modifier = Modifier.size(18.dp),
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        if (task.completed) {
-                            Icon(
-                                imageVector = Icons.Filled.Check,
-                                contentDescription = "Checkbox",
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(12.dp),
-                            )
-                        }
-                    }
-                }
-            }
+                style = UnifiedCheckboxStyle.Square,
+                checkedColor = MaterialTheme.colorScheme.primary,
+                uncheckedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+            )
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(10.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 DayPlanMarkdownText(
@@ -248,16 +214,17 @@ fun TaskItem(
                     style =
 
                         MaterialTheme.typography.titleMedium.copy(
+                            fontSize = MaterialTheme.typography.titleSmall.fontSize,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha),
                         ),
                     isCompleted = task.completed,
-                    maxLines = 3,
+                    maxLines = 2,
                 )
 
                 task.description?.takeIf { it.isNotBlank() }?.let { description ->
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
 
                     DayPlanMarkdownText(
                         text = description,
@@ -267,17 +234,18 @@ fun TaskItem(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
                             ),
                         isCompleted = task.completed,
+                        maxLines = 2,
                     )
                 }
 
                 TaskMetaInfo(
                     taskWithReminder = taskWithReminder,
-                    modifier = Modifier.padding(top = 6.dp),
+                    modifier = Modifier.padding(top = 4.dp),
                     onParentInfoClick = onParentInfoClick, // Add this line
                 )
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(10.dp))
 
             Box(modifier = dragHandleModifier) {
                 UnifiedTrailingActionButton(
@@ -297,85 +265,54 @@ private fun TaskMetaInfo(
 ) {
     val task = taskWithReminder.dayTask
     val metaItems =
-        buildList<MetaInfoItem> {
+        buildList<UnifiedStatusChipSpec> {
             if (task.priority != TaskPriority.NONE) {
                 add(
-                    MetaInfoItem(
+                    UnifiedStatusChipSpec(
                         icon = Icons.Outlined.Flag,
                         text =
                             task.priority
                                 .name
                                 .lowercase()
                                 .replaceFirstChar { it.titlecase() },
-                        tint = task.priority.priorityIndicatorColor(),
+                        contentColor = task.priority.priorityIndicatorColor(),
                     ),
                 )
             }
             task.points.takeIf { it > 0 }?.let { points ->
                 add(
-                    MetaInfoItem(
+                    UnifiedStatusChipSpec(
                         icon = Icons.Filled.Star,
                         text = "$points балів",
-                        tint = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.secondary,
                     ),
                 )
             }
             taskWithReminder.parentInfo?.let { parentInfo ->
                 add(
-                    MetaInfoItem(
+                    UnifiedStatusChipSpec(
                         icon = if (parentInfo.type == ParentType.GOAL) Icons.Default.TrackChanges else Icons.Default.Topic,
                         text = parentInfo.title,
-                        tint = if (parentInfo.type == ParentType.GOAL) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
+                        contentColor = if (parentInfo.type == ParentType.GOAL) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
                         onClick = { onParentInfoClick(parentInfo) }, // Add this line
                     ),
                 )
             }
             task.estimatedDurationMinutes?.takeIf { it > 0 }?.let { minutes ->
-                add(MetaInfoItem(icon = Icons.Outlined.Timer, text = "$minutes хв"))
+                add(UnifiedStatusChipSpec(icon = Icons.Outlined.Timer, text = "$minutes хв"))
             }
             if (task.recurringTaskId != null) {
-                add(MetaInfoItem(icon = Icons.Outlined.Repeat, text = "Повторюється"))
+                add(UnifiedStatusChipSpec(icon = Icons.Outlined.Repeat, text = "Повторюється"))
             }
             if (taskWithReminder.reminder != null) {
-                add(MetaInfoItem(icon = Icons.Outlined.Notifications, text = "Нагадування"))
+                add(UnifiedStatusChipSpec(icon = Icons.Outlined.Notifications, text = "Нагадування"))
             }
         }
 
     if (metaItems.isEmpty()) return
 
-    UnifiedStatusRow(modifier = modifier) {
-        metaItems.forEach { item ->
-            MetaInfoChip(
-                icon = item.icon,
-                text = item.text,
-                contentColor = item.tint ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                onClick = item.onClick, // Add this line
-            )
-        }
-    }
+    UnifiedStatusRow(items = metaItems, modifier = modifier)
 }
-
-@Composable
-private fun MetaInfoChip(
-    icon: ImageVector,
-    text: String,
-    contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    onClick: (() -> Unit)? = null, // Add this line
-) {
-    UnifiedMetaChip(
-        icon = icon,
-        text = text,
-        contentColor = contentColor,
-        onClick = onClick,
-    )
-}
-
-private data class MetaInfoItem(
-    val icon: ImageVector,
-    val text: String,
-    val tint: Color? = null,
-    val onClick: (() -> Unit)? = null,
-)
 
 @Composable
 private fun TaskPriority.priorityIndicatorColor(): Color {

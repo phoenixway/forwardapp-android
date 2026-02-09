@@ -21,6 +21,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
+data class UnifiedStatusChipSpec(
+    val text: String,
+    val icon: ImageVector? = null,
+    val contentColor: Color? = null,
+    val onClick: (() -> Unit)? = null,
+)
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun UnifiedStatusRow(
@@ -33,6 +40,24 @@ fun UnifiedStatusRow(
         verticalArrangement = Arrangement.spacedBy(6.dp),
         content = content,
     )
+}
+
+@Composable
+fun UnifiedStatusRow(
+    items: List<UnifiedStatusChipSpec>,
+    modifier: Modifier = Modifier,
+    defaultContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+) {
+    UnifiedStatusRow(modifier = modifier) {
+        items.forEach { item ->
+            UnifiedMetaChip(
+                text = item.text,
+                icon = item.icon,
+                contentColor = item.contentColor ?: defaultContentColor,
+                onClick = item.onClick,
+            )
+        }
+    }
 }
 
 @Composable

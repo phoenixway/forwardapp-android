@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -29,9 +30,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemState
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedCheckboxStyle
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemCheckbox
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTokens
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedMetaChip
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusRow
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedTrailingActionButton
 import java.text.SimpleDateFormat
@@ -340,22 +343,21 @@ fun TacticalMissionItem(
         state = itemState,
         containerColorOverride = missionContainerColor,
         borderColorOverride = missionBorderColor,
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
         modifier =
             Modifier
                 .fillMaxWidth(),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(
+            UnifiedItemCheckbox(
                 checked = mission.status == MissionStatus.COMPLETED,
                 onCheckedChange = { onMissionToggled() },
-                colors =
-                    CheckboxDefaults.colors(
-                        checkedColor = MaterialTheme.colorScheme.primary,
-                        uncheckedColor = onSurface.copy(alpha = 0.7f),
-                    ),
+                style = UnifiedCheckboxStyle.Round,
+                checkedColor = MaterialTheme.colorScheme.primary,
+                uncheckedBorderColor = onSurface.copy(alpha = 0.7f),
             )
 
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(10.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 val titleColor by animateColorAsState(
@@ -371,10 +373,12 @@ fun TacticalMissionItem(
                 Text(
                     mission.title,
                     style =
-                        MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
+                        MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
                         ),
                     color = titleColor,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                     textDecoration =
                         if (mission.status == MissionStatus.COMPLETED) {
                             TextDecoration.LineThrough
@@ -394,40 +398,50 @@ fun TacticalMissionItem(
                             } else {
                                 null
                             },
-                        modifier = Modifier.padding(top = 4.dp),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 2.dp),
                     )
                 }
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 8.dp),
+                    modifier = Modifier.padding(top = 6.dp),
                 ) {
-                    UnifiedStatusRow {
-                        UnifiedMetaChip(
-                            icon = if (overdue) Icons.Outlined.Warning else Icons.Outlined.Schedule,
-                            text = formatDate(mission.deadline),
-                            contentColor = if (overdue) MaterialTheme.colorScheme.error else onSurface.copy(alpha = 0.75f),
-                        )
-                        mission.linkedProjectIds.orEmpty().forEach { projectId ->
-                            UnifiedMetaChip(
-                                icon = Icons.Outlined.Topic,
-                                text = projectLabel(projectId),
-                                contentColor = MaterialTheme.colorScheme.primary,
+                    val statusItems =
+                        buildList {
+                            add(
+                                UnifiedStatusChipSpec(
+                                    icon = if (overdue) Icons.Outlined.Warning else Icons.Outlined.Schedule,
+                                    text = formatDate(mission.deadline),
+                                    contentColor = if (overdue) MaterialTheme.colorScheme.error else onSurface.copy(alpha = 0.75f),
+                                ),
                             )
+                            mission.linkedProjectIds.orEmpty().forEach { projectId ->
+                                add(
+                                    UnifiedStatusChipSpec(
+                                        icon = Icons.Outlined.Topic,
+                                        text = projectLabel(projectId),
+                                        contentColor = MaterialTheme.colorScheme.primary,
+                                    ),
+                                )
+                            }
+                            mission.linkedAttachmentIds.orEmpty().forEach { attachmentId ->
+                                add(
+                                    UnifiedStatusChipSpec(
+                                        icon = Icons.Outlined.Attachment,
+                                        text = attachmentLabel(attachmentId),
+                                        contentColor = MaterialTheme.colorScheme.secondary,
+                                    ),
+                                )
+                            }
                         }
-                        mission.linkedAttachmentIds.orEmpty().forEach { attachmentId ->
-                            UnifiedMetaChip(
-                                icon = Icons.Outlined.Attachment,
-                                text = attachmentLabel(attachmentId),
-                                contentColor = MaterialTheme.colorScheme.secondary,
-                            )
-                        }
-                    }
+                    UnifiedStatusRow(items = statusItems)
                 }
             }
 
             Column(
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
                 horizontalAlignment = Alignment.End,
             ) {
                 UnifiedTrailingActionButton(
