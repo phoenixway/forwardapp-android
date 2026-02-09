@@ -62,7 +62,7 @@ fun ScreenScopeLinksPanel(
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         ScopeLinkGroupCard(
             groupTitle = "Контексти",
@@ -76,7 +76,7 @@ fun ScreenScopeLinksPanel(
             modifier = Modifier.padding(horizontal = 16.dp),
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         ScopeLinkGroupCard(
             groupTitle = "Вкладення",
@@ -104,6 +104,9 @@ private fun ScopeLinkGroupCard(
     onToggleExpanded: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val verticalPadding = if (expanded) 10.dp else 6.dp
+    val itemSpacing = if (expanded) 8.dp else 0.dp
+
     ElevatedCard(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
@@ -111,8 +114,8 @@ private fun ScopeLinkGroupCard(
         shape = RoundedCornerShape(14.dp),
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = verticalPadding),
+            verticalArrangement = Arrangement.spacedBy(itemSpacing),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -124,6 +127,14 @@ private fun ScopeLinkGroupCard(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
+                if (!expanded) {
+                    Text(
+                        text = "${links.size}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(end = 4.dp),
+                    )
+                }
                 IconButton(onClick = onToggleExpanded) {
                     Icon(
                         imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
@@ -135,19 +146,13 @@ private fun ScopeLinkGroupCard(
                 }
             }
 
-            if (!expanded) {
-                Text(
-                    text = "Елементів: ${links.size}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else if (links.isEmpty()) {
+            if (expanded && links.isEmpty()) {
                 Text(
                     text = emptyText,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            } else {
+            } else if (expanded) {
                 links.forEach { link ->
                     Row(
                         modifier =
