@@ -54,6 +54,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.compo
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.TagType
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTokens
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
@@ -84,7 +85,10 @@ fun ProjectItem(
         modifier =
             modifier
                 .fillMaxWidth()
-                .padding(vertical = 6.dp, horizontal = 8.dp),
+                .padding(
+                    vertical = UnifiedListItemTokens.OuterVerticalSpacing,
+                    horizontal = UnifiedListItemTokens.OuterHorizontalSpacing,
+                ),
         contentPadding = PaddingValues(0.dp),
     ) {
         Row(

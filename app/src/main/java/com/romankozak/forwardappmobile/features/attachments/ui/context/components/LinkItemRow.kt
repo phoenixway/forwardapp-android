@@ -3,12 +3,9 @@ package com.romankozak.forwardappmobile.features.attachments.ui.project.componen
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.automirrored.filled.Note
@@ -26,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.SwipeableListItem
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemLayout
 
 @Composable
 fun LinkItemRow(
@@ -67,29 +65,29 @@ fun LinkItemRow(
         onStartTrackingRequest = {},
         backgroundColor = backgroundColor,
         content = {
-            Row(
+            UnifiedListItemLayout(
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                val iconImageVector =
-                    when (link.type) {
-                        LinkType.CONTEXT -> Icons.AutoMirrored.Filled.ListAlt
-                        LinkType.URL -> Icons.Default.Language
-                        LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note
-                        null -> Icons.Default.BrokenImage
-                        else -> Icons.Default.BrokenImage
-                    }
-                Icon(
-                    imageVector = iconImageVector,
-                    contentDescription = "Link icon",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp),
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
+                leading = {
+                    val iconImageVector =
+                        when (link.type) {
+                            LinkType.CONTEXT -> Icons.AutoMirrored.Filled.ListAlt
+                            LinkType.URL -> Icons.Default.Language
+                            LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note
+                            null -> Icons.Default.BrokenImage
+                            else -> Icons.Default.BrokenImage
+                        }
+                    Icon(
+                        imageVector = iconImageVector,
+                        contentDescription = "Link icon",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                },
+                trailing = endAction,
+                main = {
                     Text(
                         text = link.displayName ?: link.target,
                         style = MaterialTheme.typography.bodyLarge,
@@ -110,9 +108,8 @@ fun LinkItemRow(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                }
-                endAction()
-            }
+                },
+            )
         },
         onAddToDayPlanRequest = {},
         onMoveToTopRequest = {},

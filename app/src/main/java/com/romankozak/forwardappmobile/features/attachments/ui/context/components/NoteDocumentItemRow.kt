@@ -1,12 +1,9 @@
 package com.romankozak.forwardappmobile.features.attachments.ui.project.components
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Description
@@ -22,6 +19,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemLayout
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedTrailingActionButton
 
 @Composable
 fun NoteDocumentItemRow(
@@ -30,38 +29,38 @@ fun NoteDocumentItemRow(
     onDelete: () -> Unit,
     trailingContent: (@Composable () -> Unit)? = null,
 ) {
-    Row(
+    UnifiedListItemLayout(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp, horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.Description,
-            contentDescription = stringResource(R.string.attachment_note_icon_description),
-            modifier = Modifier.size(24.dp),
-            tint = MaterialTheme.colorScheme.primary,
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
+        leading = {
+            Icon(
+                imageVector = Icons.Outlined.Description,
+                contentDescription = stringResource(R.string.attachment_note_icon_description),
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        },
+        trailing = {
+            if (trailingContent != null) {
+                trailingContent()
+            } else {
+                UnifiedTrailingActionButton(
+                    icon = Icons.Default.Close,
+                    contentDescription = stringResource(R.string.attachment_note_delete_description),
+                    onClick = onDelete,
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            }
+        },
+        main = {
             Text(
                 text = noteDocumentItem.document.name,
                 style = MaterialTheme.typography.bodyLarge,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-        }
-        if (trailingContent != null) {
-            trailingContent()
-        } else {
-            IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = stringResource(R.string.attachment_note_delete_description),
-                    tint = MaterialTheme.colorScheme.error,
-                )
-            }
-        }
-    }
+        },
+    )
 }

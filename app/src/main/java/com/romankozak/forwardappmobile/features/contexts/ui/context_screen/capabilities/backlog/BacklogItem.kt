@@ -51,6 +51,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.compo
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.StatusIconsRow
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTokens
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 
 @Composable
@@ -139,7 +140,10 @@ private fun InternalGoalItem(
         modifier =
             modifier
                 .fillMaxWidth()
-                .padding(vertical = 6.dp, horizontal = 8.dp)
+                .padding(
+                    vertical = UnifiedListItemTokens.OuterVerticalSpacing,
+                    horizontal = UnifiedListItemTokens.OuterHorizontalSpacing,
+                )
                 .combinedClickable(
                     onClick = onItemClick,
                     onLongClick = onLongClick,
@@ -316,7 +320,10 @@ private fun InternalSubprojectItem(
         modifier =
             modifier
                 .fillMaxWidth()
-                .padding(vertical = 6.dp, horizontal = 8.dp)
+                .padding(
+                    vertical = UnifiedListItemTokens.OuterVerticalSpacing,
+                    horizontal = UnifiedListItemTokens.OuterHorizontalSpacing,
+                )
                 .combinedClickable(
                     onClick = onItemClick,
                     onLongClick = onLongClick,

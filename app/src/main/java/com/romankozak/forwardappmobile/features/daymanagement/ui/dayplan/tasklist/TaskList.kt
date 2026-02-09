@@ -6,8 +6,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,7 +19,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
@@ -55,6 +52,12 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayTaskWithReminder
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentInfo
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentType
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemState
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTokens
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedMetaChip
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusRow
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedTrailingActionButton
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -93,30 +96,35 @@ fun TaskList(
                 state = lazyListState,
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(UnifiedListItemTokens.OuterVerticalSpacing * 2),
             ) {
                 items(internalTasks, key = { it.dayTask.id }) { taskWithReminder ->
                     ReorderableItem(reorderableState, key = taskWithReminder.dayTask.id) { isDragging ->
                         val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
-                        ElevatedCard(
-                            modifier = Modifier.fillMaxWidth(),
-                            elevation = CardDefaults.elevatedCardElevation(defaultElevation = elevation),
-                            shape = MaterialTheme.shapes.large,
-                            colors =
-                                CardDefaults.elevatedCardColors(
-                                    containerColor =
-                                        taskContainerColor(
-                                            dayTask = taskWithReminder.dayTask,
-                                        ),
-                                ),
+                        Box(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = elevation / 8),
                         ) {
-                            TaskItem(
-                                taskWithReminder = taskWithReminder,
-                                onToggle = { onToggleTask(taskWithReminder.dayTask.id) },
-                                onLongPress = { onTaskLongPress(taskWithReminder) },
-                                dragHandleModifier = Modifier.draggableHandle(),
-                                onParentInfoClick = onParentInfoClick,
-                            )
+                            UnifiedListItemSurface(
+                                isSelected = isDragging,
+                                state =
+                                    if (taskWithReminder.dayTask.completed) {
+                                        UnifiedItemState.COMPLETED
+                                    } else {
+                                        UnifiedItemState.DEFAULT
+                                    },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                TaskItem(
+                                    taskWithReminder = taskWithReminder,
+                                    onToggle = { onToggleTask(taskWithReminder.dayTask.id) },
+                                    onLongPress = { onTaskLongPress(taskWithReminder) },
+                                    dragHandleModifier = Modifier.draggableHandle(),
+                                    onParentInfoClick = onParentInfoClick,
+                                )
+                            }
                         }
                     }
                 }
@@ -168,19 +176,10 @@ fun TaskItem(
 
     val contentAlpha = if (task.completed) 0.6f else 1f
 
-    Surface(
+    Row(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        color = taskContainerColor(task),
-        tonalElevation = if (task.completed) 0.dp else 4.dp,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
             IconToggleButton(
                 checked = task.completed,
                 onCheckedChange = { onToggle() },
@@ -260,24 +259,16 @@ fun TaskItem(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            IconButton(
-                onClick = onLongPress,
-                modifier =
-                    Modifier
-                        .size(40.dp)
-                        .then(dragHandleModifier),
-            ) {
-                Icon(
-                    Icons.Filled.MoreVert,
+            Box(modifier = dragHandleModifier) {
+                UnifiedTrailingActionButton(
+                    icon = Icons.Filled.MoreVert,
                     contentDescription = "Більше опцій",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    onClick = onLongPress,
                 )
             }
-        }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TaskMetaInfo(
     taskWithReminder: DayTaskWithReminder,
@@ -332,11 +323,7 @@ private fun TaskMetaInfo(
 
     if (metaItems.isEmpty()) return
 
-    FlowRow(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(0.dp),
-    ) {
+    UnifiedStatusRow(modifier = modifier) {
         metaItems.forEach { item ->
             MetaInfoChip(
                 icon = item.icon,
@@ -355,53 +342,20 @@ private fun MetaInfoChip(
     contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     onClick: (() -> Unit)? = null, // Add this line
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+    UnifiedMetaChip(
+        icon = icon,
+        text = text,
         contentColor = contentColor,
-        shape = RoundedCornerShape(10.dp),
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
-        onClick = onClick ?: {}, // Add this line
-        enabled = onClick != null, // Add this line
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 0.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(14.dp),
-                tint = contentColor,
-            )
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
+        onClick = onClick,
+    )
 }
 
 private data class MetaInfoItem(
     val icon: ImageVector,
     val text: String,
     val tint: Color? = null,
-    val onClick: (() -> Unit)? = null, // Add this line
+    val onClick: (() -> Unit)? = null,
 )
-
-@Composable
-private fun taskContainerColor(dayTask: DayTask): Color {
-    val colorScheme = MaterialTheme.colorScheme
-    return if (dayTask.completed) {
-        colorScheme.surfaceContainerHighest
-    } else {
-        colorScheme.surfaceContainer
-    }
-}
 
 @Composable
 private fun TaskPriority.priorityIndicatorColor(): Color {

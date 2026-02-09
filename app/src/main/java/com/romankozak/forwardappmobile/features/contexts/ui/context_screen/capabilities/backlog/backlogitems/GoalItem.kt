@@ -23,6 +23,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.GoalItemViewModel
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTokens
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
@@ -53,7 +54,10 @@ fun GoalItem(
         modifier =
             modifier
                 .fillMaxWidth()
-                .padding(vertical = 6.dp, horizontal = 8.dp),
+                .padding(
+                    vertical = UnifiedListItemTokens.OuterVerticalSpacing,
+                    horizontal = UnifiedListItemTokens.OuterHorizontalSpacing,
+                ),
         contentPadding = PaddingValues(0.dp),
     ) {
         Box(

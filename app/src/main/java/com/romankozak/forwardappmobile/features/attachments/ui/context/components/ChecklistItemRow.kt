@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.features.attachments.ui.project.componen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -21,6 +20,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemLayout
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedTrailingActionButton
 
 @Composable
 fun ChecklistItemRow(
@@ -29,38 +30,38 @@ fun ChecklistItemRow(
     onDelete: () -> Unit,
     trailingContent: (@Composable () -> Unit)? = null,
 ) {
-    Row(
+    UnifiedListItemLayout(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp, horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.Checklist,
-            contentDescription = stringResource(R.string.attachment_checklist_icon_description),
-            modifier = Modifier.size(24.dp),
-            tint = MaterialTheme.colorScheme.secondary,
-        )
-        Column(modifier = Modifier.weight(1f)) {
+        leading = {
+            Icon(
+                imageVector = Icons.Outlined.Checklist,
+                contentDescription = stringResource(R.string.attachment_checklist_icon_description),
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.secondary,
+            )
+        },
+        trailing = {
+            if (trailingContent != null) {
+                trailingContent()
+            } else {
+                UnifiedTrailingActionButton(
+                    icon = Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.attachment_checklist_delete_description),
+                    onClick = onDelete,
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            }
+        },
+        main = {
             Text(
                 text = checklistItem.checklist.name,
                 style = MaterialTheme.typography.bodyLarge,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-        }
-        if (trailingContent != null) {
-            trailingContent()
-        } else {
-            IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = stringResource(R.string.attachment_checklist_delete_description),
-                    tint = MaterialTheme.colorScheme.error,
-                )
-            }
-        }
-    }
+        },
+    )
 }

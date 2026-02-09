@@ -26,6 +26,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.EnhancedRelatedLinkChip
 import com.romankozak.forwardappmobile.ui.common.ParsedTextData
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusRow
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -40,11 +41,7 @@ private fun InternalStatusIconsRow(
     emojiToHide: String?,
     onRelatedLinkClick: (RelatedLink) -> Unit,
 ) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
+    UnifiedStatusRow(modifier = Modifier.fillMaxWidth()) {
         if (reminder != null) {
             EnhancedReminderBadge(
                 reminder = reminder,
