@@ -279,18 +279,6 @@ fun MainScreenLayout(
                                 onShowAbout = { showAboutDialog = true },
                                 featureToggles = contextUiState.featureToggles,
                                 onNavigateToRecentItem = onNavigateToRecentItem,
-                                onNavigateToPreviousDay = {
-                                    Log.d("TodayTab", "onNavigateToPreviousDay callback invoked.")
-                                    dayPlanViewModel.navigateToPreviousDay()
-                                },
-                                onNavigateToNextDay = {
-                                    Log.d(
-                                        "TodayTab",
-                                        "onNavigateToNextDay callback invoked. Enabled: ${!dayPlanUiState.isToday}",
-                                    )
-                                    dayPlanViewModel.navigateToNextDay()
-                                },
-                                isNextDayNavigationEnabled = !dayPlanUiState.isToday,
                                 recentViewModel = recentViewModel,
                             )
                         MAIN_SCREEN_TODAY_ROUTE ->
@@ -318,6 +306,18 @@ fun MainScreenLayout(
                                 onShowAbout = { showAboutDialog = true },
                                 featureToggles = contextUiState.featureToggles,
                                 onNavigateToRecentItem = onNavigateToRecentItem,
+                                onNavigateToPreviousDay = {
+                                    Log.d("TodayTab", "onNavigateToPreviousDay callback invoked.")
+                                    dayPlanViewModel.navigateToPreviousDay()
+                                },
+                                onNavigateToNextDay = {
+                                    Log.d(
+                                        "TodayTab",
+                                        "onNavigateToNextDay callback invoked. Enabled: ${!dayPlanUiState.isToday}",
+                                    )
+                                    dayPlanViewModel.navigateToNextDay()
+                                },
+                                isNextDayNavigationEnabled = !dayPlanUiState.isToday,
                                 recentViewModel = recentViewModel,
                             )
                         MAIN_SCREEN_TACTICS_ROUTE ->
