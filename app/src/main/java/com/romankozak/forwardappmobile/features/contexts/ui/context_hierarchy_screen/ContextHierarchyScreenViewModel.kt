@@ -24,7 +24,6 @@ import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
-import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
@@ -65,7 +64,6 @@ class ContextHierarchyScreenViewModel
     @Inject
     constructor(
         private val contextRepository: ContextRepository,
-        private val contextStructureRepository: ContextStructureRepository,
         private val settingsRepo: SettingsRepository,
         private val searchUseCase: SearchUseCase,
         private val dialogUseCase: DialogUseCase,
@@ -157,9 +155,6 @@ class ContextHierarchyScreenViewModel
             savedStateHandle.getStateFlow<String?>(PROJECT_BEING_MOVED_ID_KEY, null)
 
         init {
-            viewModelScope.launch(ioDispatcher) {
-                syncRoleCodesFromBasePreset()
-            }
             searchUseCase.initialize(
                 scope = viewModelScope,
                 uiEventChannel = _uiEventChannel,
@@ -216,22 +211,6 @@ class ContextHierarchyScreenViewModel
         private var projectToRevealAndScroll: String? = null
         private var navigationStateJob: Job? = null
         private var navigationResultJob: Job? = null
-
-        private suspend fun syncRoleCodesFromBasePreset() {
-            val contexts = contextRepository.getAllContextsFlow().first()
-            contexts.forEach { context ->
-                val basePresetCode = contextStructureRepository.getStructureByContext(context.id)?.basePresetCode
-                val normalizedPreset = basePresetCode?.trim()?.takeIf { it.isNotEmpty() }
-                if (normalizedPreset != null && context.roleCode != normalizedPreset) {
-                    contextRepository.updateContext(
-                        context.copy(
-                            roleCode = normalizedPreset,
-                            updatedAt = System.currentTimeMillis(),
-                        ),
-                    )
-                }
-            }
-        }
 
         private fun onContextSelected(name: String) {
             viewModelScope.launch {
