@@ -14,6 +14,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalIconButton
@@ -22,6 +24,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -46,6 +52,9 @@ fun ScreenScopeLinksPanel(
     onAttachmentRemove: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var contextsExpanded by rememberSaveable { mutableStateOf(true) }
+    var attachmentsExpanded by rememberSaveable { mutableStateOf(true) }
+
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = title,
@@ -62,6 +71,8 @@ fun ScreenScopeLinksPanel(
             onAddClick = onAddContextClick,
             onOpenClick = onContextClick,
             onRemoveClick = onContextRemove,
+            expanded = contextsExpanded,
+            onToggleExpanded = { contextsExpanded = !contextsExpanded },
             modifier = Modifier.padding(horizontal = 16.dp),
         )
 
@@ -74,6 +85,8 @@ fun ScreenScopeLinksPanel(
             onAddClick = onAddAttachmentClick,
             onOpenClick = onAttachmentClick,
             onRemoveClick = onAttachmentRemove,
+            expanded = attachmentsExpanded,
+            onToggleExpanded = { attachmentsExpanded = !attachmentsExpanded },
             modifier = Modifier.padding(horizontal = 16.dp),
         )
     }
@@ -87,6 +100,8 @@ private fun ScopeLinkGroupCard(
     onAddClick: () -> Unit,
     onOpenClick: (String) -> Unit,
     onRemoveClick: (String) -> Unit,
+    expanded: Boolean,
+    onToggleExpanded: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     ElevatedCard(
@@ -109,12 +124,24 @@ private fun ScopeLinkGroupCard(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
+                IconButton(onClick = onToggleExpanded) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        contentDescription = if (expanded) "Згорнути" else "Розгорнути",
+                    )
+                }
                 FilledTonalIconButton(onClick = onAddClick) {
                     Icon(Icons.Default.Add, contentDescription = "Додати")
                 }
             }
 
-            if (links.isEmpty()) {
+            if (!expanded) {
+                Text(
+                    text = "Елементів: ${links.size}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else if (links.isEmpty()) {
                 Text(
                     text = emptyText,
                     style = MaterialTheme.typography.bodySmall,
