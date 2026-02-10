@@ -6,27 +6,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Topic
-import androidx.compose.material.icons.filled.TrackChanges
 import androidx.compose.material.icons.outlined.Checklist
-import androidx.compose.material.icons.outlined.Flag
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.Repeat
-import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,26 +25,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
-import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayTaskWithReminder
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentInfo
-import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentType
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedCheckboxStyle
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemCheckbox
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemState
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTokens
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusRow
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedTrailingActionButton
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -65,13 +44,8 @@ fun TaskList(
     onTaskLongPress: (DayTaskWithReminder) -> Unit,
     onTasksReordered: (List<DayTaskWithReminder>) -> Unit,
     onToggleTask: (String) -> Unit,
-    onSublistClick: (String) -> Unit,
     modifier: Modifier = Modifier,
     onParentInfoClick: (ParentInfo) -> Unit,
-    onLinkedProjectClick: (String) -> Unit,
-    onLinkedAttachmentClick: (String) -> Unit,
-    projectLabel: (String) -> String,
-    attachmentLabel: (String) -> String,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
     var internalTasks by remember(tasks) { mutableStateOf(tasks) }
@@ -97,7 +71,7 @@ fun TaskList(
                 state = lazyListState,
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(UnifiedListItemTokens.OuterVerticalSpacing * 2),
+                verticalArrangement = Arrangement.spacedBy(UnifiedListItemTokens.OuterVerticalSpacing),
             ) {
                 items(internalTasks, key = { it.dayTask.id }) { taskWithReminder ->
                     ReorderableItem(reorderableState, key = taskWithReminder.dayTask.id) { isDragging ->
@@ -136,19 +110,15 @@ fun TaskList(
                                 state = itemState,
                                 containerColorOverride = dayTaskContainerColor,
                                 borderColorOverride = dayTaskBorderColor,
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                TaskItem(
+                                DayTaskCard(
                                     taskWithReminder = taskWithReminder,
                                     onToggle = { onToggleTask(taskWithReminder.dayTask.id) },
                                     onLongPress = { onTaskLongPress(taskWithReminder) },
                                     dragHandleModifier = Modifier.draggableHandle(),
                                     onParentInfoClick = onParentInfoClick,
-                                    onLinkedProjectClick = onLinkedProjectClick,
-                                    onLinkedAttachmentClick = onLinkedAttachmentClick,
-                                    projectLabel = projectLabel,
-                                    attachmentLabel = attachmentLabel,
                                 )
                             }
                         }
@@ -185,185 +155,5 @@ private fun EmptyTasksState(modifier: Modifier = Modifier) {
             textAlign = TextAlign.Center,
         )
         Spacer(modifier = Modifier.height(24.dp))
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun TaskItem(
-    taskWithReminder: DayTaskWithReminder,
-    onToggle: () -> Unit,
-    onLongPress: () -> Unit,
-    modifier: Modifier = Modifier,
-    dragHandleModifier: Modifier = Modifier,
-    onParentInfoClick: (ParentInfo) -> Unit,
-    onLinkedProjectClick: (String) -> Unit,
-    onLinkedAttachmentClick: (String) -> Unit,
-    projectLabel: (String) -> String,
-    attachmentLabel: (String) -> String,
-) {
-    val task = taskWithReminder.dayTask
-
-    val contentAlpha = if (task.completed) 0.6f else 1f
-
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-            UnifiedItemCheckbox(
-                checked = task.completed,
-                onCheckedChange = { onToggle() },
-                style = UnifiedCheckboxStyle.Square,
-                checkedColor = MaterialTheme.colorScheme.primary,
-                uncheckedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-            )
-
-            Spacer(modifier = Modifier.width(10.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                DayPlanMarkdownText(
-                    text = task.title,
-                    style =
-
-                        MaterialTheme.typography.titleMedium.copy(
-                            fontSize = MaterialTheme.typography.titleSmall.fontSize,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha),
-                        ),
-                    isCompleted = task.completed,
-                    maxLines = 2,
-                )
-
-                task.description?.takeIf { it.isNotBlank() }?.let { description ->
-
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    DayPlanMarkdownText(
-                        text = description,
-                        style =
-
-                            MaterialTheme.typography.bodyMedium.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
-                            ),
-                        isCompleted = task.completed,
-                        maxLines = 2,
-                    )
-                }
-
-                TaskMetaInfo(
-                    taskWithReminder = taskWithReminder,
-                    modifier = Modifier.padding(top = 4.dp),
-                    onParentInfoClick = onParentInfoClick,
-                    onLinkedProjectClick = onLinkedProjectClick,
-                    onLinkedAttachmentClick = onLinkedAttachmentClick,
-                    projectLabel = projectLabel,
-                    attachmentLabel = attachmentLabel,
-                )
-            }
-
-            Spacer(modifier = Modifier.width(10.dp))
-
-            Box(modifier = dragHandleModifier) {
-                UnifiedTrailingActionButton(
-                    icon = Icons.Filled.MoreVert,
-                    contentDescription = "Більше опцій",
-                    onClick = onLongPress,
-                )
-            }
-    }
-}
-
-@Composable
-private fun TaskMetaInfo(
-    taskWithReminder: DayTaskWithReminder,
-    modifier: Modifier = Modifier,
-    onParentInfoClick: (ParentInfo) -> Unit,
-    onLinkedProjectClick: (String) -> Unit,
-    onLinkedAttachmentClick: (String) -> Unit,
-    projectLabel: (String) -> String,
-    attachmentLabel: (String) -> String,
-) {
-    val task = taskWithReminder.dayTask
-    val metaItems =
-        buildList<UnifiedStatusChipSpec> {
-            if (task.priority != TaskPriority.NONE) {
-                add(
-                    UnifiedStatusChipSpec(
-                        icon = Icons.Outlined.Flag,
-                        text =
-                            task.priority
-                                .name
-                                .lowercase()
-                                .replaceFirstChar { it.titlecase() },
-                        contentColor = task.priority.priorityIndicatorColor(),
-                    ),
-                )
-            }
-            task.points.takeIf { it > 0 }?.let { points ->
-                add(
-                    UnifiedStatusChipSpec(
-                        icon = Icons.Filled.Star,
-                        text = "$points балів",
-                        contentColor = MaterialTheme.colorScheme.secondary,
-                    ),
-                )
-            }
-            taskWithReminder.parentInfo?.let { parentInfo ->
-                add(
-                    UnifiedStatusChipSpec(
-                        icon = if (parentInfo.type == ParentType.GOAL) Icons.Default.TrackChanges else Icons.Default.Topic,
-                        text = parentInfo.title,
-                        contentColor = if (parentInfo.type == ParentType.GOAL) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
-                        onClick = { onParentInfoClick(parentInfo) },
-                    ),
-                )
-            }
-            task.linkedProjectIds.orEmpty().distinct().forEach { linkedProjectId ->
-                if (linkedProjectId != taskWithReminder.parentInfo?.projectId && linkedProjectId != task.projectId) {
-                    add(
-                        UnifiedStatusChipSpec(
-                            icon = Icons.Default.Topic,
-                            text = projectLabel(linkedProjectId),
-                            contentColor = MaterialTheme.colorScheme.tertiary,
-                            onClick = { onLinkedProjectClick(linkedProjectId) },
-                        ),
-                    )
-                }
-            }
-            task.linkedAttachmentIds.orEmpty().distinct().forEach { attachmentId ->
-                add(
-                    UnifiedStatusChipSpec(
-                        icon = Icons.Outlined.Checklist,
-                        text = attachmentLabel(attachmentId),
-                        contentColor = MaterialTheme.colorScheme.secondary,
-                        onClick = { onLinkedAttachmentClick(attachmentId) },
-                    ),
-                )
-            }
-            task.estimatedDurationMinutes?.takeIf { it > 0 }?.let { minutes ->
-                add(UnifiedStatusChipSpec(icon = Icons.Outlined.Timer, text = "$minutes хв"))
-            }
-            if (task.recurringTaskId != null) {
-                add(UnifiedStatusChipSpec(icon = Icons.Outlined.Repeat, text = "Повторюється"))
-            }
-            if (taskWithReminder.reminder != null) {
-                add(UnifiedStatusChipSpec(icon = Icons.Outlined.Notifications, text = "Нагадування"))
-            }
-        }
-
-    if (metaItems.isEmpty()) return
-
-    UnifiedStatusRow(items = metaItems, modifier = modifier)
-}
-
-@Composable
-private fun TaskPriority.priorityIndicatorColor(): Color {
-    val colorScheme = MaterialTheme.colorScheme
-    return when (this) {
-        TaskPriority.CRITICAL -> colorScheme.error
-        TaskPriority.HIGH -> colorScheme.tertiary
-        TaskPriority.MEDIUM -> colorScheme.primary
-        TaskPriority.LOW -> colorScheme.secondary
-        TaskPriority.NONE -> colorScheme.outline
     }
 }

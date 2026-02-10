@@ -228,7 +228,6 @@ fun DayPlanScreen(
                                     }
                                 },
                                 onToggleTask = { taskId -> viewModel.toggleTaskCompletion(taskId) },
-                                onSublistClick = onNavigateToProject,
                                 modifier = Modifier.weight(1f),
                                 onParentInfoClick = { parentInfo ->
                                     when (parentInfo.type) {
@@ -250,25 +249,6 @@ fun DayPlanScreen(
                                                 }
                                         }
                                     }
-                                },
-                                onLinkedProjectClick = { contextId ->
-                                    navController.navigate("goal_detail_screen/$contextId")
-                                },
-                                onLinkedAttachmentClick = { attachmentId ->
-                                    navController.navigate("attachments_library_screen") {
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                    runCatching {
-                                        navController.getBackStackEntry("attachments_library_screen")
-                                            .savedStateHandle["attachment_library_query"] = attachmentId
-                                    }
-                                },
-                                projectLabel = { contextId ->
-                                    uiState.linkedProjectTitles[contextId] ?: "Контекст ${contextId.take(8)}"
-                                },
-                                attachmentLabel = { attachmentId ->
-                                    uiState.linkedAttachmentTitles[attachmentId] ?: "Вкладення ${attachmentId.take(8)}"
                                 },
                             )
 

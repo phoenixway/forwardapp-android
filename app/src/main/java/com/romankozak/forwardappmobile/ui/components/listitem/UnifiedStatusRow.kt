@@ -77,7 +77,12 @@ fun UnifiedMetaChip(
         enabled = onClick != null,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+            modifier =
+                if (text.isBlank()) {
+                    Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                } else {
+                    Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
@@ -89,14 +94,16 @@ fun UnifiedMetaChip(
                     tint = contentColor,
                 )
             }
-            Text(
-                text = text,
-                color = contentColor,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            if (text.isNotBlank()) {
+                Text(
+                    text = text,
+                    color = contentColor,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
