@@ -40,12 +40,18 @@ fun ScreenScopeLinksPanel(
     title: String,
     contextLinks: List<ScopeLinkItem>,
     attachmentLinks: List<ScopeLinkItem>,
+    urlLinks: List<ScopeLinkItem> = emptyList(),
+    obsidianLinks: List<ScopeLinkItem> = emptyList(),
     onAddContextClick: () -> Unit,
     onAddAttachmentClick: () -> Unit,
     onContextClick: (String) -> Unit,
     onAttachmentClick: (String) -> Unit,
+    onUrlClick: (String) -> Unit = onAttachmentClick,
+    onObsidianClick: (String) -> Unit = onAttachmentClick,
     onContextRemove: (String) -> Unit,
     onAttachmentRemove: (String) -> Unit,
+    onUrlRemove: (String) -> Unit = onAttachmentRemove,
+    onObsidianRemove: (String) -> Unit = onAttachmentRemove,
     contextsExpanded: Boolean,
     attachmentsExpanded: Boolean,
     onContextsExpandedChange: (Boolean) -> Unit,
@@ -82,6 +88,34 @@ fun ScreenScopeLinksPanel(
             onAddClick = onAddAttachmentClick,
             onOpenClick = onAttachmentClick,
             onRemoveClick = onAttachmentRemove,
+            expanded = attachmentsExpanded,
+            onToggleExpanded = { onAttachmentsExpandedChange(!attachmentsExpanded) },
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        ScopeLinkGroupCard(
+            groupTitle = "URL",
+            emptyText = "Додай URL-посилання до екрана",
+            links = urlLinks,
+            onAddClick = onAddAttachmentClick,
+            onOpenClick = onUrlClick,
+            onRemoveClick = onUrlRemove,
+            expanded = attachmentsExpanded,
+            onToggleExpanded = { onAttachmentsExpandedChange(!attachmentsExpanded) },
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        ScopeLinkGroupCard(
+            groupTitle = "Obsidian-нотатки",
+            emptyText = "Додай Obsidian-нотатку до екрана",
+            links = obsidianLinks,
+            onAddClick = onAddAttachmentClick,
+            onOpenClick = onObsidianClick,
+            onRemoveClick = onObsidianRemove,
             expanded = attachmentsExpanded,
             onToggleExpanded = { onAttachmentsExpandedChange(!attachmentsExpanded) },
             modifier = Modifier.padding(horizontal = 16.dp),

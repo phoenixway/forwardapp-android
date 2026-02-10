@@ -8,6 +8,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
 import com.romankozak.forwardappmobile.ui.components.ScopeLinkItem
@@ -36,9 +37,22 @@ fun TacticalScopeLinksSheet(
     if (!isVisible) return
 
     val availableProjectIds = projectOptions.map { it.id }.toSet()
-    val availableAttachmentIds = attachmentOptions.map { it.id }.toSet()
+    val availableAttachmentById = attachmentOptions.associateBy { it.id }
+    val availableAttachmentIds = availableAttachmentById.keys
     val validLinkedProjectIds = linkedProjectIds.filter { it in availableProjectIds }
     val validLinkedAttachmentIds = linkedAttachmentIds.filter { it in availableAttachmentIds }
+    val validLinkedUrlIds =
+        validLinkedAttachmentIds.filter { id ->
+            availableAttachmentById[id]?.linkType == LinkType.URL
+        }
+    val validLinkedObsidianIds =
+        validLinkedAttachmentIds.filter { id ->
+            availableAttachmentById[id]?.linkType == LinkType.OBSIDIAN
+        }
+    val validLinkedGeneralAttachmentIds =
+        validLinkedAttachmentIds.filter { id ->
+            availableAttachmentById[id]?.linkType !in setOf(LinkType.URL, LinkType.OBSIDIAN)
+        }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         ScreenScopeLinksPanel(
@@ -51,10 +65,24 @@ fun TacticalScopeLinksSheet(
                     )
                 },
             attachmentLinks =
-                validLinkedAttachmentIds.map { id ->
+                validLinkedGeneralAttachmentIds.map { id ->
                     ScopeLinkItem(
                         id = id,
                         title = attachmentOptions.firstOrNull { it.id == id }?.name ?: "Вкладення ${id.take(8)}",
+                    )
+                },
+            urlLinks =
+                validLinkedUrlIds.map { id ->
+                    ScopeLinkItem(
+                        id = id,
+                        title = attachmentOptions.firstOrNull { it.id == id }?.name ?: "URL ${id.take(8)}",
+                    )
+                },
+            obsidianLinks =
+                validLinkedObsidianIds.map { id ->
+                    ScopeLinkItem(
+                        id = id,
+                        title = attachmentOptions.firstOrNull { it.id == id }?.name ?: "Obsidian ${id.take(8)}",
                     )
                 },
             onAddContextClick = onAddContextClick,

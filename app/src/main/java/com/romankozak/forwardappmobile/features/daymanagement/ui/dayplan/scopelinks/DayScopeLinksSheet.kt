@@ -8,6 +8,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanUiState
 import com.romankozak.forwardappmobile.ui.components.ScopeLinkItem
 import com.romankozak.forwardappmobile.ui.components.ScreenScopeLinksPanel
@@ -30,9 +31,22 @@ fun DayScopeLinksSheet(
     if (!isVisible) return
 
     val availableProjectIds = uiState.availableProjects.map { it.id }.toSet()
-    val availableAttachmentIds = uiState.availableAttachments.map { it.id }.toSet()
+    val availableAttachmentById = uiState.availableAttachments.associateBy { it.id }
+    val availableAttachmentIds = availableAttachmentById.keys
     val planLinkedProjectIds = uiState.dayPlan?.linkedProjectIds.orEmpty().filter { it in availableProjectIds }
     val planLinkedAttachmentIds = uiState.dayPlan?.linkedAttachmentIds.orEmpty().filter { it in availableAttachmentIds }
+    val planLinkedUrlIds =
+        planLinkedAttachmentIds.filter { id ->
+            availableAttachmentById[id]?.linkType == LinkType.URL
+        }
+    val planLinkedObsidianIds =
+        planLinkedAttachmentIds.filter { id ->
+            availableAttachmentById[id]?.linkType == LinkType.OBSIDIAN
+        }
+    val planLinkedGeneralAttachmentIds =
+        planLinkedAttachmentIds.filter { id ->
+            availableAttachmentById[id]?.linkType !in setOf(LinkType.URL, LinkType.OBSIDIAN)
+        }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         ScreenScopeLinksPanel(
@@ -45,10 +59,24 @@ fun DayScopeLinksSheet(
                     )
                 },
             attachmentLinks =
-                planLinkedAttachmentIds.map { id ->
+                planLinkedGeneralAttachmentIds.map { id ->
                     ScopeLinkItem(
                         id = id,
                         title = uiState.availableAttachments.firstOrNull { it.id == id }?.name ?: "Вкладення ${id.take(8)}",
+                    )
+                },
+            urlLinks =
+                planLinkedUrlIds.map { id ->
+                    ScopeLinkItem(
+                        id = id,
+                        title = uiState.availableAttachments.firstOrNull { it.id == id }?.name ?: "URL ${id.take(8)}",
+                    )
+                },
+            obsidianLinks =
+                planLinkedObsidianIds.map { id ->
+                    ScopeLinkItem(
+                        id = id,
+                        title = uiState.availableAttachments.firstOrNull { it.id == id }?.name ?: "Obsidian ${id.take(8)}",
                     )
                 },
             onAddContextClick = onAddContextClick,

@@ -339,7 +339,7 @@ fun DayPlanScreen(
 
     if (showAttachmentChooser) {
         AttachmentChooserScreen(
-            options = uiState.availableAttachments.map { AttachmentOption(it.id, it.name) },
+            options = uiState.availableAttachments.map { AttachmentOption(it.id, it.name, it.linkType) },
             preselected = uiState.dayPlan?.linkedAttachmentIds.orEmpty().filter { it in availableAttachmentIds }.toSet(),
             onDismiss = { showAttachmentChooser = false },
             onConfirm = { selected ->

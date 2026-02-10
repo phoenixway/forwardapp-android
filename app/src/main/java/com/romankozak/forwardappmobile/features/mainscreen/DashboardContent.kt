@@ -1,82 +1,60 @@
 package com.romankozak.forwardappmobile.features.mainscreen
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.*
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.material.icons.outlined.AlternateEmail
+import androidx.compose.material.icons.outlined.Analytics
+import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material.icons.outlined.ImportExport
+import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import kotlinx.coroutines.delay
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.romankozak.forwardappmobile.core.data.models.entities.TaskStatus
+import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
+import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 
-// ---------------------------------------------
-// DATA MODELS
-// ---------------------------------------------
-
-data class DeckCategory(val title: String, val color: Color, val actions: List<DeckAction>)
-
-data class DeckAction(
+private data class QuickAction(
     val title: String,
     val subtitle: String,
     val icon: ImageVector,
-    val color: Color,
+    val tint: Color,
     val onClick: () -> Unit,
 )
-
-data class DeckAnalytics(val category: String, val status: LevelStatus, val count: Int)
-
-enum class LevelStatus {
-    OK,
-    ATTENTION,
-    CRITICAL,
-}
-
-fun levelColor(status: LevelStatus): Color =
-    when (status) {
-        LevelStatus.OK -> Color(0xFF4CAF50) // green
-        LevelStatus.ATTENTION -> Color(0xFFFFC107) // yellow
-        LevelStatus.CRITICAL -> Color(0xFFF44336) // red
-    }
-
-@Composable
-fun InfoCard(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    containerColor: Color = Color.White.copy(alpha = 0.04f),
-) {
-    Column(
-        modifier =
-            Modifier.fillMaxWidth()
-                .clip(RoundedCornerShape(18.dp))
-                .background(containerColor)
-                .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-        Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-// ---------------------------------------------
-// MAIN SCREEN
-// ---------------------------------------------
 
 @Composable
 fun AnimatedCommandDeck(
@@ -92,348 +70,148 @@ fun AnimatedCommandDeck(
     onNavigateToImportExport: () -> Unit,
     onNavigateToAttachments: () -> Unit,
     onNavigateToScripts: () -> Unit,
-    viewModel: CommandDeckViewModel = hiltViewModel(),
+    dayPlanViewModel: DayPlanViewModel = hiltViewModel(),
+    recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
-    val categories =
-        remember {
-            listOf(
-                DeckCategory(
-                    title = "AI Tools",
-                    color = Color(0xFF9D7BFF),
-                    actions =
-                        listOf(
-                            DeckAction(
-                                "AI Chat",
-                                "Chat with AI",
-                                Icons.AutoMirrored.Outlined.Chat,
-                                Color(0xFF9D7BFF),
-                                onNavigateToAiChat,
-                            ),
-                            DeckAction(
-                                "AI Insights",
-                                "Insights feed",
-                                Icons.Outlined.AutoAwesome,
-                                Color(0xFFB29CFF),
-                                onNavigateToAiInsights,
-                            ),
-                            DeckAction(
-                                "AI Life Management",
-                                "AI-driven insights",
-                                Icons.Outlined.AutoAwesome,
-                                Color(0xFFDA9CFF),
-                                onNavigateToAiLifeManagement,
-                            ),
-                        ),
-                ),
-                DeckCategory(
-                    title = "Personal Ops",
-                    color = Color(0xFF5DACFF),
-                    actions =
-                        listOf(
-                            DeckAction(
-                                "Inbox",
-                                "Process tasks",
-                                Icons.Outlined.Inbox,
-                                Color(0xFF77B6FF),
-                                onNavigateToInbox,
-                            ),
-                            DeckAction(
-                                "Tracker",
-                                "Track time & habits",
-                                Icons.Outlined.Analytics,
-                                Color(0xFFFF6D6D),
-                                onNavigateToTracker,
-                            ),
-                            DeckAction(
-                                "Reminders",
-                                "What’s due?",
-                                Icons.Outlined.Notifications,
-                                Color(0xFFFFD93D),
-                                onNavigateToReminders,
-                            ),
-                            DeckAction(
-                                "Attachments",
-                                "Files & notes",
-                                Icons.Outlined.AttachFile,
-                                Color(0xFF7CE8FF),
-                                onNavigateToAttachments,
-                            ),
-                            DeckAction(
-                                "Scripts",
-                                "Automation tools",
-                                Icons.Outlined.Code,
-                                Color(0xFFB0FF61),
-                                onNavigateToScripts,
-                            ),
-                            DeckAction(
-                                "Contexts",
-                                "Hierarchy view",
-                                Icons.Outlined.AlternateEmail,
-                                Color(0xFF5DE2FF),
-                                onNavigateToProjectHierarchy,
-                            ),
-                        ),
-                ),
-                DeckCategory(
-                    title = "System",
-                    color = Color(0xFFFFA85D),
-                    actions =
-                        listOf(
-                            DeckAction(
-                                "Import/Export",
-                                "Sync data",
-                                Icons.Outlined.ImportExport,
-                                Color(0xFFFFA85D),
-                                onNavigateToImportExport,
-                            ),
-                            DeckAction(
-                                "Search",
-                                "Search everything",
-                                Icons.Outlined.Search,
-                                Color(0xFFF57AFF),
-                                onNavigateToGlobalSearch,
-                            ),
-                            DeckAction(
-                                "Settings",
-                                "Adjust the system",
-                                Icons.Outlined.Settings,
-                                Color(0xFFA6B3C3),
-                                onNavigateToSettings,
-                            ),
-                        ),
-                ),
-            )
+    val dayUiState by dayPlanViewModel.uiState.collectAsStateWithLifecycle()
+    val recentItems by recentViewModel.recentItems.collectAsStateWithLifecycle()
+
+    val tasksTotal = dayUiState.tasks.size
+    val tasksCompleted =
+        dayUiState.tasks.count {
+            it.dayTask.completed || it.dayTask.status == TaskStatus.COMPLETED
         }
+
+    val actions =
+        listOf(
+            QuickAction("Inbox", "Вхідні задачі", Icons.Outlined.Inbox, Color(0xFF6EC6FF), onNavigateToInbox),
+            QuickAction("Tracker", "Активності", Icons.Outlined.Analytics, Color(0xFFFF8A80), onNavigateToTracker),
+            QuickAction("Contexts", "Ієрархія", Icons.Outlined.AlternateEmail, Color(0xFF80CBC4), onNavigateToProjectHierarchy),
+            QuickAction("Search", "Пошук", Icons.Outlined.Search, Color(0xFFF48FB1), onNavigateToGlobalSearch),
+            QuickAction("Reminders", "Нагадування", Icons.Outlined.Notifications, Color(0xFFFFE082), onNavigateToReminders),
+            QuickAction("Attachments", "Бібліотека", Icons.Outlined.AttachFile, Color(0xFF90CAF9), onNavigateToAttachments),
+            QuickAction("Scripts", "Автоматизація", Icons.Outlined.Code, Color(0xFFA5D6A7), onNavigateToScripts),
+            QuickAction("AI Chat", "Робочий чат", Icons.AutoMirrored.Outlined.Chat, Color(0xFFB39DDB), onNavigateToAiChat),
+            QuickAction("AI Insights", "Аналітика", Icons.Outlined.AutoAwesome, Color(0xFFCE93D8), onNavigateToAiInsights),
+            QuickAction("AI Life", "Life-management", Icons.Outlined.AutoAwesome, Color(0xFFE1BEE7), onNavigateToAiLifeManagement),
+            QuickAction("Import/Export", "Бекапи і перенос", Icons.Outlined.ImportExport, Color(0xFFFFAB91), onNavigateToImportExport),
+            QuickAction("Settings", "Налаштування", Icons.Outlined.Settings, Color(0xFFB0BEC5), onNavigateToSettings),
+        )
 
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = 18.dp),
     ) {
         item {
-            Text("Overview", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-        }
-
-        item {
-            LifeManagementState()
-        }
-
-        item {
-            InfoCard(
-                title = "AI Insights",
-                subtitle = "щсеп++",
-                icon = Icons.Outlined.AutoAwesome,
+            Text(
+                text = "Огляд",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         }
 
         item {
-            val analytics =
-                listOf(
-                    DeckAnalytics(category = "Core", status = LevelStatus.OK, count = 0),
-                    DeckAnalytics(category = "Strategic", status = LevelStatus.OK, count = 0),
-                    DeckAnalytics(category = "Arc", status = LevelStatus.OK, count = 0),
-                    DeckAnalytics(category = "Tactics", status = LevelStatus.OK, count = 0),
-                    DeckAnalytics(category = "Day", status = LevelStatus.OK, count = 0),
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                DashboardMetricCard(
+                    title = "Сьогодні",
+                    value = "$tasksCompleted / $tasksTotal",
+                    subtitle = "виконано задач",
+                    modifier = Modifier.weight(1f),
                 )
-
-            AnalyticsOverviewBar(analytics)
+                DashboardMetricCard(
+                    title = "Recent",
+                    value = "${recentItems.size}",
+                    subtitle = "останні переходи",
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
 
         item {
-            Text("Tools", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            DashboardMetricCard(
+                title = "План дня",
+                value = "${dayUiState.dayPlan?.linkedProjectIds.orEmpty().size} контекстів / ${dayUiState.dayPlan?.linkedAttachmentIds.orEmpty().size} вкладень",
+                subtitle = "scope-посилання поточного дня",
+            )
         }
 
-        items(categories) { category ->
-            AnimatedDeckCategory(category, viewModel)
-        }
-    }
-}
-
-// ---------------------------------------------
-// CATEGORY BLOCK (animated)
-// ---------------------------------------------
-
-@Composable
-fun AnimatedDeckCategory(
-    category: DeckCategory,
-    viewModel: CommandDeckViewModel,
-) {
-    var expanded by remember { mutableStateOf(viewModel.isCategoryExpanded(category.title)) }
-
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        // Header row (click to expand)
-        Row(
-            modifier =
-                Modifier.fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .clickable {
-                        expanded = !expanded
-                        viewModel.setCategoryExpanded(category.title, expanded)
-                    }
-                    .background(Color.White.copy(alpha = 0.05f))
-                    .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier =
-                    Modifier.size(34.dp).clip(CircleShape).background(category.color.copy(alpha = 0.3f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Icons.Outlined.Folder, contentDescription = null, tint = category.color)
-            }
-
-            Spacer(Modifier.width(12.dp))
-
+        item {
             Text(
-                text = category.title,
-                fontSize = 17.sp,
+                text = "Швидкі дії",
+                fontSize = 20.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f),
-            )
-
-            Icon(
-                if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
-        // Animated section
-        AnimatedVisibility(
-            visible = expanded,
-            enter = fadeIn() + expandVertically(expandFrom = Alignment.Top) + scaleIn(),
-            exit = fadeOut() + shrinkVertically() + scaleOut(),
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                category.actions.forEachIndexed { i, action -> AnimatedDeckAction(action, i) }
+        actions.forEach { action ->
+            item {
+                QuickActionCard(action = action)
             }
         }
     }
 }
 
-// ---------------------------------------------
-// ACTION CARD (animated)
-// ---------------------------------------------
-
 @Composable
-fun AnimatedDeckAction(
-    action: DeckAction,
-    index: Int,
+private fun DashboardMetricCard(
+    title: String,
+    value: String,
+    subtitle: String,
+    modifier: Modifier = Modifier,
 ) {
-    // Delay animation per item
-    val delay = index * 50
-
-    var visible by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        delay(delay.toLong())
-        visible = true
-    }
-
-    AnimatedVisibility(
-        visible = visible,
-        enter =
-            fadeIn(animationSpec = tween(350)) +
-                slideInVertically(animationSpec = tween(350), initialOffsetY = { it / 2 }),
-        exit = fadeOut(),
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
     ) {
-        DeckActionCard(action)
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 
-// ---------------------------------------------
-// Visual card
-// ---------------------------------------------
-
 @Composable
-fun DeckActionCard(action: DeckAction) {
+private fun QuickActionCard(action: QuickAction) {
     Card(
         onClick = action.onClick,
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
-        modifier = Modifier.fillMaxWidth().shadow(6.dp, RoundedCornerShape(18.dp), clip = false),
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(18.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Icon capsule
             Box(
-                modifier =
-                    Modifier.size(44.dp).clip(CircleShape).background(action.color.copy(alpha = 0.22f)),
+                modifier = Modifier.size(38.dp).background(action.tint.copy(alpha = 0.24f), CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    action.icon,
+                    imageVector = action.icon,
                     contentDescription = null,
-                    tint = action.color,
-                    modifier = Modifier.size(26.dp),
+                    tint = action.tint,
                 )
             }
-
-            Column(Modifier.weight(1f)) {
-                Text(action.title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-                Text(action.subtitle, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(action.title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium)
+                Text(action.subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
             }
-        }
-    }
-}
-
-@Composable
-fun AnalyticsOverviewBar(analytics: List<DeckAnalytics>) {
-    Column(
-        modifier =
-            Modifier.fillMaxWidth()
-                .clip(RoundedCornerShape(18.dp))
-                .background(Color.White.copy(alpha = 0.04f))
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Text("Levels", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-
-        analytics.forEachIndexed { index, item ->
-            var visible by remember { mutableStateOf(false) }
-
-            LaunchedEffect(Unit) {
-                delay((index * 60).toLong())
-                visible = true
-            }
-
-            AnimatedVisibility(
-                visible = visible,
-                enter = fadeIn() + slideInVertically(initialOffsetY = { it / 3 }),
-                exit = fadeOut(),
-            ) {
-                AnalyticsRow(item)
-            }
-        }
-    }
-}
-
-@Composable
-fun AnalyticsRow(item: DeckAnalytics) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(item.category, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium, fontSize = 14.sp)
-
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(10.dp).clip(CircleShape).background(levelColor(item.status)))
-
-            Spacer(Modifier.width(8.dp))
-
             Text(
-                when (item.status) {
-                    LevelStatus.OK -> "OK"
-                    LevelStatus.ATTENTION -> "Attention"
-                    LevelStatus.CRITICAL -> "Critical"
-                },
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 12.sp,
+                text = "Відкрити",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable(onClick = action.onClick),
             )
         }
     }

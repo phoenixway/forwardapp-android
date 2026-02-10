@@ -2,6 +2,8 @@ package com.romankozak.forwardappmobile.features.missions.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.gson.Gson
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
@@ -243,23 +245,25 @@ class TacticalMissionViewModel
 
 data class ProjectOption(val id: String, val name: String)
 
-data class AttachmentOption(val id: String, val name: String)
+data class AttachmentOption(
+    val id: String,
+    val name: String,
+    val linkType: LinkType? = null,
+)
 
 // Оновлене розширення для роботи з результатом запиту бібліотеки
 private fun AttachmentLibraryQueryResult.toAttachmentOption(): AttachmentOption {
+    val relatedLink =
+        linkDisplayName?.let { json ->
+            runCatching { Gson().fromJson(json, RelatedLink::class.java) }.getOrNull()
+        }
     val label =
         noteName
             ?: checklistName
             ?: contextName
-            ?: linkDisplayName?.let { json ->
-                try {
-                    // Якщо це посилання, намагаємось дістати ім'я з JSON
-                    com.google.gson.Gson().fromJson(json, RelatedLink::class.java).displayName
-                } catch (e: Exception) {
-                    null
-                }
-            }
+            ?: relatedLink?.displayName
+            ?: relatedLink?.target
             ?: "Attachment ${id.takeLast(4)}" // Fallback
 
-    return AttachmentOption(id = id, name = label)
+    return AttachmentOption(id = id, name = label, linkType = relatedLink?.type)
 }

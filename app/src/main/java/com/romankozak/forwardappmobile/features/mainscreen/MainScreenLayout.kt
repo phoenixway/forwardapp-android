@@ -466,7 +466,12 @@ fun MainScreenLayout(
                                 onNavigateToAiChat = onNavigateToAiChat,
                                 onNavigateToAiInsights = onNavigateToAiInsights,
                                 onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
-                                onNavigateToImportExport = { /*TODO: replace with real code*/ },
+                                onNavigateToImportExport = {
+                                    navController.navigate("sync_screen") {
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                },
                                 onNavigateToAttachments = onNavigateToAttachments,
                                 onNavigateToScripts = onNavigateToScripts,
                             )

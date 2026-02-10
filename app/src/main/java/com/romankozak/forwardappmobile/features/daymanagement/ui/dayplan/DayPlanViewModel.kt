@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
@@ -50,6 +51,7 @@ data class DayTaskWithReminder(
 data class LinkOption(
     val id: String,
     val name: String,
+    val linkType: LinkType? = null,
 )
 
 data class DayPlanUiState(
@@ -193,7 +195,14 @@ class DayPlanViewModel
                             attachments
                                 .asSequence()
                                 .mapNotNull { result ->
-                                    resolveAttachmentTitle(result)?.let { LinkOption(result.id, it) }
+                                    val relatedLink = parseRelatedLink(result.linkDisplayName)
+                                    resolveAttachmentTitle(result, relatedLink)?.let { title ->
+                                        LinkOption(
+                                            id = result.id,
+                                            name = title,
+                                            linkType = relatedLink?.type,
+                                        )
+                                    }
                                 }
                                 .sortedBy { it.name.lowercase() }
                                 .toList()
@@ -235,20 +244,20 @@ class DayPlanViewModel
                     initialValue = DayPlanUiState(isLoading = true),
                 )
 
-        private fun resolveAttachmentTitle(result: AttachmentLibraryQueryResult): String? =
+        private fun resolveAttachmentTitle(
+            result: AttachmentLibraryQueryResult,
+            relatedLink: RelatedLink?,
+        ): String? =
             result.noteName?.takeIf { it.isNotBlank() }
                 ?: result.checklistName?.takeIf { it.isNotBlank() }
-                ?: parseLinkTitle(result.linkDisplayName)
+                ?: relatedLink?.displayName?.takeIf { it.isNotBlank() }
+                ?: relatedLink?.target?.takeIf { it.isNotBlank() }
                 ?: result.contextName?.takeIf { it.isNotBlank() }
                 ?: compactId(result.id)
 
-        private fun parseLinkTitle(linkDisplayNameJson: String?): String? {
+        private fun parseRelatedLink(linkDisplayNameJson: String?): RelatedLink? {
             if (linkDisplayNameJson.isNullOrBlank()) return null
-            return runCatching { Gson().fromJson(linkDisplayNameJson, RelatedLink::class.java) }
-                .getOrNull()
-                ?.let { link ->
-                    link.displayName?.takeIf { it.isNotBlank() } ?: link.target.takeIf { it.isNotBlank() }
-                }
+            return runCatching { Gson().fromJson(linkDisplayNameJson, RelatedLink::class.java) }.getOrNull()
         }
 
         private fun compactId(id: String): String = id.take(8)
