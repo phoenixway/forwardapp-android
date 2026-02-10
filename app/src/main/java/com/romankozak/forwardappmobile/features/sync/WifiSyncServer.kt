@@ -11,6 +11,7 @@ import com.google.gson.GsonBuilder
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
+import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.sync.SyncRepository
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
@@ -41,6 +42,7 @@ import java.util.Locale
 class WifiSyncServer(
     private val syncRepository: SyncRepository,
     private val context: Context,
+    private val settingsRepository: SettingsRepository,
 ) {
     private val TAG = "WifiSyncServer"
     private val DEBUG_TAG = "FWD_SYNC_TEST"
@@ -235,6 +237,13 @@ class WifiSyncServer(
 
                                 withContext(NonCancellable) {
                                     syncRepository.applyServerChanges(db)
+                                    backup.settings?.settings?.let { settings ->
+                                        try {
+                                            settingsRepository.restoreFromMap(settings)
+                                        } catch (e: Exception) {
+                                            Log.e(DEBUG_TAG, "[WifiSyncServer] Failed to restore incoming settings", e)
+                                        }
+                                    }
                                 }
                                 call.respond(HttpStatusCode.Companion.OK, "Import applied")
                             } catch (e: Exception) {

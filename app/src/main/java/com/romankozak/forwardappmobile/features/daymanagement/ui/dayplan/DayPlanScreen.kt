@@ -245,6 +245,10 @@ fun DayPlanScreen(
                                 },
                                 onContextRemove = viewModel::removePlanProjectLink,
                                 onAttachmentRemove = viewModel::removePlanAttachmentLink,
+                                contextsExpanded = uiState.scopeContextsExpanded,
+                                attachmentsExpanded = uiState.scopeAttachmentsExpanded,
+                                onContextsExpandedChange = viewModel::setScopeContextsExpanded,
+                                onAttachmentsExpandedChange = viewModel::setScopeAttachmentsExpanded,
                                 modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
                             )
 

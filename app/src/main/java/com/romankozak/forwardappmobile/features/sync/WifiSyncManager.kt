@@ -28,7 +28,7 @@ class WifiSyncManager(
     private val viewModelScope: CoroutineScope,
     private val uiEventChannel: Channel<ProjectUiEvent>,
 ) {
-    private val wifiSyncServer = WifiSyncServer(syncRepository, application)
+    private val wifiSyncServer = WifiSyncServer(syncRepository, application, settingsRepository)
     private var isServerRunning = false
     private var isServerStarting = false
 

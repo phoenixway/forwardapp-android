@@ -1,8 +1,10 @@
 package com.romankozak.forwardappmobile.sync
 
 import android.net.Uri
+import com.google.gson.GsonBuilder
 import com.romankozak.forwardappmobile.core.data.models.sync.*
 import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
+import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -13,7 +15,12 @@ class SyncRepository @Inject constructor(
     private val mergeRepository: MergeRepository,
     private val attachmentsRepository: AttachmentsRepository,
     private val systemContextEnsurer: SystemContextEnsurer,
+    private val fullBackupLocalDataSource: FullBackupLocalDataSource,
 ) : SyncApi {
+    private val gson = GsonBuilder()
+        .registerTypeAdapter(Long::class.java, LongDeserializer())
+        .create()
+    private var pendingSettingsFromLastSyncReport: Map<String, String>? = null
 
     // === FILE OPERATIONS ===
 
@@ -58,13 +65,27 @@ class SyncRepository @Inject constructor(
     override suspend fun getLastSyncTime(): Long? = null
 
     // Виправлено: SyncApi очікує SyncReport (а не List<SyncChange>)
-    override suspend fun createSyncReport(jsonString: String): SyncReport =
-        mergeRepository.createSyncReport(jsonString)
+    override suspend fun createSyncReport(jsonString: String): SyncReport {
+        try {
+            val backup = gson.fromJson(jsonString, FullAppBackup::class.java)
+            pendingSettingsFromLastSyncReport = backup.settings?.settings
+        } catch (_: Exception) {
+            pendingSettingsFromLastSyncReport = null
+        }
+        return mergeRepository.createSyncReport(jsonString)
+    }
 
     // Виправлено: SyncApi очікує Unit (або Result<Unit>, перевірте SyncApi)
     // Якщо SyncApi вимагає Unit, ми просто викликаємо метод
     override suspend fun applyChanges(approvedChanges: List<SyncChange>) {
         mergeRepository.applyChanges(approvedChanges)
+        pendingSettingsFromLastSyncReport?.let { settings ->
+            try {
+                fullBackupLocalDataSource.restoreSettings(settings)
+            } catch (_: Exception) {
+            }
+        }
+        pendingSettingsFromLastSyncReport = null
     }
 
     override suspend fun applyServerChanges(changes: DatabaseContent): Result<Unit> {

@@ -4,6 +4,8 @@ import android.util.Log
 import androidx.core.net.toUri
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
+import com.romankozak.forwardappmobile.core.data.models.sync.SettingsContent
+import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import com.romankozak.forwardappmobile.sync.datasource.SyncLocalDataSource
 import com.romankozak.forwardappmobile.sync.datasource.SyncSettingsSource
 import io.ktor.client.*
@@ -23,7 +25,8 @@ import javax.inject.Singleton
 class SyncWifiService @Inject constructor(
     private val localDataSource: SyncLocalDataSource,
     private val settingsSource: SyncSettingsSource,
-    private val logicHelper: SyncLogicHelper
+    private val logicHelper: SyncLogicHelper,
+    private val fullBackupLocalDataSource: FullBackupLocalDataSource,
 ) {
     private val WIFI_LOG = "FWD_SYNC_WIFI"
 
@@ -55,7 +58,11 @@ class SyncWifiService @Inject constructor(
                 Result.success(Unit)
             } else {
                 val fullUrl = buildWifiUrl(address, "/import")
-                val backupWrapper = FullAppBackup(database = unsynced)
+                val backupWrapper =
+                    FullAppBackup(
+                        database = unsynced,
+                        settings = SettingsContent(fullBackupLocalDataSource.getSettingsSnapshot()),
+                    )
                 val response = client.post(fullUrl) {
                     contentType(ContentType.Application.Json)
                     setBody(backupWrapper)
@@ -80,7 +87,8 @@ class SyncWifiService @Inject constructor(
             existingCrossRefs = changes.contextAttachmentCrossRefs,
         )
         val deltaBackup = FullAppBackup(
-            database = changes.copy(contextAttachmentCrossRefs = enrichedCrossRefs)
+            database = changes.copy(contextAttachmentCrossRefs = enrichedCrossRefs),
+            settings = SettingsContent(fullBackupLocalDataSource.getSettingsSnapshot()),
         )
         // Використовуємо Gson для ручної серіалізації в рядок
         return com.google.gson.GsonBuilder().create().toJson(deltaBackup)

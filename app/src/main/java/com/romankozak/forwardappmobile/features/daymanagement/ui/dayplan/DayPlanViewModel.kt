@@ -14,6 +14,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceRule
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
+import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
@@ -56,6 +57,8 @@ data class DayPlanUiState(
     val availableAttachments: List<LinkOption> = emptyList(),
     val linkedProjectTitles: Map<String, String> = emptyMap(),
     val linkedAttachmentTitles: Map<String, String> = emptyMap(),
+    val scopeContextsExpanded: Boolean = true,
+    val scopeAttachmentsExpanded: Boolean = true,
     val isLoading: Boolean = true,
     val error: String? = null,
     val isRefreshing: Boolean = false,
@@ -79,6 +82,7 @@ class DayPlanViewModel
         private val reminderRepository: ReminderRepository,
         private val contextDao: ContextDao,
         private val attachmentsRepository: AttachmentsRepository,
+        private val settingsRepository: SettingsRepository,
     ) : ViewModel() {
         init {
             Log.d("DayPlanViewModel", "DayPlanViewModel initialized.")
@@ -133,8 +137,17 @@ class DayPlanViewModel
 
                     val contextsFlow = contextDao.getAllContextsFlow()
                     val attachmentLibraryFlow = attachmentsRepository.getAttachmentLibraryItems()
+                    val scopeContextsExpandedFlow = settingsRepository.dayScopeContextsExpandedFlow
+                    val scopeAttachmentsExpandedFlow = settingsRepository.dayScopeAttachmentsExpandedFlow
 
-                    combine(dayPlanFlow, tasksFlow, contextsFlow, attachmentLibraryFlow) { dayPlan, tasks, contexts, attachments ->
+                    combine(
+                        dayPlanFlow,
+                        tasksFlow,
+                        contextsFlow,
+                        attachmentLibraryFlow,
+                        scopeContextsExpandedFlow,
+                        scopeAttachmentsExpandedFlow,
+                    ) { dayPlan, tasks, contexts, attachments, scopeContextsExpanded, scopeAttachmentsExpanded ->
                         Log.d(
                             "DayPlanViewModel",
                             "UI State combine: dayPlanId=${dayPlan?.id}, tasksCount=${tasks.size} (before creating DayPlanUiState)",
@@ -186,6 +199,8 @@ class DayPlanViewModel
                             availableAttachments = availableAttachments,
                             linkedProjectTitles = linkedProjectTitles,
                             linkedAttachmentTitles = linkedAttachmentTitles,
+                            scopeContextsExpanded = scopeContextsExpanded,
+                            scopeAttachmentsExpanded = scopeAttachmentsExpanded,
                             isLoading = false,
                             isRefreshing = false,
                             isToday = dayPlan?.let { isTimestampToday(it.date) } ?: true,
@@ -289,6 +304,18 @@ class DayPlanViewModel
                     linkedProjectIds = current.linkedProjectIds.orEmpty(),
                     linkedAttachmentIds = current.linkedAttachmentIds.orEmpty().filterNot { it == attachmentId },
                 )
+            }
+        }
+
+        fun setScopeContextsExpanded(expanded: Boolean) {
+            viewModelScope.launch {
+                settingsRepository.setDayScopeContextsExpanded(expanded)
+            }
+        }
+
+        fun setScopeAttachmentsExpanded(expanded: Boolean) {
+            viewModelScope.launch {
+                settingsRepository.setDayScopeAttachmentsExpanded(expanded)
             }
         }
 

@@ -54,6 +54,12 @@ class TacticalMissionViewModel
         private val _boardLinkedAttachmentIds = MutableStateFlow<List<String>>(emptyList())
         val boardLinkedAttachmentIds: StateFlow<List<String>> = _boardLinkedAttachmentIds.asStateFlow()
 
+        private val _scopeContextsExpanded = MutableStateFlow(true)
+        val scopeContextsExpanded: StateFlow<Boolean> = _scopeContextsExpanded.asStateFlow()
+
+        private val _scopeAttachmentsExpanded = MutableStateFlow(true)
+        val scopeAttachmentsExpanded: StateFlow<Boolean> = _scopeAttachmentsExpanded.asStateFlow()
+
         init {
             loadMissions()
 
@@ -79,6 +85,14 @@ class TacticalMissionViewModel
 
             settingsRepository.tacticalLinkedAttachmentIdsFlow
                 .onEach { ids -> _boardLinkedAttachmentIds.value = ids.toList() }
+                .launchIn(viewModelScope)
+
+            settingsRepository.tacticalScopeContextsExpandedFlow
+                .onEach { expanded -> _scopeContextsExpanded.value = expanded }
+                .launchIn(viewModelScope)
+
+            settingsRepository.tacticalScopeAttachmentsExpandedFlow
+                .onEach { expanded -> _scopeAttachmentsExpanded.value = expanded }
                 .launchIn(viewModelScope)
         }
 
@@ -194,6 +208,14 @@ class TacticalMissionViewModel
         fun removeBoardAttachmentLink(attachmentId: String) {
             val updated = _boardLinkedAttachmentIds.value.filterNot { it == attachmentId }.toSet()
             viewModelScope.launch { settingsRepository.setTacticalLinkedAttachmentIds(updated) }
+        }
+
+        fun setScopeContextsExpanded(expanded: Boolean) {
+            viewModelScope.launch { settingsRepository.setTacticalScopeContextsExpanded(expanded) }
+        }
+
+        fun setScopeAttachmentsExpanded(expanded: Boolean) {
+            viewModelScope.launch { settingsRepository.setTacticalScopeAttachmentsExpanded(expanded) }
         }
     }
 

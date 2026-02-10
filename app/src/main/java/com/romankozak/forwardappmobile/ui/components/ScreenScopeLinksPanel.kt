@@ -24,10 +24,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -50,12 +46,50 @@ fun ScreenScopeLinksPanel(
     onAttachmentClick: (String) -> Unit,
     onContextRemove: (String) -> Unit,
     onAttachmentRemove: (String) -> Unit,
+    contextsExpanded: Boolean,
+    attachmentsExpanded: Boolean,
+    onContextsExpandedChange: (Boolean) -> Unit,
+    onAttachmentsExpandedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var contextsExpanded by remember { mutableStateOf(true) }
-    var attachmentsExpanded by remember { mutableStateOf(true) }
+    val allCollapsed = !contextsExpanded && !attachmentsExpanded
 
     Column(modifier = modifier.fillMaxWidth()) {
+        if (allCollapsed) {
+            ElevatedCard(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp),
+                shape = RoundedCornerShape(14.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "$title: К ${contextLinks.size} • В ${attachmentLinks.size}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    IconButton(
+                        onClick = {
+                            onContextsExpandedChange(true)
+                            onAttachmentsExpandedChange(true)
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.ExpandMore,
+                            contentDescription = "Розгорнути",
+                        )
+                    }
+                }
+            }
+            return@Column
+        }
+
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
@@ -72,7 +106,7 @@ fun ScreenScopeLinksPanel(
             onOpenClick = onContextClick,
             onRemoveClick = onContextRemove,
             expanded = contextsExpanded,
-            onToggleExpanded = { contextsExpanded = !contextsExpanded },
+            onToggleExpanded = { onContextsExpandedChange(!contextsExpanded) },
             modifier = Modifier.padding(horizontal = 16.dp),
         )
 
@@ -86,7 +120,7 @@ fun ScreenScopeLinksPanel(
             onOpenClick = onAttachmentClick,
             onRemoveClick = onAttachmentRemove,
             expanded = attachmentsExpanded,
-            onToggleExpanded = { attachmentsExpanded = !attachmentsExpanded },
+            onToggleExpanded = { onAttachmentsExpandedChange(!attachmentsExpanded) },
             modifier = Modifier.padding(horizontal = 16.dp),
         )
     }

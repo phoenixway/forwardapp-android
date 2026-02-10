@@ -54,6 +54,8 @@ fun TacticalManagementScreen(
     val projectOptions by viewModel.projectOptions.collectAsState()
     val boardLinkedProjectIds by viewModel.boardLinkedProjectIds.collectAsState()
     val boardLinkedAttachmentIds by viewModel.boardLinkedAttachmentIds.collectAsState()
+    val scopeContextsExpanded by viewModel.scopeContextsExpanded.collectAsState()
+    val scopeAttachmentsExpanded by viewModel.scopeAttachmentsExpanded.collectAsState()
     val showAddDialog by viewModel.isAddMissionDialogOpen.collectAsState()
     var editingMission by remember { mutableStateOf<TacticalMission?>(null) }
     var showProjectChooser by remember { mutableStateOf(false) }
@@ -82,6 +84,10 @@ fun TacticalManagementScreen(
             onAttachmentClick = onLinkedAttachmentClick,
             onContextRemove = viewModel::removeBoardProjectLink,
             onAttachmentRemove = viewModel::removeBoardAttachmentLink,
+            contextsExpanded = scopeContextsExpanded,
+            attachmentsExpanded = scopeAttachmentsExpanded,
+            onContextsExpandedChange = viewModel::setScopeContextsExpanded,
+            onAttachmentsExpandedChange = viewModel::setScopeAttachmentsExpanded,
             modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
         )
 
