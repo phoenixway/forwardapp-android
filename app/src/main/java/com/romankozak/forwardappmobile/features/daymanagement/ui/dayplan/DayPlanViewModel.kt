@@ -211,7 +211,8 @@ class DayPlanViewModel
                                 .asSequence()
                                 .filter { it.id in linkedAttachmentIds }
                                 .mapNotNull { result ->
-                                    resolveAttachmentTitle(result)?.let { title ->
+                                    val relatedLink = parseRelatedLink(result.linkDisplayName)
+                                    resolveAttachmentTitle(result, relatedLink)?.let { title ->
                                         result.id to title
                                     }
                                 }

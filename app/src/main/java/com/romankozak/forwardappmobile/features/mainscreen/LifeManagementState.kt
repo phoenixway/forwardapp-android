@@ -23,6 +23,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+private enum class LevelStatus {
+    OK,
+    ATTENTION,
+    CRITICAL,
+}
+
+private fun levelColor(status: LevelStatus): Color =
+    when (status) {
+        LevelStatus.OK -> Color(0xFF4CAF50)
+        LevelStatus.ATTENTION -> Color(0xFFFFC107)
+        LevelStatus.CRITICAL -> Color(0xFFF44336)
+    }
+
 @Composable
 fun LifeManagementState() {
     Column(
