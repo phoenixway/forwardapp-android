@@ -98,6 +98,9 @@ fun DashboardBottomBar(
     onNavigateToScripts: () -> Unit,
     onShowAbout: () -> Unit,
     featureToggles: Map<FeatureFlag, Boolean>,
+    leadingIcon: ImageVector = Icons.Outlined.MoveToInbox,
+    leadingLabel: String = "Inbox",
+    onLeadingClick: () -> Unit = onNavigateToInbox,
     quickActionIcon: ImageVector = Icons.Outlined.History,
     quickActionLabel: String = "Recent",
     onQuickActionClick: (() -> Unit)? = null,
@@ -374,9 +377,9 @@ fun DashboardBottomBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         BarButton(
-            icon = Icons.Outlined.MoveToInbox,
-            label = "Inbox",
-            onClick = onNavigateToInbox,
+            icon = leadingIcon,
+            label = leadingLabel,
+            onClick = onLeadingClick,
         )
 
         BarButton(

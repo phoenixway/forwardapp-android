@@ -15,6 +15,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
@@ -58,6 +61,8 @@ fun TodayBottomPanel(
     dayPlanViewModel: DayPlanViewModel = hiltViewModel(),
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
+    val isScopeLinksSheetVisible by dayPlanViewModel.isScopeLinksSheetVisible.collectAsState()
+
     CommonBottomPanelLayout {
         Box(
             modifier = Modifier
@@ -100,6 +105,9 @@ fun TodayBottomPanel(
                 onNavigateToScripts = onNavigateToScripts,
                 onShowAbout = onShowAbout,
                 featureToggles = featureToggles,
+                leadingIcon = Icons.Outlined.SwapVert,
+                leadingLabel = if (isScopeLinksSheetVisible) "Закрити" else "Посилання",
+                onLeadingClick = dayPlanViewModel::toggleScopeLinksSheet,
                 quickActionIcon = Icons.Outlined.Add,
                 quickActionLabel = "Додати ціль",
                 onQuickActionClick = { dayPlanViewModel.openAddTaskDialog() },

@@ -56,41 +56,13 @@ fun TacticalManagementScreen(
     val boardLinkedAttachmentIds by viewModel.boardLinkedAttachmentIds.collectAsState()
     val scopeContextsExpanded by viewModel.scopeContextsExpanded.collectAsState()
     val scopeAttachmentsExpanded by viewModel.scopeAttachmentsExpanded.collectAsState()
+    val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsState()
     val showAddDialog by viewModel.isAddMissionDialogOpen.collectAsState()
     var editingMission by remember { mutableStateOf<TacticalMission?>(null) }
     var showProjectChooser by remember { mutableStateOf(false) }
     var showAttachmentChooser by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        ScreenScopeLinksPanel(
-            title = "Посилання для тактичного циклу",
-            contextLinks =
-                boardLinkedProjectIds.map { id ->
-                    ScopeLinkItem(
-                        id = id,
-                        title = projectOptions.firstOrNull { it.id == id }?.name ?: "Контекст ${id.take(8)}",
-                    )
-                },
-            attachmentLinks =
-                boardLinkedAttachmentIds.map { id ->
-                    ScopeLinkItem(
-                        id = id,
-                        title = attachmentOptions.firstOrNull { it.id == id }?.name ?: "Вкладення ${id.take(8)}",
-                    )
-                },
-            onAddContextClick = { showProjectChooser = true },
-            onAddAttachmentClick = { showAttachmentChooser = true },
-            onContextClick = onLinkedProjectClick,
-            onAttachmentClick = onLinkedAttachmentClick,
-            onContextRemove = viewModel::removeBoardProjectLink,
-            onAttachmentRemove = viewModel::removeBoardAttachmentLink,
-            contextsExpanded = scopeContextsExpanded,
-            attachmentsExpanded = scopeAttachmentsExpanded,
-            onContextsExpandedChange = viewModel::setScopeContextsExpanded,
-            onAttachmentsExpandedChange = viewModel::setScopeAttachmentsExpanded,
-            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-        )
-
         TacticalMissionList(
             missions = missions,
             onMissionToggled = { viewModel.toggleMissionCompleted(it) },
@@ -106,6 +78,41 @@ fun TacticalManagementScreen(
             onLinkedProjectClick = onLinkedProjectClick,
             onLinkedAttachmentClick = onLinkedAttachmentClick,
         )
+
+    }
+
+    if (isScopeLinksSheetVisible) {
+        ModalBottomSheet(onDismissRequest = viewModel::dismissScopeLinksSheet) {
+            ScreenScopeLinksPanel(
+                title = "Посилання для тактичного циклу",
+                contextLinks =
+                    boardLinkedProjectIds.map { id ->
+                        ScopeLinkItem(
+                            id = id,
+                            title = projectOptions.firstOrNull { it.id == id }?.name ?: "Контекст ${id.take(8)}",
+                        )
+                    },
+                attachmentLinks =
+                    boardLinkedAttachmentIds.map { id ->
+                        ScopeLinkItem(
+                            id = id,
+                            title = attachmentOptions.firstOrNull { it.id == id }?.name ?: "Вкладення ${id.take(8)}",
+                        )
+                    },
+                onAddContextClick = { showProjectChooser = true },
+                onAddAttachmentClick = { showAttachmentChooser = true },
+                onContextClick = onLinkedProjectClick,
+                onAttachmentClick = onLinkedAttachmentClick,
+                onContextRemove = viewModel::removeBoardProjectLink,
+                onAttachmentRemove = viewModel::removeBoardAttachmentLink,
+                contextsExpanded = scopeContextsExpanded,
+                attachmentsExpanded = scopeAttachmentsExpanded,
+                onContextsExpandedChange = viewModel::setScopeContextsExpanded,
+                onAttachmentsExpandedChange = viewModel::setScopeAttachmentsExpanded,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
     }
 
     if (showAddDialog) {

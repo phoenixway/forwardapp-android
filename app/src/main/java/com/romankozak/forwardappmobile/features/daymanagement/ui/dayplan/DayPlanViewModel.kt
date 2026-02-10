@@ -90,6 +90,8 @@ class DayPlanViewModel
         }
 
         private val _planId = MutableStateFlow<String?>(null)
+        private val _isScopeLinksSheetVisible = MutableStateFlow(false)
+        val isScopeLinksSheetVisible: StateFlow<Boolean> = _isScopeLinksSheetVisible.asStateFlow()
 
         @OptIn(FlowPreview::class)
         val uiState: StateFlow<DayPlanUiState> =
@@ -322,6 +324,14 @@ class DayPlanViewModel
             viewModelScope.launch {
                 settingsRepository.setDayScopeAttachmentsExpanded(expanded)
             }
+        }
+
+        fun toggleScopeLinksSheet() {
+            _isScopeLinksSheetVisible.value = !_isScopeLinksSheetVisible.value
+        }
+
+        fun dismissScopeLinksSheet() {
+            _isScopeLinksSheetVisible.value = false
         }
 
         fun openAddTaskDialog() {

@@ -60,6 +60,9 @@ class TacticalMissionViewModel
         private val _scopeAttachmentsExpanded = MutableStateFlow(true)
         val scopeAttachmentsExpanded: StateFlow<Boolean> = _scopeAttachmentsExpanded.asStateFlow()
 
+        private val _isScopeLinksSheetVisible = MutableStateFlow(false)
+        val isScopeLinksSheetVisible: StateFlow<Boolean> = _isScopeLinksSheetVisible.asStateFlow()
+
         init {
             loadMissions()
 
@@ -216,6 +219,14 @@ class TacticalMissionViewModel
 
         fun setScopeAttachmentsExpanded(expanded: Boolean) {
             viewModelScope.launch { settingsRepository.setTacticalScopeAttachmentsExpanded(expanded) }
+        }
+
+        fun toggleScopeLinksSheet() {
+            _isScopeLinksSheetVisible.value = !_isScopeLinksSheetVisible.value
+        }
+
+        fun dismissScopeLinksSheet() {
+            _isScopeLinksSheetVisible.value = false
         }
     }
 

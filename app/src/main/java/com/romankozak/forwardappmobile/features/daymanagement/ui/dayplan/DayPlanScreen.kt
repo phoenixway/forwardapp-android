@@ -120,6 +120,7 @@ fun DayPlanScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val hapticFeedback = LocalHapticFeedback.current
     val isEditTaskDialogOpen by viewModel.isEditTaskDialogOpen.collectAsState()
+    val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsState()
     var showReminderDialog by remember { mutableStateOf(false) }
     var showProjectChooser by remember { mutableStateOf(false) }
     var showAttachmentChooser by remember { mutableStateOf(false) }
@@ -215,42 +216,6 @@ fun DayPlanScreen(
                             val totalPointsAvailable = tasks.sumOf { it.dayTask.points.coerceAtLeast(0) }
                             val completedTasksCount = tasks.count { it.dayTask.completed }
                             val totalTasksCount = tasks.size
-                            val planLinkedProjectIds = uiState.dayPlan?.linkedProjectIds.orEmpty()
-                            val planLinkedAttachmentIds = uiState.dayPlan?.linkedAttachmentIds.orEmpty()
-
-                            ScreenScopeLinksPanel(
-                                title = "Посилання для управління днем",
-                                contextLinks =
-                                    planLinkedProjectIds.map { id ->
-                                        ScopeLinkItem(id = id, title = uiState.linkedProjectTitles[id] ?: "Контекст ${id.take(8)}")
-                                    },
-                                attachmentLinks =
-                                    planLinkedAttachmentIds.map { id ->
-                                        ScopeLinkItem(id = id, title = uiState.linkedAttachmentTitles[id] ?: "Вкладення ${id.take(8)}")
-                                    },
-                                onAddContextClick = { showProjectChooser = true },
-                                onAddAttachmentClick = { showAttachmentChooser = true },
-                                onContextClick = { contextId ->
-                                    navController.navigate("goal_detail_screen/$contextId")
-                                },
-                                onAttachmentClick = { attachmentId ->
-                                    navController.navigate("attachments_library_screen") {
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                    runCatching {
-                                        navController.getBackStackEntry("attachments_library_screen")
-                                            .savedStateHandle["attachment_library_query"] = attachmentId
-                                    }
-                                },
-                                onContextRemove = viewModel::removePlanProjectLink,
-                                onAttachmentRemove = viewModel::removePlanAttachmentLink,
-                                contextsExpanded = uiState.scopeContextsExpanded,
-                                attachmentsExpanded = uiState.scopeAttachmentsExpanded,
-                                onContextsExpandedChange = viewModel::setScopeContextsExpanded,
-                                onAttachmentsExpandedChange = viewModel::setScopeAttachmentsExpanded,
-                                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-                            )
 
                             TaskList(
                                 tasks = tasks,
@@ -306,6 +271,7 @@ fun DayPlanScreen(
                                     uiState.linkedAttachmentTitles[attachmentId] ?: "Вкладення ${attachmentId.take(8)}"
                                 },
                             )
+
                         }
                     }
                 }
@@ -330,6 +296,49 @@ fun DayPlanScreen(
                 factory = { context -> MatrixRainView(context).also { view -> matrixView = view } },
                 modifier = Modifier.fillMaxSize(),
             )
+        }
+    }
+
+    if (isScopeLinksSheetVisible) {
+        val planLinkedProjectIds = uiState.dayPlan?.linkedProjectIds.orEmpty()
+        val planLinkedAttachmentIds = uiState.dayPlan?.linkedAttachmentIds.orEmpty()
+        ModalBottomSheet(
+            onDismissRequest = viewModel::dismissScopeLinksSheet,
+        ) {
+            ScreenScopeLinksPanel(
+                title = "Посилання для управління днем",
+                contextLinks =
+                    planLinkedProjectIds.map { id ->
+                        ScopeLinkItem(id = id, title = uiState.linkedProjectTitles[id] ?: "Контекст ${id.take(8)}")
+                    },
+                attachmentLinks =
+                    planLinkedAttachmentIds.map { id ->
+                        ScopeLinkItem(id = id, title = uiState.linkedAttachmentTitles[id] ?: "Вкладення ${id.take(8)}")
+                    },
+                onAddContextClick = { showProjectChooser = true },
+                onAddAttachmentClick = { showAttachmentChooser = true },
+                onContextClick = { contextId ->
+                    navController.navigate("goal_detail_screen/$contextId")
+                },
+                onAttachmentClick = { attachmentId ->
+                    navController.navigate("attachments_library_screen") {
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                    runCatching {
+                        navController.getBackStackEntry("attachments_library_screen")
+                            .savedStateHandle["attachment_library_query"] = attachmentId
+                    }
+                },
+                onContextRemove = viewModel::removePlanProjectLink,
+                onAttachmentRemove = viewModel::removePlanAttachmentLink,
+                contextsExpanded = uiState.scopeContextsExpanded,
+                attachmentsExpanded = uiState.scopeAttachmentsExpanded,
+                onContextsExpandedChange = viewModel::setScopeContextsExpanded,
+                onAttachmentsExpandedChange = viewModel::setScopeAttachmentsExpanded,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 

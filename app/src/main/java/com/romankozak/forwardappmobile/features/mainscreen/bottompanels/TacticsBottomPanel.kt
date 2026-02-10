@@ -6,7 +6,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
@@ -52,6 +55,8 @@ fun TacticsBottomPanel(
     tacticalMissionViewModel: TacticalMissionViewModel = hiltViewModel(),
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
+    val isScopeLinksSheetVisible by tacticalMissionViewModel.isScopeLinksSheetVisible.collectAsState()
+
     CommonBottomPanelLayout {
         Box(
             modifier = Modifier
@@ -94,6 +99,9 @@ fun TacticsBottomPanel(
                 onNavigateToScripts = onNavigateToScripts,
                 onShowAbout = onShowAbout,
                 featureToggles = featureToggles,
+                leadingIcon = Icons.Outlined.SwapVert,
+                leadingLabel = if (isScopeLinksSheetVisible) "Закрити" else "Посилання",
+                onLeadingClick = tacticalMissionViewModel::toggleScopeLinksSheet,
                 quickActionIcon = Icons.Outlined.Add,
                 quickActionLabel = "Додати місію",
                 onQuickActionClick = { tacticalMissionViewModel.openAddMissionDialog() },
