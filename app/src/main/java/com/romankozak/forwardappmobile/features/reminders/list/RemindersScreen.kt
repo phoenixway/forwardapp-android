@@ -3,7 +3,9 @@ package com.romankozak.forwardappmobile.features.reminders.list
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,9 +14,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ClearAll
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.TravelExplore
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,16 +37,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
+import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.ProjectItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.GoalItem
 import com.romankozak.forwardappmobile.features.reminders.components.ReminderAction
 import com.romankozak.forwardappmobile.features.reminders.components.ReminderActionsDialog
 import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
+import com.romankozak.forwardappmobile.features.reminders.util.ReminderTextUtil
 import com.romankozak.forwardappmobile.features.reminders.viewmodel.ReminderListItem
 import com.romankozak.forwardappmobile.features.reminders.viewmodel.ReminderViewModel
 import com.romankozak.forwardappmobile.features.reminders.viewmodel.RemindersUiEvent
@@ -83,9 +93,14 @@ fun RemindersScreen(
                 },
             )
         },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { viewModel.onShowPropertiesDialog() }) {
+                Icon(Icons.Default.Add, contentDescription = "Add reminder")
+            }
+        },
     ) { paddingValues ->
         if (reminders.isEmpty()) {
-            EmptyRemindersView()
+            EmptyRemindersView(modifier = Modifier.padding(paddingValues))
         } else {
             LazyColumn(modifier = Modifier.padding(paddingValues)) {
                 items(reminders) { reminderItem ->
@@ -133,7 +148,11 @@ fun RemindersScreen(
                             )
                         }
                         is ReminderListItem.SimpleReminder -> {
-                            // Handle SimpleReminder if needed
+                            SimpleReminderItem(
+                                reminder = reminderItem.reminder,
+                                onItemClick = { viewModel.onEditReminder(reminderItem.reminder) },
+                                onMoreClick = { showActionsDialogForItem = reminderItem },
+                            )
                         }
                     }
                 }
@@ -149,7 +168,7 @@ fun RemindersScreen(
                 if (reminderToUpdate != null) {
                     viewModel.updateReminder(reminderToUpdate.copy(reminderTime = time))
                 } else {
-                    // This screen is for viewing all reminders, adding a new one doesn't make sense here.
+                    viewModel.addReminder(time)
                 }
                 viewModel.onDismissPropertiesDialog()
             },
@@ -166,8 +185,9 @@ fun RemindersScreen(
     }
 
     showActionsDialogForItem?.let { item ->
-        val actions =
-            listOf(
+        val actions = mutableListOf<ReminderAction>()
+        if (item !is ReminderListItem.SimpleReminder) {
+            actions +=
                 ReminderAction(
                     text = "Show in project",
                     icon = Icons.Outlined.TravelExplore,
@@ -175,16 +195,17 @@ fun RemindersScreen(
                         viewModel.showItemInProject(item)
                         showActionsDialogForItem = null
                     },
-                ),
-                ReminderAction(
-                    text = "Delete",
-                    icon = Icons.Outlined.Delete,
-                    onClick = {
-                        viewModel.deleteReminder(item.reminder)
-                        showActionsDialogForItem = null
-                    },
-                    color = MaterialTheme.colorScheme.error,
-                ),
+                )
+        }
+        actions +=
+            ReminderAction(
+                text = "Delete",
+                icon = Icons.Outlined.Delete,
+                onClick = {
+                    viewModel.deleteReminder(item.reminder)
+                    showActionsDialogForItem = null
+                },
+                color = MaterialTheme.colorScheme.error,
             )
         ReminderActionsDialog(
             onDismiss = { showActionsDialogForItem = null },
@@ -194,9 +215,9 @@ fun RemindersScreen(
 }
 
 @Composable
-fun EmptyRemindersView() {
+fun EmptyRemindersView(modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -215,10 +236,49 @@ fun EmptyRemindersView() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                text = "Add a reminder to a goal to see it here.",
+                text = "Натисни +, щоб створити нагадування.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             )
+        }
+    }
+}
+
+@Composable
+private fun SimpleReminderItem(
+    reminder: Reminder,
+    onItemClick: () -> Unit,
+    onMoreClick: () -> Unit,
+) {
+    Card(
+        onClick = onItemClick,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Default.Notifications,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                Text(
+                    text = "Нагадування",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = ReminderTextUtil.formatReminderTime(reminder.reminderTime, System.currentTimeMillis()),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            IconButton(onClick = onMoreClick) {
+                Icon(Icons.Default.MoreHoriz, contentDescription = "More")
+            }
         }
     }
 }

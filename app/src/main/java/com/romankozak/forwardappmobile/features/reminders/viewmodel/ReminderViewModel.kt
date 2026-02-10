@@ -14,6 +14,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 sealed class RemindersUiEvent {
@@ -88,10 +89,11 @@ class ReminderViewModel
         fun addReminder(reminderTime: Long) {
             val entityId: String? = savedStateHandle.get<String>("entityId")
             val entityType: String? = savedStateHandle.get<String>("entityType")
-            if (entityId.isNullOrEmpty() || entityType.isNullOrEmpty()) return
+            val resolvedEntityId = entityId.takeUnless { it.isNullOrEmpty() } ?: "manual-${UUID.randomUUID()}"
+            val resolvedEntityType = entityType.takeUnless { it.isNullOrEmpty() } ?: "REMINDER"
 
             viewModelScope.launch {
-                reminderRepository.createReminder(entityId, entityType, reminderTime)
+                reminderRepository.createReminder(resolvedEntityId, resolvedEntityType, reminderTime)
             }
         }
 
