@@ -52,44 +52,7 @@ fun ScreenScopeLinksPanel(
     onAttachmentsExpandedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val allCollapsed = !contextsExpanded && !attachmentsExpanded
-
     Column(modifier = modifier.fillMaxWidth()) {
-        if (allCollapsed) {
-            ElevatedCard(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp),
-                shape = RoundedCornerShape(14.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "$title: К ${contextLinks.size} • В ${attachmentLinks.size}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    IconButton(
-                        onClick = {
-                            onContextsExpandedChange(true)
-                            onAttachmentsExpandedChange(true)
-                        },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.ExpandMore,
-                            contentDescription = "Розгорнути",
-                        )
-                    }
-                }
-            }
-            return@Column
-        }
-
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
