@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
@@ -139,15 +140,19 @@ class DayPlanViewModel
                     val attachmentLibraryFlow = attachmentsRepository.getAttachmentLibraryItems()
                     val scopeContextsExpandedFlow = settingsRepository.dayScopeContextsExpandedFlow
                     val scopeAttachmentsExpandedFlow = settingsRepository.dayScopeAttachmentsExpandedFlow
+                    val scopeExpansionFlow =
+                        combine(scopeContextsExpandedFlow, scopeAttachmentsExpandedFlow) { scopeContextsExpanded, scopeAttachmentsExpanded ->
+                            scopeContextsExpanded to scopeAttachmentsExpanded
+                        }
 
                     combine(
                         dayPlanFlow,
                         tasksFlow,
                         contextsFlow,
                         attachmentLibraryFlow,
-                        scopeContextsExpandedFlow,
-                        scopeAttachmentsExpandedFlow,
-                    ) { dayPlan, tasks, contexts, attachments, scopeContextsExpanded, scopeAttachmentsExpanded ->
+                        scopeExpansionFlow,
+                    ) { dayPlan: DayPlan?, tasks: List<DayTaskWithReminder>, contexts: List<Context>, attachments: List<AttachmentLibraryQueryResult>, scopeExpansion: Pair<Boolean, Boolean> ->
+                        val (scopeContextsExpanded, scopeAttachmentsExpanded) = scopeExpansion
                         Log.d(
                             "DayPlanViewModel",
                             "UI State combine: dayPlanId=${dayPlan?.id}, tasksCount=${tasks.size} (before creating DayPlanUiState)",
