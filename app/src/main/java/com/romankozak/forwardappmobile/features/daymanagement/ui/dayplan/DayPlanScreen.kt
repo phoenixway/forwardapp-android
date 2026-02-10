@@ -93,6 +93,7 @@ private fun ErrorState(
 }
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun DayPlanScreen(
     initialDayPlanId: String,
     modifier: Modifier = Modifier,
