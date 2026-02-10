@@ -1,43 +1,25 @@
 package com.romankozak.forwardappmobile.features.missions.presentation
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.outlined.Attachment
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.Topic
-import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
+import com.romankozak.forwardappmobile.features.missions.presentation.missionlist.TacticalMissionList
 import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.TacticalScopeLinksSheet
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemState
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedCheckboxStyle
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemCheckbox
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTokens
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusRow
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedTrailingActionButton
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -68,14 +50,6 @@ fun TacticalManagementScreen(
             onMissionDeleted = { viewModel.deleteMission(it.id) },
             onMissionEdited = { editingMission = it },
             modifier = Modifier.weight(1f),
-            attachmentLabel = { id ->
-                attachmentOptions.firstOrNull { it.id == id }?.name ?: id
-            },
-            projectLabel = { id ->
-                projectOptions.firstOrNull { it.id == id }?.name ?: id
-            },
-            onLinkedProjectClick = onLinkedProjectClick,
-            onLinkedAttachmentClick = onLinkedAttachmentClick,
         )
 
     }
@@ -330,202 +304,6 @@ fun MissionDialog(
                 showAttachmentChooser = false
             },
         )
-    }
-}
-
-@Composable
-fun TacticalMissionList(
-    missions: List<TacticalMission>,
-    onMissionToggled: (TacticalMission) -> Unit,
-    onMissionDeleted: (TacticalMission) -> Unit,
-    onMissionEdited: (TacticalMission) -> Unit,
-    modifier: Modifier = Modifier,
-    attachmentLabel: (String) -> String,
-    projectLabel: (String) -> String,
-    onLinkedProjectClick: (String) -> Unit,
-    onLinkedAttachmentClick: (String) -> Unit,
-) {
-    LazyColumn(
-        modifier = modifier.padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(UnifiedListItemTokens.OuterVerticalSpacing * 2),
-    ) {
-        items(missions) { mission ->
-            TacticalMissionItem(
-                mission = mission,
-                onMissionToggled = { onMissionToggled(mission) },
-                onMissionDeleted = { onMissionDeleted(mission) },
-                onMissionEdited = { onMissionEdited(mission) },
-                attachmentLabel = attachmentLabel,
-                projectLabel = projectLabel,
-                onLinkedProjectClick = onLinkedProjectClick,
-                onLinkedAttachmentClick = onLinkedAttachmentClick,
-            )
-        }
-    }
-}
-
-@Composable
-fun TacticalMissionItem(
-    mission: TacticalMission,
-    onMissionToggled: () -> Unit,
-    onMissionDeleted: () -> Unit,
-    onMissionEdited: () -> Unit,
-    attachmentLabel: (String) -> String,
-    projectLabel: (String) -> String,
-    onLinkedProjectClick: (String) -> Unit,
-    onLinkedAttachmentClick: (String) -> Unit,
-) {
-    val onSurface = MaterialTheme.colorScheme.onSurface
-    val colorScheme = MaterialTheme.colorScheme
-
-    val overdue =
-        System.currentTimeMillis() > mission.deadline &&
-            mission.status != MissionStatus.COMPLETED
-    val itemState =
-        when {
-            mission.status == MissionStatus.COMPLETED -> UnifiedItemState.COMPLETED
-            overdue -> UnifiedItemState.OVERDUE
-            else -> UnifiedItemState.DEFAULT
-        }
-    val missionContainerColor =
-        when (itemState) {
-            UnifiedItemState.COMPLETED -> colorScheme.secondaryContainer.copy(alpha = 0.36f)
-            UnifiedItemState.OVERDUE -> colorScheme.errorContainer.copy(alpha = 0.58f)
-            UnifiedItemState.DEFAULT -> colorScheme.tertiaryContainer.copy(alpha = 0.40f)
-            UnifiedItemState.SELECTED -> colorScheme.surfaceContainerHighest
-            UnifiedItemState.DISABLED -> colorScheme.surfaceVariant.copy(alpha = 0.6f)
-        }
-    val missionBorderColor =
-        when (itemState) {
-            UnifiedItemState.COMPLETED -> colorScheme.secondary.copy(alpha = 0.35f)
-            UnifiedItemState.OVERDUE -> colorScheme.error.copy(alpha = 0.50f)
-            UnifiedItemState.DEFAULT -> colorScheme.tertiary.copy(alpha = 0.38f)
-            UnifiedItemState.SELECTED -> colorScheme.primary.copy(alpha = 0.4f)
-            UnifiedItemState.DISABLED -> colorScheme.outlineVariant.copy(alpha = 0.35f)
-        }
-
-    UnifiedListItemSurface(
-        isSelected = false,
-        state = itemState,
-        containerColorOverride = missionContainerColor,
-        borderColorOverride = missionBorderColor,
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
-        modifier =
-            Modifier
-                .fillMaxWidth(),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            UnifiedItemCheckbox(
-                checked = mission.status == MissionStatus.COMPLETED,
-                onCheckedChange = { onMissionToggled() },
-                style = UnifiedCheckboxStyle.Round,
-                checkedColor = MaterialTheme.colorScheme.primary,
-                uncheckedBorderColor = onSurface.copy(alpha = 0.7f),
-            )
-
-            Spacer(Modifier.width(10.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                val titleColor by animateColorAsState(
-                    when {
-                        mission.status == MissionStatus.COMPLETED ->
-                            onSurface.copy(alpha = 0.4f)
-                        overdue ->
-                            Color(0xFFFF6E6E)
-                        else -> onSurface
-                    },
-                )
-
-                Text(
-                    mission.title,
-                    style =
-                        MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = FontWeight.SemiBold,
-                        ),
-                    color = titleColor,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    textDecoration =
-                        if (mission.status == MissionStatus.COMPLETED) {
-                            TextDecoration.LineThrough
-                        } else {
-                            null
-                        },
-                )
-
-                if (!mission.description.isNullOrBlank()) {
-                    Text(
-                        mission.description!!,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = onSurface.copy(alpha = 0.7f),
-                        textDecoration =
-                            if (mission.status == MissionStatus.COMPLETED) {
-                                TextDecoration.LineThrough
-                            } else {
-                                null
-                            },
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 2.dp),
-                    )
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 6.dp),
-                ) {
-                    val statusItems =
-                        buildList {
-                            add(
-                                UnifiedStatusChipSpec(
-                                    icon = if (overdue) Icons.Outlined.Warning else Icons.Outlined.Schedule,
-                                    text = formatDate(mission.deadline),
-                                    contentColor = if (overdue) MaterialTheme.colorScheme.error else onSurface.copy(alpha = 0.75f),
-                                ),
-                            )
-                            mission.linkedProjectIds.orEmpty().forEach { projectId ->
-                                add(
-                                    UnifiedStatusChipSpec(
-                                        icon = Icons.Outlined.Topic,
-                                        text = projectLabel(projectId),
-                                        contentColor = MaterialTheme.colorScheme.primary,
-                                        onClick = { onLinkedProjectClick(projectId) },
-                                    ),
-                                )
-                            }
-                            mission.linkedAttachmentIds.orEmpty().forEach { attachmentId ->
-                                add(
-                                    UnifiedStatusChipSpec(
-                                        icon = Icons.Outlined.Attachment,
-                                        text = attachmentLabel(attachmentId),
-                                        contentColor = MaterialTheme.colorScheme.secondary,
-                                        onClick = { onLinkedAttachmentClick(attachmentId) },
-                                    ),
-                                )
-                            }
-                        }
-                    UnifiedStatusRow(items = statusItems)
-                }
-            }
-
-            Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                horizontalAlignment = Alignment.End,
-            ) {
-                UnifiedTrailingActionButton(
-                    icon = Icons.Default.Edit,
-                    contentDescription = "Edit",
-                    onClick = onMissionEdited,
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
-                )
-                UnifiedTrailingActionButton(
-                    icon = Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    onClick = onMissionDeleted,
-                    tint = Color(0xFFFF5A5A),
-                )
-            }
-        }
     }
 }
 
