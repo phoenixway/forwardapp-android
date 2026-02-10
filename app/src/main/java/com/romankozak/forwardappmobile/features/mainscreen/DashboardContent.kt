@@ -1,7 +1,6 @@
 package com.romankozak.forwardappmobile.features.mainscreen
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +24,8 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.ImportExport
 import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
@@ -35,6 +36,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -73,6 +78,9 @@ fun AnimatedCommandDeck(
     dayPlanViewModel: DayPlanViewModel = hiltViewModel(),
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
+    var overviewExpanded by rememberSaveable { mutableStateOf(true) }
+    var quickActionsStage by rememberSaveable { mutableIntStateOf(0) }
+
     val dayUiState by dayPlanViewModel.uiState.collectAsStateWithLifecycle()
     val recentItems by recentViewModel.recentItems.collectAsStateWithLifecycle()
 
@@ -98,61 +106,115 @@ fun AnimatedCommandDeck(
             QuickAction("Settings", "Налаштування", Icons.Outlined.Settings, Color(0xFFB0BEC5), onNavigateToSettings),
         )
 
+    val visibleQuickActions =
+        when (quickActionsStage) {
+            0 -> emptyList()
+            1 -> actions.takeLast(4)
+            else -> actions
+        }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = 18.dp),
     ) {
         item {
-            Text(
-                text = "Огляд",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+            SectionHeader(
+                title = "Огляд",
+                subtitle = if (overviewExpanded) "Розгорнуто" else "Згорнуто",
+                isExpanded = overviewExpanded,
+                onClick = { overviewExpanded = !overviewExpanded },
             )
         }
 
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
+        if (overviewExpanded) {
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    DashboardMetricCard(
+                        title = "Сьогодні",
+                        value = "$tasksCompleted / $tasksTotal",
+                        subtitle = "виконано задач",
+                        modifier = Modifier.weight(1f),
+                    )
+                    DashboardMetricCard(
+                        title = "Recent",
+                        value = "${recentItems.size}",
+                        subtitle = "останні переходи",
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+
+            item {
                 DashboardMetricCard(
-                    title = "Сьогодні",
-                    value = "$tasksCompleted / $tasksTotal",
-                    subtitle = "виконано задач",
-                    modifier = Modifier.weight(1f),
-                )
-                DashboardMetricCard(
-                    title = "Recent",
-                    value = "${recentItems.size}",
-                    subtitle = "останні переходи",
-                    modifier = Modifier.weight(1f),
+                    title = "План дня",
+                    value = "${dayUiState.dayPlan?.linkedProjectIds.orEmpty().size} контекстів / ${dayUiState.dayPlan?.linkedAttachmentIds.orEmpty().size} вкладень",
+                    subtitle = "scope-посилання поточного дня",
                 )
             }
         }
 
         item {
-            DashboardMetricCard(
-                title = "План дня",
-                value = "${dayUiState.dayPlan?.linkedProjectIds.orEmpty().size} контекстів / ${dayUiState.dayPlan?.linkedAttachmentIds.orEmpty().size} вкладень",
-                subtitle = "scope-посилання поточного дня",
+            val stageLabel =
+                when (quickActionsStage) {
+                    0 -> "Згорнуто"
+                    1 -> "Кілька останніх"
+                    else -> "Усі"
+                }
+            SectionHeader(
+                title = "Швидкі дії",
+                subtitle = stageLabel,
+                isExpanded = quickActionsStage != 0,
+                onClick = { quickActionsStage = (quickActionsStage + 1) % 3 },
             )
         }
 
-        item {
-            Text(
-                text = "Швидкі дії",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
-
-        actions.forEach { action ->
+        visibleQuickActions.forEach { action ->
             item {
                 QuickActionCard(action = action)
             }
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(
+    title: String,
+    subtitle: String,
+    isExpanded: Boolean,
+    onClick: () -> Unit,
+) {
+    Card(
+        onClick = onClick,
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(
+                imageVector = if (isExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -207,12 +269,6 @@ private fun QuickActionCard(action: QuickAction) {
                 Text(action.title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium)
                 Text(action.subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
             }
-            Text(
-                text = "Відкрити",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable(onClick = action.onClick),
-            )
         }
     }
 }
