@@ -15,7 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -105,7 +105,7 @@ fun TodayBottomPanel(
                 onNavigateToScripts = onNavigateToScripts,
                 onShowAbout = onShowAbout,
                 featureToggles = featureToggles,
-                leadingIcon = Icons.Outlined.SwapVert,
+                leadingIcon = Icons.Outlined.Link,
                 leadingLabel = if (isScopeLinksSheetVisible) "Закрити" else "Посилання",
                 onLeadingClick = dayPlanViewModel::toggleScopeLinksSheet,
                 quickActionIcon = Icons.Outlined.Add,

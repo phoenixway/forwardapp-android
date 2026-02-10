@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
@@ -99,7 +99,7 @@ fun TacticsBottomPanel(
                 onNavigateToScripts = onNavigateToScripts,
                 onShowAbout = onShowAbout,
                 featureToggles = featureToggles,
-                leadingIcon = Icons.Outlined.SwapVert,
+                leadingIcon = Icons.Outlined.Link,
                 leadingLabel = if (isScopeLinksSheetVisible) "Закрити" else "Посилання",
                 onLeadingClick = tacticalMissionViewModel::toggleScopeLinksSheet,
                 quickActionIcon = Icons.Outlined.Add,

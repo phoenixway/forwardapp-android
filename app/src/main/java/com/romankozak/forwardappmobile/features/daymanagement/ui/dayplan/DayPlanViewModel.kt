@@ -17,6 +17,7 @@ import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
+import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.handlers.DayPlanScopeLinksHandler
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -92,6 +93,14 @@ class DayPlanViewModel
         private val _planId = MutableStateFlow<String?>(null)
         private val _isScopeLinksSheetVisible = MutableStateFlow(false)
         val isScopeLinksSheetVisible: StateFlow<Boolean> = _isScopeLinksSheetVisible.asStateFlow()
+        private val scopeLinksHandler =
+            DayPlanScopeLinksHandler(
+                dayManagementRepository = dayManagementRepository,
+                settingsRepository = settingsRepository,
+                planIdFlow = _planId,
+                isScopeLinksSheetVisible = _isScopeLinksSheetVisible,
+                scope = viewModelScope,
+            )
 
         @OptIn(FlowPreview::class)
         val uiState: StateFlow<DayPlanUiState> =
@@ -267,71 +276,35 @@ class DayPlanViewModel
         }
 
         fun addPlanProjectLink(projectId: String) {
-            val planId = _planId.value ?: return
-            viewModelScope.launch(Dispatchers.IO) {
-                val current = dayManagementRepository.getPlanById(planId) ?: return@launch
-                dayManagementRepository.updatePlanLinks(
-                    planId = planId,
-                    linkedProjectIds = (current.linkedProjectIds.orEmpty() + projectId).distinct(),
-                    linkedAttachmentIds = current.linkedAttachmentIds.orEmpty(),
-                )
-            }
+            scopeLinksHandler.addPlanProjectLink(projectId)
         }
 
         fun removePlanProjectLink(projectId: String) {
-            val planId = _planId.value ?: return
-            viewModelScope.launch(Dispatchers.IO) {
-                val current = dayManagementRepository.getPlanById(planId) ?: return@launch
-                dayManagementRepository.updatePlanLinks(
-                    planId = planId,
-                    linkedProjectIds = current.linkedProjectIds.orEmpty().filterNot { it == projectId },
-                    linkedAttachmentIds = current.linkedAttachmentIds.orEmpty(),
-                )
-            }
+            scopeLinksHandler.removePlanProjectLink(projectId)
         }
 
         fun addPlanAttachmentLink(attachmentId: String) {
-            val planId = _planId.value ?: return
-            viewModelScope.launch(Dispatchers.IO) {
-                val current = dayManagementRepository.getPlanById(planId) ?: return@launch
-                dayManagementRepository.updatePlanLinks(
-                    planId = planId,
-                    linkedProjectIds = current.linkedProjectIds.orEmpty(),
-                    linkedAttachmentIds = (current.linkedAttachmentIds.orEmpty() + attachmentId).distinct(),
-                )
-            }
+            scopeLinksHandler.addPlanAttachmentLink(attachmentId)
         }
 
         fun removePlanAttachmentLink(attachmentId: String) {
-            val planId = _planId.value ?: return
-            viewModelScope.launch(Dispatchers.IO) {
-                val current = dayManagementRepository.getPlanById(planId) ?: return@launch
-                dayManagementRepository.updatePlanLinks(
-                    planId = planId,
-                    linkedProjectIds = current.linkedProjectIds.orEmpty(),
-                    linkedAttachmentIds = current.linkedAttachmentIds.orEmpty().filterNot { it == attachmentId },
-                )
-            }
+            scopeLinksHandler.removePlanAttachmentLink(attachmentId)
         }
 
         fun setScopeContextsExpanded(expanded: Boolean) {
-            viewModelScope.launch {
-                settingsRepository.setDayScopeContextsExpanded(expanded)
-            }
+            scopeLinksHandler.setScopeContextsExpanded(expanded)
         }
 
         fun setScopeAttachmentsExpanded(expanded: Boolean) {
-            viewModelScope.launch {
-                settingsRepository.setDayScopeAttachmentsExpanded(expanded)
-            }
+            scopeLinksHandler.setScopeAttachmentsExpanded(expanded)
         }
 
         fun toggleScopeLinksSheet() {
-            _isScopeLinksSheetVisible.value = !_isScopeLinksSheetVisible.value
+            scopeLinksHandler.toggleScopeLinksSheet()
         }
 
         fun dismissScopeLinksSheet() {
-            _isScopeLinksSheetVisible.value = false
+            scopeLinksHandler.dismissScopeLinksSheet()
         }
 
         fun openAddTaskDialog() {

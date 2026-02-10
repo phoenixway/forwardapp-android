@@ -40,13 +40,12 @@ import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.AddTaskDialog
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.TaskList
+import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.scopelinks.DayScopeLinksSheet
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentChooserScreen
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectChooserScreen
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
 import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
-import com.romankozak.forwardappmobile.ui.components.ScopeLinkItem
-import com.romankozak.forwardappmobile.ui.components.ScreenScopeLinksPanel
 import com.romankozak.forwardappmobile.ui.common.MatrixRainView
 import kotlinx.coroutines.delay
 
@@ -300,48 +299,33 @@ fun DayPlanScreen(
         }
     }
 
-    if (isScopeLinksSheetVisible) {
-        val planLinkedProjectIds = uiState.dayPlan?.linkedProjectIds.orEmpty()
-        val planLinkedAttachmentIds = uiState.dayPlan?.linkedAttachmentIds.orEmpty()
-        ModalBottomSheet(
-            onDismissRequest = viewModel::dismissScopeLinksSheet,
-        ) {
-            ScreenScopeLinksPanel(
-                title = "Посилання для управління днем",
-                contextLinks =
-                    planLinkedProjectIds.map { id ->
-                        ScopeLinkItem(id = id, title = uiState.linkedProjectTitles[id] ?: "Контекст ${id.take(8)}")
-                    },
-                attachmentLinks =
-                    planLinkedAttachmentIds.map { id ->
-                        ScopeLinkItem(id = id, title = uiState.linkedAttachmentTitles[id] ?: "Вкладення ${id.take(8)}")
-                    },
-                onAddContextClick = { showProjectChooser = true },
-                onAddAttachmentClick = { showAttachmentChooser = true },
-                onContextClick = { contextId ->
-                    navController.navigate("goal_detail_screen/$contextId")
-                },
-                onAttachmentClick = { attachmentId ->
-                    navController.navigate("attachments_library_screen") {
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                    runCatching {
-                        navController.getBackStackEntry("attachments_library_screen")
-                            .savedStateHandle["attachment_library_query"] = attachmentId
-                    }
-                },
-                onContextRemove = viewModel::removePlanProjectLink,
-                onAttachmentRemove = viewModel::removePlanAttachmentLink,
-                contextsExpanded = uiState.scopeContextsExpanded,
-                attachmentsExpanded = uiState.scopeAttachmentsExpanded,
-                onContextsExpandedChange = viewModel::setScopeContextsExpanded,
-                onAttachmentsExpandedChange = viewModel::setScopeAttachmentsExpanded,
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-        }
-    }
+    val availableProjectIds = uiState.availableProjects.map { it.id }.toSet()
+    val availableAttachmentIds = uiState.availableAttachments.map { it.id }.toSet()
+
+    DayScopeLinksSheet(
+        isVisible = isScopeLinksSheetVisible,
+        uiState = uiState,
+        onDismiss = viewModel::dismissScopeLinksSheet,
+        onAddContextClick = { showProjectChooser = true },
+        onAddAttachmentClick = { showAttachmentChooser = true },
+        onContextClick = { contextId ->
+            navController.navigate("goal_detail_screen/$contextId")
+        },
+        onAttachmentClick = { attachmentId ->
+            navController.navigate("attachments_library_screen") {
+                launchSingleTop = true
+                restoreState = true
+            }
+            runCatching {
+                navController.getBackStackEntry("attachments_library_screen")
+                    .savedStateHandle["attachment_library_query"] = attachmentId
+            }
+        },
+        onContextRemove = viewModel::removePlanProjectLink,
+        onAttachmentRemove = viewModel::removePlanAttachmentLink,
+        onContextsExpandedChange = viewModel::setScopeContextsExpanded,
+        onAttachmentsExpandedChange = viewModel::setScopeAttachmentsExpanded,
+    )
 
     if (isAddTaskDialogOpen) {
         AddTaskDialog(
@@ -364,7 +348,7 @@ fun DayPlanScreen(
     if (showProjectChooser) {
         ProjectChooserScreen(
             options = uiState.availableProjects.map { ProjectOption(it.id, it.name) },
-            preselected = uiState.dayPlan?.linkedProjectIds.orEmpty().toSet(),
+            preselected = uiState.dayPlan?.linkedProjectIds.orEmpty().filter { it in availableProjectIds }.toSet(),
             onDismiss = { showProjectChooser = false },
             onConfirm = { selected ->
                 selected.forEach(viewModel::addPlanProjectLink)
@@ -376,7 +360,7 @@ fun DayPlanScreen(
     if (showAttachmentChooser) {
         AttachmentChooserScreen(
             options = uiState.availableAttachments.map { AttachmentOption(it.id, it.name) },
-            preselected = uiState.dayPlan?.linkedAttachmentIds.orEmpty().toSet(),
+            preselected = uiState.dayPlan?.linkedAttachmentIds.orEmpty().filter { it in availableAttachmentIds }.toSet(),
             onDismiss = { showAttachmentChooser = false },
             onConfirm = { selected ->
                 selected.forEach(viewModel::addPlanAttachmentLink)

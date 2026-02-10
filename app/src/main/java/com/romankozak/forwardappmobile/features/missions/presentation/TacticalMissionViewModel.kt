@@ -12,6 +12,7 @@ import com.romankozak.forwardappmobile.features.missions.domain.usecase.AddTacti
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.DeleteTacticalMissionUseCase
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.GetTacticalMissionsUseCase
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.UpdateTacticalMissionUseCase
+import com.romankozak.forwardappmobile.features.missions.presentation.handlers.TacticalScopeLinksHandler
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -62,6 +63,14 @@ class TacticalMissionViewModel
 
         private val _isScopeLinksSheetVisible = MutableStateFlow(false)
         val isScopeLinksSheetVisible: StateFlow<Boolean> = _isScopeLinksSheetVisible.asStateFlow()
+        private val scopeLinksHandler =
+            TacticalScopeLinksHandler(
+                settingsRepository = settingsRepository,
+                boardLinkedProjectIds = _boardLinkedProjectIds,
+                boardLinkedAttachmentIds = _boardLinkedAttachmentIds,
+                isScopeLinksSheetVisible = _isScopeLinksSheetVisible,
+                scope = viewModelScope,
+            )
 
         init {
             loadMissions()
@@ -194,39 +203,35 @@ class TacticalMissionViewModel
         }
 
         fun addBoardProjectLink(projectId: String) {
-            val updated = (_boardLinkedProjectIds.value + projectId).distinct().toSet()
-            viewModelScope.launch { settingsRepository.setTacticalLinkedProjectIds(updated) }
+            scopeLinksHandler.addBoardProjectLink(projectId)
         }
 
         fun removeBoardProjectLink(projectId: String) {
-            val updated = _boardLinkedProjectIds.value.filterNot { it == projectId }.toSet()
-            viewModelScope.launch { settingsRepository.setTacticalLinkedProjectIds(updated) }
+            scopeLinksHandler.removeBoardProjectLink(projectId)
         }
 
         fun addBoardAttachmentLink(attachmentId: String) {
-            val updated = (_boardLinkedAttachmentIds.value + attachmentId).distinct().toSet()
-            viewModelScope.launch { settingsRepository.setTacticalLinkedAttachmentIds(updated) }
+            scopeLinksHandler.addBoardAttachmentLink(attachmentId)
         }
 
         fun removeBoardAttachmentLink(attachmentId: String) {
-            val updated = _boardLinkedAttachmentIds.value.filterNot { it == attachmentId }.toSet()
-            viewModelScope.launch { settingsRepository.setTacticalLinkedAttachmentIds(updated) }
+            scopeLinksHandler.removeBoardAttachmentLink(attachmentId)
         }
 
         fun setScopeContextsExpanded(expanded: Boolean) {
-            viewModelScope.launch { settingsRepository.setTacticalScopeContextsExpanded(expanded) }
+            scopeLinksHandler.setScopeContextsExpanded(expanded)
         }
 
         fun setScopeAttachmentsExpanded(expanded: Boolean) {
-            viewModelScope.launch { settingsRepository.setTacticalScopeAttachmentsExpanded(expanded) }
+            scopeLinksHandler.setScopeAttachmentsExpanded(expanded)
         }
 
         fun toggleScopeLinksSheet() {
-            _isScopeLinksSheetVisible.value = !_isScopeLinksSheetVisible.value
+            scopeLinksHandler.toggleScopeLinksSheet()
         }
 
         fun dismissScopeLinksSheet() {
-            _isScopeLinksSheetVisible.value = false
+            scopeLinksHandler.dismissScopeLinksSheet()
         }
     }
 

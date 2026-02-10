@@ -29,6 +29,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
+import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.TacticalScopeLinksSheet
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemState
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedCheckboxStyle
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemCheckbox
@@ -37,8 +38,6 @@ import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTok
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusRow
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedTrailingActionButton
-import com.romankozak.forwardappmobile.ui.components.ScopeLinkItem
-import com.romankozak.forwardappmobile.ui.components.ScreenScopeLinksPanel
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -81,39 +80,29 @@ fun TacticalManagementScreen(
 
     }
 
-    if (isScopeLinksSheetVisible) {
-        ModalBottomSheet(onDismissRequest = viewModel::dismissScopeLinksSheet) {
-            ScreenScopeLinksPanel(
-                title = "Посилання для тактичного циклу",
-                contextLinks =
-                    boardLinkedProjectIds.map { id ->
-                        ScopeLinkItem(
-                            id = id,
-                            title = projectOptions.firstOrNull { it.id == id }?.name ?: "Контекст ${id.take(8)}",
-                        )
-                    },
-                attachmentLinks =
-                    boardLinkedAttachmentIds.map { id ->
-                        ScopeLinkItem(
-                            id = id,
-                            title = attachmentOptions.firstOrNull { it.id == id }?.name ?: "Вкладення ${id.take(8)}",
-                        )
-                    },
-                onAddContextClick = { showProjectChooser = true },
-                onAddAttachmentClick = { showAttachmentChooser = true },
-                onContextClick = onLinkedProjectClick,
-                onAttachmentClick = onLinkedAttachmentClick,
-                onContextRemove = viewModel::removeBoardProjectLink,
-                onAttachmentRemove = viewModel::removeBoardAttachmentLink,
-                contextsExpanded = scopeContextsExpanded,
-                attachmentsExpanded = scopeAttachmentsExpanded,
-                onContextsExpandedChange = viewModel::setScopeContextsExpanded,
-                onAttachmentsExpandedChange = viewModel::setScopeAttachmentsExpanded,
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-        }
-    }
+    val availableProjectIds = projectOptions.map { it.id }.toSet()
+    val availableAttachmentIds = attachmentOptions.map { it.id }.toSet()
+    val validBoardLinkedProjectIds = boardLinkedProjectIds.filter { it in availableProjectIds }
+    val validBoardLinkedAttachmentIds = boardLinkedAttachmentIds.filter { it in availableAttachmentIds }
+
+    TacticalScopeLinksSheet(
+        isVisible = isScopeLinksSheetVisible,
+        projectOptions = projectOptions,
+        attachmentOptions = attachmentOptions,
+        linkedProjectIds = boardLinkedProjectIds,
+        linkedAttachmentIds = boardLinkedAttachmentIds,
+        contextsExpanded = scopeContextsExpanded,
+        attachmentsExpanded = scopeAttachmentsExpanded,
+        onDismiss = viewModel::dismissScopeLinksSheet,
+        onAddContextClick = { showProjectChooser = true },
+        onAddAttachmentClick = { showAttachmentChooser = true },
+        onContextClick = onLinkedProjectClick,
+        onAttachmentClick = onLinkedAttachmentClick,
+        onContextRemove = viewModel::removeBoardProjectLink,
+        onAttachmentRemove = viewModel::removeBoardAttachmentLink,
+        onContextsExpandedChange = viewModel::setScopeContextsExpanded,
+        onAttachmentsExpandedChange = viewModel::setScopeAttachmentsExpanded,
+    )
 
     if (showAddDialog) {
         AddMissionDialog(
@@ -162,7 +151,7 @@ fun TacticalManagementScreen(
     if (showProjectChooser) {
         ProjectChooserScreen(
             options = projectOptions,
-            preselected = boardLinkedProjectIds.toSet(),
+            preselected = validBoardLinkedProjectIds.toSet(),
             onDismiss = { showProjectChooser = false },
             onConfirm = { selected ->
                 selected.forEach(viewModel::addBoardProjectLink)
@@ -174,7 +163,7 @@ fun TacticalManagementScreen(
     if (showAttachmentChooser) {
         AttachmentChooserScreen(
             options = attachmentOptions,
-            preselected = boardLinkedAttachmentIds.toSet(),
+            preselected = validBoardLinkedAttachmentIds.toSet(),
             onDismiss = { showAttachmentChooser = false },
             onConfirm = { selected ->
                 selected.forEach(viewModel::addBoardAttachmentLink)
