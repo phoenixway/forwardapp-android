@@ -12,5 +12,6 @@ data class TacticalMissionSnapshot(
     @SerializedName("priority") val priority: String,
     @SerializedName("projectId") val projectId: String?,
     @SerializedName("linkedProjectIds") val linkedProjectIds: List<String>?,
-    @SerializedName("linkedAttachmentIds") val linkedAttachmentIds: List<String>?
+    @SerializedName("linkedAttachmentIds") val linkedAttachmentIds: List<String>?,
+    @SerializedName("order") val order: Long = 0L,
 )

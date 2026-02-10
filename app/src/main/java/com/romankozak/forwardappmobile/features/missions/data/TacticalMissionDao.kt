@@ -20,10 +20,10 @@ interface TacticalMissionDao {
     @Query("DELETE FROM tactical_missions WHERE id = :missionId")
     suspend fun deleteMissionById(missionId: Long)
 
-    @Query("SELECT * FROM tactical_missions WHERE projectId = :projectId ORDER BY deadline DESC")
+    @Query("SELECT * FROM tactical_missions WHERE projectId = :projectId ORDER BY mission_order ASC, deadline DESC")
     fun getMissionsForProject(projectId: String): Flow<List<TacticalMission>>
 
-    @Query("SELECT * FROM tactical_missions ORDER BY deadline DESC")
+    @Query("SELECT * FROM tactical_missions ORDER BY mission_order ASC, deadline DESC")
     fun getAllMissions(): Flow<List<TacticalMission>>
 
     @Query("SELECT * FROM tactical_missions WHERE id = :missionId")
@@ -70,4 +70,13 @@ interface TacticalMissionDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMissionAttachments(attachments: List<TacticalMissionAttachmentCrossRef>)
+
+    @Query("SELECT COALESCE(MAX(mission_order), -1) FROM tactical_missions")
+    suspend fun getMaxMissionOrder(): Long
+
+    @Query("UPDATE tactical_missions SET mission_order = :order WHERE id = :missionId")
+    suspend fun updateMissionOrder(
+        missionId: Long,
+        order: Long,
+    )
 }

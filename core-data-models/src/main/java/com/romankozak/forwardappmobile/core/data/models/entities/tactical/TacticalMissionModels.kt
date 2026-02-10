@@ -43,6 +43,9 @@ data class TacticalMission(
     @SerializedName(value = "linkedProjectIds", alternate = ["i", "j"])
     val linkedProjectIds: List<String>? = emptyList(),
     @SerializedName("linkedAttachmentIds") val linkedAttachmentIds: List<String>? = emptyList(),
+    @ColumnInfo(name = "mission_order", defaultValue = "0")
+    @SerializedName("order")
+    val order: Long = 0L,
 )
 
 @Entity(

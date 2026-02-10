@@ -137,7 +137,7 @@ class TacticalMissionViewModel
 
         fun addMission(mission: TacticalMission) {
             viewModelScope.launch {
-                val id = addTacticalMissionUseCase(mission)
+                val id = missionRepository.insertMissionWithAutoOrder(mission)
                 // Прив'язуємо вкладення до створеної місії
                 missionRepository.setAttachments(id, mission.linkedAttachmentIds ?: emptyList())
             }
@@ -232,6 +232,12 @@ class TacticalMissionViewModel
 
         fun dismissScopeLinksSheet() {
             scopeLinksHandler.dismissScopeLinksSheet()
+        }
+
+        fun reorderMissions(missions: List<TacticalMission>) {
+            viewModelScope.launch {
+                missionRepository.reorderMissions(missions)
+            }
         }
     }
 

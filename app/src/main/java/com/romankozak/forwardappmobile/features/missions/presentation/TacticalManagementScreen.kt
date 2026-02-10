@@ -49,6 +49,7 @@ fun TacticalManagementScreen(
             onMissionToggled = { viewModel.toggleMissionCompleted(it) },
             onMissionDeleted = { viewModel.deleteMission(it.id) },
             onMissionEdited = { editingMission = it },
+            onMissionsReordered = viewModel::reorderMissions,
             modifier = Modifier.weight(1f),
         )
 

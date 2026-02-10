@@ -1487,3 +1487,10 @@ val MIGRATION_103_104 =
             db.execSQL("ALTER TABLE `day_plans` ADD COLUMN `linkedAttachmentIds` TEXT")
         }
     }
+
+val MIGRATION_104_105 =
+    object : Migration(104, 105) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `tactical_missions` ADD COLUMN `mission_order` INTEGER NOT NULL DEFAULT 0")
+        }
+    }

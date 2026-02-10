@@ -32,6 +32,11 @@ class MissionRepository
             return tacticalMissionDao.insertMission(mission)
         }
 
+        suspend fun insertMissionWithAutoOrder(mission: TacticalMission): Long {
+            val nextOrder = tacticalMissionDao.getMaxMissionOrder() + 1
+            return tacticalMissionDao.insertMission(mission.copy(order = nextOrder))
+        }
+
         suspend fun updateMission(mission: TacticalMission) {
             tacticalMissionDao.updateMission(mission)
         }
@@ -84,6 +89,12 @@ class MissionRepository
             val current = tacticalMissionDao.getAttachmentIdsForMission(missionId).toMutableSet()
             if (current.remove(attachmentId)) {
                 setAttachments(missionId, current.toList())
+            }
+        }
+
+        suspend fun reorderMissions(missions: List<TacticalMission>) {
+            missions.forEachIndexed { index, mission ->
+                tacticalMissionDao.updateMissionOrder(missionId = mission.id, order = index.toLong())
             }
         }
     }

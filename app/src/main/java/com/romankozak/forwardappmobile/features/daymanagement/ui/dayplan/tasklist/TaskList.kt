@@ -71,7 +71,7 @@ fun TaskList(
                 state = lazyListState,
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(UnifiedListItemTokens.OuterVerticalSpacing),
+                verticalArrangement = Arrangement.spacedBy(UnifiedListItemTokens.OuterVerticalSpacing * 2),
             ) {
                 items(internalTasks, key = { it.dayTask.id }) { taskWithReminder ->
                     ReorderableItem(reorderableState, key = taskWithReminder.dayTask.id) { isDragging ->

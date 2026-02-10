@@ -91,6 +91,7 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_100_101
 import com.romankozak.forwardappmobile.data.database.MIGRATION_101_102
 import com.romankozak.forwardappmobile.data.database.MIGRATION_102_103
 import com.romankozak.forwardappmobile.data.database.MIGRATION_103_104
+import com.romankozak.forwardappmobile.data.database.MIGRATION_104_105
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
@@ -244,6 +245,7 @@ object DatabaseModule {
             MIGRATION_101_102,
             MIGRATION_102_103,
             MIGRATION_103_104,
+            MIGRATION_104_105,
         ).build()
     }
 

@@ -288,7 +288,19 @@ fun LifeSystemStateSnapshot.toEntity(): LifeSystemStateEntity =
     LifeSystemStateEntity(id, loadLevel, executionMode, stability, entropy, updatedAt)
 
 
-fun TacticalMission.toSnapshot(): TacticalMissionSnapshot = TacticalMissionSnapshot(id, title, description, startTime, deadline, status.name, priority.name, projectId, linkedProjectIds, linkedAttachmentIds)
+fun TacticalMission.toSnapshot(): TacticalMissionSnapshot = TacticalMissionSnapshot(
+    id = id,
+    title = title,
+    description = description,
+    startTime = startTime,
+    deadline = deadline,
+    status = status.name,
+    priority = priority.name,
+    projectId = projectId,
+    linkedProjectIds = linkedProjectIds,
+    linkedAttachmentIds = linkedAttachmentIds,
+    order = order,
+)
 fun TacticalMissionSnapshot.toEntity(): TacticalMission = TacticalMission(
     id,
     title,
@@ -299,7 +311,8 @@ fun TacticalMissionSnapshot.toEntity(): TacticalMission = TacticalMission(
     enumValueOf<MissionPriority>(priority),
     projectId,
     linkedProjectIds,
-    linkedAttachmentIds
+    linkedAttachmentIds,
+    order,
 )
 
 fun TacticalMissionAttachmentCrossRef.toSnapshot(): TacticalMissionAttachmentCrossRefSnapshot = TacticalMissionAttachmentCrossRefSnapshot(missionId, attachmentId)

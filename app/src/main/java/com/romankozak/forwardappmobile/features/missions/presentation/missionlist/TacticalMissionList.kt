@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -19,9 +20,14 @@ import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -36,6 +42,8 @@ import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTok
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusRow
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedTrailingActionButton
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -46,19 +54,37 @@ fun TacticalMissionList(
     onMissionToggled: (TacticalMission) -> Unit,
     onMissionDeleted: (TacticalMission) -> Unit,
     onMissionEdited: (TacticalMission) -> Unit,
+    onMissionsReordered: (List<TacticalMission>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val hapticFeedback = LocalHapticFeedback.current
+    var internalMissions by remember(missions) { mutableStateOf(missions) }
+    val lazyListState = rememberLazyListState()
+    val reorderableState =
+        rememberReorderableLazyListState(lazyListState) { from, to ->
+            internalMissions =
+                internalMissions.toMutableList().apply {
+                    add(to.index, removeAt(from.index))
+                }
+            onMissionsReordered(internalMissions)
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+
     LazyColumn(
+        state = lazyListState,
         modifier = modifier.padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(UnifiedListItemTokens.OuterVerticalSpacing),
+        verticalArrangement = Arrangement.spacedBy(UnifiedListItemTokens.OuterVerticalSpacing * 2),
     ) {
-        items(missions) { mission ->
-            TacticalMissionCard(
-                mission = mission,
-                onMissionToggled = { onMissionToggled(mission) },
-                onMissionDeleted = { onMissionDeleted(mission) },
-                onMissionEdited = { onMissionEdited(mission) },
-            )
+        items(internalMissions, key = { it.id }) { mission ->
+            ReorderableItem(reorderableState, key = mission.id) {
+                TacticalMissionCard(
+                    mission = mission,
+                    onMissionToggled = { onMissionToggled(mission) },
+                    onMissionDeleted = { onMissionDeleted(mission) },
+                    onMissionEdited = { onMissionEdited(mission) },
+                    checkboxDragHandleModifier = Modifier.draggableHandle(),
+                )
+            }
         }
     }
 }
@@ -69,6 +95,7 @@ fun TacticalMissionCard(
     onMissionToggled: () -> Unit,
     onMissionDeleted: () -> Unit,
     onMissionEdited: () -> Unit,
+    checkboxDragHandleModifier: Modifier = Modifier,
 ) {
     val onSurface = MaterialTheme.colorScheme.onSurface
     val colorScheme = MaterialTheme.colorScheme
@@ -111,6 +138,7 @@ fun TacticalMissionCard(
                 checked = mission.status == MissionStatus.COMPLETED,
                 onCheckedChange = { onMissionToggled() },
                 style = UnifiedCheckboxStyle.Round,
+                modifier = checkboxDragHandleModifier,
                 checkedColor = MaterialTheme.colorScheme.primary,
                 uncheckedBorderColor = onSurface.copy(alpha = 0.7f),
             )
