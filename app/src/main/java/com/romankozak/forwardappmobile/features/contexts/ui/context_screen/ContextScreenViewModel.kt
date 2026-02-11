@@ -23,10 +23,10 @@ import com.romankozak.forwardappmobile.data.repository.*
 import com.romankozak.forwardappmobile.domain.ner.NerManager
 import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
-import com.romankozak.forwardappmobile.domain.wifirestapi.FileDataRequest
-import com.romankozak.forwardappmobile.domain.wifirestapi.RetrofitClient
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SearchUseCase
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.BacklogActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.MarkdownActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.NavigationActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ReminderActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputHandler
@@ -38,6 +38,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.handl
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.handlers.NoteDocumentHandler
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.handlers.ProjectNavigationHandler
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.handlers.ReminderHandler
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.navigation.ContextRouteResolver
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.*
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionType
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.usecases.ContextScreenDataMapper
@@ -51,7 +52,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.net.URLDecoder
 import java.net.URLEncoder
 import java.util.Calendar
 import java.util.UUID
@@ -196,6 +196,22 @@ class ContextScreenViewModel
         private var isLinkedNavigationInProgress: Boolean = false
         private var pendingLinkedContextReplace: Boolean = false
         private var lastSyncKey: Triple<String, String?, Int>? = null
+        private val routeResolver = ContextRouteResolver(HANDLE_LINK_CLICK_ROUTE)
+        private val navigationActions by lazy {
+            NavigationActions(
+                contextRepository = contextRepository,
+                recentItemsRepository = recentItemsRepository,
+                settingsRepository = settingsRepository,
+                ioDispatcher = ioDispatcher,
+            )
+        }
+        private val backlogActions by lazy {
+            BacklogActions(
+                listItemRepository = listItemRepository,
+                settingsRepository = settingsRepository,
+                application = application,
+            )
+        }
 
         // Exposed StateFlows
         val uiState: StateFlow<ContextUiState> = stateManager.uiState
@@ -697,184 +713,62 @@ class ContextScreenViewModel
 
         override fun requestNavigation(route: String) {
             viewModelScope.launch {
-                if (route == "back") {
-                    _uiEventFlow.tryEmit(UiEvent.NavigateBack)
-                    return@launch
-                }
-                if (route.startsWith("goal_detail_screen/")) {
-                    val contextId = route.substringAfter("goal_detail_screen/")
+                when (val result = routeResolver.resolve(route)) {
+                    is ContextRouteResolver.ResolveResult.Back -> {
+                        _uiEventFlow.tryEmit(UiEvent.NavigateBack)
+                    }
 
-                    val projectName =
-                        withContext(ioDispatcher) {
-                            contextRepository.getContextById(contextId)?.name ?: "Context"
-                        }
-                    enhancedNavigationManager.navigateToProject(contextId, projectName)
-                    return@launch
-                } else if (route.startsWith(HANDLE_LINK_CLICK_ROUTE)) {
-                    val rawTarget = route.substringAfter(HANDLE_LINK_CLICK_ROUTE + "/")
-                    val target = runCatching { URLDecoder.decode(rawTarget, "UTF-8") }.getOrDefault(rawTarget)
-                    val link =
-                        (listContent.value + attachmentItems.value)
-                            .filterIsInstance<BacklogItemContent.LinkItem>()
-                            .map { it.link.linkData }
-                            .find { it.target == target || runCatching { URLEncoder.encode(it.target, "UTF-8") }.getOrNull() == rawTarget }
-                    if (link != null) {
-                        onLinkItemClick(link)
-                    } else {
-                        val obsidianNoteTarget = extractObsidianNoteTarget(target)
-                        val project =
-                            withContext(ioDispatcher) { contextRepository.getContextById(target) }
-                        when {
-                            obsidianNoteTarget != null -> {
-                                openObsidianNote(obsidianNoteTarget)
+                    is ContextRouteResolver.ResolveResult.GoalDetail -> {
+                        val goalDetail = navigationActions.resolveGoalDetail(result.contextId)
+                        enhancedNavigationManager.navigateToProject(goalDetail.contextId, goalDetail.contextName)
+                    }
+
+                    is ContextRouteResolver.ResolveResult.HandleLinkClick -> {
+                        val links =
+                            (listContent.value + attachmentItems.value)
+                                .filterIsInstance<BacklogItemContent.LinkItem>()
+                                .map { it.link.linkData }
+                        when (val linkResult = navigationActions.resolveHandleLinkClick(result.rawTarget, links)) {
+                            is NavigationActions.HandleLinkClickResult.ExistingLink -> onLinkItemClick(linkResult.link)
+                            is NavigationActions.HandleLinkClickResult.OpenObsidianNote -> {
+                                when (val noteResult = navigationActions.resolveObsidianNoteOpen(linkResult.noteTarget)) {
+                                    is NavigationActions.OpenObsidianNoteResult.OpenUri -> _uiEventFlow.tryEmit(UiEvent.OpenUri(noteResult.uri))
+                                    is NavigationActions.OpenObsidianNoteResult.VaultNotConfigured ->
+                                        _uiEventFlow.tryEmit(UiEvent.ShowSnackbar("Назву Obsidian сховища не встановлено."))
+                                }
                             }
-                            target.startsWith("obsidian://") -> {
-                                _uiEventFlow.tryEmit(UiEvent.OpenUri(target))
-                            }
-                            project != null -> {
-                                enhancedNavigationManager.navigateToProject(project.id, project.name)
-                            }
-                            target.startsWith("http://") || target.startsWith("https://") -> {
-                                _uiEventFlow.tryEmit(UiEvent.OpenUri(target))
-                            }
-                            else -> {
-                                Log.w(TAG, "Unknown related link target: $target")
-                                _uiEventFlow.tryEmit(UiEvent.ShowSnackbar("Unknown link: $target"))
+                            is NavigationActions.HandleLinkClickResult.OpenUri -> _uiEventFlow.tryEmit(UiEvent.OpenUri(linkResult.uri))
+                            is NavigationActions.HandleLinkClickResult.NavigateToContext ->
+                                enhancedNavigationManager.navigateToProject(linkResult.contextId, linkResult.contextName)
+                            is NavigationActions.HandleLinkClickResult.UnknownTarget -> {
+                                Log.w(TAG, "Unknown related link target: ${linkResult.target}")
+                                _uiEventFlow.tryEmit(UiEvent.ShowSnackbar("Unknown link: ${linkResult.target}"))
                             }
                         }
                     }
-                } else {
-                    val target = parseRouteToNavTarget(route)
-                    if (target != null) {
-                        _uiEventFlow.tryEmit(UiEvent.Navigate(target))
-                    } else {
-                        Log.w(TAG, "Unknown navigation route: $route")
+
+                    is ContextRouteResolver.ResolveResult.Navigate -> {
+                        _uiEventFlow.tryEmit(UiEvent.Navigate(result.target))
+                    }
+
+                    is ContextRouteResolver.ResolveResult.Unknown -> {
+                        Log.w(TAG, "Unknown navigation route: ${result.route}")
                     }
                 }
             }
-        }
-
-        private fun parseRouteToNavTarget(route: String): NavTarget? {
-            return when {
-                route.startsWith("global_search_screen/") -> {
-                    val query = URLDecoder.decode(route.substringAfter("global_search_screen/"), "UTF-8")
-                    NavTarget.GlobalSearch(query)
-                }
-                route.startsWith("goal_settings_screen/") -> {
-                    val goalId = route.substringAfter("goal_settings_screen/")
-                    NavTarget.GoalSettings(goalId)
-                }
-                route.startsWith("note_document_screen/") -> {
-                    val tail = route.substringAfter("note_document_screen/")
-                    val id = tail.substringBefore("?")
-                    val startEdit = tail.substringAfter("?", "").contains("startEdit=true")
-                    NavTarget.NoteDocument(id = id, startEdit = startEdit)
-                }
-                route.startsWith("note_document_edit_screen") -> {
-                    val params = route.substringAfter("?", "")
-                    val paramMap =
-                        params.split("&").mapNotNull {
-                            val parts = it.split("=", limit = 2)
-                            if (parts.size == 2) parts[0] to parts[1] else null
-                        }.toMap()
-                    NavTarget.NoteDocumentEdit(
-                        contextId =
-                            paramMap["projectId"]?.takeIf { it.isNotBlank() }
-                                ?: paramMap["contextId"]?.takeIf { it.isNotBlank() },
-                        documentId = paramMap["documentId"]?.takeIf { it.isNotBlank() },
-                    )
-                }
-                route.startsWith("checklist_screen") -> {
-                    val params = route.substringAfter("?", "")
-                    val paramMap =
-                        params.split("&").mapNotNull {
-                            val parts = it.split("=", limit = 2)
-                            if (parts.size == 2) parts[0] to parts[1] else null
-                        }.toMap()
-                    NavTarget.Checklist(
-                        id = paramMap["checklistId"]?.takeIf { it.isNotBlank() },
-                        contextId =
-                            paramMap["projectId"]?.takeIf { it.isNotBlank() }
-                                ?: paramMap["contextId"]?.takeIf { it.isNotBlank() },
-                    )
-                }
-                route.startsWith("list_chooser_screen/") -> {
-                    val titleEncoded = route.substringAfter("list_chooser_screen/").substringBefore("?")
-                    val params = route.substringAfter("?", "")
-                    val paramMap =
-                        params.split("&").mapNotNull {
-                            val parts = it.split("=", limit = 2)
-                            if (parts.size == 2) parts[0] to parts[1] else null
-                        }.toMap()
-                    NavTarget.ListChooser(
-                        title = URLDecoder.decode(titleEncoded, "UTF-8"),
-                        currentParentId = paramMap["currentParentId"]?.takeIf { it.isNotBlank() },
-                        disabledIds = paramMap["disabledIds"]?.takeIf { it.isNotBlank() },
-                    )
-                }
-                route == "activity_tracker_screen" -> NavTarget.Tracker
-                route == "reminders_screen" -> NavTarget.Reminders
-                route == "settings_screen" -> NavTarget.Settings
-                route == "ai_insights_screen" -> NavTarget.AiInsights
-                route == "life_state_screen" -> NavTarget.LifeState
-                route == "attachments_library_screen" -> NavTarget.AttachmentsLibrary
-                route == "scripts_library_screen" -> NavTarget.ScriptsLibrary
-                route == "tactical_management_screen" -> NavTarget.TacticalManagement
-                else -> null
-            }
-        }
-
-        private fun extractObsidianNoteTarget(target: String): String? {
-            val trimmed = target.trim()
-            if (trimmed.startsWith("[[") && trimmed.endsWith("]]") && trimmed.length > 4) {
-                return trimmed.substring(2, trimmed.length - 2).trim().takeIf { it.isNotBlank() }
-            }
-            if (!trimmed.startsWith("obsidian://")) {
-                return null
-            }
-            val encodedFile =
-                Regex("""[?&]file=([^&]+)""").find(trimmed)?.groupValues?.get(1)
-                    ?: Regex("""[?&]name=([^&]+)""").find(trimmed)?.groupValues?.get(1)
-            return encodedFile
-                ?.takeIf { it.isNotBlank() }
-                ?.let { runCatching { URLDecoder.decode(it, "UTF-8") }.getOrDefault(it) }
-        }
-
-        private suspend fun openObsidianNote(noteTarget: String) {
-            val vaultName = settingsRepository.obsidianVaultNameFlow.first()
-            if (vaultName.isBlank()) {
-                _uiEventFlow.tryEmit(UiEvent.ShowSnackbar("Назву Obsidian сховища не встановлено."))
-                return
-            }
-            val encodedVault = URLEncoder.encode(vaultName, "UTF-8")
-            val encodedNoteName = URLEncoder.encode(noteTarget, "UTF-8")
-            val uri = "obsidian://open?vault=$encodedVault&file=$encodedNoteName"
-            _uiEventFlow.tryEmit(UiEvent.OpenUri(uri))
         }
 
         fun onLinkItemClick(link: RelatedLink) {
             Log.d(TAG, "onLinkItemClick: Clicked link with type=${link.type}, target=${link.target}")
             viewModelScope.launch {
-                when (link.type) {
-                    LinkType.CONTEXT -> {
-                        val projectName = link.displayName ?: "Context"
-                        enhancedNavigationManager.navigateToProject(link.target, projectName)
-                    }
-                    LinkType.OBSIDIAN -> {
-                        recentItemsRepository.logObsidianLinkAccess(link)
-                        val vaultName = settingsRepository.obsidianVaultNameFlow.first()
-                        if (vaultName.isNotBlank()) {
-                            val encodedVault = URLEncoder.encode(vaultName, "UTF-8")
-                            val encodedNoteName = URLEncoder.encode(link.target, "UTF-8")
-                            val uri = "obsidian://open?vault=$encodedVault&file=$encodedNoteName"
-                            _uiEventFlow.tryEmit(UiEvent.OpenUri(uri))
-                        } else {
-                            _uiEventFlow.tryEmit(UiEvent.ShowSnackbar("Obsidian vault name is not configured."))
-                        }
-                    }
-                    else -> {
-                        _uiEventFlow.tryEmit(UiEvent.HandleLinkClick(link))
-                    }
+                when (val result = navigationActions.resolveLinkItemClick(link)) {
+                    is NavigationActions.LinkItemClickResult.NavigateToContext ->
+                        enhancedNavigationManager.navigateToProject(result.contextId, result.contextName)
+                    is NavigationActions.LinkItemClickResult.OpenUri -> _uiEventFlow.tryEmit(UiEvent.OpenUri(result.uri))
+                    is NavigationActions.LinkItemClickResult.VaultNotConfigured ->
+                        _uiEventFlow.tryEmit(UiEvent.ShowSnackbar("Obsidian vault name is not configured."))
+                    is NavigationActions.LinkItemClickResult.DelegateToUi ->
+                        _uiEventFlow.tryEmit(UiEvent.HandleLinkClick(result.link))
                 }
             }
         }
@@ -1077,58 +971,8 @@ class ContextScreenViewModel
 
         fun onTransferBacklogToServerRequest() {
             viewModelScope.launch {
-                val url = settingsRepository.getFastApiUrl().first()
-                if (url.isNullOrBlank()) {
-                    showSnackbar("Server address is not available. Check settings.", null)
-                    return@launch
-                }
-                Log.d(TAG, "onTransferBacklogViaWifi: Ініційовано передачу на URL: $url")
-                executeBacklogTransfer(url)
-            }
-        }
-
-        private fun executeBacklogTransfer(url: String) {
-            Log.d(TAG, "executeBacklogTransfer: Початок підготовки даних для відправки.")
-            viewModelScope.launch(Dispatchers.IO) {
-                try {
-                    val markdownContent = getBacklogAsMarkdown()
-
-                    if (markdownContent.isBlank()) {
-                        withContext(Dispatchers.Main) {
-                            showSnackbar("Беклог порожній. Нічого передавати.", null)
-                        }
-                        return@launch
-                    }
-
-                    val filename = project.value?.name ?: "backlog_export"
-
-                    val requestBody = FileDataRequest(filename = filename, content = markdownContent)
-
-                    Log.d(TAG, "executeBacklogTransfer: Дані підготовлено. Відправка на: $url")
-
-                    val response = RetrofitClient.getInstance(application, url).uploadFileAsJson(requestBody)
-
-                    withContext(Dispatchers.Main) {
-                        if (response.isSuccessful) {
-                            Log.d(
-                                TAG,
-                                "executeBacklogTransfer: Успішна відповідь від сервера. Код: ${response.code()}",
-                            )
-                            showSnackbar("Беклог успішно передано", null)
-                        } else {
-                            val errorMsg = response.errorBody()?.string() ?: "Невідома помилка"
-                            Log.e(
-                                TAG,
-                                "executeBacklogTransfer: Помилка від сервера. Код: ${response.code()}, Повідомлення: $errorMsg",
-                            )
-                            showSnackbar("Помилка: ${response.code()} - $errorMsg", null)
-                        }
-                    }
-                } catch (e: Exception) {
-                    withContext(Dispatchers.Main) {
-                        Log.e(TAG, "executeBacklogTransfer: Критична помилка мережі.", e)
-                        showSnackbar("Помилка мережі: ${e.message}", null)
-                    }
+                when (val result = backlogActions.transferBacklogToServer(project.value?.name, listContent.value)) {
+                    is BacklogActions.TransferResult.Message -> showSnackbar(result.text, null)
                 }
             }
         }
@@ -1280,16 +1124,7 @@ class ContextScreenViewModel
             to: Int,
         ) {
             viewModelScope.launch {
-                val currentList = _listContent.value.toMutableList()
-                if (from !in currentList.indices || to !in currentList.indices) return@launch
-                val movedItem = currentList.removeAt(from)
-                currentList.add(to, movedItem)
-                _listContent.value = currentList
-                val reorderedBacklogItems =
-                    currentList.mapIndexed { index, content ->
-                        content.backlogItem.copy(order = index.toLong())
-                    }
-                listItemRepository.updateListItemsOrder(reorderedBacklogItems)
+                _listContent.value = backlogActions.move(_listContent.value, from, to)
             }
         }
 
@@ -1494,14 +1329,7 @@ class ContextScreenViewModel
 
         fun onMoveToTop(item: BacklogItemContent) {
             viewModelScope.launch {
-                val currentList = _listContent.value.toMutableList()
-                val from = currentList.indexOf(item)
-                if (from != -1) {
-                    val movedItem = currentList.removeAt(from)
-                    currentList.add(0, movedItem)
-                    _listContent.value = currentList
-                    persistBacklogOrder(currentList)
-                }
+                _listContent.value = backlogActions.moveToTop(_listContent.value, item)
             }
         }
 
@@ -1532,14 +1360,6 @@ class ContextScreenViewModel
                 }
                 showSnackbar("Трекінг розпочато", null)
             }
-        }
-
-        private suspend fun persistBacklogOrder(content: List<BacklogItemContent>) {
-            val reorderedBacklogItems =
-                content.mapIndexed { index, listContentItem ->
-                    listContentItem.backlogItem.copy(order = index.toLong())
-                }
-            listItemRepository.updateListItemsOrder(reorderedBacklogItems)
         }
 
         fun onProjectStatusUpdate(
@@ -1788,28 +1608,7 @@ class ContextScreenViewModel
                 viewModelScope.launch {
                     reminderActions.onRemoveReminder(reminderId)
                 }
-    fun getBacklogAsMarkdown(): String {
-        val markdownBuilder = StringBuilder()
-        listContent.value.forEach { item ->
-            val line =
-                when (item) {
-                    is BacklogItemContent.GoalItem -> {
-                        val checkbox = if (item.goal.completed) "- [x]" else "- [ ]"
-                        "$checkbox ${item.goal.text}"
-                    }
-                    is BacklogItemContent.SublistItem -> "- [С] ${item.project.name}"
-                    is BacklogItemContent.LinkItem -> {
-                        val displayName = item.link.linkData.displayName ?: item.link.linkData.target
-                        "- [Л] [$displayName](${item.link.linkData.target})"
-                    }
-                    is BacklogItemContent.NoteItem -> "- [Н] ${item.note.title}"
-                    is BacklogItemContent.NoteDocumentItem -> "- [К] ${item.document.name}"
-                    is BacklogItemContent.ChecklistItem -> "- [Ч] ${item.checklist.name}"
-                }
-            markdownBuilder.appendLine(line)
-        }
-        return markdownBuilder.toString()
-    }
+    fun getBacklogAsMarkdown(): String = backlogActions.getBacklogAsMarkdown(listContent.value)
 
         // Will be removed
 
