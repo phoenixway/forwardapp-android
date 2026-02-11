@@ -1,9 +1,5 @@
-
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen
-
 import android.app.Application
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.util.Log
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.ui.text.TextRange
@@ -25,10 +21,13 @@ import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SearchUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.BacklogActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.BacklogItemActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ClipboardActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.CurrentContextActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ContextDataApplyActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ContextSettingsActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ContextViewActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.CreationActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.CreationResultActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.DirectionActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.DirectionChooserActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.InputSuggestionActions
@@ -36,14 +35,17 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actio
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ListChooserFlowActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ListChooserOrchestrationActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ListChooserPendingStateActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ListChooserResultCoordinatorActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ListChooserResultActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.MarkdownActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.NavigationActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.NavigationEffectDispatcherActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.NavigationEventActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.RecentItemActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ReminderActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.TopNavigationActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.UiEventDispatcherActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.UiControlActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.UiStateActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputHandler
@@ -71,8 +73,6 @@ import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import java.util.Calendar
 import javax.inject.Inject
-import android.content.Context as AndroidContext
-
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
 class ContextScreenViewModel
@@ -119,40 +119,21 @@ class ContextScreenViewModel
             const val HANDLE_LINK_CLICK_ROUTE = "handle_link_click"
             private const val TAG = "BacklogVM_DEBUG"
         }
-
         val canGoBack: StateFlow<Boolean> get() = enhancedNavigationManager.canGoBack
         val canGoForward: StateFlow<Boolean> get() = enhancedNavigationManager.canGoForward
         lateinit var enhancedNavigationManager: EnhancedNavigationManager
         val contextSessionState: StateFlow<com.romankozak.forwardappmobile.core.context.ContextSessionState> =
             contextSessionStore.state
-
         internal val stateManager = ContextStateManager(viewModelScope)
         private val tagManager = TagManager(contextRepository, viewModelScope)
-        private val activityManager =
-            ActivityManager(
-                activityRepository,
-                contextRepository,
-                settingsRepository,
-                viewModelScope,
-            )
-
+        private val activityManager = ActivityManager(activityRepository, contextRepository, settingsRepository, viewModelScope)
         private val contextIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
         private val originContextId: String? = savedStateHandle.get<String>("originContextId")
         private val _listContent = MutableStateFlow<List<BacklogItemContent>>(emptyList())
         val listContent: StateFlow<List<BacklogItemContent>> = _listContent.asStateFlow()
         private val _attachmentItems = MutableStateFlow<List<BacklogItemContent>>(emptyList())
         val attachmentItems: StateFlow<List<BacklogItemContent>> = _attachmentItems.asStateFlow()
-
-        val itemActionHandler =
-            ItemActionHandler(
-                contextRepository,
-                goalRepository,
-                recentItemsRepository,
-                viewModelScope,
-                contextIdFlow,
-                this,
-            )
-
+        val itemActionHandler = ItemActionHandler(contextRepository, goalRepository, recentItemsRepository, viewModelScope, contextIdFlow, this)
         val selectionHandler: SelectionHandler by lazy {
             SelectionHandler(
                 contextRepository = contextRepository,
@@ -163,28 +144,8 @@ class ContextScreenViewModel
                 resultListener = this,
             )
         }
-
-        val inputHandler =
-            InputHandler(
-                contextRepository,
-                goalRepository,
-                listItemRepository,
-                viewModelScope,
-                contextIdFlow,
-                this,
-                reminderParser,
-                alarmScheduler,
-            )
-
-        val inboxHandler =
-            InboxHandler(
-                contextRepository,
-                inboxRepository,
-                viewModelScope,
-                contextIdFlow,
-                this,
-            )
-
+        val inputHandler = InputHandler(contextRepository, goalRepository, listItemRepository, viewModelScope, contextIdFlow, this, reminderParser, alarmScheduler)
+        val inboxHandler = InboxHandler(contextRepository, inboxRepository, viewModelScope, contextIdFlow, this)
     private val inboxMarkdownHandler by lazy {
         InboxMarkdownHandler(
             contextRepository = contextRepository,
@@ -193,16 +154,7 @@ class ContextScreenViewModel
             goalRepository = goalRepository         // ViewModel виступає слухачем
         )
     }
-
-        private val backlogMarkdownHandler =
-            BacklogMarkdownHandler(
-                contextRepository,
-                goalRepository,
-                listItemRepository,
-                viewModelScope,
-                this,
-            )
-
+        private val backlogMarkdownHandler = BacklogMarkdownHandler(contextRepository, goalRepository, listItemRepository, viewModelScope, this)
         private var listChooserPendingState = ListChooserPendingStateActions.VmPendingState()
         private var pendingLinkedContextReplace: Boolean = false
         private val navigationActions by lazy {
@@ -215,15 +167,12 @@ class ContextScreenViewModel
             )
         }
         private val navigationEventActions = NavigationEventActions()
+        private val navigationEffectDispatcherActions = NavigationEffectDispatcherActions(navigationEventActions)
         private val topNavigationActions = TopNavigationActions()
         private val uiEventActions by lazy { UiEventDispatcherActions(_uiEventFlow) }
-        private val backlogActions by lazy {
-            BacklogActions(
-                listItemRepository = listItemRepository,
-                settingsRepository = settingsRepository,
-                application = application,
-            )
-        }
+        private val uiControlActions by lazy { UiControlActions(stateManager = stateManager, contextSessionStore = contextSessionStore) }
+        private val clipboardActions by lazy { ClipboardActions(application) }
+        private val backlogActions by lazy { BacklogActions(listItemRepository = listItemRepository, settingsRepository = settingsRepository, application = application) }
         private val backlogItemActions by lazy {
             BacklogItemActions(
                 goalRepository = goalRepository,
@@ -237,19 +186,8 @@ class ContextScreenViewModel
                 contextTimeTrackingRepository = contextTimeTrackingRepository,
             )
         }
-        private val listChooserActions by lazy {
-            ListChooserActions(
-                goalRepository = goalRepository,
-                listItemRepository = listItemRepository,
-                contextRepository = contextRepository,
-            )
-        }
-        private val listChooserFlowActions by lazy {
-            ListChooserFlowActions(
-                contextRepository = contextRepository,
-                directionRepository = directionRepository,
-            )
-        }
+        private val listChooserActions by lazy { ListChooserActions(goalRepository = goalRepository, listItemRepository = listItemRepository, contextRepository = contextRepository) }
+        private val listChooserFlowActions by lazy { ListChooserFlowActions(contextRepository = contextRepository, directionRepository = directionRepository) }
         private val listChooserOrchestrationActions = ListChooserOrchestrationActions()
         private val listChooserPendingStateActions = ListChooserPendingStateActions()
         private val listChooserResultActions by lazy {
@@ -259,29 +197,14 @@ class ContextScreenViewModel
                 listChooserActions = listChooserActions,
             )
         }
-        private val directionActions by lazy {
-            DirectionActions(
-                contextRepository = contextRepository,
-                directionRepository = directionRepository,
-            )
-        }
+        private val listChooserResultCoordinatorActions by lazy { ListChooserResultCoordinatorActions(listChooserResultActions = listChooserResultActions, pendingStateActions = listChooserPendingStateActions) }
+        private val directionActions by lazy { DirectionActions(contextRepository = contextRepository, directionRepository = directionRepository) }
         private val directionChooserActions = DirectionChooserActions()
-        private val creationActions by lazy {
-            CreationActions(
-                noteDocumentRepository = noteDocumentRepository,
-            )
-        }
-        private val contextSettingsActions by lazy {
-            ContextSettingsActions(
-                contextRepository = contextRepository,
-            )
-        }
-        private val contextViewActions by lazy {
-            ContextViewActions(
-                contextSessionStore = contextSessionStore,
-                stateManager = stateManager,
-            )
-        }
+        private val creationActions by lazy { CreationActions(noteDocumentRepository = noteDocumentRepository) }
+        private val creationResultActions = CreationResultActions()
+        private val contextSettingsActions by lazy { ContextSettingsActions(contextRepository = contextRepository) }
+        private val currentContextActions by lazy { CurrentContextActions(stateManager = stateManager, activityManager = activityManager, contextSettingsActions = contextSettingsActions) }
+        private val contextViewActions by lazy { ContextViewActions(contextSessionStore = contextSessionStore, stateManager = stateManager) }
         private val contextDataApplyActions by lazy {
             ContextDataApplyActions(
                 stateManager = stateManager,
@@ -290,41 +213,27 @@ class ContextScreenViewModel
                 scope = viewModelScope,
             )
         }
-        private val recentItemActions by lazy {
-            RecentItemActions(
-                settingsRepository = settingsRepository,
-            )
-        }
+        private val recentItemActions by lazy { RecentItemActions(settingsRepository = settingsRepository) }
         private val inputSuggestionActions = InputSuggestionActions()
-        private val uiStateActions by lazy {
-            UiStateActions(
-                stateManager = stateManager,
-            )
-        }
-
+        private val uiStateActions by lazy { UiStateActions(stateManager = stateManager) }
         val uiState: StateFlow<ContextUiState> = stateManager.uiState
         val listScrollState = LazyListState()
-    
         val allTags: StateFlow<List<String>> = tagManager.allTags
         val allContexts: StateFlow<List<String>> = tagManager.allContexts
         val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = contextHandler.contextMarkerToEmojiMap
-
         private val _uiEventFlow =
             MutableSharedFlow<UiEvent>(
                 extraBufferCapacity = 64,
             )
         val uiEventFlow = _uiEventFlow.asSharedFlow()
-
         private val _allProjects =
             contextRepository
                 .getAllContextsFlow()
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
         val subprojectChildren: StateFlow<Map<String?, List<Context>>> =
             _allProjects
                 .map { allProjects -> allProjects.groupBy { it.parentId } }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
-
         val contextArtifact: StateFlow<ContextArtifact?> =
             contextIdFlow
                 .flatMapLatest { contextId ->
@@ -335,7 +244,6 @@ class ContextScreenViewModel
                     }
                 }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-
         val contextTimeMetrics: StateFlow<ContextTimeMetrics?> =
             contextIdFlow
                 .flatMapLatest { contextId ->
@@ -370,20 +278,16 @@ class ContextScreenViewModel
                 goalRepository = goalRepository,
                 mapper = contextScreenDataMapper,
             )
-
         val project =
             stateManager.uiState
                 .map { it.context }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-
         val lastOngoingActivity =
             activityManager.currentActivity
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-
         val autocompleteSuggestions =
             tagManager.allTags
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
         internal val artifactHandler by lazy {
             ArtifactHandler(
                 contextRepository,
@@ -437,7 +341,6 @@ class ContextScreenViewModel
                 showSnackbar = ::showSnackbar,
             )
         }
-
         val obsidianVaultName: StateFlow<String> =
             settingsRepository.obsidianVaultNameFlow
                 .stateIn(
@@ -445,14 +348,12 @@ class ContextScreenViewModel
                     started = SharingStarted.WhileSubscribed(5000),
                     initialValue = "",
                 )
-
         init {
             setupContextObserver()
             observeContextIdChanges()
             tagManager.loadTags()
             activityManager.observeCurrentActivity()
         }
-
         private fun observeContextIdChanges() {
             viewModelScope.launch {
                 contextIdFlow
@@ -464,7 +365,6 @@ class ContextScreenViewModel
                     }
             }
         }
-
         private fun setupContextObserver() {
             viewModelScope.launch {
                 contextScreenDataObserver
@@ -490,7 +390,6 @@ class ContextScreenViewModel
                     }
             }
         }
-
     override fun onBackPressed(): Boolean {
         val backResult =
             topNavigationActions.resolveBack(
@@ -500,113 +399,52 @@ class ContextScreenViewModel
         if (backResult.shouldClearOriginContext) {
             savedStateHandle.remove<String>("originContextId")
         }
-        viewModelScope.launch { emitUiEvents(backResult.events) }
+        viewModelScope.launch { uiEventActions.emitAll(backResult.events) }
         return true
     }
-
     fun onForwardPressed() = onForwardPressed(contextIdFlow.value)
-
-    override fun onForwardPressed(id: String) {
-        viewModelScope.launch { enhancedNavigationManager.navigateToProject(id, "Context") }
-    }
-
-    override fun onHomeClick() {
-        viewModelScope.launch { uiEventActions.tryEmit(topNavigationActions.homeEvent()) }
-    }
-
+    override fun onForwardPressed(id: String) { viewModelScope.launch { enhancedNavigationManager.navigateToProject(id, "Context") } }
+    override fun onHomeClick() { viewModelScope.launch { uiEventActions.tryEmit(topNavigationActions.homeEvent()) } }
     fun deleteCurrentProject() = deleteCurrentProject(contextIdFlow.value)
-
     override fun deleteCurrentProject(id: String) {
         viewModelScope.launch {
             contextSettingsActions.deleteCurrentProject(id)
             uiEventActions.emit(UiEvent.NavigateBack)
         }
     }
-
-        override fun showSnackbar(message: String, actionLabel: String?) {
-            viewModelScope.launch { uiEventActions.emit(UiEvent.ShowSnackbar(message, actionLabel)) }
-        }
-
+        override fun showSnackbar(message: String, actionLabel: String?) { viewModelScope.launch { uiEventActions.emit(UiEvent.ShowSnackbar(message, actionLabel)) } }
         override fun showSnackbar(message: String) = showSnackbar(message, null)
-
-        override fun scrollToListEnd() {
-            viewModelScope.launch { uiEventActions.tryEmit(UiEvent.ScrollToLatestInboxRecord) }
-        }
-
+        override fun scrollToListEnd() { viewModelScope.launch { uiEventActions.tryEmit(UiEvent.ScrollToLatestInboxRecord) } }
         override fun updateInputState(inputValue: TextFieldValue) = stateManager.setInputValue(inputValue)
-
         fun onProjectViewChange(mode: ContextViewMode) {
             val resolved = contextViewActions.applyViewChange(mode)
             viewModelScope.launch(ioDispatcher) {
                 contextSettingsActions.persistContextViewMode(contextIdFlow.value, resolved)
             }
         }
-
-        fun onToggleAttachmentsExpanded() {
-            val context = uiState.value.context ?: return
-            viewModelScope.launch(ioDispatcher) {
-                contextSettingsActions.toggleAttachmentsExpanded(context)
-            }
-        }
-
-        fun onDashboardTabSelected(tab: ContextManagementTab) = stateManager.switchTab(tab)
-
-        fun onToggleSearchMode() = stateManager.toggleSearchMode()
-
-        fun onSearchQueryChanged(query: String) = stateManager.updateSearchQuery(query)
-
-        fun onDismissDisplayPropertiesDialog() = stateManager.dismissDisplayPropertiesDialog()
-
-        fun onShowDisplayPropertiesDialog() = stateManager.showDisplayPropertiesDialog()
-
+        fun onToggleAttachmentsExpanded() =
+            viewModelScope.launch(ioDispatcher) { currentContextActions.toggleAttachmentsExpanded(uiState.value.context) }
+        fun onDashboardTabSelected(tab: ContextManagementTab) = uiControlActions.selectDashboardTab(tab)
+        fun onToggleSearchMode() = uiControlActions.toggleSearchMode()
+        fun onSearchQueryChanged(query: String) = uiControlActions.updateSearchQuery(query)
+        fun onDismissDisplayPropertiesDialog() = uiControlActions.dismissDisplayPropertiesDialog()
+        fun onShowDisplayPropertiesDialog() = uiControlActions.showDisplayPropertiesDialog()
         fun stopOngoingActivity() = activityManager.stopActivity()
-
-        fun setReminderForOngoingActivity() {
-            lastOngoingActivity.value?.let {
-                stateManager.updateState { uiState ->
-                    uiState.copy(recordForReminderDialog = it)
-                }
-            }
-        }
-
-        fun onStartTrackingCurrentProject() {
-            project.value?.id?.let {
-                activityManager.startActivity(it)
-            }
-        }
-
-        fun hasCapability(capabilityId: CapabilityId) =
-            contextSessionStore.state.value.enabledCapabilities.contains(capabilityId)
-
+        fun setReminderForOngoingActivity() = currentContextActions.setReminderForOngoingActivity(lastOngoingActivity.value)
+        fun onStartTrackingCurrentProject() = currentContextActions.startTrackingCurrentProject(project.value?.id)
+        fun hasCapability(capabilityId: CapabilityId) = uiControlActions.hasCapability(capabilityId)
         fun onExportBacklogToMarkdown() = markdownActions.onExportBacklogToMarkdown(_listContent.value)
-
         fun onImportBacklogFromMarkdown(markdownText: String) =
             markdownActions.onImportBacklogFromMarkdown(markdownText, contextIdFlow.value)
-
         fun onShowImportBacklogFromMarkdownDialog() = markdownActions.onShowImportBacklogFromMarkdownDialog()
-
         fun onDismissImportBacklogFromMarkdownDialog() = markdownActions.onDismissImportBacklogFromMarkdownDialog()
-
         override fun copyToClipboard(
             text: String,
             label: String,
-        ) {
-            val clipboard = application.getSystemService(AndroidContext.CLIPBOARD_SERVICE) as ClipboardManager
-            val clip = ClipData.newPlainText(label, text)
-            clipboard.setPrimaryClip(clip)
-        }
-
+        ) = clipboardActions.copy(text, label)
         override fun forceRefresh() {
-            viewModelScope.launch {
-                stateManager.updateState {
-                    it.copy(
-                        refreshTrigger = it.refreshTrigger + 1,
-                        needsStateRefresh = true,
-                    )
-                }
-            }
+            uiControlActions.forceRefresh()
         }
-
         override fun updateInputState(
             inputValue: TextFieldValue?,
             inputMode: InputMode?,
@@ -626,7 +464,6 @@ class ContextScreenViewModel
                 clearDetectedReminder = clearDetectedReminder,
             )
         }
-
         override fun updateDialogState(
             showAddWebLinkDialog: Boolean?,
             showAddObsidianLinkDialog: Boolean?,
@@ -636,21 +473,12 @@ class ContextScreenViewModel
                 showAddObsidianLinkDialog = showAddObsidianLinkDialog,
             )
         }
-
         override fun showRecentListsSheet(show: Boolean) = stateManager.updateState { it.copy(showRecentProjectsSheet = show) }
-
         override fun addQuickRecord(text: String) = inboxHandler.addQuickRecord(text)
-
         override fun addProjectComment(text: String) = logHandler.addProjectComment(text, contextIdFlow.value)
-
         override fun addMilestone(text: String) = logHandler.addMilestone(text, contextIdFlow.value)
-
         override fun createObsidianNote(noteName: String) = noteDocumentHandler.createObsidianNote(noteName)
-
-        override fun openUri(uri: String) {
-            viewModelScope.launch { uiEventActions.tryEmit(UiEvent.OpenUri(uri)) }
-        }
-
+        override fun openUri(uri: String) { viewModelScope.launch { uiEventActions.tryEmit(UiEvent.OpenUri(uri)) } }
         override fun requestNavigation(route: String) {
             viewModelScope.launch {
                 val links =
@@ -661,7 +489,6 @@ class ContextScreenViewModel
                 dispatchNavigationEffects(navigationEventActions.fromRouteOutcome(outcome))
             }
         }
-
         fun onLinkItemClick(link: RelatedLink) {
             Log.d(TAG, "onLinkItemClick: Clicked link with type=${link.type}, target=${link.target}")
             viewModelScope.launch {
@@ -669,28 +496,23 @@ class ContextScreenViewModel
                 dispatchNavigationEffects(navigationEventActions.fromLinkClickResult(result))
             }
         }
-
         private suspend fun dispatchNavigationEffects(effects: List<NavigationEventActions.Effect>) {
-            effects.forEach { effect ->
-                when (effect) {
-                    is NavigationEventActions.Effect.NavigateToProject ->
-                        enhancedNavigationManager.navigateToProject(effect.contextId, effect.contextName)
-                    is NavigationEventActions.Effect.EmitUiEvent ->
-                        uiEventActions.tryEmit(effect.event)
-                    is NavigationEventActions.Effect.ResolveLink -> {
-                        val linkResult = navigationActions.resolveLinkItemClick(effect.link)
-                        dispatchNavigationEffects(navigationEventActions.fromLinkClickResult(linkResult))
-                    }
-                    is NavigationEventActions.Effect.LogUnknownRoute ->
-                        Log.w(TAG, "Unknown navigation route: ${effect.route}")
-                }
-            }
+            navigationEffectDispatcherActions.dispatch(
+                effects = effects,
+                navigateToProject = { contextId, contextName ->
+                    enhancedNavigationManager.navigateToProject(contextId, contextName)
+                },
+                emitUiEvent = { event ->
+                    uiEventActions.tryEmit(event)
+                },
+                resolveLinkClick = { link ->
+                    navigationActions.resolveLinkItemClick(link)
+                },
+                logUnknownRoute = { route ->
+                    Log.w(TAG, "Unknown navigation route: $route")
+                },
+            )
         }
-
-        private suspend fun emitUiEvents(events: List<UiEvent>) {
-            uiEventActions.emitAll(events)
-        }
-
         override fun setPendingAction(
             actionType: GoalActionType,
             itemIds: Set<String>,
@@ -706,44 +528,26 @@ class ContextScreenViewModel
                 uiEventActions.tryEmit(UiEvent.Navigate(navigation.target))
             }
         }
-
         fun onShowRecentProjectsSheet() = uiStateActions.showRecentProjectsSheet()
-
         fun onDismissRecentProjectsSheet() = uiStateActions.dismissRecentProjectsSheet()
-
         fun onShowShareDialog() = uiStateActions.showShareDialog()
-
         fun onDismissShareDialog() = uiStateActions.dismissShareDialog()
-
         fun onShowAddWebLinkDialog() = uiStateActions.showAddWebLinkDialog()
-
         fun onDismissAddWebLinkDialog() = uiStateActions.dismissAddWebLinkDialog()
-
         fun onShowAddObsidianLinkDialog() = uiStateActions.showAddObsidianLinkDialog()
-
         fun onDismissAddObsidianLinkDialog() = uiStateActions.dismissAddObsidianLinkDialog()
-
         fun onHighlightItem(itemId: String?) = uiStateActions.highlightItem(itemId)
-
         fun onHighlightGoal(goalId: String?) = uiStateActions.highlightGoal(goalId)
-
         fun onHighlightInboxRecord(recordId: String?) = uiStateActions.highlightInboxRecord(recordId)
-
         fun onItemSwiped(itemId: String?) = uiStateActions.setSwipedItem(itemId)
-
         fun onResetSwipeState() = uiStateActions.resetSwipeState()
-
         fun onToggleCheckboxes() = uiStateActions.toggleCheckboxes()
-
         override fun onCleared() {
             super.onCleared()
             batchSaveJob?.cancel()
         }
-
         override fun isSelectionModeActive(): Boolean = stateManager.uiState.value.isSelectionModeActive
-
         override fun toggleSelection(itemId: String) = stateManager.toggleItemSelection(itemId)
-
         override fun requestAttachmentShare(item: BacklogItemContent) {
             listChooserPendingState = listChooserPendingState.copy(pendingAttachmentShare = item)
             viewModelScope.launch {
@@ -754,26 +558,15 @@ class ContextScreenViewModel
                 )
             }
         }
-
         override fun updateSelectionState(selectedIds: Set<String>) = stateManager.updateState { it.copy(selectedItemIds = selectedIds) }
-
     fun onSaveArtifact(content: String) = onSaveArtifact(contextIdFlow.value, content)
-
     fun onSaveArtifact(projectId: String, content: String) = artifactHandler.onSaveArtifact(projectId, content)
-
         fun onAutoSaveArtifact(content: String) = artifactHandler.onAutoSaveArtifact(content)
-
         fun onDismissArtifactEditor() = artifactHandler.onDismissArtifactEditor()
-
         fun onDismissNoteDocumentEditor() = noteDocumentHandler.onDismissNoteDocumentEditor()
-
         fun onToggleProjectManagement(isEnabled: Boolean) =
-            viewModelScope.launch {
-                contextSettingsActions.toggleProjectManagement(contextIdFlow.value, isEnabled)
-            }
-
+            viewModelScope.launch { currentContextActions.toggleProjectManagement(contextIdFlow.value, isEnabled) }
         fun onDismissEditLogEntryDialog() = logHandler.onDismissEditLogEntryDialog()
-
         fun onUpdateLogEntry(
             description: String,
             details: String?,
@@ -782,15 +575,10 @@ class ContextScreenViewModel
             description,
             details,
         )
-
         fun onEditLogEntry(log: ContextLog) = logHandler.onEditLogEntry(log)
-
         fun onDeleteLogEntry(log: ContextLog) = logHandler.onDeleteLogEntry(log)
-
         fun onEditArtifact(artifact: ContextArtifact) = artifactHandler.onEditArtifact(artifact)
-
         fun onCopyToClipboardRequest() = markdownActions.onCopyBacklogToClipboardRequest(listContent.value)
-
         fun onTransferBacklogToServerRequest() {
             viewModelScope.launch {
                 when (val result = backlogActions.transferBacklogToServer(project.value?.name, listContent.value)) {
@@ -798,62 +586,48 @@ class ContextScreenViewModel
                 }
             }
         }
-
-        fun onExportBacklogToMarkdownRequest() = onExportBacklogToMarkdown()
-
-        fun onSetReminderForProject() =
-            viewModelScope.launch {
-                reminderActions.onSetReminderForProject(project.value)
-            }
-
+        fun onSetReminderForProject() = viewModelScope.launch { reminderActions.onSetReminderForProject(project.value) }
         fun onImportFromMarkdownRequest() = markdownActions.onImportFromMarkdownRequest()
-
         fun onImportFromMarkdownDismiss() = markdownActions.onImportFromMarkdownDismiss()
-
-    fun onSaveNoteDocument(content: String, newContextId: String?): Unit =
-        noteDocumentHandler.onSaveNoteDocument(
+        fun onSaveNoteDocument(
+            content: String,
+            newContextId: String?,
+        ) = noteDocumentHandler.onSaveNoteDocument(
             newContextId ?: contextIdFlow.value,
             contextIdFlow.value,
-            content
+            content,
         )
-        fun onExportProjectStateRequest() {
+        fun onExportProjectStateRequest() =
             contextMarkdownExporter.exportProjectStateToMarkdown(
                 project = project.value,
                 backlog = listContent.value,
                 logs = uiState.value.logs,
                 listener = this,
             )
-        }
-
         fun addCurrentProjectToDayPlan() =
             viewModelScope.launch {
                 showSnackbar(backlogItemActions.addCurrentProjectToDayPlan(contextIdFlow.value), null)
             }
-
         fun onCloseSearch() = uiStateActions.closeSearch()
-
         fun onAddMilestone(text: String) = addMilestone(text)
-
-        fun onShowCreateNoteDocumentDialog() {
+        fun onShowCreateNoteDocumentDialog() =
             viewModelScope.launch {
-                when (val result = creationActions.createNoteDocument(contextIdFlow.value)) {
-                    is CreationActions.CreateNoteDocumentResult.Navigate ->
-                        uiEventActions.tryEmit(UiEvent.Navigate(result.target))
-                    is CreationActions.CreateNoteDocumentResult.Error ->
-                        showSnackbar(result.message, null)
-                }
+                val result = creationActions.createNoteDocument(contextIdFlow.value)
+                dispatchCreationOutcome(creationResultActions.fromNoteDocumentResult(result))
+            }
+        fun onCreateChecklist() =
+            viewModelScope.launch {
+                val result = creationActions.createChecklist(contextIdFlow.value)
+                dispatchCreationOutcome(creationResultActions.fromChecklistResult(result))
+            }
+        private suspend fun dispatchCreationOutcome(outcome: CreationResultActions.Outcome) {
+            when (outcome) {
+                is CreationResultActions.Outcome.Navigate ->
+                    uiEventActions.tryEmit(UiEvent.Navigate(outcome.target))
+                is CreationResultActions.Outcome.ShowMessage ->
+                    showSnackbar(outcome.message, null)
             }
         }
-
-        fun onCreateChecklist() {
-            when (val result = creationActions.createChecklist(contextIdFlow.value)) {
-                is CreationActions.CreateChecklistResult.Navigate ->
-                    viewModelScope.launch { uiEventActions.tryEmit(UiEvent.Navigate(result.target)) }
-                is CreationActions.CreateChecklistResult.Error ->
-                    showSnackbar(result.message, null)
-            }
-        }
-
         fun onSuggestionClick(suggestion: String) {
             val currentText = uiState.value.inputValue.text
             val cursorPosition = uiState.value.inputValue.selection.start
@@ -863,7 +637,6 @@ class ContextScreenViewModel
                     cursorPosition = cursorPosition,
                     suggestion = suggestion,
                 ) ?: return
-
             stateManager.updateState {
                 it.copy(
                     inputValue =
@@ -874,7 +647,6 @@ class ContextScreenViewModel
                 )
             }
         }
-
         fun onMove(
             from: Int,
             to: Int,
@@ -883,7 +655,6 @@ class ContextScreenViewModel
                 _listContent.value = backlogActions.move(_listContent.value, from, to)
             }
         }
-
         override fun addDirectionItem(text: String) {
             viewModelScope.launch(ioDispatcher) {
                 directionActions
@@ -897,7 +668,6 @@ class ContextScreenViewModel
                     }
             }
         }
-
         fun onAddDirectionWithLinkedContextRequest() {
             if (!hasCapability(CapabilityId("direction"))) {
                 showSnackbar("Можливість direction недоступна.", null)
@@ -917,7 +687,6 @@ class ContextScreenViewModel
                 uiEventActions.tryEmit(UiEvent.Navigate(request.navigationTarget))
             }
         }
-
         fun updateDirectionItemText(
             item: DirectionItemEntity,
             text: String,
@@ -932,12 +701,10 @@ class ContextScreenViewModel
                     }
             }
         }
-
         fun deleteDirectionItem(itemId: String) =
             viewModelScope.launch(ioDispatcher) {
                 directionActions.deleteDirectionItem(itemId)
             }
-
         fun onLinkDirectionItemRequest(itemId: String) {
             val request =
                 directionChooserActions.createLinkDirectionRequest(
@@ -954,18 +721,15 @@ class ContextScreenViewModel
                 uiEventActions.tryEmit(UiEvent.Navigate(request.navigationTarget))
             }
         }
-
         fun onUnlinkDirectionItem(itemId: String) {
             updateDirectionItemLink(itemId, null)
         }
-
         private fun updateDirectionItemLink(
             itemId: String,
             linkedContextId: String?,
         ) = viewModelScope.launch(ioDispatcher) {
             directionActions.updateDirectionItemLink(uiState.value.directionItems, itemId, linkedContextId)
         }
-
         fun openLinkedContext(contextId: String) {
             val currentId = contextIdFlow.value
             when (val result = directionActions.resolveOpenLinkedContext(contextId, currentId)) {
@@ -973,7 +737,6 @@ class ContextScreenViewModel
                     showSnackbar(result.message, null)
                     return
                 }
-
                 is DirectionActions.OpenLinkedContextResult.InProgress -> return
                 is DirectionActions.OpenLinkedContextResult.Navigate -> Unit
             }
@@ -990,13 +753,11 @@ class ContextScreenViewModel
                 directionActions.releaseLinkedNavigationLock()
             }
         }
-
         fun consumeLinkedContextReplace(): Boolean {
             if (!pendingLinkedContextReplace) return false
             pendingLinkedContextReplace = false
             return true
         }
-
         fun clearPendingDirectionLink() {
             val cleared = directionChooserActions.clearPendingDirection()
             listChooserPendingState =
@@ -1008,7 +769,6 @@ class ContextScreenViewModel
             savedStateHandle.remove<Boolean>(ListChooserPendingStateActions.KEY_PENDING_DIRECTION_LINK)
             savedStateHandle.remove<Boolean>(ListChooserPendingStateActions.KEY_PENDING_ADD_DIRECTION_FROM_CHOOSER)
         }
-
         fun onMoveDirectionItem(
             from: Int,
             to: Int,
@@ -1023,7 +783,6 @@ class ContextScreenViewModel
                     }
             }
         }
-
         fun onSubprojectCompletedChanged(
             subproject: Context,
             completed: Boolean,
@@ -1031,148 +790,104 @@ class ContextScreenViewModel
             backlogItemActions.updateSubprojectCompleted(subproject, completed)
             forceRefresh()
         }
-
         fun onDeleteEverywhere(item: BacklogItemContent) =
             viewModelScope.launch {
                 val message = backlogItemActions.deleteEverywhere(item)
                 showSnackbar(message, null)
                 forceRefresh()
             }
-
         fun onMoveToTop(item: BacklogItemContent) =
             viewModelScope.launch {
                 _listContent.value = backlogActions.moveToTop(_listContent.value, item)
             }
-
         fun addItemToDailyPlan(item: BacklogItemContent) =
             viewModelScope.launch {
                 showSnackbar(backlogItemActions.addItemToDailyPlan(item), null)
             }
-
         fun onStartTrackingRequest(item: BacklogItemContent) =
             viewModelScope.launch {
                 showSnackbar(backlogItemActions.startTracking(item), null)
             }
-
         fun onProjectStatusUpdate(
             newStatus: String,
             statusText: String?,
         ) = viewModelScope.launch {
             backlogItemActions.updateProjectStatus(contextIdFlow.value, newStatus, statusText)
         }
-
         fun onRecalculateTime() =
             viewModelScope.launch {
                 val metrics = backlogItemActions.recalculateTime(contextIdFlow.value)
                 stateManager.updateState { it.copy(contextTimeMetrics = metrics) }
             }
-
-        fun onListChooserResult(targetcontextId: String) {
+        fun onListChooserResult(targetContextId: String) {
             viewModelScope.launch(ioDispatcher) {
                 val result =
-                    listChooserResultActions.resolveAndExecute(
-                        targetContextId = targetcontextId,
-                        currentContextId = contextIdFlow.value,
-                        snapshot =
-                            listChooserPendingStateActions.buildSnapshot(
-                                savedStateHandle = savedStateHandle,
-                                state =
-                                    listChooserPendingState,
-                                hasInboxPromotionRecord = inboxHandler.recordForPromotion.value != null,
-                            ),
+                    listChooserResultCoordinatorActions.process(
+                        ListChooserResultCoordinatorActions.ProcessInput(
+                            targetContextId = targetContextId,
+                            currentContextId = contextIdFlow.value,
+                            savedStateHandle = savedStateHandle,
+                            pendingState = listChooserPendingState,
+                            hasInboxPromotionRecord = inboxHandler.recordForPromotion.value != null,
+                            clearDirectionPending = { directionChooserActions.clearPendingDirection() },
+                            clearSelection = { selectionHandler.clearSelection() },
+                        ),
                     )
-
                 withContext(Dispatchers.Main) {
-                    when (val outcome = result.outcome) {
-                        is ListChooserResultActions.Outcome.DirectionLink ->
-                            updateDirectionItemLink(outcome.itemId, outcome.linkedContextId)
-                        is ListChooserResultActions.Outcome.DirectionAddCompleted ->
-                            outcome.errorMessage?.let { showSnackbar(it, null) }
-                        is ListChooserResultActions.Outcome.AttachmentShareCompleted -> {
-                            listChooserPendingState = listChooserPendingState.copy(pendingAttachmentShare = null)
-                            outcome.newlyAddedItemId?.let { newItemId ->
+                    when (val command = result.command) {
+                        is ListChooserResultCoordinatorActions.Command.DirectionLink ->
+                            updateDirectionItemLink(command.itemId, command.linkedContextId)
+                        is ListChooserResultCoordinatorActions.Command.ShowMessage ->
+                            showSnackbar(command.message, null)
+                        is ListChooserResultCoordinatorActions.Command.AttachmentShare -> {
+                            command.newlyAddedItemId?.let { newItemId ->
                                 stateManager.updateState { it.copy(newlyAddedItemId = newItemId) }
                             }
-                            if (outcome.shouldRefreshCurrentContext) forceRefresh()
-                            showSnackbar(outcome.message, null)
+                            if (command.shouldRefreshCurrentContext) forceRefresh()
+                            showSnackbar(command.message, null)
                         }
-                        ListChooserResultActions.Outcome.InboxPromotion ->
-                            inboxHandler.onListSelectedForInboxPromotion(targetcontextId)
-                        is ListChooserResultActions.Outcome.PendingActionCompleted -> {
-                            outcome.newlyAddedItemId?.let { newItemId ->
+                        is ListChooserResultCoordinatorActions.Command.InboxPromotion ->
+                            inboxHandler.onListSelectedForInboxPromotion(command.targetContextId)
+                        is ListChooserResultCoordinatorActions.Command.PendingAction -> {
+                            command.newlyAddedItemId?.let { newItemId ->
                                 stateManager.updateState { it.copy(newlyAddedItemId = newItemId) }
                             }
                             forceRefresh()
                         }
-                        ListChooserResultActions.Outcome.None -> Unit
+                        ListChooserResultCoordinatorActions.Command.None -> Unit
                     }
-                    listChooserPendingState =
-                        listChooserPendingStateActions.applyCleanup(
-                            savedStateHandle = savedStateHandle,
-                            state = listChooserPendingState,
-                            cleanup = result.cleanup,
-                            clearDirectionPending = { directionChooserActions.clearPendingDirection() },
-                            clearSelection = { selectionHandler.clearSelection() },
-                        )
+                    listChooserPendingState = result.pendingState
                 }
             }
         }
-
         fun onScrolledToNewItem() = uiStateActions.markNewItemConsumed()
-
         fun onHighlightShown() = uiStateActions.clearHighlightState()
-
         fun onInboxHighlightShown() {
             Log.d(TAG, "Clearing inbox highlight state.")
             uiStateActions.clearInboxHighlightState()
         }
-
         fun onLimitLastActivityRequested() {}
-
         fun resetSwipeStatesExcept(itemId: String) {}
-
         fun onSetReminderForItem(item: BacklogItemContent) =
             viewModelScope.launch {
                 reminderActions.onSetReminderForItem(item)
             }
-
         fun onOpenRemindersDialog(itemContent: BacklogItemContent) = reminderActions.onOpenRemindersDialog(itemContent)
-
         fun onDismissRemindersDialog() = reminderActions.onDismissRemindersDialog()
-
         fun onRecentItemClick(item: RecentItem) {
             viewModelScope.launch {
                 val result = recentItemActions.resolve(item)
                 dispatchNavigationEffects(navigationEventActions.fromRecentItemResult(result))
             }
         }
-
         fun onPinRecentItem(item: RecentItem) {}
-
         fun onClearReminder() = viewModelScope.launch { reminderActions.onClearReminder() }
-
         fun onSetReminder(timestamp: Long) = viewModelScope.launch { reminderActions.onSetReminder(timestamp) }
-
         fun onRemoveReminder(reminderId: String) = viewModelScope.launch { reminderActions.onRemoveReminder(reminderId) }
-
         fun getBacklogAsMarkdown(): String = backlogActions.getBacklogAsMarkdown(listContent.value)
-
         fun onSwipeStateReset(itemId: String) = uiStateActions.bumpSwipeResetTrigger(itemId)
-
-        fun onExportToMarkdownRequest() = markdownActions.onExportInboxToMarkdown(inboxHandler.inboxRecords.value)
-
-        fun onImportBacklogFromMarkdownRequest() = markdownActions.onShowImportBacklogFromMarkdownDialog()
-
-        fun onImportBacklogFromMarkdownDismiss() = markdownActions.onDismissImportBacklogFromMarkdownDialog()
-
-        fun onImportBacklogFromMarkdownConfirm(markdownText: String) =
-            markdownActions.onImportBacklogFromMarkdownConfirm(markdownText, contextIdFlow.value)
-
-        fun onReminderDialogDismiss() = onDismissRemindersDialog()
-
+        fun onExportInboxToMarkdown() = markdownActions.onExportInboxToMarkdown(inboxHandler.inboxRecords.value)
         fun onImportFromMarkdownConfirm(markdownText: String) =
             markdownActions.onImportFromMarkdownConfirm(markdownText, contextIdFlow.value)
-
         fun copyInboxRecordText(text: String) = markdownActions.copyInboxRecordText(text)
-
     }

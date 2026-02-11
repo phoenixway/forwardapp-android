@@ -107,8 +107,8 @@ fun GoalDetailDialogs(viewModel: ContextScreenViewModel) {
 
     if (uiState.showImportBacklogFromMarkdownDialog) {
         ImportMarkdownDialog(
-            onDismiss = viewModel::onImportBacklogFromMarkdownDismiss,
-            onConfirm = viewModel::onImportBacklogFromMarkdownConfirm,
+            onDismiss = viewModel::onDismissImportBacklogFromMarkdownDialog,
+            onConfirm = viewModel::onImportBacklogFromMarkdown,
         )
     }
 
@@ -124,7 +124,7 @@ fun GoalDetailDialogs(viewModel: ContextScreenViewModel) {
 
     if (showReminderDialog && uiState.recordForReminderDialog != null) {
         ReminderPropertiesDialog(
-            onDismiss = viewModel::onReminderDialogDismiss,
+            onDismiss = viewModel::onDismissRemindersDialog,
             onSetReminder = viewModel::onSetReminder,
             onRemoveReminder = viewModel::onRemoveReminder,
             currentReminders = uiState.remindersForDialog,

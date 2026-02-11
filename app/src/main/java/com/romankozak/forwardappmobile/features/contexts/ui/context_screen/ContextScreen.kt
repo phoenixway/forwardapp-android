@@ -480,7 +480,7 @@ private fun ProjectBottomBar(
                     onMenuExpandedChange(false)
                     navController.navigate("project_settings_screen?projectId=${project?.id}")
                 },
-                onShareList = { viewModel.onExportBacklogToMarkdownRequest() },
+                onShareList = { viewModel.onExportBacklogToMarkdown() },
                 onDeleteList = { viewModel.deleteCurrentProject() },
                 onSetReminder = { viewModel.onSetReminderForProject() },
                 menuExpanded = menuExpanded,
@@ -488,9 +488,9 @@ private fun ProjectBottomBar(
                 currentView = sessionState.currentView,
                 onViewChange = { newView -> viewModel.onProjectViewChange(newView) },
                 onImportFromMarkdown = viewModel::onImportFromMarkdownRequest,
-                onExportToMarkdown = viewModel::onExportToMarkdownRequest,
-                onImportBacklogFromMarkdown = viewModel::onImportBacklogFromMarkdownRequest,
-                onExportBacklogToMarkdown = viewModel::onExportBacklogToMarkdownRequest,
+                onExportToMarkdown = viewModel::onExportInboxToMarkdown,
+                onImportBacklogFromMarkdown = viewModel::onShowImportBacklogFromMarkdownDialog,
+                onExportBacklogToMarkdown = viewModel::onExportBacklogToMarkdown,
                 reminderParseResult = reminderParseResult,
                 onClearReminder = viewModel::onClearReminder,
                 isNerActive = uiState.nerState is NerState.Ready,
