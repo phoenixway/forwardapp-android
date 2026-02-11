@@ -26,6 +26,7 @@ import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.domain.wifirestapi.FileDataRequest
 import com.romankozak.forwardappmobile.domain.wifirestapi.RetrofitClient
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SearchUseCase
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.MarkdownActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ReminderActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputHandler
@@ -323,6 +324,15 @@ class ContextScreenViewModel
                 forceRefresh = ::forceRefresh,
             )
         }
+        private val markdownActions by lazy {
+            MarkdownActions(
+                backlogMarkdownHandler = backlogMarkdownHandler,
+                inboxMarkdownHandler = inboxMarkdownHandler,
+                stateManager = stateManager,
+                copyToClipboard = ::copyToClipboard,
+                showSnackbar = ::showSnackbar,
+            )
+        }
 
         val obsidianVaultName: StateFlow<String> =
             settingsRepository.obsidianVaultNameFlow
@@ -580,23 +590,19 @@ class ContextScreenViewModel
 
         // Markdown Export/Import
         fun onExportBacklogToMarkdown() {
-            backlogMarkdownHandler.exportToMarkdown(_listContent.value)
+            markdownActions.onExportBacklogToMarkdown(_listContent.value)
         }
 
         fun onImportBacklogFromMarkdown(markdownText: String) {
-            backlogMarkdownHandler.importFromMarkdown(markdownText, contextIdFlow.value)
+            markdownActions.onImportBacklogFromMarkdown(markdownText, contextIdFlow.value)
         }
 
         fun onShowImportBacklogFromMarkdownDialog() {
-            viewModelScope.launch {
-                stateManager.updateState { it.copy(showImportBacklogFromMarkdownDialog = true) }
-            }
+            markdownActions.onShowImportBacklogFromMarkdownDialog()
         }
 
         fun onDismissImportBacklogFromMarkdownDialog() {
-            viewModelScope.launch {
-                stateManager.updateState { it.copy(showImportBacklogFromMarkdownDialog = false) }
-            }
+            markdownActions.onDismissImportBacklogFromMarkdownDialog()
         }
 
         // Clipboard operations
@@ -1064,11 +1070,7 @@ class ContextScreenViewModel
         fun onEditArtifact(artifact: ContextArtifact) = artifactHandler.onEditArtifact(artifact)
 
         fun onCopyToClipboardRequest() {
-            backlogMarkdownHandler.exportToMarkdown(listContent.value)
-
-            showSnackbar("Беклог скопійовано")
-
-            onDismissShareDialog()
+            markdownActions.onCopyBacklogToClipboardRequest(listContent.value)
         }
 
 // ... (rest of the code)
@@ -1140,11 +1142,11 @@ class ContextScreenViewModel
         }
 
         fun onImportFromMarkdownRequest() {
-            stateManager.updateState { it.copy(showImportFromMarkdownDialog = true) }
+            markdownActions.onImportFromMarkdownRequest()
         }
 
         fun onImportFromMarkdownDismiss() {
-            stateManager.updateState { it.copy(showImportFromMarkdownDialog = false) }
+            markdownActions.onImportFromMarkdownDismiss()
         }
 
 // File: ContextScreenViewModel.kt
@@ -1830,23 +1832,21 @@ class ContextScreenViewModel
         }
 
     fun onExportToMarkdownRequest() {
-        inboxMarkdownHandler.exportToMarkdown(inboxHandler.inboxRecords.value)
+        markdownActions.onExportInboxToMarkdown(inboxHandler.inboxRecords.value)
     }
 
     // File: ContextScreenViewModel.kt
 
     fun onImportBacklogFromMarkdownRequest() {
-        // Звертаємося до МЕНЕДЖЕРА, а не до самого uiState
-        stateManager.updateState { it.copy(showImportBacklogFromMarkdownDialog = true) }
+        markdownActions.onShowImportBacklogFromMarkdownDialog()
     }
 
     fun onImportBacklogFromMarkdownDismiss() {
-        stateManager.updateState { it.copy(showImportBacklogFromMarkdownDialog = false) }
+        markdownActions.onDismissImportBacklogFromMarkdownDialog()
     }
 
     fun onImportBacklogFromMarkdownConfirm(markdownText: String) {
-        backlogMarkdownHandler.importFromMarkdown(markdownText, contextIdFlow.value)
-        onImportBacklogFromMarkdownDismiss()
+        markdownActions.onImportBacklogFromMarkdownConfirm(markdownText, contextIdFlow.value)
     }
 
     fun onReminderDialogDismiss() {
@@ -1854,12 +1854,11 @@ class ContextScreenViewModel
     }
 
     fun onImportFromMarkdownConfirm(markdownText: String) {
-        inboxMarkdownHandler.importFromMarkdown(markdownText, contextIdFlow.value)
-        onImportFromMarkdownDismiss()
+        markdownActions.onImportFromMarkdownConfirm(markdownText, contextIdFlow.value)
     }
 
     fun copyInboxRecordText(text: String) {
-        copyToClipboard(text, "Inbox Record")
+        markdownActions.copyInboxRecordText(text)
     }
 
     }
