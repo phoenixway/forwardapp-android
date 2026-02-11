@@ -47,6 +47,8 @@ fun TacticalManagementScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         TacticalMissionList(
             missions = missions,
+            projectOptions = projectOptions,
+            attachmentOptions = attachmentOptions,
             onMissionToggled = { viewModel.toggleMissionCompleted(it) },
             onMissionDeleted = { viewModel.deleteMission(it.id) },
             onMissionEdited = { editingMission = it },

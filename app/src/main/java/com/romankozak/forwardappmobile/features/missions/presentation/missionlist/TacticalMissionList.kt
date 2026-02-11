@@ -15,6 +15,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +36,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
+import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
+import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedCheckboxStyle
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemCheckbox
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemState
@@ -51,6 +55,8 @@ import java.util.Locale
 @Composable
 fun TacticalMissionList(
     missions: List<TacticalMission>,
+    projectOptions: List<ProjectOption>,
+    attachmentOptions: List<AttachmentOption>,
     onMissionToggled: (TacticalMission) -> Unit,
     onMissionDeleted: (TacticalMission) -> Unit,
     onMissionEdited: (TacticalMission) -> Unit,
@@ -59,6 +65,14 @@ fun TacticalMissionList(
 ) {
     val hapticFeedback = LocalHapticFeedback.current
     var internalMissions by remember(missions) { mutableStateOf(missions) }
+    val projectNameById =
+        remember(projectOptions) {
+            projectOptions.associate { it.id to it.name }
+        }
+    val attachmentNameById =
+        remember(attachmentOptions) {
+            attachmentOptions.associate { it.id to it.name }
+        }
     val lazyListState = rememberLazyListState()
     val reorderableState =
         rememberReorderableLazyListState(lazyListState) { from, to ->
@@ -79,6 +93,8 @@ fun TacticalMissionList(
             ReorderableItem(reorderableState, key = mission.id) {
                 TacticalMissionCard(
                     mission = mission,
+                    projectNameById = projectNameById,
+                    attachmentNameById = attachmentNameById,
                     onMissionToggled = { onMissionToggled(mission) },
                     onMissionDeleted = { onMissionDeleted(mission) },
                     onMissionEdited = { onMissionEdited(mission) },
@@ -92,6 +108,8 @@ fun TacticalMissionList(
 @Composable
 fun TacticalMissionCard(
     mission: TacticalMission,
+    projectNameById: Map<String, String>,
+    attachmentNameById: Map<String, String>,
     onMissionToggled: () -> Unit,
     onMissionDeleted: () -> Unit,
     onMissionEdited: () -> Unit,
@@ -159,8 +177,8 @@ fun TacticalMissionCard(
                     mission.title,
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                     color = titleColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 4,
+                    overflow = TextOverflow.Clip,
                     textDecoration = if (mission.status == MissionStatus.COMPLETED) TextDecoration.LineThrough else null,
                 )
 
@@ -185,6 +203,44 @@ fun TacticalMissionCard(
                         ),
                     )
                 UnifiedStatusRow(items = statusItems, modifier = Modifier.padding(top = 4.dp))
+
+                val linkedContextIds =
+                    mission.linkedProjectIds
+                        .orEmpty()
+                        .map { it.trim() }
+                        .filter { it.isNotEmpty() }
+                        .distinct()
+                val linkedAttachmentIds =
+                    mission.linkedAttachmentIds
+                        .orEmpty()
+                        .map { it.trim() }
+                        .filter { it.isNotEmpty() }
+                        .distinct()
+
+                val linkedItems =
+                    buildList {
+                        linkedContextIds.forEach { id ->
+                            add(
+                                UnifiedStatusChipSpec(
+                                    icon = Icons.Outlined.AccountTree,
+                                    text = projectNameById[id] ?: id,
+                                    contentColor = onSurface.copy(alpha = 0.78f),
+                                ),
+                            )
+                        }
+                        linkedAttachmentIds.forEach { id ->
+                            add(
+                                UnifiedStatusChipSpec(
+                                    icon = Icons.Outlined.AttachFile,
+                                    text = attachmentNameById[id] ?: id,
+                                    contentColor = onSurface.copy(alpha = 0.78f),
+                                ),
+                            )
+                        }
+                    }
+                if (linkedItems.isNotEmpty()) {
+                    UnifiedStatusRow(items = linkedItems, modifier = Modifier.padding(top = 4.dp))
+                }
             }
 
             Column(
