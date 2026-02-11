@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.acti
 
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.ListItemRepository
@@ -12,9 +13,40 @@ class ListChooserActions(
     private val listItemRepository: ListItemRepository,
     private val contextRepository: ContextRepository,
 ) {
+    data class PendingActionNavigation(
+        val target: NavTarget.ListChooser,
+    )
+
     data class PendingActionResult(
         val newlyAddedItemId: String? = null,
     )
+
+    fun buildPendingActionNavigation(
+        actionType: GoalActionType,
+        currentContextId: String,
+    ): PendingActionNavigation {
+        val title =
+            when (actionType) {
+                GoalActionType.CreateInstance -> "Create link in..."
+                GoalActionType.MoveInstance -> "Move to..."
+                GoalActionType.CopyGoal -> "Copy to..."
+                GoalActionType.AddLinkToList -> "Add link to context..."
+                GoalActionType.ADD_LIST_SHORTCUT -> "Add context shortcut..."
+            }
+        return PendingActionNavigation(
+            target =
+                NavTarget.ListChooser(
+                    title = title,
+                    disabledIds = currentContextId.ifBlank { null },
+                ),
+        )
+    }
+
+    fun buildAttachmentShareNavigation(currentContextId: String): NavTarget.ListChooser =
+        NavTarget.ListChooser(
+            title = "Select context for attachment",
+            disabledIds = currentContextId.ifBlank { null },
+        )
 
     suspend fun executePendingAction(
         actionType: GoalActionType,

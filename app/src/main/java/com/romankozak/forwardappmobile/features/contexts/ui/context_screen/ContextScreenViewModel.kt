@@ -26,13 +26,19 @@ import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SearchUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.BacklogActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.BacklogItemActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ContextSettingsActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.CreationActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.DirectionActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.DirectionChooserActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.InputSuggestionActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ListChooserActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ListChooserFlowActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ListChooserOrchestrationActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.MarkdownActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.NavigationActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.RecentItemActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ReminderActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.UiStateActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputHandler
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputMode
@@ -198,7 +204,6 @@ class ContextScreenViewModel
         private var pendingAttachmentShare: BacklogItemContent? = null
         private var pendingDirectionLinkItemId: String? = null
         private var pendingAddDirectionFromContextChooser: Boolean = false
-        private var isLinkedNavigationInProgress: Boolean = false
         private var pendingLinkedContextReplace: Boolean = false
         private var lastSyncKey: Triple<String, String?, Int>? = null
         private val routeResolver = ContextRouteResolver(HANDLE_LINK_CLICK_ROUTE)
@@ -243,14 +248,32 @@ class ContextScreenViewModel
                 directionRepository = directionRepository,
             )
         }
+        private val listChooserOrchestrationActions = ListChooserOrchestrationActions()
         private val directionActions by lazy {
             DirectionActions(
                 directionRepository = directionRepository,
             )
         }
+        private val directionChooserActions = DirectionChooserActions()
         private val creationActions by lazy {
             CreationActions(
                 noteDocumentRepository = noteDocumentRepository,
+            )
+        }
+        private val contextSettingsActions by lazy {
+            ContextSettingsActions(
+                contextRepository = contextRepository,
+            )
+        }
+        private val recentItemActions by lazy {
+            RecentItemActions(
+                settingsRepository = settingsRepository,
+            )
+        }
+        private val inputSuggestionActions = InputSuggestionActions()
+        private val uiStateActions by lazy {
+            UiStateActions(
+                stateManager = stateManager,
             )
         }
 
@@ -533,8 +556,6 @@ class ContextScreenViewModel
         // "Ми самі обробимо вихід через UIEvent, нічого більше робити не треба"
         return true
     }
-// File: ContextScreenViewModel.kt
-
     // Додаємо = contextIdFlow.value як значення за замовчуванням
     fun onForwardPressed() {
         onForwardPressed(contextIdFlow.value)
@@ -560,9 +581,7 @@ class ContextScreenViewModel
     // 2. Цей метод реалізує інтерфейс (з параметром id)
     override fun deleteCurrentProject(id: String) {
         viewModelScope.launch {
-            contextRepository.getContextById(id)?.let { project ->
-                contextRepository.deleteContextsAndSubContexts(listOf(project))
-            }
+            contextSettingsActions.deleteCurrentProject(id)
             // Використовуємо emit всередині launch для надійності
             _uiEventFlow.emit(UiEvent.NavigateBack)
         }
@@ -598,19 +617,15 @@ class ContextScreenViewModel
             if (resolved == ContextViewMode.DIRECTION) {
                 stateManager.setInputMode(InputMode.AddDirection)
             }
-            val contextId = contextIdFlow.value
-            if (contextId.isBlank()) return
             viewModelScope.launch(ioDispatcher) {
-                contextRepository.updateContextViewMode(contextId, resolved)
+                contextSettingsActions.persistContextViewMode(contextIdFlow.value, resolved)
             }
         }
 
         fun onToggleAttachmentsExpanded() {
             val context = uiState.value.context ?: return
             viewModelScope.launch(ioDispatcher) {
-                contextRepository.updateContext(
-                    context.copy(isAttachmentsExpanded = !context.isAttachmentsExpanded),
-                )
+                contextSettingsActions.toggleAttachmentsExpanded(context)
             }
         }
 
@@ -692,38 +707,25 @@ class ContextScreenViewModel
             detectedReminderCalendar: Calendar?,
             clearDetectedReminder: Boolean,
         ) {
-            stateManager.updateState { currentState ->
-                currentState.copy(
-                    inputValue = inputValue ?: currentState.inputValue,
-                    inputMode = inputMode ?: currentState.inputMode,
-                    localSearchQuery = localSearchQuery ?: currentState.localSearchQuery,
-                    newlyAddedItemId = newlyAddedItemId,
-                    detectedReminderSuggestion =
-                        when {
-                            clearDetectedReminder -> null
-                            detectedReminderSuggestion != null -> detectedReminderSuggestion
-                            else -> currentState.detectedReminderSuggestion
-                        },
-                    detectedReminderCalendar =
-                        when {
-                            clearDetectedReminder -> null
-                            detectedReminderCalendar != null -> detectedReminderCalendar
-                            else -> currentState.detectedReminderCalendar
-                        },
-                )
-            }
+            uiStateActions.updateInputState(
+                inputValue = inputValue,
+                inputMode = inputMode,
+                localSearchQuery = localSearchQuery,
+                newlyAddedItemId = newlyAddedItemId,
+                detectedReminderSuggestion = detectedReminderSuggestion,
+                detectedReminderCalendar = detectedReminderCalendar,
+                clearDetectedReminder = clearDetectedReminder,
+            )
         }
 
         override fun updateDialogState(
             showAddWebLinkDialog: Boolean?,
             showAddObsidianLinkDialog: Boolean?,
         ) {
-            stateManager.updateState {
-                it.copy(
-                    showAddWebLinkDialog = showAddWebLinkDialog ?: it.showAddWebLinkDialog,
-                    showAddObsidianLinkDialog = showAddObsidianLinkDialog ?: it.showAddObsidianLinkDialog,
-                )
-            }
+            uiStateActions.updateDialogState(
+                showAddWebLinkDialog = showAddWebLinkDialog,
+                showAddObsidianLinkDialog = showAddObsidianLinkDialog,
+            )
         }
 
         override fun showRecentListsSheet(show: Boolean) {
@@ -814,20 +816,6 @@ class ContextScreenViewModel
             }
         }
 
-        private fun navigateToListChooser(title: String) {
-            viewModelScope.launch {
-                val disabledIds = contextIdFlow.value
-                _uiEventFlow.tryEmit(
-                    UiEvent.Navigate(
-                        NavTarget.ListChooser(
-                            title = title,
-                            disabledIds = disabledIds.ifBlank { null },
-                        ),
-                    ),
-                )
-            }
-        }
-
         override fun setPendingAction(
             actionType: GoalActionType,
             itemIds: Set<String>,
@@ -836,110 +824,75 @@ class ContextScreenViewModel
             savedStateHandle["pendingAction"] = actionType.name
             savedStateHandle["pendingSourceItemIds"] = itemIds.toList()
             savedStateHandle["pendingSourceGoalIds"] = goalIds.toList()
-
-            val title =
-                when (actionType) {
-                    GoalActionType.CreateInstance -> "Create link in..."
-                    GoalActionType.MoveInstance -> "Move to..."
-                    GoalActionType.CopyGoal -> "Copy to..."
-                    GoalActionType.AddLinkToList -> "Add link to context..."
-                    GoalActionType.ADD_LIST_SHORTCUT -> "Add context shortcut..."
-                }
-            navigateToListChooser(title)
+            val navigation =
+                listChooserActions.buildPendingActionNavigation(
+                    actionType = actionType,
+                    currentContextId = contextIdFlow.value,
+                )
+            viewModelScope.launch {
+                _uiEventFlow.tryEmit(UiEvent.Navigate(navigation.target))
+            }
         }
 
         // Dialog management
         fun onShowRecentProjectsSheet() {
-            viewModelScope.launch {
-                stateManager.updateState { it.copy(showRecentProjectsSheet = true) }
-            }
+            uiStateActions.showRecentProjectsSheet()
         }
 
         fun onDismissRecentProjectsSheet() {
-            viewModelScope.launch {
-                stateManager.updateState { it.copy(showRecentProjectsSheet = false) }
-            }
+            uiStateActions.dismissRecentProjectsSheet()
         }
 
         fun onShowShareDialog() {
-            viewModelScope.launch {
-                stateManager.updateState { it.copy(showShareDialog = true) }
-            }
+            uiStateActions.showShareDialog()
         }
 
         fun onDismissShareDialog() {
-            viewModelScope.launch {
-                stateManager.updateState { it.copy(showShareDialog = false) }
-            }
+            uiStateActions.dismissShareDialog()
         }
 
         // Web & Obsidian Links
         fun onShowAddWebLinkDialog() {
-            viewModelScope.launch {
-                stateManager.updateState { it.copy(showAddWebLinkDialog = true) }
-            }
+            uiStateActions.showAddWebLinkDialog()
         }
 
         fun onDismissAddWebLinkDialog() {
-            viewModelScope.launch {
-                stateManager.updateState { it.copy(showAddWebLinkDialog = false) }
-            }
+            uiStateActions.dismissAddWebLinkDialog()
         }
 
         fun onShowAddObsidianLinkDialog() {
-            viewModelScope.launch {
-                stateManager.updateState { it.copy(showAddObsidianLinkDialog = true) }
-            }
+            uiStateActions.showAddObsidianLinkDialog()
         }
 
         fun onDismissAddObsidianLinkDialog() {
-            viewModelScope.launch {
-                stateManager.updateState { it.copy(showAddObsidianLinkDialog = false) }
-            }
+            uiStateActions.dismissAddObsidianLinkDialog()
         }
 
         // Selection & Highlight
         fun onHighlightItem(itemId: String?) {
-            viewModelScope.launch {
-                stateManager.updateState { it.copy(itemToHighlight = itemId) }
-            }
+            uiStateActions.highlightItem(itemId)
         }
 
         fun onHighlightGoal(goalId: String?) {
-            viewModelScope.launch {
-                stateManager.updateState { it.copy(goalToHighlight = goalId) }
-            }
+            uiStateActions.highlightGoal(goalId)
         }
 
         fun onHighlightInboxRecord(recordId: String?) {
-            viewModelScope.launch {
-                stateManager.updateState { it.copy(inboxRecordToHighlight = recordId) }
-            }
+            uiStateActions.highlightInboxRecord(recordId)
         }
 
         // Swipe actions
         fun onItemSwiped(itemId: String?) {
-            viewModelScope.launch {
-                stateManager.updateState { it.copy(swipedItemId = itemId) }
-            }
+            uiStateActions.setSwipedItem(itemId)
         }
 
         fun onResetSwipeState() {
-            viewModelScope.launch {
-                stateManager.updateState {
-                    it.copy(
-                        swipedItemId = null,
-                        swipeResetCounter = it.swipeResetCounter + 1,
-                    )
-                }
-            }
+            uiStateActions.resetSwipeState()
         }
 
         // Checkboxes
         fun onToggleCheckboxes() {
-            viewModelScope.launch {
-                stateManager.updateState { it.copy(showCheckboxes = !it.showCheckboxes) }
-            }
+            uiStateActions.toggleCheckboxes()
         }
 
         override fun onCleared() {
@@ -955,7 +908,13 @@ class ContextScreenViewModel
 
         override fun requestAttachmentShare(item: BacklogItemContent) {
             pendingAttachmentShare = item
-            navigateToListChooser("Select context for attachment")
+            viewModelScope.launch {
+                _uiEventFlow.tryEmit(
+                    UiEvent.Navigate(
+                        listChooserActions.buildAttachmentShareNavigation(contextIdFlow.value),
+                    ),
+                )
+            }
         }
 
         override fun updateSelectionState(selectedIds: Set<String>) {
@@ -963,7 +922,6 @@ class ContextScreenViewModel
         }
 
         // public methods for handlers
-// File: ContextScreenViewModel.kt
 
     // 1. Метод для UI (приймає тільки контент)
     fun onSaveArtifact(content: String) {
@@ -983,7 +941,7 @@ class ContextScreenViewModel
 
         fun onToggleProjectManagement(isEnabled: Boolean) {
             viewModelScope.launch {
-                contextRepository.toggleContextManagement(contextIdFlow.value, isEnabled)
+                contextSettingsActions.toggleProjectManagement(contextIdFlow.value, isEnabled)
             }
         }
 
@@ -1007,8 +965,6 @@ class ContextScreenViewModel
         fun onCopyToClipboardRequest() {
             markdownActions.onCopyBacklogToClipboardRequest(listContent.value)
         }
-
-// ... (rest of the code)
 
         fun onTransferBacklogToServerRequest() {
             viewModelScope.launch {
@@ -1034,8 +990,6 @@ class ContextScreenViewModel
             markdownActions.onImportFromMarkdownDismiss()
         }
 
-// File: ContextScreenViewModel.kt
-
     fun onSaveNoteDocument(content: String, newContextId: String?): Unit =
         noteDocumentHandler.onSaveNoteDocument(
             // Якщо newContextId == null, використовуємо поточний contextIdFlow.value
@@ -1059,7 +1013,7 @@ class ContextScreenViewModel
         }
 
         fun onCloseSearch() {
-            stateManager.updateState { it.copy(localSearchQuery = "") }
+            uiStateActions.closeSearch()
         }
 
         fun onAddMilestone(text: String) = addMilestone(text)
@@ -1084,52 +1038,22 @@ class ContextScreenViewModel
             }
         }
 
-        private fun getCurrentWordInfo(
-            text: String,
-            cursorPosition: Int,
-        ): Pair<String, String>? {
-            val textUpToCursor = text.substring(0, cursorPosition)
-            val lastAt = textUpToCursor.lastIndexOf('@')
-            val lastHash = textUpToCursor.lastIndexOf('#')
-
-            if (lastAt == -1 && lastHash == -1) {
-                return null
-            }
-
-            val (startIndex, prefix) =
-                if (lastAt > lastHash) {
-                    lastAt to "@"
-                } else {
-                    lastHash to "#"
-                }
-
-            val word = textUpToCursor.substring(startIndex + 1)
-            if (word.contains(" ")) {
-                return null
-            }
-
-            return word to prefix
-        }
-
         fun onSuggestionClick(suggestion: String) {
             val currentText = uiState.value.inputValue.text
             val cursorPosition = uiState.value.inputValue.selection.start
-            val (word, prefix) = getCurrentWordInfo(currentText, cursorPosition) ?: return
-
-            val startIndex = currentText.substring(0, cursorPosition).lastIndexOf(prefix)
-            val newText =
-                currentText.substring(0, startIndex) +
-                    suggestion +
-                    " " +
-                    currentText.substring(cursorPosition)
-            val newCursorPosition = startIndex + suggestion.length + 1
+            val applyResult =
+                inputSuggestionActions.applySuggestion(
+                    currentText = currentText,
+                    cursorPosition = cursorPosition,
+                    suggestion = suggestion,
+                ) ?: return
 
             stateManager.updateState {
                 it.copy(
                     inputValue =
                         TextFieldValue(
-                            text = newText,
-                            selection = TextRange(newCursorPosition),
+                            text = applyResult.text,
+                            selection = TextRange(applyResult.cursorPosition),
                         ),
                 )
             }
@@ -1173,18 +1097,14 @@ class ContextScreenViewModel
                 showSnackbar("Можливість direction недоступна.", null)
                 return
             }
-            pendingAddDirectionFromContextChooser = true
-            savedStateHandle["pendingAddDirectionFromContextChooser"] = true
-            viewModelScope.launch {
-                val disabledIds = contextIdFlow.value.ifBlank { null }
-                _uiEventFlow.tryEmit(
-                    UiEvent.Navigate(
-                        NavTarget.ListChooser(
-                            title = "Add direction to...",
-                            disabledIds = disabledIds,
-                        ),
-                    ),
+            val request =
+                directionChooserActions.createAddDirectionRequest(
+                    disabledIds = contextIdFlow.value.ifBlank { null },
                 )
+            pendingAddDirectionFromContextChooser = request.pendingAddDirectionFromContextChooser
+            savedStateHandle["pendingAddDirectionFromContextChooser"] = request.savedPendingAddDirectionFromContextChooser
+            viewModelScope.launch {
+                _uiEventFlow.tryEmit(UiEvent.Navigate(request.navigationTarget))
             }
         }
 
@@ -1210,19 +1130,16 @@ class ContextScreenViewModel
         }
 
         fun onLinkDirectionItemRequest(itemId: String) {
-            pendingDirectionLinkItemId = itemId
-            savedStateHandle["pendingDirectionLinkItemId"] = itemId
-            savedStateHandle["pendingDirectionLink"] = true
-            viewModelScope.launch {
-                val disabledIds = contextIdFlow.value.ifBlank { null }
-                _uiEventFlow.tryEmit(
-                    UiEvent.Navigate(
-                        NavTarget.ListChooser(
-                            title = "Link direction to...",
-                            disabledIds = disabledIds,
-                        ),
-                    ),
+            val request =
+                directionChooserActions.createLinkDirectionRequest(
+                    itemId = itemId,
+                    disabledIds = contextIdFlow.value.ifBlank { null },
                 )
+            pendingDirectionLinkItemId = request.pendingDirectionLinkItemId
+            savedStateHandle["pendingDirectionLinkItemId"] = request.pendingDirectionLinkItemId
+            savedStateHandle["pendingDirectionLink"] = request.savedPendingDirectionLink
+            viewModelScope.launch {
+                _uiEventFlow.tryEmit(UiEvent.Navigate(request.navigationTarget))
             }
         }
 
@@ -1247,10 +1164,9 @@ class ContextScreenViewModel
                     return
                 }
 
+                is DirectionActions.OpenLinkedContextResult.InProgress -> return
                 is DirectionActions.OpenLinkedContextResult.Navigate -> Unit
             }
-            if (isLinkedNavigationInProgress) return
-            isLinkedNavigationInProgress = true
             viewModelScope.launch {
                 pendingLinkedContextReplace = true
                 _uiEventFlow.tryEmit(
@@ -1261,8 +1177,7 @@ class ContextScreenViewModel
                         ),
                     ),
                 )
-                kotlinx.coroutines.delay(500)
-                isLinkedNavigationInProgress = false
+                directionActions.releaseLinkedNavigationLock()
             }
         }
 
@@ -1273,10 +1188,11 @@ class ContextScreenViewModel
         }
 
         fun clearPendingDirectionLink() {
-            pendingDirectionLinkItemId = null
+            val cleared = directionChooserActions.clearPendingDirection()
+            pendingDirectionLinkItemId = cleared.pendingDirectionLinkItemId
             savedStateHandle.remove<String>("pendingDirectionLinkItemId")
             savedStateHandle.remove<Boolean>("pendingDirectionLink")
-            pendingAddDirectionFromContextChooser = false
+            pendingAddDirectionFromContextChooser = cleared.pendingAddDirectionFromContextChooser
             savedStateHandle.remove<Boolean>("pendingAddDirectionFromContextChooser")
         }
 
@@ -1347,104 +1263,118 @@ class ContextScreenViewModel
             }
         }
 
-// ... (rest of the imports)
-
         fun onListChooserResult(targetcontextId: String) {
-            pendingDirectionLinkItemId?.let { itemId ->
-                pendingDirectionLinkItemId = null
-                savedStateHandle.remove<String>("pendingDirectionLinkItemId")
-                savedStateHandle.remove<Boolean>("pendingDirectionLink")
-                val resolved = targetcontextId.takeIf { it != "root" }
-                updateDirectionItemLink(itemId, resolved)
-                return
-            }
+            val step =
+                listChooserOrchestrationActions.resolveNextStep(
+                    targetContextId = targetcontextId,
+                    state =
+                        ListChooserOrchestrationActions.PendingState(
+                            pendingDirectionLinkItemId = pendingDirectionLinkItemId,
+                            pendingAddDirectionFromContextChooser = pendingAddDirectionFromContextChooser,
+                            savedPendingAddDirectionFromContextChooser =
+                                savedStateHandle.get<Boolean>("pendingAddDirectionFromContextChooser") == true,
+                            pendingAttachmentShare = pendingAttachmentShare,
+                            hasInboxPromotionRecord = inboxHandler.recordForPromotion.value != null,
+                            pendingActionTypeName = savedStateHandle.get<String>("pendingAction"),
+                            pendingSourceItemIds = savedStateHandle.get<List<String>>("pendingSourceItemIds") ?: emptyList(),
+                            pendingSourceGoalIds = savedStateHandle.get<List<String>>("pendingSourceGoalIds") ?: emptyList(),
+                        ),
+                )
 
-            val pendingDirectionAdd =
-                pendingAddDirectionFromContextChooser ||
-                    (savedStateHandle.get<Boolean>("pendingAddDirectionFromContextChooser") == true)
-            if (pendingDirectionAdd) {
-                pendingAddDirectionFromContextChooser = false
-                savedStateHandle.remove<Boolean>("pendingAddDirectionFromContextChooser")
-                viewModelScope.launch(ioDispatcher) {
-                    val result =
-                        listChooserFlowActions.addDirectionLinkedToContext(
-                            targetContextId = targetcontextId,
-                            currentContextId = contextIdFlow.value,
-                        )
-                    result.errorMessage?.let { message ->
-                        withContext(Dispatchers.Main) {
-                            showSnackbar(message, null)
+            when (step) {
+                is ListChooserOrchestrationActions.NextStep.DirectionLink -> {
+                    val cleared = directionChooserActions.clearPendingDirection()
+                    pendingDirectionLinkItemId = cleared.pendingDirectionLinkItemId
+                    savedStateHandle.remove<String>("pendingDirectionLinkItemId")
+                    savedStateHandle.remove<Boolean>("pendingDirectionLink")
+                    updateDirectionItemLink(step.itemId, step.linkedContextId)
+                    return
+                }
+
+                is ListChooserOrchestrationActions.NextStep.DirectionAdd -> {
+                    val cleared = directionChooserActions.clearPendingDirection()
+                    pendingAddDirectionFromContextChooser = cleared.pendingAddDirectionFromContextChooser
+                    savedStateHandle.remove<Boolean>("pendingAddDirectionFromContextChooser")
+                    viewModelScope.launch(ioDispatcher) {
+                        val result =
+                            listChooserFlowActions.addDirectionLinkedToContext(
+                                targetContextId = targetcontextId,
+                                currentContextId = contextIdFlow.value,
+                            )
+                        result.errorMessage?.let { message ->
+                            withContext(Dispatchers.Main) {
+                                showSnackbar(message, null)
+                            }
                         }
                     }
+                    return
                 }
-                return
-            }
 
-            pendingAttachmentShare?.let { attachment ->
-                pendingAttachmentShare = null
-                viewModelScope.launch(ioDispatcher) {
-                    val result =
-                        listChooserFlowActions.shareAttachmentToProject(
-                            attachment = attachment,
-                            targetContextId = targetcontextId,
-                            currentContextId = contextIdFlow.value,
-                        )
-                    withContext(Dispatchers.Main) {
-                        result.newlyAddedItemId?.let { newItemId ->
-                            stateManager.updateState { it.copy(newlyAddedItemId = newItemId) }
+                is ListChooserOrchestrationActions.NextStep.AttachmentShare -> {
+                    pendingAttachmentShare = null
+                    viewModelScope.launch(ioDispatcher) {
+                        val result =
+                            listChooserFlowActions.shareAttachmentToProject(
+                                attachment = step.attachment,
+                                targetContextId = targetcontextId,
+                                currentContextId = contextIdFlow.value,
+                            )
+                        withContext(Dispatchers.Main) {
+                            result.newlyAddedItemId?.let { newItemId ->
+                                stateManager.updateState { it.copy(newlyAddedItemId = newItemId) }
+                            }
+                            if (result.shouldRefreshCurrentContext) {
+                                forceRefresh()
+                            }
+                            showSnackbar(result.message, null)
                         }
-                        if (result.shouldRefreshCurrentContext) {
+                    }
+                    return
+                }
+
+                is ListChooserOrchestrationActions.NextStep.InboxPromotion -> {
+                    inboxHandler.onListSelectedForInboxPromotion(targetcontextId)
+                    return
+                }
+
+                is ListChooserOrchestrationActions.NextStep.PendingAction -> {
+                    viewModelScope.launch(ioDispatcher) { // Use ioDispatcher for repository operations
+                        val result =
+                            listChooserActions.executePendingAction(
+                                actionType = step.actionType,
+                                targetContextId = targetcontextId,
+                                currentContextId = contextIdFlow.value,
+                                itemIds = step.itemIds,
+                                goalIds = step.goalIds,
+                            )
+                        withContext(Dispatchers.Main) {
+                            result.newlyAddedItemId?.let { newItemId ->
+                                stateManager.updateState { it.copy(newlyAddedItemId = newItemId) }
+                            }
                             forceRefresh()
                         }
-                        showSnackbar(result.message, null)
                     }
+                    savedStateHandle.remove<String>("pendingAction")
+                    savedStateHandle.remove<List<String>>("pendingSourceItemIds")
+                    savedStateHandle.remove<List<String>>("pendingSourceGoalIds")
+                    selectionHandler.clearSelection()
                 }
-                return
-            }
 
-            if (inboxHandler.recordForPromotion.value != null) {
-                inboxHandler.onListSelectedForInboxPromotion(targetcontextId)
-                return
+                ListChooserOrchestrationActions.NextStep.None -> return
             }
-
-            val actionTypeName = savedStateHandle.get<String>("pendingAction") ?: return
-            val actionType = GoalActionType.valueOf(actionTypeName)
-            val itemIds = savedStateHandle.get<List<String>>("pendingSourceItemIds") ?: emptyList()
-            val goalIds = savedStateHandle.get<List<String>>("pendingSourceGoalIds") ?: emptyList()
-
-            viewModelScope.launch(ioDispatcher) { // Use ioDispatcher for repository operations
-                val result =
-                    listChooserActions.executePendingAction(
-                        actionType = actionType,
-                        targetContextId = targetcontextId,
-                        currentContextId = contextIdFlow.value,
-                        itemIds = itemIds,
-                        goalIds = goalIds,
-                    )
-                withContext(Dispatchers.Main) {
-                    result.newlyAddedItemId?.let { newItemId ->
-                        stateManager.updateState { it.copy(newlyAddedItemId = newItemId) }
-                    }
-                    forceRefresh()
-                }
-            }
-            savedStateHandle.remove<String>("pendingAction")
-            savedStateHandle.remove<List<String>>("pendingSourceItemIds")
-            savedStateHandle.remove<List<String>>("pendingSourceGoalIds")
-            selectionHandler.clearSelection()
         }
 
         fun onScrolledToNewItem() {
-            stateManager.updateState { it.copy(newlyAddedItemId = null) }
+            uiStateActions.markNewItemConsumed()
         }
 
         fun onHighlightShown() {
-            stateManager.updateState { it.copy(goalToHighlight = null, itemToHighlight = null) }
+            uiStateActions.clearHighlightState()
         }
 
         fun onInboxHighlightShown() {
             Log.d(TAG, "Clearing inbox highlight state.")
-            stateManager.updateState { it.copy(inboxRecordToHighlight = null) }
+            uiStateActions.clearInboxHighlightState()
         }
 
         fun onLimitLastActivityRequested() {
@@ -1471,23 +1401,16 @@ class ContextScreenViewModel
 
         fun onRecentItemClick(item: RecentItem) {
             viewModelScope.launch {
-                when (item.type) {
-                    RecentItemType.PROJECT -> enhancedNavigationManager.navigateToProject(item.target, item.displayName ?: "Context")
-                    RecentItemType.NOTE -> { /* legacy notes no longer have dedicated editor; no-op */ }
-                    RecentItemType.NOTE_DOCUMENT -> _uiEventFlow.tryEmit(UiEvent.Navigate(NavTarget.NoteDocument(id = item.target)))
-                    RecentItemType.CHECKLIST -> _uiEventFlow.tryEmit(UiEvent.Navigate(NavTarget.Checklist(id = item.target)))
-                    RecentItemType.OBSIDIAN_LINK -> {
-                        // Assuming toRelatedLink() exists or is created
-                        // recentItemsRepository.logObsidianLinkAccess(item.toRelatedLink())
-                        val vaultName = settingsRepository.obsidianVaultNameFlow.first()
-                        if (vaultName.isNotBlank()) {
-                            val encodedNoteName = URLEncoder.encode(item.target, "UTF-8")
-                            val uri = "obsidian://open?vault=$vaultName&file=$encodedNoteName"
-                            _uiEventFlow.tryEmit(UiEvent.OpenUri(uri))
-                        } else {
-                            _uiEventFlow.tryEmit(UiEvent.ShowSnackbar("Obsidian vault name is not configured."))
-                        }
-                    }
+                when (val result = recentItemActions.resolve(item)) {
+                    is RecentItemActions.Result.NavigateToProject ->
+                        enhancedNavigationManager.navigateToProject(result.contextId, result.contextName)
+                    is RecentItemActions.Result.Navigate ->
+                        _uiEventFlow.tryEmit(UiEvent.Navigate(result.target))
+                    is RecentItemActions.Result.OpenUri ->
+                        _uiEventFlow.tryEmit(UiEvent.OpenUri(result.uri))
+                    is RecentItemActions.Result.ShowMessage ->
+                        _uiEventFlow.tryEmit(UiEvent.ShowSnackbar(result.message))
+                    RecentItemActions.Result.None -> Unit
                 }
             }
         }
@@ -1495,8 +1418,6 @@ class ContextScreenViewModel
         fun onPinRecentItem(item: RecentItem) {
             // Not implemented yet
         }
-
-// ... (rest of the code)
 
         fun onClearReminder() =
             viewModelScope.launch {
@@ -1514,31 +1435,13 @@ class ContextScreenViewModel
                 }
     fun getBacklogAsMarkdown(): String = backlogActions.getBacklogAsMarkdown(listContent.value)
 
-        // Will be removed
-
-
-
-// У файлі ContextScreenViewModel.kt
-
         fun onSwipeStateReset(itemId: String) {
-            // 1. Використовуємо stateManager замість uiState
-            stateManager.updateState { currentState ->
-                // 2. Створюємо копію карти тригерів
-                val newTriggers = currentState.resetTriggers.toMutableMap()
-
-                // 3. Збільшуємо лічильник для конкретного ID (це змушує Compose скинути стан Swipe)
-                newTriggers[itemId] = (newTriggers[itemId] ?: 0) + 1
-
-                // 4. Повертаємо оновлений стан через copy
-                currentState.copy(resetTriggers = newTriggers)
-            }
+            uiStateActions.bumpSwipeResetTrigger(itemId)
         }
 
     fun onExportToMarkdownRequest() {
         markdownActions.onExportInboxToMarkdown(inboxHandler.inboxRecords.value)
     }
-
-    // File: ContextScreenViewModel.kt
 
     fun onImportBacklogFromMarkdownRequest() {
         markdownActions.onShowImportBacklogFromMarkdownDialog()

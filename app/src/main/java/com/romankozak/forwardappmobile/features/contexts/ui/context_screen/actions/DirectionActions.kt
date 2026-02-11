@@ -6,6 +6,8 @@ import com.romankozak.forwardappmobile.data.repository.DirectionRepository
 class DirectionActions(
     private val directionRepository: DirectionRepository,
 ) {
+    private var isLinkedNavigationInProgress: Boolean = false
+
     sealed class OpenLinkedContextResult {
         data class Error(val message: String) : OpenLinkedContextResult()
 
@@ -13,6 +15,8 @@ class DirectionActions(
             val targetContextId: String,
             val originContextId: String,
         ) : OpenLinkedContextResult()
+
+        data object InProgress : OpenLinkedContextResult()
     }
 
     suspend fun updateDirectionItemText(
@@ -65,9 +69,18 @@ class DirectionActions(
         if (targetContextId.isBlank() || targetContextId == currentContextId) {
             return OpenLinkedContextResult.Error("Це поточний контекст.")
         }
+        if (isLinkedNavigationInProgress) {
+            return OpenLinkedContextResult.InProgress
+        }
+        isLinkedNavigationInProgress = true
         return OpenLinkedContextResult.Navigate(
             targetContextId = targetContextId,
             originContextId = currentContextId,
         )
+    }
+
+    suspend fun releaseLinkedNavigationLock(delayMs: Long = 500L) {
+        kotlinx.coroutines.delay(delayMs)
+        isLinkedNavigationInProgress = false
     }
 }
