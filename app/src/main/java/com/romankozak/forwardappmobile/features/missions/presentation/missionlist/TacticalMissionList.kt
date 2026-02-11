@@ -117,6 +117,8 @@ fun TacticalMissionCard(
 ) {
     val onSurface = MaterialTheme.colorScheme.onSurface
     val colorScheme = MaterialTheme.colorScheme
+    val isInactive = mission.status == MissionStatus.INACTIVE
+    val isPaused = mission.status == MissionStatus.PAUSED
 
     val overdue = System.currentTimeMillis() > mission.deadline && mission.status != MissionStatus.COMPLETED
     val itemState =
@@ -130,7 +132,12 @@ fun TacticalMissionCard(
         when (itemState) {
             UnifiedItemState.COMPLETED -> colorScheme.secondaryContainer.copy(alpha = 0.36f)
             UnifiedItemState.OVERDUE -> colorScheme.errorContainer.copy(alpha = 0.58f)
-            UnifiedItemState.DEFAULT -> colorScheme.tertiaryContainer.copy(alpha = 0.40f)
+            UnifiedItemState.DEFAULT ->
+                when {
+                    isInactive -> colorScheme.surfaceVariant.copy(alpha = 0.70f)
+                    isPaused -> colorScheme.tertiaryContainer.copy(alpha = 0.50f)
+                    else -> colorScheme.tertiaryContainer.copy(alpha = 0.40f)
+                }
             UnifiedItemState.SELECTED -> colorScheme.surfaceContainerHighest
             UnifiedItemState.DISABLED -> colorScheme.surfaceVariant.copy(alpha = 0.6f)
         }
@@ -138,7 +145,12 @@ fun TacticalMissionCard(
         when (itemState) {
             UnifiedItemState.COMPLETED -> colorScheme.secondary.copy(alpha = 0.35f)
             UnifiedItemState.OVERDUE -> colorScheme.error.copy(alpha = 0.50f)
-            UnifiedItemState.DEFAULT -> colorScheme.tertiary.copy(alpha = 0.38f)
+            UnifiedItemState.DEFAULT ->
+                when {
+                    isInactive -> colorScheme.outline.copy(alpha = 0.50f)
+                    isPaused -> colorScheme.tertiary.copy(alpha = 0.58f)
+                    else -> colorScheme.tertiary.copy(alpha = 0.38f)
+                }
             UnifiedItemState.SELECTED -> colorScheme.primary.copy(alpha = 0.4f)
             UnifiedItemState.DISABLED -> colorScheme.outlineVariant.copy(alpha = 0.35f)
         }
@@ -167,6 +179,8 @@ fun TacticalMissionCard(
                 val titleColor by animateColorAsState(
                     when {
                         mission.status == MissionStatus.COMPLETED -> onSurface.copy(alpha = 0.4f)
+                        isInactive -> onSurface.copy(alpha = 0.58f)
+                        isPaused -> colorScheme.tertiary.copy(alpha = 0.92f)
                         overdue -> Color(0xFFFF6E6E)
                         else -> onSurface
                     },
@@ -195,13 +209,31 @@ fun TacticalMissionCard(
                 }
 
                 val statusItems =
-                    listOf(
-                        UnifiedStatusChipSpec(
-                            icon = if (overdue) Icons.Outlined.Warning else Icons.Outlined.Schedule,
-                            text = formatMissionDate(mission.deadline),
-                            contentColor = if (overdue) MaterialTheme.colorScheme.error else onSurface.copy(alpha = 0.75f),
-                        ),
-                    )
+                    buildList {
+                        if (isInactive) {
+                            add(
+                                UnifiedStatusChipSpec(
+                                    text = "Неактивна",
+                                    contentColor = onSurface.copy(alpha = 0.72f),
+                                ),
+                            )
+                        }
+                        if (isPaused) {
+                            add(
+                                UnifiedStatusChipSpec(
+                                    text = "На паузі",
+                                    contentColor = colorScheme.tertiary,
+                                ),
+                            )
+                        }
+                        add(
+                            UnifiedStatusChipSpec(
+                                icon = if (overdue) Icons.Outlined.Warning else Icons.Outlined.Schedule,
+                                text = formatMissionDate(mission.deadline),
+                                contentColor = if (overdue) MaterialTheme.colorScheme.error else onSurface.copy(alpha = 0.75f),
+                            ),
+                        )
+                    }
                 UnifiedStatusRow(items = statusItems, modifier = Modifier.padding(top = 4.dp))
 
                 val linkedContextIds =
