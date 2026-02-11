@@ -38,6 +38,8 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.handl
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.handlers.ReminderHandler
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.*
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionType
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.usecases.ContextScreenDataMapper
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.usecases.ContextScreenDataObserver
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -45,7 +47,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLDecoder
@@ -250,6 +251,22 @@ class ContextScreenViewModel
                     initialValue = null,
                 )
         private var batchSaveJob: Job? = null
+        private val contextScreenDataMapper = ContextScreenDataMapper()
+        private val contextScreenDataObserver =
+            ContextScreenDataObserver(
+                contextRepository = contextRepository,
+                listItemRepository = listItemRepository,
+                contextStructureRepository = contextStructureRepository,
+                contextLogRepository = contextLogRepository,
+                checklistRepository = checklistRepository,
+                noteDocumentRepository = noteDocumentRepository,
+                directionRepository = directionRepository,
+                reminderRepository = reminderRepository,
+                recentItemsRepository = recentItemsRepository,
+                noteRepository = noteRepository,
+                goalRepository = goalRepository,
+                mapper = contextScreenDataMapper,
+            )
 
         val project =
             stateManager.uiState
@@ -328,242 +345,92 @@ class ContextScreenViewModel
         }
 
         private fun setupContextObserver() {
-        viewModelScope.launch {
-            combine(contextIdFlow, uiState.map { it.refreshTrigger }.distinctUntilChanged()) { contextId, _ ->
-                contextId
-            }
-                .flatMapLatest { contextId ->
-                    if (contextId.isBlank()) {
-                        flowOf(ContextData.Empty)
-                    } else {
-                        combine(
-                            contextRepository.getContextByIdFlow(contextId),
-                            listItemRepository.getItemsForContextStream(contextId),
-                            contextStructureRepository.observeStructureOnly(contextId),
-                            contextLogRepository.getContextLogsStream(contextId),
-                            checklistRepository.getChecklistsForContext(contextId),
-                            noteDocumentRepository.getDocumentsForContext(contextId),
-                            directionRepository.getDirectionItemsForContext(contextId),
-                            contextRepository.getAllContextsFlow(),
-                            contextRepository.getAttachmentsForContextStream(contextId),
-                            listItemRepository.getAllEntitiesAsFlow(),
-                            reminderRepository.getRemindersForEntityFlow(contextId),
-                            recentItemsRepository.getRecentItemsForContextFlow(contextId),
-                            noteRepository.getNotesForContext(contextId),
-                            goalRepository.getGoalsByContextIdFlow(contextId),
-                            contextRepository.getSubprojectsByParentIdFlow(contextId),
-                        ) { args: Array<Any?> ->
-                            val context = args[0] as? com.romankozak.forwardappmobile.core.data.models.entities.Context
-                            val rawItems = (args[1] as? List<*>)?.filterIsInstance<BacklogItem>() ?: emptyList()
-                            val checklists = (args[4] as? List<*>)?.filterIsInstance<ChecklistEntity>() ?: emptyList()
-                            val noteDocuments = (args[5] as? List<*>)?.filterIsInstance<NoteDocumentEntity>() ?: emptyList()
-                            val directionItems = (args[6] as? List<*>)?.filterIsInstance<DirectionItemEntity>() ?: emptyList()
-                            val allContexts = (args[7] as? List<*>)?.filterIsInstance<com.romankozak.forwardappmobile.core.data.models.entities.Context>() ?: emptyList()
-                            val attachments = (args[8] as? List<*>)?.filterIsInstance<AttachmentWithContext>() ?: emptyList()
-                            val linkItems = (args[9] as? List<*>)?.filterIsInstance<LinkItemEntity>() ?: emptyList()
-                            val reminders = (args[10] as? List<*>)?.filterIsInstance<Reminder>() ?: emptyList()
-                            val goals = (args[13] as? List<*>)?.filterIsInstance<Goal>() ?: emptyList()
-                            val subprojects = (args[14] as? List<*>)?.filterIsInstance<com.romankozak.forwardappmobile.core.data.models.entities.Context>() ?: emptyList()
-
-                            // Явна типізація результату when як BacklogItemContent?
-                            val linkItemsMap = linkItems.associateBy { it.id }
-
-                            val items: List<BacklogItemContent> = rawItems.mapNotNull { item ->
-                                val itemReminders = reminders.filter { it.entityId == item.entityId }
-
-                                val result: BacklogItemContent? = when (item.itemType) {
-                                    "GOAL" -> {
-                                        goals.find { it.id == item.entityId }?.let { foundGoal ->
-                                            BacklogItemContent.GoalItem(
-                                                goal = foundGoal,
-                                                backlogItem = item,
-                                                reminders = itemReminders,
-                                            )
-                                        }
-                                    }
-                                    "PROJECT" -> {
-                                        subprojects.find { it.id == item.entityId }?.let { foundSubProject ->
-                                            BacklogItemContent.SublistItem(
-                                                project = foundSubProject,
-                                                backlogItem = item,
-                                                reminders = itemReminders,
-                                            )
-                                        }
-                                    }
-                                    "NOTE_DOCUMENT" -> {
-                                        noteDocuments.find { it.id == item.entityId }?.let { foundDoc ->
-                                            BacklogItemContent.NoteDocumentItem(
-                                                document = foundDoc,
-                                                backlogItem = item,
-                                            )
-                                        }
-                                    }
-                                    "CHECKLIST" -> {
-                                        checklists.find { it.id == item.entityId }?.let { foundChk ->
-                                            BacklogItemContent.ChecklistItem(
-                                                checklist = foundChk,
-                                                backlogItem = item,
-                                            )
-                                        }
-                                    }
-                                    BacklogItemTypeValues.LINK_ITEM -> {
-                                        linkItemsMap[item.entityId]?.let { linkItem ->
-                                            BacklogItemContent.LinkItem(linkItem, item)
-                                        }
-                                    }
-                                    "LINK" -> null
-                                    else -> null
-                                }
-
-                                result
-                            }
-
-                            val noteDocumentsMap = noteDocuments.associateBy { it.id }
-                            val checklistsMap = checklists.associateBy { it.id }
-                            val attachmentItems =
-                                attachments
-                                    .sortedWith { a, b ->
-                                        val orderA = a.attachmentOrder ?: -a.attachment.createdAt
-                                        val orderB = b.attachmentOrder ?: -b.attachment.createdAt
-                                        val orderCompare = orderA.compareTo(orderB)
-                                        if (orderCompare != 0) orderCompare else a.attachment.id.compareTo(b.attachment.id)
-                                    }
-                                    .mapNotNull { attachment ->
-                                        val backlogItem =
-                                            BacklogItem(
-                                                id = attachment.attachment.id,
-                                                contextId = contextId,
-                                                itemType = attachment.attachment.attachmentType,
-                                                entityId = attachment.attachment.entityId,
-                                                order = attachment.attachmentOrder ?: -attachment.attachment.createdAt,
-                                            )
-                                        when (attachment.attachment.attachmentType) {
-                                            BacklogItemTypeValues.NOTE_DOCUMENT ->
-                                                noteDocumentsMap[attachment.attachment.entityId]?.let { doc ->
-                                                    BacklogItemContent.NoteDocumentItem(doc, backlogItem)
-                                                }
-                                            BacklogItemTypeValues.CHECKLIST ->
-                                                checklistsMap[attachment.attachment.entityId]?.let { checklist ->
-                                                    BacklogItemContent.ChecklistItem(checklist, backlogItem)
-                                                }
-                                            BacklogItemTypeValues.LINK_ITEM ->
-                                                linkItemsMap[attachment.attachment.entityId]?.let { linkItem ->
-                                                    BacklogItemContent.LinkItem(linkItem, backlogItem)
-                                                }
-                                            else -> null
-                                        }
-                                    }
-
-                            val config = args[2] as? ContextConfiguration
-                            val logs = (args[3] as? List<*>)?.filterIsInstance<ContextLog>() ?: emptyList()
-                            val recentItems = (args[11] as? List<*>)?.filterIsInstance<RecentItem>() ?: emptyList()
-                            val notes = (args[12] as? List<*>)?.filterIsInstance<LegacyNoteEntity>() ?: emptyList()
-
-                            val linkedContextNames =
-                                if (directionItems.isEmpty()) {
-                                    emptyMap()
-                                } else {
-                                    val linkedIds = directionItems.mapNotNull { it.linkedContextId }.toSet()
-                                    if (linkedIds.isEmpty()) {
-                                        emptyMap()
-                                    } else {
-                                        val nameById = allContexts.associateBy({ it.id }, { it.name })
-                                        linkedIds.associateWith { id -> nameById[id] ?: "Context" }
-                                    }
-                                }
-
-                            ContextData.Loaded(
-                                context = context,
-                                items = items,
-                                attachmentItems = attachmentItems,
-                                config = config ?: ContextConfiguration.default(contextId),
-                                logs = logs,
-                                checklists = checklists,
-                                noteDocuments = noteDocuments,
-                                directionItems = directionItems,
-                                linkedContextNames = linkedContextNames,
-                                reminders = reminders,
-                                recentItems = recentItems,
-                                notes = notes,
-                            )
+            viewModelScope.launch {
+                contextScreenDataObserver
+                    .observe(
+                        contextIdFlow = contextIdFlow,
+                        refreshTriggerFlow = uiState.map { it.refreshTrigger },
+                    )
+                    .debounce(80)
+                    .collect { data ->
+                        when (data) {
+                            is ContextData.Loaded -> applyLoadedContextData(data)
+                            is ContextData.Empty -> applyEmptyContextData()
                         }
                     }
-                }
-                .debounce(80)
-                .collect { data ->
-                    when (data) {
-                        is ContextData.Loaded -> {
-                            _listContent.value = data.items
-                            _attachmentItems.value = data.attachmentItems
-                            stateManager.updateContext(data)
-data.context?.let { project ->
+            }
+        }
+
+        private fun applyLoadedContextData(data: ContextData.Loaded) {
+            _listContent.value = data.items
+            _attachmentItems.value = data.attachmentItems
+            stateManager.updateContext(data)
+            data.context?.let { project ->
                 viewModelScope.launch {
                     recentItemsRepository.logProjectAccess(project)
                 }
             }
-                            stateManager.updateState { currentState ->
-                                val contextId = data.context?.id ?: currentState.context?.id.orEmpty()
-                                val preferredViewName = data.context?.defaultViewModeName
-                                val syncKey = Triple(contextId, preferredViewName, data.config.hashCode())
-                                val session =
-                                    if (lastSyncKey == syncKey) {
-                                        contextSessionStore.state.value
-                                    } else {
-                                        lastSyncKey = syncKey
-                                        contextSessionStore.dispatch(
-                                            ContextCommand.SyncFromConfig(
-                                                contextId = contextId,
-                                                config = data.config,
-                                                preferredViewName = preferredViewName,
-                                                currentView = currentState.currentViewMode,
-                                            ),
-                                        )
-                                    }
-
-                                val enableInbox = session.enabledCapabilities.contains(CapabilityId("inbox"))
-                                val enableLog = session.enabledCapabilities.contains(CapabilityId("log"))
-                                val enableArtifact = session.enabledCapabilities.contains(CapabilityId("artifact"))
-                                val enableBacklog = session.enabledCapabilities.contains(CapabilityId("backlog"))
-                                val enableDashboard = session.enabledCapabilities.contains(CapabilityId("dashboard"))
-                                val enableAttachments = session.enabledCapabilities.contains(CapabilityId("attachments"))
-                                val isProjectManagementEnabled = session.enabledCapabilities.contains(CapabilityId("advanced"))
-
-                                if (currentState.enableInbox == enableInbox &&
-                                    currentState.enableLog == enableLog &&
-                                    currentState.enableArtifact == enableArtifact &&
-                                    currentState.enableBacklog == enableBacklog &&
-                                    currentState.enableDashboard == enableDashboard &&
-                                    currentState.enableAttachments == enableAttachments &&
-                                    currentState.isProjectManagementEnabled == isProjectManagementEnabled &&
-                                    currentState.experimentalCapabilityIds == data.config.experimentalCapabilityIds &&
-                                    currentState.currentViewMode == session.currentView &&
-                                    !currentState.isContextSwitching
-                                ) {
-                                    currentState
-                                } else {
-                                    currentState.copy(
-                                        enableInbox = enableInbox,
-                                        enableLog = enableLog,
-                                        enableArtifact = enableArtifact,
-                                        enableBacklog = enableBacklog,
-                                        enableDashboard = enableDashboard,
-                                        enableAttachments = enableAttachments,
-                                        isProjectManagementEnabled = isProjectManagementEnabled,
-                                        experimentalCapabilityIds = data.config.experimentalCapabilityIds,
-                                        currentViewMode = session.currentView,
-                                        isContextSwitching = false,
-                                    )
-                                }
-                            }
-                        }
-                        is ContextData.Empty -> {
-                            _listContent.value = emptyList()
-                            _attachmentItems.value = emptyList()
-                            stateManager.clear()
-                            stateManager.updateState { it.copy(isContextSwitching = false) }
-                        }
+            stateManager.updateState { currentState ->
+                val contextId = data.context?.id ?: currentState.context?.id.orEmpty()
+                val preferredViewName = data.context?.defaultViewModeName
+                val syncKey = Triple(contextId, preferredViewName, data.config.hashCode())
+                val session =
+                    if (lastSyncKey == syncKey) {
+                        contextSessionStore.state.value
+                    } else {
+                        lastSyncKey = syncKey
+                        contextSessionStore.dispatch(
+                            ContextCommand.SyncFromConfig(
+                                contextId = contextId,
+                                config = data.config,
+                                preferredViewName = preferredViewName,
+                                currentView = currentState.currentViewMode,
+                            ),
+                        )
                     }
+
+                val enableInbox = session.enabledCapabilities.contains(CapabilityId("inbox"))
+                val enableLog = session.enabledCapabilities.contains(CapabilityId("log"))
+                val enableArtifact = session.enabledCapabilities.contains(CapabilityId("artifact"))
+                val enableBacklog = session.enabledCapabilities.contains(CapabilityId("backlog"))
+                val enableDashboard = session.enabledCapabilities.contains(CapabilityId("dashboard"))
+                val enableAttachments = session.enabledCapabilities.contains(CapabilityId("attachments"))
+                val isProjectManagementEnabled = session.enabledCapabilities.contains(CapabilityId("advanced"))
+
+                if (currentState.enableInbox == enableInbox &&
+                    currentState.enableLog == enableLog &&
+                    currentState.enableArtifact == enableArtifact &&
+                    currentState.enableBacklog == enableBacklog &&
+                    currentState.enableDashboard == enableDashboard &&
+                    currentState.enableAttachments == enableAttachments &&
+                    currentState.isProjectManagementEnabled == isProjectManagementEnabled &&
+                    currentState.experimentalCapabilityIds == data.config.experimentalCapabilityIds &&
+                    currentState.currentViewMode == session.currentView &&
+                    !currentState.isContextSwitching
+                ) {
+                    currentState
+                } else {
+                    currentState.copy(
+                        enableInbox = enableInbox,
+                        enableLog = enableLog,
+                        enableArtifact = enableArtifact,
+                        enableBacklog = enableBacklog,
+                        enableDashboard = enableDashboard,
+                        enableAttachments = enableAttachments,
+                        isProjectManagementEnabled = isProjectManagementEnabled,
+                        experimentalCapabilityIds = data.config.experimentalCapabilityIds,
+                        currentViewMode = session.currentView,
+                        isContextSwitching = false,
+                    )
                 }
+            }
+        }
+
+        private fun applyEmptyContextData() {
+            _listContent.value = emptyList()
+            _attachmentItems.value = emptyList()
+            stateManager.clear()
+            stateManager.updateState { it.copy(isContextSwitching = false) }
         }
     }
     override fun onBackPressed(): Boolean {
@@ -1596,10 +1463,35 @@ data.context?.let { project ->
 
         fun onDeleteEverywhere(item: BacklogItemContent) {
             viewModelScope.launch {
-                if (item is BacklogItemContent.GoalItem) {
-                    goalRepository.deleteGoal(item.goal.id)
+                when (item) {
+                    is BacklogItemContent.GoalItem -> {
+                        goalRepository.deleteGoal(item.goal.id)
+                        showSnackbar("Ціль видалено", null)
+                    }
+                    is BacklogItemContent.SublistItem -> {
+                        contextRepository.deleteContextsAndSubContexts(listOf(item.project))
+                        showSnackbar("Підконтекст видалено", null)
+                    }
+                    is BacklogItemContent.NoteDocumentItem -> {
+                        noteDocumentRepository.deleteDocument(item.document.id)
+                        showSnackbar("Документ видалено", null)
+                    }
+                    is BacklogItemContent.ChecklistItem -> {
+                        checklistRepository.deleteChecklist(item.checklist.id)
+                        showSnackbar("Чекліст видалено", null)
+                    }
+                    is BacklogItemContent.NoteItem -> {
+                        noteRepository.deleteNote(item.note.id)
+                        showSnackbar("Нотатку видалено", null)
+                    }
+                    is BacklogItemContent.LinkItem -> {
+                        // Prefer deleting the attachment root if present; otherwise remove all list bindings for this link entity.
+                        contextRepository.deleteAttachmentEverywhere(item.backlogItem.id)
+                        listItemRepository.deleteItemByEntityId(item.link.id)
+                        showSnackbar("Посилання видалено", null)
+                    }
                 }
-                // TODO: Handle other item types
+                forceRefresh()
             }
         }
 
@@ -1611,7 +1503,7 @@ data.context?.let { project ->
                     val movedItem = currentList.removeAt(from)
                     currentList.add(0, movedItem)
                     _listContent.value = currentList
-                    // TODO: save order to repository
+                    persistBacklogOrder(currentList)
                 }
             }
         }
@@ -1623,9 +1515,11 @@ data.context?.let { project ->
                     is BacklogItemContent.GoalItem -> dayManagementRepository.addGoalToDayPlan(day.id, item.goal.id)
                     is BacklogItemContent.SublistItem -> dayManagementRepository.addProjectToDayPlan(day.id, item.project.id)
                     else -> {
-                        // TODO: show snackbar
+                        showSnackbar("Цей тип елемента не можна додати в план дня", null)
+                        return@launch
                     }
                 }
+                showSnackbar("Додано в план дня", null)
             }
         }
 
@@ -1635,10 +1529,20 @@ data.context?.let { project ->
                     is BacklogItemContent.GoalItem -> activityRepository.startGoalActivity(item.goal.id)
                     is BacklogItemContent.SublistItem -> activityRepository.startContextActivity(item.project.id)
                     else -> {
-                        // TODO: show snackbar
+                        showSnackbar("Для цього типу елемента трекінг недоступний", null)
+                        return@launch
                     }
                 }
+                showSnackbar("Трекінг розпочато", null)
             }
+        }
+
+        private suspend fun persistBacklogOrder(content: List<BacklogItemContent>) {
+            val reorderedBacklogItems =
+                content.mapIndexed { index, listContentItem ->
+                    listContentItem.backlogItem.copy(order = index.toLong())
+                }
+            listItemRepository.updateListItemsOrder(reorderedBacklogItems)
         }
 
         fun onProjectStatusUpdate(
