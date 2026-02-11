@@ -26,6 +26,7 @@ import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.domain.wifirestapi.FileDataRequest
 import com.romankozak.forwardappmobile.domain.wifirestapi.RetrofitClient
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SearchUseCase
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ReminderActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputHandler
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputMode
@@ -51,10 +52,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLDecoder
 import java.net.URLEncoder
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 import java.util.UUID
 import javax.inject.Inject
 import android.content.Context as AndroidContext
@@ -316,6 +314,15 @@ class ContextScreenViewModel
             )
         }
         internal val reminderHandler by lazy { ReminderHandler(alarmScheduler, reminderRepository, viewModelScope) }
+        private val reminderActions by lazy {
+            ReminderActions(
+                reminderRepository = reminderRepository,
+                stateManager = stateManager,
+                uiState = uiState,
+                showSnackbar = ::showSnackbar,
+                forceRefresh = ::forceRefresh,
+            )
+        }
 
         val obsidianVaultName: StateFlow<String> =
             settingsRepository.obsidianVaultNameFlow
@@ -1128,19 +1135,7 @@ class ContextScreenViewModel
 
         fun onSetReminderForProject() {
             viewModelScope.launch {
-                project.value?.let { proj ->
-                    val reminders = reminderRepository.getRemindersForEntityFlow(proj.id).firstOrNull()
-                    val record =
-                        ActivityRecord(
-                            id = proj.id,
-                            text = proj.name,
-                            reminderTime = reminders?.firstOrNull()?.reminderTime,
-                            createdAt = proj.createdAt,
-                            contextId = proj.id,
-                            goalId = null,
-                        )
-                    stateManager.updateState { it.copy(recordForReminderDialog = record) }
-                }
+                reminderActions.onSetReminderForProject(project.value)
             }
         }
 
@@ -1736,55 +1731,16 @@ class ContextScreenViewModel
 
         fun onSetReminderForItem(item: BacklogItemContent) {
             viewModelScope.launch {
-                when (item) {
-                    is BacklogItemContent.GoalItem -> {
-                        val entityId = item.goal.id
-                        val reminders = reminderRepository.getRemindersForEntityFlow(entityId).firstOrNull().orEmpty()
-                        val record =
-                            ActivityRecord(
-                                id = entityId,
-                                text = item.goal.text,
-                                reminderTime = reminders.firstOrNull()?.reminderTime,
-                                createdAt = item.goal.createdAt,
-                                contextId = item.backlogItem.contextId,
-                                goalId = item.goal.id,
-                            )
-                        stateManager.updateState { it.copy(recordForReminderDialog = record, remindersForDialog = reminders) }
-                    }
-                    is BacklogItemContent.SublistItem -> {
-                        val entityId = item.project.id
-                        val reminders = reminderRepository.getRemindersForEntityFlow(entityId).firstOrNull().orEmpty()
-                        val record =
-                            ActivityRecord(
-                                id = entityId,
-                                text = item.project.name,
-                                reminderTime = reminders.firstOrNull()?.reminderTime,
-                                createdAt = item.project.createdAt,
-                                contextId = item.project.id,
-                                goalId = null,
-                            )
-                        stateManager.updateState { it.copy(recordForReminderDialog = record, remindersForDialog = reminders) }
-                    }
-                    else -> return@launch
-                }
+                reminderActions.onSetReminderForItem(item)
             }
         }
 
         fun onOpenRemindersDialog(itemContent: BacklogItemContent) {
-            viewModelScope.launch {
-                stateManager.updateState { it.copy(showRemindersDialog = true, itemForRemindersDialog = itemContent) }
-            }
+            reminderActions.onOpenRemindersDialog(itemContent)
         }
 
         fun onDismissRemindersDialog() {
-            stateManager.updateState {
-                it.copy(
-                    recordForReminderDialog = null,
-                    remindersForDialog = emptyList(),
-                    showRemindersDialog = false,
-                    itemForRemindersDialog = null,
-                )
-            }
+            reminderActions.onDismissRemindersDialog()
         }
 
         fun onRecentItemClick(item: RecentItem) {
@@ -1818,54 +1774,17 @@ class ContextScreenViewModel
 
         fun onClearReminder() =
             viewModelScope.launch {
-                val record = uiState.value.recordForReminderDialog ?: return@launch
-
-                val entityId = record.goalId ?: record.contextId ?: record.id
-                reminderRepository.clearRemindersForEntity(entityId)
-
-                onDismissRemindersDialog()
-                showSnackbar("Нагадування скасовано", null)
-                forceRefresh()
+                reminderActions.onClearReminder()
             }
 
         fun onSetReminder(timestamp: Long) =
             viewModelScope.launch {
-                val record = uiState.value.recordForReminderDialog ?: return@launch
-
-                val entityType =
-                    when {
-                        record.goalId != null -> "GOAL"
-                        record.contextId != null -> "PROJECT"
-                        else -> "TASK" // Assuming ActivityRecord can also be a task
-                    }
-                val entityId = record.goalId ?: record.contextId ?: record.id
-
-                reminderRepository.createReminder(entityId, entityType, timestamp)
-
-                showSnackbar(
-                    "Нагадування додано на ${
-                        SimpleDateFormat("dd.MM HH:mm", Locale.getDefault()).format(
-                            Date(timestamp),
-                        )
-                    }",
-                    null,
-                )
-                forceRefresh()
+                reminderActions.onSetReminder(timestamp)
             }
 
             fun onRemoveReminder(reminderId: String) =
                 viewModelScope.launch {
-                    val record = uiState.value.recordForReminderDialog ?: return@launch
-        
-                    reminderRepository.clearRemindersForEntity(record.id)
-        
-                    val refreshed = reminderRepository.getRemindersForEntityFlow(record.id).firstOrNull().orEmpty()
-                    val updatedRecord = record.copy(reminderTime = refreshed.firstOrNull()?.reminderTime)
-        
-                    stateManager.updateState { it.copy(remindersForDialog = refreshed, recordForReminderDialog = updatedRecord) }
-        
-                    showSnackbar("Нагадування видалено", null)
-                    forceRefresh()
+                    reminderActions.onRemoveReminder(reminderId)
                 }
     fun getBacklogAsMarkdown(): String {
         val markdownBuilder = StringBuilder()
@@ -1931,15 +1850,7 @@ class ContextScreenViewModel
     }
 
     fun onReminderDialogDismiss() {
-        // Використовуємо централізований менеджер для оновлення стану
-        stateManager.updateState { currentState ->
-            currentState.copy(
-                recordForReminderDialog = null,
-                remindersForDialog = emptyList(),
-                showRemindersDialog = false,
-                itemForRemindersDialog = null
-            )
-        }
+        onDismissRemindersDialog()
     }
 
     fun onImportFromMarkdownConfirm(markdownText: String) {
