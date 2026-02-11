@@ -50,7 +50,7 @@ class ContextScreenDataMapper {
                             )
                         }
                     }
-                    BacklogItemTypeValues.SUBLIST -> {
+                    BacklogItemTypeValues.SUBLIST, "PROJECT" -> {
                         subprojects.find { it.id == item.entityId }?.let { foundSubProject ->
                             BacklogItemContent.SublistItem(
                                 project = foundSubProject,

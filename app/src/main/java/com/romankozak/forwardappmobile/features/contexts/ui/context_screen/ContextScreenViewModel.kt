@@ -432,7 +432,7 @@ class ContextScreenViewModel
             stateManager.clear()
             stateManager.updateState { it.copy(isContextSwitching = false) }
         }
-    }
+
     override fun onBackPressed(): Boolean {
         val originId = originContextId
         val currentId = contextIdFlow.value
