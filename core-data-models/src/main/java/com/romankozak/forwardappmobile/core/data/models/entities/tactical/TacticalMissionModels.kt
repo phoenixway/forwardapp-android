@@ -35,7 +35,7 @@ data class TacticalMission(
     @SerializedName("e")
     val deadline: Long,
     @SerializedName("f")
-    val status: MissionStatus = MissionStatus.PENDING,
+    val status: MissionStatus = MissionStatus.ACTIVE,
     @SerializedName("g")
     val priority: MissionPriority = MissionPriority.MEDIUM,
     @SerializedName(value = "projectId", alternate = ["contextId", "c"])

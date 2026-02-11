@@ -122,6 +122,7 @@ class TacticalMissionViewModel
             title: String,
             description: String,
             deadline: Long,
+            status: MissionStatus,
             projectLinks: List<String>,
             attachmentLinks: List<String>,
         ) {
@@ -130,6 +131,7 @@ class TacticalMissionViewModel
                     title = title,
                     description = description,
                     deadline = deadline,
+                    status = status,
                     projectId = null,
                     linkedProjectIds = projectLinks,
                     linkedAttachmentIds = attachmentLinks,
@@ -150,6 +152,7 @@ class TacticalMissionViewModel
             title: String,
             description: String?,
             deadline: Long,
+            status: MissionStatus,
             projectLinks: List<String>,
             attachmentLinks: List<String>,
         ) {
@@ -161,6 +164,7 @@ class TacticalMissionViewModel
                             title = title,
                             description = description,
                             deadline = deadline,
+                            status = status,
                             linkedProjectIds = projectLinks,
                             linkedAttachmentIds = attachmentLinks,
                         )
@@ -186,7 +190,7 @@ class TacticalMissionViewModel
         fun toggleMissionCompleted(mission: TacticalMission) {
             val updatedStatus =
                 if (mission.status == MissionStatus.COMPLETED) {
-                    MissionStatus.PENDING
+                    MissionStatus.ACTIVE
                 } else {
                     MissionStatus.COMPLETED
                 }

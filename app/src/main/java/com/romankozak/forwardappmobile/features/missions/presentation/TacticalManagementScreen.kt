@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.features.missions.presentation.missionlist.TacticalMissionList
 import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.TacticalScopeLinksSheet
@@ -83,8 +84,8 @@ fun TacticalManagementScreen(
         AddMissionDialog(
             attachmentOptions = attachmentOptions,
             onDismiss = viewModel::dismissAddMissionDialog,
-            onConfirm = { title, description, deadline, projects, attachments ->
-                viewModel.addMission(title, description, deadline, projects, attachments)
+            onConfirm = { title, description, deadline, status, projects, attachments ->
+                viewModel.addMission(title, description, deadline, status, projects, attachments)
                 viewModel.dismissAddMissionDialog()
             },
         )
@@ -106,12 +107,13 @@ fun TacticalManagementScreen(
                     attachmentOptions = attachmentOptions,
                     projectOptions = projectOptions,
                     onDismiss = { editingMission = null },
-                    onConfirm = { title, desc, deadline, projects, attachments ->
+                    onConfirm = { title, desc, deadline, status, projects, attachments ->
                         viewModel.updateMission(
                             mission.id,
                             title,
                             desc,
                             deadline,
+                            status,
                             projects,
                             attachments,
                         )
@@ -152,7 +154,7 @@ fun TacticalManagementScreen(
 fun AddMissionDialog(
     attachmentOptions: List<AttachmentOption>,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, Long, List<String>, List<String>) -> Unit,
+    onConfirm: (String, String, Long, MissionStatus, List<String>, List<String>) -> Unit,
 ) {
     MissionDialog(
         title = "Create Tactical Mission",
@@ -177,14 +179,16 @@ fun MissionDialog(
     initialProjectLinks: List<String>,
     initialAttachmentLinks: List<String>,
     attachmentOptions: List<AttachmentOption>,
+    initialStatus: MissionStatus = MissionStatus.ACTIVE,
     confirmText: String,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, Long, List<String>, List<String>) -> Unit,
+    onConfirm: (String, String, Long, MissionStatus, List<String>, List<String>) -> Unit,
 ) {
     var titleField by remember { mutableStateOf(initialTitle) }
     var descField by remember { mutableStateOf(initialDescription) }
     var deadlineField by remember { mutableStateOf(initialDeadline) }
     var deadlineLong by remember { mutableStateOf(initialDeadline.toLong()) }
+    var statusField by remember { mutableStateOf(initialStatus) }
     var showDeadlinePicker by remember { mutableStateOf(false) }
     val projectLinks = remember { mutableStateListOf<String>().apply { addAll(initialProjectLinks) } }
     val attachmentLinks = remember { mutableStateListOf<String>().apply { addAll(initialAttachmentLinks) } }
@@ -218,6 +222,29 @@ fun MissionDialog(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("Select Deadline: ${formatDate(deadlineLong)}")
+                }
+
+                Text("Status", style = MaterialTheme.typography.titleSmall)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    listOf(MissionStatus.ACTIVE, MissionStatus.INACTIVE, MissionStatus.PAUSED).forEach { status ->
+                        FilterChip(
+                            selected = statusField == status,
+                            onClick = { statusField = status },
+                            label = {
+                                Text(
+                                    when (status) {
+                                        MissionStatus.ACTIVE -> "Активна"
+                                        MissionStatus.INACTIVE -> "Неактивна"
+                                        MissionStatus.PAUSED -> "На паузі"
+                                        MissionStatus.COMPLETED -> "Завершена"
+                                    },
+                                )
+                            },
+                        )
+                    }
                 }
 
                 Divider()
@@ -268,7 +295,14 @@ fun MissionDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    onConfirm(titleField, descField, deadlineLong, projectLinks.toList(), attachmentLinks.toList())
+                    onConfirm(
+                        titleField,
+                        descField,
+                        deadlineLong,
+                        statusField,
+                        projectLinks.toList(),
+                        attachmentLinks.toList(),
+                    )
                 },
                 enabled = titleField.isNotBlank(),
             ) {

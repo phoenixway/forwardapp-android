@@ -1,10 +1,31 @@
 package com.romankozak.forwardappmobile.core.data.models.entities.tactical
 
+import java.util.Locale
+
 enum class MissionStatus {
-    PENDING,
-    IN_PROGRESS,
+    ACTIVE,
+    INACTIVE,
+    PAUSED,
     COMPLETED,
-    OVERDUE,
+    ;
+
+    companion object {
+        fun fromRaw(raw: String?): MissionStatus {
+            return when (raw?.trim()?.uppercase(Locale.ROOT)) {
+                ACTIVE.name,
+                "IN_PROGRESS",
+                -> ACTIVE
+                INACTIVE.name,
+                "PENDING",
+                -> INACTIVE
+                PAUSED.name,
+                "OVERDUE",
+                -> PAUSED
+                COMPLETED.name -> COMPLETED
+                else -> ACTIVE
+            }
+        }
+    }
 }
 
 enum class MissionPriority {

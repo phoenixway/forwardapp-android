@@ -307,7 +307,7 @@ fun TacticalMissionSnapshot.toEntity(): TacticalMission = TacticalMission(
     description,
     startTime,
     deadline,
-    enumValueOf<MissionStatus>(status),
+    MissionStatus.fromRaw(status),
     enumValueOf<MissionPriority>(priority),
     projectId,
     linkedProjectIds,

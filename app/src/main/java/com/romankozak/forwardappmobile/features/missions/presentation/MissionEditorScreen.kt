@@ -34,6 +34,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -62,6 +63,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import java.text.SimpleDateFormat
 import java.util.*
@@ -75,12 +77,13 @@ fun MissionEditorScreen(
     attachmentOptions: List<AttachmentOption>,
     projectOptions: List<ProjectOption>,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, Long, List<String>, List<String>) -> Unit,
+    onConfirm: (String, String, Long, MissionStatus, List<String>, List<String>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var titleField by remember { mutableStateOf(mission.title) }
     var descField by remember { mutableStateOf(mission.description ?: "") }
     var deadlineLong by remember { mutableStateOf(mission.deadline) }
+    var statusField by remember { mutableStateOf(mission.status) }
     var showDeadlinePicker by remember { mutableStateOf(false) }
     var showAttachmentChooser by remember { mutableStateOf(false) }
     var showProjectChooser by remember { mutableStateOf(false) }
@@ -137,6 +140,7 @@ fun MissionEditorScreen(
                                     titleField,
                                     descField,
                                     deadlineLong,
+                                    statusField,
                                     projectLinks.toList(),
                                     attachmentLinks.toList(),
                                 )
@@ -327,6 +331,54 @@ fun MissionEditorScreen(
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.tertiary,
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Card(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .shadow(
+                                    elevation = 4.dp,
+                                    shape = RoundedCornerShape(20.dp),
+                                    spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                ),
+                        shape = RoundedCornerShape(20.dp),
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                            ),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Text(
+                                "Статус",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                listOf(MissionStatus.ACTIVE, MissionStatus.INACTIVE, MissionStatus.PAUSED).forEach { status ->
+                                    FilterChip(
+                                        selected = statusField == status,
+                                        onClick = { statusField = status },
+                                        label = {
+                                            Text(
+                                                when (status) {
+                                                    MissionStatus.ACTIVE -> "Активна"
+                                                    MissionStatus.INACTIVE -> "Неактивна"
+                                                    MissionStatus.PAUSED -> "На паузі"
+                                                    MissionStatus.COMPLETED -> "Завершена"
+                                                },
+                                            )
+                                        },
                                     )
                                 }
                             }

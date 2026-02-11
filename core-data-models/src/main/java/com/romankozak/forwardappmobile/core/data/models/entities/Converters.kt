@@ -124,7 +124,7 @@ class Converters {
 
     @TypeConverter
     fun toMissionStatus(status: String?): MissionStatus? {
-        return status?.let { MissionStatus.valueOf(it) }
+        return status?.let { MissionStatus.fromRaw(it) }
     }
 
     @TypeConverter
