@@ -506,24 +506,32 @@ class ContextScreenViewModel
 
     fun onForwardPressed() = onForwardPressed(contextIdFlow.value)
 
-    override fun onForwardPressed(id: String) = viewModelScope.launch { enhancedNavigationManager.navigateToProject(id, "Context") }
+    override fun onForwardPressed(id: String) {
+        viewModelScope.launch { enhancedNavigationManager.navigateToProject(id, "Context") }
+    }
 
-    override fun onHomeClick() = viewModelScope.launch { uiEventActions.tryEmit(topNavigationActions.homeEvent()) }
+    override fun onHomeClick() {
+        viewModelScope.launch { uiEventActions.tryEmit(topNavigationActions.homeEvent()) }
+    }
 
     fun deleteCurrentProject() = deleteCurrentProject(contextIdFlow.value)
 
-    override fun deleteCurrentProject(id: String) =
+    override fun deleteCurrentProject(id: String) {
         viewModelScope.launch {
             contextSettingsActions.deleteCurrentProject(id)
             uiEventActions.emit(UiEvent.NavigateBack)
         }
+    }
 
-        override fun showSnackbar(message: String, actionLabel: String?) =
+        override fun showSnackbar(message: String, actionLabel: String?) {
             viewModelScope.launch { uiEventActions.emit(UiEvent.ShowSnackbar(message, actionLabel)) }
+        }
 
         override fun showSnackbar(message: String) = showSnackbar(message, null)
 
-        override fun scrollToListEnd() = viewModelScope.launch { uiEventActions.tryEmit(UiEvent.ScrollToLatestInboxRecord) }
+        override fun scrollToListEnd() {
+            viewModelScope.launch { uiEventActions.tryEmit(UiEvent.ScrollToLatestInboxRecord) }
+        }
 
         override fun updateInputState(inputValue: TextFieldValue) = stateManager.setInputValue(inputValue)
 
@@ -588,7 +596,7 @@ class ContextScreenViewModel
             clipboard.setPrimaryClip(clip)
         }
 
-        override fun forceRefresh() =
+        override fun forceRefresh() {
             viewModelScope.launch {
                 stateManager.updateState {
                     it.copy(
@@ -597,6 +605,7 @@ class ContextScreenViewModel
                     )
                 }
             }
+        }
 
         override fun updateInputState(
             inputValue: TextFieldValue?,
@@ -638,7 +647,9 @@ class ContextScreenViewModel
 
         override fun createObsidianNote(noteName: String) = noteDocumentHandler.createObsidianNote(noteName)
 
-        override fun openUri(uri: String) = viewModelScope.launch { uiEventActions.tryEmit(UiEvent.OpenUri(uri)) }
+        override fun openUri(uri: String) {
+            viewModelScope.launch { uiEventActions.tryEmit(UiEvent.OpenUri(uri)) }
+        }
 
         override fun requestNavigation(route: String) {
             viewModelScope.launch {
