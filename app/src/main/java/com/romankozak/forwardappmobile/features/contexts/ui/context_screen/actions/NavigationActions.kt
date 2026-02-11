@@ -1,9 +1,11 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions
 
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.navigation.ContextRouteResolver
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
@@ -15,7 +17,10 @@ class NavigationActions(
     private val recentItemsRepository: RecentItemsRepository,
     private val settingsRepository: SettingsRepository,
     private val ioDispatcher: CoroutineDispatcher,
+    handleLinkClickRoute: String,
 ) {
+    private val routeResolver = ContextRouteResolver(handleLinkClickRoute)
+
     data class GoalDetailNavigation(
         val contextId: String,
         val contextName: String,
@@ -47,6 +52,60 @@ class NavigationActions(
         data object VaultNotConfigured : LinkItemClickResult()
 
         data class DelegateToUi(val link: RelatedLink) : LinkItemClickResult()
+    }
+
+    sealed class RouteOutcome {
+        data object NavigateBack : RouteOutcome()
+
+        data class NavigateToProject(
+            val contextId: String,
+            val contextName: String,
+        ) : RouteOutcome()
+
+        data class Navigate(val target: NavTarget) : RouteOutcome()
+
+        data class OpenUri(val uri: String) : RouteOutcome()
+
+        data class ShowMessage(val message: String) : RouteOutcome()
+
+        data class HandleExistingLink(val link: RelatedLink) : RouteOutcome()
+
+        data class UnknownRoute(val route: String) : RouteOutcome()
+    }
+
+    suspend fun resolveRoute(
+        route: String,
+        links: List<RelatedLink>,
+    ): RouteOutcome {
+        return when (val result = routeResolver.resolve(route)) {
+            is ContextRouteResolver.ResolveResult.Back -> RouteOutcome.NavigateBack
+
+            is ContextRouteResolver.ResolveResult.GoalDetail -> {
+                val goalDetail = resolveGoalDetail(result.contextId)
+                RouteOutcome.NavigateToProject(goalDetail.contextId, goalDetail.contextName)
+            }
+
+            is ContextRouteResolver.ResolveResult.HandleLinkClick -> {
+                when (val linkResult = resolveHandleLinkClick(result.rawTarget, links)) {
+                    is HandleLinkClickResult.ExistingLink -> RouteOutcome.HandleExistingLink(linkResult.link)
+                    is HandleLinkClickResult.OpenObsidianNote -> {
+                        when (val noteResult = resolveObsidianNoteOpen(linkResult.noteTarget)) {
+                            is OpenObsidianNoteResult.OpenUri -> RouteOutcome.OpenUri(noteResult.uri)
+                            is OpenObsidianNoteResult.VaultNotConfigured -> RouteOutcome.ShowMessage("Назву Obsidian сховища не встановлено.")
+                        }
+                    }
+
+                    is HandleLinkClickResult.OpenUri -> RouteOutcome.OpenUri(linkResult.uri)
+                    is HandleLinkClickResult.NavigateToContext ->
+                        RouteOutcome.NavigateToProject(linkResult.contextId, linkResult.contextName)
+                    is HandleLinkClickResult.UnknownTarget ->
+                        RouteOutcome.ShowMessage("Unknown link: ${linkResult.target}")
+                }
+            }
+
+            is ContextRouteResolver.ResolveResult.Navigate -> RouteOutcome.Navigate(result.target)
+            is ContextRouteResolver.ResolveResult.Unknown -> RouteOutcome.UnknownRoute(result.route)
+        }
     }
 
     suspend fun resolveHandleLinkClick(
