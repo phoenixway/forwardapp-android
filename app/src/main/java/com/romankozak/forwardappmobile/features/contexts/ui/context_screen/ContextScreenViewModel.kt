@@ -25,6 +25,11 @@ import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SearchUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.BacklogActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.BacklogItemActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.CreationActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.DirectionActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ListChooserActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ListChooserFlowActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.MarkdownActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.NavigationActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ReminderActions
@@ -210,6 +215,42 @@ class ContextScreenViewModel
                 listItemRepository = listItemRepository,
                 settingsRepository = settingsRepository,
                 application = application,
+            )
+        }
+        private val backlogItemActions by lazy {
+            BacklogItemActions(
+                goalRepository = goalRepository,
+                contextRepository = contextRepository,
+                noteDocumentRepository = noteDocumentRepository,
+                checklistRepository = checklistRepository,
+                noteRepository = noteRepository,
+                listItemRepository = listItemRepository,
+                dayManagementRepository = dayManagementRepository,
+                activityRepository = activityRepository,
+                contextTimeTrackingRepository = contextTimeTrackingRepository,
+            )
+        }
+        private val listChooserActions by lazy {
+            ListChooserActions(
+                goalRepository = goalRepository,
+                listItemRepository = listItemRepository,
+                contextRepository = contextRepository,
+            )
+        }
+        private val listChooserFlowActions by lazy {
+            ListChooserFlowActions(
+                contextRepository = contextRepository,
+                directionRepository = directionRepository,
+            )
+        }
+        private val directionActions by lazy {
+            DirectionActions(
+                directionRepository = directionRepository,
+            )
+        }
+        private val creationActions by lazy {
+            CreationActions(
+                noteDocumentRepository = noteDocumentRepository,
             )
         }
 
@@ -1012,17 +1053,8 @@ class ContextScreenViewModel
         }
 
         fun addCurrentProjectToDayPlan() {
-            val currentcontextId = contextIdFlow.value
-            if (currentcontextId.isBlank()) {
-                showSnackbar("Неможливо додати, проект не визначено", null)
-                return
-            }
-
             viewModelScope.launch {
-                val today = System.currentTimeMillis()
-                val dayPlan = dayManagementRepository.createOrUpdateDayPlan(today)
-                dayManagementRepository.addProjectToDayPlan(dayPlan.id, currentcontextId)
-                showSnackbar("Проект додано до плану на сьогодні", null)
+                showSnackbar(backlogItemActions.addCurrentProjectToDayPlan(contextIdFlow.value), null)
             }
         }
 
@@ -1033,38 +1065,22 @@ class ContextScreenViewModel
         fun onAddMilestone(text: String) = addMilestone(text)
 
         fun onShowCreateNoteDocumentDialog() {
-            val contextId = contextIdFlow.value
-            if (contextId.isNotBlank()) {
-                viewModelScope.launch {
-                    val documentId =
-                        noteDocumentRepository.createDocument(
-                            name = "Нова нотатка",
-                            contextId = contextId,
-                            content = "",
-                        )
-                    _uiEventFlow.tryEmit(
-                        UiEvent.Navigate(
-                            NavTarget.NoteDocument(id = documentId, startEdit = true),
-                        ),
-                    )
+            viewModelScope.launch {
+                when (val result = creationActions.createNoteDocument(contextIdFlow.value)) {
+                    is CreationActions.CreateNoteDocumentResult.Navigate ->
+                        _uiEventFlow.tryEmit(UiEvent.Navigate(result.target))
+                    is CreationActions.CreateNoteDocumentResult.Error ->
+                        showSnackbar(result.message, null)
                 }
-            } else {
-                showSnackbar("Не вдалося визначити проект для створення документа", null)
             }
         }
 
         fun onCreateChecklist() {
-            val contextId = contextIdFlow.value
-            if (contextId.isNotBlank()) {
-                viewModelScope.launch {
-                    _uiEventFlow.tryEmit(
-                        UiEvent.Navigate(
-                            NavTarget.Checklist(contextId = contextId),
-                        ),
-                    )
-                }
-            } else {
-                showSnackbar("Не вдалося визначити проект для створення чекліста", null)
+            when (val result = creationActions.createChecklist(contextIdFlow.value)) {
+                is CreationActions.CreateChecklistResult.Navigate ->
+                    viewModelScope.launch { _uiEventFlow.tryEmit(UiEvent.Navigate(result.target)) }
+                is CreationActions.CreateChecklistResult.Error ->
+                    showSnackbar(result.message, null)
             }
         }
 
@@ -1176,19 +1192,20 @@ class ContextScreenViewModel
             item: DirectionItemEntity,
             text: String,
         ) {
-            val trimmed = text.trim()
-            if (trimmed.isBlank()) {
-                showSnackbar("Напрямок не може бути порожнім.", null)
-                return
-            }
             viewModelScope.launch(ioDispatcher) {
-                directionRepository.updateDirectionItem(item.copy(text = trimmed))
+                directionActions
+                    .updateDirectionItemText(item, text)
+                    ?.let { errorMessage ->
+                        withContext(Dispatchers.Main) {
+                            showSnackbar(errorMessage, null)
+                        }
+                    }
             }
         }
 
         fun deleteDirectionItem(itemId: String) {
             viewModelScope.launch(ioDispatcher) {
-                directionRepository.deleteDirectionItem(itemId)
+                directionActions.deleteDirectionItem(itemId)
             }
         }
 
@@ -1217,17 +1234,20 @@ class ContextScreenViewModel
             itemId: String,
             linkedContextId: String?,
         ) {
-            val item = uiState.value.directionItems.firstOrNull { it.id == itemId } ?: return
             viewModelScope.launch(ioDispatcher) {
-                directionRepository.updateDirectionItem(item.copy(linkedContextId = linkedContextId))
+                directionActions.updateDirectionItemLink(uiState.value.directionItems, itemId, linkedContextId)
             }
         }
 
         fun openLinkedContext(contextId: String) {
             val currentId = contextIdFlow.value
-            if (contextId.isBlank() || contextId == currentId) {
-                showSnackbar("Це поточний контекст.", null)
-                return
+            when (val result = directionActions.resolveOpenLinkedContext(contextId, currentId)) {
+                is DirectionActions.OpenLinkedContextResult.Error -> {
+                    showSnackbar(result.message, null)
+                    return
+                }
+
+                is DirectionActions.OpenLinkedContextResult.Navigate -> Unit
             }
             if (isLinkedNavigationInProgress) return
             isLinkedNavigationInProgress = true
@@ -1264,22 +1284,14 @@ class ContextScreenViewModel
             from: Int,
             to: Int,
         ) {
-            val current = uiState.value.directionItems
-            if (from !in current.indices || to !in current.indices || from == to) return
-
-            val mutable = current.toMutableList()
-            val moved = mutable.removeAt(from)
-            mutable.add(to, moved)
-
-            val reordered =
-                mutable.mapIndexed { index, item ->
-                    val newOrder = index + 1
-                    if (item.itemOrder != newOrder) item.copy(itemOrder = newOrder) else item
-                }
-
-            stateManager.updateState { it.copy(directionItems = reordered) }
             viewModelScope.launch(ioDispatcher) {
-                directionRepository.updateAll(reordered)
+                directionActions
+                    .reorderDirectionItems(uiState.value.directionItems, from, to)
+                    ?.let { reordered ->
+                        withContext(Dispatchers.Main) {
+                            stateManager.updateState { it.copy(directionItems = reordered) }
+                        }
+                    }
             }
         }
 
@@ -1288,41 +1300,15 @@ class ContextScreenViewModel
             completed: Boolean,
         ) {
             viewModelScope.launch {
-                contextRepository.updateContext(subproject.copy(isCompleted = completed))
+                backlogItemActions.updateSubprojectCompleted(subproject, completed)
                 forceRefresh()
             }
         }
 
         fun onDeleteEverywhere(item: BacklogItemContent) {
             viewModelScope.launch {
-                when (item) {
-                    is BacklogItemContent.GoalItem -> {
-                        goalRepository.deleteGoal(item.goal.id)
-                        showSnackbar("Ціль видалено", null)
-                    }
-                    is BacklogItemContent.SublistItem -> {
-                        contextRepository.deleteContextsAndSubContexts(listOf(item.project))
-                        showSnackbar("Підконтекст видалено", null)
-                    }
-                    is BacklogItemContent.NoteDocumentItem -> {
-                        noteDocumentRepository.deleteDocument(item.document.id)
-                        showSnackbar("Документ видалено", null)
-                    }
-                    is BacklogItemContent.ChecklistItem -> {
-                        checklistRepository.deleteChecklist(item.checklist.id)
-                        showSnackbar("Чекліст видалено", null)
-                    }
-                    is BacklogItemContent.NoteItem -> {
-                        noteRepository.deleteNote(item.note.id)
-                        showSnackbar("Нотатку видалено", null)
-                    }
-                    is BacklogItemContent.LinkItem -> {
-                        // Prefer deleting the attachment root if present; otherwise remove all list bindings for this link entity.
-                        contextRepository.deleteAttachmentEverywhere(item.backlogItem.id)
-                        listItemRepository.deleteItemByEntityId(item.link.id)
-                        showSnackbar("Посилання видалено", null)
-                    }
-                }
+                val message = backlogItemActions.deleteEverywhere(item)
+                showSnackbar(message, null)
                 forceRefresh()
             }
         }
@@ -1335,30 +1321,13 @@ class ContextScreenViewModel
 
         fun addItemToDailyPlan(item: BacklogItemContent) {
             viewModelScope.launch {
-                val day = dayManagementRepository.createOrUpdateDayPlan(System.currentTimeMillis())
-                when (item) {
-                    is BacklogItemContent.GoalItem -> dayManagementRepository.addGoalToDayPlan(day.id, item.goal.id)
-                    is BacklogItemContent.SublistItem -> dayManagementRepository.addProjectToDayPlan(day.id, item.project.id)
-                    else -> {
-                        showSnackbar("Цей тип елемента не можна додати в план дня", null)
-                        return@launch
-                    }
-                }
-                showSnackbar("Додано в план дня", null)
+                showSnackbar(backlogItemActions.addItemToDailyPlan(item), null)
             }
         }
 
         fun onStartTrackingRequest(item: BacklogItemContent) {
             viewModelScope.launch {
-                when (item) {
-                    is BacklogItemContent.GoalItem -> activityRepository.startGoalActivity(item.goal.id)
-                    is BacklogItemContent.SublistItem -> activityRepository.startContextActivity(item.project.id)
-                    else -> {
-                        showSnackbar("Для цього типу елемента трекінг недоступний", null)
-                        return@launch
-                    }
-                }
-                showSnackbar("Трекінг розпочато", null)
+                showSnackbar(backlogItemActions.startTracking(item), null)
             }
         }
 
@@ -1367,15 +1336,14 @@ class ContextScreenViewModel
             statusText: String?,
         ) {
             viewModelScope.launch {
-                contextRepository.updateContextStatus(contextIdFlow.value, newStatus, statusText)
+                backlogItemActions.updateProjectStatus(contextIdFlow.value, newStatus, statusText)
             }
         }
 
         fun onRecalculateTime() {
             viewModelScope.launch {
-                val metrics = contextTimeTrackingRepository.calculateContextTimeMetrics(contextIdFlow.value)
+                val metrics = backlogItemActions.recalculateTime(contextIdFlow.value)
                 stateManager.updateState { it.copy(contextTimeMetrics = metrics) }
-                contextRepository.recalculateAndLogContextTime(contextIdFlow.value)
             }
         }
 
@@ -1397,13 +1365,40 @@ class ContextScreenViewModel
             if (pendingDirectionAdd) {
                 pendingAddDirectionFromContextChooser = false
                 savedStateHandle.remove<Boolean>("pendingAddDirectionFromContextChooser")
-                addDirectionLinkedToContext(targetcontextId)
+                viewModelScope.launch(ioDispatcher) {
+                    val result =
+                        listChooserFlowActions.addDirectionLinkedToContext(
+                            targetContextId = targetcontextId,
+                            currentContextId = contextIdFlow.value,
+                        )
+                    result.errorMessage?.let { message ->
+                        withContext(Dispatchers.Main) {
+                            showSnackbar(message, null)
+                        }
+                    }
+                }
                 return
             }
 
             pendingAttachmentShare?.let { attachment ->
                 pendingAttachmentShare = null
-                shareAttachmentToProject(attachment, targetcontextId)
+                viewModelScope.launch(ioDispatcher) {
+                    val result =
+                        listChooserFlowActions.shareAttachmentToProject(
+                            attachment = attachment,
+                            targetContextId = targetcontextId,
+                            currentContextId = contextIdFlow.value,
+                        )
+                    withContext(Dispatchers.Main) {
+                        result.newlyAddedItemId?.let { newItemId ->
+                            stateManager.updateState { it.copy(newlyAddedItemId = newItemId) }
+                        }
+                        if (result.shouldRefreshCurrentContext) {
+                            forceRefresh()
+                        }
+                        showSnackbar(result.message, null)
+                    }
+                }
                 return
             }
 
@@ -1418,116 +1413,25 @@ class ContextScreenViewModel
             val goalIds = savedStateHandle.get<List<String>>("pendingSourceGoalIds") ?: emptyList()
 
             viewModelScope.launch(ioDispatcher) { // Use ioDispatcher for repository operations
-                when (actionType) {
-                    GoalActionType.CreateInstance -> goalRepository.createGoalLinks(goalIds, targetcontextId)
-
-                    GoalActionType.MoveInstance -> listItemRepository.moveListItemsToContext(itemIds, targetcontextId)
-                    GoalActionType.CopyGoal -> goalRepository.copyGoalsToContext(goalIds, targetcontextId)
-                    GoalActionType.AddLinkToList -> {
-                        val targetProject = contextRepository.getContextById(targetcontextId)
-                        val link =
-                            RelatedLink(
-                                type = LinkType.CONTEXT,
-                                target = targetcontextId,
-                                displayName = targetProject?.name ?: "Untitled context",
-                            )
-                        val newItemId = contextRepository.addLinkItemToContextFromLink(contextIdFlow.value, link)
-                        withContext(Dispatchers.Main) {
-                            stateManager.updateState { it.copy(newlyAddedItemId = newItemId) }
-                        }
+                val result =
+                    listChooserActions.executePendingAction(
+                        actionType = actionType,
+                        targetContextId = targetcontextId,
+                        currentContextId = contextIdFlow.value,
+                        itemIds = itemIds,
+                        goalIds = goalIds,
+                    )
+                withContext(Dispatchers.Main) {
+                    result.newlyAddedItemId?.let { newItemId ->
+                        stateManager.updateState { it.copy(newlyAddedItemId = newItemId) }
                     }
-
-                    GoalActionType.ADD_LIST_SHORTCUT -> {
-                        if (goalIds.isNotEmpty()) {
-                            val subprojectToLinkId = goalIds.first()
-                            val newItemId =
-                                listItemRepository.addContextLinkToContext(subprojectToLinkId, targetcontextId)
-                            withContext(Dispatchers.Main) {
-                                stateManager.updateState { it.copy(newlyAddedItemId = newItemId) }
-                            }
-                        } else {
-                            val newItemId =
-                                listItemRepository.addContextLinkToContext(targetcontextId, contextIdFlow.value)
-                            withContext(Dispatchers.Main) {
-                                stateManager.updateState { it.copy(newlyAddedItemId = newItemId) }
-                            }
-                        }
-                    }
+                    forceRefresh()
                 }
-                withContext(Dispatchers.Main) { forceRefresh() }
             }
             savedStateHandle.remove<String>("pendingAction")
             savedStateHandle.remove<List<String>>("pendingSourceItemIds")
             savedStateHandle.remove<List<String>>("pendingSourceGoalIds")
             selectionHandler.clearSelection()
-        }
-
-        private fun addDirectionLinkedToContext(targetcontextId: String) {
-            val linkedContextId = targetcontextId.takeIf { it.isNotBlank() && it != "root" }
-            if (linkedContextId == null) {
-                showSnackbar("Оберіть контекст для напрямку.", null)
-                return
-            }
-            viewModelScope.launch(ioDispatcher) {
-                val linkedContextName =
-                    contextRepository.getContextById(linkedContextId)?.name?.takeIf { it.isNotBlank() }
-                        ?: "Context"
-                directionRepository.addDirectionItem(
-                    contextId = contextIdFlow.value,
-                    text = linkedContextName,
-                    linkedContextId = linkedContextId,
-                )
-            }
-        }
-
-        private fun shareAttachmentToProject(
-            attachment: BacklogItemContent,
-            targetcontextId: String,
-        ) {
-            viewModelScope.launch(ioDispatcher) { // Use ioDispatcher for repository operations
-                val isAttachmentSupported =
-                    attachment is BacklogItemContent.LinkItem ||
-                        attachment is BacklogItemContent.NoteDocumentItem ||
-                        attachment is BacklogItemContent.ChecklistItem
-                if (!isAttachmentSupported) {
-                    withContext(Dispatchers.Main) {
-                        showSnackbar("This attachment type does not support copying", null)
-                    }
-                    return@launch
-                }
-
-                val itemType = attachment.backlogItem.itemType
-                val entityId = attachment.backlogItem.entityId
-
-                if (itemType == null || entityId == null) {
-                    withContext(Dispatchers.Main) {
-                        showSnackbar("Cannot share corrupt attachment", null)
-                    }
-                    return@launch
-                }
-
-                val attachmentId =
-                    try {
-                        contextRepository.ensureAttachmentLinkedToContext(
-                            attachmentType = itemType,
-                            entityId = entityId,
-                            targetContextId = targetcontextId,
-                            ownerContextId = attachment.backlogItem.contextId.takeIf { it.isNotBlank() } ?: contextIdFlow.value,
-                        )
-                        attachment.backlogItem.entityId
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Failed to link attachment", e)
-                        null
-                    }
-
-                withContext(Dispatchers.Main) {
-                    if (targetcontextId == contextIdFlow.value && attachmentId != null) {
-                        stateManager.updateState { it.copy(newlyAddedItemId = attachmentId) }
-                        forceRefresh()
-                    }
-                    showSnackbar("Attachment added to selected context", null)
-                }
-            }
         }
 
         fun onScrolledToNewItem() {
