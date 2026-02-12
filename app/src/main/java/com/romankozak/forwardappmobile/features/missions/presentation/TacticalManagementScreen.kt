@@ -8,6 +8,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
@@ -15,6 +19,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -208,13 +214,16 @@ fun TacticalManagementScreen(
                 )
                 HorizontalDivider()
                 MissionActionSheetItem(
+                    icon = Icons.Outlined.Edit,
                     text = "Редагувати",
                     onClick = {
                         editingMission = mission
                         actionMenuMission = null
                     },
                 )
+                SubtleActionDivider()
                 MissionActionSheetItem(
+                    icon = Icons.Outlined.CheckCircle,
                     text = if (mission.status == MissionStatus.COMPLETED) "Позначити невиконаною" else "Позначити виконаною",
                     onClick = {
                         val nextStatus =
@@ -227,14 +236,19 @@ fun TacticalManagementScreen(
                         actionMenuMission = null
                     },
                 )
+                SubtleActionDivider()
                 MissionActionSheetItem(
+                    icon = Icons.Outlined.DeleteOutline,
                     text = "Видалити",
+                    textColor = MaterialTheme.colorScheme.error,
                     onClick = {
                         viewModel.deleteMission(mission.id)
                         actionMenuMission = null
                     },
                 )
+                SubtleActionDivider()
                 MissionActionSheetItem(
+                    icon = Icons.Outlined.Close,
                     text = "Скасувати",
                     onClick = { actionMenuMission = null },
                 )
@@ -381,17 +395,39 @@ fun AddMissionDialog(
 
 @Composable
 private fun MissionActionSheetItem(
+    icon: ImageVector,
     text: String,
+    textColor: Color = MaterialTheme.colorScheme.onSurface,
     onClick: () -> Unit,
 ) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodyLarge,
+    Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
                 .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = textColor.copy(alpha = 0.9f),
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge,
+            color = textColor,
+        )
+    }
+}
+
+@Composable
+private fun SubtleActionDivider() {
+    HorizontalDivider(
+        thickness = 0.5.dp,
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.22f),
     )
 }
 

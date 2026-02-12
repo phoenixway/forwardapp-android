@@ -118,11 +118,12 @@ fun UnifiedTrailingActionButton(
     icon: ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
     IconButton(
         onClick = onClick,
-        modifier = Modifier.size(UnifiedListItemTokens.ActionButtonSize),
+        modifier = modifier.size(UnifiedListItemTokens.ActionButtonSize),
     ) {
         Icon(
             imageVector = icon,

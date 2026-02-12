@@ -200,7 +200,6 @@ fun TacticalMissionCard(
                     }
                 },
                 style = UnifiedCheckboxStyle.Round,
-                modifier = checkboxDragHandleModifier,
                 checkedColor = MaterialTheme.colorScheme.primary,
                 uncheckedBorderColor = onSurface.copy(alpha = 0.7f),
             )
@@ -316,6 +315,7 @@ fun TacticalMissionCard(
                         icon = Icons.Default.MoreVert,
                         contentDescription = "Дії",
                         onClick = onMissionMoreClick,
+                        modifier = checkboxDragHandleModifier,
                         tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
                     )
                 }
