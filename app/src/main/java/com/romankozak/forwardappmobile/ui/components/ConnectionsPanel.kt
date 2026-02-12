@@ -25,8 +25,6 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
@@ -50,6 +48,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.ui.components.connectionspanel.ConnectionsAddActionsDialog
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -83,7 +82,7 @@ fun ConnectionsPanel(
     modifier: Modifier = Modifier,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
-    var addMenuExpanded by remember { mutableStateOf(false) }
+    var showAddActionsDialog by remember { mutableStateOf(false) }
     var internalItems by remember { mutableStateOf(items) }
     val lazyListState = rememberLazyListState()
     val reorderableState =
@@ -119,43 +118,10 @@ fun ConnectionsPanel(
 
             Box {
                 FilledTonalIconButton(
-                    onClick = { addMenuExpanded = true },
+                    onClick = { showAddActionsDialog = true },
                     shape = RoundedCornerShape(12.dp),
                 ) {
                     Icon(imageVector = Icons.Filled.Add, contentDescription = "Додати зв'язок")
-                }
-                DropdownMenu(
-                    expanded = addMenuExpanded,
-                    onDismissRequest = { addMenuExpanded = false },
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Контекст") },
-                        onClick = {
-                            addMenuExpanded = false
-                            onAddConnection(AddConnectionType.CONTEXT)
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Вкладення") },
-                        onClick = {
-                            addMenuExpanded = false
-                            onAddConnection(AddConnectionType.ATTACHMENT)
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Зовнішнє посилання") },
-                        onClick = {
-                            addMenuExpanded = false
-                            onAddConnection(AddConnectionType.EXTERNAL_LINK)
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Obsidian note") },
-                        onClick = {
-                            addMenuExpanded = false
-                            onAddConnection(AddConnectionType.OBSIDIAN_NOTE)
-                        },
-                    )
                 }
             }
         }
@@ -200,6 +166,16 @@ fun ConnectionsPanel(
                 }
             }
         }
+    }
+
+    if (showAddActionsDialog) {
+        ConnectionsAddActionsDialog(
+            onDismiss = { showAddActionsDialog = false },
+            onActionSelected = { type ->
+                showAddActionsDialog = false
+                onAddConnection(type)
+            },
+        )
     }
 }
 
