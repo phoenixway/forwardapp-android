@@ -356,6 +356,16 @@ fun TacticalManagementScreen(
         )
     }
 
+    if (showAddObsidianDialog) {
+        TacticalAddObsidianDialog(
+            onDismiss = { showAddObsidianDialog = false },
+            onConfirm = { noteName, displayName ->
+                viewModel.addBoardObsidianLink(noteName, displayName)
+                showAddObsidianDialog = false
+            },
+        )
+    }
+
 }
 
 @Composable
@@ -407,15 +417,6 @@ private fun MissionActionSheetItem(
         )
     }
 
-    if (showAddObsidianDialog) {
-        TacticalAddObsidianDialog(
-            onDismiss = { showAddObsidianDialog = false },
-            onConfirm = { noteName, displayName ->
-                viewModel.addBoardObsidianLink(noteName, displayName)
-                showAddObsidianDialog = false
-            },
-        )
-    }
 }
 
 @Composable
