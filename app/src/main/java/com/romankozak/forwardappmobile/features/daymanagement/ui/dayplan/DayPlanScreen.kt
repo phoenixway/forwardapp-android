@@ -38,6 +38,7 @@ import androidx.navigation.NavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
+import com.romankozak.forwardappmobile.features.attachments.ui.AddObsidianLinkDialog
 import com.romankozak.forwardappmobile.features.attachments.ui.AddWebLinkDialog
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.AddTaskDialog
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.TaskList
@@ -126,6 +127,7 @@ fun DayPlanScreen(
     var showProjectChooser by remember { mutableStateOf(false) }
     var showAttachmentChooser by remember { mutableStateOf(false) }
     var showAddUrlDialog by remember { mutableStateOf(false) }
+    var showAddObsidianDialog by remember { mutableStateOf(false) }
     val taskToDelete by viewModel.showDeleteConfirmationDialog.collectAsState()
     val taskToEdit by viewModel.showEditConfirmationDialog.collectAsState()
 
@@ -291,6 +293,7 @@ fun DayPlanScreen(
         onAddContextClick = { showProjectChooser = true },
         onAddAttachmentClick = { showAttachmentChooser = true },
         onAddExternalClick = { showAddUrlDialog = true },
+        onAddObsidianClick = { showAddObsidianDialog = true },
         onContextClick = { contextId ->
             navController.navigate("goal_detail_screen/$contextId")
         },
@@ -356,6 +359,16 @@ fun DayPlanScreen(
             onConfirm = { url, name ->
                 viewModel.addPlanExternalLink(url, name)
                 showAddUrlDialog = false
+            },
+        )
+    }
+
+    if (showAddObsidianDialog) {
+        AddObsidianLinkDialog(
+            onDismiss = { showAddObsidianDialog = false },
+            onConfirm = { noteName, displayName ->
+                viewModel.addPlanObsidianLink(noteName, displayName)
+                showAddObsidianDialog = false
             },
         )
     }

@@ -27,6 +27,7 @@ fun TacticalScopeLinksSheet(
     onAddContextClick: () -> Unit,
     onAddAttachmentClick: () -> Unit,
     onAddExternalClick: () -> Unit,
+    onAddObsidianClick: () -> Unit,
     onContextClick: (String) -> Unit,
     onAttachmentClick: (String) -> Unit,
     onContextRemove: (String) -> Unit,
@@ -113,6 +114,7 @@ fun TacticalScopeLinksSheet(
                     AddConnectionType.CONTEXT -> onAddContextClick()
                     AddConnectionType.ATTACHMENT -> onAddAttachmentClick()
                     AddConnectionType.EXTERNAL_LINK -> onAddExternalClick()
+                    AddConnectionType.OBSIDIAN_NOTE -> onAddObsidianClick()
                 }
             },
         )

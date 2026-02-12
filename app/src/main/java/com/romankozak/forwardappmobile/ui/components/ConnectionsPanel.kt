@@ -14,10 +14,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.AttachFile
@@ -35,6 +35,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,9 +45,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.longPressDraggableHandle
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 enum class ConnectionType {
     CONTEXT,
@@ -59,6 +65,7 @@ enum class AddConnectionType {
     CONTEXT,
     ATTACHMENT,
     EXTERNAL_LINK,
+    OBSIDIAN_NOTE,
 }
 
 data class ConnectionItemUi(
@@ -75,7 +82,22 @@ fun ConnectionsPanel(
     onAddConnection: (AddConnectionType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val hapticFeedback = LocalHapticFeedback.current
     var addMenuExpanded by remember { mutableStateOf(false) }
+    var internalItems by remember { mutableStateOf(items) }
+    val lazyListState = rememberLazyListState()
+    val reorderableState =
+        rememberReorderableLazyListState(lazyListState) { from, to ->
+            internalItems =
+                internalItems.toMutableList().apply {
+                    add(to.index, removeAt(from.index))
+                }
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+
+    LaunchedEffect(items) {
+        internalItems = items
+    }
 
     Column(
         modifier =
@@ -126,6 +148,13 @@ fun ConnectionsPanel(
                             onAddConnection(AddConnectionType.EXTERNAL_LINK)
                         },
                     )
+                    DropdownMenuItem(
+                        text = { Text("Obsidian note") },
+                        onClick = {
+                            addMenuExpanded = false
+                            onAddConnection(AddConnectionType.OBSIDIAN_NOTE)
+                        },
+                    )
                 }
             }
         }
@@ -134,11 +163,11 @@ fun ConnectionsPanel(
 
         ElevatedCard(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp),
+            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
             shape = RoundedCornerShape(16.dp),
         ) {
-            if (items.isEmpty()) {
+            if (internalItems.isEmpty()) {
                 Text(
                     text = "Поки немає зв'язків. Додай перший через +",
                     style = MaterialTheme.typography.bodyMedium,
@@ -146,13 +175,26 @@ fun ConnectionsPanel(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
                 )
             } else {
-                LazyColumn(modifier = Modifier.heightIn(max = 440.dp)) {
-                    items(items, key = { "${it.type}-${it.id}" }) { item ->
-                        ConnectionRow(
-                            item = item,
-                            onOpen = { onConnectionClick(item) },
-                            onRemove = { onConnectionRemove(item) },
-                        )
+                LazyColumn(
+                    state = lazyListState,
+                    modifier = Modifier.heightIn(max = 440.dp),
+                ) {
+                    items(internalItems, key = { "${it.type}-${it.id}" }) { item ->
+                        ReorderableItem(reorderableState, key = "${item.type}-${item.id}") {
+                            ConnectionRow(
+                                item = item,
+                                onOpen = { onConnectionClick(item) },
+                                onRemove = { onConnectionRemove(item) },
+                                typeIconModifier =
+                                    with(this@ReorderableItem) {
+                                        Modifier.longPressDraggableHandle(
+                                            onDragStarted = {
+                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            },
+                                        )
+                                    },
+                            )
+                        }
                     }
                 }
             }
@@ -165,6 +207,7 @@ private fun ConnectionRow(
     item: ConnectionItemUi,
     onOpen: () -> Unit,
     onRemove: () -> Unit,
+    typeIconModifier: Modifier = Modifier,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -176,7 +219,7 @@ private fun ConnectionRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            TypeIcon(type = item.type)
+            TypeIcon(type = item.type, modifier = typeIconModifier)
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = item.title,
@@ -189,13 +232,6 @@ private fun ConnectionRow(
                     text = item.type.label,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            IconButton(onClick = onOpen) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
-                    contentDescription = "Відкрити",
-                    tint = MaterialTheme.colorScheme.primary,
                 )
             }
             IconButton(onClick = onRemove) {
@@ -214,10 +250,13 @@ private fun ConnectionRow(
 }
 
 @Composable
-private fun TypeIcon(type: ConnectionType) {
+private fun TypeIcon(
+    type: ConnectionType,
+    modifier: Modifier = Modifier,
+) {
     Box(
         modifier =
-            Modifier
+            modifier
                 .size(28.dp)
                 .clip(CircleShape)
                 .background(type.tint.copy(alpha = 0.18f)),

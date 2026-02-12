@@ -30,6 +30,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.tactical.Missio
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.features.missions.presentation.missionlist.TacticalMissionList
 import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.TacticalScopeLinksSheet
+import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.dialogs.TacticalAddObsidianDialog
 import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.dialogs.TacticalAddUrlDialog
 import java.text.SimpleDateFormat
 import java.util.*
@@ -53,6 +54,7 @@ fun TacticalManagementScreen(
     var showProjectChooser by remember { mutableStateOf(false) }
     var showAttachmentChooser by remember { mutableStateOf(false) }
     var showAddUrlDialog by remember { mutableStateOf(false) }
+    var showAddObsidianDialog by remember { mutableStateOf(false) }
     var selectedMissionIds by remember { mutableStateOf(setOf<Long>()) }
     var statusMenuExpanded by remember { mutableStateOf(false) }
     val selectionMode = selectedMissionIds.isNotEmpty()
@@ -268,6 +270,7 @@ fun TacticalManagementScreen(
         onAddContextClick = { showProjectChooser = true },
         onAddAttachmentClick = { showAttachmentChooser = true },
         onAddExternalClick = { showAddUrlDialog = true },
+        onAddObsidianClick = { showAddObsidianDialog = true },
         onContextClick = onLinkedProjectClick,
         onAttachmentClick = onLinkedAttachmentClick,
         onContextRemove = viewModel::removeBoardProjectLink,
@@ -401,6 +404,16 @@ private fun MissionActionSheetItem(
             text = text,
             style = MaterialTheme.typography.bodyLarge,
             color = textColor,
+        )
+    }
+
+    if (showAddObsidianDialog) {
+        TacticalAddObsidianDialog(
+            onDismiss = { showAddObsidianDialog = false },
+            onConfirm = { noteName, displayName ->
+                viewModel.addBoardObsidianLink(noteName, displayName)
+                showAddObsidianDialog = false
+            },
         )
     }
 }

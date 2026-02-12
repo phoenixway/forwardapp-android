@@ -315,6 +315,23 @@ class DayPlanViewModel
             }
         }
 
+        fun addPlanObsidianLink(
+            noteName: String,
+            displayName: String,
+        ) {
+            val target = noteName.trim()
+            if (target.isBlank()) return
+            val display = displayName.trim().ifBlank { target }
+            viewModelScope.launch(Dispatchers.IO) {
+                val attachmentId =
+                    attachmentsRepository.createLinkAttachment(
+                        contextId = SystemContexts.TODAY.raw,
+                        link = RelatedLink(type = LinkType.OBSIDIAN, target = target, displayName = display),
+                    )
+                scopeLinksHandler.addPlanAttachmentLink(attachmentId)
+            }
+        }
+
         fun removePlanAttachmentLink(attachmentId: String) {
             scopeLinksHandler.removePlanAttachmentLink(attachmentId)
         }

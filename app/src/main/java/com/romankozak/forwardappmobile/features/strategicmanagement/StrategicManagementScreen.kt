@@ -28,6 +28,7 @@ import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.navigation.routes.MAIN_GRAPH_ROUTE
+import com.romankozak.forwardappmobile.features.attachments.ui.AddObsidianLinkDialog
 import com.romankozak.forwardappmobile.features.attachments.ui.AddWebLinkDialog
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
@@ -59,6 +60,7 @@ fun StrategicManagementScreen(
     val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsState()
     var showAttachmentChooser by remember { mutableStateOf(false) }
     var showAddUrlDialog by remember { mutableStateOf(false) }
+    var showAddObsidianDialog by remember { mutableStateOf(false) }
     val mainScreenViewModel: ContextHierarchyScreenViewModel =
         hiltViewModel(remember(navController.currentBackStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) })
 
@@ -196,6 +198,7 @@ fun StrategicManagementScreen(
                         }
                         AddConnectionType.ATTACHMENT -> showAttachmentChooser = true
                         AddConnectionType.EXTERNAL_LINK -> showAddUrlDialog = true
+                        AddConnectionType.OBSIDIAN_NOTE -> showAddObsidianDialog = true
                     }
                 },
             )
@@ -221,6 +224,16 @@ fun StrategicManagementScreen(
             onConfirm = { url, name ->
                 viewModel.addUrlLink(url, name)
                 showAddUrlDialog = false
+            },
+        )
+    }
+
+    if (showAddObsidianDialog) {
+        AddObsidianLinkDialog(
+            onDismiss = { showAddObsidianDialog = false },
+            onConfirm = { noteName, displayName ->
+                viewModel.addObsidianLink(noteName, displayName)
+                showAddObsidianDialog = false
             },
         )
     }
