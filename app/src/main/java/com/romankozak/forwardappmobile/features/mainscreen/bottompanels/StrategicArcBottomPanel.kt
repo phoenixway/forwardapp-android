@@ -24,6 +24,7 @@ import com.romankozak.forwardappmobile.features.mainscreen.StrategicArcViewModel
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
+import java.net.URLEncoder
 
 @Composable
 fun StrategicArcBottomPanel(
@@ -56,6 +57,7 @@ fun StrategicArcBottomPanel(
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
     val isScopeLinksSheetVisible by strategicArcViewModel.isScopeLinksSheetVisible.collectAsState()
+    val uiState by strategicArcViewModel.uiState.collectAsState()
 
     CommonBottomPanelLayout {
         Box(
@@ -104,7 +106,17 @@ fun StrategicArcBottomPanel(
                 onLeadingClick = strategicArcViewModel::toggleScopeLinksSheet,
                 quickActionIcon = Icons.Outlined.Add,
                 quickActionLabel = "Додати посилання",
-                onQuickActionClick = strategicArcViewModel::toggleScopeLinksSheet,
+                onQuickActionClick = {
+                    val disabledIds = uiState.projects.joinToString(",") { it.id }
+                    val title = URLEncoder.encode("Додати стратегічну арку", "UTF-8")
+                    val route =
+                        if (disabledIds.isBlank()) {
+                            "list_chooser_screen/$title"
+                        } else {
+                            "list_chooser_screen/$title?disabledIds=$disabledIds"
+                        }
+                    navController.navigate(route)
+                },
                 recentViewModel = recentViewModel,
             )
         }

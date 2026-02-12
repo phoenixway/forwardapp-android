@@ -24,6 +24,7 @@ import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.features.strategicmanagement.StrategicManagementViewModel
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
+import java.net.URLEncoder
 
 @Composable
 fun StrategyBottomPanel(
@@ -56,6 +57,7 @@ fun StrategyBottomPanel(
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
     val isScopeLinksSheetVisible by strategicManagementViewModel.isScopeLinksSheetVisible.collectAsState()
+    val uiState by strategicManagementViewModel.uiState.collectAsState()
 
     CommonBottomPanelLayout {
         Box(
@@ -105,7 +107,17 @@ fun StrategyBottomPanel(
                 onLeadingClick = strategicManagementViewModel::toggleScopeLinksSheet,
                 quickActionIcon = Icons.Outlined.Add,
                 quickActionLabel = "Додати посилання",
-                onQuickActionClick = strategicManagementViewModel::toggleScopeLinksSheet,
+                onQuickActionClick = {
+                    val disabledIds = uiState.dashboardProjects.joinToString(",") { it.id }
+                    val title = URLEncoder.encode("Додати стратегічний контекст", "UTF-8")
+                    val route =
+                        if (disabledIds.isBlank()) {
+                            "list_chooser_screen/$title"
+                        } else {
+                            "list_chooser_screen/$title?disabledIds=$disabledIds"
+                        }
+                    navController.navigate(route)
+                },
                 recentViewModel = recentViewModel,
             )
         }
