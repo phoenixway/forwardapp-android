@@ -44,6 +44,8 @@ import com.romankozak.forwardappmobile.ui.components.ConnectionItemUi
 import com.romankozak.forwardappmobile.ui.components.ConnectionType
 import com.romankozak.forwardappmobile.ui.components.ConnectionsPanel
 import com.romankozak.forwardappmobile.ui.components.ContextLinkList
+import com.romankozak.forwardappmobile.ui.components.orderToken
+import com.romankozak.forwardappmobile.ui.components.sortConnectionsByOrder
 import com.romankozak.forwardappmobile.ui.screens.common.ProjectListItem
 import java.net.URLEncoder
 
@@ -57,6 +59,7 @@ fun StrategicManagementScreen(
     val uiState by viewModel.uiState.collectAsState()
     val attachmentOptions by viewModel.attachmentOptions.collectAsState()
     val linkedAttachmentIds by viewModel.linkedAttachmentIds.collectAsState()
+    val connectionsOrder by viewModel.connectionsOrder.collectAsState()
     val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsState()
     var showAttachmentChooser by remember { mutableStateOf(false) }
     var showAddUrlDialog by remember { mutableStateOf(false) }
@@ -158,10 +161,11 @@ fun StrategicManagementScreen(
                     },
                 )
             }
+        val sortedItems = sortConnectionsByOrder(items, connectionsOrder)
 
         ModalBottomSheet(onDismissRequest = viewModel::dismissScopeLinksSheet) {
             ConnectionsPanel(
-                items = items,
+                items = sortedItems,
                 onConnectionClick = { item ->
                     if (item.type == ConnectionType.CONTEXT) {
                         navController.navigate("goal_detail_screen/${item.id}")
@@ -200,6 +204,9 @@ fun StrategicManagementScreen(
                         AddConnectionType.EXTERNAL_LINK -> showAddUrlDialog = true
                         AddConnectionType.OBSIDIAN_NOTE -> showAddObsidianDialog = true
                     }
+                },
+                onConnectionsReordered = { reordered ->
+                    viewModel.updateConnectionsOrder(reordered.map { it.orderToken() })
                 },
             )
             Spacer(modifier = Modifier.height(12.dp))

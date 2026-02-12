@@ -32,6 +32,7 @@ import com.romankozak.forwardappmobile.features.missions.presentation.missionlis
 import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.TacticalScopeLinksSheet
 import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.dialogs.TacticalAddObsidianDialog
 import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.dialogs.TacticalAddUrlDialog
+import com.romankozak.forwardappmobile.ui.components.orderToken
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -47,6 +48,7 @@ fun TacticalManagementScreen(
     val projectOptions by viewModel.projectOptions.collectAsState()
     val boardLinkedProjectIds by viewModel.boardLinkedProjectIds.collectAsState()
     val boardLinkedAttachmentIds by viewModel.boardLinkedAttachmentIds.collectAsState()
+    val connectionsOrder by viewModel.connectionsOrder.collectAsState()
     val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsState()
     val showAddDialog by viewModel.isAddMissionDialogOpen.collectAsState()
     var editingMission by remember { mutableStateOf<TacticalMission?>(null) }
@@ -275,6 +277,10 @@ fun TacticalManagementScreen(
         onAttachmentClick = onLinkedAttachmentClick,
         onContextRemove = viewModel::removeBoardProjectLink,
         onAttachmentRemove = viewModel::removeBoardAttachmentLink,
+        connectionOrder = connectionsOrder,
+        onConnectionsReordered = { reordered ->
+            viewModel.updateConnectionsOrder(reordered.map { it.orderToken() })
+        },
     )
 
     if (showAddDialog) {

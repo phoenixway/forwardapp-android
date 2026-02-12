@@ -79,6 +79,7 @@ fun ConnectionsPanel(
     onConnectionClick: (ConnectionItemUi) -> Unit,
     onConnectionRemove: (ConnectionItemUi) -> Unit,
     onAddConnection: (AddConnectionType) -> Unit,
+    onConnectionsReordered: (List<ConnectionItemUi>) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
@@ -91,6 +92,7 @@ fun ConnectionsPanel(
                 internalItems.toMutableList().apply {
                     add(to.index, removeAt(from.index))
                 }
+            onConnectionsReordered(internalItems)
             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
         }
 

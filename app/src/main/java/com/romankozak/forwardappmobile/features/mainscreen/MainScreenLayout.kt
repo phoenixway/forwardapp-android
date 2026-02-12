@@ -415,6 +415,31 @@ fun MainScreenLayout(
                         MAIN_SCREEN_CORE_ROUTE ->
                             CoreBottomPanel(
                                 navController = navController,
+                                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                                onNavigateToPresets = onNavigateToPresets,
+                                onNavigateToCharacter = onNavigateToCharacter,
+                                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
+                                onNavigateToSettings = onNavigateToSettings,
+                                onNavigateToInbox = onNavigateToInbox,
+                                onNavigateToTracker = onNavigateToTracker,
+                                onNavigateToReminders = onNavigateToReminders,
+                                onNavigateToAiChat = onNavigateToAiChat,
+                                onNavigateToAiInsights = onNavigateToAiInsights,
+                                onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
+                                onExportToFile = onExportToFile,
+                                onImportFromFileRequest = onImportFromFileRequest,
+                                onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
+                                onExportAttachments = onExportAttachments,
+                                onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
+                                onWifiPush = onWifiPush,
+                                onShowWifiServer = onShowWifiServer,
+                                onShowWifiImport = onShowWifiImport,
+                                onNavigateToAttachments = onNavigateToAttachments,
+                                onNavigateToScripts = onNavigateToScripts,
+                                onShowAbout = { showAboutDialog = true },
+                                featureToggles = contextUiState.featureToggles,
+                                onNavigateToRecentItem = onNavigateToRecentItem,
+                                recentViewModel = recentViewModel,
                             )
                         else ->
                             DashboardBottomPanel( // Fallback to Dashboard for unknown routes

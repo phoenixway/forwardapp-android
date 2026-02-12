@@ -96,6 +96,8 @@ class DayPlanViewModel
         private val _planId = MutableStateFlow<String?>(null)
         private val _isScopeLinksSheetVisible = MutableStateFlow(false)
         val isScopeLinksSheetVisible: StateFlow<Boolean> = _isScopeLinksSheetVisible.asStateFlow()
+        private val _connectionsOrder = MutableStateFlow<List<String>>(emptyList())
+        val connectionsOrder: StateFlow<List<String>> = _connectionsOrder.asStateFlow()
         private val scopeLinksHandler =
             DayPlanScopeLinksHandler(
                 dayManagementRepository = dayManagementRepository,
@@ -104,6 +106,12 @@ class DayPlanViewModel
                 isScopeLinksSheetVisible = _isScopeLinksSheetVisible,
                 scope = viewModelScope,
             )
+
+        init {
+            settingsRepository.dayConnectionsOrderFlow
+                .onEach { order -> _connectionsOrder.value = order }
+                .launchIn(viewModelScope)
+        }
 
         @OptIn(FlowPreview::class)
         val uiState: StateFlow<DayPlanUiState> =
@@ -350,6 +358,13 @@ class DayPlanViewModel
 
         fun dismissScopeLinksSheet() {
             scopeLinksHandler.dismissScopeLinksSheet()
+        }
+
+        fun updateConnectionsOrder(order: List<String>) {
+            _connectionsOrder.value = order
+            viewModelScope.launch {
+                settingsRepository.setDayConnectionsOrder(order)
+            }
         }
 
         fun openAddTaskDialog() {

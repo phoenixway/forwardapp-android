@@ -409,6 +409,12 @@ class SettingsRepository
         private val isBottomNavExpandedKey = booleanPreferencesKey("is_bottom_nav_expanded")
         private val tacticalLinkedProjectIdsKey = stringSetPreferencesKey("tactical_linked_project_ids")
         private val tacticalLinkedAttachmentIdsKey = stringSetPreferencesKey("tactical_linked_attachment_ids")
+        private val dayConnectionsOrderKey = stringPreferencesKey("day_connections_order")
+        private val tacticalConnectionsOrderKey = stringPreferencesKey("tactical_connections_order")
+        private val coreConnectionsOrderKey = stringPreferencesKey("core_connections_order")
+        private val strategicArcConnectionsOrderKey = stringPreferencesKey("strategic_arc_connections_order")
+        private val strategicConnectionsOrderKey = stringPreferencesKey("strategic_connections_order")
+        private val coreLinkedAttachmentIdsKey = stringSetPreferencesKey("core_linked_attachment_ids")
         private val strategicArcLinkedAttachmentIdsKey = stringSetPreferencesKey("strategic_arc_linked_attachment_ids")
         private val strategicLinkedAttachmentIdsKey = stringSetPreferencesKey("strategic_linked_attachment_ids")
         private val dayScopeContextsExpandedKey = booleanPreferencesKey("day_scope_contexts_expanded")
@@ -755,10 +761,20 @@ class SettingsRepository
 
                         tacticalLinkedProjectIdsKey.name,
                         tacticalLinkedAttachmentIdsKey.name,
+                        coreLinkedAttachmentIdsKey.name,
                         strategicArcLinkedAttachmentIdsKey.name,
                         strategicLinkedAttachmentIdsKey.name,
                         -> {
                             preferences[stringSetPreferencesKey(key)] = parseSet(value)
+                        }
+
+                        dayConnectionsOrderKey.name,
+                        tacticalConnectionsOrderKey.name,
+                        coreConnectionsOrderKey.name,
+                        strategicArcConnectionsOrderKey.name,
+                        strategicConnectionsOrderKey.name,
+                        -> {
+                            preferences[stringPreferencesKey(key)] = value
                         }
 
                         else -> {
@@ -785,6 +801,19 @@ class SettingsRepository
                 .filter { it.isNotBlank() }
                 .toSet()
         }
+
+        private fun parseOrderedList(rawValue: String?): List<String> =
+            rawValue
+                ?.split('\n')
+                ?.map { it.trim() }
+                ?.filter { it.isNotBlank() }
+                ?: emptyList()
+
+        private fun serializeOrderedList(order: List<String>): String =
+            order
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+                .joinToString(separator = "\n")
 
         val rolesFolderUriFlow: Flow<String> =
             context.dataStore.data
@@ -831,6 +860,46 @@ class SettingsRepository
                     }
                 }
 
+        val dayConnectionsOrderFlow: Flow<List<String>> =
+            context.dataStore.data
+                .map { preferences ->
+                    parseOrderedList(preferences[dayConnectionsOrderKey])
+                }
+
+        val tacticalConnectionsOrderFlow: Flow<List<String>> =
+            context.dataStore.data
+                .map { preferences ->
+                    parseOrderedList(preferences[tacticalConnectionsOrderKey])
+                }
+
+        val coreConnectionsOrderFlow: Flow<List<String>> =
+            context.dataStore.data
+                .map { preferences ->
+                    parseOrderedList(preferences[coreConnectionsOrderKey])
+                }
+
+        val strategicArcConnectionsOrderFlow: Flow<List<String>> =
+            context.dataStore.data
+                .map { preferences ->
+                    parseOrderedList(preferences[strategicArcConnectionsOrderKey])
+                }
+
+        val strategicConnectionsOrderFlow: Flow<List<String>> =
+            context.dataStore.data
+                .map { preferences ->
+                    parseOrderedList(preferences[strategicConnectionsOrderKey])
+                }
+
+        val coreLinkedAttachmentIdsFlow: Flow<Set<String>> =
+            context.dataStore.data
+                .map { preferences ->
+                    try {
+                        preferences[coreLinkedAttachmentIdsKey] ?: emptySet()
+                    } catch (e: ClassCastException) {
+                        parseSet(preferences[stringPreferencesKey(coreLinkedAttachmentIdsKey.name)])
+                    }
+                }
+
         val strategicArcLinkedAttachmentIdsFlow: Flow<Set<String>> =
             context.dataStore.data
                 .map { preferences ->
@@ -863,9 +932,45 @@ class SettingsRepository
             }
         }
 
+        suspend fun setDayConnectionsOrder(order: List<String>) {
+            context.dataStore.edit { settings ->
+                settings[dayConnectionsOrderKey] = serializeOrderedList(order)
+            }
+        }
+
+        suspend fun setTacticalConnectionsOrder(order: List<String>) {
+            context.dataStore.edit { settings ->
+                settings[tacticalConnectionsOrderKey] = serializeOrderedList(order)
+            }
+        }
+
+        suspend fun setCoreConnectionsOrder(order: List<String>) {
+            context.dataStore.edit { settings ->
+                settings[coreConnectionsOrderKey] = serializeOrderedList(order)
+            }
+        }
+
+        suspend fun setStrategicArcConnectionsOrder(order: List<String>) {
+            context.dataStore.edit { settings ->
+                settings[strategicArcConnectionsOrderKey] = serializeOrderedList(order)
+            }
+        }
+
+        suspend fun setStrategicConnectionsOrder(order: List<String>) {
+            context.dataStore.edit { settings ->
+                settings[strategicConnectionsOrderKey] = serializeOrderedList(order)
+            }
+        }
+
         suspend fun setStrategicArcLinkedAttachmentIds(ids: Set<String>) {
             context.dataStore.edit { settings ->
                 settings[strategicArcLinkedAttachmentIdsKey] = ids
+            }
+        }
+
+        suspend fun setCoreLinkedAttachmentIds(ids: Set<String>) {
+            context.dataStore.edit { settings ->
+                settings[coreLinkedAttachmentIdsKey] = ids
             }
         }
 

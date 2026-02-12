@@ -48,6 +48,7 @@ import com.romankozak.forwardappmobile.features.missions.presentation.Attachment
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectChooserScreen
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
 import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
+import com.romankozak.forwardappmobile.ui.components.orderToken
 import com.romankozak.forwardappmobile.ui.common.MatrixRainView
 import kotlinx.coroutines.delay
 
@@ -123,6 +124,7 @@ fun DayPlanScreen(
     val hapticFeedback = LocalHapticFeedback.current
     val isEditTaskDialogOpen by viewModel.isEditTaskDialogOpen.collectAsState()
     val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsState()
+    val connectionsOrder by viewModel.connectionsOrder.collectAsState()
     var showReminderDialog by remember { mutableStateOf(false) }
     var showProjectChooser by remember { mutableStateOf(false) }
     var showAttachmentChooser by remember { mutableStateOf(false) }
@@ -309,6 +311,10 @@ fun DayPlanScreen(
         },
         onContextRemove = viewModel::removePlanProjectLink,
         onAttachmentRemove = viewModel::removePlanAttachmentLink,
+        connectionOrder = connectionsOrder,
+        onConnectionsReordered = { reordered ->
+            viewModel.updateConnectionsOrder(reordered.map { it.orderToken() })
+        },
     )
 
     if (isAddTaskDialogOpen) {

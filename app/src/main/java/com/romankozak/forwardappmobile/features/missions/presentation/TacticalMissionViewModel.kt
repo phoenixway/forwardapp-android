@@ -63,6 +63,8 @@ class TacticalMissionViewModel
 
         private val _scopeAttachmentsExpanded = MutableStateFlow(true)
         val scopeAttachmentsExpanded: StateFlow<Boolean> = _scopeAttachmentsExpanded.asStateFlow()
+        private val _connectionsOrder = MutableStateFlow<List<String>>(emptyList())
+        val connectionsOrder: StateFlow<List<String>> = _connectionsOrder.asStateFlow()
 
         private val _isScopeLinksSheetVisible = MutableStateFlow(false)
         val isScopeLinksSheetVisible: StateFlow<Boolean> = _isScopeLinksSheetVisible.asStateFlow()
@@ -108,6 +110,10 @@ class TacticalMissionViewModel
 
             settingsRepository.tacticalScopeAttachmentsExpandedFlow
                 .onEach { expanded -> _scopeAttachmentsExpanded.value = expanded }
+                .launchIn(viewModelScope)
+
+            settingsRepository.tacticalConnectionsOrderFlow
+                .onEach { order -> _connectionsOrder.value = order }
                 .launchIn(viewModelScope)
         }
 
@@ -278,6 +284,13 @@ class TacticalMissionViewModel
         fun reorderMissions(missions: List<TacticalMission>) {
             viewModelScope.launch {
                 missionRepository.reorderMissions(missions)
+            }
+        }
+
+        fun updateConnectionsOrder(order: List<String>) {
+            _connectionsOrder.value = order
+            viewModelScope.launch {
+                settingsRepository.setTacticalConnectionsOrder(order)
             }
         }
     }

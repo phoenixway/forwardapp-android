@@ -14,6 +14,7 @@ import com.romankozak.forwardappmobile.ui.components.AddConnectionType
 import com.romankozak.forwardappmobile.ui.components.ConnectionItemUi
 import com.romankozak.forwardappmobile.ui.components.ConnectionsPanel
 import com.romankozak.forwardappmobile.ui.components.ConnectionType
+import com.romankozak.forwardappmobile.ui.components.sortConnectionsByOrder
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,6 +33,8 @@ fun TacticalScopeLinksSheet(
     onAttachmentClick: (String) -> Unit,
     onContextRemove: (String) -> Unit,
     onAttachmentRemove: (String) -> Unit,
+    connectionOrder: List<String>,
+    onConnectionsReordered: (List<ConnectionItemUi>) -> Unit,
 ) {
     if (!isVisible) return
 
@@ -91,10 +94,11 @@ fun TacticalScopeLinksSheet(
                 },
             )
         }
+    val sortedItems = sortConnectionsByOrder(items, connectionOrder)
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         ConnectionsPanel(
-            items = items,
+            items = sortedItems,
             onConnectionClick = { item ->
                 if (item.type == ConnectionType.CONTEXT) {
                     onContextClick(item.id)
@@ -117,6 +121,7 @@ fun TacticalScopeLinksSheet(
                     AddConnectionType.OBSIDIAN_NOTE -> onAddObsidianClick()
                 }
             },
+            onConnectionsReordered = onConnectionsReordered,
         )
         Spacer(modifier = Modifier.height(12.dp))
     }

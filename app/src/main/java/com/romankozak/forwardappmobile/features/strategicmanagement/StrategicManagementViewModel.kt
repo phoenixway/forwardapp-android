@@ -61,6 +61,8 @@ class StrategicManagementViewModel
 
         private val _scopeAttachmentsExpanded = MutableStateFlow(true)
         val scopeAttachmentsExpanded: StateFlow<Boolean> = _scopeAttachmentsExpanded.asStateFlow()
+        private val _connectionsOrder = MutableStateFlow<List<String>>(emptyList())
+        val connectionsOrder: StateFlow<List<String>> = _connectionsOrder.asStateFlow()
 
         private val _isScopeLinksSheetVisible = MutableStateFlow(false)
         val isScopeLinksSheetVisible: StateFlow<Boolean> = _isScopeLinksSheetVisible.asStateFlow()
@@ -82,6 +84,10 @@ class StrategicManagementViewModel
 
             settingsRepository.strategicScopeAttachmentsExpandedFlow
                 .onEach { expanded -> _scopeAttachmentsExpanded.value = expanded }
+                .launchIn(viewModelScope)
+
+            settingsRepository.strategicConnectionsOrderFlow
+                .onEach { order -> _connectionsOrder.value = order }
                 .launchIn(viewModelScope)
         }
 
@@ -171,6 +177,13 @@ class StrategicManagementViewModel
 
         fun dismissScopeLinksSheet() {
             _isScopeLinksSheetVisible.value = false
+        }
+
+        fun updateConnectionsOrder(order: List<String>) {
+            _connectionsOrder.value = order
+            viewModelScope.launch {
+                settingsRepository.setStrategicConnectionsOrder(order)
+            }
         }
 
         private suspend fun updateTags(
