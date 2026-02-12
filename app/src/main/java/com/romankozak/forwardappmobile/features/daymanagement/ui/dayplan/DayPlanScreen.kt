@@ -38,6 +38,7 @@ import androidx.navigation.NavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
+import com.romankozak.forwardappmobile.features.attachments.ui.AddWebLinkDialog
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.AddTaskDialog
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.TaskList
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.scopelinks.DayScopeLinksSheet
@@ -124,6 +125,7 @@ fun DayPlanScreen(
     var showReminderDialog by remember { mutableStateOf(false) }
     var showProjectChooser by remember { mutableStateOf(false) }
     var showAttachmentChooser by remember { mutableStateOf(false) }
+    var showAddUrlDialog by remember { mutableStateOf(false) }
     val taskToDelete by viewModel.showDeleteConfirmationDialog.collectAsState()
     val taskToEdit by viewModel.showEditConfirmationDialog.collectAsState()
 
@@ -288,6 +290,7 @@ fun DayPlanScreen(
         onDismiss = viewModel::dismissScopeLinksSheet,
         onAddContextClick = { showProjectChooser = true },
         onAddAttachmentClick = { showAttachmentChooser = true },
+        onAddExternalClick = { showAddUrlDialog = true },
         onContextClick = { contextId ->
             navController.navigate("goal_detail_screen/$contextId")
         },
@@ -303,8 +306,6 @@ fun DayPlanScreen(
         },
         onContextRemove = viewModel::removePlanProjectLink,
         onAttachmentRemove = viewModel::removePlanAttachmentLink,
-        onContextsExpandedChange = viewModel::setScopeContextsExpanded,
-        onAttachmentsExpandedChange = viewModel::setScopeAttachmentsExpanded,
     )
 
     if (isAddTaskDialogOpen) {
@@ -345,6 +346,16 @@ fun DayPlanScreen(
             onConfirm = { selected ->
                 selected.forEach(viewModel::addPlanAttachmentLink)
                 showAttachmentChooser = false
+            },
+        )
+    }
+
+    if (showAddUrlDialog) {
+        AddWebLinkDialog(
+            onDismiss = { showAddUrlDialog = false },
+            onConfirm = { url, name ->
+                viewModel.addPlanExternalLink(url, name)
+                showAddUrlDialog = false
             },
         )
     }

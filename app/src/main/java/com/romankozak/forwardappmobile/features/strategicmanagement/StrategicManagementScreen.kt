@@ -28,7 +28,6 @@ import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.navigation.routes.MAIN_GRAPH_ROUTE
-import com.romankozak.forwardappmobile.features.attachments.ui.AddObsidianLinkDialog
 import com.romankozak.forwardappmobile.features.attachments.ui.AddWebLinkDialog
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
@@ -39,9 +38,11 @@ import com.romankozak.forwardappmobile.features.lifestate.LifeStateViewModel
 import com.romankozak.forwardappmobile.features.mainscreen.scopelinks.ScopeAttachmentOption
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentChooserScreen
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
+import com.romankozak.forwardappmobile.ui.components.AddConnectionType
+import com.romankozak.forwardappmobile.ui.components.ConnectionItemUi
+import com.romankozak.forwardappmobile.ui.components.ConnectionType
+import com.romankozak.forwardappmobile.ui.components.ConnectionsPanel
 import com.romankozak.forwardappmobile.ui.components.ContextLinkList
-import com.romankozak.forwardappmobile.ui.components.ScopeLinkItem
-import com.romankozak.forwardappmobile.ui.components.ScreenScopeLinksPanel
 import com.romankozak.forwardappmobile.ui.screens.common.ProjectListItem
 import java.net.URLEncoder
 
@@ -55,12 +56,9 @@ fun StrategicManagementScreen(
     val uiState by viewModel.uiState.collectAsState()
     val attachmentOptions by viewModel.attachmentOptions.collectAsState()
     val linkedAttachmentIds by viewModel.linkedAttachmentIds.collectAsState()
-    val scopeContextsExpanded by viewModel.scopeContextsExpanded.collectAsState()
-    val scopeAttachmentsExpanded by viewModel.scopeAttachmentsExpanded.collectAsState()
     val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsState()
     var showAttachmentChooser by remember { mutableStateOf(false) }
     var showAddUrlDialog by remember { mutableStateOf(false) }
-    var showAddObsidianDialog by remember { mutableStateOf(false) }
     val mainScreenViewModel: ContextHierarchyScreenViewModel =
         hiltViewModel(remember(navController.currentBackStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) })
 
@@ -127,57 +125,79 @@ fun StrategicManagementScreen(
             validAttachmentIds.filter { id ->
                 availableAttachmentById[id]?.linkType !in setOf(LinkType.URL, LinkType.OBSIDIAN)
             }
+        val items =
+            buildList {
+                addAll(contexts.map { ConnectionItemUi(it.id, it.name, ConnectionType.CONTEXT) })
+                addAll(
+                    generalAttachmentIds.map { id ->
+                        ConnectionItemUi(
+                            id = id,
+                            title = availableAttachmentById[id]?.name ?: "Вкладення ${id.take(8)}",
+                            type = ConnectionType.ATTACHMENT,
+                        )
+                    },
+                )
+                addAll(
+                    urlIds.map { id ->
+                        ConnectionItemUi(
+                            id = id,
+                            title = availableAttachmentById[id]?.name ?: "URL ${id.take(8)}",
+                            type = ConnectionType.URL,
+                        )
+                    },
+                )
+                addAll(
+                    obsidianIds.map { id ->
+                        ConnectionItemUi(
+                            id = id,
+                            title = availableAttachmentById[id]?.name ?: "Obsidian ${id.take(8)}",
+                            type = ConnectionType.OBSIDIAN_NOTE,
+                        )
+                    },
+                )
+            }
 
         ModalBottomSheet(onDismissRequest = viewModel::dismissScopeLinksSheet) {
-            ScreenScopeLinksPanel(
-                title = "Посилання для стратегій",
-                contextLinks = contexts.map { ScopeLinkItem(id = it.id, title = it.name) },
-                attachmentLinks =
-                    generalAttachmentIds.map { id ->
-                        ScopeLinkItem(id = id, title = availableAttachmentById[id]?.name ?: "Вкладення ${id.take(8)}")
-                    },
-                urlLinks =
-                    urlIds.map { id ->
-                        ScopeLinkItem(id = id, title = availableAttachmentById[id]?.name ?: "URL ${id.take(8)}")
-                    },
-                obsidianLinks =
-                    obsidianIds.map { id ->
-                        ScopeLinkItem(id = id, title = availableAttachmentById[id]?.name ?: "Obsidian ${id.take(8)}")
-                    },
-                onAddContextClick = {
-                    val disabledIds = contexts.joinToString(",") { it.id }
-                    val title = URLEncoder.encode("Додати стратегічний контекст", "UTF-8")
-                    val route =
-                        if (disabledIds.isBlank()) {
-                            "list_chooser_screen/$title"
-                        } else {
-                            "list_chooser_screen/$title?disabledIds=$disabledIds"
+            ConnectionsPanel(
+                items = items,
+                onConnectionClick = { item ->
+                    if (item.type == ConnectionType.CONTEXT) {
+                        navController.navigate("goal_detail_screen/${item.id}")
+                    } else {
+                        navController.navigate("attachments_library_screen") {
+                            launchSingleTop = true
+                            restoreState = true
                         }
-                    navController.navigate(route)
-                },
-                onAddAttachmentClick = { showAttachmentChooser = true },
-                onAddUrlClick = { showAddUrlDialog = true },
-                onAddObsidianClick = { showAddObsidianDialog = true },
-                onContextClick = { projectId ->
-                    navController.navigate("goal_detail_screen/$projectId")
-                },
-                onAttachmentClick = { attachmentId ->
-                    navController.navigate("attachments_library_screen") {
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                    runCatching {
-                        navController.getBackStackEntry("attachments_library_screen")
-                            .savedStateHandle["attachment_library_query"] = attachmentId
+                        runCatching {
+                            navController.getBackStackEntry("attachments_library_screen")
+                                .savedStateHandle["attachment_library_query"] = item.id
+                        }
                     }
                 },
-                onContextRemove = viewModel::removeStrategicLink,
-                onAttachmentRemove = viewModel::removeAttachmentLink,
-                contextsExpanded = scopeContextsExpanded,
-                attachmentsExpanded = scopeAttachmentsExpanded,
-                onContextsExpandedChange = viewModel::setScopeContextsExpanded,
-                onAttachmentsExpandedChange = viewModel::setScopeAttachmentsExpanded,
-                modifier = Modifier.padding(horizontal = 16.dp),
+                onConnectionRemove = { item ->
+                    if (item.type == ConnectionType.CONTEXT) {
+                        viewModel.removeStrategicLink(item.id)
+                    } else {
+                        viewModel.removeAttachmentLink(item.id)
+                    }
+                },
+                onAddConnection = { type ->
+                    when (type) {
+                        AddConnectionType.CONTEXT -> {
+                            val disabledIds = contexts.joinToString(",") { it.id }
+                            val title = URLEncoder.encode("Додати стратегічний контекст", "UTF-8")
+                            val route =
+                                if (disabledIds.isBlank()) {
+                                    "list_chooser_screen/$title"
+                                } else {
+                                    "list_chooser_screen/$title?disabledIds=$disabledIds"
+                                }
+                            navController.navigate(route)
+                        }
+                        AddConnectionType.ATTACHMENT -> showAttachmentChooser = true
+                        AddConnectionType.EXTERNAL_LINK -> showAddUrlDialog = true
+                    }
+                },
             )
             Spacer(modifier = Modifier.height(12.dp))
         }
@@ -201,16 +221,6 @@ fun StrategicManagementScreen(
             onConfirm = { url, name ->
                 viewModel.addUrlLink(url, name)
                 showAddUrlDialog = false
-            },
-        )
-    }
-
-    if (showAddObsidianDialog) {
-        AddObsidianLinkDialog(
-            onDismiss = { showAddObsidianDialog = false },
-            onConfirm = { noteName, displayName ->
-                viewModel.addObsidianLink(noteName, displayName)
-                showAddObsidianDialog = false
             },
         )
     }

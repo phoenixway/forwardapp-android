@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.scopel
 
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.runtime.Composable
@@ -10,8 +9,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanUiState
-import com.romankozak.forwardappmobile.ui.components.ScopeLinkItem
-import com.romankozak.forwardappmobile.ui.components.ScreenScopeLinksPanel
+import com.romankozak.forwardappmobile.ui.components.AddConnectionType
+import com.romankozak.forwardappmobile.ui.components.ConnectionItemUi
+import com.romankozak.forwardappmobile.ui.components.ConnectionsPanel
+import com.romankozak.forwardappmobile.ui.components.ConnectionType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -21,12 +22,11 @@ fun DayScopeLinksSheet(
     onDismiss: () -> Unit,
     onAddContextClick: () -> Unit,
     onAddAttachmentClick: () -> Unit,
+    onAddExternalClick: () -> Unit,
     onContextClick: (String) -> Unit,
     onAttachmentClick: (String) -> Unit,
     onContextRemove: (String) -> Unit,
     onAttachmentRemove: (String) -> Unit,
-    onContextsExpandedChange: (Boolean) -> Unit,
-    onAttachmentsExpandedChange: (Boolean) -> Unit,
 ) {
     if (!isVisible) return
 
@@ -47,49 +47,70 @@ fun DayScopeLinksSheet(
         planLinkedAttachmentIds.filter { id ->
             availableAttachmentById[id]?.linkType !in setOf(LinkType.URL, LinkType.OBSIDIAN)
         }
-
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        ScreenScopeLinksPanel(
-            title = "Посилання для денного циклу",
-            contextLinks =
+    val items =
+        buildList {
+            addAll(
                 planLinkedProjectIds.map { id ->
-                    ScopeLinkItem(
+                    ConnectionItemUi(
                         id = id,
                         title = uiState.availableProjects.firstOrNull { it.id == id }?.name ?: "Контекст ${id.take(8)}",
+                        type = ConnectionType.CONTEXT,
                     )
                 },
-            attachmentLinks =
+            )
+            addAll(
                 planLinkedGeneralAttachmentIds.map { id ->
-                    ScopeLinkItem(
+                    ConnectionItemUi(
                         id = id,
                         title = uiState.availableAttachments.firstOrNull { it.id == id }?.name ?: "Вкладення ${id.take(8)}",
+                        type = ConnectionType.ATTACHMENT,
                     )
                 },
-            urlLinks =
+            )
+            addAll(
                 planLinkedUrlIds.map { id ->
-                    ScopeLinkItem(
+                    ConnectionItemUi(
                         id = id,
                         title = uiState.availableAttachments.firstOrNull { it.id == id }?.name ?: "URL ${id.take(8)}",
+                        type = ConnectionType.URL,
                     )
                 },
-            obsidianLinks =
+            )
+            addAll(
                 planLinkedObsidianIds.map { id ->
-                    ScopeLinkItem(
+                    ConnectionItemUi(
                         id = id,
                         title = uiState.availableAttachments.firstOrNull { it.id == id }?.name ?: "Obsidian ${id.take(8)}",
+                        type = ConnectionType.OBSIDIAN_NOTE,
                     )
                 },
-            onAddContextClick = onAddContextClick,
-            onAddAttachmentClick = onAddAttachmentClick,
-            onContextClick = onContextClick,
-            onAttachmentClick = onAttachmentClick,
-            onContextRemove = onContextRemove,
-            onAttachmentRemove = onAttachmentRemove,
-            contextsExpanded = uiState.scopeContextsExpanded,
-            attachmentsExpanded = uiState.scopeAttachmentsExpanded,
-            onContextsExpandedChange = onContextsExpandedChange,
-            onAttachmentsExpandedChange = onAttachmentsExpandedChange,
-            modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        ConnectionsPanel(
+            items = items,
+            onConnectionClick = { item ->
+                if (item.type == ConnectionType.CONTEXT) {
+                    onContextClick(item.id)
+                } else {
+                    onAttachmentClick(item.id)
+                }
+            },
+            onConnectionRemove = { item ->
+                if (item.type == ConnectionType.CONTEXT) {
+                    onContextRemove(item.id)
+                } else {
+                    onAttachmentRemove(item.id)
+                }
+            },
+            onAddConnection = { type ->
+                when (type) {
+                    AddConnectionType.CONTEXT -> onAddContextClick()
+                    AddConnectionType.ATTACHMENT -> onAddAttachmentClick()
+                    AddConnectionType.EXTERNAL_LINK -> onAddExternalClick()
+                }
+            },
         )
         Spacer(modifier = Modifier.height(12.dp))
     }

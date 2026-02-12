@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
@@ -295,6 +296,23 @@ class DayPlanViewModel
 
         fun addPlanAttachmentLink(attachmentId: String) {
             scopeLinksHandler.addPlanAttachmentLink(attachmentId)
+        }
+
+        fun addPlanExternalLink(
+            url: String,
+            name: String,
+        ) {
+            val target = url.trim()
+            if (target.isBlank()) return
+            val display = name.trim().ifBlank { target }
+            viewModelScope.launch(Dispatchers.IO) {
+                val attachmentId =
+                    attachmentsRepository.createLinkAttachment(
+                        contextId = SystemContexts.TODAY.raw,
+                        link = RelatedLink(type = LinkType.URL, target = target, displayName = display),
+                    )
+                scopeLinksHandler.addPlanAttachmentLink(attachmentId)
+            }
         }
 
         fun removePlanAttachmentLink(attachmentId: String) {

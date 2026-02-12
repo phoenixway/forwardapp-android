@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.features.missions.presentation.scopelink
 
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.runtime.Composable
@@ -11,8 +10,10 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
-import com.romankozak.forwardappmobile.ui.components.ScopeLinkItem
-import com.romankozak.forwardappmobile.ui.components.ScreenScopeLinksPanel
+import com.romankozak.forwardappmobile.ui.components.AddConnectionType
+import com.romankozak.forwardappmobile.ui.components.ConnectionItemUi
+import com.romankozak.forwardappmobile.ui.components.ConnectionsPanel
+import com.romankozak.forwardappmobile.ui.components.ConnectionType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,19 +23,14 @@ fun TacticalScopeLinksSheet(
     attachmentOptions: List<AttachmentOption>,
     linkedProjectIds: List<String>,
     linkedAttachmentIds: List<String>,
-    contextsExpanded: Boolean,
-    attachmentsExpanded: Boolean,
     onDismiss: () -> Unit,
     onAddContextClick: () -> Unit,
     onAddAttachmentClick: () -> Unit,
-    onAddUrlClick: () -> Unit,
-    onAddObsidianClick: () -> Unit,
+    onAddExternalClick: () -> Unit,
     onContextClick: (String) -> Unit,
     onAttachmentClick: (String) -> Unit,
     onContextRemove: (String) -> Unit,
     onAttachmentRemove: (String) -> Unit,
-    onContextsExpandedChange: (Boolean) -> Unit,
-    onAttachmentsExpandedChange: (Boolean) -> Unit,
 ) {
     if (!isVisible) return
 
@@ -55,51 +51,70 @@ fun TacticalScopeLinksSheet(
         validLinkedAttachmentIds.filter { id ->
             availableAttachmentById[id]?.linkType !in setOf(LinkType.URL, LinkType.OBSIDIAN)
         }
-
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        ScreenScopeLinksPanel(
-            title = "Посилання для тактичного циклу",
-            contextLinks =
+    val items =
+        buildList {
+            addAll(
                 validLinkedProjectIds.map { id ->
-                    ScopeLinkItem(
+                    ConnectionItemUi(
                         id = id,
                         title = projectOptions.firstOrNull { it.id == id }?.name ?: "Контекст ${id.take(8)}",
+                        type = ConnectionType.CONTEXT,
                     )
                 },
-            attachmentLinks =
+            )
+            addAll(
                 validLinkedGeneralAttachmentIds.map { id ->
-                    ScopeLinkItem(
+                    ConnectionItemUi(
                         id = id,
                         title = attachmentOptions.firstOrNull { it.id == id }?.name ?: "Вкладення ${id.take(8)}",
+                        type = ConnectionType.ATTACHMENT,
                     )
                 },
-            urlLinks =
+            )
+            addAll(
                 validLinkedUrlIds.map { id ->
-                    ScopeLinkItem(
+                    ConnectionItemUi(
                         id = id,
                         title = attachmentOptions.firstOrNull { it.id == id }?.name ?: "URL ${id.take(8)}",
+                        type = ConnectionType.URL,
                     )
                 },
-            obsidianLinks =
+            )
+            addAll(
                 validLinkedObsidianIds.map { id ->
-                    ScopeLinkItem(
+                    ConnectionItemUi(
                         id = id,
                         title = attachmentOptions.firstOrNull { it.id == id }?.name ?: "Obsidian ${id.take(8)}",
+                        type = ConnectionType.OBSIDIAN_NOTE,
                     )
                 },
-            onAddContextClick = onAddContextClick,
-            onAddAttachmentClick = onAddAttachmentClick,
-            onAddUrlClick = onAddUrlClick,
-            onAddObsidianClick = onAddObsidianClick,
-            onContextClick = onContextClick,
-            onAttachmentClick = onAttachmentClick,
-            onContextRemove = onContextRemove,
-            onAttachmentRemove = onAttachmentRemove,
-            contextsExpanded = contextsExpanded,
-            attachmentsExpanded = attachmentsExpanded,
-            onContextsExpandedChange = onContextsExpandedChange,
-            onAttachmentsExpandedChange = onAttachmentsExpandedChange,
-            modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        ConnectionsPanel(
+            items = items,
+            onConnectionClick = { item ->
+                if (item.type == ConnectionType.CONTEXT) {
+                    onContextClick(item.id)
+                } else {
+                    onAttachmentClick(item.id)
+                }
+            },
+            onConnectionRemove = { item ->
+                if (item.type == ConnectionType.CONTEXT) {
+                    onContextRemove(item.id)
+                } else {
+                    onAttachmentRemove(item.id)
+                }
+            },
+            onAddConnection = { type ->
+                when (type) {
+                    AddConnectionType.CONTEXT -> onAddContextClick()
+                    AddConnectionType.ATTACHMENT -> onAddAttachmentClick()
+                    AddConnectionType.EXTERNAL_LINK -> onAddExternalClick()
+                }
+            },
         )
         Spacer(modifier = Modifier.height(12.dp))
     }
