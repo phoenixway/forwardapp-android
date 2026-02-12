@@ -94,7 +94,7 @@ fun ConnectionsAddActionsDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(bottom = 2.dp),
-                    modifier = Modifier.height(2 * 112.dp),
+                    modifier = Modifier.height(224.dp),
                 ) {
                     items(items) { item ->
                         ConnectionActionGridItem(
