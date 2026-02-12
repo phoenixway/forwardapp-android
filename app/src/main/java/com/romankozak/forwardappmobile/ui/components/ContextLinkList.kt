@@ -45,7 +45,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 fun ContextLinkList(
     title: String? = null,
     items: List<Context>,
-    onAddClick: () -> Unit,
+    onAddClick: (() -> Unit)? = null,
     onItemClick: (Context) -> Unit,
     onRevealClick: (Context) -> Unit,
     onRemoveClick: (Context) -> Unit,
@@ -81,11 +81,13 @@ fun ContextLinkList(
                         modifier = Modifier.weight(1f),
                     )
                 }
-                FilledTonalIconButton(
-                    onClick = onAddClick,
-                    shape = RoundedCornerShape(12.dp),
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = addLabel, modifier = Modifier.size(18.dp))
+                if (onAddClick != null) {
+                    FilledTonalIconButton(
+                        onClick = onAddClick,
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = addLabel, modifier = Modifier.size(18.dp))
+                    }
                 }
             }
         }

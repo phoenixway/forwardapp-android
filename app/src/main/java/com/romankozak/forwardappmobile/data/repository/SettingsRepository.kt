@@ -409,10 +409,16 @@ class SettingsRepository
         private val isBottomNavExpandedKey = booleanPreferencesKey("is_bottom_nav_expanded")
         private val tacticalLinkedProjectIdsKey = stringSetPreferencesKey("tactical_linked_project_ids")
         private val tacticalLinkedAttachmentIdsKey = stringSetPreferencesKey("tactical_linked_attachment_ids")
+        private val strategicArcLinkedAttachmentIdsKey = stringSetPreferencesKey("strategic_arc_linked_attachment_ids")
+        private val strategicLinkedAttachmentIdsKey = stringSetPreferencesKey("strategic_linked_attachment_ids")
         private val dayScopeContextsExpandedKey = booleanPreferencesKey("day_scope_contexts_expanded")
         private val dayScopeAttachmentsExpandedKey = booleanPreferencesKey("day_scope_attachments_expanded")
         private val tacticalScopeContextsExpandedKey = booleanPreferencesKey("tactical_scope_contexts_expanded")
         private val tacticalScopeAttachmentsExpandedKey = booleanPreferencesKey("tactical_scope_attachments_expanded")
+        private val strategicArcScopeContextsExpandedKey = booleanPreferencesKey("strategic_arc_scope_contexts_expanded")
+        private val strategicArcScopeAttachmentsExpandedKey = booleanPreferencesKey("strategic_arc_scope_attachments_expanded")
+        private val strategicScopeContextsExpandedKey = booleanPreferencesKey("strategic_scope_contexts_expanded")
+        private val strategicScopeAttachmentsExpandedKey = booleanPreferencesKey("strategic_scope_attachments_expanded")
 
         companion object {
             val OLLAMA_FAST_MODEL_KEY = stringPreferencesKey("ollama_fast_model")
@@ -731,6 +737,10 @@ class SettingsRepository
                         dayScopeAttachmentsExpandedKey.name,
                         tacticalScopeContextsExpandedKey.name,
                         tacticalScopeAttachmentsExpandedKey.name,
+                        strategicArcScopeContextsExpandedKey.name,
+                        strategicArcScopeAttachmentsExpandedKey.name,
+                        strategicScopeContextsExpandedKey.name,
+                        strategicScopeAttachmentsExpandedKey.name,
                         -> {
                             preferences[booleanPreferencesKey(key)] = value.toBoolean()
                         }
@@ -745,6 +755,8 @@ class SettingsRepository
 
                         tacticalLinkedProjectIdsKey.name,
                         tacticalLinkedAttachmentIdsKey.name,
+                        strategicArcLinkedAttachmentIdsKey.name,
+                        strategicLinkedAttachmentIdsKey.name,
                         -> {
                             preferences[stringSetPreferencesKey(key)] = parseSet(value)
                         }
@@ -819,6 +831,26 @@ class SettingsRepository
                     }
                 }
 
+        val strategicArcLinkedAttachmentIdsFlow: Flow<Set<String>> =
+            context.dataStore.data
+                .map { preferences ->
+                    try {
+                        preferences[strategicArcLinkedAttachmentIdsKey] ?: emptySet()
+                    } catch (e: ClassCastException) {
+                        parseSet(preferences[stringPreferencesKey(strategicArcLinkedAttachmentIdsKey.name)])
+                    }
+                }
+
+        val strategicLinkedAttachmentIdsFlow: Flow<Set<String>> =
+            context.dataStore.data
+                .map { preferences ->
+                    try {
+                        preferences[strategicLinkedAttachmentIdsKey] ?: emptySet()
+                    } catch (e: ClassCastException) {
+                        parseSet(preferences[stringPreferencesKey(strategicLinkedAttachmentIdsKey.name)])
+                    }
+                }
+
         suspend fun setTacticalLinkedProjectIds(ids: Set<String>) {
             context.dataStore.edit { settings ->
                 settings[tacticalLinkedProjectIdsKey] = ids
@@ -828,6 +860,18 @@ class SettingsRepository
         suspend fun setTacticalLinkedAttachmentIds(ids: Set<String>) {
             context.dataStore.edit { settings ->
                 settings[tacticalLinkedAttachmentIdsKey] = ids
+            }
+        }
+
+        suspend fun setStrategicArcLinkedAttachmentIds(ids: Set<String>) {
+            context.dataStore.edit { settings ->
+                settings[strategicArcLinkedAttachmentIdsKey] = ids
+            }
+        }
+
+        suspend fun setStrategicLinkedAttachmentIds(ids: Set<String>) {
+            context.dataStore.edit { settings ->
+                settings[strategicLinkedAttachmentIdsKey] = ids
             }
         }
 
@@ -867,6 +911,42 @@ class SettingsRepository
                 }
             }
 
+        val strategicArcScopeContextsExpandedFlow: Flow<Boolean> =
+            context.dataStore.data.map { preferences ->
+                try {
+                    preferences[strategicArcScopeContextsExpandedKey] ?: true
+                } catch (e: ClassCastException) {
+                    preferences[stringPreferencesKey(strategicArcScopeContextsExpandedKey.name)]?.toBoolean() ?: true
+                }
+            }
+
+        val strategicArcScopeAttachmentsExpandedFlow: Flow<Boolean> =
+            context.dataStore.data.map { preferences ->
+                try {
+                    preferences[strategicArcScopeAttachmentsExpandedKey] ?: true
+                } catch (e: ClassCastException) {
+                    preferences[stringPreferencesKey(strategicArcScopeAttachmentsExpandedKey.name)]?.toBoolean() ?: true
+                }
+            }
+
+        val strategicScopeContextsExpandedFlow: Flow<Boolean> =
+            context.dataStore.data.map { preferences ->
+                try {
+                    preferences[strategicScopeContextsExpandedKey] ?: true
+                } catch (e: ClassCastException) {
+                    preferences[stringPreferencesKey(strategicScopeContextsExpandedKey.name)]?.toBoolean() ?: true
+                }
+            }
+
+        val strategicScopeAttachmentsExpandedFlow: Flow<Boolean> =
+            context.dataStore.data.map { preferences ->
+                try {
+                    preferences[strategicScopeAttachmentsExpandedKey] ?: true
+                } catch (e: ClassCastException) {
+                    preferences[stringPreferencesKey(strategicScopeAttachmentsExpandedKey.name)]?.toBoolean() ?: true
+                }
+            }
+
         suspend fun setDayScopeContextsExpanded(expanded: Boolean) {
             context.dataStore.edit { settings ->
                 settings[dayScopeContextsExpandedKey] = expanded
@@ -888,6 +968,30 @@ class SettingsRepository
         suspend fun setTacticalScopeAttachmentsExpanded(expanded: Boolean) {
             context.dataStore.edit { settings ->
                 settings[tacticalScopeAttachmentsExpandedKey] = expanded
+            }
+        }
+
+        suspend fun setStrategicArcScopeContextsExpanded(expanded: Boolean) {
+            context.dataStore.edit { settings ->
+                settings[strategicArcScopeContextsExpandedKey] = expanded
+            }
+        }
+
+        suspend fun setStrategicArcScopeAttachmentsExpanded(expanded: Boolean) {
+            context.dataStore.edit { settings ->
+                settings[strategicArcScopeAttachmentsExpandedKey] = expanded
+            }
+        }
+
+        suspend fun setStrategicScopeContextsExpanded(expanded: Boolean) {
+            context.dataStore.edit { settings ->
+                settings[strategicScopeContextsExpandedKey] = expanded
+            }
+        }
+
+        suspend fun setStrategicScopeAttachmentsExpanded(expanded: Boolean) {
+            context.dataStore.edit { settings ->
+                settings[strategicScopeAttachmentsExpandedKey] = expanded
             }
         }
 

@@ -2,29 +2,53 @@ package com.romankozak.forwardappmobile.features.mainscreen
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.navigation.routes.MAIN_GRAPH_ROUTE
+import com.romankozak.forwardappmobile.features.attachments.ui.AddObsidianLinkDialog
+import com.romankozak.forwardappmobile.features.attachments.ui.AddWebLinkDialog
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.mainscreen.scopelinks.ScopeAttachmentOption
+import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentChooserScreen
+import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
 import com.romankozak.forwardappmobile.ui.components.ContextLinkList
+import com.romankozak.forwardappmobile.ui.components.ScopeLinkItem
+import com.romankozak.forwardappmobile.ui.components.ScreenScopeLinksPanel
 import java.net.URLEncoder
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StrategicArcScreen(
     navController: NavController,
     viewModel: StrategicArcViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val attachmentOptions by viewModel.attachmentOptions.collectAsState()
+    val linkedAttachmentIds by viewModel.linkedAttachmentIds.collectAsState()
+    val scopeContextsExpanded by viewModel.scopeContextsExpanded.collectAsState()
+    val scopeAttachmentsExpanded by viewModel.scopeAttachmentsExpanded.collectAsState()
+    val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsState()
+    var showAttachmentChooser by remember { mutableStateOf(false) }
+    var showAddUrlDialog by remember { mutableStateOf(false) }
+    var showAddObsidianDialog by remember { mutableStateOf(false) }
     val mainScreenViewModel: ContextHierarchyScreenViewModel =
         hiltViewModel(navController.getBackStackEntry(MAIN_GRAPH_ROUTE))
 
@@ -53,17 +77,7 @@ fun StrategicArcScreen(
     } else {
         ContextLinkList(
             items = uiState.projects,
-            onAddClick = {
-                val disabledIds = uiState.projects.joinToString(",") { it.id }
-                val title = URLEncoder.encode("Додати стратегічну арку", "UTF-8")
-                val route =
-                    if (disabledIds.isBlank()) {
-                        "list_chooser_screen/$title"
-                    } else {
-                        "list_chooser_screen/$title?disabledIds=$disabledIds"
-                    }
-                navController.navigate(route)
-            },
+            onAddClick = null,
             onItemClick = { project ->
                 navController.navigate("goal_detail_screen/${project.id}")
             },
@@ -77,4 +91,116 @@ fun StrategicArcScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 20.dp),
         )
     }
+
+    if (isScopeLinksSheetVisible) {
+        val availableAttachmentById = attachmentOptions.associateBy { it.id }
+        val validAttachmentIds = linkedAttachmentIds.filter { it in availableAttachmentById.keys }
+        val urlIds = validAttachmentIds.filter { id -> availableAttachmentById[id]?.linkType == LinkType.URL }
+        val obsidianIds = validAttachmentIds.filter { id -> availableAttachmentById[id]?.linkType == LinkType.OBSIDIAN }
+        val generalAttachmentIds =
+            validAttachmentIds.filter { id ->
+                availableAttachmentById[id]?.linkType !in setOf(LinkType.URL, LinkType.OBSIDIAN)
+            }
+
+        ModalBottomSheet(onDismissRequest = viewModel::dismissScopeLinksSheet) {
+            ScreenScopeLinksPanel(
+                title = "Посилання для стратегічних арок",
+                contextLinks = uiState.projects.map { ScopeLinkItem(id = it.id, title = it.name) },
+                attachmentLinks =
+                    generalAttachmentIds.map { id ->
+                        ScopeLinkItem(id = id, title = availableAttachmentById[id]?.name ?: "Вкладення ${id.take(8)}")
+                    },
+                urlLinks =
+                    urlIds.map { id ->
+                        ScopeLinkItem(id = id, title = availableAttachmentById[id]?.name ?: "URL ${id.take(8)}")
+                    },
+                obsidianLinks =
+                    obsidianIds.map { id ->
+                        ScopeLinkItem(id = id, title = availableAttachmentById[id]?.name ?: "Obsidian ${id.take(8)}")
+                    },
+                onAddContextClick = {
+                    val disabledIds = uiState.projects.joinToString(",") { it.id }
+                    val title = URLEncoder.encode("Додати стратегічну арку", "UTF-8")
+                    val route =
+                        if (disabledIds.isBlank()) {
+                            "list_chooser_screen/$title"
+                        } else {
+                            "list_chooser_screen/$title?disabledIds=$disabledIds"
+                        }
+                    navController.navigate(route)
+                },
+                onAddAttachmentClick = { showAttachmentChooser = true },
+                onAddUrlClick = { showAddUrlDialog = true },
+                onAddObsidianClick = { showAddObsidianDialog = true },
+                onContextClick = { projectId ->
+                    navController.navigate("goal_detail_screen/$projectId")
+                },
+                onAttachmentClick = { attachmentId ->
+                    navController.navigate("attachments_library_screen") {
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                    runCatching {
+                        navController.getBackStackEntry("attachments_library_screen")
+                            .savedStateHandle["attachment_library_query"] = attachmentId
+                    }
+                },
+                onContextRemove = viewModel::removeArcLink,
+                onAttachmentRemove = viewModel::removeAttachmentLink,
+                contextsExpanded = scopeContextsExpanded,
+                attachmentsExpanded = scopeAttachmentsExpanded,
+                onContextsExpandedChange = viewModel::setScopeContextsExpanded,
+                onAttachmentsExpandedChange = viewModel::setScopeAttachmentsExpanded,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+            androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(12.dp))
+        }
+    }
+
+    if (showAttachmentChooser) {
+        StrategicAttachmentChooser(
+            options = attachmentOptions,
+            preselected = linkedAttachmentIds.toSet(),
+            onDismiss = { showAttachmentChooser = false },
+            onConfirm = { selected ->
+                selected.forEach(viewModel::addAttachmentLink)
+                showAttachmentChooser = false
+            },
+        )
+    }
+
+    if (showAddUrlDialog) {
+        AddWebLinkDialog(
+            onDismiss = { showAddUrlDialog = false },
+            onConfirm = { url, name ->
+                viewModel.addUrlLink(url, name)
+                showAddUrlDialog = false
+            },
+        )
+    }
+
+    if (showAddObsidianDialog) {
+        AddObsidianLinkDialog(
+            onDismiss = { showAddObsidianDialog = false },
+            onConfirm = { noteName, displayName ->
+                viewModel.addObsidianLink(noteName, displayName)
+                showAddObsidianDialog = false
+            },
+        )
+    }
+}
+
+@Composable
+private fun StrategicAttachmentChooser(
+    options: List<ScopeAttachmentOption>,
+    preselected: Set<String>,
+    onDismiss: () -> Unit,
+    onConfirm: (List<String>) -> Unit,
+) {
+    AttachmentChooserScreen(
+        options = options.map { AttachmentOption(id = it.id, name = it.name, linkType = it.linkType) },
+        preselected = preselected,
+        onDismiss = onDismiss,
+        onConfirm = onConfirm,
+    )
 }
