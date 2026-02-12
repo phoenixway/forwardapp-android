@@ -33,8 +33,8 @@ class MissionRepository
         }
 
         suspend fun insertMissionWithAutoOrder(mission: TacticalMission): Long {
-            val nextOrder = tacticalMissionDao.getMaxMissionOrder() + 1
-            return tacticalMissionDao.insertMission(mission.copy(order = nextOrder))
+            val topOrder = tacticalMissionDao.getMinMissionOrder() - 1
+            return tacticalMissionDao.insertMission(mission.copy(order = topOrder))
         }
 
         suspend fun updateMission(mission: TacticalMission) {

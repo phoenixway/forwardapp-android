@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.features.missions.presentation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,6 +24,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.tactical.Missio
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.features.missions.presentation.missionlist.TacticalMissionList
 import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.TacticalScopeLinksSheet
+import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.dialogs.TacticalAddObsidianDialog
+import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.dialogs.TacticalAddUrlDialog
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -46,6 +49,8 @@ fun TacticalManagementScreen(
     var actionMenuMission by remember { mutableStateOf<TacticalMission?>(null) }
     var showProjectChooser by remember { mutableStateOf(false) }
     var showAttachmentChooser by remember { mutableStateOf(false) }
+    var showAddUrlDialog by remember { mutableStateOf(false) }
+    var showAddObsidianDialog by remember { mutableStateOf(false) }
     var selectedMissionIds by remember { mutableStateOf(setOf<Long>()) }
     var statusMenuExpanded by remember { mutableStateOf(false) }
     val selectionMode = selectedMissionIds.isNotEmpty()
@@ -202,16 +207,15 @@ fun TacticalManagementScreen(
                     maxLines = 2,
                 )
                 HorizontalDivider()
-                FilledTonalButton(
+                MissionActionSheetItem(
+                    text = "Редагувати",
                     onClick = {
                         editingMission = mission
                         actionMenuMission = null
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Редагувати")
-                }
-                OutlinedButton(
+                )
+                MissionActionSheetItem(
+                    text = if (mission.status == MissionStatus.COMPLETED) "Позначити невиконаною" else "Позначити виконаною",
                     onClick = {
                         val nextStatus =
                             if (mission.status == MissionStatus.COMPLETED) {
@@ -222,26 +226,18 @@ fun TacticalManagementScreen(
                         viewModel.updateMission(mission.copy(status = nextStatus))
                         actionMenuMission = null
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(if (mission.status == MissionStatus.COMPLETED) "Позначити невиконаною" else "Позначити виконаною")
-                }
-                Button(
+                )
+                MissionActionSheetItem(
+                    text = "Видалити",
                     onClick = {
                         viewModel.deleteMission(mission.id)
                         actionMenuMission = null
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                ) {
-                    Text("Видалити", color = MaterialTheme.colorScheme.onErrorContainer)
-                }
-                TextButton(
+                )
+                MissionActionSheetItem(
+                    text = "Скасувати",
                     onClick = { actionMenuMission = null },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Скасувати")
-                }
+                )
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
@@ -263,6 +259,8 @@ fun TacticalManagementScreen(
         onDismiss = viewModel::dismissScopeLinksSheet,
         onAddContextClick = { showProjectChooser = true },
         onAddAttachmentClick = { showAttachmentChooser = true },
+        onAddUrlClick = { showAddUrlDialog = true },
+        onAddObsidianClick = { showAddObsidianDialog = true },
         onContextClick = onLinkedProjectClick,
         onAttachmentClick = onLinkedAttachmentClick,
         onContextRemove = viewModel::removeBoardProjectLink,
@@ -339,6 +337,26 @@ fun TacticalManagementScreen(
             },
         )
     }
+
+    if (showAddUrlDialog) {
+        TacticalAddUrlDialog(
+            onDismiss = { showAddUrlDialog = false },
+            onConfirm = { url, name ->
+                viewModel.addBoardUrlLink(url, name)
+                showAddUrlDialog = false
+            },
+        )
+    }
+
+    if (showAddObsidianDialog) {
+        TacticalAddObsidianDialog(
+            onDismiss = { showAddObsidianDialog = false },
+            onConfirm = { noteName, displayName ->
+                viewModel.addBoardObsidianLink(noteName, displayName)
+                showAddObsidianDialog = false
+            },
+        )
+    }
 }
 
 @Composable
@@ -358,6 +376,22 @@ fun AddMissionDialog(
         initialProjectLinks = emptyList(),
         initialAttachmentLinks = emptyList(),
         attachmentOptions = attachmentOptions,
+    )
+}
+
+@Composable
+private fun MissionActionSheetItem(
+    text: String,
+    onClick: () -> Unit,
+) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyLarge,
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(vertical = 12.dp),
     )
 }
 

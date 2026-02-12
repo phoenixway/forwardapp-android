@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
@@ -218,6 +219,40 @@ class TacticalMissionViewModel
 
         fun addBoardAttachmentLink(attachmentId: String) {
             scopeLinksHandler.addBoardAttachmentLink(attachmentId)
+        }
+
+        fun addBoardUrlLink(
+            url: String,
+            name: String,
+        ) {
+            val target = url.trim()
+            if (target.isBlank()) return
+            val display = name.trim().ifBlank { target }
+            viewModelScope.launch {
+                val attachmentId =
+                    attachmentsRepository.createLinkAttachment(
+                        contextId = SystemContexts.MISSION.raw,
+                        link = RelatedLink(type = LinkType.URL, target = target, displayName = display),
+                    )
+                scopeLinksHandler.addBoardAttachmentLink(attachmentId)
+            }
+        }
+
+        fun addBoardObsidianLink(
+            noteName: String,
+            displayName: String,
+        ) {
+            val target = noteName.trim()
+            if (target.isBlank()) return
+            val display = displayName.trim().ifBlank { target }
+            viewModelScope.launch {
+                val attachmentId =
+                    attachmentsRepository.createLinkAttachment(
+                        contextId = SystemContexts.MISSION.raw,
+                        link = RelatedLink(type = LinkType.OBSIDIAN, target = target, displayName = display),
+                    )
+                scopeLinksHandler.addBoardAttachmentLink(attachmentId)
+            }
         }
 
         fun removeBoardAttachmentLink(attachmentId: String) {

@@ -74,6 +74,9 @@ interface TacticalMissionDao {
     @Query("SELECT COALESCE(MAX(mission_order), -1) FROM tactical_missions")
     suspend fun getMaxMissionOrder(): Long
 
+    @Query("SELECT COALESCE(MIN(mission_order), 0) FROM tactical_missions")
+    suspend fun getMinMissionOrder(): Long
+
     @Query("UPDATE tactical_missions SET mission_order = :order WHERE id = :missionId")
     suspend fun updateMissionOrder(
         missionId: Long,
