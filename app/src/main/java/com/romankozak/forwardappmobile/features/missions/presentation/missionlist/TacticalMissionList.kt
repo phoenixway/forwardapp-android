@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.features.missions.presentation.missionlist
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,8 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Schedule
@@ -52,14 +52,19 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun TacticalMissionList(
     missions: List<TacticalMission>,
     projectOptions: List<ProjectOption>,
     attachmentOptions: List<AttachmentOption>,
+    selectedMissionIds: Set<Long>,
+    selectionMode: Boolean,
     onMissionToggled: (TacticalMission) -> Unit,
-    onMissionDeleted: (TacticalMission) -> Unit,
-    onMissionEdited: (TacticalMission) -> Unit,
+    onMissionSelectionToggle: (TacticalMission) -> Unit,
+    onMissionClick: (TacticalMission) -> Unit,
+    onMissionLongPress: (TacticalMission) -> Unit,
+    onMissionMoreClick: (TacticalMission) -> Unit,
     onMissionsReordered: (List<TacticalMission>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -93,11 +98,15 @@ fun TacticalMissionList(
             ReorderableItem(reorderableState, key = mission.id) {
                 TacticalMissionCard(
                     mission = mission,
+                    isSelected = mission.id in selectedMissionIds,
+                    selectionMode = selectionMode,
                     projectNameById = projectNameById,
                     attachmentNameById = attachmentNameById,
                     onMissionToggled = { onMissionToggled(mission) },
-                    onMissionDeleted = { onMissionDeleted(mission) },
-                    onMissionEdited = { onMissionEdited(mission) },
+                    onMissionSelectionToggle = { onMissionSelectionToggle(mission) },
+                    onMissionClick = { onMissionClick(mission) },
+                    onMissionLongPress = { onMissionLongPress(mission) },
+                    onMissionMoreClick = { onMissionMoreClick(mission) },
                     checkboxDragHandleModifier = Modifier.draggableHandle(),
                 )
             }
@@ -108,11 +117,15 @@ fun TacticalMissionList(
 @Composable
 fun TacticalMissionCard(
     mission: TacticalMission,
+    isSelected: Boolean,
+    selectionMode: Boolean,
     projectNameById: Map<String, String>,
     attachmentNameById: Map<String, String>,
     onMissionToggled: () -> Unit,
-    onMissionDeleted: () -> Unit,
-    onMissionEdited: () -> Unit,
+    onMissionSelectionToggle: () -> Unit,
+    onMissionClick: () -> Unit,
+    onMissionLongPress: () -> Unit,
+    onMissionMoreClick: () -> Unit,
     checkboxDragHandleModifier: Modifier = Modifier,
 ) {
     val onSurface = MaterialTheme.colorScheme.onSurface
@@ -120,7 +133,7 @@ fun TacticalMissionCard(
     val isInactive = mission.status == MissionStatus.INACTIVE
     val isPaused = mission.status == MissionStatus.PAUSED
 
-    val overdue = System.currentTimeMillis() > mission.deadline && mission.status != MissionStatus.COMPLETED
+    val overdue = mission.status == MissionStatus.ACTIVE && System.currentTimeMillis() > mission.deadline
     val itemState =
         when {
             mission.status == MissionStatus.COMPLETED -> UnifiedItemState.COMPLETED
@@ -135,7 +148,7 @@ fun TacticalMissionCard(
             UnifiedItemState.DEFAULT ->
                 when {
                     isInactive -> colorScheme.surfaceVariant.copy(alpha = 0.70f)
-                    isPaused -> colorScheme.tertiaryContainer.copy(alpha = 0.50f)
+                    isPaused -> colorScheme.surfaceVariant.copy(alpha = 0.56f)
                     else -> colorScheme.tertiaryContainer.copy(alpha = 0.40f)
                 }
             UnifiedItemState.SELECTED -> colorScheme.surfaceContainerHighest
@@ -148,7 +161,7 @@ fun TacticalMissionCard(
             UnifiedItemState.DEFAULT ->
                 when {
                     isInactive -> colorScheme.outline.copy(alpha = 0.50f)
-                    isPaused -> colorScheme.tertiary.copy(alpha = 0.58f)
+                    isPaused -> colorScheme.outlineVariant.copy(alpha = 0.44f)
                     else -> colorScheme.tertiary.copy(alpha = 0.38f)
                 }
             UnifiedItemState.SELECTED -> colorScheme.primary.copy(alpha = 0.4f)
@@ -156,17 +169,36 @@ fun TacticalMissionCard(
         }
 
     UnifiedListItemSurface(
-        isSelected = false,
+        isSelected = isSelected,
         state = itemState,
         containerColorOverride = missionContainerColor,
         borderColorOverride = missionBorderColor,
         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier =
+                Modifier.combinedClickable(
+                    onClick = {
+                        if (selectionMode) {
+                            onMissionSelectionToggle()
+                        } else {
+                            onMissionClick()
+                        }
+                    },
+                    onLongClick = { onMissionLongPress() },
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             UnifiedItemCheckbox(
-                checked = mission.status == MissionStatus.COMPLETED,
-                onCheckedChange = { onMissionToggled() },
+                checked = if (selectionMode) isSelected else mission.status == MissionStatus.COMPLETED,
+                onCheckedChange = {
+                    if (selectionMode) {
+                        onMissionSelectionToggle()
+                    } else {
+                        onMissionToggled()
+                    }
+                },
                 style = UnifiedCheckboxStyle.Round,
                 modifier = checkboxDragHandleModifier,
                 checkedColor = MaterialTheme.colorScheme.primary,
@@ -180,7 +212,7 @@ fun TacticalMissionCard(
                     when {
                         mission.status == MissionStatus.COMPLETED -> onSurface.copy(alpha = 0.4f)
                         isInactive -> onSurface.copy(alpha = 0.58f)
-                        isPaused -> colorScheme.tertiary.copy(alpha = 0.92f)
+                        isPaused -> onSurface.copy(alpha = 0.74f)
                         overdue -> Color(0xFFFF6E6E)
                         else -> onSurface
                     },
@@ -234,7 +266,7 @@ fun TacticalMissionCard(
                             ),
                         )
                     }
-                UnifiedStatusRow(items = statusItems, modifier = Modifier.padding(top = 4.dp))
+                UnifiedStatusRow(items = statusItems, modifier = Modifier.padding(top = 2.dp))
 
                 val linkedContextIds =
                     mission.linkedProjectIds
@@ -271,26 +303,22 @@ fun TacticalMissionCard(
                         }
                     }
                 if (linkedItems.isNotEmpty()) {
-                    UnifiedStatusRow(items = linkedItems, modifier = Modifier.padding(top = 4.dp))
+                    UnifiedStatusRow(items = linkedItems, modifier = Modifier.padding(top = 2.dp))
                 }
             }
 
-            Column(
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-                horizontalAlignment = Alignment.End,
-            ) {
-                UnifiedTrailingActionButton(
-                    icon = Icons.Default.Edit,
-                    contentDescription = "Edit",
-                    onClick = onMissionEdited,
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
-                )
-                UnifiedTrailingActionButton(
-                    icon = Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    onClick = onMissionDeleted,
-                    tint = Color(0xFFFF5A5A),
-                )
+            if (!selectionMode) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    horizontalAlignment = Alignment.End,
+                ) {
+                    UnifiedTrailingActionButton(
+                        icon = Icons.Default.MoreVert,
+                        contentDescription = "Дії",
+                        onClick = onMissionMoreClick,
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+                    )
+                }
             }
         }
     }
