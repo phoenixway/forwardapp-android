@@ -14,7 +14,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import android.net.Uri
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Link
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
@@ -102,8 +102,9 @@ fun StrategicArcBottomPanel(
                 leadingIcon = Icons.Outlined.Link,
                 leadingLabel = if (isScopeLinksSheetVisible) "Закрити" else "Посилання",
                 onLeadingClick = strategicArcViewModel::toggleScopeLinksSheet,
-                quickActionIcon = Icons.Outlined.History,
-                quickActionLabel = "Недавні",
+                quickActionIcon = Icons.Outlined.Add,
+                quickActionLabel = "Додати посилання",
+                onQuickActionClick = strategicArcViewModel::toggleScopeLinksSheet,
                 recentViewModel = recentViewModel,
             )
         }

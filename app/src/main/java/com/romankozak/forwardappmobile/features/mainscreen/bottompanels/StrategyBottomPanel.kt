@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -103,8 +103,9 @@ fun StrategyBottomPanel(
                 leadingIcon = Icons.Outlined.Link,
                 leadingLabel = if (isScopeLinksSheetVisible) "Закрити" else "Посилання",
                 onLeadingClick = strategicManagementViewModel::toggleScopeLinksSheet,
-                quickActionIcon = Icons.Outlined.History,
-                quickActionLabel = "Недавні",
+                quickActionIcon = Icons.Outlined.Add,
+                quickActionLabel = "Додати посилання",
+                onQuickActionClick = strategicManagementViewModel::toggleScopeLinksSheet,
                 recentViewModel = recentViewModel,
             )
         }
