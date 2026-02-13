@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -49,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.ui.components.connectionspanel.ConnectionsAddActionsDialog
+import com.romankozak.forwardappmobile.ui.components.connectionspanel.ConnectionsCreateActionsDialog
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -66,6 +68,14 @@ enum class AddConnectionType {
     OBSIDIAN_NOTE,
 }
 
+enum class CreateConnectionType {
+    CONTEXT,
+    NOTE_DOCUMENT,
+    CHECKLIST,
+    EXTERNAL_LINK,
+    OBSIDIAN_NOTE,
+}
+
 data class ConnectionItemUi(
     val id: String,
     val title: String,
@@ -78,11 +88,13 @@ fun ConnectionsPanel(
     onConnectionClick: (ConnectionItemUi) -> Unit,
     onConnectionRemove: (ConnectionItemUi) -> Unit,
     onAddConnection: (AddConnectionType) -> Unit,
+    onCreateConnection: ((CreateConnectionType) -> Unit)? = null,
     onConnectionsReordered: (List<ConnectionItemUi>) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
     var showAddActionsDialog by remember { mutableStateOf(false) }
+    var showCreateActionsDialog by remember { mutableStateOf(false) }
     var internalItems by remember { mutableStateOf(items) }
     val lazyListState = rememberLazyListState()
     val reorderableState =
@@ -116,7 +128,15 @@ fun ConnectionsPanel(
                 modifier = Modifier.weight(1f),
             )
 
-            Box {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (onCreateConnection != null) {
+                    FilledTonalButton(
+                        onClick = { showCreateActionsDialog = true },
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Text("Створити")
+                    }
+                }
                 FilledTonalIconButton(
                     onClick = { showAddActionsDialog = true },
                     shape = RoundedCornerShape(12.dp),
@@ -174,6 +194,16 @@ fun ConnectionsPanel(
             onActionSelected = { type ->
                 showAddActionsDialog = false
                 onAddConnection(type)
+            },
+        )
+    }
+
+    if (showCreateActionsDialog && onCreateConnection != null) {
+        ConnectionsCreateActionsDialog(
+            onDismiss = { showCreateActionsDialog = false },
+            onActionSelected = { type ->
+                showCreateActionsDialog = false
+                onCreateConnection(type)
             },
         )
     }

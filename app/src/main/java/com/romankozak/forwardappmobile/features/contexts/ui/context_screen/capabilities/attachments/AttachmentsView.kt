@@ -22,6 +22,7 @@ import com.romankozak.forwardappmobile.ui.components.AddConnectionType
 import com.romankozak.forwardappmobile.ui.components.ConnectionItemUi
 import com.romankozak.forwardappmobile.ui.components.ConnectionType
 import com.romankozak.forwardappmobile.ui.components.ConnectionsPanel
+import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
 
 @Composable
 fun AttachmentsView(
@@ -88,6 +89,15 @@ fun AttachmentsView(
                     AddConnectionType.ATTACHMENT -> activePickerTab = LinkPickerTab.ATTACHMENTS
                     AddConnectionType.EXTERNAL_LINK -> activePickerTab = LinkPickerTab.ATTACHMENTS
                     AddConnectionType.OBSIDIAN_NOTE -> activePickerTab = LinkPickerTab.ATTACHMENTS
+                }
+            },
+            onCreateConnection = { type ->
+                when (type) {
+                    CreateConnectionType.CONTEXT -> activePickerTab = LinkPickerTab.CONTEXTS
+                    CreateConnectionType.NOTE_DOCUMENT -> activePickerTab = LinkPickerTab.ATTACHMENTS
+                    CreateConnectionType.CHECKLIST -> activePickerTab = LinkPickerTab.ATTACHMENTS
+                    CreateConnectionType.EXTERNAL_LINK -> activePickerTab = LinkPickerTab.ATTACHMENTS
+                    CreateConnectionType.OBSIDIAN_NOTE -> activePickerTab = LinkPickerTab.ATTACHMENTS
                 }
             },
         )

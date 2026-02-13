@@ -14,6 +14,7 @@ import com.romankozak.forwardappmobile.ui.components.AddConnectionType
 import com.romankozak.forwardappmobile.ui.components.ConnectionItemUi
 import com.romankozak.forwardappmobile.ui.components.ConnectionsPanel
 import com.romankozak.forwardappmobile.ui.components.ConnectionType
+import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
 import com.romankozak.forwardappmobile.ui.components.sortConnectionsByOrder
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -119,6 +120,15 @@ fun TacticalScopeLinksSheet(
                     AddConnectionType.ATTACHMENT -> onAddAttachmentClick()
                     AddConnectionType.EXTERNAL_LINK -> onAddExternalClick()
                     AddConnectionType.OBSIDIAN_NOTE -> onAddObsidianClick()
+                }
+            },
+            onCreateConnection = { type ->
+                when (type) {
+                    CreateConnectionType.CONTEXT -> onAddContextClick()
+                    CreateConnectionType.NOTE_DOCUMENT -> onAddAttachmentClick()
+                    CreateConnectionType.CHECKLIST -> onAddAttachmentClick()
+                    CreateConnectionType.EXTERNAL_LINK -> onAddExternalClick()
+                    CreateConnectionType.OBSIDIAN_NOTE -> onAddObsidianClick()
                 }
             },
             onConnectionsReordered = onConnectionsReordered,
