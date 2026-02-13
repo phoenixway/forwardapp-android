@@ -81,6 +81,14 @@ enum class LinkPickerTab {
     ATTACHMENTS,
 }
 
+enum class PickerCreateAction {
+    CONTEXT,
+    NOTE,
+    CHECKLIST,
+    WEB_LINK,
+    OBSIDIAN,
+}
+
 sealed interface NewDocumentDraft {
     data class Note(val name: String) : NewDocumentDraft
 
@@ -105,6 +113,7 @@ fun LinkedTargetsPickerDialog(
     preselectedContextIds: Set<String>,
     preselectedAttachmentIds: Set<String>,
     initialTab: LinkPickerTab,
+    initialCreateAction: PickerCreateAction? = null,
     onDismiss: () -> Unit,
     onContextSelected: (String) -> Unit,
     onAttachmentSelected: (String) -> Unit,
@@ -198,6 +207,46 @@ fun LinkedTargetsPickerDialog(
             }
         }
         expandedIds = nextExpanded
+    }
+
+    LaunchedEffect(initialCreateAction) {
+        when (initialCreateAction) {
+            PickerCreateAction.CONTEXT -> {
+                if (onCreateRootContext == null) return@LaunchedEffect
+                selectedTab = LinkPickerTab.CONTEXTS
+                newContextName = ""
+                showAddContextDialog = true
+            }
+            PickerCreateAction.NOTE -> {
+                if (onCreateDocument == null) return@LaunchedEffect
+                selectedTab = LinkPickerTab.ATTACHMENTS
+                pendingDocumentType = DocumentCreationType.NOTE
+                documentName = ""
+                documentTarget = ""
+            }
+            PickerCreateAction.CHECKLIST -> {
+                if (onCreateDocument == null) return@LaunchedEffect
+                selectedTab = LinkPickerTab.ATTACHMENTS
+                pendingDocumentType = DocumentCreationType.CHECKLIST
+                documentName = ""
+                documentTarget = ""
+            }
+            PickerCreateAction.WEB_LINK -> {
+                if (onCreateDocument == null) return@LaunchedEffect
+                selectedTab = LinkPickerTab.ATTACHMENTS
+                pendingDocumentType = DocumentCreationType.WEB_LINK
+                documentName = ""
+                documentTarget = ""
+            }
+            PickerCreateAction.OBSIDIAN -> {
+                if (onCreateDocument == null) return@LaunchedEffect
+                selectedTab = LinkPickerTab.ATTACHMENTS
+                pendingDocumentType = DocumentCreationType.OBSIDIAN
+                documentName = ""
+                documentTarget = ""
+            }
+            null -> Unit
+        }
     }
 
     Dialog(

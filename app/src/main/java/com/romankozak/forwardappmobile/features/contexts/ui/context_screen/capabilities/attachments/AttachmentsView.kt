@@ -17,6 +17,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.Conte
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTargetsPickerDialog
+import com.romankozak.forwardappmobile.features.missions.presentation.PickerCreateAction
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
 import com.romankozak.forwardappmobile.ui.components.AddConnectionType
 import com.romankozak.forwardappmobile.ui.components.ConnectionItemUi
@@ -31,6 +32,7 @@ fun AttachmentsView(
     attachmentItems: List<BacklogItemContent>,
 ) {
     var activePickerTab by remember { mutableStateOf<LinkPickerTab?>(null) }
+    var pendingCreateAction by remember { mutableStateOf<PickerCreateAction?>(null) }
     val groupedContexts by viewModel.subprojectChildren.collectAsState()
 
     val attachments =
@@ -84,6 +86,7 @@ fun AttachmentsView(
                 attachmentByConnectionId[item.id]?.let { viewModel.onDeleteEverywhere(it) }
             },
             onAddConnection = { type ->
+                pendingCreateAction = null
                 when (type) {
                     AddConnectionType.CONTEXT -> activePickerTab = LinkPickerTab.CONTEXTS
                     AddConnectionType.ATTACHMENT -> activePickerTab = LinkPickerTab.ATTACHMENTS
@@ -92,13 +95,13 @@ fun AttachmentsView(
                 }
             },
             onCreateConnection = { type ->
-                when (type) {
-                    CreateConnectionType.CONTEXT -> activePickerTab = LinkPickerTab.CONTEXTS
-                    CreateConnectionType.NOTE_DOCUMENT -> activePickerTab = LinkPickerTab.ATTACHMENTS
-                    CreateConnectionType.CHECKLIST -> activePickerTab = LinkPickerTab.ATTACHMENTS
-                    CreateConnectionType.EXTERNAL_LINK -> activePickerTab = LinkPickerTab.ATTACHMENTS
-                    CreateConnectionType.OBSIDIAN_NOTE -> activePickerTab = LinkPickerTab.ATTACHMENTS
-                }
+                pendingCreateAction = type.toPickerCreateAction()
+                activePickerTab =
+                    if (type == CreateConnectionType.CONTEXT) {
+                        LinkPickerTab.CONTEXTS
+                    } else {
+                        LinkPickerTab.ATTACHMENTS
+                    }
             },
         )
     }
@@ -110,20 +113,35 @@ fun AttachmentsView(
             preselectedContextIds = preselectedContextIds,
             preselectedAttachmentIds = pickerAttachmentOptions.map { it.id }.toSet(),
             initialTab = initialTab,
-            onDismiss = { activePickerTab = null },
+            initialCreateAction = pendingCreateAction,
+            onDismiss = {
+                activePickerTab = null
+                pendingCreateAction = null
+            },
             onContextSelected = { id ->
                 viewModel.onPickerContextSelected(id)
                 activePickerTab = null
+                pendingCreateAction = null
             },
             onAttachmentSelected = { id ->
                 viewModel.onPickerAttachmentSelected(id)
                 activePickerTab = null
+                pendingCreateAction = null
             },
             onCreateRootContext = { name -> viewModel.createRootContextForPicker(name) },
             onCreateDocument = { draft -> viewModel.createAttachmentForPicker(draft) },
         )
     }
 }
+
+private fun CreateConnectionType.toPickerCreateAction(): PickerCreateAction =
+    when (this) {
+        CreateConnectionType.CONTEXT -> PickerCreateAction.CONTEXT
+        CreateConnectionType.NOTE_DOCUMENT -> PickerCreateAction.NOTE
+        CreateConnectionType.CHECKLIST -> PickerCreateAction.CHECKLIST
+        CreateConnectionType.EXTERNAL_LINK -> PickerCreateAction.WEB_LINK
+        CreateConnectionType.OBSIDIAN_NOTE -> PickerCreateAction.OBSIDIAN
+    }
 
 private fun BacklogItemContent.connectionId(): String = "backlog:${backlogItem.id}"
 

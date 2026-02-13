@@ -26,7 +26,6 @@ import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -130,18 +129,24 @@ fun ConnectionsPanel(
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (onCreateConnection != null) {
-                    FilledTonalButton(
+                    FilledTonalIconButton(
                         onClick = { showCreateActionsDialog = true },
                         shape = RoundedCornerShape(12.dp),
                     ) {
-                        Text("Створити")
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = "Створити новий зв'язок",
+                        )
                     }
                 }
                 FilledTonalIconButton(
                     onClick = { showAddActionsDialog = true },
                     shape = RoundedCornerShape(12.dp),
                 ) {
-                    Icon(imageVector = Icons.Filled.Add, contentDescription = "Додати зв'язок")
+                    Icon(
+                        imageVector = Icons.Outlined.AttachFile,
+                        contentDescription = "Додати існуючий зв'язок",
+                    )
                 }
             }
         }
