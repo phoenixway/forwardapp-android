@@ -285,8 +285,8 @@ class TacticalMissionViewModel
             return id
         }
 
-        suspend fun createBoardDocumentForPicker(request: NewDocumentDraft): String? =
-            when (request) {
+        suspend fun createBoardDocumentForPicker(request: NewDocumentDraft): String? {
+            return when (request) {
                 is NewDocumentDraft.Note ->
                     noteDocumentRepository.createDocument(
                         name = request.name.ifBlank { "New note" },
@@ -319,6 +319,7 @@ class TacticalMissionViewModel
                     )
                 }
             }
+        }
 
         fun removeBoardAttachmentLink(attachmentId: String) {
             scopeLinksHandler.removeBoardAttachmentLink(attachmentId)

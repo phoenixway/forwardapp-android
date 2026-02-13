@@ -33,6 +33,8 @@ import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks
 import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.dialogs.TacticalAddObsidianDialog
 import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.dialogs.TacticalAddUrlDialog
 import com.romankozak.forwardappmobile.ui.components.orderToken
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -50,6 +52,7 @@ fun TacticalManagementScreen(
     val boardLinkedAttachmentIds by viewModel.boardLinkedAttachmentIds.collectAsState()
     val connectionsOrder by viewModel.connectionsOrder.collectAsState()
     val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsState()
+    val scope = rememberCoroutineScope()
     val showAddDialog by viewModel.isAddMissionDialogOpen.collectAsState()
     var editingMission by remember { mutableStateOf<TacticalMission?>(null) }
     var actionMenuMission by remember { mutableStateOf<TacticalMission?>(null) }
@@ -268,8 +271,20 @@ fun TacticalManagementScreen(
         linkedProjectIds = boardLinkedProjectIds,
         linkedAttachmentIds = boardLinkedAttachmentIds,
         onDismiss = viewModel::dismissScopeLinksSheet,
-        onAddContextClick = { activeLinkPickerTab = LinkPickerTab.CONTEXTS },
-        onAddAttachmentClick = { activeLinkPickerTab = LinkPickerTab.ATTACHMENTS },
+        onAddContextClick = {
+            viewModel.dismissScopeLinksSheet()
+            scope.launch {
+                delay(160)
+                activeLinkPickerTab = LinkPickerTab.CONTEXTS
+            }
+        },
+        onAddAttachmentClick = {
+            viewModel.dismissScopeLinksSheet()
+            scope.launch {
+                delay(160)
+                activeLinkPickerTab = LinkPickerTab.ATTACHMENTS
+            }
+        },
         onAddExternalClick = { showAddUrlDialog = true },
         onAddObsidianClick = { showAddObsidianDialog = true },
         onContextClick = onLinkedProjectClick,

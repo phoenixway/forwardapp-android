@@ -51,6 +51,7 @@ import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderProper
 import com.romankozak.forwardappmobile.ui.components.orderToken
 import com.romankozak.forwardappmobile.ui.common.MatrixRainView
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 const val TAG = "NAV_DEBUG"
 
@@ -125,6 +126,7 @@ fun DayPlanScreen(
     val isEditTaskDialogOpen by viewModel.isEditTaskDialogOpen.collectAsState()
     val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsState()
     val connectionsOrder by viewModel.connectionsOrder.collectAsState()
+    val scope = rememberCoroutineScope()
     var showReminderDialog by remember { mutableStateOf(false) }
     var activeLinkPickerTab by remember { mutableStateOf<LinkPickerTab?>(null) }
     var showAddUrlDialog by remember { mutableStateOf(false) }
@@ -291,8 +293,20 @@ fun DayPlanScreen(
         isVisible = isScopeLinksSheetVisible,
         uiState = uiState,
         onDismiss = viewModel::dismissScopeLinksSheet,
-        onAddContextClick = { activeLinkPickerTab = LinkPickerTab.CONTEXTS },
-        onAddAttachmentClick = { activeLinkPickerTab = LinkPickerTab.ATTACHMENTS },
+        onAddContextClick = {
+            viewModel.dismissScopeLinksSheet()
+            scope.launch {
+                delay(160)
+                activeLinkPickerTab = LinkPickerTab.CONTEXTS
+            }
+        },
+        onAddAttachmentClick = {
+            viewModel.dismissScopeLinksSheet()
+            scope.launch {
+                delay(160)
+                activeLinkPickerTab = LinkPickerTab.ATTACHMENTS
+            }
+        },
         onAddExternalClick = { showAddUrlDialog = true },
         onAddObsidianClick = { showAddObsidianDialog = true },
         onContextClick = { contextId ->

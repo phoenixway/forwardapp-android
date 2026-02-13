@@ -15,6 +15,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,6 +39,8 @@ import com.romankozak.forwardappmobile.ui.components.ContextLinkList
 import com.romankozak.forwardappmobile.ui.components.orderToken
 import com.romankozak.forwardappmobile.ui.components.sortConnectionsByOrder
 import java.net.URLEncoder
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,6 +53,7 @@ fun StrategicArcScreen(
     val linkedAttachmentIds by viewModel.linkedAttachmentIds.collectAsState()
     val connectionsOrder by viewModel.connectionsOrder.collectAsState()
     val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsState()
+    val scope = rememberCoroutineScope()
     var showAttachmentChooser by remember { mutableStateOf(false) }
     var showAddUrlDialog by remember { mutableStateOf(false) }
     var showAddObsidianDialog by remember { mutableStateOf(false) }
@@ -175,7 +179,13 @@ fun StrategicArcScreen(
                                 }
                             navController.navigate(route)
                         }
-                        AddConnectionType.ATTACHMENT -> showAttachmentChooser = true
+                        AddConnectionType.ATTACHMENT -> {
+                            viewModel.dismissScopeLinksSheet()
+                            scope.launch {
+                                delay(160)
+                                showAttachmentChooser = true
+                            }
+                        }
                         AddConnectionType.EXTERNAL_LINK -> showAddUrlDialog = true
                         AddConnectionType.OBSIDIAN_NOTE -> showAddObsidianDialog = true
                     }

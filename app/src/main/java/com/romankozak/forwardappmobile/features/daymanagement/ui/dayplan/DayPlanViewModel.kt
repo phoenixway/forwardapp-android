@@ -360,8 +360,8 @@ class DayPlanViewModel
             return id
         }
 
-        suspend fun createPlanDocumentForPicker(request: NewDocumentDraft): String? =
-            when (request) {
+        suspend fun createPlanDocumentForPicker(request: NewDocumentDraft): String? {
+            return when (request) {
                 is NewDocumentDraft.Note ->
                     noteDocumentRepository.createDocument(
                         name = request.name.ifBlank { "New note" },
@@ -394,6 +394,7 @@ class DayPlanViewModel
                     )
                 }
             }
+        }
 
         fun removePlanAttachmentLink(attachmentId: String) {
             scopeLinksHandler.removePlanAttachmentLink(attachmentId)

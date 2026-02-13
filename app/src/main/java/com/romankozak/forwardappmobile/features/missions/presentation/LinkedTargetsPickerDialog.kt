@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -63,6 +64,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -72,6 +74,7 @@ import androidx.compose.ui.res.stringResource
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 enum class LinkPickerTab {
     CONTEXTS,
@@ -119,6 +122,7 @@ fun LinkedTargetsPickerDialog(
     var pendingDocumentType by remember { mutableStateOf<DocumentCreationType?>(null) }
     var documentName by remember { mutableStateOf("") }
     var documentTarget by remember { mutableStateOf("") }
+    var horizontalDragAccum by remember { mutableStateOf(0f) }
 
     val contextNodes =
         remember(contextOptions) {
@@ -282,7 +286,31 @@ fun LinkedTargetsPickerDialog(
                 },
             ) { padding ->
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(padding),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(padding)
+                            .pointerInput(hasBothTabs, selectedTab) {
+                                if (!hasBothTabs) return@pointerInput
+                                detectHorizontalDragGestures(
+                                    onDragStart = { horizontalDragAccum = 0f },
+                                    onHorizontalDrag = { _, dragAmount ->
+                                        horizontalDragAccum += dragAmount
+                                    },
+                                    onDragEnd = {
+                                        if (abs(horizontalDragAccum) >= 60f) {
+                                            selectedTab =
+                                                if (horizontalDragAccum < 0f) {
+                                                    LinkPickerTab.ATTACHMENTS
+                                                } else {
+                                                    LinkPickerTab.CONTEXTS
+                                                }
+                                        }
+                                        horizontalDragAccum = 0f
+                                    },
+                                    onDragCancel = { horizontalDragAccum = 0f },
+                                )
+                            },
                 ) {
                     Box(
                         modifier =
