@@ -20,11 +20,81 @@ ERROR_LOG="$PROJECT_ROOT/error.log"
 
 RUN_ID=""
 KEEP_ALL_APKS="false"
+FLAVOR=""
+TYPE=""
+HOST=""
+ACTION=""
 
-for arg in "$@"; do
-    case "$arg" in
+function print_usage() {
+    cat <<EOF
+Usage:
+  tools/gh_deploy.sh [options]
+
+Options:
+  --flavor <prod-release|exp-debug|exp-release>
+  --action <install|download>
+  --host <device|pc>                Optional. Default: install->device, download->pc
+  --keep-all-apks
+  -h, --help
+
+Examples:
+  tools/gh_deploy.sh --flavor exp-release --action install
+  tools/gh_deploy.sh --flavor prod-release --action download
+EOF
+}
+
+function parse_flavor_arg() {
+    local val="$1"
+    case "$val" in
+        prod-release|prod|prod_rel)
+            FLAVOR="prod"
+            TYPE="release"
+            ;;
+        exp-debug|exp_dbg|expdebug)
+            FLAVOR="exp"
+            TYPE="debug"
+            ;;
+        exp-release|exp|exp_rel)
+            FLAVOR="exp"
+            TYPE="release"
+            ;;
+        *)
+            echo -e "${RED}Invalid --flavor: $val${NC}"
+            print_usage
+            exit 1
+            ;;
+    esac
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
         --keep-all-apks)
             KEEP_ALL_APKS="true"
+            shift
+            ;;
+        --flavor)
+            [ $# -lt 2 ] && { echo -e "${RED}--flavor requires value${NC}"; print_usage; exit 1; }
+            parse_flavor_arg "$2"
+            shift 2
+            ;;
+        --action)
+            [ $# -lt 2 ] && { echo -e "${RED}--action requires value${NC}"; print_usage; exit 1; }
+            ACTION="$2"
+            shift 2
+            ;;
+        --host)
+            [ $# -lt 2 ] && { echo -e "${RED}--host requires value${NC}"; print_usage; exit 1; }
+            HOST="$2"
+            shift 2
+            ;;
+        -h|--help)
+            print_usage
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}Unknown argument: $1${NC}"
+            print_usage
+            exit 1
             ;;
     esac
 done
@@ -85,30 +155,64 @@ function show_logging_advice() {
 }
 
 function select_options() {
-    echo -e "${YELLOW}Select Build Flavor:${NC}"
-    echo "1) Prod Release"
-    echo "2) Exp Debug"
-    echo "3) Exp Release"
-    read -p "Choice [1-3]: " f_choice
+    if [ -z "$FLAVOR" ] || [ -z "$TYPE" ]; then
+        echo -e "${YELLOW}Select Build Flavor:${NC}"
+        echo "1) Prod Release"
+        echo "2) Exp Debug"
+        echo "3) Exp Release"
+        read -p "Choice [1-3]: " f_choice
 
-    case $f_choice in
-        1) FLAVOR="prod"; TYPE="release" ;;
-        2) FLAVOR="exp"; TYPE="debug" ;;
-        3) FLAVOR="exp"; TYPE="release" ;;
-        *) echo -e "${RED}Invalid choice!${NC}"; exit 1 ;;
+        case $f_choice in
+            1) FLAVOR="prod"; TYPE="release" ;;
+            2) FLAVOR="exp"; TYPE="debug" ;;
+            3) FLAVOR="exp"; TYPE="release" ;;
+            *) echo -e "${RED}Invalid choice!${NC}"; exit 1 ;;
+        esac
+    fi
+
+    if [ -z "$ACTION" ]; then
+        echo ""
+        echo -e "${YELLOW}Що робити після білда?${NC}"
+        echo "1) Встановити APK на телефон"
+        echo "2) Лише скачати APK у ./dist"
+        read -p "Choice [1-2]: " a_choice
+        case "$a_choice" in
+            1) ACTION="install" ;;
+            2) ACTION="download" ;;
+            *) echo -e "${RED}Invalid choice!${NC}"; exit 1 ;;
+        esac
+    fi
+
+    case "$ACTION" in
+        install|download) ;;
+        *)
+            echo -e "${RED}Invalid --action: $ACTION${NC}"
+            print_usage
+            exit 1
+            ;;
     esac
 
-    echo ""
-    echo -e "${YELLOW}Select Target Host:${NC}"
-    echo "1) Phone (ADB / Termux)"
-    echo "2) Local PC (./dist)"
-    read -p "Choice [1-2]: " h_choice
+    if [ -z "$HOST" ]; then
+        if [ "$ACTION" == "install" ]; then
+            HOST="device"
+        else
+            HOST="pc"
+        fi
+    fi
 
-    case $h_choice in
-        1) HOST="device" ;;
-        2) HOST="pc" ;;
-        *) echo -e "${RED}Invalid choice!${NC}"; exit 1 ;;
+    case "$HOST" in
+        device|pc) ;;
+        *)
+            echo -e "${RED}Invalid --host: $HOST${NC}"
+            print_usage
+            exit 1
+            ;;
     esac
+
+    if [ "$ACTION" == "install" ] && [ "$HOST" != "device" ]; then
+        echo -e "${RED}Action install requires --host device.${NC}"
+        exit 1
+    fi
 }
 
 # ------------------ MAIN ------------------
@@ -119,6 +223,9 @@ select_options
 
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 echo -e "Current Branch: ${GREEN}$CURRENT_BRANCH${NC}"
+echo -e "Selected Flavor: ${GREEN}${FLAVOR}-${TYPE}${NC}"
+echo -e "Selected Action: ${GREEN}${ACTION}${NC}"
+echo -e "Selected Host: ${GREEN}${HOST}${NC}"
 
 ARTIFACT_NAME="apk-${FLAVOR}-${TYPE}"
 
@@ -196,15 +303,12 @@ echo -e "${GREEN}Downloaded: $F_NAME${NC}"
 SAVED_APK="$APK_FILE"
 echo -e "${GREEN}Saved to: $SAVED_APK${NC}"
 
-if [ "$HOST" == "device" ]; then
+if [ "$ACTION" == "install" ]; then
     echo ""
-    read -p "Встановити APK через install_apk.sh? [y/N]: " install_choice
-    if [[ "$install_choice" =~ ^[Yy]$ ]]; then
-        if [ ! -x "$INSTALL_SCRIPT" ]; then
-            echo -e "${RED}Install script not found or not executable: $INSTALL_SCRIPT${NC}"
-        else
-            "$INSTALL_SCRIPT" "$SAVED_APK"
-        fi
+    if [ ! -x "$INSTALL_SCRIPT" ]; then
+        echo -e "${RED}Install script not found or not executable: $INSTALL_SCRIPT${NC}"
+    else
+        "$INSTALL_SCRIPT" "$SAVED_APK"
     fi
 fi
 
