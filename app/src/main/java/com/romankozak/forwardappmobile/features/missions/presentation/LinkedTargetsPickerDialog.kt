@@ -41,8 +41,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -62,6 +60,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.res.stringResource
+import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 
 enum class LinkPickerTab {
@@ -90,6 +90,7 @@ fun LinkedTargetsPickerDialog(
     var query by remember { mutableStateOf("") }
     var selectedTab by remember(initialTab) { mutableStateOf(initialTab) }
     var expandedIds by remember { mutableStateOf(setOf<String>()) }
+    var showDescendants by remember { mutableStateOf(false) }
 
     val contextNodes =
         remember(contextOptions) {
@@ -114,6 +115,40 @@ fun LinkedTargetsPickerDialog(
         }
 
     val hasBothTabs = contextOptions.isNotEmpty() && attachmentOptions.isNotEmpty()
+    val contextById = remember(contextNodes) { contextNodes.associateBy { it.id } }
+    val visibleContextIds =
+        remember(contextNodes, childMap, query, showDescendants) {
+            if (query.isBlank()) {
+                contextNodes.map { it.id }.toSet()
+            } else {
+                val matchingIds = contextNodes.filter { it.title.contains(query, ignoreCase = true) }.map { it.id }.toSet()
+
+                val ancestorIds = mutableSetOf<String>()
+                matchingIds.forEach { id ->
+                    var parentId = contextById[id]?.parentId
+                    while (parentId != null) {
+                        ancestorIds += parentId
+                        parentId = contextById[parentId]?.parentId
+                    }
+                }
+
+                val descendantIds = mutableSetOf<String>()
+                if (showDescendants) {
+                    val queue = ArrayDeque(matchingIds.toList())
+                    while (queue.isNotEmpty()) {
+                        val current = queue.removeFirst()
+                        val children = childMap[current].orEmpty()
+                        children.forEach { child ->
+                            if (descendantIds.add(child.id)) {
+                                queue.add(child.id)
+                            }
+                        }
+                    }
+                }
+
+                matchingIds + ancestorIds + descendantIds
+            }
+        }
 
     LaunchedEffect(query, childMap, contextNodes) {
         if (query.isBlank()) {
@@ -143,7 +178,7 @@ fun LinkedTargetsPickerDialog(
                     TopAppBar(
                         title = {
                             Text(
-                                text = "Link Targets",
+                                text = stringResource(R.string.picker_add_connections_title),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.SemiBold,
                             )
@@ -178,20 +213,10 @@ fun LinkedTargetsPickerDialog(
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             if (hasBothTabs) {
-                                TabRow(selectedTabIndex = if (selectedTab == LinkPickerTab.CONTEXTS) 0 else 1) {
-                                    Tab(
-                                        selected = selectedTab == LinkPickerTab.CONTEXTS,
-                                        onClick = { selectedTab = LinkPickerTab.CONTEXTS },
-                                        text = { Text("Contexts") },
-                                        icon = { Icon(Icons.Default.Folder, contentDescription = null) },
-                                    )
-                                    Tab(
-                                        selected = selectedTab == LinkPickerTab.ATTACHMENTS,
-                                        onClick = { selectedTab = LinkPickerTab.ATTACHMENTS },
-                                        text = { Text("Attachments") },
-                                        icon = { Icon(Icons.Default.AttachFile, contentDescription = null) },
-                                    )
-                                }
+                                CompactTypeTabs(
+                                    selectedTab = selectedTab,
+                                    onTabSelected = { selectedTab = it },
+                                )
                             }
 
                             OutlinedTextField(
@@ -205,13 +230,20 @@ fun LinkedTargetsPickerDialog(
                                 placeholder = {
                                     Text(
                                         if (selectedTab == LinkPickerTab.CONTEXTS) {
-                                            "Search contexts"
+                                            stringResource(R.string.picker_search_contexts)
                                         } else {
-                                            "Search attachments"
+                                            stringResource(R.string.picker_search_documents)
                                         },
                                     )
                                 },
                             )
+
+                            if (selectedTab == LinkPickerTab.CONTEXTS && query.isNotBlank()) {
+                                CompactDescendantsToggle(
+                                    enabled = showDescendants,
+                                    onToggle = { showDescendants = !showDescendants },
+                                )
+                            }
                         }
                     }
 
@@ -219,6 +251,7 @@ fun LinkedTargetsPickerDialog(
                         ContextPickerList(
                             topLevelContexts = topLevelContexts,
                             childMap = childMap,
+                            visibleIds = visibleContextIds,
                             expandedIds = expandedIds,
                             onToggleExpanded = { id ->
                                 expandedIds =
@@ -228,7 +261,6 @@ fun LinkedTargetsPickerDialog(
                                         expandedIds + id
                                     }
                             },
-                            query = query,
                             preselectedIds = preselectedContextIds,
                             onSelect = onContextSelected,
                         )
@@ -250,18 +282,14 @@ fun LinkedTargetsPickerDialog(
 private fun ContextPickerList(
     topLevelContexts: List<PickerNode>,
     childMap: Map<String, List<PickerNode>>,
+    visibleIds: Set<String>,
     expandedIds: Set<String>,
     onToggleExpanded: (String) -> Unit,
-    query: String,
     preselectedIds: Set<String>,
     onSelect: (String) -> Unit,
 ) {
     val visibleTopLevel =
-        if (query.isBlank()) {
-            topLevelContexts
-        } else {
-            topLevelContexts.filter { it.title.contains(query, ignoreCase = true) || hasMatchedDescendant(it.id, query, childMap) }
-        }
+        topLevelContexts.filter { it.id in visibleIds }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -271,6 +299,7 @@ private fun ContextPickerList(
         if (visibleTopLevel.isEmpty()) {
             item {
                 PickerEmptyState(text = "No contexts found")
+                PickerEmptyState(text = stringResource(R.string.picker_no_contexts_found))
             }
         } else {
             items(visibleTopLevel, key = { it.id }) { node ->
@@ -280,7 +309,7 @@ private fun ContextPickerList(
                     childMap = childMap,
                     expandedIds = expandedIds,
                     onToggleExpanded = onToggleExpanded,
-                    query = query,
+                    visibleIds = visibleIds,
                     preselectedIds = preselectedIds,
                     onSelect = onSelect,
                 )
@@ -296,7 +325,7 @@ private fun ContextRow(
     childMap: Map<String, List<PickerNode>>,
     expandedIds: Set<String>,
     onToggleExpanded: (String) -> Unit,
-    query: String,
+    visibleIds: Set<String>,
     preselectedIds: Set<String>,
     onSelect: (String) -> Unit,
 ) {
@@ -306,11 +335,7 @@ private fun ContextRow(
     val rotation by animateFloatAsState(targetValue = if (isExpanded) 90f else 0f, label = "caret")
 
     val visibleChildren =
-        if (query.isBlank()) {
-            children
-        } else {
-            children.filter { it.title.contains(query, ignoreCase = true) || hasMatchedDescendant(it.id, query, childMap) }
-        }
+        children.filter { it.id in visibleIds }
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         ElevatedCard(
@@ -384,7 +409,7 @@ private fun ContextRow(
                     childMap = childMap,
                     expandedIds = expandedIds,
                     onToggleExpanded = onToggleExpanded,
-                    query = query,
+                    visibleIds = visibleIds,
                     preselectedIds = preselectedIds,
                     onSelect = onSelect,
                 )
@@ -414,7 +439,7 @@ private fun AttachmentPickerList(
     ) {
         if (filtered.isEmpty()) {
             item {
-                PickerEmptyState(text = "No attachments found")
+                PickerEmptyState(text = stringResource(R.string.picker_no_documents_found))
             }
         } else {
             items(filtered, key = { it.id }) { option ->
@@ -495,15 +520,104 @@ private fun PickerEmptyState(text: String) {
     }
 }
 
-private fun hasMatchedDescendant(
-    id: String,
-    query: String,
-    childMap: Map<String, List<PickerNode>>,
-): Boolean {
-    val children = childMap[id].orEmpty()
-    if (children.isEmpty()) return false
-    return children.any { child ->
-        child.title.contains(query, ignoreCase = true) || hasMatchedDescendant(child.id, query, childMap)
+@Composable
+private fun CompactTypeTabs(
+    selectedTab: LinkPickerTab,
+    onTabSelected: (LinkPickerTab) -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+    ) {
+        Row(
+            modifier = Modifier.padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            CompactTypeTabButton(
+                selected = selectedTab == LinkPickerTab.CONTEXTS,
+                icon = Icons.Default.Folder,
+                contentDescription = stringResource(R.string.picker_contexts),
+                onClick = { onTabSelected(LinkPickerTab.CONTEXTS) },
+                modifier = Modifier.weight(1f),
+            )
+            CompactTypeTabButton(
+                selected = selectedTab == LinkPickerTab.ATTACHMENTS,
+                icon = Icons.Default.AttachFile,
+                contentDescription = stringResource(R.string.picker_documents),
+                onClick = { onTabSelected(LinkPickerTab.ATTACHMENTS) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CompactTypeTabButton(
+    selected: Boolean,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier =
+            modifier
+                .height(34.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(
+                    if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                ).clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint =
+                if (selected) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+        )
+    }
+}
+
+@Composable
+private fun CompactDescendantsToggle(
+    enabled: Boolean,
+    onToggle: () -> Unit,
+) {
+    Surface(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(onClick = onToggle),
+        color =
+            if (enabled) {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f)
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+            },
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = if (enabled) Icons.Default.Check else Icons.Default.ChevronRight,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = stringResource(R.string.picker_show_nested_contexts),
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 

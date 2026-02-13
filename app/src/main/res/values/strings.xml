@@ -86,6 +86,14 @@
     <string name="menu_add_obsidian_link">Add Obsidian link</string>
     <string name="note_name">Note title</string>
     <string name="settings_allow_system_project_moves">Allow moving system contexts</string>
+    <string name="picker_add_connections_title">Add connections</string>
+    <string name="picker_search_contexts">Search contexts</string>
+    <string name="picker_search_documents">Search documents</string>
+    <string name="picker_no_contexts_found">No contexts found</string>
+    <string name="picker_no_documents_found">No documents found</string>
+    <string name="picker_show_nested_contexts">Show nested contexts</string>
+    <string name="picker_contexts">Contexts</string>
+    <string name="picker_documents">Documents</string>
 
     <!-- Settings tabs -->
     <string name="settings_tab_general">General</string>
