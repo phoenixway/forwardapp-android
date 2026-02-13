@@ -224,6 +224,10 @@ fun LinkedTargetsPickerDialog(
                             DropdownMenu(
                                 expanded = documentsMenuExpanded,
                                 onDismissRequest = { documentsMenuExpanded = false },
+                                modifier =
+                                    Modifier
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                             ) {
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.attachment_type_notes)) },

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.context.SystemContexts
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
@@ -368,16 +369,22 @@ class DayPlanViewModel
 
         suspend fun createPlanDocumentForPicker(request: NewDocumentDraft): String? {
             return when (request) {
-                is NewDocumentDraft.Note ->
-                    noteDocumentRepository.createDocument(
-                        name = request.name.ifBlank { "New note" },
-                        contextId = SystemContexts.TODAY.raw,
-                    )
-                is NewDocumentDraft.Checklist ->
-                    checklistRepository.createChecklist(
-                        name = request.name.ifBlank { "New checklist" },
-                        contextId = SystemContexts.TODAY.raw,
-                    )
+                is NewDocumentDraft.Note -> {
+                    val documentId =
+                        noteDocumentRepository.createDocument(
+                            name = request.name.ifBlank { "New note" },
+                            contextId = SystemContexts.TODAY.raw,
+                        )
+                    attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)?.id
+                }
+                is NewDocumentDraft.Checklist -> {
+                    val checklistId =
+                        checklistRepository.createChecklist(
+                            name = request.name.ifBlank { "New checklist" },
+                            contextId = SystemContexts.TODAY.raw,
+                        )
+                    attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.CHECKLIST, checklistId)?.id
+                }
                 is NewDocumentDraft.WebLink -> {
                     val target = request.url.trim()
                     if (target.isBlank()) return null

@@ -6,6 +6,7 @@ import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.context.SystemContexts
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
@@ -287,16 +288,22 @@ class TacticalMissionViewModel
 
         suspend fun createBoardDocumentForPicker(request: NewDocumentDraft): String? {
             return when (request) {
-                is NewDocumentDraft.Note ->
-                    noteDocumentRepository.createDocument(
-                        name = request.name.ifBlank { "New note" },
-                        contextId = SystemContexts.MISSION.raw,
-                    )
-                is NewDocumentDraft.Checklist ->
-                    checklistRepository.createChecklist(
-                        name = request.name.ifBlank { "New checklist" },
-                        contextId = SystemContexts.MISSION.raw,
-                    )
+                is NewDocumentDraft.Note -> {
+                    val documentId =
+                        noteDocumentRepository.createDocument(
+                            name = request.name.ifBlank { "New note" },
+                            contextId = SystemContexts.MISSION.raw,
+                        )
+                    attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)?.id
+                }
+                is NewDocumentDraft.Checklist -> {
+                    val checklistId =
+                        checklistRepository.createChecklist(
+                            name = request.name.ifBlank { "New checklist" },
+                            contextId = SystemContexts.MISSION.raw,
+                        )
+                    attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.CHECKLIST, checklistId)?.id
+                }
                 is NewDocumentDraft.WebLink -> {
                     val target = request.url.trim()
                     if (target.isBlank()) return null

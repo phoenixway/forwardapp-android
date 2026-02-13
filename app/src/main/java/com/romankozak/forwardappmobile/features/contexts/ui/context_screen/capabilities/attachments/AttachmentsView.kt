@@ -4,12 +4,20 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.ContextScreenViewModel
+import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
+import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
+import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTargetsPickerDialog
+import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
 import com.romankozak.forwardappmobile.ui.components.AddConnectionType
 import com.romankozak.forwardappmobile.ui.components.ConnectionItemUi
 import com.romankozak.forwardappmobile.ui.components.ConnectionType
@@ -21,6 +29,9 @@ fun AttachmentsView(
     viewModel: ContextScreenViewModel,
     attachmentItems: List<BacklogItemContent>,
 ) {
+    var activePickerTab by remember { mutableStateOf<LinkPickerTab?>(null) }
+    val groupedContexts by viewModel.subprojectChildren.collectAsState()
+
     val attachments =
         attachmentItems.filter {
             it is BacklogItemContent.LinkItem ||
@@ -40,6 +51,22 @@ fun AttachmentsView(
         remember(attachments) {
             attachments.associateBy { it.connectionId() }
         }
+    val contextOptions =
+        remember(groupedContexts) {
+            groupedContexts
+                .values
+                .flatten()
+                .distinctBy { it.id }
+                .map { context -> ProjectOption(id = context.id, name = context.name, parentId = context.parentId) }
+        }
+    val pickerAttachmentOptions =
+        remember(attachments) {
+            attachments.mapNotNull { it.toAttachmentOptionOrNull() }
+        }
+    val preselectedContextIds =
+        remember(attachments) {
+            attachments.mapNotNull { it.contextTargetIdOrNull() }.toSet()
+        }
 
     Column(
         modifier =
@@ -57,12 +84,33 @@ fun AttachmentsView(
             },
             onAddConnection = { type ->
                 when (type) {
-                    AddConnectionType.CONTEXT -> viewModel.inputHandler.onAddListLinkRequest()
-                    AddConnectionType.ATTACHMENT -> viewModel.onShowCreateNoteDocumentDialog()
-                    AddConnectionType.EXTERNAL_LINK -> viewModel.onShowAddWebLinkDialog()
-                    AddConnectionType.OBSIDIAN_NOTE -> viewModel.onShowAddObsidianLinkDialog()
+                    AddConnectionType.CONTEXT -> activePickerTab = LinkPickerTab.CONTEXTS
+                    AddConnectionType.ATTACHMENT -> activePickerTab = LinkPickerTab.ATTACHMENTS
+                    AddConnectionType.EXTERNAL_LINK -> activePickerTab = LinkPickerTab.ATTACHMENTS
+                    AddConnectionType.OBSIDIAN_NOTE -> activePickerTab = LinkPickerTab.ATTACHMENTS
                 }
             },
+        )
+    }
+
+    activePickerTab?.let { initialTab ->
+        LinkedTargetsPickerDialog(
+            contextOptions = contextOptions,
+            attachmentOptions = pickerAttachmentOptions,
+            preselectedContextIds = preselectedContextIds,
+            preselectedAttachmentIds = pickerAttachmentOptions.map { it.id }.toSet(),
+            initialTab = initialTab,
+            onDismiss = { activePickerTab = null },
+            onContextSelected = { id ->
+                viewModel.onPickerContextSelected(id)
+                activePickerTab = null
+            },
+            onAttachmentSelected = { id ->
+                viewModel.onPickerAttachmentSelected(id)
+                activePickerTab = null
+            },
+            onCreateRootContext = { name -> viewModel.createRootContextForPicker(name) },
+            onCreateDocument = { draft -> viewModel.createAttachmentForPicker(draft) },
         )
     }
 }
@@ -87,4 +135,38 @@ private fun BacklogItemContent.connectionType(): ConnectionType =
                 null -> ConnectionType.ATTACHMENT
             }
         else -> ConnectionType.ATTACHMENT
+    }
+
+private fun BacklogItemContent.toAttachmentOptionOrNull(): AttachmentOption? =
+    when (this) {
+        is BacklogItemContent.NoteDocumentItem ->
+            AttachmentOption(
+                id = backlogItem.id,
+                name = document.name,
+                attachmentType = "NOTE_DOCUMENT",
+                entityId = document.id,
+            )
+        is BacklogItemContent.ChecklistItem ->
+            AttachmentOption(
+                id = backlogItem.id,
+                name = checklist.name,
+                attachmentType = "CHECKLIST",
+                entityId = checklist.id,
+            )
+        is BacklogItemContent.LinkItem ->
+            AttachmentOption(
+                id = backlogItem.id,
+                name = link.linkData.displayName?.ifBlank { link.linkData.target } ?: link.linkData.target,
+                linkType = link.linkData.type,
+                attachmentType = backlogItem.itemType,
+                entityId = backlogItem.entityId,
+                target = link.linkData.target,
+            )
+        else -> null
+    }
+
+private fun BacklogItemContent.contextTargetIdOrNull(): String? =
+    when (this) {
+        is BacklogItemContent.LinkItem -> link.linkData.target.takeIf { link.linkData.type == LinkType.CONTEXT }
+        else -> null
     }

@@ -62,6 +62,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.usecases.ContextScreenDataMapper
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.usecases.ContextScreenDataObserver
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.*
+import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -72,6 +73,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import java.util.Calendar
+import java.util.UUID
 import javax.inject.Inject
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -620,6 +622,101 @@ class ContextScreenViewModel
                 val result = creationActions.createChecklist(contextIdFlow.value)
                 dispatchCreationOutcome(creationResultActions.fromChecklistResult(result))
             }
+
+        fun onPickerContextSelected(targetContextId: String) =
+            viewModelScope.launch {
+                val currentContextId = contextIdFlow.value
+                if (targetContextId.isBlank() || currentContextId.isBlank()) return@launch
+                if (targetContextId == currentContextId) {
+                    showSnackbar("Цей контекст вже відкритий", null)
+                    return@launch
+                }
+
+                val targetName = contextRepository.getContextById(targetContextId)?.name?.ifBlank { null } ?: targetContextId
+                contextRepository.addLinkItemToContextFromLink(
+                    contextId = currentContextId,
+                    link =
+                        RelatedLink(
+                            type = LinkType.CONTEXT,
+                            target = targetContextId,
+                            displayName = targetName,
+                        ),
+                )
+            }
+
+        fun onPickerAttachmentSelected(attachmentId: String) =
+            viewModelScope.launch {
+                if (attachmentId.isBlank()) return@launch
+                val currentContextId = contextIdFlow.value
+                if (currentContextId.isBlank()) return@launch
+                runCatching {
+                    contextRepository.linkAttachmentToContext(attachmentId, currentContextId)
+                }.onFailure {
+                    Log.e(TAG, "Failed to link attachment to current context", it)
+                }
+            }
+
+        suspend fun createRootContextForPicker(name: String): String? {
+            val trimmed = name.trim()
+            if (trimmed.isBlank()) return null
+            val id = UUID.randomUUID().toString()
+            contextRepository.createContextWithId(
+                id = id,
+                name = trimmed,
+                parentId = null,
+            )
+            return id
+        }
+
+        suspend fun createAttachmentForPicker(request: NewDocumentDraft): String? {
+            val currentContextId = contextIdFlow.value
+            if (currentContextId.isBlank()) return null
+
+            return when (request) {
+                is NewDocumentDraft.Note -> {
+                    val documentId =
+                        noteDocumentRepository.createDocument(
+                            name = request.name.ifBlank { "New note" },
+                            contextId = currentContextId,
+                        )
+                    contextRepository.findAttachmentIdByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)
+                }
+                is NewDocumentDraft.Checklist -> {
+                    val checklistId =
+                        checklistRepository.createChecklist(
+                            name = request.name.ifBlank { "New checklist" },
+                            contextId = currentContextId,
+                        )
+                    contextRepository.findAttachmentIdByEntity(BacklogItemTypeValues.CHECKLIST, checklistId)
+                }
+                is NewDocumentDraft.WebLink -> {
+                    val target = request.url.trim()
+                    if (target.isBlank()) return null
+                    contextRepository.addLinkItemToContextFromLink(
+                        contextId = currentContextId,
+                        link =
+                            RelatedLink(
+                                type = LinkType.URL,
+                                target = target,
+                                displayName = request.name.trim().ifBlank { target },
+                            ),
+                    )
+                }
+                is NewDocumentDraft.Obsidian -> {
+                    val target = request.noteName.trim()
+                    if (target.isBlank()) return null
+                    contextRepository.addLinkItemToContextFromLink(
+                        contextId = currentContextId,
+                        link =
+                            RelatedLink(
+                                type = LinkType.OBSIDIAN,
+                                target = target,
+                                displayName = request.displayName.trim().ifBlank { target },
+                            ),
+                    )
+                }
+            }
+        }
         private suspend fun dispatchCreationOutcome(outcome: CreationResultActions.Outcome) {
             when (outcome) {
                 is CreationResultActions.Outcome.Navigate ->

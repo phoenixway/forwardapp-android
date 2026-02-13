@@ -338,6 +338,18 @@ class ContextRepository
             link: RelatedLink,
         ): String = attachmentRepository.createLinkAttachment(contextId, link)
 
+        suspend fun linkAttachmentToContext(
+            attachmentId: String,
+            contextId: String,
+        ) {
+            attachmentRepository.linkAttachmentToContext(attachmentId, contextId)
+        }
+
+        suspend fun findAttachmentIdByEntity(
+            attachmentType: String,
+            entityId: String,
+        ): String? = attachmentRepository.findAttachmentByEntity(attachmentType, entityId)?.id
+
         suspend fun deleteAttachmentEverywhere(attachmentId: String) {
             val attachment = attachmentRepository.getAttachmentById(attachmentId) ?: return
             when (attachment.attachmentType) {
