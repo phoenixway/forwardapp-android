@@ -53,8 +53,7 @@ fun TacticalManagementScreen(
     val showAddDialog by viewModel.isAddMissionDialogOpen.collectAsState()
     var editingMission by remember { mutableStateOf<TacticalMission?>(null) }
     var actionMenuMission by remember { mutableStateOf<TacticalMission?>(null) }
-    var showProjectChooser by remember { mutableStateOf(false) }
-    var showAttachmentChooser by remember { mutableStateOf(false) }
+    var activeLinkPickerTab by remember { mutableStateOf<LinkPickerTab?>(null) }
     var showAddUrlDialog by remember { mutableStateOf(false) }
     var showAddObsidianDialog by remember { mutableStateOf(false) }
     var selectedMissionIds by remember { mutableStateOf(setOf<Long>()) }
@@ -269,8 +268,8 @@ fun TacticalManagementScreen(
         linkedProjectIds = boardLinkedProjectIds,
         linkedAttachmentIds = boardLinkedAttachmentIds,
         onDismiss = viewModel::dismissScopeLinksSheet,
-        onAddContextClick = { showProjectChooser = true },
-        onAddAttachmentClick = { showAttachmentChooser = true },
+        onAddContextClick = { activeLinkPickerTab = LinkPickerTab.CONTEXTS },
+        onAddAttachmentClick = { activeLinkPickerTab = LinkPickerTab.ATTACHMENTS },
         onAddExternalClick = { showAddUrlDialog = true },
         onAddObsidianClick = { showAddObsidianDialog = true },
         onContextClick = onLinkedProjectClick,
@@ -328,26 +327,21 @@ fun TacticalManagementScreen(
         }
     }
 
-    if (showProjectChooser) {
-        ProjectChooserScreen(
-            options = projectOptions,
-            preselected = validBoardLinkedProjectIds.toSet(),
-            onDismiss = { showProjectChooser = false },
-            onConfirm = { selected ->
-                selected.forEach(viewModel::addBoardProjectLink)
-                showProjectChooser = false
+    activeLinkPickerTab?.let { initialTab ->
+        LinkedTargetsPickerDialog(
+            contextOptions = projectOptions,
+            attachmentOptions = attachmentOptions,
+            preselectedContextIds = validBoardLinkedProjectIds.toSet(),
+            preselectedAttachmentIds = validBoardLinkedAttachmentIds.toSet(),
+            initialTab = initialTab,
+            onDismiss = { activeLinkPickerTab = null },
+            onContextSelected = { id ->
+                viewModel.addBoardProjectLink(id)
+                activeLinkPickerTab = null
             },
-        )
-    }
-
-    if (showAttachmentChooser) {
-        AttachmentChooserScreen(
-            options = attachmentOptions,
-            preselected = validBoardLinkedAttachmentIds.toSet(),
-            onDismiss = { showAttachmentChooser = false },
-            onConfirm = { selected ->
-                selected.forEach(viewModel::addBoardAttachmentLink)
-                showAttachmentChooser = false
+            onAttachmentSelected = { id ->
+                viewModel.addBoardAttachmentLink(id)
+                activeLinkPickerTab = null
             },
         )
     }

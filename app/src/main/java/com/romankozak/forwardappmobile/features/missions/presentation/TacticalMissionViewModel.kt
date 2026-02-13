@@ -83,7 +83,14 @@ class TacticalMissionViewModel
             // Завантаження доступних проектів для вибору
             contextRepository.getAllContextsFlow()
                 .onEach { projects ->
-                    _projectOptions.value = projects.map { ProjectOption(it.id, it.name) }
+                    _projectOptions.value =
+                        projects.map {
+                            ProjectOption(
+                                id = it.id,
+                                name = it.name,
+                                parentId = it.parentId,
+                            )
+                        }
                 }
                 .launchIn(viewModelScope)
 
@@ -295,7 +302,11 @@ class TacticalMissionViewModel
         }
     }
 
-data class ProjectOption(val id: String, val name: String)
+data class ProjectOption(
+    val id: String,
+    val name: String,
+    val parentId: String? = null,
+)
 
 data class AttachmentOption(
     val id: String,

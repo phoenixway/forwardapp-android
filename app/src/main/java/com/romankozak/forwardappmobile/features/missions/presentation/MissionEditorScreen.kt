@@ -85,8 +85,7 @@ fun MissionEditorScreen(
     var deadlineLong by remember { mutableStateOf(mission.deadline) }
     var statusField by remember { mutableStateOf(mission.status) }
     var showDeadlinePicker by remember { mutableStateOf(false) }
-    var showAttachmentChooser by remember { mutableStateOf(false) }
-    var showProjectChooser by remember { mutableStateOf(false) }
+    var activeLinkPickerTab by remember { mutableStateOf<LinkPickerTab?>(null) }
     val projectLinks = remember { mutableStateListOf<String>().apply { addAll(mission.linkedProjectIds.orEmpty()) } }
     val attachmentLinks = remember { mutableStateListOf<String>().apply { addAll(mission.linkedAttachmentIds.orEmpty()) } }
     var selectedTab by remember { mutableStateOf(0) }
@@ -531,7 +530,7 @@ fun MissionEditorScreen(
                                 }
 
                                 FilledTonalButton(
-                                    onClick = { showAttachmentChooser = true },
+                                    onClick = { activeLinkPickerTab = LinkPickerTab.ATTACHMENTS },
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(12.dp),
                                 ) {
@@ -693,7 +692,7 @@ fun MissionEditorScreen(
                                 }
 
                                 FilledTonalButton(
-                                    onClick = { showProjectChooser = true },
+                                    onClick = { activeLinkPickerTab = LinkPickerTab.CONTEXTS },
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(12.dp),
                                 ) {
@@ -726,32 +725,25 @@ fun MissionEditorScreen(
         )
     }
 
-    if (showAttachmentChooser) {
-        AttachmentChooserScreen(
-            options = attachmentOptions,
-            preselected = attachmentLinks.toSet(),
-            onDismiss = { showAttachmentChooser = false },
-            onConfirm = { selected ->
-                selected.forEach { id ->
-                    if (!attachmentLinks.contains(id)) {
-                        attachmentLinks.add(id)
-                    }
+    activeLinkPickerTab?.let { initialTab ->
+        LinkedTargetsPickerDialog(
+            contextOptions = projectOptions,
+            attachmentOptions = attachmentOptions,
+            preselectedContextIds = projectLinks.toSet(),
+            preselectedAttachmentIds = attachmentLinks.toSet(),
+            initialTab = initialTab,
+            onDismiss = { activeLinkPickerTab = null },
+            onContextSelected = { id ->
+                if (!projectLinks.contains(id)) {
+                    projectLinks.add(id)
                 }
-                showAttachmentChooser = false
+                activeLinkPickerTab = null
             },
-        )
-    }
-
-    if (showProjectChooser) {
-        ProjectChooserScreen(
-            options = projectOptions,
-            preselected = projectLinks.toSet(),
-            onDismiss = { showProjectChooser = false },
-            onConfirm = { selected ->
-                selected.forEach { id ->
-                    if (!projectLinks.contains(id)) projectLinks.add(id)
+            onAttachmentSelected = { id ->
+                if (!attachmentLinks.contains(id)) {
+                    attachmentLinks.add(id)
                 }
-                showProjectChooser = false
+                activeLinkPickerTab = null
             },
         )
     }

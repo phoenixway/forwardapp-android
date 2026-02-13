@@ -43,9 +43,9 @@ import com.romankozak.forwardappmobile.features.attachments.ui.AddWebLinkDialog
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.AddTaskDialog
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.TaskList
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.scopelinks.DayScopeLinksSheet
-import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentChooserScreen
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
-import com.romankozak.forwardappmobile.features.missions.presentation.ProjectChooserScreen
+import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
+import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTargetsPickerDialog
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
 import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
 import com.romankozak.forwardappmobile.ui.components.orderToken
@@ -126,8 +126,7 @@ fun DayPlanScreen(
     val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsState()
     val connectionsOrder by viewModel.connectionsOrder.collectAsState()
     var showReminderDialog by remember { mutableStateOf(false) }
-    var showProjectChooser by remember { mutableStateOf(false) }
-    var showAttachmentChooser by remember { mutableStateOf(false) }
+    var activeLinkPickerTab by remember { mutableStateOf<LinkPickerTab?>(null) }
     var showAddUrlDialog by remember { mutableStateOf(false) }
     var showAddObsidianDialog by remember { mutableStateOf(false) }
     val taskToDelete by viewModel.showDeleteConfirmationDialog.collectAsState()
@@ -292,8 +291,8 @@ fun DayPlanScreen(
         isVisible = isScopeLinksSheetVisible,
         uiState = uiState,
         onDismiss = viewModel::dismissScopeLinksSheet,
-        onAddContextClick = { showProjectChooser = true },
-        onAddAttachmentClick = { showAttachmentChooser = true },
+        onAddContextClick = { activeLinkPickerTab = LinkPickerTab.CONTEXTS },
+        onAddAttachmentClick = { activeLinkPickerTab = LinkPickerTab.ATTACHMENTS },
         onAddExternalClick = { showAddUrlDialog = true },
         onAddObsidianClick = { showAddObsidianDialog = true },
         onContextClick = { contextId ->
@@ -335,26 +334,21 @@ fun DayPlanScreen(
         )
     }
 
-    if (showProjectChooser) {
-        ProjectChooserScreen(
-            options = uiState.availableProjects.map { ProjectOption(it.id, it.name) },
-            preselected = uiState.dayPlan?.linkedProjectIds.orEmpty().filter { it in availableProjectIds }.toSet(),
-            onDismiss = { showProjectChooser = false },
-            onConfirm = { selected ->
-                selected.forEach(viewModel::addPlanProjectLink)
-                showProjectChooser = false
+    activeLinkPickerTab?.let { initialTab ->
+        LinkedTargetsPickerDialog(
+            contextOptions = uiState.availableProjects.map { ProjectOption(id = it.id, name = it.name) },
+            attachmentOptions = uiState.availableAttachments.map { AttachmentOption(id = it.id, name = it.name, linkType = it.linkType) },
+            preselectedContextIds = uiState.dayPlan?.linkedProjectIds.orEmpty().filter { it in availableProjectIds }.toSet(),
+            preselectedAttachmentIds = uiState.dayPlan?.linkedAttachmentIds.orEmpty().filter { it in availableAttachmentIds }.toSet(),
+            initialTab = initialTab,
+            onDismiss = { activeLinkPickerTab = null },
+            onContextSelected = { id ->
+                viewModel.addPlanProjectLink(id)
+                activeLinkPickerTab = null
             },
-        )
-    }
-
-    if (showAttachmentChooser) {
-        AttachmentChooserScreen(
-            options = uiState.availableAttachments.map { AttachmentOption(it.id, it.name, it.linkType) },
-            preselected = uiState.dayPlan?.linkedAttachmentIds.orEmpty().filter { it in availableAttachmentIds }.toSet(),
-            onDismiss = { showAttachmentChooser = false },
-            onConfirm = { selected ->
-                selected.forEach(viewModel::addPlanAttachmentLink)
-                showAttachmentChooser = false
+            onAttachmentSelected = { id ->
+                viewModel.addPlanAttachmentLink(id)
+                activeLinkPickerTab = null
             },
         )
     }
