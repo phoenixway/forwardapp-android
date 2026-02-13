@@ -511,5 +511,6 @@ private fun attachmentIcon(type: LinkType?) =
     when (type) {
         LinkType.URL -> Icons.Default.Link
         LinkType.OBSIDIAN -> Icons.Default.Notes
+        LinkType.CONTEXT -> Icons.Default.Folder
         null -> Icons.Default.InsertDriveFile
     }
