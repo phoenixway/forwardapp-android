@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.DeleteOutline
@@ -134,7 +135,7 @@ fun ConnectionsPanel(
                         shape = RoundedCornerShape(12.dp),
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.AttachFile,
+                            imageVector = Icons.Filled.Add,
                             contentDescription = "Створити новий зв'язок",
                         )
                     }
