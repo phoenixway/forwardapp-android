@@ -51,8 +51,10 @@ import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.scopeli
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTargetsPickerDialog
+import com.romankozak.forwardappmobile.features.missions.presentation.PickerCreateAction
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
 import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
+import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
 import com.romankozak.forwardappmobile.ui.components.orderToken
 import com.romankozak.forwardappmobile.ui.common.MatrixRainView
 import kotlinx.coroutines.delay
@@ -135,6 +137,7 @@ fun DayPlanScreen(
     val scope = rememberCoroutineScope()
     var showReminderDialog by remember { mutableStateOf(false) }
     var activeLinkPickerTab by remember { mutableStateOf<LinkPickerTab?>(null) }
+    var pendingCreateAction by remember { mutableStateOf<PickerCreateAction?>(null) }
     var showAddUrlDialog by remember { mutableStateOf(false) }
     var showAddObsidianDialog by remember { mutableStateOf(false) }
     val taskToDelete by viewModel.showDeleteConfirmationDialog.collectAsState()
@@ -301,6 +304,7 @@ fun DayPlanScreen(
         onDismiss = viewModel::dismissScopeLinksSheet,
         onAddContextClick = {
             viewModel.dismissScopeLinksSheet()
+            pendingCreateAction = null
             scope.launch {
                 delay(160)
                 activeLinkPickerTab = LinkPickerTab.CONTEXTS
@@ -308,6 +312,7 @@ fun DayPlanScreen(
         },
         onAddAttachmentClick = {
             viewModel.dismissScopeLinksSheet()
+            pendingCreateAction = null
             scope.launch {
                 delay(160)
                 activeLinkPickerTab = LinkPickerTab.ATTACHMENTS
@@ -315,6 +320,19 @@ fun DayPlanScreen(
         },
         onAddExternalClick = { showAddUrlDialog = true },
         onAddObsidianClick = { showAddObsidianDialog = true },
+        onCreateConnectionClick = { type ->
+            viewModel.dismissScopeLinksSheet()
+            pendingCreateAction = type.toPickerCreateAction()
+            scope.launch {
+                delay(160)
+                activeLinkPickerTab =
+                    if (type == CreateConnectionType.CONTEXT) {
+                        LinkPickerTab.CONTEXTS
+                    } else {
+                        LinkPickerTab.ATTACHMENTS
+                    }
+            }
+        },
         onContextClick = { contextId ->
             navController.navigate("goal_detail_screen/$contextId")
         },
@@ -385,14 +403,20 @@ fun DayPlanScreen(
             preselectedContextIds = uiState.dayPlan?.linkedProjectIds.orEmpty().filter { it in availableProjectIds }.toSet(),
             preselectedAttachmentIds = uiState.dayPlan?.linkedAttachmentIds.orEmpty().filter { it in availableAttachmentIds }.toSet(),
             initialTab = initialTab,
-            onDismiss = { activeLinkPickerTab = null },
+            initialCreateAction = pendingCreateAction,
+            onDismiss = {
+                activeLinkPickerTab = null
+                pendingCreateAction = null
+            },
             onContextSelected = { id ->
                 viewModel.addPlanProjectLink(id)
                 activeLinkPickerTab = null
+                pendingCreateAction = null
             },
             onAttachmentSelected = { id ->
                 viewModel.addPlanAttachmentLink(id)
                 activeLinkPickerTab = null
+                pendingCreateAction = null
             },
             onCreateRootContext = { name -> viewModel.createRootContextForPicker(name) },
             onCreateDocument = { draft -> viewModel.createPlanDocumentForPicker(draft) },
@@ -457,6 +481,15 @@ fun DayPlanScreen(
         )
     }
 }
+
+private fun CreateConnectionType.toPickerCreateAction(): PickerCreateAction =
+    when (this) {
+        CreateConnectionType.CONTEXT -> PickerCreateAction.CONTEXT
+        CreateConnectionType.NOTE_DOCUMENT -> PickerCreateAction.NOTE
+        CreateConnectionType.CHECKLIST -> PickerCreateAction.CHECKLIST
+        CreateConnectionType.EXTERNAL_LINK -> PickerCreateAction.WEB_LINK
+        CreateConnectionType.OBSIDIAN_NOTE -> PickerCreateAction.OBSIDIAN
+    }
 
 @Composable
 fun EditRecurringTaskDialog(

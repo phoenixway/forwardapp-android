@@ -32,6 +32,7 @@ import com.romankozak.forwardappmobile.features.missions.presentation.missionlis
 import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.TacticalScopeLinksSheet
 import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.dialogs.TacticalAddObsidianDialog
 import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.dialogs.TacticalAddUrlDialog
+import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
 import com.romankozak.forwardappmobile.ui.components.orderToken
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -57,6 +58,7 @@ fun TacticalManagementScreen(
     var editingMission by remember { mutableStateOf<TacticalMission?>(null) }
     var actionMenuMission by remember { mutableStateOf<TacticalMission?>(null) }
     var activeLinkPickerTab by remember { mutableStateOf<LinkPickerTab?>(null) }
+    var pendingCreateAction by remember { mutableStateOf<PickerCreateAction?>(null) }
     var showAddUrlDialog by remember { mutableStateOf(false) }
     var showAddObsidianDialog by remember { mutableStateOf(false) }
     var selectedMissionIds by remember { mutableStateOf(setOf<Long>()) }
@@ -273,6 +275,7 @@ fun TacticalManagementScreen(
         onDismiss = viewModel::dismissScopeLinksSheet,
         onAddContextClick = {
             viewModel.dismissScopeLinksSheet()
+            pendingCreateAction = null
             scope.launch {
                 delay(160)
                 activeLinkPickerTab = LinkPickerTab.CONTEXTS
@@ -280,6 +283,7 @@ fun TacticalManagementScreen(
         },
         onAddAttachmentClick = {
             viewModel.dismissScopeLinksSheet()
+            pendingCreateAction = null
             scope.launch {
                 delay(160)
                 activeLinkPickerTab = LinkPickerTab.ATTACHMENTS
@@ -287,6 +291,19 @@ fun TacticalManagementScreen(
         },
         onAddExternalClick = { showAddUrlDialog = true },
         onAddObsidianClick = { showAddObsidianDialog = true },
+        onCreateConnectionClick = { type ->
+            viewModel.dismissScopeLinksSheet()
+            pendingCreateAction = type.toPickerCreateAction()
+            scope.launch {
+                delay(160)
+                activeLinkPickerTab =
+                    if (type == CreateConnectionType.CONTEXT) {
+                        LinkPickerTab.CONTEXTS
+                    } else {
+                        LinkPickerTab.ATTACHMENTS
+                    }
+            }
+        },
         onContextClick = onLinkedProjectClick,
         onAttachmentClick = { attachmentId ->
             val option =
@@ -356,14 +373,20 @@ fun TacticalManagementScreen(
             preselectedContextIds = validBoardLinkedProjectIds.toSet(),
             preselectedAttachmentIds = validBoardLinkedAttachmentIds.toSet(),
             initialTab = initialTab,
-            onDismiss = { activeLinkPickerTab = null },
+            initialCreateAction = pendingCreateAction,
+            onDismiss = {
+                activeLinkPickerTab = null
+                pendingCreateAction = null
+            },
             onContextSelected = { id ->
                 viewModel.addBoardProjectLink(id)
                 activeLinkPickerTab = null
+                pendingCreateAction = null
             },
             onAttachmentSelected = { id ->
                 viewModel.addBoardAttachmentLink(id)
                 activeLinkPickerTab = null
+                pendingCreateAction = null
             },
             onCreateRootContext = { name -> viewModel.createRootContextForPicker(name) },
             onCreateDocument = { draft -> viewModel.createBoardDocumentForPicker(draft) },
@@ -627,6 +650,15 @@ private fun formatDate(ts: Long): String {
     val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
     return sdf.format(Date(ts))
 }
+
+private fun CreateConnectionType.toPickerCreateAction(): PickerCreateAction =
+    when (this) {
+        CreateConnectionType.CONTEXT -> PickerCreateAction.CONTEXT
+        CreateConnectionType.NOTE_DOCUMENT -> PickerCreateAction.NOTE
+        CreateConnectionType.CHECKLIST -> PickerCreateAction.CHECKLIST
+        CreateConnectionType.EXTERNAL_LINK -> PickerCreateAction.WEB_LINK
+        CreateConnectionType.OBSIDIAN_NOTE -> PickerCreateAction.OBSIDIAN
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

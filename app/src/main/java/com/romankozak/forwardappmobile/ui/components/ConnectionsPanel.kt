@@ -18,11 +18,11 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
@@ -134,7 +134,7 @@ fun ConnectionsPanel(
                         shape = RoundedCornerShape(12.dp),
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Add,
+                            imageVector = Icons.Outlined.AttachFile,
                             contentDescription = "Створити новий зв'язок",
                         )
                     }
@@ -144,7 +144,7 @@ fun ConnectionsPanel(
                     shape = RoundedCornerShape(12.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.AttachFile,
+                        imageVector = Icons.Outlined.Search,
                         contentDescription = "Додати існуючий зв'язок",
                     )
                 }
