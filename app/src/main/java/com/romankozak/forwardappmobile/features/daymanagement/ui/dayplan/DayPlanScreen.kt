@@ -1,6 +1,9 @@
 package com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan
 
 import android.util.Log
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
@@ -30,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -123,6 +127,7 @@ fun DayPlanScreen(
     val selectedTask by viewModel.selectedTask.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val hapticFeedback = LocalHapticFeedback.current
+    val context = LocalContext.current
     val isEditTaskDialogOpen by viewModel.isEditTaskDialogOpen.collectAsState()
     val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsState()
     val connectionsOrder by viewModel.connectionsOrder.collectAsState()
@@ -313,13 +318,37 @@ fun DayPlanScreen(
             navController.navigate("goal_detail_screen/$contextId")
         },
         onAttachmentClick = { attachmentId ->
-            navController.navigate("attachments_library_screen") {
-                launchSingleTop = true
-                restoreState = true
-            }
-            runCatching {
-                navController.getBackStackEntry("attachments_library_screen")
-                    .savedStateHandle["attachment_library_query"] = attachmentId
+            val option = uiState.availableAttachments.firstOrNull { it.id == attachmentId }
+            when {
+                option?.attachmentType == "NOTE_DOCUMENT" && !option.entityId.isNullOrBlank() ->
+                    navController.navigate("note_document_screen/${option.entityId}")
+                option?.attachmentType == "CHECKLIST" && !option.entityId.isNullOrBlank() ->
+                    navController.navigate("checklist_screen?checklistId=${option.entityId}")
+                option?.linkType == LinkType.CONTEXT && !option.target.isNullOrBlank() ->
+                    navController.navigate("goal_detail_screen/${option.target}")
+                (option?.linkType == LinkType.URL || option?.linkType == LinkType.OBSIDIAN) && !option.target.isNullOrBlank() -> {
+                    runCatching {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse(option.target)).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            },
+                        )
+                    }.onFailure {
+                        if (it !is ActivityNotFoundException) {
+                            Log.e(TAG, "Cannot open link: ${option.target}", it)
+                        }
+                    }
+                }
+                else -> {
+                    navController.navigate("attachments_library_screen") {
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                    runCatching {
+                        navController.getBackStackEntry("attachments_library_screen")
+                            .savedStateHandle["attachment_library_query"] = attachmentId
+                    }
+                }
             }
         },
         onContextRemove = viewModel::removePlanProjectLink,

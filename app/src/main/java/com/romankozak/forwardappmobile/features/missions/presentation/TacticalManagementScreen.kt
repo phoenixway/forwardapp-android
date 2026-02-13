@@ -42,7 +42,7 @@ import java.util.*
 @Composable
 fun TacticalManagementScreen(
     onLinkedProjectClick: (String) -> Unit = {},
-    onLinkedAttachmentClick: (String) -> Unit = {},
+    onLinkedAttachmentClick: (AttachmentOption) -> Unit = {},
     viewModel: TacticalMissionViewModel = hiltViewModel(),
 ) {
     val missions by viewModel.missions.collectAsState()
@@ -288,7 +288,12 @@ fun TacticalManagementScreen(
         onAddExternalClick = { showAddUrlDialog = true },
         onAddObsidianClick = { showAddObsidianDialog = true },
         onContextClick = onLinkedProjectClick,
-        onAttachmentClick = onLinkedAttachmentClick,
+        onAttachmentClick = { attachmentId ->
+            val option =
+                attachmentOptions.firstOrNull { it.id == attachmentId }
+                    ?: AttachmentOption(id = attachmentId, name = attachmentId)
+            onLinkedAttachmentClick(option)
+        },
         onContextRemove = viewModel::removeBoardProjectLink,
         onAttachmentRemove = viewModel::removeBoardAttachmentLink,
         connectionOrder = connectionsOrder,

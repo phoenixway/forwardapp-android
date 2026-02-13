@@ -656,22 +656,13 @@ private fun AttachmentPickerList(
                             tint = MaterialTheme.colorScheme.secondary,
                         )
                         Spacer(modifier = Modifier.width(10.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = option.name,
-                                style = MaterialTheme.typography.bodyLarge,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            option.linkType?.let {
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = it.name,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
+                        Text(
+                            text = option.name,
+                            style = MaterialTheme.typography.bodyLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
                         AnimatedVisibility(visible = isSelected, enter = fadeIn(), exit = fadeOut()) {
                             Box(
                                 modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.secondary).padding(4.dp),

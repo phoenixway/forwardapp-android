@@ -1,5 +1,8 @@
 package com.romankozak.forwardappmobile.features.strategicmanagement
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,6 +25,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -58,6 +62,7 @@ fun StrategicManagementScreen(
     navController: NavController,
     viewModel: StrategicManagementViewModel = hiltViewModel(),
 ) {
+    val context = LocalContext.current
     val currentTab by viewModel.currentTab.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val attachmentOptions by viewModel.attachmentOptions.collectAsState()
@@ -174,13 +179,45 @@ fun StrategicManagementScreen(
                     if (item.type == ConnectionType.CONTEXT) {
                         navController.navigate("goal_detail_screen/${item.id}")
                     } else {
-                        navController.navigate("attachments_library_screen") {
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                        runCatching {
-                            navController.getBackStackEntry("attachments_library_screen")
-                                .savedStateHandle["attachment_library_query"] = item.id
+                        val option = availableAttachmentById[item.id]
+                        when {
+                            option?.attachmentType == "NOTE_DOCUMENT" && !option.entityId.isNullOrBlank() ->
+                                navController.navigate("note_document_screen/${option.entityId}")
+                            option?.attachmentType == "CHECKLIST" && !option.entityId.isNullOrBlank() ->
+                                navController.navigate("checklist_screen?checklistId=${option.entityId}")
+                            option?.linkType == LinkType.CONTEXT && !option.target.isNullOrBlank() ->
+                                navController.navigate("goal_detail_screen/${option.target}")
+                            (option?.linkType == LinkType.URL || option?.linkType == LinkType.OBSIDIAN) &&
+                                !option.target.isNullOrBlank() -> {
+                                runCatching {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse(option.target)).apply {
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        },
+                                    )
+                                }.onFailure {
+                                    if (it !is ActivityNotFoundException) {
+                                        navController.navigate("attachments_library_screen") {
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                        runCatching {
+                                            navController.getBackStackEntry("attachments_library_screen")
+                                                .savedStateHandle["attachment_library_query"] = item.id
+                                        }
+                                    }
+                                }
+                            }
+                            else -> {
+                                navController.navigate("attachments_library_screen") {
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                                runCatching {
+                                    navController.getBackStackEntry("attachments_library_screen")
+                                        .savedStateHandle["attachment_library_query"] = item.id
+                                }
+                            }
                         }
                     }
                 },

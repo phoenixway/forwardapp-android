@@ -58,6 +58,9 @@ data class LinkOption(
     val id: String,
     val name: String,
     val linkType: LinkType? = null,
+    val attachmentType: String? = null,
+    val entityId: String? = null,
+    val target: String? = null,
 )
 
 data class DayPlanUiState(
@@ -218,6 +221,9 @@ class DayPlanViewModel
                                             id = result.id,
                                             name = title,
                                             linkType = relatedLink?.type,
+                                            attachmentType = result.attachmentType,
+                                            entityId = result.entityId,
+                                            target = relatedLink?.target,
                                         )
                                     }
                                 }

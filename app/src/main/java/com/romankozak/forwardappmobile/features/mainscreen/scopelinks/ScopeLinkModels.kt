@@ -9,6 +9,9 @@ data class ScopeAttachmentOption(
     val id: String,
     val name: String,
     val linkType: LinkType? = null,
+    val attachmentType: String? = null,
+    val entityId: String? = null,
+    val target: String? = null,
 )
 
 fun AttachmentLibraryQueryResult.toScopeAttachmentOption(): ScopeAttachmentOption {
@@ -24,5 +27,12 @@ fun AttachmentLibraryQueryResult.toScopeAttachmentOption(): ScopeAttachmentOptio
             ?: relatedLink?.target
             ?: "Attachment ${id.takeLast(4)}"
 
-    return ScopeAttachmentOption(id = id, name = label, linkType = relatedLink?.type)
+    return ScopeAttachmentOption(
+        id = id,
+        name = label,
+        linkType = relatedLink?.type,
+        attachmentType = attachmentType,
+        entityId = entityId,
+        target = relatedLink?.target,
+    )
 }

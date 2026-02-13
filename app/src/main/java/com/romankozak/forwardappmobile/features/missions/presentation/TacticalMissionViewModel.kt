@@ -365,6 +365,9 @@ data class AttachmentOption(
     val id: String,
     val name: String,
     val linkType: LinkType? = null,
+    val attachmentType: String? = null,
+    val entityId: String? = null,
+    val target: String? = null,
 )
 
 // Оновлене розширення для роботи з результатом запиту бібліотеки
@@ -381,5 +384,12 @@ private fun AttachmentLibraryQueryResult.toAttachmentOption(): AttachmentOption 
             ?: relatedLink?.target
             ?: "Attachment ${id.takeLast(4)}" // Fallback
 
-    return AttachmentOption(id = id, name = label, linkType = relatedLink?.type)
+    return AttachmentOption(
+        id = id,
+        name = label,
+        linkType = relatedLink?.type,
+        attachmentType = attachmentType,
+        entityId = entityId,
+        target = relatedLink?.target,
+    )
 }
