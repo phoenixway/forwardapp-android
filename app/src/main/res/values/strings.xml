@@ -94,6 +94,8 @@
     <string name="picker_show_nested_contexts">Show nested contexts</string>
     <string name="picker_contexts">Contexts</string>
     <string name="picker_documents">Documents</string>
+    <string name="picker_context_name_label">Context name</string>
+    <string name="picker_context_name_placeholder">Enter context name</string>
 
     <!-- Settings tabs -->
     <string name="settings_tab_general">General</string>

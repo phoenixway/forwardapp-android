@@ -1,0 +1,12 @@
+<resources>
+    <string name="picker_add_connections_title">Додати звʼязки</string>
+    <string name="picker_search_contexts">Пошук контекстів</string>
+    <string name="picker_search_documents">Пошук документів</string>
+    <string name="picker_no_contexts_found">Контексти не знайдено</string>
+    <string name="picker_no_documents_found">Документи не знайдено</string>
+    <string name="picker_show_nested_contexts">Показувати вкладені контексти</string>
+    <string name="picker_contexts">Контексти</string>
+    <string name="picker_documents">Документи</string>
+    <string name="picker_context_name_label">Назва контексту</string>
+    <string name="picker_context_name_placeholder">Введіть назву контексту</string>
+</resources>

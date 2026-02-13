@@ -15,11 +15,15 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.NewTaskParameters
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceFrequency
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceRule
+import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
+import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.handlers.DayPlanScopeLinksHandler
+import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,6 +33,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import java.util.UUID
 import javax.inject.Inject
 
 data class ParentInfo(
@@ -86,7 +91,10 @@ class DayPlanViewModel
         private val dayManagementRepository: DayManagementRepository,
         private val reminderRepository: ReminderRepository,
         private val contextDao: ContextDao,
+        private val contextRepository: ContextRepository,
         private val attachmentsRepository: AttachmentsRepository,
+        private val noteDocumentRepository: NoteDocumentRepository,
+        private val checklistRepository: ChecklistRepository,
         private val settingsRepository: SettingsRepository,
     ) : ViewModel() {
         init {
@@ -339,6 +347,53 @@ class DayPlanViewModel
                 scopeLinksHandler.addPlanAttachmentLink(attachmentId)
             }
         }
+
+        suspend fun createRootContextForPicker(name: String): String? {
+            val trimmed = name.trim()
+            if (trimmed.isBlank()) return null
+            val id = UUID.randomUUID().toString()
+            contextRepository.createContextWithId(
+                id = id,
+                name = trimmed,
+                parentId = null,
+            )
+            return id
+        }
+
+        suspend fun createPlanDocumentForPicker(request: NewDocumentDraft): String? =
+            when (request) {
+                is NewDocumentDraft.Note ->
+                    noteDocumentRepository.createDocument(
+                        name = request.name.ifBlank { "New note" },
+                        contextId = SystemContexts.TODAY.raw,
+                    )
+                is NewDocumentDraft.Checklist ->
+                    checklistRepository.createChecklist(
+                        name = request.name.ifBlank { "New checklist" },
+                        contextId = SystemContexts.TODAY.raw,
+                    )
+                is NewDocumentDraft.WebLink -> {
+                    val target = request.url.trim()
+                    if (target.isBlank()) return null
+                    attachmentsRepository.createLinkAttachment(
+                        contextId = SystemContexts.TODAY.raw,
+                        link = RelatedLink(type = LinkType.URL, target = target, displayName = request.name.trim().ifBlank { target }),
+                    )
+                }
+                is NewDocumentDraft.Obsidian -> {
+                    val target = request.noteName.trim()
+                    if (target.isBlank()) return null
+                    attachmentsRepository.createLinkAttachment(
+                        contextId = SystemContexts.TODAY.raw,
+                        link =
+                            RelatedLink(
+                                type = LinkType.OBSIDIAN,
+                                target = target,
+                                displayName = request.displayName.trim().ifBlank { target },
+                            ),
+                    )
+                }
+            }
 
         fun removePlanAttachmentLink(attachmentId: String) {
             scopeLinksHandler.removePlanAttachmentLink(attachmentId)

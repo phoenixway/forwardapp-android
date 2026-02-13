@@ -321,6 +321,8 @@ fun TacticalManagementScreen(
                         )
                         editingMission = null
                     },
+                    onCreateRootContext = { name -> viewModel.createRootContextForPicker(name) },
+                    onCreateDocument = { draft -> viewModel.createBoardDocumentForPicker(draft) },
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -343,6 +345,8 @@ fun TacticalManagementScreen(
                 viewModel.addBoardAttachmentLink(id)
                 activeLinkPickerTab = null
             },
+            onCreateRootContext = { name -> viewModel.createRootContextForPicker(name) },
+            onCreateDocument = { draft -> viewModel.createBoardDocumentForPicker(draft) },
         )
     }
 

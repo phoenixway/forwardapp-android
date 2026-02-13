@@ -350,6 +350,8 @@ fun DayPlanScreen(
                 viewModel.addPlanAttachmentLink(id)
                 activeLinkPickerTab = null
             },
+            onCreateRootContext = { name -> viewModel.createRootContextForPicker(name) },
+            onCreateDocument = { draft -> viewModel.createPlanDocumentForPicker(draft) },
         )
     }
 

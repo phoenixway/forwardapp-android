@@ -78,6 +78,8 @@ fun MissionEditorScreen(
     projectOptions: List<ProjectOption>,
     onDismiss: () -> Unit,
     onConfirm: (String, String, Long, MissionStatus, List<String>, List<String>) -> Unit,
+    onCreateRootContext: (suspend (String) -> String?)? = null,
+    onCreateDocument: (suspend (NewDocumentDraft) -> String?)? = null,
     modifier: Modifier = Modifier,
 ) {
     var titleField by remember { mutableStateOf(mission.title) }
@@ -745,6 +747,8 @@ fun MissionEditorScreen(
                 }
                 activeLinkPickerTab = null
             },
+            onCreateRootContext = onCreateRootContext,
+            onCreateDocument = onCreateDocument,
         )
     }
 }

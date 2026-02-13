@@ -8,7 +8,9 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
+import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.AddTacticalMissionUseCase
@@ -25,6 +27,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -38,6 +41,8 @@ class TacticalMissionViewModel
         private val missionRepository: MissionRepository,
         private val contextRepository: ContextRepository,
         private val attachmentsRepository: AttachmentsRepository,
+        private val noteDocumentRepository: NoteDocumentRepository,
+        private val checklistRepository: ChecklistRepository,
         private val settingsRepository: SettingsRepository,
     ) : ViewModel() {
         private val _missions = MutableStateFlow<List<TacticalMission>>(emptyList())
@@ -267,6 +272,53 @@ class TacticalMissionViewModel
                 scopeLinksHandler.addBoardAttachmentLink(attachmentId)
             }
         }
+
+        suspend fun createRootContextForPicker(name: String): String? {
+            val trimmed = name.trim()
+            if (trimmed.isBlank()) return null
+            val id = UUID.randomUUID().toString()
+            contextRepository.createContextWithId(
+                id = id,
+                name = trimmed,
+                parentId = null,
+            )
+            return id
+        }
+
+        suspend fun createBoardDocumentForPicker(request: NewDocumentDraft): String? =
+            when (request) {
+                is NewDocumentDraft.Note ->
+                    noteDocumentRepository.createDocument(
+                        name = request.name.ifBlank { "New note" },
+                        contextId = SystemContexts.MISSION.raw,
+                    )
+                is NewDocumentDraft.Checklist ->
+                    checklistRepository.createChecklist(
+                        name = request.name.ifBlank { "New checklist" },
+                        contextId = SystemContexts.MISSION.raw,
+                    )
+                is NewDocumentDraft.WebLink -> {
+                    val target = request.url.trim()
+                    if (target.isBlank()) return null
+                    attachmentsRepository.createLinkAttachment(
+                        contextId = SystemContexts.MISSION.raw,
+                        link = RelatedLink(type = LinkType.URL, target = target, displayName = request.name.trim().ifBlank { target }),
+                    )
+                }
+                is NewDocumentDraft.Obsidian -> {
+                    val target = request.noteName.trim()
+                    if (target.isBlank()) return null
+                    attachmentsRepository.createLinkAttachment(
+                        contextId = SystemContexts.MISSION.raw,
+                        link =
+                            RelatedLink(
+                                type = LinkType.OBSIDIAN,
+                                target = target,
+                                displayName = request.displayName.trim().ifBlank { target },
+                            ),
+                    )
+                }
+            }
 
         fun removeBoardAttachmentLink(attachmentId: String) {
             scopeLinksHandler.removeBoardAttachmentLink(attachmentId)

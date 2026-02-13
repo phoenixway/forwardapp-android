@@ -30,11 +30,17 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,12 +48,14 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,10 +71,21 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.res.stringResource
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
+import kotlinx.coroutines.launch
 
 enum class LinkPickerTab {
     CONTEXTS,
     ATTACHMENTS,
+}
+
+sealed interface NewDocumentDraft {
+    data class Note(val name: String) : NewDocumentDraft
+
+    data class Checklist(val name: String) : NewDocumentDraft
+
+    data class WebLink(val url: String, val name: String) : NewDocumentDraft
+
+    data class Obsidian(val noteName: String, val displayName: String) : NewDocumentDraft
 }
 
 private data class PickerNode(
@@ -86,11 +105,20 @@ fun LinkedTargetsPickerDialog(
     onDismiss: () -> Unit,
     onContextSelected: (String) -> Unit,
     onAttachmentSelected: (String) -> Unit,
+    onCreateRootContext: (suspend (String) -> String?)? = null,
+    onCreateDocument: (suspend (NewDocumentDraft) -> String?)? = null,
 ) {
+    val scope = rememberCoroutineScope()
     var query by remember { mutableStateOf("") }
     var selectedTab by remember(initialTab) { mutableStateOf(initialTab) }
     var expandedIds by remember { mutableStateOf(setOf<String>()) }
     var showDescendants by remember { mutableStateOf(false) }
+    var showAddContextDialog by remember { mutableStateOf(false) }
+    var newContextName by remember { mutableStateOf("") }
+    var documentsMenuExpanded by remember { mutableStateOf(false) }
+    var pendingDocumentType by remember { mutableStateOf<DocumentCreationType?>(null) }
+    var documentName by remember { mutableStateOf("") }
+    var documentTarget by remember { mutableStateOf("") }
 
     val contextNodes =
         remember(contextOptions) {
@@ -174,6 +202,65 @@ fun LinkedTargetsPickerDialog(
     ) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Scaffold(
+                floatingActionButton = {
+                    if (selectedTab == LinkPickerTab.CONTEXTS && onCreateRootContext != null) {
+                        FloatingActionButton(
+                            onClick = {
+                                newContextName = ""
+                                showAddContextDialog = true
+                            },
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null)
+                        }
+                    } else if (selectedTab == LinkPickerTab.ATTACHMENTS && onCreateDocument != null) {
+                        Box {
+                            FloatingActionButton(onClick = { documentsMenuExpanded = true }) {
+                                Icon(Icons.Default.Add, contentDescription = null)
+                            }
+                            DropdownMenu(
+                                expanded = documentsMenuExpanded,
+                                onDismissRequest = { documentsMenuExpanded = false },
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.attachment_type_notes)) },
+                                    onClick = {
+                                        documentsMenuExpanded = false
+                                        pendingDocumentType = DocumentCreationType.NOTE
+                                        documentName = ""
+                                        documentTarget = ""
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.attachment_type_checklist)) },
+                                    onClick = {
+                                        documentsMenuExpanded = false
+                                        pendingDocumentType = DocumentCreationType.CHECKLIST
+                                        documentName = ""
+                                        documentTarget = ""
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.attachment_type_web_link)) },
+                                    onClick = {
+                                        documentsMenuExpanded = false
+                                        pendingDocumentType = DocumentCreationType.WEB_LINK
+                                        documentName = ""
+                                        documentTarget = ""
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.attachment_type_obsidian)) },
+                                    onClick = {
+                                        documentsMenuExpanded = false
+                                        pendingDocumentType = DocumentCreationType.OBSIDIAN
+                                        documentName = ""
+                                        documentTarget = ""
+                                    },
+                                )
+                            }
+                        }
+                    }
+                },
                 topBar = {
                     TopAppBar(
                         title = {
@@ -187,7 +274,7 @@ fun LinkedTargetsPickerDialog(
                             IconButton(onClick = onDismiss) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Back",
+                                    contentDescription = stringResource(R.string.back),
                                 )
                             }
                         },
@@ -276,6 +363,77 @@ fun LinkedTargetsPickerDialog(
             }
         }
     }
+
+    if (showAddContextDialog && onCreateRootContext != null) {
+        AlertDialog(
+            onDismissRequest = { showAddContextDialog = false },
+            title = { Text(stringResource(R.string.add_action_project)) },
+            text = {
+                OutlinedTextField(
+                    value = newContextName,
+                    onValueChange = { newContextName = it },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.picker_context_name_label)) },
+                    placeholder = { Text(stringResource(R.string.picker_context_name_placeholder)) },
+                )
+            },
+            confirmButton = {
+                Button(
+                    enabled = newContextName.isNotBlank(),
+                    onClick = {
+                        val name = newContextName.trim()
+                        scope.launch {
+                            val id = onCreateRootContext(name)
+                            if (!id.isNullOrBlank()) {
+                                onContextSelected(id)
+                                onDismiss()
+                            }
+                            showAddContextDialog = false
+                        }
+                    },
+                ) {
+                    Text(stringResource(R.string.create))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddContextDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
+    }
+
+    pendingDocumentType?.let { type ->
+        DocumentCreationDialog(
+            type = type,
+            name = documentName,
+            target = documentTarget,
+            onNameChange = { documentName = it },
+            onTargetChange = { documentTarget = it },
+            onDismiss = { pendingDocumentType = null },
+            onConfirm = {
+                val request =
+                    when (type) {
+                        DocumentCreationType.NOTE -> NewDocumentDraft.Note(name = documentName.trim().ifBlank { "New note" })
+                        DocumentCreationType.CHECKLIST -> NewDocumentDraft.Checklist(name = documentName.trim().ifBlank { "New checklist" })
+                        DocumentCreationType.WEB_LINK -> NewDocumentDraft.WebLink(url = documentTarget.trim(), name = documentName.trim())
+                        DocumentCreationType.OBSIDIAN ->
+                            NewDocumentDraft.Obsidian(
+                                noteName = documentTarget.trim(),
+                                displayName = documentName.trim(),
+                            )
+                    }
+                scope.launch {
+                    val id = onCreateDocument?.invoke(request)
+                    if (!id.isNullOrBlank()) {
+                        onAttachmentSelected(id)
+                        onDismiss()
+                    }
+                    pendingDocumentType = null
+                }
+            },
+        )
+    }
 }
 
 @Composable
@@ -298,7 +456,6 @@ private fun ContextPickerList(
     ) {
         if (visibleTopLevel.isEmpty()) {
             item {
-                PickerEmptyState(text = "No contexts found")
                 PickerEmptyState(text = stringResource(R.string.picker_no_contexts_found))
             }
         } else {
@@ -628,3 +785,81 @@ private fun attachmentIcon(type: LinkType?) =
         LinkType.CONTEXT -> Icons.Default.Folder
         null -> Icons.Default.InsertDriveFile
     }
+
+private enum class DocumentCreationType {
+    NOTE,
+    CHECKLIST,
+    WEB_LINK,
+    OBSIDIAN,
+}
+
+@Composable
+private fun DocumentCreationDialog(
+    type: DocumentCreationType,
+    name: String,
+    target: String,
+    onNameChange: (String) -> Unit,
+    onTargetChange: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    val title =
+        when (type) {
+            DocumentCreationType.NOTE -> stringResource(R.string.attachment_type_notes)
+            DocumentCreationType.CHECKLIST -> stringResource(R.string.attachment_type_checklist)
+            DocumentCreationType.WEB_LINK -> stringResource(R.string.attachment_type_web_link)
+            DocumentCreationType.OBSIDIAN -> stringResource(R.string.attachment_type_obsidian)
+        }
+    val targetLabel =
+        when (type) {
+            DocumentCreationType.NOTE,
+            DocumentCreationType.CHECKLIST,
+            -> null
+            DocumentCreationType.WEB_LINK -> "URL"
+            DocumentCreationType.OBSIDIAN -> stringResource(R.string.note_name)
+        }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (targetLabel != null) {
+                    OutlinedTextField(
+                        value = target,
+                        onValueChange = onTargetChange,
+                        label = { Text(targetLabel) },
+                        singleLine = true,
+                    )
+                }
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = onNameChange,
+                    label = { Text(stringResource(R.string.display_name_optional)) },
+                    singleLine = true,
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                enabled =
+                    when (type) {
+                        DocumentCreationType.NOTE,
+                        DocumentCreationType.CHECKLIST,
+                        -> true
+                        DocumentCreationType.WEB_LINK,
+                        DocumentCreationType.OBSIDIAN,
+                        -> target.isNotBlank()
+                    },
+            ) {
+                Text(stringResource(R.string.add))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+    )
+}
