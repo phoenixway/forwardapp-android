@@ -162,7 +162,7 @@ private fun AnimatedCommandDeck(
             modifier
                 .fillMaxSize()
                 .background(
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.05f),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.03f),
                     shape = RoundedCornerShape(0.dp),
                 )
                 .padding(horizontal = 18.dp),
@@ -267,7 +267,7 @@ private fun SectionHeader(
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.08f)),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -307,7 +307,7 @@ private fun MetricCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.08f)),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
@@ -325,7 +325,7 @@ private fun ActionCardItem(action: ActionCard) {
     Card(
         onClick = action.onClick,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.08f)),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
