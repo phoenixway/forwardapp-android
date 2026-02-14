@@ -24,6 +24,7 @@ FLAVOR=""
 TYPE=""
 HOST=""
 ACTION=""
+LOGS_APPENDED_ON_FAILURE="false"
 
 function print_usage() {
     cat <<EOF
@@ -103,6 +104,7 @@ done
 
 function save_logs_safely() {
     [ -z "$RUN_ID" ] && return 0
+    [ "$LOGS_APPENDED_ON_FAILURE" = "true" ] && return 0
 
     echo -e "${BLUE}Saving GitHub Actions logs...${NC}"
 
@@ -111,6 +113,21 @@ function save_logs_safely() {
 
     # Лише помилки
     gh run view "$RUN_ID" --log-failed > "$ERROR_LOG" 2>/dev/null || true
+}
+
+function append_build_logs_and_extract_errors() {
+    [ -z "$RUN_ID" ] && return 0
+    LOGS_APPENDED_ON_FAILURE="true"
+
+    echo -e "${BLUE}Overwriting build.log with failed build logs...${NC}"
+    {
+        echo ""
+        echo "===== FAILED RUN $RUN_ID $(date '+%Y-%m-%d %H:%M:%S') ====="
+        gh run view "$RUN_ID" --log 2>/dev/null || true
+        echo "===== END FAILED RUN $RUN_ID ====="
+    } > "$BUILD_LOG"
+
+    rg 'e: file' -A 5 --context-separator '----' "$BUILD_LOG" > "$ERROR_LOG" || true
 }
 
 trap save_logs_safely EXIT
@@ -260,6 +277,7 @@ set -e
 
 if [ $RUN_STATUS -ne 0 ]; then
     echo -e "\n${RED}❌ Remote build failed.${NC}"
+    append_build_logs_and_extract_errors
     show_logging_advice "$RUN_ID"
     exit 1
 fi

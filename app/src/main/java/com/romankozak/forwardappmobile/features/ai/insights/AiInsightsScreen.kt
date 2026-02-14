@@ -38,8 +38,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.AiInsightEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.NewTaskParameters
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
+import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.features.ai.data.repository.AiInsightRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -77,6 +80,7 @@ class AiInsightsViewModel
     @Inject
     constructor(
         activityRepository: ActivityRepository,
+        private val dayManagementRepository: DayManagementRepository,
         private val aiInsightRepository: AiInsightRepository,
     ) : ViewModel() {
         val messages: StateFlow<List<AiMessage>> =
@@ -94,7 +98,7 @@ class AiInsightsViewModel
             }
         }
 
-        private fun buildInsights(records: List<ActivityRecord>): List<AiInsightEntity> {
+        private suspend fun buildInsights(records: List<ActivityRecord>): List<AiInsightEntity> {
             val now = System.currentTimeMillis()
             val todayStart = startOfDay(now)
             val yesterdayStart = todayStart - 24 * 60 * 60 * 1000
@@ -107,12 +111,59 @@ class AiInsightsViewModel
 
             val messages = mutableListOf<AiInsightEntity>()
 
+            val planAdjustments = ensureTodayPlanBaseline(todayStart, todayRecords.isEmpty())
+
             if (todayRecords.isEmpty()) {
                 messages.add(
                     AiInsightEntity(
                         id = "today_no_activity",
                         text = "Сьогодні ще не було активностей. Заплануй або відслідкуй невелику дію, щоб розігрітися.",
                         type = MessageType.WARNING.name,
+                        timestamp = now,
+                        isRead = false,
+                    ),
+                )
+            }
+            if (planAdjustments.hadNoDayPlan) {
+                messages.add(
+                    AiInsightEntity(
+                        id = "day_plan_missing",
+                        text = "На сьогодні не було плану дня. Створи/уточни план, щоб зафіксувати курс доби.",
+                        type = MessageType.WARNING.name,
+                        timestamp = now,
+                        isRead = false,
+                    ),
+                )
+            }
+            if (planAdjustments.addedWarmupTask) {
+                messages.add(
+                    AiInsightEntity(
+                        id = "today_no_activity_plan_adjusted",
+                        text = "У план дня додано крок-розігрів: зафіксуй першу активність у трекері.",
+                        type = MessageType.INFO.name,
+                        timestamp = now,
+                        isRead = false,
+                    ),
+                )
+            }
+
+            if (planAdjustments.focusCountBefore < TARGET_DAY_FOCUS_COUNT) {
+                messages.add(
+                    AiInsightEntity(
+                        id = "day_focus_missing_${planAdjustments.focusCountBefore}",
+                        text = "У плані дня лише ${planAdjustments.focusCountBefore}/$TARGET_DAY_FOCUS_COUNT фокуси #day_focus. Додай/уточни пріоритети на добу.",
+                        type = MessageType.WARNING.name,
+                        timestamp = now,
+                        isRead = false,
+                    ),
+                )
+            }
+            if (planAdjustments.addedFocusTasks > 0) {
+                messages.add(
+                    AiInsightEntity(
+                        id = "day_focus_autofill_${planAdjustments.addedFocusTasks}",
+                        text = "AI доповнив план дня: додано ${planAdjustments.addedFocusTasks} шаблонних фокус(и) #day_focus до цілі 3/доба.",
+                        type = MessageType.INFO.name,
                         timestamp = now,
                         isRead = false,
                     ),
@@ -182,6 +233,82 @@ class AiInsightsViewModel
             }
 
             return messages
+        }
+
+        private suspend fun ensureTodayPlanBaseline(
+            todayStart: Long,
+            noTodayActivity: Boolean,
+        ): PlanAdjustments {
+            val existingPlanId = dayManagementRepository.getPlanIdForDate(todayStart)
+            val hadNoDayPlan = existingPlanId == null
+            val todayPlanId = existingPlanId ?: dayManagementRepository.createOrUpdateDayPlan(todayStart).id
+            val existingTasks = dayManagementRepository.getTasksForDayOnce(todayPlanId)
+            val existingTitles = existingTasks.map { it.title.lowercase() }.toSet()
+
+            val focusCount =
+                existingTasks.count { task ->
+                    task.title.contains(DAY_FOCUS_TAG, ignoreCase = true) ||
+                        (task.description?.contains(DAY_FOCUS_TAG, ignoreCase = true) == true)
+                }
+
+            var addedFocusTasks = 0
+            if (focusCount < TARGET_DAY_FOCUS_COUNT) {
+                val missing = TARGET_DAY_FOCUS_COUNT - focusCount
+                repeat(missing) { index ->
+                    val templateTitle = "Головний фокус ${focusCount + index + 1} $DAY_FOCUS_TAG"
+                    if (templateTitle.lowercase() !in existingTitles) {
+                        dayManagementRepository.addTaskToDayPlan(
+                            NewTaskParameters(
+                                dayPlanId = todayPlanId,
+                                title = templateTitle,
+                                description = "Уточни конкретний результат фокусу на сьогодні.",
+                                priority = TaskPriority.HIGH,
+                            ),
+                        )
+                        addedFocusTasks++
+                    }
+                }
+            }
+
+            var addedWarmupTask = false
+            if (noTodayActivity) {
+                val warmupExists =
+                    existingTasks.any { task ->
+                        task.title.contains(ACTIVITY_WARMUP_TAG, ignoreCase = true) ||
+                            (task.description?.contains(ACTIVITY_WARMUP_TAG, ignoreCase = true) == true)
+                    }
+                if (!warmupExists) {
+                    dayManagementRepository.addTaskToDayPlan(
+                        NewTaskParameters(
+                            dayPlanId = todayPlanId,
+                            title = "Розігрів дня: зафіксуй першу активність $ACTIVITY_WARMUP_TAG",
+                            description = "Відкрий трекер активностей і внеси щонайменше одну реальну дію.",
+                            priority = TaskPriority.HIGH,
+                        ),
+                    )
+                    addedWarmupTask = true
+                }
+            }
+
+            return PlanAdjustments(
+                hadNoDayPlan = hadNoDayPlan,
+                focusCountBefore = focusCount,
+                addedFocusTasks = addedFocusTasks,
+                addedWarmupTask = addedWarmupTask,
+            )
+        }
+
+        private data class PlanAdjustments(
+            val hadNoDayPlan: Boolean,
+            val focusCountBefore: Int,
+            val addedFocusTasks: Int,
+            val addedWarmupTask: Boolean,
+        )
+
+        companion object {
+            private const val DAY_FOCUS_TAG = "#day_focus"
+            private const val ACTIVITY_WARMUP_TAG = "#activity_warmup"
+            private const val TARGET_DAY_FOCUS_COUNT = 3
         }
 
         private fun startOfDay(timestamp: Long): Long {
