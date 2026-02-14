@@ -6,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope.weight
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -156,23 +156,26 @@ private fun MetricsSection(metrics: List<DashboardMetric>) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             metrics.forEach { metric ->
-                DashboardMetricCard(metric = metric)
+                DashboardMetricCard(
+                    metric = metric,
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
     }
 }
 
 @Composable
-private fun DashboardMetricCard(metric: DashboardMetric) {
+private fun DashboardMetricCard(
+    metric: DashboardMetric,
+    modifier: Modifier = Modifier,
+) {
     Card(
-        modifier =
-            Modifier
-                .weight(1f)
-                .shadow(
-                    elevation = 8.dp,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                    clip = false,
-                ),
+        modifier = modifier.shadow(
+            elevation = 8.dp,
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+            clip = false,
+        ),
         shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
         colors =
             CardDefaults.cardColors(
@@ -224,7 +227,10 @@ private fun QuickActionsSection(actions: List<QuickAction>) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             actions.forEach { action ->
-                QuickActionCard(action = action)
+                QuickActionCard(
+                    action = action,
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
     }
@@ -232,17 +238,17 @@ private fun QuickActionsSection(actions: List<QuickAction>) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun QuickActionCard(action: QuickAction) {
+private fun QuickActionCard(
+    action: QuickAction,
+    modifier: Modifier = Modifier,
+) {
     Card(
         onClick = action.onClick,
-        modifier =
-            Modifier
-                .weight(1f)
-                .shadow(
-                    elevation = 8.dp,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                    clip = false,
-                ),
+        modifier = modifier.shadow(
+            elevation = 8.dp,
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+            clip = false,
+        ),
         shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
         colors =
             CardDefaults.cardColors(
