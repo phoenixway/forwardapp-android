@@ -506,7 +506,23 @@ fun MainScreenLayout(
                     val actualTabIndex = (page % tabs.size + tabs.size) % tabs.size
                     when (tabs[actualTabIndex]) {
                         CommandDeckTab.Dashboard -> {
-                            DashboardContent(modifier = Modifier.fillMaxSize())
+                            DashboardContent(
+                                modifier = Modifier.fillMaxSize(),
+                                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
+                                onNavigateToSettings = onNavigateToSettings,
+                                onNavigateToInbox = onNavigateToInbox,
+                                onNavigateToTracker = onNavigateToTracker,
+                                onNavigateToReminders = onNavigateToReminders,
+                                onNavigateToAiChat = onNavigateToAiChat,
+                                onNavigateToAiInsights = onNavigateToAiInsights,
+                                onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
+                                onNavigateToImportExport = onExportToFile,
+                                onNavigateToAttachments = onNavigateToAttachments,
+                                onNavigateToScripts = onNavigateToScripts,
+                                dayPlanViewModel = dayPlanViewModel,
+                                recentViewModel = recentViewModel,
+                            )
                         }
                         CommandDeckTab.Strategy -> {
                             StrategicManagementScreen(navController = navController)
