@@ -98,7 +98,7 @@ fun StrategicManagementScreen(
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.05f),
     ) { paddingValues ->
         Column(modifier = Modifier.fillMaxSize()) { // Removed padding(paddingValues) here
             if (uiState.isLoading) {
