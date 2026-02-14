@@ -44,11 +44,16 @@ import com.romankozak.forwardappmobile.features.lifestate.LifeStateViewModel
 import com.romankozak.forwardappmobile.features.mainscreen.scopelinks.ScopeAttachmentOption
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentChooserScreen
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
+import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
+import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTargetsPickerDialog
+import com.romankozak.forwardappmobile.features.missions.presentation.PickerCreateAction
+import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
 import com.romankozak.forwardappmobile.ui.components.AddConnectionType
 import com.romankozak.forwardappmobile.ui.components.ConnectionItemUi
 import com.romankozak.forwardappmobile.ui.components.ConnectionType
 import com.romankozak.forwardappmobile.ui.components.ConnectionsPanel
 import com.romankozak.forwardappmobile.ui.components.ContextLinkList
+import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
 import com.romankozak.forwardappmobile.ui.components.orderToken
 import com.romankozak.forwardappmobile.ui.components.sortConnectionsByOrder
 import com.romankozak.forwardappmobile.ui.screens.common.ProjectListItem
@@ -71,6 +76,8 @@ fun StrategicManagementScreen(
     val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsState()
     val scope = rememberCoroutineScope()
     var showAttachmentChooser by remember { mutableStateOf(false) }
+    var activeLinkPickerTab by remember { mutableStateOf<LinkPickerTab?>(null) }
+    var pendingCreateAction by remember { mutableStateOf<PickerCreateAction?>(null) }
     var showAddUrlDialog by remember { mutableStateOf(false) }
     var showAddObsidianDialog by remember { mutableStateOf(false) }
     val mainScreenViewModel: ContextHierarchyScreenViewModel =
@@ -243,6 +250,7 @@ fun StrategicManagementScreen(
                         }
                         AddConnectionType.ATTACHMENT -> {
                             viewModel.dismissScopeLinksSheet()
+                            pendingCreateAction = null
                             scope.launch {
                                 delay(160)
                                 showAttachmentChooser = true
@@ -250,6 +258,19 @@ fun StrategicManagementScreen(
                         }
                         AddConnectionType.EXTERNAL_LINK -> showAddUrlDialog = true
                         AddConnectionType.OBSIDIAN_NOTE -> showAddObsidianDialog = true
+                    }
+                },
+                onCreateConnection = { type ->
+                    viewModel.dismissScopeLinksSheet()
+                    pendingCreateAction = type.toPickerCreateAction()
+                    scope.launch {
+                        delay(160)
+                        activeLinkPickerTab =
+                            if (type == CreateConnectionType.CONTEXT) {
+                                LinkPickerTab.CONTEXTS
+                            } else {
+                                LinkPickerTab.ATTACHMENTS
+                            }
                     }
                 },
                 onConnectionsReordered = { reordered ->
@@ -269,6 +290,34 @@ fun StrategicManagementScreen(
                 selected.forEach(viewModel::addAttachmentLink)
                 showAttachmentChooser = false
             },
+        )
+    }
+
+    activeLinkPickerTab?.let { initialTab ->
+        val availableAttachmentIds = attachmentOptions.map { it.id }.toSet()
+        LinkedTargetsPickerDialog(
+            contextOptions = uiState.dashboardProjects.map { ProjectOption(id = it.id, name = it.name, parentId = it.parentId) },
+            attachmentOptions = attachmentOptions.map { AttachmentOption(id = it.id, name = it.name, linkType = it.linkType, attachmentType = it.attachmentType, entityId = it.entityId, target = it.target) },
+            preselectedContextIds = uiState.dashboardProjects.map { it.id }.toSet(),
+            preselectedAttachmentIds = linkedAttachmentIds.filter { it in availableAttachmentIds }.toSet(),
+            initialTab = initialTab,
+            initialCreateAction = pendingCreateAction,
+            onDismiss = {
+                activeLinkPickerTab = null
+                pendingCreateAction = null
+            },
+            onContextSelected = { id ->
+                viewModel.addStrategicLink(id)
+                activeLinkPickerTab = null
+                pendingCreateAction = null
+            },
+            onAttachmentSelected = { id ->
+                viewModel.addAttachmentLink(id)
+                activeLinkPickerTab = null
+                pendingCreateAction = null
+            },
+            onCreateRootContext = { name -> viewModel.createRootContextForPicker(name) },
+            onCreateDocument = { draft -> viewModel.createStrategicDocumentForPicker(draft) },
         )
     }
 
@@ -292,6 +341,15 @@ fun StrategicManagementScreen(
         )
     }
 }
+
+private fun CreateConnectionType.toPickerCreateAction(): PickerCreateAction =
+    when (this) {
+        CreateConnectionType.CONTEXT -> PickerCreateAction.CONTEXT
+        CreateConnectionType.NOTE_DOCUMENT -> PickerCreateAction.NOTE
+        CreateConnectionType.CHECKLIST -> PickerCreateAction.CHECKLIST
+        CreateConnectionType.EXTERNAL_LINK -> PickerCreateAction.WEB_LINK
+        CreateConnectionType.OBSIDIAN_NOTE -> PickerCreateAction.OBSIDIAN
+    }
 
 @Composable
 private fun DashboardContent(

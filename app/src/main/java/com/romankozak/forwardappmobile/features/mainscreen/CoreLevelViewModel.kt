@@ -3,13 +3,17 @@ package com.romankozak.forwardappmobile.features.mainscreen
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.context.SystemContexts
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.mainscreen.scopelinks.ScopeAttachmentOption
 import com.romankozak.forwardappmobile.features.mainscreen.scopelinks.toScopeAttachmentOption
+import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +25,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 private val CORE_TAGS = setOf("core", "main-beacons")
@@ -38,6 +43,8 @@ class CoreLevelViewModel
         private val contextRepository: ContextRepository,
         private val settingsRepository: SettingsRepository,
         private val attachmentsRepository: AttachmentsRepository,
+        private val noteDocumentRepository: NoteDocumentRepository,
+        private val checklistRepository: ChecklistRepository,
     ) : ViewModel() {
         val uiState: StateFlow<CoreLevelUiState> =
             contextRepository.getAllContextsFlow()
@@ -140,6 +147,60 @@ class CoreLevelViewModel
                         link = RelatedLink(type = LinkType.OBSIDIAN, target = target, displayName = display),
                     )
                 addAttachmentLink(attachmentId)
+            }
+        }
+
+        suspend fun createRootContextForPicker(name: String): String? {
+            val trimmed = name.trim()
+            if (trimmed.isBlank()) return null
+            val id = UUID.randomUUID().toString()
+            contextRepository.createContextWithId(
+                id = id,
+                name = trimmed,
+                parentId = null,
+            )
+            return id
+        }
+
+        suspend fun createCoreDocumentForPicker(request: NewDocumentDraft): String? {
+            return when (request) {
+                is NewDocumentDraft.Note -> {
+                    val documentId =
+                        noteDocumentRepository.createDocument(
+                            name = request.name.ifBlank { "New note" },
+                            contextId = SystemContexts.MAIN_BEACONS.raw,
+                        )
+                    attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)?.id
+                }
+                is NewDocumentDraft.Checklist -> {
+                    val checklistId =
+                        checklistRepository.createChecklist(
+                            name = request.name.ifBlank { "New checklist" },
+                            contextId = SystemContexts.MAIN_BEACONS.raw,
+                        )
+                    attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.CHECKLIST, checklistId)?.id
+                }
+                is NewDocumentDraft.WebLink -> {
+                    val target = request.url.trim()
+                    if (target.isBlank()) return null
+                    attachmentsRepository.createLinkAttachment(
+                        contextId = SystemContexts.MAIN_BEACONS.raw,
+                        link = RelatedLink(type = LinkType.URL, target = target, displayName = request.name.trim().ifBlank { target }),
+                    )
+                }
+                is NewDocumentDraft.Obsidian -> {
+                    val target = request.noteName.trim()
+                    if (target.isBlank()) return null
+                    attachmentsRepository.createLinkAttachment(
+                        contextId = SystemContexts.MAIN_BEACONS.raw,
+                        link =
+                            RelatedLink(
+                                type = LinkType.OBSIDIAN,
+                                target = target,
+                                displayName = request.displayName.trim().ifBlank { target },
+                            ),
+                    )
+                }
             }
         }
 

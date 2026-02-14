@@ -52,9 +52,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskStatus
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
-import com.romankozak.forwardappmobile.features.ai.insights.AiInsightsViewModel
-import com.romankozak.forwardappmobile.features.ai.insights.AiMessage
-import com.romankozak.forwardappmobile.features.ai.insights.MessageType
 
 private data class QuickAction(
     val title: String,
@@ -83,12 +80,9 @@ fun AnimatedCommandDeck(
 ) {
     var overviewExpanded by remember { mutableStateOf(true) }
     var quickActionsStage by remember { mutableIntStateOf(0) }
-    var aiInsightsExpanded by remember { mutableStateOf(true) }
 
     val dayUiState by dayPlanViewModel.uiState.collectAsStateWithLifecycle()
     val recentItems by recentViewModel.recentItems.collectAsStateWithLifecycle()
-    val aiInsightsViewModel: AiInsightsViewModel = hiltViewModel()
-    val aiInsights by aiInsightsViewModel.messages.collectAsStateWithLifecycle()
 
     val tasksTotal = dayUiState.tasks.size
     val tasksCompleted =
@@ -160,32 +154,6 @@ fun AnimatedCommandDeck(
                     value = "${dayUiState.dayPlan?.linkedProjectIds.orEmpty().size} контекстів / ${dayUiState.dayPlan?.linkedAttachmentIds.orEmpty().size} вкладень",
                     subtitle = "scope-посилання поточного дня",
                 )
-            }
-        }
-
-        item {
-            SectionHeader(
-                title = "AI Insights",
-                subtitle = if (aiInsightsExpanded) "Останні інсайти" else "Згорнуто",
-                isExpanded = aiInsightsExpanded,
-                onClick = { aiInsightsExpanded = !aiInsightsExpanded },
-            )
-        }
-
-        if (aiInsightsExpanded) {
-            val latestInsights = aiInsights.take(3)
-            if (latestInsights.isNotEmpty()) {
-                items(latestInsights) { insight ->
-                    AiInsightCard(insight = insight)
-                }
-            } else {
-                item {
-                    DashboardMetricCard(
-                        title = "Немає інсайтів",
-                        value = "Поки що немає аналітики",
-                        subtitle = "AI ще не згенерував інсайти",
-                    )
-                }
             }
         }
 
@@ -301,48 +269,6 @@ private fun QuickActionCard(action: QuickAction) {
                 Text(action.title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium)
                 Text(action.subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
             }
-        }
-    }
-}
-
-@Composable
-private fun AiInsightCard(insight: AiMessage) {
-    val backgroundColor = when (insight.type) {
-        MessageType.MOTIVATION -> MaterialTheme.colorScheme.primaryContainer
-        MessageType.JOKE -> MaterialTheme.colorScheme.secondaryContainer
-        MessageType.INFO -> MaterialTheme.colorScheme.tertiaryContainer
-        MessageType.WARNING -> MaterialTheme.colorScheme.errorContainer
-        MessageType.ERROR -> MaterialTheme.colorScheme.errorContainer
-    }
-    val textColor = when (insight.type) {
-        MessageType.MOTIVATION -> MaterialTheme.colorScheme.onPrimaryContainer
-        MessageType.JOKE -> MaterialTheme.colorScheme.onSecondaryContainer
-        MessageType.INFO -> MaterialTheme.colorScheme.onTertiaryContainer
-        MessageType.WARNING -> MaterialTheme.colorScheme.onErrorContainer
-        MessageType.ERROR -> MaterialTheme.colorScheme.onErrorContainer
-    }
-    val timeFormatter = remember { java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()) }
-    
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = backgroundColor),
-    ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = insight.text,
-                color = textColor,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (insight.isRead) FontWeight.Normal else FontWeight.Bold,
-            )
-            Text(
-                text = "${insight.type.name.lowercase().replaceFirstChar { it.uppercase() }} • ${timeFormatter.format(java.util.Date(insight.timestamp))}",
-                color = textColor.copy(alpha = 0.7f),
-                style = MaterialTheme.typography.labelSmall,
-            )
         }
     }
 }
