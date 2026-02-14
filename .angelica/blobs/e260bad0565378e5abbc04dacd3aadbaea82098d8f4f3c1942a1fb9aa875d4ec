@@ -1,0 +1,7 @@
+Build exp release	Build with Gradle	2026-02-14T09:50:15.2191264Z e: file:///home/runner/work/forwardapp-android/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/mainscreen/DashboardContent.kt:178:23 Argument type mismatch: actual type is 'List<AiMessage>', but 'Int' was expected.
+Build exp release	Build with Gradle	2026-02-14T09:50:15.2240807Z e: file:///home/runner/work/forwardapp-android/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/mainscreen/DashboardContent.kt:179:45 Argument type mismatch: actual type is 'Int', but 'AiMessage' was expected.
+Build exp release	Build with Gradle	2026-02-14T09:50:15.3169797Z 
+Build exp release	Build with Gradle	2026-02-14T09:50:15.3177822Z FAILURE: Build failed with an exception.
+Build exp release	Build with Gradle	2026-02-14T09:50:15.3178492Z 
+Build exp release	Build with Gradle	2026-02-14T09:50:15.3178817Z * What went wrong:
+Build exp release	Build with Gradle	2026-02-14T09:50:15.3179672Z Execution failed for task ':app:compileExpReleaseKotlin'.
