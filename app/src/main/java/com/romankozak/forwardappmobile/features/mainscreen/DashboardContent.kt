@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -181,21 +180,19 @@ private fun AnimatedCommandDeck(
 
         if (overviewExpanded) {
             item {
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     MetricCard(
                         title = "Сьогодні",
                         value = "$tasksCompleted / $tasksTotal",
                         subtitle = "виконано задач",
-                        modifier = Modifier.weight(1f),
                     )
                     MetricCard(
                         title = "Recent",
                         value = "${recentItems.size}",
                         subtitle = "останні переходи",
-                        modifier = Modifier.weight(1f),
                     )
                 }
             }
@@ -275,9 +272,10 @@ private fun SectionHeader(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.padding(end = 12.dp)) {
                 Text(
                     text = title,
                     fontSize = 20.sp,
@@ -345,7 +343,7 @@ private fun ActionCardItem(action: ActionCard) {
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Column {
                 Text(action.title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium)
                 Text(action.subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
             }
