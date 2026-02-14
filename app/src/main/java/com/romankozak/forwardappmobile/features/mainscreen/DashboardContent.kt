@@ -1,221 +1,82 @@
+@file:Suppress("UnusedPrivateMember")
+
 package com.romankozak.forwardappmobile.features.mainscreen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Chat
-import androidx.compose.material.icons.outlined.AlternateEmail
-import androidx.compose.material.icons.outlined.Analytics
-import androidx.compose.material.icons.outlined.AttachFile
-import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.Code
-import androidx.compose.material.icons.outlined.ImportExport
-import androidx.compose.material.icons.outlined.Inbox
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.KeyboardArrowUp
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.romankozak.forwardappmobile.core.data.models.entities.TaskStatus
-import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
-import com.romankozak.forwardappmobile.features.recent.RecentViewModel
-import com.romankozak.forwardappmobile.features.ai.insights.AiInsightsViewModel
-import com.romankozak.forwardappmobile.features.ai.insights.AiMessage
-import com.romankozak.forwardappmobile.features.ai.insights.MessageType
-
-private data class QuickAction(
-    val title: String,
-    val subtitle: String,
-    val icon: ImageVector,
-    val tint: Color,
-    val onClick: () -> Unit,
-)
+import com.romankozak.forwardappmobile.features.mainscreen.model.DashboardMetric
+import com.romankozak.forwardappmobile.features.mainscreen.model.QuickAction
+import com.romankozak.forwardappmobile.features.mainscreen.viewmodel.DashboardViewModel
 
 @Composable
-fun AnimatedCommandDeck(
-    onNavigateToProjectHierarchy: () -> Unit,
-    onNavigateToGlobalSearch: () -> Unit,
-    onNavigateToSettings: () -> Unit,
-    onNavigateToInbox: () -> Unit,
-    onNavigateToTracker: () -> Unit,
-    onNavigateToReminders: () -> Unit,
-    onNavigateToAiChat: () -> Unit,
-    onNavigateToAiInsights: () -> Unit,
-    onNavigateToAiLifeManagement: () -> Unit,
-    onNavigateToImportExport: () -> Unit,
-    onNavigateToAttachments: () -> Unit,
-    onNavigateToScripts: () -> Unit,
-    dayPlanViewModel: DayPlanViewModel = hiltViewModel(),
-    recentViewModel: RecentViewModel = hiltViewModel(),
+fun DashboardContent(
+    modifier: Modifier = Modifier,
+    viewModel: DashboardViewModel = hiltViewModel()
 ) {
-    var overviewExpanded by remember { mutableStateOf(false) }
-    var quickActionsStage by remember { mutableIntStateOf(0) }
-    var aiInsightsExpanded by remember { mutableStateOf(false) }
-
-    val dayUiState by dayPlanViewModel.uiState.collectAsStateWithLifecycle()
-    val recentItems by recentViewModel.recentItems.collectAsStateWithLifecycle()
-    val aiInsightsViewModel: AiInsightsViewModel = hiltViewModel()
-    val aiInsights by aiInsightsViewModel.messages.collectAsStateWithLifecycle()
-
-    val tasksTotal = dayUiState.tasks.size
-    val tasksCompleted =
-        dayUiState.tasks.count {
-            it.dayTask.completed || it.dayTask.status == TaskStatus.COMPLETED
-        }
-
-    val actions =
-        listOf(
-            QuickAction("Inbox", "Вхідні задачі", Icons.Outlined.Inbox, Color(0xFF6EC6FF), onNavigateToInbox),
-            QuickAction("Tracker", "Активності", Icons.Outlined.Analytics, Color(0xFFFF8A80), onNavigateToTracker),
-            QuickAction("Contexts", "Ієрархія", Icons.Outlined.AlternateEmail, Color(0xFF80CBC4), onNavigateToProjectHierarchy),
-            QuickAction("Search", "Пошук", Icons.Outlined.Search, Color(0xFFF48FB1), onNavigateToGlobalSearch),
-            QuickAction("Reminders", "Нагадування", Icons.Outlined.Notifications, Color(0xFFFFE082), onNavigateToReminders),
-            QuickAction("Attachments", "Бібліотека", Icons.Outlined.AttachFile, Color(0xFF90CAF9), onNavigateToAttachments),
-            QuickAction("Scripts", "Автоматизація", Icons.Outlined.Code, Color(0xFFA5D6A7), onNavigateToScripts),
-            QuickAction("AI Chat", "Робочий чат", Icons.AutoMirrored.Outlined.Chat, Color(0xFFB39DDB), onNavigateToAiChat),
-            QuickAction("AI Insights", "Аналітика", Icons.Outlined.AutoAwesome, Color(0xFFCE93D8), onNavigateToAiInsights),
-            QuickAction("AI Life", "Life-management", Icons.Outlined.AutoAwesome, Color(0xFFE1BEE7), onNavigateToAiLifeManagement),
-            QuickAction("Import/Export", "Бекапи і перенос", Icons.Outlined.ImportExport, Color(0xFFFFAB91), onNavigateToImportExport),
-            QuickAction("Settings", "Налаштування", Icons.Outlined.Settings, Color(0xFFB0BEC5), onNavigateToSettings),
-        )
-
-    val visibleQuickActions =
-        when (quickActionsStage) {
-            0 -> emptyList()
-            1 -> actions.takeLast(4)
-            else -> actions
-        }
+    val uiState by viewModel.uiState.collectAsState()
 
     LazyColumn(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
-            .background(
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.03f),
-                shape = RoundedCornerShape(0.dp)
-            )
-            .padding(horizontal = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(bottom = 18.dp),
+            .background(Color.White.copy(alpha = 0.1f)),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
             SectionHeader(
-                title = "Огляд",
-                subtitle = if (overviewExpanded) "Розгорнуто" else "Згорнуто",
-                isExpanded = overviewExpanded,
-                onClick = { overviewExpanded = !overviewExpanded },
+                title = "Dashboard",
+                subtitle = "Overview of your activities"
             )
-        }
-
-        if (overviewExpanded) {
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    DashboardMetricCard(
-                        title = "Сьогодні",
-                        value = "$tasksCompleted / $tasksTotal",
-                        subtitle = "виконано задач",
-                        modifier = Modifier.weight(1f),
-                    )
-                    DashboardMetricCard(
-                        title = "Recent",
-                        value = "${recentItems.size}",
-                        subtitle = "останні переходи",
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-
-            item {
-                DashboardMetricCard(
-                    title = "План дня",
-                    value = "${dayUiState.dayPlan?.linkedProjectIds.orEmpty().size} контекстів / ${dayUiState.dayPlan?.linkedAttachmentIds.orEmpty().size} вкладень",
-                    subtitle = "scope-посилання поточного дня",
-                )
-            }
         }
 
         item {
-            SectionHeader(
-                title = "AI Insights",
-                subtitle = if (aiInsightsExpanded) "Останні інсайти" else "Згорнуто",
-                isExpanded = aiInsightsExpanded,
-                onClick = { aiInsightsExpanded = !aiInsightsExpanded },
-            )
-        }
-
-        if (aiInsightsExpanded) {
-            val latestInsights = aiInsights.take(3)
-            if (latestInsights.isNotEmpty()) {
-                latestInsights.forEach { insight ->
-                    item {
-                        AiInsightCard(insight = insight)
-                    }
-                }
-            } else {
-                item {
-                    DashboardMetricCard(
-                        title = "Немає інсайтів",
-                        value = "Поки що немає аналітики",
-                        subtitle = "AI ще не згенерував інсайти",
-                    )
-                }
-            }
+            MetricsSection(metrics = uiState.metrics)
         }
 
         item {
-            val stageLabel =
-                when (quickActionsStage) {
-                    0 -> "Згорнуто"
-                    1 -> "Кілька останніх"
-                    else -> "Усі"
-                }
-            SectionHeader(
-                title = "Швидкі дії",
-                subtitle = stageLabel,
-                isExpanded = quickActionsStage != 0,
-                onClick = { quickActionsStage = (quickActionsStage + 1) % 3 },
-            )
+            QuickActionsSection(actions = uiState.quickActions)
         }
 
-        visibleQuickActions.forEach { action ->
-            item {
-                QuickActionCard(action = action)
-            }
+        item {
+            RecentActivitySection(activities = uiState.recentActivities)
         }
     }
 }
@@ -223,133 +84,213 @@ fun AnimatedCommandDeck(
 @Composable
 private fun SectionHeader(
     title: String,
-    subtitle: String,
-    isExpanded: Boolean,
-    onClick: () -> Unit,
+    subtitle: String
 ) {
-    Card(
-        onClick = onClick,
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
-        modifier = Modifier.fillMaxWidth(),
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
     ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun MetricsSection(metrics: List<DashboardMetric>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        Text(
+            text = "Key Metrics",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            metrics.forEach { metric ->
+                DashboardMetricCard(metric = metric)
             }
-            Icon(
-                imageVector = if (isExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        }
+    }
+}
+
+@Composable
+private fun DashboardMetricCard(metric: DashboardMetric) {
+    Card(
+        modifier = Modifier
+            .weight(1f)
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(16.dp),
+                clip = false
+            ),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = metric.value,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = metric.label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
             )
         }
     }
 }
 
 @Composable
-private fun DashboardMetricCard(
-    title: String,
-    value: String,
-    subtitle: String,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
+private fun QuickActionsSection(actions: List<QuickAction>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+        Text(
+            text = "Quick Actions",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            actions.forEach { action ->
+                QuickActionCard(action = action)
+            }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun QuickActionCard(action: QuickAction) {
     Card(
         onClick = action.onClick,
+        modifier = Modifier
+            .weight(1f)
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(16.dp),
+                clip = false
+            ),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
-        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        )
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
-                modifier = Modifier.size(38.dp).background(action.tint.copy(alpha = 0.24f), CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = action.icon,
-                    contentDescription = null,
-                    tint = action.tint,
-                )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(action.title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium)
-                Text(action.subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+            Icon(
+                imageVector = action.icon,
+                contentDescription = null,
+                modifier = Modifier.size(32.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = action.label,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+private fun RecentActivitySection(activities: List<String>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        Text(
+            text = "Recent Activity",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            activities.forEach { activity ->
+                RecentActivityItem(activity = activity)
             }
         }
     }
 }
 
 @Composable
-private fun AiInsightCard(insight: AiMessage) {
-    val backgroundColor = when (insight.type) {
-        MessageType.MOTIVATION -> MaterialTheme.colorScheme.primaryContainer
-        MessageType.JOKE -> MaterialTheme.colorScheme.secondaryContainer
-        MessageType.INFO -> MaterialTheme.colorScheme.tertiaryContainer
-        MessageType.WARNING -> MaterialTheme.colorScheme.errorContainer
-        MessageType.ERROR -> MaterialTheme.colorScheme.errorContainer
-    }
-    val textColor = when (insight.type) {
-        MessageType.MOTIVATION -> MaterialTheme.colorScheme.onPrimaryContainer
-        MessageType.JOKE -> MaterialTheme.colorScheme.onSecondaryContainer
-        MessageType.INFO -> MaterialTheme.colorScheme.onTertiaryContainer
-        MessageType.WARNING -> MaterialTheme.colorScheme.onErrorContainer
-        MessageType.ERROR -> MaterialTheme.colorScheme.onErrorContainer
-    }
-    val timeFormatter = remember { java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()) }
-    
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+private fun RecentActivityItem(activity: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp, horizontal = 12.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color.White.copy(alpha = 0.05f))
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = insight.text,
-                color = textColor,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (insight.isRead) FontWeight.Normal else FontWeight.Bold,
-            )
-            Text(
-                text = "${insight.type.name.lowercase().replaceFirstChar { it.uppercase() }} • ${timeFormatter.format(java.util.Date(insight.timestamp))}",
-                color = textColor.copy(alpha = 0.7f),
-                style = MaterialTheme.typography.labelSmall,
+        Icon(
+            imageVector = Icons.Default.CheckCircle,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = activity,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+        IconButton(onClick = {}) {
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "More",
+                modifier = Modifier.size(20.dp)
             )
         }
     }
