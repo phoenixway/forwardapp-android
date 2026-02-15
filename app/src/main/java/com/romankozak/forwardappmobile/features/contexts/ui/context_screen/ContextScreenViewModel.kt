@@ -47,6 +47,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actio
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.UiEventDispatcherActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.UiControlActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.UiStateActions
+import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputHandler
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputMode
@@ -108,6 +109,7 @@ class ContextScreenViewModel
         private val contextArtifactRepository: ContextArtifactRepository,
         private val contextTimeTrackingRepository: ContextTimeTrackingRepository,
         private val contextSessionStore: ContextSessionStore,
+        private val backlogClipboardUseCase: BacklogClipboardUseCase,
     ) : ViewModel(),
         ItemActionHandler.ResultListener,
         InputHandler.ResultListener,
@@ -188,7 +190,13 @@ class ContextScreenViewModel
                 contextTimeTrackingRepository = contextTimeTrackingRepository,
             )
         }
-        private val listChooserActions by lazy { ListChooserActions(goalRepository = goalRepository, listItemRepository = listItemRepository, contextRepository = contextRepository) }
+        private val listChooserActions by lazy {
+            ListChooserActions(
+                listItemRepository = listItemRepository,
+                contextRepository = contextRepository,
+                backlogClipboardUseCase = backlogClipboardUseCase,
+            )
+        }
         private val listChooserFlowActions by lazy { ListChooserFlowActions(contextRepository = contextRepository, directionRepository = directionRepository) }
         private val listChooserOrchestrationActions = ListChooserOrchestrationActions()
         private val listChooserPendingStateActions = ListChooserPendingStateActions()
@@ -949,6 +957,7 @@ class ContextScreenViewModel
                             command.newlyAddedItemId?.let { newItemId ->
                                 stateManager.updateState { it.copy(newlyAddedItemId = newItemId) }
                             }
+                            command.userMessage?.let { showSnackbar(it, null) }
                             forceRefresh()
                         }
                         ListChooserResultCoordinatorActions.Command.None -> Unit

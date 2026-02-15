@@ -4,14 +4,15 @@ import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
-import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.ListItemRepository
+import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
+import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogPasteMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionType
 
 class ListChooserActions(
-    private val goalRepository: GoalRepository,
     private val listItemRepository: ListItemRepository,
     private val contextRepository: ContextRepository,
+    private val backlogClipboardUseCase: BacklogClipboardUseCase,
 ) {
     data class PendingActionNavigation(
         val target: NavTarget.ListChooser,
@@ -19,6 +20,7 @@ class ListChooserActions(
 
     data class PendingActionResult(
         val newlyAddedItemId: String? = null,
+        val userMessage: String? = null,
     )
 
     fun buildPendingActionNavigation(
@@ -57,18 +59,42 @@ class ListChooserActions(
     ): PendingActionResult {
         return when (actionType) {
             GoalActionType.CreateInstance -> {
-                goalRepository.createGoalLinks(goalIds, targetContextId)
-                PendingActionResult()
+                backlogClipboardUseCase.copyBacklogGoals(
+                    sourceContextId = currentContextId,
+                    goalIds = goalIds,
+                )
+                val report =
+                    backlogClipboardUseCase.pasteBacklogGoals(
+                        targetContextId = targetContextId,
+                        mode = BacklogPasteMode.AS_LINK,
+                    )
+                PendingActionResult(userMessage = report.toUserMessage())
             }
 
             GoalActionType.MoveInstance -> {
-                listItemRepository.moveListItemsToContext(itemIds, targetContextId)
-                PendingActionResult()
+                backlogClipboardUseCase.cutBacklogGoals(
+                    sourceContextId = currentContextId,
+                    listItemIds = itemIds,
+                )
+                val report =
+                    backlogClipboardUseCase.pasteBacklogGoals(
+                        targetContextId = targetContextId,
+                        mode = BacklogPasteMode.AS_LINK,
+                    )
+                PendingActionResult(userMessage = report.toUserMessage())
             }
 
             GoalActionType.CopyGoal -> {
-                goalRepository.copyGoalsToContext(goalIds, targetContextId)
-                PendingActionResult()
+                backlogClipboardUseCase.copyBacklogGoals(
+                    sourceContextId = currentContextId,
+                    goalIds = goalIds,
+                )
+                val report =
+                    backlogClipboardUseCase.pasteBacklogGoals(
+                        targetContextId = targetContextId,
+                        mode = BacklogPasteMode.AS_CLONE,
+                    )
+                PendingActionResult(userMessage = report.toUserMessage())
             }
 
             GoalActionType.AddLinkToList -> {

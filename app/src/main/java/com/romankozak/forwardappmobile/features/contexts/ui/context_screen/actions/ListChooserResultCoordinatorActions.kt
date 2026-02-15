@@ -19,7 +19,10 @@ class ListChooserResultCoordinatorActions(
 
         data class InboxPromotion(val targetContextId: String) : Command()
 
-        data class PendingAction(val newlyAddedItemId: String? = null) : Command()
+        data class PendingAction(
+            val newlyAddedItemId: String? = null,
+            val userMessage: String? = null,
+        ) : Command()
 
         data object None : Command()
     }
@@ -71,7 +74,10 @@ class ListChooserResultCoordinatorActions(
                 ListChooserResultActions.Outcome.InboxPromotion ->
                     Command.InboxPromotion(input.targetContextId)
                 is ListChooserResultActions.Outcome.PendingActionCompleted ->
-                    Command.PendingAction(newlyAddedItemId = outcome.newlyAddedItemId)
+                    Command.PendingAction(
+                        newlyAddedItemId = outcome.newlyAddedItemId,
+                        userMessage = outcome.userMessage,
+                    )
                 ListChooserResultActions.Outcome.None -> Command.None
             }
 

@@ -153,6 +153,11 @@ class ListItemRepository
             return linkItemDao.getLinkItemById(id)
         }
 
+        suspend fun getItemsByIds(ids: List<String>): List<BacklogItem> {
+            if (ids.isEmpty()) return emptyList()
+            return listItemDao.getItemsByIds(ids)
+        }
+
         suspend fun deleteItemsForContexts(contextIds: List<String>) {
             listItemDao.deleteItemsForContexts(contextIds)
         }

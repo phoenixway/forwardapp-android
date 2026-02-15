@@ -50,6 +50,7 @@ class ListChooserResultActions(
 
         data class PendingActionCompleted(
             val newlyAddedItemId: String? = null,
+            val userMessage: String? = null,
         ) : Outcome()
 
         data object None : Outcome()
@@ -129,7 +130,11 @@ class ListChooserResultActions(
                         goalIds = nextStep.goalIds,
                     )
                 ExecutionResult(
-                    outcome = Outcome.PendingActionCompleted(newlyAddedItemId = result.newlyAddedItemId),
+                    outcome =
+                        Outcome.PendingActionCompleted(
+                            newlyAddedItemId = result.newlyAddedItemId,
+                            userMessage = result.userMessage,
+                        ),
                     cleanup = Cleanup(clearPendingAction = true, clearSelection = true),
                 )
             }
