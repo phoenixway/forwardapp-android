@@ -57,6 +57,7 @@ data class AttachmentLibraryQueryResult(
     val linkDisplayName: String?,
     val linkTarget: String?,
     val linkCreatedAt: Long?,
+    val scriptName: String?,
     val contextName: String?,
     val contextUpdatedAt: Long?,
 )

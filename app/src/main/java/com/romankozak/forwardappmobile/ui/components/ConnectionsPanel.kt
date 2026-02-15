@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.StickyNote2
@@ -59,6 +60,7 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 enum class ConnectionType {
     CONTEXT,
     ATTACHMENT,
+    SCRIPT,
     URL,
     OBSIDIAN_NOTE,
 }
@@ -74,6 +76,7 @@ enum class CreateConnectionType {
     CONTEXT,
     NOTE_DOCUMENT,
     CHECKLIST,
+    SCRIPT,
     EXTERNAL_LINK,
     OBSIDIAN_NOTE,
 }
@@ -322,6 +325,7 @@ private val ConnectionType.icon: ImageVector
         when (this) {
             ConnectionType.CONTEXT -> Icons.Outlined.AccountTree
             ConnectionType.ATTACHMENT -> Icons.Outlined.AttachFile
+            ConnectionType.SCRIPT -> Icons.Outlined.Code
             ConnectionType.URL -> Icons.Outlined.Language
             ConnectionType.OBSIDIAN_NOTE -> Icons.Outlined.StickyNote2
         }
@@ -331,6 +335,7 @@ private val ConnectionType.tint: Color
         when (this) {
             ConnectionType.CONTEXT -> Color(0xFF2E7D32)
             ConnectionType.ATTACHMENT -> Color(0xFF1565C0)
+            ConnectionType.SCRIPT -> Color(0xFF00695C)
             ConnectionType.URL -> Color(0xFF6A1B9A)
             ConnectionType.OBSIDIAN_NOTE -> Color(0xFF455A64)
         }
@@ -340,6 +345,7 @@ private val ConnectionType.label: String
         when (this) {
             ConnectionType.CONTEXT -> "Контекст"
             ConnectionType.ATTACHMENT -> "Вкладення"
+            ConnectionType.SCRIPT -> "Скрипт"
             ConnectionType.URL -> "URL"
             ConnectionType.OBSIDIAN_NOTE -> "Obsidian"
         }

@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.Checklist
+import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.DataObject
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.StickyNote2
@@ -66,6 +67,7 @@ fun ConnectionsCreateActionsDialog(
             ConnectionCreateItem("Контекст", Icons.Outlined.AccountTree, MaterialTheme.colorScheme.tertiary, CreateConnectionType.CONTEXT),
             ConnectionCreateItem("Нотатка", Icons.Outlined.StickyNote2, MaterialTheme.colorScheme.primary, CreateConnectionType.NOTE_DOCUMENT),
             ConnectionCreateItem("Чекліст", Icons.Outlined.Checklist, MaterialTheme.colorScheme.secondary, CreateConnectionType.CHECKLIST),
+            ConnectionCreateItem("Скрипт", Icons.Outlined.Code, MaterialTheme.colorScheme.secondary, CreateConnectionType.SCRIPT),
             ConnectionCreateItem("Web посилання", Icons.Outlined.Public, MaterialTheme.colorScheme.secondary, CreateConnectionType.EXTERNAL_LINK),
             ConnectionCreateItem("Obsidian note", Icons.Outlined.DataObject, MaterialTheme.colorScheme.secondary, CreateConnectionType.OBSIDIAN_NOTE),
         )

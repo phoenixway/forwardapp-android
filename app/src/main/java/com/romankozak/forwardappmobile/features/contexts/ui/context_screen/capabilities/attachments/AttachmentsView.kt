@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.ContextScreenViewModel
@@ -33,6 +34,7 @@ fun AttachmentsView(
     var pendingCreateAction by remember { mutableStateOf<PickerCreateAction?>(null) }
     val groupedContexts by viewModel.subprojectChildren.collectAsState()
     val pickerAttachmentOptions by viewModel.pickerAttachmentOptions.collectAsState()
+    val contextAttachments by viewModel.contextAttachments.collectAsState()
 
     val attachments =
         attachmentItems.filter {
@@ -41,12 +43,36 @@ fun AttachmentsView(
                 it is BacklogItemContent.ChecklistItem
         }
 
+    val scriptAttachmentById =
+        remember(contextAttachments) {
+            contextAttachments
+                .map { it.attachment }
+                .filter { it.attachmentType == BacklogItemTypeValues.SCRIPT }
+                .associateBy { it.id }
+        }
+    val attachmentNameById = remember(pickerAttachmentOptions) { pickerAttachmentOptions.associateBy({ it.id }, { it.name }) }
+    val scriptItems =
+        remember(scriptAttachmentById, attachmentNameById) {
+            scriptAttachmentById.values.map { attachment ->
+                val title = attachmentNameById[attachment.id] ?: "Script ${attachment.id.takeLast(4)}"
+                ConnectionItemUi(
+                    id = connectionIdForAttachment(attachment.id),
+                    title = title,
+                    type = ConnectionType.SCRIPT,
+                )
+            }
+        }
     val items =
-        attachments.mapNotNull { item ->
-            val id = item.connectionId()
-            val title = item.connectionTitle()
-            val type = item.connectionType()
-            if (title.isBlank()) null else ConnectionItemUi(id = id, title = title, type = type)
+        remember(attachments, scriptItems) {
+            val baseItems =
+                attachments.mapNotNull { item ->
+                    val id = item.connectionId()
+                    val title = item.connectionTitle()
+                    val type = item.connectionType()
+                    if (title.isBlank()) null else ConnectionItemUi(id = id, title = title, type = type)
+                }
+            val baseIds = baseItems.map { it.id }.toSet()
+            baseItems + scriptItems.filterNot { it.id in baseIds }
         }
 
     val attachmentByConnectionId =
@@ -61,7 +87,7 @@ fun AttachmentsView(
                 .distinctBy { it.id }
                 .map { context -> ProjectOption(id = context.id, name = context.name, parentId = context.parentId) }
         }
-    val preselectedAttachmentIds = remember(attachments) { attachments.map { it.backlogItem.id }.toSet() }
+    val preselectedAttachmentIds = remember(contextAttachments) { contextAttachments.map { it.attachment.id }.toSet() }
     val preselectedContextIds =
         remember(attachments) {
             attachments.mapNotNull { it.contextTargetIdOrNull() }.toSet()
@@ -76,16 +102,41 @@ fun AttachmentsView(
         ConnectionsPanel(
             items = items,
             onConnectionClick = { item ->
-                attachmentByConnectionId[item.id]?.let { viewModel.itemActionHandler.onItemClick(it) }
+                val directItem = attachmentByConnectionId[item.id]
+                if (directItem != null) {
+                    viewModel.itemActionHandler.onItemClick(directItem)
+                } else {
+                    val attachmentId = attachmentIdFromConnectionId(item.id) ?: return@ConnectionsPanel
+                    val scriptAttachment = scriptAttachmentById[attachmentId] ?: return@ConnectionsPanel
+                    viewModel.openScriptAttachment(scriptAttachment.entityId)
+                }
             },
             onConnectionRemove = { item ->
-                attachmentByConnectionId[item.id]?.let { viewModel.onDeleteEverywhere(it) }
+                val directItem = attachmentByConnectionId[item.id]
+                if (directItem != null) {
+                    viewModel.onDeleteEverywhere(directItem)
+                } else {
+                    val attachmentId = attachmentIdFromConnectionId(item.id) ?: return@ConnectionsPanel
+                    viewModel.deleteAttachmentEverywhereById(attachmentId)
+                }
             },
             onConnectionCopy = { item ->
-                attachmentByConnectionId[item.id]?.let { viewModel.itemActionHandler.copyAttachmentItem(it) }
+                val directItem = attachmentByConnectionId[item.id]
+                if (directItem != null) {
+                    viewModel.itemActionHandler.copyAttachmentItem(directItem)
+                } else {
+                    val attachmentId = attachmentIdFromConnectionId(item.id) ?: return@ConnectionsPanel
+                    viewModel.itemActionHandler.copyAttachmentById(attachmentId)
+                }
             },
             onConnectionCut = { item ->
-                attachmentByConnectionId[item.id]?.let { viewModel.itemActionHandler.cutAttachmentItem(it) }
+                val directItem = attachmentByConnectionId[item.id]
+                if (directItem != null) {
+                    viewModel.itemActionHandler.cutAttachmentItem(directItem)
+                } else {
+                    val attachmentId = attachmentIdFromConnectionId(item.id) ?: return@ConnectionsPanel
+                    viewModel.itemActionHandler.cutAttachmentById(attachmentId)
+                }
             },
             onAddButtonClick = {
                 pendingCreateAction = null
@@ -96,6 +147,12 @@ fun AttachmentsView(
                 activePickerTab = LinkPickerTab.CONTEXTS
             },
             onCreateConnection = { type ->
+                if (type == CreateConnectionType.SCRIPT) {
+                    activePickerTab = null
+                    pendingCreateAction = null
+                    viewModel.openScriptEditorForCurrentContext()
+                    return@ConnectionsPanel
+                }
                 pendingCreateAction = type.toPickerCreateAction()
                 activePickerTab =
                     if (type == CreateConnectionType.CONTEXT) {
@@ -140,11 +197,15 @@ private fun CreateConnectionType.toPickerCreateAction(): PickerCreateAction =
         CreateConnectionType.CONTEXT -> PickerCreateAction.CONTEXT
         CreateConnectionType.NOTE_DOCUMENT -> PickerCreateAction.NOTE
         CreateConnectionType.CHECKLIST -> PickerCreateAction.CHECKLIST
+        CreateConnectionType.SCRIPT -> PickerCreateAction.NOTE
         CreateConnectionType.EXTERNAL_LINK -> PickerCreateAction.WEB_LINK
         CreateConnectionType.OBSIDIAN_NOTE -> PickerCreateAction.OBSIDIAN
     }
 
 private fun BacklogItemContent.connectionId(): String = "backlog:${backlogItem.id}"
+private fun connectionIdForAttachment(attachmentId: String): String = "backlog:$attachmentId"
+private fun attachmentIdFromConnectionId(connectionId: String): String? =
+    connectionId.takeIf { it.startsWith("backlog:") }?.removePrefix("backlog:")
 
 private fun BacklogItemContent.connectionTitle(): String =
     when (this) {

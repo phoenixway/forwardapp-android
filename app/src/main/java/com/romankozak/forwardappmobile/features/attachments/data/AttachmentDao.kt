@@ -119,12 +119,14 @@ interface AttachmentDao {
             l.link_data AS linkDisplayName, 
             NULL as linkTarget,
             l.createdAt AS linkCreatedAt,
+            s.name AS scriptName,
             linked_ctx.name AS contextName, 
             linked_ctx.updatedAt AS contextUpdatedAt
         FROM attachments AS a
         LEFT JOIN note_documents AS n ON a.attachment_type = 'NOTE_DOCUMENT' AND a.entity_id = n.id
         LEFT JOIN checklists AS c ON a.attachment_type = 'CHECKLIST' AND a.entity_id = c.id
         LEFT JOIN link_items AS l ON a.attachment_type = 'LINK_ITEM' AND a.entity_id = l.id
+        LEFT JOIN scripts AS s ON a.attachment_type = 'SCRIPT' AND a.entity_id = s.id
         LEFT JOIN context_attachment_cross_ref AS cross_ref ON a.id = cross_ref.attachment_id
         LEFT JOIN contexts AS linked_ctx ON cross_ref.context_id = linked_ctx.id
         GROUP BY a.id

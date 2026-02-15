@@ -391,9 +391,17 @@ class ItemActionHandler
                 resultListener.showSnackbar("Для копіювання вибери вкладення", null)
                 return
             }
+            copyAttachmentById(item.backlogItem.id)
+        }
+
+        fun copyAttachmentById(attachmentId: String) {
+            if (attachmentId.isBlank()) {
+                resultListener.showSnackbar("Для копіювання вибери вкладення", null)
+                return
+            }
             backlogClipboardUseCase.copyAttachmentItems(
                 sourceContextId = projectIdFlow.value,
-                listItemIds = listOf(item.backlogItem.id),
+                listItemIds = listOf(attachmentId),
             )
             resultListener.showSnackbar("Скопійовано вкладення. Перейди в цільовий список і натисни Вставити", null)
         }
@@ -403,9 +411,17 @@ class ItemActionHandler
                 resultListener.showSnackbar("Для вирізання вибери вкладення", null)
                 return
             }
+            cutAttachmentById(item.backlogItem.id)
+        }
+
+        fun cutAttachmentById(attachmentId: String) {
+            if (attachmentId.isBlank()) {
+                resultListener.showSnackbar("Для вирізання вибери вкладення", null)
+                return
+            }
             backlogClipboardUseCase.cutAttachmentItems(
                 sourceContextId = projectIdFlow.value,
-                listItemIds = listOf(item.backlogItem.id),
+                listItemIds = listOf(attachmentId),
             )
             resultListener.showSnackbar("Вирізано вкладення. Перейди в цільовий список і натисни Вставити", null)
         }

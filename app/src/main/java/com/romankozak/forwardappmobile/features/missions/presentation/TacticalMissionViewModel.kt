@@ -386,6 +386,7 @@ private fun AttachmentLibraryQueryResult.toAttachmentOption(): AttachmentOption 
     val label =
         noteName
             ?: checklistName
+            ?: scriptName
             ?: contextName
             ?: relatedLink?.displayName
             ?: relatedLink?.target

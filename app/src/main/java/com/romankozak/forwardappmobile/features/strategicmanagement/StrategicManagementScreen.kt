@@ -347,6 +347,7 @@ private fun CreateConnectionType.toPickerCreateAction(): PickerCreateAction =
         CreateConnectionType.CONTEXT -> PickerCreateAction.CONTEXT
         CreateConnectionType.NOTE_DOCUMENT -> PickerCreateAction.NOTE
         CreateConnectionType.CHECKLIST -> PickerCreateAction.CHECKLIST
+        CreateConnectionType.SCRIPT -> PickerCreateAction.NOTE
         CreateConnectionType.EXTERNAL_LINK -> PickerCreateAction.WEB_LINK
         CreateConnectionType.OBSIDIAN_NOTE -> PickerCreateAction.OBSIDIAN
     }

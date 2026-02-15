@@ -22,6 +22,7 @@ fun AttachmentLibraryQueryResult.toScopeAttachmentOption(): ScopeAttachmentOptio
     val label =
         noteName
             ?: checklistName
+            ?: scriptName
             ?: contextName
             ?: relatedLink?.displayName
             ?: relatedLink?.target

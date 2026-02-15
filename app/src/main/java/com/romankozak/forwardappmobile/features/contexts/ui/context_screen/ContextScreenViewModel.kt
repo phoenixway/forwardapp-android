@@ -284,6 +284,20 @@ class ContextScreenViewModel
                     started = SharingStarted.WhileSubscribed(5000),
                     initialValue = null,
                 )
+        val contextAttachments: StateFlow<List<AttachmentWithContext>> =
+            contextIdFlow
+                .flatMapLatest { contextId ->
+                    if (contextId.isBlank()) {
+                        flowOf(emptyList())
+                    } else {
+                        contextRepository.getAttachmentsForContextStream(contextId)
+                    }
+                }
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(5000),
+                    initialValue = emptyList(),
+                )
         val pickerAttachmentOptions: StateFlow<List<AttachmentOption>> =
             contextRepository.getAttachmentLibraryItemsFlow()
                 .map { results ->
@@ -706,6 +720,28 @@ class ContextScreenViewModel
                 }
             }
 
+        fun openScriptEditorForCurrentContext() {
+            val contextId = contextIdFlow.value.takeIf { it.isNotBlank() } ?: return
+            viewModelScope.launch {
+                uiEventActions.tryEmit(UiEvent.Navigate(NavTarget.ScriptEditor(projectId = contextId)))
+            }
+        }
+
+        fun openScriptAttachment(scriptId: String) {
+            if (scriptId.isBlank()) return
+            viewModelScope.launch {
+                uiEventActions.tryEmit(UiEvent.Navigate(NavTarget.ScriptEditor(scriptId = scriptId)))
+            }
+        }
+
+        fun deleteAttachmentEverywhereById(attachmentId: String) =
+            viewModelScope.launch {
+                if (attachmentId.isBlank()) return@launch
+                contextRepository.deleteAttachmentEverywhere(attachmentId)
+                showSnackbar("Вкладення видалено", null)
+                forceRefresh()
+            }
+
         suspend fun createRootContextForPicker(name: String): String? {
             val trimmed = name.trim()
             if (trimmed.isBlank()) return null
@@ -1065,6 +1101,7 @@ private fun AttachmentLibraryQueryResult.toAttachmentOption(): AttachmentOption 
     val label =
         noteName
             ?: checklistName
+            ?: scriptName
             ?: contextName
             ?: relatedLink?.displayName
             ?: relatedLink?.target
