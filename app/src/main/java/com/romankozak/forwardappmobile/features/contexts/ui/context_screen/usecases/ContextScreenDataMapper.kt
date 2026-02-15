@@ -51,7 +51,8 @@ class ContextScreenDataMapper {
                         }
                     }
                     BacklogItemTypeValues.SUBLIST, "PROJECT" -> {
-                        subprojects.find { it.id == item.entityId }?.let { foundSubProject ->
+                        // Context links in backlog can target any context, not only direct children.
+                        (allContexts.find { it.id == item.entityId } ?: subprojects.find { it.id == item.entityId })?.let { foundSubProject ->
                             BacklogItemContent.ContextLinkItem(
                                 project = foundSubProject,
                                 backlogItem = item,
