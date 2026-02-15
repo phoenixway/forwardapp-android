@@ -194,6 +194,13 @@ fun TacticalManagementScreen(
                     }
             },
             onMissionMoreClick = { mission -> actionMenuMission = mission },
+            onLinkedContextClick = onLinkedProjectClick,
+            onLinkedAttachmentClick = { attachmentId ->
+                val option =
+                    attachmentOptions.firstOrNull { it.id == attachmentId }
+                        ?: AttachmentOption(id = attachmentId, name = attachmentId)
+                onLinkedAttachmentClick(option)
+            },
             onMissionsReordered = viewModel::reorderMissions,
             modifier = Modifier.weight(1f),
         )

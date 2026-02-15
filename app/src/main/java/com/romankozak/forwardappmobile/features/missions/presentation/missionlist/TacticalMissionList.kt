@@ -65,6 +65,8 @@ fun TacticalMissionList(
     onMissionClick: (TacticalMission) -> Unit,
     onMissionLongPress: (TacticalMission) -> Unit,
     onMissionMoreClick: (TacticalMission) -> Unit,
+    onLinkedContextClick: (String) -> Unit,
+    onLinkedAttachmentClick: (String) -> Unit,
     onMissionsReordered: (List<TacticalMission>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -107,6 +109,8 @@ fun TacticalMissionList(
                     onMissionClick = { onMissionClick(mission) },
                     onMissionLongPress = { onMissionLongPress(mission) },
                     onMissionMoreClick = { onMissionMoreClick(mission) },
+                    onLinkedContextClick = onLinkedContextClick,
+                    onLinkedAttachmentClick = onLinkedAttachmentClick,
                     checkboxDragHandleModifier = Modifier.draggableHandle(),
                 )
             }
@@ -126,6 +130,8 @@ fun TacticalMissionCard(
     onMissionClick: () -> Unit,
     onMissionLongPress: () -> Unit,
     onMissionMoreClick: () -> Unit,
+    onLinkedContextClick: (String) -> Unit,
+    onLinkedAttachmentClick: (String) -> Unit,
     checkboxDragHandleModifier: Modifier = Modifier,
 ) {
     val onSurface = MaterialTheme.colorScheme.onSurface
@@ -288,6 +294,7 @@ fun TacticalMissionCard(
                                     icon = Icons.Outlined.AccountTree,
                                     text = projectNameById[id] ?: id,
                                     contentColor = onSurface.copy(alpha = 0.78f),
+                                    onClick = { onLinkedContextClick(id) },
                                 ),
                             )
                         }
@@ -297,6 +304,7 @@ fun TacticalMissionCard(
                                     icon = Icons.Outlined.AttachFile,
                                     text = attachmentNameById[id] ?: id,
                                     contentColor = onSurface.copy(alpha = 0.78f),
+                                    onClick = { onLinkedAttachmentClick(id) },
                                 ),
                             )
                         }

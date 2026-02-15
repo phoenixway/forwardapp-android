@@ -119,7 +119,19 @@ fun StructurePresetsScreen(
         }
     }
 
-    if (presetDialog) { /* legacy dialog hidden */ }
+    if (presetDialog) {
+        AddPresetDialog(
+            onDismiss = { presetDialog = false },
+            onConfirm = { code, label, description ->
+                viewModel.addPreset(
+                    code = code.trim(),
+                    label = label.trim(),
+                    description = description?.trim()?.ifBlank { null },
+                )
+                presetDialog = false
+            },
+        )
+    }
 }
 
 @Composable

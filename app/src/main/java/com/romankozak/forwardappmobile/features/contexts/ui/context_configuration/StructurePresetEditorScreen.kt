@@ -37,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -44,6 +45,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -53,6 +55,13 @@ fun StructurePresetEditorScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
+    LaunchedEffect(viewModel) {
+        viewModel.events.collectLatest { event ->
+            if (event is StructurePresetEditorEvent.Close) {
+                navController.popBackStack()
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -70,10 +79,7 @@ fun StructurePresetEditorScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = {
-                        viewModel.onSave()
-                        navController.popBackStack()
-                    }) {
+                    TextButton(onClick = { viewModel.onSave() }) {
                         Text("Зберегти")
                     }
                 },
@@ -81,7 +87,7 @@ fun StructurePresetEditorScreen(
             )
         },
     ) { padding ->
-        Column(
+        LazyColumn(
             modifier =
                 Modifier
                     .padding(padding)
@@ -90,64 +96,71 @@ fun StructurePresetEditorScreen(
                     .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            OutlinedTextField(
-                value = uiState.code,
-                onValueChange = viewModel::onCodeChange,
-                label = { Text("Code") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = uiState.label,
-                onValueChange = viewModel::onLabelChange,
-                label = { Text("Label") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = uiState.description,
-                onValueChange = viewModel::onDescriptionChange,
-                label = { Text("Description") },
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            FeatureToggles(
-                enableInbox = uiState.enableInbox,
-                onInboxChange = viewModel::onEnableInboxChange,
-                enableLog = uiState.enableLog,
-                onLogChange = viewModel::onEnableLogChange,
-                enableArtifact = uiState.enableArtifact,
-                onArtifactChange = viewModel::onEnableArtifactChange,
-                enableAdvanced = uiState.enableAdvanced,
-                onAdvancedChange = viewModel::onEnableAdvancedChange,
-                enableDashboard = uiState.enableDashboard,
-                onDashboardChange = viewModel::onEnableDashboardChange,
-                enableBacklog = uiState.enableBacklog,
-                onBacklogChange = viewModel::onEnableBacklogChange,
-                enableAttachments = uiState.enableAttachments,
-                onAttachmentsChange = viewModel::onEnableAttachmentsChange,
-                enableAutoLinkSubprojects = uiState.enableAutoLinkSubprojects,
-                onAutoLinkSubprojectsChange = viewModel::onEnableAutoLinkSubprojectsChange,
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("Елементи пресету", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                IconButton(onClick = { showAddDialog = true }) {
-                    Icon(Icons.Default.Add, contentDescription = "Add item")
-                }
+            item {
+                OutlinedTextField(
+                    value = uiState.code,
+                    onValueChange = viewModel::onCodeChange,
+                    label = { Text("Code") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            item {
+                OutlinedTextField(
+                    value = uiState.label,
+                    onValueChange = viewModel::onLabelChange,
+                    label = { Text("Label") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            item {
+                OutlinedTextField(
+                    value = uiState.description,
+                    onValueChange = viewModel::onDescriptionChange,
+                    label = { Text("Description") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
 
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(uiState.items, key = { it.id }) { item ->
-                    PresetEditorItemRow(
-                        item = item,
-                        onRemove = { viewModel.removeItem(item.id) },
-                    )
+            item {
+                FeatureToggles(
+                    enableInbox = uiState.enableInbox,
+                    onInboxChange = viewModel::onEnableInboxChange,
+                    enableLog = uiState.enableLog,
+                    onLogChange = viewModel::onEnableLogChange,
+                    enableArtifact = uiState.enableArtifact,
+                    onArtifactChange = viewModel::onEnableArtifactChange,
+                    enableAdvanced = uiState.enableAdvanced,
+                    onAdvancedChange = viewModel::onEnableAdvancedChange,
+                    enableDashboard = uiState.enableDashboard,
+                    onDashboardChange = viewModel::onEnableDashboardChange,
+                    enableBacklog = uiState.enableBacklog,
+                    onBacklogChange = viewModel::onEnableBacklogChange,
+                    enableAttachments = uiState.enableAttachments,
+                    onAttachmentsChange = viewModel::onEnableAttachmentsChange,
+                    enableAutoLinkSubprojects = uiState.enableAutoLinkSubprojects,
+                    onAutoLinkSubprojectsChange = viewModel::onEnableAutoLinkSubprojectsChange,
+                )
+            }
+
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Елементи пресету", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    IconButton(onClick = { showAddDialog = true }) {
+                        Icon(Icons.Default.Add, contentDescription = "Add item")
+                    }
                 }
+            }
+            items(uiState.items, key = { it.id }) { item ->
+                PresetEditorItemRow(
+                    item = item,
+                    onRemove = { viewModel.removeItem(item.id) },
+                )
             }
         }
     }
