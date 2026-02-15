@@ -662,6 +662,23 @@ class ContextScreenViewModel
                 )
             }
 
+        fun onBacklogContextLinkSelected(targetContextId: String) =
+            viewModelScope.launch {
+                val currentContextId = contextIdFlow.value
+                if (targetContextId.isBlank() || currentContextId.isBlank()) return@launch
+                if (targetContextId == currentContextId) {
+                    showSnackbar("Цей контекст вже відкритий", null)
+                    return@launch
+                }
+                if (contextRepository.doesLinkToContextExist(targetContextId, currentContextId)) {
+                    showSnackbar("Посилання на цей контекст вже є в беклозі", null)
+                    return@launch
+                }
+
+                contextRepository.addContextLinkToContext(targetContextId, currentContextId)
+                forceRefresh()
+            }
+
         fun onPickerAttachmentSelected(attachmentId: String) =
             viewModelScope.launch {
                 if (attachmentId.isBlank()) return@launch

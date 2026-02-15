@@ -113,6 +113,7 @@ fun LinkedTargetsPickerDialog(
     preselectedContextIds: Set<String>,
     preselectedAttachmentIds: Set<String>,
     initialTab: LinkPickerTab,
+    allowedTabs: Set<LinkPickerTab> = setOf(LinkPickerTab.CONTEXTS, LinkPickerTab.ATTACHMENTS),
     initialCreateAction: PickerCreateAction? = null,
     onDismiss: () -> Unit,
     onContextSelected: (String) -> Unit,
@@ -122,7 +123,17 @@ fun LinkedTargetsPickerDialog(
 ) {
     val scope = rememberCoroutineScope()
     var query by remember { mutableStateOf("") }
-    var selectedTab by remember(initialTab) { mutableStateOf(initialTab) }
+    val contextsEnabled = LinkPickerTab.CONTEXTS in allowedTabs
+    val attachmentsEnabled = LinkPickerTab.ATTACHMENTS in allowedTabs
+    var selectedTab by remember(initialTab, allowedTabs) {
+        mutableStateOf(
+            when {
+                initialTab in allowedTabs -> initialTab
+                contextsEnabled -> LinkPickerTab.CONTEXTS
+                else -> LinkPickerTab.ATTACHMENTS
+            },
+        )
+    }
     var expandedIds by remember { mutableStateOf(setOf<String>()) }
     var showDescendants by remember { mutableStateOf(false) }
     var showAddContextDialog by remember { mutableStateOf(false) }
@@ -155,7 +166,9 @@ fun LinkedTargetsPickerDialog(
                 .sortedBy { it.title.lowercase() }
         }
 
-    val hasBothTabs = contextOptions.isNotEmpty() && attachmentOptions.isNotEmpty()
+    val hasContextsTab = contextsEnabled
+    val hasAttachmentsTab = attachmentsEnabled && attachmentOptions.isNotEmpty()
+    val hasBothTabs = hasContextsTab && hasAttachmentsTab
     val contextById = remember(contextNodes) { contextNodes.associateBy { it.id } }
     val visibleContextIds =
         remember(contextNodes, childMap, query, showDescendants) {
@@ -212,34 +225,34 @@ fun LinkedTargetsPickerDialog(
     LaunchedEffect(initialCreateAction) {
         when (initialCreateAction) {
             PickerCreateAction.CONTEXT -> {
-                if (onCreateRootContext == null) return@LaunchedEffect
+                if (!hasContextsTab || onCreateRootContext == null) return@LaunchedEffect
                 selectedTab = LinkPickerTab.CONTEXTS
                 newContextName = ""
                 showAddContextDialog = true
             }
             PickerCreateAction.NOTE -> {
-                if (onCreateDocument == null) return@LaunchedEffect
+                if (!hasAttachmentsTab || onCreateDocument == null) return@LaunchedEffect
                 selectedTab = LinkPickerTab.ATTACHMENTS
                 pendingDocumentType = DocumentCreationType.NOTE
                 documentName = ""
                 documentTarget = ""
             }
             PickerCreateAction.CHECKLIST -> {
-                if (onCreateDocument == null) return@LaunchedEffect
+                if (!hasAttachmentsTab || onCreateDocument == null) return@LaunchedEffect
                 selectedTab = LinkPickerTab.ATTACHMENTS
                 pendingDocumentType = DocumentCreationType.CHECKLIST
                 documentName = ""
                 documentTarget = ""
             }
             PickerCreateAction.WEB_LINK -> {
-                if (onCreateDocument == null) return@LaunchedEffect
+                if (!hasAttachmentsTab || onCreateDocument == null) return@LaunchedEffect
                 selectedTab = LinkPickerTab.ATTACHMENTS
                 pendingDocumentType = DocumentCreationType.WEB_LINK
                 documentName = ""
                 documentTarget = ""
             }
             PickerCreateAction.OBSIDIAN -> {
-                if (onCreateDocument == null) return@LaunchedEffect
+                if (!hasAttachmentsTab || onCreateDocument == null) return@LaunchedEffect
                 selectedTab = LinkPickerTab.ATTACHMENTS
                 pendingDocumentType = DocumentCreationType.OBSIDIAN
                 documentName = ""
@@ -256,7 +269,7 @@ fun LinkedTargetsPickerDialog(
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Scaffold(
                 floatingActionButton = {
-                    if (selectedTab == LinkPickerTab.CONTEXTS && onCreateRootContext != null) {
+                    if (selectedTab == LinkPickerTab.CONTEXTS && hasContextsTab && onCreateRootContext != null) {
                         FloatingActionButton(
                             onClick = {
                                 newContextName = ""
@@ -265,7 +278,7 @@ fun LinkedTargetsPickerDialog(
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null)
                         }
-                    } else if (selectedTab == LinkPickerTab.ATTACHMENTS && onCreateDocument != null) {
+                    } else if (selectedTab == LinkPickerTab.ATTACHMENTS && hasAttachmentsTab && onCreateDocument != null) {
                         Box {
                             FloatingActionButton(onClick = { documentsMenuExpanded = true }) {
                                 Icon(Icons.Default.Add, contentDescription = null)

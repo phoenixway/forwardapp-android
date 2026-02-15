@@ -41,6 +41,9 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialo
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs.GoalDetailDialogs
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs.ProjectDisplayPropertiesDialog
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextUiState
+import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
+import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTargetsPickerDialog
+import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
 import com.romankozak.forwardappmobile.features.reminders.dialogs.RemindersDialog
 import com.romankozak.forwardappmobile.ui.common.components.ShareDialog
 import com.romankozak.forwardappmobile.ui.common.editor.UniversalEditorScreen
@@ -419,6 +422,16 @@ private fun ProjectBottomBar(
     holdMenuController: com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller,
 ) {
     val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = false) }
+    var showContextPicker by remember { mutableStateOf(false) }
+    val groupedContexts by viewModel.subprojectChildren.collectAsStateWithLifecycle()
+    val contextOptions =
+        remember(groupedContexts) {
+            groupedContexts
+                .values
+                .flatten()
+                .distinctBy { it.id }
+                .map { context -> ProjectOption(id = context.id, name = context.name, parentId = context.parentId) }
+        }
 
     Column {
         InProgressIndicator(
@@ -447,7 +460,7 @@ private fun ProjectBottomBar(
                     Log.d("Recents_Debug", "onRecentsClick called from ProjectScreen")
                     viewModel.inputHandler.onShowRecentLists()
                 },
-                onAddNestedProjectClick = { viewModel.inputHandler.onAddListShortcutRequest() },
+                onAddNestedProjectClick = { showContextPicker = true },
                 canGoBack = canGoBack,
                 canGoForward = canGoForward,
                 onBackClick = { viewModel.onBackPressed() },
@@ -495,6 +508,25 @@ private fun ProjectBottomBar(
                 onShowDisplayPropertiesClick = onShowDisplayPropertiesClick,
             )
         }
+    }
+
+    if (showContextPicker) {
+        LinkedTargetsPickerDialog(
+            contextOptions = contextOptions,
+            attachmentOptions = emptyList(),
+            preselectedContextIds = emptySet(),
+            preselectedAttachmentIds = emptySet(),
+            initialTab = LinkPickerTab.CONTEXTS,
+            allowedTabs = setOf(LinkPickerTab.CONTEXTS),
+            onDismiss = { showContextPicker = false },
+            onContextSelected = { id ->
+                viewModel.onBacklogContextLinkSelected(id)
+                showContextPicker = false
+            },
+            onAttachmentSelected = {},
+            onCreateRootContext = { name -> viewModel.createRootContextForPicker(name) },
+            onCreateDocument = null,
+        )
     }
 }
 
