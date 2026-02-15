@@ -87,6 +87,10 @@ fun AttachmentsView(
             onConnectionCut = { item ->
                 attachmentByConnectionId[item.id]?.let { viewModel.itemActionHandler.cutAttachmentItem(it) }
             },
+            onAddButtonClick = {
+                pendingCreateAction = null
+                activePickerTab = LinkPickerTab.CONTEXTS
+            },
             onAddConnection = { _ ->
                 pendingCreateAction = null
                 activePickerTab = LinkPickerTab.CONTEXTS

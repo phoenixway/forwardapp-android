@@ -92,6 +92,7 @@ fun ConnectionsPanel(
     onConnectionCopy: ((ConnectionItemUi) -> Unit)? = null,
     onConnectionCut: ((ConnectionItemUi) -> Unit)? = null,
     onAddConnection: (AddConnectionType) -> Unit,
+    onAddButtonClick: (() -> Unit)? = null,
     onCreateConnection: ((CreateConnectionType) -> Unit)? = null,
     onConnectionsReordered: (List<ConnectionItemUi>) -> Unit = {},
     modifier: Modifier = Modifier,
@@ -145,7 +146,13 @@ fun ConnectionsPanel(
                     }
                 }
                 FilledTonalIconButton(
-                    onClick = { showAddActionsDialog = true },
+                    onClick = {
+                        if (onAddButtonClick != null) {
+                            onAddButtonClick()
+                        } else {
+                            showAddActionsDialog = true
+                        }
+                    },
                     shape = RoundedCornerShape(12.dp),
                 ) {
                     Icon(
