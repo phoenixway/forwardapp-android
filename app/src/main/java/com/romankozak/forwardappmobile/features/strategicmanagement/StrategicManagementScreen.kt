@@ -235,6 +235,14 @@ fun StrategicManagementScreen(
                         viewModel.removeAttachmentLink(item.id)
                     }
                 },
+                onAddButtonClick = {
+                    viewModel.dismissScopeLinksSheet()
+                    pendingCreateAction = null
+                    scope.launch {
+                        delay(160)
+                        activeLinkPickerTab = LinkPickerTab.CONTEXTS
+                    }
+                },
                 onAddConnection = { type ->
                     when (type) {
                         AddConnectionType.CONTEXT -> {

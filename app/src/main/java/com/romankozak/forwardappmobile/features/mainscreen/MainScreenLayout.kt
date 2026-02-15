@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.features.mainscreen
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.background
@@ -35,11 +37,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.navigation.routes.GOAL_LISTS_ROUTE
 import com.romankozak.forwardappmobile.core.navigation.routes.STRATEGIC_MANAGEMENT_ROUTE
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerViewModel
@@ -136,6 +140,7 @@ fun MainScreenLayout(
     val showWifiImportDialog by commandDeckViewModel.showWifiImportDialog.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val contextUiState by contextHierarchyViewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val dayPlanViewModel: DayPlanViewModel = hiltViewModel()
     val dayPlanUiState by dayPlanViewModel.uiState.collectAsState()
     var showAboutDialog by remember { mutableStateOf(false) }
@@ -545,14 +550,45 @@ fun MainScreenLayout(
                                             .savedStateHandle["projectIdToReveal"] = projectId
                                     }
                                 },
-                                onLinkedAttachmentClick = { attachmentId ->
-                                    navController.navigate("attachments_library_screen") {
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                    runCatching {
-                                        navController.getBackStackEntry("attachments_library_screen")
-                                            .savedStateHandle["attachment_library_query"] = attachmentId
+                                onLinkedAttachmentClick = { attachment ->
+                                    when {
+                                        attachment.attachmentType == "NOTE_DOCUMENT" && !attachment.entityId.isNullOrBlank() ->
+                                            navController.navigate("note_document_screen/${attachment.entityId}")
+                                        attachment.attachmentType == "CHECKLIST" && !attachment.entityId.isNullOrBlank() ->
+                                            navController.navigate("checklist_screen?checklistId=${attachment.entityId}")
+                                        attachment.linkType == LinkType.CONTEXT && !attachment.target.isNullOrBlank() ->
+                                            navController.navigate("goal_detail_screen/${attachment.target}")
+                                        (attachment.linkType == LinkType.URL || attachment.linkType == LinkType.OBSIDIAN) &&
+                                            !attachment.target.isNullOrBlank() -> {
+                                            runCatching {
+                                                context.startActivity(
+                                                    Intent(Intent.ACTION_VIEW, Uri.parse(attachment.target)).apply {
+                                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                    },
+                                                )
+                                            }.onFailure {
+                                                if (it !is ActivityNotFoundException) {
+                                                    navController.navigate("attachments_library_screen") {
+                                                        launchSingleTop = true
+                                                        restoreState = true
+                                                    }
+                                                    runCatching {
+                                                        navController.getBackStackEntry("attachments_library_screen")
+                                                            .savedStateHandle["attachment_library_query"] = attachment.id
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        else -> {
+                                            navController.navigate("attachments_library_screen") {
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
+                                            runCatching {
+                                                navController.getBackStackEntry("attachments_library_screen")
+                                                    .savedStateHandle["attachment_library_query"] = attachment.id
+                                            }
+                                        }
                                     }
                                 },
                             )

@@ -53,7 +53,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.components.connectionspanel.ConnectionsAddActionsDialog
 import com.romankozak.forwardappmobile.ui.components.connectionspanel.ConnectionsCreateActionsDialog
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -102,7 +101,6 @@ fun ConnectionsPanel(
     modifier: Modifier = Modifier,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
-    var showAddActionsDialog by remember { mutableStateOf(false) }
     var showCreateActionsDialog by remember { mutableStateOf(false) }
     var internalItems by remember { mutableStateOf(items) }
     val lazyListState = rememberLazyListState()
@@ -154,7 +152,7 @@ fun ConnectionsPanel(
                         if (onAddButtonClick != null) {
                             onAddButtonClick()
                         } else {
-                            showAddActionsDialog = true
+                            onAddConnection(AddConnectionType.CONTEXT)
                         }
                     },
                     shape = RoundedCornerShape(12.dp),
@@ -211,16 +209,6 @@ fun ConnectionsPanel(
         }
     }
 
-    if (showAddActionsDialog) {
-        ConnectionsAddActionsDialog(
-            onDismiss = { showAddActionsDialog = false },
-            onActionSelected = { type ->
-                showAddActionsDialog = false
-                onAddConnection(type)
-            },
-        )
-    }
-
     if (showCreateActionsDialog && onCreateConnection != null) {
         ConnectionsCreateActionsDialog(
             onDismiss = { showCreateActionsDialog = false },
@@ -243,7 +231,7 @@ private fun ConnectionRow(
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-            val showActionsOnRight = maxWidth >= 420.dp
+            val showDeleteOnRight = maxWidth >= 420.dp
 
             Row(
                 modifier =
@@ -251,7 +239,7 @@ private fun ConnectionRow(
                         .fillMaxWidth()
                         .clickable(onClick = onOpen)
                         .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = if (showActionsOnRight) Alignment.CenterVertically else Alignment.Top,
+                verticalAlignment = if (showDeleteOnRight) Alignment.CenterVertically else Alignment.Top,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 TypeIcon(type = item.type, modifier = typeIconModifier)
@@ -269,22 +257,24 @@ private fun ConnectionRow(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
 
-                    if (!showActionsOnRight) {
+                    if (onCopy != null || onCut != null || !showDeleteOnRight) {
                         Spacer(modifier = Modifier.height(6.dp))
                         ConnectionActionsRow(
                             onCopy = onCopy,
                             onCut = onCut,
-                            onRemove = onRemove,
+                            onRemove = if (showDeleteOnRight) null else onRemove,
                         )
                     }
                 }
 
-                if (showActionsOnRight) {
-                    ConnectionActionsRow(
-                        onCopy = onCopy,
-                        onCut = onCut,
-                        onRemove = onRemove,
-                    )
+                if (showDeleteOnRight) {
+                    IconButton(onClick = onRemove) {
+                        Icon(
+                            imageVector = Icons.Outlined.DeleteOutline,
+                            contentDescription = "Видалити",
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    }
                 }
             }
         }
@@ -299,7 +289,7 @@ private fun ConnectionRow(
 private fun ConnectionActionsRow(
     onCopy: (() -> Unit)?,
     onCut: (() -> Unit)?,
-    onRemove: () -> Unit,
+    onRemove: (() -> Unit)?,
 ) {
     Row(
         horizontalArrangement = Arrangement.Start,
@@ -323,12 +313,14 @@ private fun ConnectionActionsRow(
                 )
             }
         }
-        IconButton(onClick = onRemove) {
-            Icon(
-                imageVector = Icons.Outlined.DeleteOutline,
-                contentDescription = "Видалити",
-                tint = MaterialTheme.colorScheme.error,
-            )
+        if (onRemove != null) {
+            IconButton(onClick = onRemove) {
+                Icon(
+                    imageVector = Icons.Outlined.DeleteOutline,
+                    contentDescription = "Видалити",
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            }
         }
     }
 }
