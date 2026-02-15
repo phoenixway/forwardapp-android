@@ -28,14 +28,11 @@ import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.core.config.FeatureFlag
-import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.domain.ner.NerState
-import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.ModernInputPanel
@@ -169,7 +166,6 @@ private fun ProjectScaffold(
     val lastOngoingActivity by viewModel.lastOngoingActivity.collectAsStateWithLifecycle()
     val canGoBack by viewModel.canGoBack.collectAsStateWithLifecycle()
     val canGoForward by viewModel.canGoForward.collectAsStateWithLifecycle()
-    val suggestions by viewModel.autocompleteSuggestions.collectAsStateWithLifecycle()
     val sessionState by viewModel.contextSessionState.collectAsStateWithLifecycle()
     val canPasteIntoCurrentBacklog by viewModel.itemActionHandler.canPasteIntoCurrentBacklog.collectAsStateWithLifecycle()
 
@@ -262,24 +258,6 @@ private fun ProjectScaffold(
         }
     }
 
-    val reminderParseResult =
-        if ((uiState.detectedReminderCalendar != null) &&
-            (uiState.detectedReminderSuggestion != null) &&
-            (uiState.inputValue.text.isNotBlank())
-        ) {
-            ReminderParseResult(
-                originalText = uiState.inputValue.text,
-                calendar = uiState.detectedReminderCalendar,
-                suggestionText = uiState.detectedReminderSuggestion,
-                dateTimeEntities = emptyList(),
-                otherEntities = emptyList(),
-                success = true,
-                errorMessage = null,
-            )
-        } else {
-            null
-        }
-
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
@@ -350,8 +328,6 @@ private fun ProjectScaffold(
                         canGoForward = canGoForward,
                         menuExpanded = menuExpanded,
                         onMenuExpandedChange = { menuExpanded = it },
-                        reminderParseResult = reminderParseResult,
-                        suggestions = suggestions,
                         project = project,
                         onShowDisplayPropertiesClick = viewModel::onShowDisplayPropertiesDialog,
                         holdMenuController = holdMenuController,
@@ -438,8 +414,6 @@ private fun ProjectBottomBar(
     canGoForward: Boolean,
     menuExpanded: Boolean,
     onMenuExpandedChange: (Boolean) -> Unit,
-    reminderParseResult: ReminderParseResult?,
-    suggestions: List<String>,
     project: Context?,
     onShowDisplayPropertiesClick: () -> Unit,
     holdMenuController: com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller,
@@ -473,10 +447,7 @@ private fun ProjectBottomBar(
                     Log.d("Recents_Debug", "onRecentsClick called from ProjectScreen")
                     viewModel.inputHandler.onShowRecentLists()
                 },
-                onAddNestedProjectClick = { viewModel.inputHandler.onAddListLinkRequest() },
-                onShowAddWebLinkDialog = { viewModel.inputHandler.onShowAddWebLinkDialog() },
-                onShowAddObsidianLinkDialog = { viewModel.inputHandler.onShowAddObsidianLinkDialog() },
-                onAddListShortcutClick = { viewModel.inputHandler.onAddListShortcutRequest() },
+                onAddNestedProjectClick = { viewModel.inputHandler.onAddListShortcutRequest() },
                 canGoBack = canGoBack,
                 canGoForward = canGoForward,
                 onBackClick = { viewModel.onBackPressed() },
@@ -499,8 +470,6 @@ private fun ProjectBottomBar(
                 onExportToMarkdown = viewModel::onExportInboxToMarkdown,
                 onImportBacklogFromMarkdown = viewModel::onShowImportBacklogFromMarkdownDialog,
                 onExportBacklogToMarkdown = viewModel::onExportBacklogToMarkdown,
-                reminderParseResult = reminderParseResult,
-                onClearReminder = viewModel::onClearReminder,
                 isNerActive = uiState.nerState is NerState.Ready,
                 onStartTrackingCurrentProject = viewModel::onStartTrackingCurrentProject,
                 // --- ОНОВЛЕНА ЛОГІКА CAPABILITIES ---
@@ -523,23 +492,7 @@ private fun ProjectBottomBar(
                 onAddProjectToDayPlan = viewModel::addCurrentProjectToDayPlan,
                 onCloseSearch = viewModel::onCloseSearch,
                 onAddMilestone = viewModel::onAddMilestone,
-                onShowCreateNoteDocumentDialog = viewModel::onShowCreateNoteDocumentDialog,
-                onCreateChecklist = viewModel::onCreateChecklist,
-                onAddDirectionWithLinkedContextClick = viewModel::onAddDirectionWithLinkedContextRequest,
-                suggestions = suggestions,
-                onSuggestionClick = viewModel::onSuggestionClick,
                 onShowDisplayPropertiesClick = onShowDisplayPropertiesClick,
-                onAddScript =
-                    if (FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)) {
-                        {
-                            val route =
-                                project?.id?.let { id -> "script_editor_screen?projectId=$id" }
-                                    ?: "script_editor_screen"
-                            navController.navigate(route)
-                        }
-                    } else {
-                        null
-                    },
             )
         }
     }

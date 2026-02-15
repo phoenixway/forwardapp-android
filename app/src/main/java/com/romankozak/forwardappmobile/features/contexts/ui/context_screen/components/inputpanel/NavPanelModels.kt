@@ -18,6 +18,7 @@ data class NavPanelActions(
     val onBackClick: () -> Unit,
     val onForwardClick: () -> Unit,
     val onShowProjectHierarchy: () -> Unit,
+    val onAddContextLink: () -> Unit,
     val onNavigateHome: () -> Unit,
     val onRecentsClick: () -> Unit,
     val onCloseSearch: () -> Unit,

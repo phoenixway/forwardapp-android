@@ -27,6 +27,9 @@ internal fun NavigationBar(
         IconButton(onClick = actions.onShowProjectHierarchy, modifier = Modifier.size(40.dp)) {
             Icon(Icons.Outlined.AlternateEmail, null, tint = contentColor.copy(alpha = 0.7f))
         }
+        IconButton(onClick = actions.onAddContextLink, modifier = Modifier.size(34.dp)) {
+            Icon(Icons.Outlined.Add, null, tint = contentColor.copy(alpha = 0.8f))
+        }
 
         Spacer(Modifier.weight(1f))
 

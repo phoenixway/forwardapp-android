@@ -14,7 +14,6 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.core.theme.LocalInputPanelColors
-import com.romankozak.forwardappmobile.domain.ner.ReminderParseResult
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller
 
 @Composable
@@ -28,9 +27,6 @@ fun ModernInputPanel(
     onInputModeSelected: (InputMode) -> Unit,
     onRecentsClick: () -> Unit,
     onAddNestedProjectClick: () -> Unit,
-    onShowAddWebLinkDialog: () -> Unit,
-    onShowAddObsidianLinkDialog: () -> Unit,
-    onAddListShortcutClick: () -> Unit,
     canGoBack: Boolean,
     canGoForward: Boolean,
     onBackClick: () -> Unit,
@@ -50,8 +46,6 @@ fun ModernInputPanel(
     onImportBacklogFromMarkdown: () -> Unit,
     onExportBacklogToMarkdown: () -> Unit,
     onExportProjectState: () -> Unit,
-    reminderParseResult: ReminderParseResult?,
-    onClearReminder: () -> Unit,
     isNerActive: Boolean,
     onStartTrackingCurrentProject: () -> Unit,
     isProjectManagementEnabled: Boolean,
@@ -67,14 +61,8 @@ fun ModernInputPanel(
     onAddProjectToDayPlan: () -> Unit,
     onCloseSearch: () -> Unit,
     onAddMilestone: (String) -> Unit,
-    onShowCreateNoteDocumentDialog: () -> Unit,
-    onCreateChecklist: () -> Unit,
-    onAddDirectionWithLinkedContextClick: () -> Unit,
     onShowDisplayPropertiesClick: () -> Unit,
-    suggestions: List<String>,
-    onSuggestionClick: (String) -> Unit,
     enabledCapabilitiesOverride: Set<CapabilityId>? = null,
-    onAddScript: (() -> Unit)? = null,
 ) {
     // Об'єднуємо старі прапорці та нові ID в єдиний Set можливостей
     // У ModernInputPanel.kt
@@ -129,6 +117,7 @@ fun ModernInputPanel(
             onBackClick = onBackClick,
             onForwardClick = onForwardClick,
             onShowProjectHierarchy = onShowProjectHierarchy,
+            onAddContextLink = onAddNestedProjectClick,
             onNavigateHome = onNavigateHome,
             onRecentsClick = onRecentsClick,
             onCloseSearch = onCloseSearch,
@@ -155,7 +144,6 @@ fun ModernInputPanel(
         )
 
     val focusRequester = remember { FocusRequester() }
-    var showModeMenu by remember { mutableStateOf(false) }
     val panelColors = getPanelColors(inputMode, LocalInputPanelColors.current)
 
     Surface(
@@ -172,17 +160,6 @@ fun ModernInputPanel(
                 modifier = Modifier.defaultMinSize(minHeight = 64.dp).padding(horizontal = 8.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.Bottom,
             ) {
-                ModeSelectorButton(
-                    inputMode = inputMode,
-                    panelColors = panelColors,
-                    onOpenMenu = { showModeMenu = true },
-                    onModeChange = onInputModeSelected,
-                    isProjectManagementEnabled = isProjectManagementEnabled,
-                    currentView = currentView,
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
                 InputTextField(
                     modifier = Modifier.weight(1f),
                     inputValue = inputValue,
@@ -203,23 +180,5 @@ fun ModernInputPanel(
                 )
             }
         }
-    }
-
-    if (showModeMenu) {
-        InputPanelAddToProjectActionsDialog(
-            currentInputMode = inputMode,
-            isProjectManagementEnabled = isProjectManagementEnabled,
-            onDismiss = { showModeMenu = false },
-            onInputModeSelected = onInputModeSelected,
-            onAddNestedProjectClick = onAddNestedProjectClick,
-            onShowAddWebLinkDialog = onShowAddWebLinkDialog,
-            onShowAddObsidianLinkDialog = onShowAddObsidianLinkDialog,
-            onAddListShortcutClick = onAddListShortcutClick,
-            onShowCreateNoteDocumentDialog = onShowCreateNoteDocumentDialog,
-            onCreateChecklist = onCreateChecklist,
-            onAddDirectionWithLinkedContextClick = onAddDirectionWithLinkedContextClick,
-            isDirectionEnabled = activeCapabilities.contains(CapabilityId("direction")),
-            onAddScript = onAddScript,
-        )
     }
 }
