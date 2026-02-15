@@ -7,6 +7,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.*
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
@@ -64,6 +65,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.useca
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.usecases.ContextScreenDataObserver
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.*
 import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
+import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -72,6 +74,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import java.net.URLEncoder
 import java.util.Calendar
 import java.util.UUID
@@ -280,6 +283,18 @@ class ContextScreenViewModel
                     scope = viewModelScope,
                     started = SharingStarted.WhileSubscribed(5000),
                     initialValue = null,
+                )
+        val pickerAttachmentOptions: StateFlow<List<AttachmentOption>> =
+            contextRepository.getAttachmentLibraryItemsFlow()
+                .map { results ->
+                    results
+                        .map { it.toAttachmentOption() }
+                        .sortedBy { it.name.lowercase() }
+                }
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(5000),
+                    initialValue = emptyList(),
                 )
         private var batchSaveJob: Job? = null
         private val contextScreenDataMapper = ContextScreenDataMapper()
@@ -1041,3 +1056,26 @@ class ContextScreenViewModel
             markdownActions.onImportFromMarkdownConfirm(markdownText, contextIdFlow.value)
         fun copyInboxRecordText(text: String) = markdownActions.copyInboxRecordText(text)
     }
+
+private fun AttachmentLibraryQueryResult.toAttachmentOption(): AttachmentOption {
+    val relatedLink =
+        linkDisplayName?.let { json ->
+            runCatching { Gson().fromJson(json, RelatedLink::class.java) }.getOrNull()
+        }
+    val label =
+        noteName
+            ?: checklistName
+            ?: contextName
+            ?: relatedLink?.displayName
+            ?: relatedLink?.target
+            ?: "Attachment ${id.takeLast(4)}"
+
+    return AttachmentOption(
+        id = id,
+        name = label,
+        linkType = relatedLink?.type,
+        attachmentType = attachmentType,
+        entityId = entityId,
+        target = relatedLink?.target,
+    )
+}

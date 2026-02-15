@@ -14,12 +14,10 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.ContextScreenViewModel
-import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTargetsPickerDialog
 import com.romankozak.forwardappmobile.features.missions.presentation.PickerCreateAction
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
-import com.romankozak.forwardappmobile.ui.components.AddConnectionType
 import com.romankozak.forwardappmobile.ui.components.ConnectionItemUi
 import com.romankozak.forwardappmobile.ui.components.ConnectionType
 import com.romankozak.forwardappmobile.ui.components.ConnectionsPanel
@@ -34,6 +32,7 @@ fun AttachmentsView(
     var activePickerTab by remember { mutableStateOf<LinkPickerTab?>(null) }
     var pendingCreateAction by remember { mutableStateOf<PickerCreateAction?>(null) }
     val groupedContexts by viewModel.subprojectChildren.collectAsState()
+    val pickerAttachmentOptions by viewModel.pickerAttachmentOptions.collectAsState()
 
     val attachments =
         attachmentItems.filter {
@@ -62,10 +61,7 @@ fun AttachmentsView(
                 .distinctBy { it.id }
                 .map { context -> ProjectOption(id = context.id, name = context.name, parentId = context.parentId) }
         }
-    val pickerAttachmentOptions =
-        remember(attachments) {
-            attachments.mapNotNull { it.toAttachmentOptionOrNull() }
-        }
+    val preselectedAttachmentIds = remember(attachments) { attachments.map { it.backlogItem.id }.toSet() }
     val preselectedContextIds =
         remember(attachments) {
             attachments.mapNotNull { it.contextTargetIdOrNull() }.toSet()
@@ -91,14 +87,9 @@ fun AttachmentsView(
             onConnectionCut = { item ->
                 attachmentByConnectionId[item.id]?.let { viewModel.itemActionHandler.cutAttachmentItem(it) }
             },
-            onAddConnection = { type ->
+            onAddConnection = { _ ->
                 pendingCreateAction = null
-                when (type) {
-                    AddConnectionType.CONTEXT -> activePickerTab = LinkPickerTab.CONTEXTS
-                    AddConnectionType.ATTACHMENT -> activePickerTab = LinkPickerTab.ATTACHMENTS
-                    AddConnectionType.EXTERNAL_LINK -> activePickerTab = LinkPickerTab.ATTACHMENTS
-                    AddConnectionType.OBSIDIAN_NOTE -> activePickerTab = LinkPickerTab.ATTACHMENTS
-                }
+                activePickerTab = LinkPickerTab.CONTEXTS
             },
             onCreateConnection = { type ->
                 pendingCreateAction = type.toPickerCreateAction()
@@ -117,7 +108,7 @@ fun AttachmentsView(
             contextOptions = contextOptions,
             attachmentOptions = pickerAttachmentOptions,
             preselectedContextIds = preselectedContextIds,
-            preselectedAttachmentIds = pickerAttachmentOptions.map { it.id }.toSet(),
+            preselectedAttachmentIds = preselectedAttachmentIds,
             initialTab = initialTab,
             initialCreateAction = pendingCreateAction,
             onDismiss = {
@@ -169,34 +160,6 @@ private fun BacklogItemContent.connectionType(): ConnectionType =
                 null -> ConnectionType.ATTACHMENT
             }
         else -> ConnectionType.ATTACHMENT
-    }
-
-private fun BacklogItemContent.toAttachmentOptionOrNull(): AttachmentOption? =
-    when (this) {
-        is BacklogItemContent.NoteDocumentItem ->
-            AttachmentOption(
-                id = backlogItem.id,
-                name = document.name,
-                attachmentType = "NOTE_DOCUMENT",
-                entityId = document.id,
-            )
-        is BacklogItemContent.ChecklistItem ->
-            AttachmentOption(
-                id = backlogItem.id,
-                name = checklist.name,
-                attachmentType = "CHECKLIST",
-                entityId = checklist.id,
-            )
-        is BacklogItemContent.LinkItem ->
-            AttachmentOption(
-                id = backlogItem.id,
-                name = link.linkData.displayName?.ifBlank { link.linkData.target } ?: link.linkData.target,
-                linkType = link.linkData.type,
-                attachmentType = backlogItem.itemType,
-                entityId = backlogItem.entityId,
-                target = link.linkData.target,
-            )
-        else -> null
     }
 
 private fun BacklogItemContent.contextTargetIdOrNull(): String? =

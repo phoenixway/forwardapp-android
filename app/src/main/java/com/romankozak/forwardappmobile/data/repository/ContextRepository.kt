@@ -23,6 +23,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
 import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
+import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -115,6 +116,10 @@ class ContextRepository
 
         fun getAttachmentsForContextStream(contextId: String): Flow<List<AttachmentWithContext>> {
             return attachmentRepository.getAttachmentsForContext(contextId)
+        }
+
+        fun getAttachmentLibraryItemsFlow(): Flow<List<AttachmentLibraryQueryResult>> {
+            return attachmentRepository.getAttachmentLibraryItems()
         }
 
         private fun mapToListItemContent(
