@@ -247,7 +247,7 @@ private fun ConnectionRow(
                     .fillMaxWidth()
                     .clickable(onClick = onOpen)
                     .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             TypeIcon(type = item.type, modifier = typeIconModifier)
@@ -264,31 +264,40 @@ private fun ConnectionRow(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            }
-            if (onCopy != null) {
-                IconButton(onClick = onCopy) {
-                    Icon(
-                        imageVector = Icons.Outlined.ContentCopy,
-                        contentDescription = "Копіювати",
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (onCopy != null) {
+                        IconButton(onClick = onCopy) {
+                            Icon(
+                                imageVector = Icons.Outlined.ContentCopy,
+                                contentDescription = "Копіювати",
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                    if (onCut != null) {
+                        IconButton(onClick = onCut) {
+                            Icon(
+                                imageVector = Icons.Outlined.ContentCut,
+                                contentDescription = "Вирізати",
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                    IconButton(onClick = onRemove) {
+                        Icon(
+                            imageVector = Icons.Outlined.DeleteOutline,
+                            contentDescription = "Видалити",
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    }
                 }
-            }
-            if (onCut != null) {
-                IconButton(onClick = onCut) {
-                    Icon(
-                        imageVector = Icons.Outlined.ContentCut,
-                        contentDescription = "Вирізати",
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
-            IconButton(onClick = onRemove) {
-                Icon(
-                    imageVector = Icons.Outlined.DeleteOutline,
-                    contentDescription = "Видалити",
-                    tint = MaterialTheme.colorScheme.error,
-                )
             }
         }
         HorizontalDivider(

@@ -2,17 +2,16 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capa
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.outlined.Delete
@@ -58,7 +57,14 @@ fun DirectionItemCard(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
+                .then(
+                    if (linkedContextId != null) {
+                        Modifier.clickable { onOpenLinkedContext(linkedContextId) }
+                    } else {
+                        Modifier
+                    },
+                ),
         shape = MaterialTheme.shapes.large,
         elevation = CardDefaults.cardElevation(defaultElevation = elevation),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
@@ -69,7 +75,7 @@ fun DirectionItemCard(
                 Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 imageVector = Icons.Outlined.DragIndicator,
@@ -92,24 +98,6 @@ fun DirectionItemCard(
                         modifier = Modifier.weight(1f),
                     )
 
-                    if (linkedContextId != null) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        IconButton(
-                            onClick = { onOpenLinkedContext(linkedContextId) },
-                            colors =
-                                IconButtonDefaults.iconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                                    contentColor = MaterialTheme.colorScheme.primary,
-                                ),
-                            modifier = Modifier.size(28.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
-                                contentDescription = "Open linked context",
-                                modifier = Modifier.size(16.dp),
-                            )
-                        }
-                    }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
