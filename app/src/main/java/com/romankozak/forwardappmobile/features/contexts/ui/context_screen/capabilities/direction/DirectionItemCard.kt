@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -45,6 +46,8 @@ fun DirectionItemCard(
     onCut: () -> Unit,
 ) {
     val linkedContextId = item.linkedContextId
+    val actionButtonSize = 34.dp
+    val actionIconSize = 18.dp
     val elevation by animateDpAsState(
         targetValue = if (isDragging) 6.dp else 0.dp,
         label = "directionElevation",
@@ -65,7 +68,7 @@ fun DirectionItemCard(
                 Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Top,
         ) {
             Icon(
                 imageVector = Icons.Outlined.DragIndicator,
@@ -101,74 +104,84 @@ fun DirectionItemCard(
                         )
                     }
                 }
-            }
-
-            IconButton(
-                onClick = onEdit,
-                colors =
-                    IconButtonDefaults.iconButtonColors(
-                        contentColor = MaterialTheme.colorScheme.primary,
-                    ),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Edit,
-                    contentDescription = "Edit direction",
-                )
-            }
-
-            if (linkedContextId == null) {
                 IconButton(
-                    onClick = onToggleLink,
+                    onClick = onEdit,
                     colors =
                         IconButtonDefaults.iconButtonColors(
                             contentColor = MaterialTheme.colorScheme.primary,
                         ),
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Link,
-                        contentDescription = "Link direction",
+                        imageVector = Icons.Outlined.Edit,
+                        contentDescription = "Edit direction",
                     )
                 }
-            }
 
-            IconButton(
-                onClick = onCopy,
-                colors =
-                    IconButtonDefaults.iconButtonColors(
-                        contentColor = MaterialTheme.colorScheme.primary,
-                    ),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ContentCopy,
-                    contentDescription = "Copy direction",
-                )
-            }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (linkedContextId == null) {
+                        IconButton(
+                            onClick = onToggleLink,
+                            modifier = Modifier.size(actionButtonSize),
+                            colors =
+                                IconButtonDefaults.iconButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.primary,
+                                ),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Link,
+                                contentDescription = "Link direction",
+                                modifier = Modifier.size(actionIconSize),
+                            )
+                        }
+                    }
 
-            IconButton(
-                onClick = onCut,
-                colors =
-                    IconButtonDefaults.iconButtonColors(
-                        contentColor = MaterialTheme.colorScheme.primary,
-                    ),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ContentCut,
-                    contentDescription = "Cut direction",
-                )
-            }
+                    IconButton(
+                        onClick = onCopy,
+                        modifier = Modifier.size(actionButtonSize),
+                        colors =
+                            IconButtonDefaults.iconButtonColors(
+                                contentColor = MaterialTheme.colorScheme.primary,
+                            ),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = "Copy direction",
+                            modifier = Modifier.size(actionIconSize),
+                        )
+                    }
 
-            IconButton(
-                onClick = onDelete,
-                colors =
-                    IconButtonDefaults.iconButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error,
-                    ),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Delete,
-                    contentDescription = "Delete direction",
-                )
+                    IconButton(
+                        onClick = onCut,
+                        modifier = Modifier.size(actionButtonSize),
+                        colors =
+                            IconButtonDefaults.iconButtonColors(
+                                contentColor = MaterialTheme.colorScheme.primary,
+                            ),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCut,
+                            contentDescription = "Cut direction",
+                            modifier = Modifier.size(actionIconSize),
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.size(actionButtonSize),
+                        colors =
+                            IconButtonDefaults.iconButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error,
+                            ),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Delete,
+                            contentDescription = "Delete direction",
+                            modifier = Modifier.size(actionIconSize),
+                        )
+                    }
+                }
             }
+            Spacer(modifier = Modifier.width(4.dp))
         }
     }
 }
