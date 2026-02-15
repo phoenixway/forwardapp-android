@@ -8,11 +8,17 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.filled.Attachment
+import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -20,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -182,7 +189,12 @@ fun GoalDetailContent(
                 attachments = attachmentItems,
                 onAttachmentClick = { item -> viewModel.itemActionHandler.onItemClick(item) },
                 onShowProperties = onShowProjectProperties,
+                currentViewMode = currentViewMode,
+                onSwitchView = onSwitchView,
+                enableDashboard = uiState.enableDashboard,
                 enableAttachments = uiState.enableAttachments,
+                enableLog = uiState.enableLog,
+                enableArtifact = uiState.enableArtifact,
             )
         }
         ContextViewMode.LOG -> {
@@ -251,8 +263,24 @@ private fun DashboardOverview(
     attachments: List<BacklogItemContent>,
     onAttachmentClick: (BacklogItemContent) -> Unit,
     onShowProperties: () -> Unit,
+    currentViewMode: ContextViewMode,
+    onSwitchView: (ContextViewMode) -> Unit,
+    enableDashboard: Boolean,
     enableAttachments: Boolean,
+    enableLog: Boolean,
+    enableArtifact: Boolean,
 ) {
+    val activeViews =
+        buildList {
+            add(DashboardViewItem(ContextViewMode.BACKLOG, "Беклог", Icons.AutoMirrored.Outlined.List))
+            add(DashboardViewItem(ContextViewMode.INBOX, "Інбокс", Icons.Outlined.Inbox))
+            add(DashboardViewItem(ContextViewMode.DIRECTION, "Напрямок", Icons.Outlined.AccountTree))
+            if (enableAttachments) add(DashboardViewItem(ContextViewMode.ATTACHMENTS, "Вкладення", Icons.Default.Attachment))
+            if (enableDashboard) add(DashboardViewItem(ContextViewMode.DASHBOARD, "Дашборд", Icons.Default.Dashboard))
+            if (enableLog) add(DashboardViewItem(ContextViewMode.LOG, "Лог", Icons.Outlined.History))
+            if (enableArtifact) add(DashboardViewItem(ContextViewMode.ARTIFACT, "Артефакт", Icons.Outlined.Inventory2))
+        }
+
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -289,6 +317,45 @@ private fun DashboardOverview(
             }
             IconButton(onClick = onShowProperties) {
                 Icon(Icons.Default.Settings, contentDescription = "Project properties")
+            }
+        }
+
+        ElevatedCard(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp),
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = "Активні види",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(activeViews, key = { it.mode.name }) { viewItem ->
+                        FilterChip(
+                            selected = currentViewMode == viewItem.mode,
+                            onClick = { onSwitchView(viewItem.mode) },
+                            label = {
+                                Text(
+                                    text = viewItem.label,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = viewItem.icon,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            },
+                        )
+                    }
+                }
             }
         }
 
@@ -368,6 +435,12 @@ private fun DashboardOverview(
         }
     }
 }
+
+private data class DashboardViewItem(
+    val mode: ContextViewMode,
+    val label: String,
+    val icon: ImageVector,
+)
 
 @Composable
 private fun AttachmentRowSummary(
