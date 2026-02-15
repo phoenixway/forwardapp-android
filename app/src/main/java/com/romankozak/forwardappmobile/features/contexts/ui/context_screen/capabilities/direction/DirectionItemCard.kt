@@ -5,6 +5,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
@@ -79,45 +80,60 @@ fun DirectionItemCard(
             Spacer(modifier = Modifier.size(8.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.text,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Text(
+                        text = item.text,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
 
-                if (linkedContextId != null) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    IconButton(
-                        onClick = { onOpenLinkedContext(linkedContextId) },
-                        colors =
-                            IconButtonDefaults.iconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                                contentColor = MaterialTheme.colorScheme.primary,
-                            ),
-                        modifier = Modifier.size(28.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
-                            contentDescription = "Open linked context",
-                            modifier = Modifier.size(16.dp),
-                        )
+                    if (linkedContextId != null) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = { onOpenLinkedContext(linkedContextId) },
+                            colors =
+                                IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                    contentColor = MaterialTheme.colorScheme.primary,
+                                ),
+                            modifier = Modifier.size(28.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                                contentDescription = "Open linked context",
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
                     }
                 }
-                IconButton(
-                    onClick = onEdit,
-                    colors =
-                        IconButtonDefaults.iconButtonColors(
-                            contentColor = MaterialTheme.colorScheme.primary,
-                        ),
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Edit,
-                        contentDescription = "Edit direction",
-                    )
-                }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(
+                        onClick = onEdit,
+                        modifier = Modifier.size(actionButtonSize),
+                        colors =
+                            IconButtonDefaults.iconButtonColors(
+                                contentColor = MaterialTheme.colorScheme.primary,
+                            ),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Edit,
+                            contentDescription = "Edit direction",
+                            modifier = Modifier.size(actionIconSize),
+                        )
+                    }
+
                     if (linkedContextId == null) {
                         IconButton(
                             onClick = onToggleLink,
@@ -181,7 +197,6 @@ fun DirectionItemCard(
                     }
                 }
             }
-            Spacer(modifier = Modifier.width(4.dp))
         }
     }
 }
