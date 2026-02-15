@@ -529,7 +529,11 @@ private fun ProjectBottomBar(
             allowedTabs = setOf(LinkPickerTab.CONTEXTS),
             onDismiss = { showContextPicker = false },
             onContextSelected = { id ->
-                viewModel.onBacklogContextLinkSelected(id)
+                when (uiState.currentViewMode) {
+                    ContextViewMode.DIRECTION -> viewModel.onDirectionContextLinkSelected(id)
+                    ContextViewMode.BACKLOG -> viewModel.onBacklogContextLinkSelected(id)
+                    else -> viewModel.onBacklogContextLinkSelected(id)
+                }
                 showContextPicker = false
             },
             onAttachmentSelected = {},

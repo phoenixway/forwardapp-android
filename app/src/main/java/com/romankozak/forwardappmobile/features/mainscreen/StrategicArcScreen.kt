@@ -253,9 +253,10 @@ fun StrategicArcScreen(
                                 LinkPickerTab.CONTEXTS
                             } else {
                                 LinkPickerTab.ATTACHMENTS
-                            }
+                        }
                     }
                 },
+                preferActionsBesideTitleWhenWide = true,
                 onConnectionsReordered = { reordered ->
                     viewModel.updateConnectionsOrder(reordered.map { it.orderToken() })
                 },

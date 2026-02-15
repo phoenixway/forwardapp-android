@@ -126,6 +126,7 @@ fun TacticalScopeLinksSheet(
             onCreateConnection = { type ->
                 onCreateConnectionClick(type)
             },
+            preferActionsBesideTitleWhenWide = true,
             onConnectionsReordered = onConnectionsReordered,
         )
         Spacer(modifier = Modifier.height(12.dp))

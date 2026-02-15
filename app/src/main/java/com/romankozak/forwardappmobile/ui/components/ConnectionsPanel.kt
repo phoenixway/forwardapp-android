@@ -97,6 +97,7 @@ fun ConnectionsPanel(
     onAddConnection: (AddConnectionType) -> Unit,
     onAddButtonClick: (() -> Unit)? = null,
     onCreateConnection: ((CreateConnectionType) -> Unit)? = null,
+    preferActionsBesideTitleWhenWide: Boolean = false,
     onConnectionsReordered: (List<ConnectionItemUi>) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -193,6 +194,7 @@ fun ConnectionsPanel(
                                 onRemove = { onConnectionRemove(item) },
                                 onCopy = onConnectionCopy?.let { { it(item) } },
                                 onCut = onConnectionCut?.let { { it(item) } },
+                                preferActionsBesideTitleWhenWide = preferActionsBesideTitleWhenWide,
                                 typeIconModifier =
                                     with(this@ReorderableItem) {
                                         Modifier.longPressDraggableHandle(
@@ -227,11 +229,12 @@ private fun ConnectionRow(
     onRemove: () -> Unit,
     onCopy: (() -> Unit)? = null,
     onCut: (() -> Unit)? = null,
+    preferActionsBesideTitleWhenWide: Boolean = false,
     typeIconModifier: Modifier = Modifier,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-            val showDeleteOnRight = maxWidth >= 420.dp
+            val showActionsOnRight = preferActionsBesideTitleWhenWide && maxWidth >= 420.dp
 
             Row(
                 modifier =
@@ -239,7 +242,7 @@ private fun ConnectionRow(
                         .fillMaxWidth()
                         .clickable(onClick = onOpen)
                         .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = if (showDeleteOnRight) Alignment.CenterVertically else Alignment.Top,
+                verticalAlignment = if (showActionsOnRight) Alignment.CenterVertically else Alignment.Top,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 TypeIcon(type = item.type, modifier = typeIconModifier)
@@ -257,24 +260,22 @@ private fun ConnectionRow(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
 
-                    if (onCopy != null || onCut != null || !showDeleteOnRight) {
+                    if (!showActionsOnRight) {
                         Spacer(modifier = Modifier.height(6.dp))
                         ConnectionActionsRow(
                             onCopy = onCopy,
                             onCut = onCut,
-                            onRemove = if (showDeleteOnRight) null else onRemove,
+                            onRemove = onRemove,
                         )
                     }
                 }
 
-                if (showDeleteOnRight) {
-                    IconButton(onClick = onRemove) {
-                        Icon(
-                            imageVector = Icons.Outlined.DeleteOutline,
-                            contentDescription = "Видалити",
-                            tint = MaterialTheme.colorScheme.error,
-                        )
-                    }
+                if (showActionsOnRight) {
+                    ConnectionActionsRow(
+                        onCopy = onCopy,
+                        onCut = onCut,
+                        onRemove = onRemove,
+                    )
                 }
             }
         }
@@ -289,7 +290,7 @@ private fun ConnectionRow(
 private fun ConnectionActionsRow(
     onCopy: (() -> Unit)?,
     onCut: (() -> Unit)?,
-    onRemove: (() -> Unit)?,
+    onRemove: () -> Unit,
 ) {
     Row(
         horizontalArrangement = Arrangement.Start,
@@ -313,14 +314,12 @@ private fun ConnectionActionsRow(
                 )
             }
         }
-        if (onRemove != null) {
-            IconButton(onClick = onRemove) {
-                Icon(
-                    imageVector = Icons.Outlined.DeleteOutline,
-                    contentDescription = "Видалити",
-                    tint = MaterialTheme.colorScheme.error,
-                )
-            }
+        IconButton(onClick = onRemove) {
+            Icon(
+                imageVector = Icons.Outlined.DeleteOutline,
+                contentDescription = "Видалити",
+                tint = MaterialTheme.colorScheme.error,
+            )
         }
     }
 }

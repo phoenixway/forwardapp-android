@@ -708,6 +708,29 @@ class ContextScreenViewModel
                 forceRefresh()
             }
 
+        fun onDirectionContextLinkSelected(targetContextId: String) =
+            viewModelScope.launch {
+                val currentContextId = contextIdFlow.value
+                if (targetContextId.isBlank() || currentContextId.isBlank()) return@launch
+                if (targetContextId == currentContextId) {
+                    showSnackbar("Цей контекст вже відкритий", null)
+                    return@launch
+                }
+                if (uiState.value.directionItems.any { it.linkedContextId == targetContextId }) {
+                    showSnackbar("Посилання на цей контекст вже є в напрямку", null)
+                    return@launch
+                }
+
+                val result =
+                    listChooserFlowActions.addDirectionLinkedToContext(
+                        targetContextId = targetContextId,
+                        currentContextId = currentContextId,
+                    )
+                result.errorMessage?.let { message ->
+                    showSnackbar(message, null)
+                }
+            }
+
         fun onPickerAttachmentSelected(attachmentId: String) =
             viewModelScope.launch {
                 if (attachmentId.isBlank()) return@launch
