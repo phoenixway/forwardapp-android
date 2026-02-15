@@ -30,6 +30,9 @@ internal fun NavigationBar(
         IconButton(onClick = actions.onAddContextLink, modifier = Modifier.size(34.dp)) {
             Icon(Icons.Outlined.Add, null, tint = contentColor.copy(alpha = 0.8f))
         }
+        IconButton(onClick = actions.onShowCurrentContextInHierarchyFocus, modifier = Modifier.size(34.dp)) {
+            Icon(Icons.Outlined.MyLocation, null, tint = contentColor.copy(alpha = 0.8f))
+        }
 
         Spacer(Modifier.weight(1f))
 

@@ -470,6 +470,17 @@ private fun ProjectBottomBar(
                     viewModel.inputHandler.onShowRecentLists()
                 },
                 onAddNestedProjectClick = { showContextPicker = true },
+                onShowCurrentContextInHierarchyFocus = {
+                    val contextIdToReveal = project?.id ?: return@ModernInputPanel
+                    navController.navigate("goal_lists_screen") {
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                    runCatching {
+                        navController.getBackStackEntry("goal_lists_screen")
+                            .savedStateHandle["projectIdToReveal"] = contextIdToReveal
+                    }
+                },
                 canGoBack = canGoBack,
                 canGoForward = canGoForward,
                 onBackClick = { viewModel.onBackPressed() },
