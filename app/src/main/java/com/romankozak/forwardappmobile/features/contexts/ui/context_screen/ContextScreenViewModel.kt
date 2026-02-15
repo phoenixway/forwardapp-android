@@ -723,7 +723,7 @@ class ContextScreenViewModel
         fun openScriptEditorForCurrentContext() {
             val contextId = contextIdFlow.value.takeIf { it.isNotBlank() } ?: return
             viewModelScope.launch {
-                uiEventActions.tryEmit(UiEvent.Navigate(NavTarget.ScriptEditor(projectId = contextId)))
+                uiEventActions.tryEmit(UiEvent.Navigate(NavTarget.ScriptEditor(contextId = contextId)))
             }
         }
 
