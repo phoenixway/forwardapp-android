@@ -67,7 +67,6 @@ fun ProjectsScreen(
     TransparentSystemBars()
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val canPasteIntoCurrentBacklog by viewModel.itemActionHandler.canPasteIntoCurrentBacklog.collectAsStateWithLifecycle()
     val recordToEdit by viewModel.inboxHandler.recordToEdit.collectAsStateWithLifecycle()
     val editorViewModel: UniversalEditorViewModel = hiltViewModel()
     val currentProjectArtifact by viewModel.contextArtifact.collectAsStateWithLifecycle()
@@ -172,6 +171,7 @@ private fun ProjectScaffold(
     val canGoForward by viewModel.canGoForward.collectAsStateWithLifecycle()
     val suggestions by viewModel.autocompleteSuggestions.collectAsStateWithLifecycle()
     val sessionState by viewModel.contextSessionState.collectAsStateWithLifecycle()
+    val canPasteIntoCurrentBacklog by viewModel.itemActionHandler.canPasteIntoCurrentBacklog.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
