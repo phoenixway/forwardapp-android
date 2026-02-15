@@ -241,62 +241,49 @@ private fun ConnectionRow(
     typeIconModifier: Modifier = Modifier,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onOpen)
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            TypeIcon(type = item.type, modifier = typeIconModifier)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = item.type.label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val showActionsOnRight = maxWidth >= 420.dp
 
-                Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onOpen)
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = if (showActionsOnRight) Alignment.CenterVertically else Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                TypeIcon(type = item.type, modifier = typeIconModifier)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = item.type.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Start,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (onCopy != null) {
-                        IconButton(onClick = onCopy) {
-                            Icon(
-                                imageVector = Icons.Outlined.ContentCopy,
-                                contentDescription = "Копіювати",
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                    }
-                    if (onCut != null) {
-                        IconButton(onClick = onCut) {
-                            Icon(
-                                imageVector = Icons.Outlined.ContentCut,
-                                contentDescription = "Вирізати",
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-                    }
-                    IconButton(onClick = onRemove) {
-                        Icon(
-                            imageVector = Icons.Outlined.DeleteOutline,
-                            contentDescription = "Видалити",
-                            tint = MaterialTheme.colorScheme.error,
+                    if (!showActionsOnRight) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        ConnectionActionsRow(
+                            onCopy = onCopy,
+                            onCut = onCut,
+                            onRemove = onRemove,
                         )
                     }
+                }
+
+                if (showActionsOnRight) {
+                    ConnectionActionsRow(
+                        onCopy = onCopy,
+                        onCut = onCut,
+                        onRemove = onRemove,
+                    )
                 }
             }
         }
@@ -304,6 +291,44 @@ private fun ConnectionRow(
             modifier = Modifier.padding(horizontal = 12.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
         )
+    }
+}
+
+@Composable
+private fun ConnectionActionsRow(
+    onCopy: (() -> Unit)?,
+    onCut: (() -> Unit)?,
+    onRemove: () -> Unit,
+) {
+    Row(
+        horizontalArrangement = Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (onCopy != null) {
+            IconButton(onClick = onCopy) {
+                Icon(
+                    imageVector = Icons.Outlined.ContentCopy,
+                    contentDescription = "Копіювати",
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+        if (onCut != null) {
+            IconButton(onClick = onCut) {
+                Icon(
+                    imageVector = Icons.Outlined.ContentCut,
+                    contentDescription = "Вирізати",
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+        IconButton(onClick = onRemove) {
+            Icon(
+                imageVector = Icons.Outlined.DeleteOutline,
+                contentDescription = "Видалити",
+                tint = MaterialTheme.colorScheme.error,
+            )
+        }
     }
 }
 
