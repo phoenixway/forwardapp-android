@@ -52,7 +52,7 @@ class ContextScreenDataMapper {
                     }
                     BacklogItemTypeValues.SUBLIST, "PROJECT" -> {
                         subprojects.find { it.id == item.entityId }?.let { foundSubProject ->
-                            BacklogItemContent.SublistItem(
+                            BacklogItemContent.ContextLinkItem(
                                 project = foundSubProject,
                                 backlogItem = item,
                                 reminders = itemReminders,

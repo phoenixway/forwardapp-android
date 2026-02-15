@@ -99,7 +99,7 @@ fun GoalDetailContent(
                                 isChecked,
                             )
 
-                        is BacklogItemContent.SublistItem ->
+                        is BacklogItemContent.ContextLinkItem ->
                             viewModel.onSubprojectCompletedChanged(
                                 item.project,
                                 isChecked,
@@ -110,7 +110,6 @@ fun GoalDetailContent(
                 },
                 onDelete = { item -> viewModel.itemActionHandler.deleteItem(item) },
                 onDeleteEverywhere = { item -> viewModel.onDeleteEverywhere(item) },
-                onMoveToTop = { item -> viewModel.onMoveToTop(item) },
                 onAddToDayPlan = { item -> viewModel.addItemToDailyPlan(item) },
                 onStartTracking = { item -> viewModel.onStartTrackingRequest(item) },
                 onShowGoalTransportMenu = { item ->

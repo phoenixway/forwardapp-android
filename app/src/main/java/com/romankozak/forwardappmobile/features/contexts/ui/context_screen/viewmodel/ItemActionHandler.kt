@@ -89,7 +89,7 @@ class ItemActionHandler
                     when (item) {
                         is BacklogItemContent.NoteItem -> recentItemsRepository.logNoteAccess(item.note)
                         is BacklogItemContent.NoteDocumentItem -> recentItemsRepository.logNoteDocumentAccess(item.document)
-                        is BacklogItemContent.SublistItem -> {
+                        is BacklogItemContent.ContextLinkItem -> {
                             contextRepository.getContextById(item.project.id)?.let {
                                 recentItemsRepository.logProjectAccess(it)
                             }
@@ -110,7 +110,7 @@ class ItemActionHandler
                         resultListener.requestNavigation(
                             "goal_settings_screen/${item.goal.id}",
                         )
-                    is BacklogItemContent.SublistItem ->
+                    is BacklogItemContent.ContextLinkItem ->
                         resultListener.requestNavigation("goal_detail_screen/${item.project.id}")
                     is BacklogItemContent.LinkItem ->
                         resultListener.requestNavigation(ContextScreenViewModel.HANDLE_LINK_CLICK_ROUTE + "/${item.link.linkData.target}")
@@ -183,7 +183,7 @@ class ItemActionHandler
                             val linkText = content.link.linkData.displayName ?: content.link.linkData.target
                             Pair("Посилання скопійовано", linkText)
                         }
-                        is BacklogItemContent.SublistItem -> Pair("Назва проекту скопійована", content.project.name)
+                        is BacklogItemContent.ContextLinkItem -> Pair("Назва проекту скопійована", content.project.name)
                         is BacklogItemContent.NoteItem -> Pair("Текст нотатки скопійовано", content.note.content)
                         is BacklogItemContent.NoteDocumentItem -> Pair("Назва списку скопійована", content.document.name)
                         is BacklogItemContent.ChecklistItem -> Pair("Назва чекліста скопійована", content.checklist.name)
@@ -197,11 +197,11 @@ class ItemActionHandler
         fun onGoalTransportInitiated(
             item: BacklogItemContent,
         ) {
-            if (item is BacklogItemContent.GoalItem) {
+            if (item is BacklogItemContent.GoalItem || item is BacklogItemContent.ContextLinkItem) {
                 _itemForTransportMenu.value = item
                 _showGoalTransportMenu.value = true
             } else {
-                resultListener.showSnackbar("Транспорт доступний тільки для цілей беклогу", null)
+                resultListener.showSnackbar("Транспорт доступний тільки для цілей і посилань на контексти", null)
             }
         }
 
@@ -215,28 +215,38 @@ class ItemActionHandler
         }
 
         fun onTransportCopyRequested() {
-            val item = _itemForTransportMenu.value as? BacklogItemContent.GoalItem
-            if (item == null) {
-                resultListener.showSnackbar("Для копіювання вибери ціль", null)
-                return
+            when (val item = _itemForTransportMenu.value) {
+                is BacklogItemContent.GoalItem ->
+                    backlogClipboardUseCase.copyBacklogGoals(
+                        sourceContextId = projectIdFlow.value,
+                        goalIds = listOf(item.goal.id),
+                    )
+
+                is BacklogItemContent.ContextLinkItem ->
+                    backlogClipboardUseCase.copyBacklogContextLinks(
+                        sourceContextId = projectIdFlow.value,
+                        contextIds = listOf(item.project.id),
+                    )
+
+                else -> {
+                    resultListener.showSnackbar("Для копіювання вибери ціль або посилання на контекст", null)
+                    return
+                }
             }
-            backlogClipboardUseCase.copyBacklogGoals(
-                sourceContextId = projectIdFlow.value,
-                goalIds = listOf(item.goal.id),
-            )
             onDismissGoalTransportMenu()
             resultListener.showSnackbar("Скопійовано. Перейди в цільовий беклог і натисни Вставити", null)
         }
 
         fun onTransportCutRequested() {
-            val item = _itemForTransportMenu.value as? BacklogItemContent.GoalItem
-            if (item == null) {
-                resultListener.showSnackbar("Для вирізання вибери ціль", null)
+            val item = _itemForTransportMenu.value
+            val backlogItemId = item?.backlogItem?.id
+            if (backlogItemId.isNullOrBlank()) {
+                resultListener.showSnackbar("Для вирізання вибери ціль або посилання на контекст", null)
                 return
             }
             backlogClipboardUseCase.cutBacklogGoals(
                 sourceContextId = projectIdFlow.value,
-                listItemIds = listOf(item.backlogItem.id),
+                listItemIds = listOf(backlogItemId),
             )
             onDismissGoalTransportMenu()
             resultListener.showSnackbar("Вирізано. Перейди в цільовий беклог і натисни Вставити", null)
@@ -248,7 +258,7 @@ class ItemActionHandler
                 return
             }
             onDismissGoalTransportMenu()
-            if (backlogClipboardUseCase.isCopyOperation()) {
+            if (backlogClipboardUseCase.isCopyOperation() && backlogClipboardUseCase.copyPayloadHasGoals()) {
                 _showPasteModeDialog.value = true
             } else {
                 pasteIntoCurrentBacklog(BacklogPasteMode.AS_LINK)
@@ -288,7 +298,7 @@ class ItemActionHandler
                         goalIds = setOf(item.goal.id),
                     )
                 }
-                is BacklogItemContent.SublistItem -> {
+                is BacklogItemContent.ContextLinkItem -> {
                     when (actionType) {
                         GoalActionType.CreateInstance -> {
                             resultListener.showSnackbar("Дія 'Створити посилання' недоступна для під-проектів.", null)

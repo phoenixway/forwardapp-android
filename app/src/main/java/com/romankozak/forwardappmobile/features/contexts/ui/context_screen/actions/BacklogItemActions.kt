@@ -53,7 +53,7 @@ class BacklogItemActions(
                 "Ціль видалено"
             }
 
-            is BacklogItemContent.SublistItem -> {
+            is BacklogItemContent.ContextLinkItem -> {
                 contextRepository.deleteContextsAndSubContexts(listOf(item.project))
                 "Підконтекст видалено"
             }
@@ -89,7 +89,7 @@ class BacklogItemActions(
                 "Додано в план дня"
             }
 
-            is BacklogItemContent.SublistItem -> {
+            is BacklogItemContent.ContextLinkItem -> {
                 dayManagementRepository.addProjectToDayPlan(day.id, item.project.id)
                 "Додано в план дня"
             }
@@ -105,7 +105,7 @@ class BacklogItemActions(
                 "Трекінг розпочато"
             }
 
-            is BacklogItemContent.SublistItem -> {
+            is BacklogItemContent.ContextLinkItem -> {
                 activityRepository.startContextActivity(item.project.id)
                 "Трекінг розпочато"
             }

@@ -85,7 +85,7 @@ fun BacklogItem(
                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
             )
         }
-        is BacklogItemContent.SublistItem -> {
+        is BacklogItemContent.ContextLinkItem -> {
             InternalSubprojectItem(
                 subproject = item.project,
                 reminders = item.reminders,

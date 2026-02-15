@@ -170,7 +170,7 @@ class ContextRepository
                         }
                     BacklogItemTypeValues.SUBLIST ->
                         contextsMap[item.entityId]?.let {
-                            BacklogItemContent.SublistItem(it, remindersMap[it.id] ?: emptyList(), item)
+                            BacklogItemContent.ContextLinkItem(it, remindersMap[it.id] ?: emptyList(), item)
                         }
                     BacklogItemTypeValues.LINK_ITEM -> linksMap[item.entityId]?.let { BacklogItemContent.LinkItem(it, item) }
                     BacklogItemTypeValues.NOTE -> notesMap[item.entityId]?.let { BacklogItemContent.NoteItem(it, item) }

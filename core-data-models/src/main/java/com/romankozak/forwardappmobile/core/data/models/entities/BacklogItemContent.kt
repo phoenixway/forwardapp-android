@@ -11,7 +11,7 @@ sealed class BacklogItemContent {
         @SerializedName("backlogItem") override val backlogItem: BacklogItem
     ) : BacklogItemContent()
 
-    data class SublistItem(
+    data class ContextLinkItem(
         @SerializedName("project") val project: Context,
         @SerializedName("reminders") val reminders: List<Reminder>,
         @SerializedName("backlogItem") override val backlogItem: BacklogItem

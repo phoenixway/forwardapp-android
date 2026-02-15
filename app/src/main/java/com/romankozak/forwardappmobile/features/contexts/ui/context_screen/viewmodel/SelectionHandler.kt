@@ -113,29 +113,41 @@ class SelectionHandler(
             GoalActionType.CreateInstance,
             GoalActionType.CopyGoal,
             GoalActionType.MoveInstance -> {
-                val selectedGoalItems =
+                val selectedTransportableItems =
                     listContentFlow.value
                         .filter { it.backlogItem.id in selectedIds }
-                        .filterIsInstance<BacklogItemContent.GoalItem>()
+                        .filter {
+                            it is BacklogItemContent.GoalItem || it is BacklogItemContent.ContextLinkItem
+                        }
 
-                if (selectedGoalItems.isEmpty()) {
-                    resultListener.showSnackbar("Для транспорту вибери цілі беклогу", null)
+                if (selectedTransportableItems.isEmpty()) {
+                    resultListener.showSnackbar("Для транспорту вибери цілі або посилання на контексти", null)
                     return
                 }
 
-                val sourceGoalIds = selectedGoalItems.map { it.goal.id }.distinct()
-                val sourceItemIds = selectedGoalItems.map { it.backlogItem.id }.distinct()
+                val sourceGoalIds =
+                    selectedTransportableItems
+                        .filterIsInstance<BacklogItemContent.GoalItem>()
+                        .map { it.goal.id }
+                        .distinct()
+                val sourceContextLinkIds =
+                    selectedTransportableItems
+                        .filterIsInstance<BacklogItemContent.ContextLinkItem>()
+                        .map { it.project.id }
+                        .distinct()
+                val sourceItemIds = selectedTransportableItems.map { it.backlogItem.id }.distinct()
                 val sourceContextId = projectIdFlow.value
 
                 when (actionType) {
                     GoalActionType.CreateInstance,
                     GoalActionType.CopyGoal -> {
-                        backlogClipboardUseCase.copyBacklogGoals(
+                        backlogClipboardUseCase.copyBacklogEntities(
                             sourceContextId = sourceContextId,
                             goalIds = sourceGoalIds,
+                            contextIds = sourceContextLinkIds,
                         )
                         resultListener.showSnackbar(
-                            "Скопійовано ${sourceGoalIds.size}. Перейди в цільовий беклог і натисни Вставити",
+                            "Скопійовано ${sourceGoalIds.size + sourceContextLinkIds.size}. Перейди в цільовий беклог і натисни Вставити",
                             null,
                         )
                     }

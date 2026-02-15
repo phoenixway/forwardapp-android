@@ -5,7 +5,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemCont
 fun BacklogItemContent.isCompleted(): Boolean =
     when (this) {
         is BacklogItemContent.GoalItem -> goal.completed
-        is BacklogItemContent.SublistItem -> project.isCompleted
+        is BacklogItemContent.ContextLinkItem -> project.isCompleted
         else -> false
     }
 

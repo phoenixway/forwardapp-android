@@ -58,13 +58,13 @@ fun RemindersDialog(
         val entityId =
             when (item) {
                 is BacklogItemContent.GoalItem -> item.goal.id
-                is BacklogItemContent.SublistItem -> item.project.id
+                is BacklogItemContent.ContextLinkItem -> item.project.id
                 else -> null
             }
         val entityType =
             when (item) {
                 is BacklogItemContent.GoalItem -> "GOAL"
-                is BacklogItemContent.SublistItem -> "PROJECT"
+                is BacklogItemContent.ContextLinkItem -> "PROJECT"
                 else -> null
             }
 
@@ -93,7 +93,7 @@ fun RemindersDialog(
                     val title =
                         when (item) {
                             is BacklogItemContent.GoalItem -> item.goal.text
-                            is BacklogItemContent.SublistItem -> item.project.name
+                            is BacklogItemContent.ContextLinkItem -> item.project.name
                             else -> "Нагадування"
                         }
                     Text(

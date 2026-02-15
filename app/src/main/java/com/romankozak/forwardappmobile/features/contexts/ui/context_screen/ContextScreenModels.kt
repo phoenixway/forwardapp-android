@@ -146,7 +146,7 @@ class BacklogMarkdownHandler
                             "$checkbox ${item.goal.text}"
                         }
 
-                        is BacklogItemContent.SublistItem -> "- [C] ${item.project.name}"
+                        is BacklogItemContent.ContextLinkItem -> "- [C] ${item.project.name}"
                         is BacklogItemContent.LinkItem -> {
                             val displayName = item.link.linkData.displayName ?: item.link.linkData.target
                             "- [L] [$displayName](${item.link.linkData.target})"

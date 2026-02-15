@@ -52,7 +52,7 @@ class ReminderActions(
                 stateManager.updateState { it.copy(recordForReminderDialog = record, remindersForDialog = reminders) }
             }
 
-            is BacklogItemContent.SublistItem -> {
+            is BacklogItemContent.ContextLinkItem -> {
                 val entityId = item.project.id
                 val reminders = reminderRepository.getRemindersForEntityFlow(entityId).firstOrNull().orEmpty()
                 val record =

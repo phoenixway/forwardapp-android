@@ -57,18 +57,61 @@ class BacklogClipboardUseCase
             if (targetContextId.isBlank()) return false
             val payload = clipboardService.payload.value ?: return false
             return when (payload.operation) {
-                ClipboardOperation.COPY -> payload.entities.any { it is ClipboardEntityRef.BacklogGoal }
+                ClipboardOperation.COPY ->
+                    payload.entities.any {
+                        it is ClipboardEntityRef.BacklogGoal || it is ClipboardEntityRef.BacklogContextLink
+                    }
                 ClipboardOperation.CUT ->
                     payload.sourceContextId != targetContextId &&
                         payload.entities.any { it is ClipboardEntityRef.BacklogItem }
             }
         }
 
+        fun copyPayloadHasGoals(): Boolean =
+            clipboardService.payload.value
+                ?.takeIf { it.operation == ClipboardOperation.COPY }
+                ?.entities
+                ?.any { it is ClipboardEntityRef.BacklogGoal } == true
+
         fun copyBacklogGoals(
             sourceContextId: String,
             goalIds: List<String>,
         ) {
             val refs = goalIds.distinct().map { ClipboardEntityRef.BacklogGoal(goalId = it) }
+            clipboardService.set(
+                EntityClipboardPayload(
+                    sourceContextId = sourceContextId,
+                    operation = ClipboardOperation.COPY,
+                    entities = refs,
+                ),
+            )
+        }
+
+        fun copyBacklogContextLinks(
+            sourceContextId: String,
+            contextIds: List<String>,
+        ) {
+            val refs = contextIds.distinct().map { ClipboardEntityRef.BacklogContextLink(contextId = it) }
+            clipboardService.set(
+                EntityClipboardPayload(
+                    sourceContextId = sourceContextId,
+                    operation = ClipboardOperation.COPY,
+                    entities = refs,
+                ),
+            )
+        }
+
+        fun copyBacklogEntities(
+            sourceContextId: String,
+            goalIds: List<String>,
+            contextIds: List<String>,
+        ) {
+            val refs =
+                buildList {
+                    addAll(goalIds.distinct().map { ClipboardEntityRef.BacklogGoal(goalId = it) })
+                    addAll(contextIds.distinct().map { ClipboardEntityRef.BacklogContextLink(contextId = it) })
+                }
+            if (refs.isEmpty()) return
             clipboardService.set(
                 EntityClipboardPayload(
                     sourceContextId = sourceContextId,
@@ -101,10 +144,11 @@ class BacklogClipboardUseCase
             return when (payload.operation) {
                 ClipboardOperation.COPY -> {
                     val goalRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogGoal>()
-                    if (goalRefs.isEmpty()) {
+                    val contextRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogContextLink>()
+                    if (goalRefs.isEmpty() && contextRefs.isEmpty()) {
                         BacklogPasteReport(totalRequested = 0, skippedInvalid = 1)
                     } else {
-                        pasteCopy(goalRefs, targetContextId, mode)
+                        pasteCopy(goalRefs, contextRefs, targetContextId, mode)
                     }
                 }
                 ClipboardOperation.CUT -> {
@@ -120,24 +164,47 @@ class BacklogClipboardUseCase
 
         private suspend fun pasteCopy(
             refs: List<ClipboardEntityRef.BacklogGoal>,
+            contextRefs: List<ClipboardEntityRef.BacklogContextLink>,
             targetContextId: String,
             mode: BacklogPasteMode,
         ): BacklogPasteReport {
+            val sourceGoalIds = refs.map { it.goalId }.distinct()
+            val sourceContextIds = contextRefs.map { it.contextId }.distinct()
+            val totalRequested = sourceGoalIds.size + sourceContextIds.size
+
+            val contextIdsToLink = sourceContextIds.filterNot { listItemRepository.doesLinkExist(it, targetContextId) }
+            val contextDuplicates = sourceContextIds.size - contextIdsToLink.size
+
             return when (mode) {
                 BacklogPasteMode.AS_CLONE -> {
-                    val sourceGoalIds = refs.map { it.goalId }.distinct()
                     goalRepository.copyGoalsToContext(sourceGoalIds, targetContextId)
-                    BacklogPasteReport(totalRequested = sourceGoalIds.size, clonedGoals = sourceGoalIds.size)
+                    contextIdsToLink.forEach { contextId ->
+                        listItemRepository.addContextLinkToContext(
+                            targetContextId = contextId,
+                            currentContextId = targetContextId,
+                        )
+                    }
+                    BacklogPasteReport(
+                        totalRequested = totalRequested,
+                        clonedGoals = sourceGoalIds.size,
+                        createdLinks = contextIdsToLink.size,
+                        skippedDuplicates = contextDuplicates,
+                    )
                 }
 
                 BacklogPasteMode.AS_LINK -> {
-                    val sourceGoalIds = refs.map { it.goalId }.distinct()
                     val nonDuplicates = sourceGoalIds.filterNot { listItemRepository.doesLinkExist(it, targetContextId) }
                     goalRepository.createGoalLinks(nonDuplicates, targetContextId)
+                    contextIdsToLink.forEach { contextId ->
+                        listItemRepository.addContextLinkToContext(
+                            targetContextId = contextId,
+                            currentContextId = targetContextId,
+                        )
+                    }
                     BacklogPasteReport(
-                        totalRequested = sourceGoalIds.size,
-                        createdLinks = nonDuplicates.size,
-                        skippedDuplicates = sourceGoalIds.size - nonDuplicates.size,
+                        totalRequested = totalRequested,
+                        createdLinks = nonDuplicates.size + contextIdsToLink.size,
+                        skippedDuplicates = (sourceGoalIds.size - nonDuplicates.size) + contextDuplicates,
                     )
                 }
             }

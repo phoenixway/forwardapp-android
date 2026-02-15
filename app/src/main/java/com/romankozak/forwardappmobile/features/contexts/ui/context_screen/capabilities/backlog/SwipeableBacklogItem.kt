@@ -24,7 +24,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material.icons.filled.Share
@@ -72,7 +71,6 @@ fun SwipeableBacklogItem(
     onCheckedChange: (BacklogItemContent, Boolean) -> Unit,
     onDelete: (BacklogItemContent) -> Unit,
     onRemindersClick: (BacklogItemContent) -> Unit,
-    onMoveToTop: (BacklogItemContent) -> Unit,
     onAddToDayPlan: (BacklogItemContent) -> Unit,
     onStartTracking: (BacklogItemContent) -> Unit,
     onShowGoalTransportMenu: (BacklogItemContent) -> Unit,
@@ -85,7 +83,7 @@ fun SwipeableBacklogItem(
     val density = LocalDensity.current
     val coroutineScope = rememberCoroutineScope()
     val rightActionWidth = 180.dp
-    val leftActionWidth = 240.dp
+    val leftActionWidth = 180.dp
     val rightActionWidthPx = with(density) { rightActionWidth.toPx() }
     val leftActionWidthPx = with(density) { leftActionWidth.toPx() }
 
@@ -111,7 +109,7 @@ fun SwipeableBacklogItem(
     val isCompleted =
         when (item) {
             is BacklogItemContent.GoalItem -> item.goal.completed
-            is BacklogItemContent.SublistItem -> item.project.isCompleted
+            is BacklogItemContent.ContextLinkItem -> item.project.isCompleted
             else -> false
         }
 
@@ -161,14 +159,6 @@ fun SwipeableBacklogItem(
                         .padding(start = 16.dp, end = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.Start),
             ) {
-                SwipeActionButton(
-                    icon = Icons.Default.KeyboardArrowUp,
-                    contentDescription = "Move to top",
-                    color = MaterialTheme.colorScheme.primary,
-                ) {
-                    onMoveToTop(item)
-                    resetSwipe()
-                }
                 SwipeActionButton(
                     icon = Icons.Default.Share,
                     contentDescription = "Share",

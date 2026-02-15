@@ -15,7 +15,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,8 +33,6 @@ fun GoalTransportMenu(
     onDismiss: () -> Unit,
     onCopyRequest: () -> Unit,
     onCutRequest: () -> Unit,
-    onPasteRequest: () -> Unit,
-    canPaste: Boolean,
 ) {
     AnimatedVisibility(
         visible = isVisible,
@@ -124,18 +121,6 @@ fun GoalTransportMenu(
                             },
                         )
 
-                        Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-
-                        TransportMenuItem(
-                            icon = Icons.Default.ContentPaste,
-                            title = "Вставити",
-                            description = "Вставити елементи буфера в цей беклог",
-                            enabled = canPaste,
-                            onClick = {
-                                onPasteRequest()
-                                onDismiss()
-                            },
-                        )
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))

@@ -52,7 +52,7 @@ class ContextMarkdownExporter
                                         val checkbox = if (item.goal.completed) "- [x]" else "- [ ]"
                                         "$checkbox ${item.goal.text}"
                                     }
-                                    is BacklogItemContent.SublistItem -> "- [С] ${item.project.name}"
+                                    is BacklogItemContent.ContextLinkItem -> "- [С] ${item.project.name}"
                                     is BacklogItemContent.LinkItem -> {
                                         val displayName = item.link.linkData.displayName ?: item.link.linkData.target
                                         "- [Л] [$displayName](${item.link.linkData.target})"

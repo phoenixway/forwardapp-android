@@ -63,7 +63,7 @@ class BacklogMarkdownHandler
                             val checkbox = if (item.goal.completed) "- [x]" else "- [ ]"
                             "$checkbox ${item.goal.text}"
                         }
-                        is BacklogItemContent.SublistItem -> {
+                        is BacklogItemContent.ContextLinkItem -> {
                             "- [C] ${item.project.name}"
                         }
                         is BacklogItemContent.LinkItem -> {
@@ -166,7 +166,7 @@ class BacklogMarkdownHandler
                     val checkbox = if (item.goal.completed) "[x]" else "[ ]"
                     "- $checkbox ${item.goal.text}"
                 }
-                is BacklogItemContent.SublistItem -> {
+                is BacklogItemContent.ContextLinkItem -> {
                     "- [C] ${item.project.name}"
                 }
                 is BacklogItemContent.LinkItem -> {
