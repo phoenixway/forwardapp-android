@@ -2,6 +2,8 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
@@ -257,6 +259,7 @@ fun GoalDetailContent(
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun DashboardOverview(
     modifier: Modifier = Modifier,
     project: Context?,
@@ -334,8 +337,12 @@ private fun DashboardOverview(
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(activeViews, key = { it.mode.name }) { viewItem ->
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    activeViews.forEach { viewItem ->
                         FilterChip(
                             selected = currentViewMode == viewItem.mode,
                             onClick = { onSwitchView(viewItem.mode) },
