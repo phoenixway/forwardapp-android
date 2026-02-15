@@ -11,12 +11,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DragIndicator
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Link
-import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -139,7 +139,7 @@ fun DirectionItemCard(
                     ),
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.ContentCopy,
+                    imageVector = Icons.Default.ContentCopy,
                     contentDescription = "Copy direction",
                 )
             }
@@ -152,7 +152,7 @@ fun DirectionItemCard(
                     ),
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.ContentCut,
+                    imageVector = Icons.Default.ContentCut,
                     contentDescription = "Cut direction",
                 )
             }
