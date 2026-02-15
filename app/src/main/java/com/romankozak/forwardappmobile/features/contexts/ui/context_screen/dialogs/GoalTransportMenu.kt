@@ -13,9 +13,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,11 +32,9 @@ import androidx.compose.ui.window.DialogProperties
 fun GoalTransportMenu(
     isVisible: Boolean,
     onDismiss: () -> Unit,
-    onCreateInstanceRequest: () -> Unit,
-    onMoveInstanceRequest: () -> Unit,
-    onCopyGoalRequest: () -> Unit,
-    onCopyContentToClipboardRequest: () -> Unit,
-    isGoalItem: Boolean,
+    onCopyRequest: () -> Unit,
+    onCutRequest: () -> Unit,
+    onPasteRequest: () -> Unit,
 ) {
     AnimatedVisibility(
         visible = isVisible,
@@ -78,7 +77,7 @@ fun GoalTransportMenu(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "Share",
+                            text = "Транспорт",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -103,11 +102,11 @@ fun GoalTransportMenu(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         TransportMenuItem(
-                            icon = Icons.AutoMirrored.Filled.Send,
-                            title = "Перемістити",
-                            description = "Перемістити елемент в інший проект",
+                            icon = Icons.Default.ContentCopy,
+                            title = "Копіювати",
+                            description = "Скопіювати ціль у буфер транспорту",
                             onClick = {
-                                onMoveInstanceRequest()
+                                onCopyRequest()
                                 onDismiss()
                             },
                         )
@@ -115,28 +114,26 @@ fun GoalTransportMenu(
                         Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
                         TransportMenuItem(
-                            icon = Icons.Default.ContentCopy,
-                            title = "Копіювати",
-                            description = "Створити копію цього підпроекту в іншому проекті",
+                            icon = Icons.Default.ContentCut,
+                            title = "Вирізати",
+                            description = "Підготувати переміщення цілі через вставку",
                             onClick = {
-                                onCopyGoalRequest()
+                                onCutRequest()
                                 onDismiss()
                             },
                         )
 
-                        if (isGoalItem) {
-                            Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                        Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
-                            TransportMenuItem(
-                                icon = Icons.Default.ContentCopy,
-                                title = "Клонувати ціль",
-                                description = "Створити копію цієї цілі",
-                                onClick = {
-                                    onCopyGoalRequest()
-                                    onDismiss()
-                                },
-                            )
-                        }
+                        TransportMenuItem(
+                            icon = Icons.Default.ContentPaste,
+                            title = "Вставити",
+                            description = "Вставити елементи буфера в цей беклог",
+                            onClick = {
+                                onPasteRequest()
+                                onDismiss()
+                            },
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))

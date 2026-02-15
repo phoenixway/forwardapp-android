@@ -40,6 +40,16 @@ class BacklogClipboardUseCase
         private val goalRepository: GoalRepository,
         private val listItemRepository: ListItemRepository,
     ) {
+        fun hasPayload(): Boolean = clipboardService.payload.value != null
+
+        fun isCopyOperation(): Boolean = clipboardService.payload.value?.operation == ClipboardOperation.COPY
+
+        fun isCutOperation(): Boolean = clipboardService.payload.value?.operation == ClipboardOperation.CUT
+
+        fun clearClipboard() {
+            clipboardService.clear()
+        }
+
         fun copyBacklogGoals(
             sourceContextId: String,
             goalIds: List<String>,

@@ -313,6 +313,12 @@ private fun ProjectScaffold(
                                         uiState.selectedItemIds,
                                     )
                                 },
+                                onPaste =
+                                    if (uiState.currentViewMode == ContextViewMode.BACKLOG) {
+                                        { viewModel.itemActionHandler.onTransportPasteRequested() }
+                                    } else {
+                                        null
+                                    },
                                 onInboxClick = {
                                     val today = System.currentTimeMillis()
                                     navController.navigate("day_plan_screen/$today?startTab=INBOX")

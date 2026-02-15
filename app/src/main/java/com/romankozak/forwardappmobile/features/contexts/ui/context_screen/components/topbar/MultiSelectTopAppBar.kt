@@ -135,15 +135,15 @@ fun MultiSelectTopAppBar(
                     onDismissRequest = { showMenu = false },
                 ) {
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.create_link)) },
+                        text = { Text("Копіювати (посилання)") },
                         onClick = {
                             onMoreActions(GoalActionType.CreateInstance)
                             showMenu = false
                         },
-                        leadingIcon = { Icon(Icons.Default.AddLink, contentDescription = null) },
+                        leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
                     )
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.move)) },
+                        text = { Text("Вирізати") },
                         onClick = {
                             onMoreActions(GoalActionType.MoveInstance)
                             showMenu = false
@@ -151,7 +151,7 @@ fun MultiSelectTopAppBar(
                         leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null) },
                     )
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.copy)) },
+                        text = { Text("Клонувати") },
                         onClick = {
                             onMoreActions(GoalActionType.CopyGoal)
                             showMenu = false

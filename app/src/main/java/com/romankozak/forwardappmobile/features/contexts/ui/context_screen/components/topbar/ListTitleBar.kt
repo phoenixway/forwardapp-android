@@ -9,6 +9,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -303,6 +304,7 @@ fun ListTitleBar(
     project: Context?,
     currentViewMode: ContextViewMode? = null,
     onInboxClick: () -> Unit,
+    onPasteClick: (() -> Unit)? = null,
 ) {
     var isStatusExpanded by remember { mutableStateOf(false) }
 
@@ -367,6 +369,15 @@ fun ListTitleBar(
                 }
 
                 Spacer(Modifier.width(8.dp))
+
+                if (onPasteClick != null) {
+                    IconButton(onClick = onPasteClick) {
+                        Icon(
+                            imageVector = Icons.Default.ContentPaste,
+                            contentDescription = "Paste",
+                        )
+                    }
+                }
 
                 IconButton(onClick = onInboxClick) {
                     Icon(

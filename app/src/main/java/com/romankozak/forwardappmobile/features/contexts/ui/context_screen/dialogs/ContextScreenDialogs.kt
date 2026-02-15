@@ -4,7 +4,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
+import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogPasteMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.ContextScreenViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionDialogState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionType
@@ -20,7 +20,7 @@ fun GoalDetailDialogs(viewModel: ContextScreenViewModel) {
 
     val goalActionState by viewModel.itemActionHandler.goalActionDialogState.collectAsStateWithLifecycle()
     val showGoalTransportMenu by viewModel.itemActionHandler.showGoalTransportMenu.collectAsStateWithLifecycle()
-    val itemForTransportMenu by viewModel.itemActionHandler.itemForTransportMenu.collectAsStateWithLifecycle()
+    val showPasteModeDialog by viewModel.itemActionHandler.showPasteModeDialog.collectAsStateWithLifecycle()
     val recentItems = uiState.recentItems
 
     if (uiState.showAddWebLinkDialog) {
@@ -69,24 +69,32 @@ fun GoalDetailDialogs(viewModel: ContextScreenViewModel) {
     GoalTransportMenu(
         isVisible = showGoalTransportMenu,
         onDismiss = { viewModel.itemActionHandler.onDismissGoalTransportMenu() },
-        onCreateInstanceRequest = {
-            itemForTransportMenu?.let { item ->
-                viewModel.itemActionHandler.onItemActionSelected(GoalActionType.CreateInstance, item)
-            }
-        },
-        onMoveInstanceRequest = {
-            itemForTransportMenu?.let { item ->
-                viewModel.itemActionHandler.onItemActionSelected(GoalActionType.MoveInstance, item)
-            }
-        },
-        onCopyGoalRequest = {
-            itemForTransportMenu?.let { item ->
-                viewModel.itemActionHandler.onItemActionSelected(GoalActionType.CopyGoal, item)
-            }
-        },
-        onCopyContentToClipboardRequest = viewModel.itemActionHandler.onCopyContentToClipboard.collectAsStateWithLifecycle().value,
-        isGoalItem = itemForTransportMenu is BacklogItemContent.GoalItem,
+        onCopyRequest = { viewModel.itemActionHandler.onTransportCopyRequested() },
+        onCutRequest = { viewModel.itemActionHandler.onTransportCutRequested() },
+        onPasteRequest = { viewModel.itemActionHandler.onTransportPasteRequested() },
     )
+
+    if (showPasteModeDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.itemActionHandler.onDismissPasteModeDialog() },
+            confirmButton = {
+                TextButton(
+                    onClick = { viewModel.itemActionHandler.onPasteModeSelected(BacklogPasteMode.AS_LINK) },
+                ) {
+                    Text("Як посилання")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { viewModel.itemActionHandler.onPasteModeSelected(BacklogPasteMode.AS_CLONE) },
+                ) {
+                    Text("Клонувати")
+                }
+            },
+            title = { Text("Режим вставки") },
+            text = { Text("Вставити цілі як посилання чи створити клон?") },
+        )
+    }
 
     if (uiState.showRecentProjectsSheet) {
         NewRecentListsSheet(

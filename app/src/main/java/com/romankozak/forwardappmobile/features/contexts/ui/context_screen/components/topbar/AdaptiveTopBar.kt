@@ -25,6 +25,7 @@ fun AdaptiveTopBar(
     onMarkAsComplete: () -> Unit,
     onMarkAsIncomplete: () -> Unit,
     onMoreActions: (GoalActionType) -> Unit,
+    onPaste: (() -> Unit)?,
     onInboxClick: () -> Unit,
     currentViewMode: ContextViewMode? = null,
     enabledCapabilities: Set<CapabilityId> = emptySet(),
@@ -46,6 +47,7 @@ fun AdaptiveTopBar(
             ListTitleBar(
                 project = project?.copy(isContextManagementEnabled = false),
                 currentViewMode = displayViewMode,
+                onPasteClick = onPaste,
                 onInboxClick = onInboxClick,
             )
             MultiSelectTopAppBar(
@@ -62,6 +64,7 @@ fun AdaptiveTopBar(
             ListTitleBar(
                 project = project,
                 currentViewMode = displayViewMode,
+                onPasteClick = onPaste,
                 onInboxClick = onInboxClick,
             )
         }

@@ -137,7 +137,16 @@ class ContextScreenViewModel
         val listContent: StateFlow<List<BacklogItemContent>> = _listContent.asStateFlow()
         private val _attachmentItems = MutableStateFlow<List<BacklogItemContent>>(emptyList())
         val attachmentItems: StateFlow<List<BacklogItemContent>> = _attachmentItems.asStateFlow()
-        val itemActionHandler = ItemActionHandler(contextRepository, goalRepository, recentItemsRepository, viewModelScope, contextIdFlow, this)
+        val itemActionHandler =
+            ItemActionHandler(
+                contextRepository = contextRepository,
+                goalRepository = goalRepository,
+                recentItemsRepository = recentItemsRepository,
+                backlogClipboardUseCase = backlogClipboardUseCase,
+                scope = viewModelScope,
+                projectIdFlow = contextIdFlow,
+                resultListener = this,
+            )
         val selectionHandler: SelectionHandler by lazy {
             SelectionHandler(
                 contextRepository = contextRepository,

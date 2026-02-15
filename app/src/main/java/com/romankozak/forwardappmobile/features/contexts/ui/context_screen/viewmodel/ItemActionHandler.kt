@@ -6,6 +6,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
+import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
+import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogPasteMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.ContextScreenViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionDialogState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionType
@@ -23,6 +25,7 @@ class ItemActionHandler
         private val contextRepository: ContextRepository,
         private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
         private val recentItemsRepository: RecentItemsRepository,
+        private val backlogClipboardUseCase: BacklogClipboardUseCase,
         val scope: CoroutineScope,
         private val projectIdFlow: StateFlow<String>,
         private val resultListener: ResultListener,
@@ -54,8 +57,8 @@ class ItemActionHandler
         private val _itemForTransportMenu = MutableStateFlow<BacklogItemContent?>(null)
         val itemForTransportMenu = _itemForTransportMenu.asStateFlow()
 
-        private val _onCopyContentToClipboard = MutableStateFlow<() -> Unit>({ })
-        val onCopyContentToClipboard = _onCopyContentToClipboard.asStateFlow()
+        private val _showPasteModeDialog = MutableStateFlow(false)
+        val showPasteModeDialog = _showPasteModeDialog.asStateFlow()
 
         fun onItemClick(item: BacklogItemContent) {
             if (item is BacklogItemContent.GoalItem) {
@@ -178,20 +181,80 @@ class ItemActionHandler
 
         fun onGoalTransportInitiated(
             item: BacklogItemContent,
-            onCopyContentToClipboard: () -> Unit,
         ) {
-            _onCopyContentToClipboard.value = onCopyContentToClipboard
-            if (item is BacklogItemContent.GoalItem || item is BacklogItemContent.SublistItem) {
+            if (item is BacklogItemContent.GoalItem) {
                 _itemForTransportMenu.value = item
                 _showGoalTransportMenu.value = true
             } else {
-                resultListener.showSnackbar("Транспорт доступний тільки для цілей та під-проектів", null)
+                resultListener.showSnackbar("Транспорт доступний тільки для цілей беклогу", null)
             }
         }
 
         fun onDismissGoalTransportMenu() {
             _showGoalTransportMenu.value = false
             _itemForTransportMenu.value = null
+        }
+
+        fun onDismissPasteModeDialog() {
+            _showPasteModeDialog.value = false
+        }
+
+        fun onTransportCopyRequested() {
+            val item = _itemForTransportMenu.value as? BacklogItemContent.GoalItem
+            if (item == null) {
+                resultListener.showSnackbar("Для копіювання вибери ціль", null)
+                return
+            }
+            backlogClipboardUseCase.copyBacklogGoals(
+                sourceContextId = projectIdFlow.value,
+                goalIds = listOf(item.goal.id),
+            )
+            onDismissGoalTransportMenu()
+            resultListener.showSnackbar("Скопійовано. Перейди в цільовий беклог і натисни Вставити", null)
+        }
+
+        fun onTransportCutRequested() {
+            val item = _itemForTransportMenu.value as? BacklogItemContent.GoalItem
+            if (item == null) {
+                resultListener.showSnackbar("Для вирізання вибери ціль", null)
+                return
+            }
+            backlogClipboardUseCase.cutBacklogGoals(
+                sourceContextId = projectIdFlow.value,
+                listItemIds = listOf(item.backlogItem.id),
+            )
+            onDismissGoalTransportMenu()
+            resultListener.showSnackbar("Вирізано. Перейди в цільовий беклог і натисни Вставити", null)
+        }
+
+        fun onTransportPasteRequested() {
+            if (!backlogClipboardUseCase.hasPayload()) {
+                resultListener.showSnackbar("Буфер порожній", null)
+                return
+            }
+            onDismissGoalTransportMenu()
+            if (backlogClipboardUseCase.isCopyOperation()) {
+                _showPasteModeDialog.value = true
+            } else {
+                pasteIntoCurrentBacklog(BacklogPasteMode.AS_LINK)
+            }
+        }
+
+        fun onPasteModeSelected(mode: BacklogPasteMode) {
+            _showPasteModeDialog.value = false
+            pasteIntoCurrentBacklog(mode)
+        }
+
+        private fun pasteIntoCurrentBacklog(mode: BacklogPasteMode) {
+            scope.launch {
+                val report =
+                    backlogClipboardUseCase.pasteBacklogGoals(
+                        targetContextId = projectIdFlow.value,
+                        mode = mode,
+                    )
+                resultListener.showSnackbar(report.toUserMessage(), null)
+                resultListener.forceRefresh()
+            }
         }
 
         fun onRelatedLinkClick(link: RelatedLink) {
