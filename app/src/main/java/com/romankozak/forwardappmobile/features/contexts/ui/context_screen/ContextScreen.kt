@@ -171,6 +171,7 @@ private fun ProjectScaffold(
     val canGoForward by viewModel.canGoForward.collectAsStateWithLifecycle()
     val sessionState by viewModel.contextSessionState.collectAsStateWithLifecycle()
     val canPasteIntoCurrentBacklog by viewModel.itemActionHandler.canPasteIntoCurrentBacklog.collectAsStateWithLifecycle()
+    val canPasteIntoCurrentDirection by viewModel.itemActionHandler.canPasteIntoCurrentDirection.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
@@ -179,6 +180,12 @@ private fun ProjectScaffold(
     var menuExpanded by remember { mutableStateOf(false) }
     var showRemindersListDialog by remember { mutableStateOf(false) }
     var selectedItemForReminders by remember { mutableStateOf<BacklogItemContent?>(null) }
+    val canPasteIntoCurrentList =
+        when (uiState.currentViewMode) {
+            ContextViewMode.BACKLOG -> canPasteIntoCurrentBacklog
+            ContextViewMode.DIRECTION -> canPasteIntoCurrentDirection
+            else -> false
+        }
 
     val holdMenuController = rememberHoldMenu2()
 
@@ -297,8 +304,8 @@ private fun ProjectScaffold(
                                     )
                                 },
                                 onPaste =
-                                    if (uiState.currentViewMode == ContextViewMode.BACKLOG && canPasteIntoCurrentBacklog) {
-                                        { viewModel.itemActionHandler.onTransportPasteRequested() }
+                                    if (canPasteIntoCurrentList) {
+                                        { viewModel.itemActionHandler.onTransportPasteRequested(uiState.currentViewMode) }
                                     } else {
                                         null
                                     },

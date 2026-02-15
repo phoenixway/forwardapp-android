@@ -31,6 +31,28 @@ class DirectionRepository @Inject constructor(private val directionDao: Directio
         directionDao.insert(newItem)
     }
 
+    suspend fun addDirectionItems(
+        contextId: String,
+        items: List<Pair<String, String?>>,
+    ): Int {
+        if (items.isEmpty()) return 0
+        val now = System.currentTimeMillis()
+        val startOrder = directionDao.count(contextId)
+        val newItems =
+            items.mapIndexed { index, (text, linkedContextId) ->
+                DirectionItemEntity(
+                    contextId = contextId,
+                    text = text,
+                    linkedContextId = linkedContextId,
+                    itemOrder = startOrder + index + 1,
+                    updatedAt = now,
+                    version = 1,
+                )
+            }
+        directionDao.insertAll(newItems)
+        return newItems.size
+    }
+
     suspend fun updateDirectionItem(item: DirectionItemEntity) {
         val now = System.currentTimeMillis()
         directionDao.update(
@@ -57,5 +79,26 @@ class DirectionRepository @Inject constructor(private val directionDao: Directio
         val now = System.currentTimeMillis()
         val existing = directionDao.getById(itemId) ?: return
         directionDao.markDeleted(itemId, now, existing.version + 1)
+    }
+
+    suspend fun deleteDirectionItems(itemIds: List<String>): Int {
+        if (itemIds.isEmpty()) return 0
+        val now = System.currentTimeMillis()
+        var deleted = 0
+        itemIds.distinct().forEach { itemId ->
+            val existing = directionDao.getById(itemId) ?: return@forEach
+            directionDao.markDeleted(itemId, now, existing.version + 1)
+            deleted += 1
+        }
+        return deleted
+    }
+
+    suspend fun getDirectionItemsForContextSync(contextId: String): List<DirectionItemEntity> {
+        return directionDao.getDirectionItemsForContextSync(contextId)
+    }
+
+    suspend fun getDirectionItemsByIds(itemIds: List<String>): List<DirectionItemEntity> {
+        if (itemIds.isEmpty()) return emptyList()
+        return directionDao.getByIds(itemIds)
     }
 }

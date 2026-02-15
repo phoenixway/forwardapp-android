@@ -13,11 +13,17 @@ interface DirectionDao {
     @Query("SELECT * FROM direction_items WHERE contextId = :contextId AND is_deleted = 0 ORDER BY itemOrder ASC")
     fun getDirectionItemsForContext(contextId: String): Flow<List<DirectionItemEntity>>
 
+    @Query("SELECT * FROM direction_items WHERE contextId = :contextId AND is_deleted = 0 ORDER BY itemOrder ASC")
+    suspend fun getDirectionItemsForContextSync(contextId: String): List<DirectionItemEntity>
+
     @Query("SELECT * FROM direction_items")
     suspend fun getAllRaw(): List<DirectionItemEntity>
 
     @Query("SELECT * FROM direction_items WHERE id = :itemId LIMIT 1")
     suspend fun getById(itemId: String): DirectionItemEntity?
+
+    @Query("SELECT * FROM direction_items WHERE id IN (:itemIds)")
+    suspend fun getByIds(itemIds: List<String>): List<DirectionItemEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: DirectionItemEntity)

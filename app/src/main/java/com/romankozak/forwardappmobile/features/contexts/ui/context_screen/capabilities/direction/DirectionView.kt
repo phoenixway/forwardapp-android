@@ -43,6 +43,8 @@ fun DirectionView(
     onLinkRequest: (String) -> Unit,
     onUnlinkRequest: (String) -> Unit,
     onOpenLinkedContext: (String) -> Unit,
+    onCopyItem: (DirectionItemEntity) -> Unit,
+    onCutItem: (DirectionItemEntity) -> Unit,
     linkedContextNames: Map<String, String>,
 ) {
     val lazyListState = rememberLazyListState()
@@ -112,6 +114,8 @@ fun DirectionView(
                             },
                             onDelete = { onDeleteItem(item.id) },
                             onOpenLinkedContext = onOpenLinkedContext,
+                            onCopy = { onCopyItem(item) },
+                            onCut = { onCutItem(item) },
                         )
                     }
                 }

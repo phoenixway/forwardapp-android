@@ -170,6 +170,8 @@ fun GoalDetailContent(
                 onLinkRequest = onLinkDirectionRequest,
                 onUnlinkRequest = onUnlinkDirectionRequest,
                 onOpenLinkedContext = onOpenLinkedDirectionContext,
+                onCopyItem = viewModel::copyDirectionItem,
+                onCutItem = viewModel::cutDirectionItem,
                 linkedContextNames = linkedContextNames,
             )
         }

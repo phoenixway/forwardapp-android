@@ -39,6 +39,12 @@ sealed interface ClipboardEntityRef {
     ) : ClipboardEntityRef {
         override val type: ClipboardEntityType = ClipboardEntityType.BACKLOG_ITEM
     }
+
+    data class DirectionItem(
+        val directionItemId: String,
+    ) : ClipboardEntityRef {
+        override val type: ClipboardEntityType = ClipboardEntityType.DIRECTION_ITEM
+    }
 }
 
 data class EntityClipboardPayload(

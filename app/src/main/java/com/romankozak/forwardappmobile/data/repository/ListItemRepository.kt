@@ -158,6 +158,10 @@ class ListItemRepository
             return listItemDao.getItemsByIds(ids)
         }
 
+        suspend fun getGoalIdsForContext(contextId: String): List<String> {
+            return listItemDao.getGoalIdsForContext(contextId)
+        }
+
         suspend fun deleteItemsForContexts(contextIds: List<String>) {
             listItemDao.deleteItemsForContexts(contextIds)
         }

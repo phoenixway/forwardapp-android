@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel
 
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
@@ -65,12 +66,22 @@ class ItemActionHandler
         private val _canPasteIntoCurrentBacklog = MutableStateFlow(false)
         val canPasteIntoCurrentBacklog = _canPasteIntoCurrentBacklog.asStateFlow()
 
+        private val _canPasteIntoCurrentDirection = MutableStateFlow(false)
+        val canPasteIntoCurrentDirection = _canPasteIntoCurrentDirection.asStateFlow()
+
         init {
             scope.launch {
                 combine(projectIdFlow, backlogClipboardUseCase.clipboardPayload) { contextId, _ ->
                     backlogClipboardUseCase.canPasteIntoBacklog(contextId)
                 }.collect { canPaste ->
                     _canPasteIntoCurrentBacklog.value = canPaste
+                }
+            }
+            scope.launch {
+                combine(projectIdFlow, backlogClipboardUseCase.clipboardPayload) { contextId, _ ->
+                    backlogClipboardUseCase.canPasteIntoDirection(contextId)
+                }.collect { canPaste ->
+                    _canPasteIntoCurrentDirection.value = canPaste
                 }
             }
         }
@@ -252,16 +263,23 @@ class ItemActionHandler
             resultListener.showSnackbar("Вирізано. Перейди в цільовий беклог і натисни Вставити", null)
         }
 
-        fun onTransportPasteRequested() {
+        fun onTransportPasteRequested(targetViewMode: ContextViewMode) {
             if (!backlogClipboardUseCase.hasPayload()) {
                 resultListener.showSnackbar("Буфер порожній", null)
                 return
             }
             onDismissGoalTransportMenu()
-            if (backlogClipboardUseCase.isCopyOperation() && backlogClipboardUseCase.copyPayloadHasGoals()) {
-                _showPasteModeDialog.value = true
-            } else {
-                pasteIntoCurrentBacklog(BacklogPasteMode.AS_LINK)
+            when (targetViewMode) {
+                ContextViewMode.BACKLOG -> {
+                    if (backlogClipboardUseCase.isCopyOperation() && backlogClipboardUseCase.copyPayloadHasGoals()) {
+                        _showPasteModeDialog.value = true
+                    } else {
+                        pasteIntoCurrentBacklog(BacklogPasteMode.AS_LINK)
+                    }
+                }
+
+                ContextViewMode.DIRECTION -> pasteIntoCurrentDirection()
+                else -> resultListener.showSnackbar("Вставка підтримується лише у беклозі або напрямку", null)
             }
         }
 
@@ -277,6 +295,14 @@ class ItemActionHandler
                         targetContextId = projectIdFlow.value,
                         mode = mode,
                     )
+                resultListener.showSnackbar(report.toUserMessage(), null)
+                resultListener.forceRefresh()
+            }
+        }
+
+        private fun pasteIntoCurrentDirection() {
+            scope.launch {
+                val report = backlogClipboardUseCase.pasteIntoDirection(targetContextId = projectIdFlow.value)
                 resultListener.showSnackbar(report.toUserMessage(), null)
                 resultListener.forceRefresh()
             }

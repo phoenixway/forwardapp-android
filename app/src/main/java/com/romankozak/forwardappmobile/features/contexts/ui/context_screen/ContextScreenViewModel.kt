@@ -833,6 +833,23 @@ class ContextScreenViewModel
                     }
             }
         }
+
+        fun copyDirectionItem(item: DirectionItemEntity) {
+            backlogClipboardUseCase.copyDirectionItems(
+                sourceContextId = contextIdFlow.value,
+                itemIds = listOf(item.id),
+            )
+            showSnackbar("Скопійовано елемент напрямку. Перейди в цільовий список і натисни Вставити", null)
+        }
+
+        fun cutDirectionItem(item: DirectionItemEntity) {
+            backlogClipboardUseCase.cutDirectionItems(
+                sourceContextId = contextIdFlow.value,
+                itemIds = listOf(item.id),
+            )
+            showSnackbar("Вирізано елемент напрямку. Перейди в цільовий список і натисни Вставити", null)
+        }
+
         fun deleteDirectionItem(itemId: String) =
             viewModelScope.launch(ioDispatcher) {
                 directionActions.deleteDirectionItem(itemId)
