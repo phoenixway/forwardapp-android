@@ -21,6 +21,7 @@ fun GoalDetailDialogs(viewModel: ContextScreenViewModel) {
     val goalActionState by viewModel.itemActionHandler.goalActionDialogState.collectAsStateWithLifecycle()
     val showGoalTransportMenu by viewModel.itemActionHandler.showGoalTransportMenu.collectAsStateWithLifecycle()
     val showPasteModeDialog by viewModel.itemActionHandler.showPasteModeDialog.collectAsStateWithLifecycle()
+    val canPasteIntoCurrentBacklog by viewModel.itemActionHandler.canPasteIntoCurrentBacklog.collectAsStateWithLifecycle()
     val recentItems = uiState.recentItems
 
     if (uiState.showAddWebLinkDialog) {
@@ -72,6 +73,7 @@ fun GoalDetailDialogs(viewModel: ContextScreenViewModel) {
         onCopyRequest = { viewModel.itemActionHandler.onTransportCopyRequested() },
         onCutRequest = { viewModel.itemActionHandler.onTransportCutRequested() },
         onPasteRequest = { viewModel.itemActionHandler.onTransportPasteRequested() },
+        canPaste = canPasteIntoCurrentBacklog,
     )
 
     if (showPasteModeDialog) {

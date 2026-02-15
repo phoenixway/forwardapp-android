@@ -16,6 +16,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -59,6 +61,19 @@ class ItemActionHandler
 
         private val _showPasteModeDialog = MutableStateFlow(false)
         val showPasteModeDialog = _showPasteModeDialog.asStateFlow()
+
+        private val _canPasteIntoCurrentBacklog = MutableStateFlow(false)
+        val canPasteIntoCurrentBacklog = _canPasteIntoCurrentBacklog.asStateFlow()
+
+        init {
+            scope.launch {
+                combine(projectIdFlow, backlogClipboardUseCase.clipboardPayload) { contextId, _ ->
+                    backlogClipboardUseCase.canPasteIntoBacklog(contextId)
+                }.collect { canPaste ->
+                    _canPasteIntoCurrentBacklog.value = canPaste
+                }
+            }
+        }
 
         fun onItemClick(item: BacklogItemContent) {
             if (item is BacklogItemContent.GoalItem) {

@@ -67,6 +67,7 @@ fun ProjectsScreen(
     TransparentSystemBars()
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val canPasteIntoCurrentBacklog by viewModel.itemActionHandler.canPasteIntoCurrentBacklog.collectAsStateWithLifecycle()
     val recordToEdit by viewModel.inboxHandler.recordToEdit.collectAsStateWithLifecycle()
     val editorViewModel: UniversalEditorViewModel = hiltViewModel()
     val currentProjectArtifact by viewModel.contextArtifact.collectAsStateWithLifecycle()
@@ -315,7 +316,7 @@ private fun ProjectScaffold(
                                     )
                                 },
                                 onPaste =
-                                    if (uiState.currentViewMode == ContextViewMode.BACKLOG) {
+                                    if (uiState.currentViewMode == ContextViewMode.BACKLOG && canPasteIntoCurrentBacklog) {
                                         { viewModel.itemActionHandler.onTransportPasteRequested() }
                                     } else {
                                         null

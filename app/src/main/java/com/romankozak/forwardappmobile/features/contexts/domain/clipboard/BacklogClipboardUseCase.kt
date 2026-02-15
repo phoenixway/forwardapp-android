@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.features.contexts.domain.clipboard
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.ListItemRepository
+import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -40,6 +41,8 @@ class BacklogClipboardUseCase
         private val goalRepository: GoalRepository,
         private val listItemRepository: ListItemRepository,
     ) {
+        val clipboardPayload: StateFlow<EntityClipboardPayload?> get() = clipboardService.payload
+
         fun hasPayload(): Boolean = clipboardService.payload.value != null
 
         fun isCopyOperation(): Boolean = clipboardService.payload.value?.operation == ClipboardOperation.COPY
@@ -48,6 +51,17 @@ class BacklogClipboardUseCase
 
         fun clearClipboard() {
             clipboardService.clear()
+        }
+
+        fun canPasteIntoBacklog(targetContextId: String): Boolean {
+            if (targetContextId.isBlank()) return false
+            val payload = clipboardService.payload.value ?: return false
+            return when (payload.operation) {
+                ClipboardOperation.COPY -> payload.entities.any { it is ClipboardEntityRef.BacklogGoal }
+                ClipboardOperation.CUT ->
+                    payload.sourceContextId != targetContextId &&
+                        payload.entities.any { it is ClipboardEntityRef.BacklogItem }
+            }
         }
 
         fun copyBacklogGoals(

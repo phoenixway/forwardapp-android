@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.view
 import android.util.Log
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
@@ -11,6 +12,7 @@ import kotlinx.coroutines.launch
 class SelectionHandler(
     private val contextRepository: ContextRepository,
     private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
+    private val backlogClipboardUseCase: BacklogClipboardUseCase,
     private val scope: CoroutineScope,
     private val projectIdFlow: StateFlow<String>,
     private val listContentFlow: StateFlow<List<BacklogItemContent>>,
@@ -107,13 +109,63 @@ class SelectionHandler(
     ) {
         if (selectedIds.isEmpty()) return
 
-        val sourceGoalIds =
-            listContentFlow.value
-                .filter { it.backlogItem.id in selectedIds && it is BacklogItemContent.GoalItem }
-                .mapNotNull { it.backlogItem.entityId }
-                .toSet()
+        when (actionType) {
+            GoalActionType.CreateInstance,
+            GoalActionType.CopyGoal,
+            GoalActionType.MoveInstance -> {
+                val selectedGoalItems =
+                    listContentFlow.value
+                        .filter { it.backlogItem.id in selectedIds }
+                        .filterIsInstance<BacklogItemContent.GoalItem>()
 
-        resultListener.setPendingAction(actionType, selectedIds, sourceGoalIds)
+                if (selectedGoalItems.isEmpty()) {
+                    resultListener.showSnackbar("Для транспорту вибери цілі беклогу", null)
+                    return
+                }
+
+                val sourceGoalIds = selectedGoalItems.map { it.goal.id }.distinct()
+                val sourceItemIds = selectedGoalItems.map { it.backlogItem.id }.distinct()
+                val sourceContextId = projectIdFlow.value
+
+                when (actionType) {
+                    GoalActionType.CreateInstance,
+                    GoalActionType.CopyGoal -> {
+                        backlogClipboardUseCase.copyBacklogGoals(
+                            sourceContextId = sourceContextId,
+                            goalIds = sourceGoalIds,
+                        )
+                        resultListener.showSnackbar(
+                            "Скопійовано ${sourceGoalIds.size}. Перейди в цільовий беклог і натисни Вставити",
+                            null,
+                        )
+                    }
+
+                    GoalActionType.MoveInstance -> {
+                        backlogClipboardUseCase.cutBacklogGoals(
+                            sourceContextId = sourceContextId,
+                            listItemIds = sourceItemIds,
+                        )
+                        resultListener.showSnackbar(
+                            "Вирізано ${sourceItemIds.size}. Перейди в цільовий беклог і натисни Вставити",
+                            null,
+                        )
+                    }
+
+                    else -> Unit
+                }
+
+                clearSelection()
+            }
+
+            else -> {
+                val sourceGoalIds =
+                    listContentFlow.value
+                        .filter { it.backlogItem.id in selectedIds && it is BacklogItemContent.GoalItem }
+                        .mapNotNull { it.backlogItem.entityId }
+                        .toSet()
+                resultListener.setPendingAction(actionType, selectedIds, sourceGoalIds)
+            }
+        }
     }
 
     fun deleteSelectedItems(selectedIds: Set<String>) {

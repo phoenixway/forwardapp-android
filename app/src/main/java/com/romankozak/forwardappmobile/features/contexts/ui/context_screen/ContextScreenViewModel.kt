@@ -151,6 +151,7 @@ class ContextScreenViewModel
             SelectionHandler(
                 contextRepository = contextRepository,
                 goalRepository = goalRepository,
+                backlogClipboardUseCase = backlogClipboardUseCase,
                 scope = viewModelScope,
                 projectIdFlow = contextIdFlow,
                 listContentFlow = _listContent,

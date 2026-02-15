@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -135,7 +134,7 @@ fun MultiSelectTopAppBar(
                     onDismissRequest = { showMenu = false },
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Копіювати (посилання)") },
+                        text = { Text("Копіювати") },
                         onClick = {
                             onMoreActions(GoalActionType.CreateInstance)
                             showMenu = false
@@ -148,15 +147,7 @@ fun MultiSelectTopAppBar(
                             onMoreActions(GoalActionType.MoveInstance)
                             showMenu = false
                         },
-                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null) },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Клонувати") },
-                        onClick = {
-                            onMoreActions(GoalActionType.CopyGoal)
-                            showMenu = false
-                        },
-                        leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
+                        leadingIcon = { Icon(Icons.Default.ContentCut, contentDescription = null) },
                     )
                 }
             }

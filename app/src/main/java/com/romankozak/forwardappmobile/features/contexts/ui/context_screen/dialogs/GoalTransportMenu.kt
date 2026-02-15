@@ -35,6 +35,7 @@ fun GoalTransportMenu(
     onCopyRequest: () -> Unit,
     onCutRequest: () -> Unit,
     onPasteRequest: () -> Unit,
+    canPaste: Boolean,
 ) {
     AnimatedVisibility(
         visible = isVisible,
@@ -129,6 +130,7 @@ fun GoalTransportMenu(
                             icon = Icons.Default.ContentPaste,
                             title = "Вставити",
                             description = "Вставити елементи буфера в цей беклог",
+                            enabled = canPaste,
                             onClick = {
                                 onPasteRequest()
                                 onDismiss()
@@ -148,6 +150,7 @@ private fun TransportMenuItem(
     icon: ImageVector,
     title: String,
     description: String,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -164,6 +167,7 @@ private fun TransportMenuItem(
                 .fillMaxWidth()
                 .scale(scale)
                 .clickable(
+                    enabled = enabled,
                     interactionSource = interactionSource,
                     indication = LocalIndication.current,
                     onClick = {
@@ -175,7 +179,12 @@ private fun TransportMenuItem(
         shape = RoundedCornerShape(14.dp),
         colors =
             CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                containerColor =
+                    if (enabled) {
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f)
+                    },
             ),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
     ) {
@@ -199,7 +208,12 @@ private fun TransportMenuItem(
                 Icon(
                     imageVector = icon,
                     contentDescription = title,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    tint =
+                        if (enabled) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.45f)
+                        },
                     modifier = Modifier.size(24.dp),
                 )
             }
@@ -213,12 +227,22 @@ private fun TransportMenuItem(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color =
+                        if (enabled) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+                        },
                 )
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color =
+                        if (enabled) {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+                        },
                 )
             }
         }
