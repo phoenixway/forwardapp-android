@@ -63,11 +63,20 @@ class ItemActionHandler
         private val _showPasteModeDialog = MutableStateFlow(false)
         val showPasteModeDialog = _showPasteModeDialog.asStateFlow()
 
+        private val _showAttachmentPasteDialog = MutableStateFlow(false)
+        val showAttachmentPasteDialog = _showAttachmentPasteDialog.asStateFlow()
+
         private val _canPasteIntoCurrentBacklog = MutableStateFlow(false)
         val canPasteIntoCurrentBacklog = _canPasteIntoCurrentBacklog.asStateFlow()
 
         private val _canPasteIntoCurrentDirection = MutableStateFlow(false)
         val canPasteIntoCurrentDirection = _canPasteIntoCurrentDirection.asStateFlow()
+
+        private val _canPasteIntoCurrentAttachments = MutableStateFlow(false)
+        val canPasteIntoCurrentAttachments = _canPasteIntoCurrentAttachments.asStateFlow()
+
+        private var pendingPasteTargetViewMode: ContextViewMode? = null
+        private var pendingIncludeAttachmentsForPaste: Boolean = false
 
         init {
             scope.launch {
@@ -82,6 +91,13 @@ class ItemActionHandler
                     backlogClipboardUseCase.canPasteIntoDirection(contextId)
                 }.collect { canPaste ->
                     _canPasteIntoCurrentDirection.value = canPaste
+                }
+            }
+            scope.launch {
+                combine(projectIdFlow, backlogClipboardUseCase.clipboardPayload) { contextId, _ ->
+                    backlogClipboardUseCase.canPasteIntoAttachments(contextId)
+                }.collect { canPaste ->
+                    _canPasteIntoCurrentAttachments.value = canPaste
                 }
             }
         }
@@ -223,6 +239,14 @@ class ItemActionHandler
 
         fun onDismissPasteModeDialog() {
             _showPasteModeDialog.value = false
+            pendingPasteTargetViewMode = null
+            pendingIncludeAttachmentsForPaste = false
+        }
+
+        fun onDismissAttachmentPasteDialog() {
+            _showAttachmentPasteDialog.value = false
+            pendingPasteTargetViewMode = null
+            pendingIncludeAttachmentsForPaste = false
         }
 
         fun onTransportCopyRequested() {
@@ -269,44 +293,127 @@ class ItemActionHandler
                 return
             }
             onDismissGoalTransportMenu()
+            pendingPasteTargetViewMode = targetViewMode
+            if (
+                (targetViewMode == ContextViewMode.BACKLOG || targetViewMode == ContextViewMode.DIRECTION) &&
+                backlogClipboardUseCase.hasAttachmentRefsInClipboard()
+            ) {
+                _showAttachmentPasteDialog.value = true
+                return
+            }
+            continuePaste(targetViewMode = targetViewMode, includeAttachments = targetViewMode == ContextViewMode.ATTACHMENTS)
+        }
+
+        fun onAttachmentPasteDecision(includeAttachments: Boolean) {
+            val target = pendingPasteTargetViewMode
+            _showAttachmentPasteDialog.value = false
+            if (target == null) return
+            continuePaste(targetViewMode = target, includeAttachments = includeAttachments || target == ContextViewMode.ATTACHMENTS)
+        }
+
+        private fun continuePaste(
+            targetViewMode: ContextViewMode,
+            includeAttachments: Boolean,
+        ) {
             when (targetViewMode) {
                 ContextViewMode.BACKLOG -> {
+                    pendingIncludeAttachmentsForPaste = includeAttachments
                     if (backlogClipboardUseCase.isCopyOperation() && backlogClipboardUseCase.copyPayloadHasGoals()) {
                         _showPasteModeDialog.value = true
                     } else {
-                        pasteIntoCurrentBacklog(BacklogPasteMode.AS_LINK)
+                        pasteIntoCurrentBacklog(mode = BacklogPasteMode.AS_LINK, includeAttachments = includeAttachments)
+                        pendingPasteTargetViewMode = null
                     }
                 }
 
-                ContextViewMode.DIRECTION -> pasteIntoCurrentDirection()
-                else -> resultListener.showSnackbar("Вставка підтримується лише у беклозі або напрямку", null)
+                ContextViewMode.DIRECTION -> {
+                    pasteIntoCurrentDirection(includeAttachments = includeAttachments)
+                    pendingPasteTargetViewMode = null
+                }
+
+                ContextViewMode.ATTACHMENTS -> {
+                    pasteIntoCurrentAttachments()
+                    pendingPasteTargetViewMode = null
+                }
+
+                else -> {
+                    pendingPasteTargetViewMode = null
+                    resultListener.showSnackbar("Вставка підтримується лише у беклозі, напрямку або вкладеннях", null)
+                }
             }
         }
 
         fun onPasteModeSelected(mode: BacklogPasteMode) {
             _showPasteModeDialog.value = false
-            pasteIntoCurrentBacklog(mode)
+            pasteIntoCurrentBacklog(mode = mode, includeAttachments = pendingIncludeAttachmentsForPaste)
+            pendingPasteTargetViewMode = null
+            pendingIncludeAttachmentsForPaste = false
         }
 
-        private fun pasteIntoCurrentBacklog(mode: BacklogPasteMode) {
+        private fun pasteIntoCurrentBacklog(
+            mode: BacklogPasteMode,
+            includeAttachments: Boolean,
+        ) {
             scope.launch {
                 val report =
                     backlogClipboardUseCase.pasteBacklogGoals(
                         targetContextId = projectIdFlow.value,
                         mode = mode,
+                        includeAttachments = includeAttachments,
                     )
                 resultListener.showSnackbar(report.toUserMessage(), null)
                 resultListener.forceRefresh()
             }
         }
 
-        private fun pasteIntoCurrentDirection() {
+        private fun pasteIntoCurrentDirection(includeAttachments: Boolean) {
             scope.launch {
-                val report = backlogClipboardUseCase.pasteIntoDirection(targetContextId = projectIdFlow.value)
+                val report =
+                    backlogClipboardUseCase.pasteIntoDirection(
+                        targetContextId = projectIdFlow.value,
+                        includeAttachments = includeAttachments,
+                    )
                 resultListener.showSnackbar(report.toUserMessage(), null)
                 resultListener.forceRefresh()
             }
         }
+
+        private fun pasteIntoCurrentAttachments() {
+            scope.launch {
+                val report = backlogClipboardUseCase.pasteIntoAttachments(targetContextId = projectIdFlow.value)
+                resultListener.showSnackbar(report.toUserMessage(), null)
+                resultListener.forceRefresh()
+            }
+        }
+
+        fun copyAttachmentItem(item: BacklogItemContent) {
+            if (!isAttachment(item)) {
+                resultListener.showSnackbar("Для копіювання вибери вкладення", null)
+                return
+            }
+            backlogClipboardUseCase.copyAttachmentItems(
+                sourceContextId = projectIdFlow.value,
+                listItemIds = listOf(item.backlogItem.id),
+            )
+            resultListener.showSnackbar("Скопійовано вкладення. Перейди в цільовий список і натисни Вставити", null)
+        }
+
+        fun cutAttachmentItem(item: BacklogItemContent) {
+            if (!isAttachment(item)) {
+                resultListener.showSnackbar("Для вирізання вибери вкладення", null)
+                return
+            }
+            backlogClipboardUseCase.cutAttachmentItems(
+                sourceContextId = projectIdFlow.value,
+                listItemIds = listOf(item.backlogItem.id),
+            )
+            resultListener.showSnackbar("Вирізано вкладення. Перейди в цільовий список і натисни Вставити", null)
+        }
+
+        private fun isAttachment(item: BacklogItemContent): Boolean =
+            item is BacklogItemContent.LinkItem ||
+                item is BacklogItemContent.NoteDocumentItem ||
+                item is BacklogItemContent.ChecklistItem
 
         fun onRelatedLinkClick(link: RelatedLink) {
             resultListener.requestNavigation(ContextScreenViewModel.HANDLE_LINK_CLICK_ROUTE + "/${link.target}")

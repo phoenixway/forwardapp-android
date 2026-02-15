@@ -85,6 +85,12 @@ fun AttachmentsView(
             onConnectionRemove = { item ->
                 attachmentByConnectionId[item.id]?.let { viewModel.onDeleteEverywhere(it) }
             },
+            onConnectionCopy = { item ->
+                attachmentByConnectionId[item.id]?.let { viewModel.itemActionHandler.copyAttachmentItem(it) }
+            },
+            onConnectionCut = { item ->
+                attachmentByConnectionId[item.id]?.let { viewModel.itemActionHandler.cutAttachmentItem(it) }
+            },
             onAddConnection = { type ->
                 pendingCreateAction = null
                 when (type) {

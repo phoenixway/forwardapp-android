@@ -162,6 +162,26 @@ class ListItemRepository
             return listItemDao.getGoalIdsForContext(contextId)
         }
 
+        suspend fun addEntityLinksToContext(
+            contextId: String,
+            entries: List<Pair<String, String>>,
+        ): Int {
+            if (entries.isEmpty()) return 0
+            val now = System.currentTimeMillis()
+            val newItems =
+                entries.map { (itemType, entityId) ->
+                    BacklogItem(
+                        id = UUID.randomUUID().toString(),
+                        contextId = contextId,
+                        itemType = itemType,
+                        entityId = entityId,
+                        order = -now,
+                    )
+                }
+            listItemDao.insertItems(newItems)
+            return newItems.size
+        }
+
         suspend fun deleteItemsForContexts(contextIds: List<String>) {
             listItemDao.deleteItemsForContexts(contextIds)
         }

@@ -21,6 +21,7 @@ fun GoalDetailDialogs(viewModel: ContextScreenViewModel) {
     val goalActionState by viewModel.itemActionHandler.goalActionDialogState.collectAsStateWithLifecycle()
     val showGoalTransportMenu by viewModel.itemActionHandler.showGoalTransportMenu.collectAsStateWithLifecycle()
     val showPasteModeDialog by viewModel.itemActionHandler.showPasteModeDialog.collectAsStateWithLifecycle()
+    val showAttachmentPasteDialog by viewModel.itemActionHandler.showAttachmentPasteDialog.collectAsStateWithLifecycle()
     val recentItems = uiState.recentItems
 
     if (uiState.showAddWebLinkDialog) {
@@ -92,6 +93,28 @@ fun GoalDetailDialogs(viewModel: ContextScreenViewModel) {
             },
             title = { Text("Режим вставки") },
             text = { Text("Вставити цілі як посилання чи створити клон?") },
+        )
+    }
+
+    if (showAttachmentPasteDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.itemActionHandler.onDismissAttachmentPasteDialog() },
+            confirmButton = {
+                TextButton(
+                    onClick = { viewModel.itemActionHandler.onAttachmentPasteDecision(includeAttachments = true) },
+                ) {
+                    Text("Так, як вкладення")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { viewModel.itemActionHandler.onAttachmentPasteDecision(includeAttachments = false) },
+                ) {
+                    Text("Ні, пропустити")
+                }
+            },
+            title = { Text("Вставка вкладень") },
+            text = { Text("У буфері є вкладення. Додати їх у секцію вкладень поточного контексту?") },
         )
     }
 

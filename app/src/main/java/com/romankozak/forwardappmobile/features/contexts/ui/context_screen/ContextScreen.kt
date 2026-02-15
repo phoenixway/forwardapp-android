@@ -172,6 +172,7 @@ private fun ProjectScaffold(
     val sessionState by viewModel.contextSessionState.collectAsStateWithLifecycle()
     val canPasteIntoCurrentBacklog by viewModel.itemActionHandler.canPasteIntoCurrentBacklog.collectAsStateWithLifecycle()
     val canPasteIntoCurrentDirection by viewModel.itemActionHandler.canPasteIntoCurrentDirection.collectAsStateWithLifecycle()
+    val canPasteIntoCurrentAttachments by viewModel.itemActionHandler.canPasteIntoCurrentAttachments.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
@@ -184,6 +185,7 @@ private fun ProjectScaffold(
         when (uiState.currentViewMode) {
             ContextViewMode.BACKLOG -> canPasteIntoCurrentBacklog
             ContextViewMode.DIRECTION -> canPasteIntoCurrentDirection
+            ContextViewMode.ATTACHMENTS -> canPasteIntoCurrentAttachments
             else -> false
         }
 

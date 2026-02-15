@@ -22,10 +22,11 @@ data class BacklogPasteReport(
     val clonedGoals: Int = 0,
     val createdGoals: Int = 0,
     val createdDirectionItems: Int = 0,
+    val createdAttachments: Int = 0,
     val skippedDuplicates: Int = 0,
     val skippedInvalid: Int = 0,
 ) {
-    val changedCount: Int get() = moved + createdLinks + clonedGoals + createdGoals + createdDirectionItems
+    val changedCount: Int get() = moved + createdLinks + clonedGoals + createdGoals + createdDirectionItems + createdAttachments
 
     fun toUserMessage(): String {
         val parts = mutableListOf<String>()
@@ -34,6 +35,7 @@ data class BacklogPasteReport(
         if (clonedGoals > 0) parts += "клоновано цілей: $clonedGoals"
         if (createdGoals > 0) parts += "створено цілей: $createdGoals"
         if (createdDirectionItems > 0) parts += "додано елементів напрямку: $createdDirectionItems"
+        if (createdAttachments > 0) parts += "додано вкладень: $createdAttachments"
         if (skippedDuplicates > 0) parts += "дублікати пропущено: $skippedDuplicates"
         if (skippedInvalid > 0) parts += "некоректних пропущено: $skippedInvalid"
         return if (parts.isEmpty()) "Немає змін" else parts.joinToString(", ")
@@ -67,16 +69,20 @@ class BacklogClipboardUseCase
             val payload = clipboardService.payload.value ?: return false
             val hasBacklogItemCut = payload.entities.any { it is ClipboardEntityRef.BacklogItem }
             val hasDirectionItemCut = payload.entities.any { it is ClipboardEntityRef.DirectionItem }
+            val hasAttachmentRef = payload.entities.any { it is ClipboardEntityRef.BacklogAttachment }
             return when (payload.operation) {
                 ClipboardOperation.COPY ->
                     payload.entities.any {
                         it is ClipboardEntityRef.BacklogGoal ||
                             it is ClipboardEntityRef.BacklogContextLink ||
-                            it is ClipboardEntityRef.DirectionItem
+                            it is ClipboardEntityRef.DirectionItem ||
+                            it is ClipboardEntityRef.BacklogAttachment
                     }
 
                 ClipboardOperation.CUT ->
-                    (hasBacklogItemCut && payload.sourceContextId != targetContextId) || hasDirectionItemCut
+                    (hasBacklogItemCut && payload.sourceContextId != targetContextId) ||
+                        hasDirectionItemCut ||
+                        hasAttachmentRef
             }
         }
 
@@ -85,17 +91,31 @@ class BacklogClipboardUseCase
             val payload = clipboardService.payload.value ?: return false
             val hasBacklogItemCut = payload.entities.any { it is ClipboardEntityRef.BacklogItem }
             val hasDirectionItemCut = payload.entities.any { it is ClipboardEntityRef.DirectionItem }
+            val hasAttachmentRef = payload.entities.any { it is ClipboardEntityRef.BacklogAttachment }
             return when (payload.operation) {
                 ClipboardOperation.COPY ->
                     payload.entities.any {
                         it is ClipboardEntityRef.BacklogGoal ||
                             it is ClipboardEntityRef.BacklogContextLink ||
-                            it is ClipboardEntityRef.DirectionItem
+                            it is ClipboardEntityRef.DirectionItem ||
+                            it is ClipboardEntityRef.BacklogAttachment
                     }
 
                 ClipboardOperation.CUT ->
-                    hasBacklogItemCut || (hasDirectionItemCut && payload.sourceContextId != targetContextId)
+                    hasBacklogItemCut ||
+                        (hasDirectionItemCut && payload.sourceContextId != targetContextId) ||
+                        hasAttachmentRef
             }
+        }
+
+        fun canPasteIntoAttachments(targetContextId: String): Boolean {
+            if (targetContextId.isBlank()) return false
+            val payload = clipboardService.payload.value ?: return false
+            return payload.entities.any { it is ClipboardEntityRef.BacklogAttachment }
+        }
+
+        fun hasAttachmentRefsInClipboard(): Boolean {
+            return clipboardService.payload.value?.entities?.any { it is ClipboardEntityRef.BacklogAttachment } == true
         }
 
         fun copyPayloadHasGoals(): Boolean =
@@ -196,9 +216,40 @@ class BacklogClipboardUseCase
             )
         }
 
+        fun copyAttachmentItems(
+            sourceContextId: String,
+            listItemIds: List<String>,
+        ) {
+            val refs = listItemIds.distinct().map { ClipboardEntityRef.BacklogAttachment(listItemId = it) }
+            if (refs.isEmpty()) return
+            clipboardService.set(
+                EntityClipboardPayload(
+                    sourceContextId = sourceContextId,
+                    operation = ClipboardOperation.COPY,
+                    entities = refs,
+                ),
+            )
+        }
+
+        fun cutAttachmentItems(
+            sourceContextId: String,
+            listItemIds: List<String>,
+        ) {
+            val refs = listItemIds.distinct().map { ClipboardEntityRef.BacklogAttachment(listItemId = it) }
+            if (refs.isEmpty()) return
+            clipboardService.set(
+                EntityClipboardPayload(
+                    sourceContextId = sourceContextId,
+                    operation = ClipboardOperation.CUT,
+                    entities = refs,
+                ),
+            )
+        }
+
         suspend fun pasteBacklogGoals(
             targetContextId: String,
             mode: BacklogPasteMode,
+            includeAttachments: Boolean = false,
         ): BacklogPasteReport {
             val payload = clipboardService.payload.value ?: return BacklogPasteReport(totalRequested = 0, skippedInvalid = 1)
 
@@ -207,26 +258,47 @@ class BacklogClipboardUseCase
                     val goalRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogGoal>()
                     val contextRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogContextLink>()
                     val directionRefs = payload.entities.filterIsInstance<ClipboardEntityRef.DirectionItem>()
-                    if (goalRefs.isEmpty() && contextRefs.isEmpty() && directionRefs.isEmpty()) {
+                    val attachmentRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogAttachment>()
+                    if (goalRefs.isEmpty() && contextRefs.isEmpty() && directionRefs.isEmpty() && attachmentRefs.isEmpty()) {
                         BacklogPasteReport(totalRequested = 0, skippedInvalid = 1)
                     } else {
-                        pasteCopyToBacklog(goalRefs, contextRefs, directionRefs, targetContextId, mode)
+                        pasteCopyToBacklog(
+                            goalRefs = goalRefs,
+                            contextRefs = contextRefs,
+                            directionRefs = directionRefs,
+                            attachmentRefs = attachmentRefs,
+                            targetContextId = targetContextId,
+                            mode = mode,
+                            includeAttachments = includeAttachments,
+                        )
                     }
                 }
 
                 ClipboardOperation.CUT -> {
                     val itemRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogItem>()
                     val directionRefs = payload.entities.filterIsInstance<ClipboardEntityRef.DirectionItem>()
-                    if (itemRefs.isEmpty() && directionRefs.isEmpty()) {
+                    val attachmentRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogAttachment>()
+                    if (itemRefs.isEmpty() && directionRefs.isEmpty() && attachmentRefs.isEmpty()) {
                         BacklogPasteReport(totalRequested = 0, skippedInvalid = 1)
                     } else {
-                        pasteCutToBacklog(itemRefs, directionRefs, payload.sourceContextId, targetContextId, mode)
+                        pasteCutToBacklog(
+                            itemRefs = itemRefs,
+                            directionRefs = directionRefs,
+                            attachmentRefs = attachmentRefs,
+                            sourceContextId = payload.sourceContextId,
+                            targetContextId = targetContextId,
+                            mode = mode,
+                            includeAttachments = includeAttachments,
+                        )
                     }
                 }
             }
         }
 
-        suspend fun pasteIntoDirection(targetContextId: String): BacklogPasteReport {
+        suspend fun pasteIntoDirection(
+            targetContextId: String,
+            includeAttachments: Boolean = false,
+        ): BacklogPasteReport {
             val payload = clipboardService.payload.value ?: return BacklogPasteReport(totalRequested = 0, skippedInvalid = 1)
 
             return when (payload.operation) {
@@ -234,21 +306,69 @@ class BacklogClipboardUseCase
                     val goalRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogGoal>()
                     val contextRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogContextLink>()
                     val directionRefs = payload.entities.filterIsInstance<ClipboardEntityRef.DirectionItem>()
-                    if (goalRefs.isEmpty() && contextRefs.isEmpty() && directionRefs.isEmpty()) {
+                    val attachmentRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogAttachment>()
+                    if (goalRefs.isEmpty() && contextRefs.isEmpty() && directionRefs.isEmpty() && attachmentRefs.isEmpty()) {
                         BacklogPasteReport(totalRequested = 0, skippedInvalid = 1)
                     } else {
-                        pasteCopyToDirection(goalRefs, contextRefs, directionRefs, targetContextId)
+                        pasteCopyToDirection(
+                            goalRefs = goalRefs,
+                            contextRefs = contextRefs,
+                            directionRefs = directionRefs,
+                            attachmentRefs = attachmentRefs,
+                            targetContextId = targetContextId,
+                            includeAttachments = includeAttachments,
+                        )
                     }
                 }
 
                 ClipboardOperation.CUT -> {
                     val itemRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogItem>()
                     val directionRefs = payload.entities.filterIsInstance<ClipboardEntityRef.DirectionItem>()
-                    if (itemRefs.isEmpty() && directionRefs.isEmpty()) {
+                    val attachmentRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogAttachment>()
+                    if (itemRefs.isEmpty() && directionRefs.isEmpty() && attachmentRefs.isEmpty()) {
                         BacklogPasteReport(totalRequested = 0, skippedInvalid = 1)
                     } else {
-                        pasteCutToDirection(itemRefs, directionRefs, payload.sourceContextId, targetContextId)
+                        pasteCutToDirection(
+                            itemRefs = itemRefs,
+                            directionRefs = directionRefs,
+                            attachmentRefs = attachmentRefs,
+                            sourceContextId = payload.sourceContextId,
+                            targetContextId = targetContextId,
+                            includeAttachments = includeAttachments,
+                        )
                     }
+                }
+            }
+        }
+
+        suspend fun pasteIntoAttachments(targetContextId: String): BacklogPasteReport {
+            val payload = clipboardService.payload.value ?: return BacklogPasteReport(totalRequested = 0, skippedInvalid = 1)
+            val attachmentRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogAttachment>()
+            if (attachmentRefs.isEmpty()) return BacklogPasteReport(totalRequested = 0, skippedInvalid = 1)
+            return when (payload.operation) {
+                ClipboardOperation.COPY -> {
+                    val copyResult = copyAttachmentRefsToContext(attachmentRefs, targetContextId)
+                    BacklogPasteReport(
+                        totalRequested = attachmentRefs.size,
+                        createdAttachments = copyResult.created,
+                        skippedDuplicates = copyResult.duplicates,
+                        skippedInvalid = copyResult.invalid,
+                    )
+                }
+
+                ClipboardOperation.CUT -> {
+                    val copyResult = copyAttachmentRefsToContext(attachmentRefs, targetContextId)
+                    if (copyResult.insertedSourceItemIds.isNotEmpty()) {
+                        listItemRepository.deleteListItems(copyResult.insertedSourceItemIds)
+                        clipboardService.clear()
+                    }
+                    BacklogPasteReport(
+                        totalRequested = attachmentRefs.size,
+                        moved = copyResult.insertedSourceItemIds.size,
+                        createdAttachments = copyResult.created,
+                        skippedDuplicates = copyResult.duplicates,
+                        skippedInvalid = copyResult.invalid,
+                    )
                 }
             }
         }
@@ -257,8 +377,10 @@ class BacklogClipboardUseCase
             goalRefs: List<ClipboardEntityRef.BacklogGoal>,
             contextRefs: List<ClipboardEntityRef.BacklogContextLink>,
             directionRefs: List<ClipboardEntityRef.DirectionItem>,
+            attachmentRefs: List<ClipboardEntityRef.BacklogAttachment>,
             targetContextId: String,
             mode: BacklogPasteMode,
+            includeAttachments: Boolean,
         ): BacklogPasteReport {
             val sourceGoalIds = goalRefs.map { it.goalId }.distinct()
             val sourceContextIds = contextRefs.map { it.contextId }.distinct()
@@ -266,6 +388,7 @@ class BacklogClipboardUseCase
             var createdLinks = 0
             var clonedGoals = 0
             var createdGoals = 0
+            var createdAttachments = 0
             var skippedDuplicates = 0
             var skippedInvalid = directionRefs.size - directionItems.size
 
@@ -329,11 +452,19 @@ class BacklogClipboardUseCase
                 createdGoals += 1
             }
 
+            if (includeAttachments && attachmentRefs.isNotEmpty()) {
+                val attachmentCopy = copyAttachmentRefsToContext(attachmentRefs, targetContextId)
+                createdAttachments += attachmentCopy.created
+                skippedDuplicates += attachmentCopy.duplicates
+                skippedInvalid += attachmentCopy.invalid
+            }
+
             return BacklogPasteReport(
-                totalRequested = sourceGoalIds.size + sourceContextIds.size + directionRefs.size,
+                totalRequested = sourceGoalIds.size + sourceContextIds.size + directionRefs.size + attachmentRefs.size,
                 createdLinks = createdLinks,
                 clonedGoals = clonedGoals,
                 createdGoals = createdGoals,
+                createdAttachments = createdAttachments,
                 skippedDuplicates = skippedDuplicates,
                 skippedInvalid = skippedInvalid,
             )
@@ -342,14 +473,17 @@ class BacklogClipboardUseCase
         private suspend fun pasteCutToBacklog(
             itemRefs: List<ClipboardEntityRef.BacklogItem>,
             directionRefs: List<ClipboardEntityRef.DirectionItem>,
+            attachmentRefs: List<ClipboardEntityRef.BacklogAttachment>,
             sourceContextId: String,
             targetContextId: String,
             mode: BacklogPasteMode,
+            includeAttachments: Boolean,
         ): BacklogPasteReport {
             var moved = 0
             var createdLinks = 0
             var clonedGoals = 0
             var createdGoals = 0
+            var createdAttachments = 0
             var skippedDuplicates = 0
             var skippedInvalid = 0
 
@@ -422,16 +556,28 @@ class BacklogClipboardUseCase
                 }
             }
 
-            if (moved + createdLinks + clonedGoals + createdGoals > 0) {
+            if (includeAttachments && attachmentRefs.isNotEmpty()) {
+                val attachmentCopy = copyAttachmentRefsToContext(attachmentRefs, targetContextId)
+                createdAttachments += attachmentCopy.created
+                skippedDuplicates += attachmentCopy.duplicates
+                skippedInvalid += attachmentCopy.invalid
+                if (attachmentCopy.insertedSourceItemIds.isNotEmpty()) {
+                    listItemRepository.deleteListItems(attachmentCopy.insertedSourceItemIds)
+                    moved += attachmentCopy.insertedSourceItemIds.size
+                }
+            }
+
+            if (moved + createdLinks + clonedGoals + createdGoals + createdAttachments > 0) {
                 clipboardService.clear()
             }
 
             return BacklogPasteReport(
-                totalRequested = itemRefs.size + directionRefs.size,
+                totalRequested = itemRefs.size + directionRefs.size + attachmentRefs.size,
                 moved = moved,
                 createdLinks = createdLinks,
                 clonedGoals = clonedGoals,
                 createdGoals = createdGoals,
+                createdAttachments = createdAttachments,
                 skippedDuplicates = skippedDuplicates,
                 skippedInvalid = skippedInvalid,
             )
@@ -441,7 +587,9 @@ class BacklogClipboardUseCase
             goalRefs: List<ClipboardEntityRef.BacklogGoal>,
             contextRefs: List<ClipboardEntityRef.BacklogContextLink>,
             directionRefs: List<ClipboardEntityRef.DirectionItem>,
+            attachmentRefs: List<ClipboardEntityRef.BacklogAttachment>,
             targetContextId: String,
+            includeAttachments: Boolean,
         ): BacklogPasteReport {
             val backlogGoalIds = goalRefs.map { it.goalId }.distinct()
             val backlogContextIds = contextRefs.map { it.contextId }.distinct()
@@ -452,6 +600,7 @@ class BacklogClipboardUseCase
             val existingTexts = existingItems.filter { it.linkedContextId == null }.map { normalizeText(it.text) }.toMutableSet()
 
             val itemsToCreate = mutableListOf<Pair<String, String?>>()
+            var createdAttachments = 0
             var skippedDuplicates = 0
             var skippedInvalid = directionRefs.size - sourceDirectionItems.size
 
@@ -507,9 +656,16 @@ class BacklogClipboardUseCase
             }
 
             val created = directionRepository.addDirectionItems(targetContextId, itemsToCreate)
+            if (includeAttachments && attachmentRefs.isNotEmpty()) {
+                val attachmentCopy = copyAttachmentRefsToContext(attachmentRefs, targetContextId)
+                createdAttachments += attachmentCopy.created
+                skippedDuplicates += attachmentCopy.duplicates
+                skippedInvalid += attachmentCopy.invalid
+            }
             return BacklogPasteReport(
-                totalRequested = backlogGoalIds.size + backlogContextIds.size + directionRefs.size,
+                totalRequested = backlogGoalIds.size + backlogContextIds.size + directionRefs.size + attachmentRefs.size,
                 createdDirectionItems = created,
+                createdAttachments = createdAttachments,
                 skippedDuplicates = skippedDuplicates,
                 skippedInvalid = skippedInvalid,
             )
@@ -518,10 +674,13 @@ class BacklogClipboardUseCase
         private suspend fun pasteCutToDirection(
             itemRefs: List<ClipboardEntityRef.BacklogItem>,
             directionRefs: List<ClipboardEntityRef.DirectionItem>,
+            attachmentRefs: List<ClipboardEntityRef.BacklogAttachment>,
             sourceContextId: String,
             targetContextId: String,
+            includeAttachments: Boolean,
         ): BacklogPasteReport {
             var createdDirectionItems = 0
+            var createdAttachments = 0
             var moved = 0
             var skippedDuplicates = 0
             var skippedInvalid = 0
@@ -618,14 +777,26 @@ class BacklogClipboardUseCase
                 }
             }
 
-            if (createdDirectionItems > 0 || moved > 0) {
+            if (includeAttachments && attachmentRefs.isNotEmpty()) {
+                val attachmentCopy = copyAttachmentRefsToContext(attachmentRefs, targetContextId)
+                createdAttachments += attachmentCopy.created
+                skippedDuplicates += attachmentCopy.duplicates
+                skippedInvalid += attachmentCopy.invalid
+                if (attachmentCopy.insertedSourceItemIds.isNotEmpty()) {
+                    listItemRepository.deleteListItems(attachmentCopy.insertedSourceItemIds)
+                    moved += attachmentCopy.insertedSourceItemIds.size
+                }
+            }
+
+            if (createdDirectionItems > 0 || createdAttachments > 0 || moved > 0) {
                 clipboardService.clear()
             }
 
             return BacklogPasteReport(
-                totalRequested = itemRefs.size + directionRefs.size,
+                totalRequested = itemRefs.size + directionRefs.size + attachmentRefs.size,
                 moved = moved,
                 createdDirectionItems = createdDirectionItems,
+                createdAttachments = createdAttachments,
                 skippedDuplicates = skippedDuplicates,
                 skippedInvalid = skippedInvalid,
             )
@@ -648,6 +819,46 @@ class BacklogClipboardUseCase
             return movable to duplicateBlocked
         }
 
+        private data class AttachmentCopyResult(
+            val created: Int,
+            val duplicates: Int,
+            val invalid: Int,
+            val insertedSourceItemIds: List<String>,
+        )
+
+        private suspend fun copyAttachmentRefsToContext(
+            refs: List<ClipboardEntityRef.BacklogAttachment>,
+            targetContextId: String,
+        ): AttachmentCopyResult {
+            if (refs.isEmpty()) return AttachmentCopyResult(0, 0, 0, emptyList())
+            val requestedItemIds = refs.map { it.listItemId }
+            val itemsById = listItemRepository.getItemsByIds(requestedItemIds).associateBy { it.id }
+            val sourceItems = requestedItemIds.mapNotNull(itemsById::get)
+            var duplicates = 0
+            var invalid = requestedItemIds.size - sourceItems.size
+            val entriesToCreate = mutableListOf<Pair<String, String>>()
+            val insertedSourceItemIds = mutableListOf<String>()
+            for (item in sourceItems) {
+                if (!isAttachmentType(item.itemType)) {
+                    invalid += 1
+                    continue
+                }
+                if (listItemRepository.doesLinkExist(item.entityId, targetContextId)) {
+                    duplicates += 1
+                    continue
+                }
+                entriesToCreate += item.itemType to item.entityId
+                insertedSourceItemIds += item.id
+            }
+            val created = listItemRepository.addEntityLinksToContext(targetContextId, entriesToCreate)
+            return AttachmentCopyResult(
+                created = created,
+                duplicates = duplicates,
+                invalid = invalid,
+                insertedSourceItemIds = insertedSourceItemIds,
+            )
+        }
+
         private suspend fun loadDirectionItems(refs: List<ClipboardEntityRef.DirectionItem>) =
             refs.map { it.directionItemId }
                 .let { requestedIds ->
@@ -665,4 +876,9 @@ class BacklogClipboardUseCase
         }
 
         private fun normalizeText(text: String): String = text.trim().lowercase()
+
+        private fun isAttachmentType(itemType: String): Boolean =
+            itemType == BacklogItemTypeValues.LINK_ITEM ||
+                itemType == BacklogItemTypeValues.NOTE_DOCUMENT ||
+                itemType == BacklogItemTypeValues.CHECKLIST
     }

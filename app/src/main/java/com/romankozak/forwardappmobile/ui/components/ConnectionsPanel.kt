@@ -21,6 +21,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Search
@@ -87,6 +89,8 @@ fun ConnectionsPanel(
     items: List<ConnectionItemUi>,
     onConnectionClick: (ConnectionItemUi) -> Unit,
     onConnectionRemove: (ConnectionItemUi) -> Unit,
+    onConnectionCopy: ((ConnectionItemUi) -> Unit)? = null,
+    onConnectionCut: ((ConnectionItemUi) -> Unit)? = null,
     onAddConnection: (AddConnectionType) -> Unit,
     onCreateConnection: ((CreateConnectionType) -> Unit)? = null,
     onConnectionsReordered: (List<ConnectionItemUi>) -> Unit = {},
@@ -178,6 +182,8 @@ fun ConnectionsPanel(
                                 item = item,
                                 onOpen = { onConnectionClick(item) },
                                 onRemove = { onConnectionRemove(item) },
+                                onCopy = onConnectionCopy?.let { { it(item) } },
+                                onCut = onConnectionCut?.let { { it(item) } },
                                 typeIconModifier =
                                     with(this@ReorderableItem) {
                                         Modifier.longPressDraggableHandle(
@@ -220,6 +226,8 @@ private fun ConnectionRow(
     item: ConnectionItemUi,
     onOpen: () -> Unit,
     onRemove: () -> Unit,
+    onCopy: (() -> Unit)? = null,
+    onCut: (() -> Unit)? = null,
     typeIconModifier: Modifier = Modifier,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -246,6 +254,24 @@ private fun ConnectionRow(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+            if (onCopy != null) {
+                IconButton(onClick = onCopy) {
+                    Icon(
+                        imageVector = Icons.Outlined.ContentCopy,
+                        contentDescription = "Копіювати",
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+            if (onCut != null) {
+                IconButton(onClick = onCut) {
+                    Icon(
+                        imageVector = Icons.Outlined.ContentCut,
+                        contentDescription = "Вирізати",
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
             IconButton(onClick = onRemove) {
                 Icon(
