@@ -94,6 +94,8 @@ sealed interface ContextHierarchyScreenEvent {
 
     data class FocusContext(val project: Context) : ContextHierarchyScreenEvent
 
+    data class ToggleUserFocusContext(val project: Context) : ContextHierarchyScreenEvent
+
     data object GoToSettings : ContextHierarchyScreenEvent
 
     data object ShowSearchDialog : ContextHierarchyScreenEvent

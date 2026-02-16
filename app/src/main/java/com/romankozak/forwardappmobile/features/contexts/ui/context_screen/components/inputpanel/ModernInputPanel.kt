@@ -38,6 +38,8 @@ fun ModernInputPanel(
     onShareList: () -> Unit,
     onDeleteList: () -> Unit,
     onSetReminder: () -> Unit,
+    onToggleFocusContext: () -> Unit,
+    isCurrentContextFocused: Boolean,
     menuExpanded: Boolean,
     onMenuExpandedChange: (Boolean) -> Unit,
     currentView: ContextViewMode,
@@ -111,6 +113,7 @@ fun ModernInputPanel(
             isProjectManagementEnabled = isProjectManagementEnabled,
             activeCapabilities = activeCapabilities,
             inputMode = inputMode,
+            isCurrentContextFocused = isCurrentContextFocused,
         )
 
     val actions =
@@ -142,6 +145,7 @@ fun ModernInputPanel(
                     onSetReminder = onSetReminder,
                     onShowDisplayPropertiesClick = onShowDisplayPropertiesClick,
                     onAddMilestone = onAddMilestone,
+                    onToggleFocusContext = onToggleFocusContext,
                 ),
         )
 

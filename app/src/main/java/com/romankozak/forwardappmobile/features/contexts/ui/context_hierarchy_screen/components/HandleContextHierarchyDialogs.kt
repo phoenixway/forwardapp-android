@@ -23,6 +23,7 @@ import com.romankozak.forwardappmobile.ui.dialogs.WifiServerDialog
 @Composable
 fun HandleProjectHierarchyDialogs(
     uiState: ProjectHierarchyScreenUiState,
+    focusedContextIds: Set<String>,
     onEvent: (ContextHierarchyScreenEvent) -> Unit,
 ) {
     when (val state = uiState.dialogState) {
@@ -40,6 +41,7 @@ fun HandleProjectHierarchyDialogs(
         is DialogState.ProjectMenu -> {
             ContextMenuDialog(
                 project = state.project,
+                isUserFocused = focusedContextIds.contains(state.project.id),
                 onDismissRequest = { onEvent(ContextHierarchyScreenEvent.DismissDialog) },
                 onMoveRequest = { project -> onEvent(ContextHierarchyScreenEvent.MoveRequest(project)) },
                 onAddSubprojectRequest = { project -> onEvent(ContextHierarchyScreenEvent.AddSubprojectRequest(project)) },
@@ -47,7 +49,7 @@ fun HandleProjectHierarchyDialogs(
                 onEditRequest = { project -> onEvent(ContextHierarchyScreenEvent.EditRequest(project)) },
                 onAddToDayPlanRequest = { project -> onEvent(ContextHierarchyScreenEvent.AddToDayPlanRequest(project)) },
                 onSetReminderRequest = { project -> onEvent(ContextHierarchyScreenEvent.SetReminderRequest(project)) },
-                onFocusRequest = { project -> onEvent(ContextHierarchyScreenEvent.FocusContext(project)) },
+                onToggleUserFocusRequest = { project -> onEvent(ContextHierarchyScreenEvent.ToggleUserFocusContext(project)) },
             )
         }
         is DialogState.ConfirmDelete -> {

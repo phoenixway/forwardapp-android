@@ -68,6 +68,7 @@ private const val UI_TAG = "ProjectHierarchyScreenUI_DEBUG"
 @Composable
 fun ProjectHierarchyScreenScaffold(
     uiState: ProjectHierarchyScreenUiState,
+    focusedContextIds: Set<String>,
     onEvent: (ContextHierarchyScreenEvent) -> Unit,
     enhancedNavigationManager: EnhancedNavigationManager,
     lastOngoingActivity: ActivityRecord?,
@@ -331,6 +332,7 @@ fun ProjectHierarchyScreenScaffold(
 
     HandleProjectHierarchyDialogs(
         uiState = uiState,
+        focusedContextIds = focusedContextIds,
         onEvent = onEvent,
     )
 

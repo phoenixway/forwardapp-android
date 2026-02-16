@@ -173,6 +173,7 @@ private fun ProjectScaffold(
     val canPasteIntoCurrentBacklog by viewModel.itemActionHandler.canPasteIntoCurrentBacklog.collectAsStateWithLifecycle()
     val canPasteIntoCurrentDirection by viewModel.itemActionHandler.canPasteIntoCurrentDirection.collectAsStateWithLifecycle()
     val canPasteIntoCurrentAttachments by viewModel.itemActionHandler.canPasteIntoCurrentAttachments.collectAsStateWithLifecycle()
+    val isCurrentContextFocused by viewModel.isCurrentContextFocused.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
@@ -495,6 +496,8 @@ private fun ProjectBottomBar(
                 onShareList = { viewModel.onExportBacklogToMarkdown() },
                 onDeleteList = { viewModel.deleteCurrentProject() },
                 onSetReminder = { viewModel.onSetReminderForProject() },
+                onToggleFocusContext = viewModel::toggleCurrentContextFocus,
+                isCurrentContextFocused = isCurrentContextFocused,
                 menuExpanded = menuExpanded,
                 onMenuExpandedChange = onMenuExpandedChange,
                 currentView = sessionState.currentView,

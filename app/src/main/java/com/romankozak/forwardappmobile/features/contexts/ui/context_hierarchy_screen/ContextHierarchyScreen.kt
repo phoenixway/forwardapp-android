@@ -39,6 +39,7 @@ fun ProjectHierarchyScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val lastOngoingActivity by viewModel.lastOngoingActivity.collectAsStateWithLifecycle()
+    val focusedContextIds by viewModel.focusedContextIds.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
     val focusManager = LocalFocusManager.current
 
@@ -114,6 +115,7 @@ fun ProjectHierarchyScreen(
     viewModel.enhancedNavigationManager?.let { navManager ->
         ProjectHierarchyScreenScaffold(
             uiState = uiState,
+            focusedContextIds = focusedContextIds,
             onEvent = viewModel::onEvent,
             enhancedNavigationManager = navManager,
             lastOngoingActivity = lastOngoingActivity,

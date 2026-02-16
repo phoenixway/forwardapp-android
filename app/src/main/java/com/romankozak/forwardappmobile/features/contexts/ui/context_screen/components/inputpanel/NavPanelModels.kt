@@ -12,6 +12,7 @@ data class NavPanelState(
     val isProjectManagementEnabled: Boolean,
     val activeCapabilities: Set<CapabilityId>,
     val inputMode: InputMode,
+    val isCurrentContextFocused: Boolean,
 )
 
 data class NavPanelActions(
@@ -44,6 +45,7 @@ data class OptionsMenuActions(
     val onSetReminder: () -> Unit,
     val onShowDisplayPropertiesClick: () -> Unit,
     val onAddMilestone: (String) -> Unit,
+    val onToggleFocusContext: () -> Unit,
 )
 
 // Ця модель тепер доступна у всьому пакеті

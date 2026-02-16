@@ -19,6 +19,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 @Composable
 fun ContextMenuDialog(
     project: Context,
+    isUserFocused: Boolean,
     onDismissRequest: () -> Unit,
     onMoveRequest: (Context) -> Unit,
     onAddSubprojectRequest: (Context) -> Unit,
@@ -26,7 +27,7 @@ fun ContextMenuDialog(
     onEditRequest: (Context) -> Unit,
     onAddToDayPlanRequest: (Context) -> Unit,
     onSetReminderRequest: (Context) -> Unit,
-    onFocusRequest: (Context) -> Unit,
+    onToggleUserFocusRequest: (Context) -> Unit,
 ) {
     Dialog(onDismissRequest = onDismissRequest) {
         Card(
@@ -46,9 +47,9 @@ fun ContextMenuDialog(
                 HorizontalDivider()
                 // Планування та фокус
                 DialogActionItem(
-                    text = "Фокусуватись на проекті",
+                    text = if (isUserFocused) "Зняти фокус з контексту" else "Фокусуватись на контексті",
                     icon = Icons.Default.FilterCenterFocus,
-                    onClick = { onFocusRequest(project) },
+                    onClick = { onToggleUserFocusRequest(project) },
                 )
                 HorizontalDivider()
                 DialogActionItem(

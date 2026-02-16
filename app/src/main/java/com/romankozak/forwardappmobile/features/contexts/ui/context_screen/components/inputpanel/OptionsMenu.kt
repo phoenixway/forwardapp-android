@@ -152,6 +152,14 @@ internal fun OptionsMenu(
                                 isVisible = state.isProjectManagementEnabled,
                             ),
                             MenuItem(
+                                if (state.isCurrentContextFocused) "Зняти фокус з контексту" else "Додати контекст у фокус",
+                                if (state.isCurrentContextFocused) Icons.Outlined.VisibilityOff else Icons.Outlined.CenterFocusStrong,
+                                {
+                                    menu.onToggleFocusContext()
+                                    actions.onMenuExpandedChange(false)
+                                },
+                            ),
+                            MenuItem(
                                 "Встановити нагадування",
                                 Icons.Outlined.Alarm,
                                 {

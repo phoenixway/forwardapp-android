@@ -19,6 +19,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextKeyProbl
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfileItem
 import com.romankozak.forwardappmobile.core.data.models.entities.DirectionItemEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.FocusContextIntervalEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextsFts
 import com.romankozak.forwardappmobile.core.data.models.entities.Converters
@@ -54,6 +55,7 @@ import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
 import com.romankozak.forwardappmobile.data.dao.DailyMetricDao
 import com.romankozak.forwardappmobile.data.dao.DayPlanDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
+import com.romankozak.forwardappmobile.data.dao.FocusContextIntervalDao
 import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.dao.LifeSystemStateDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
@@ -97,6 +99,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         ChatMessageEntity::class,
         ContextLog::class,
         ContextKeyProblemsEntity::class,
+        FocusContextIntervalEntity::class,
         DayPlan::class,
         DayTask::class,
         DailyMetric::class,
@@ -128,7 +131,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 107,
+    version = 108,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -150,6 +153,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun contextManagementDao(): ContextManagementDao
 
     abstract fun contextKeyProblemsDao(): ContextKeyProblemsDao
+
+    abstract fun focusContextIntervalDao(): FocusContextIntervalDao
 
     abstract fun noteDocumentDao(): NoteDocumentDao
 

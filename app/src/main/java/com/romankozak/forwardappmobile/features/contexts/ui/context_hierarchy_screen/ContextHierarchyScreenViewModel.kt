@@ -25,6 +25,7 @@ import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
+import com.romankozak.forwardappmobile.data.repository.FocusContextRepository
 import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
@@ -70,6 +71,7 @@ class ContextHierarchyScreenViewModel
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
         private val contextHandler: ContextHandler,
         private val dayManagementRepository: DayManagementRepository,
+        private val focusContextRepository: FocusContextRepository,
         private val activityRepository: ActivityRepository,
         private val recentItemsRepository: RecentItemsRepository,
         private val noteRepository: LegacyNoteRepository,
@@ -121,6 +123,14 @@ class ContextHierarchyScreenViewModel
             MutableStateFlow(ProjectHierarchyScreenStateUseCase.NavigationSnapshot())
 
         val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = contextHandler.contextMarkerToEmojiMap
+        val focusedContextIds: StateFlow<Set<String>> =
+            focusContextRepository
+                .observeActiveFocusContextIds()
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(5000),
+                    initialValue = emptySet(),
+                )
 
         val uiState: StateFlow<ProjectHierarchyScreenUiState>
             get() = projectHierarchyScreenStateUseCase.uiState
@@ -511,6 +521,21 @@ class ContextHierarchyScreenViewModel
                     viewModelScope.launch {
                         searchUseCase.navigateToProject(event.project.id, uiState.value.projectHierarchy)
                         searchUseCase.pushSubState(ProjectHierarchyScreenSubState.ProjectFocused(event.project.id))
+                        dialogUseCase.dismissDialog()
+                    }
+                }
+                is ContextHierarchyScreenEvent.ToggleUserFocusContext -> {
+                    viewModelScope.launch {
+                        val focused = focusContextRepository.toggleFocusContext(event.project.id)
+                        _uiEventChannel.send(
+                            ProjectUiEvent.ShowToast(
+                                if (focused) {
+                                    "Контекст додано у фокус"
+                                } else {
+                                    "Контекст прибрано з фокусу"
+                                },
+                            ),
+                        )
                         dialogUseCase.dismissDialog()
                     }
                 }

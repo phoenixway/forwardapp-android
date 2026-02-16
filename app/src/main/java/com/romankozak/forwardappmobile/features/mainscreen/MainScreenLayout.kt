@@ -539,6 +539,9 @@ fun MainScreenLayout(
                                 onNavigateToImportExport = onExportToFile,
                                 onNavigateToAttachments = onNavigateToAttachments,
                                 onNavigateToScripts = onNavigateToScripts,
+                                onOpenFocusedContext = { contextId ->
+                                    navController.navigate("goal_detail_screen/$contextId")
+                                },
                                 dayPlanViewModel = dayPlanViewModel,
                                 recentViewModel = recentViewModel,
                             )

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,11 +35,13 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -84,6 +87,7 @@ fun DashboardContent(
     onNavigateToImportExport: () -> Unit = {},
     onNavigateToAttachments: () -> Unit = {},
     onNavigateToScripts: () -> Unit = {},
+    onOpenFocusedContext: (String) -> Unit = {},
     dayPlanViewModel: DayPlanViewModel = hiltViewModel(),
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
@@ -101,6 +105,7 @@ fun DashboardContent(
         onNavigateToImportExport = onNavigateToImportExport,
         onNavigateToAttachments = onNavigateToAttachments,
         onNavigateToScripts = onNavigateToScripts,
+        onOpenFocusedContext = onOpenFocusedContext,
         dayPlanViewModel = dayPlanViewModel,
         recentViewModel = recentViewModel,
     )
@@ -121,6 +126,7 @@ private fun AnimatedCommandDeck(
     onNavigateToImportExport: () -> Unit,
     onNavigateToAttachments: () -> Unit,
     onNavigateToScripts: () -> Unit,
+    onOpenFocusedContext: (String) -> Unit,
     dayPlanViewModel: DayPlanViewModel,
     recentViewModel: RecentViewModel,
 ) {
@@ -131,7 +137,9 @@ private fun AnimatedCommandDeck(
     val dayUiState by dayPlanViewModel.uiState.collectAsStateWithLifecycle()
     val recentItems by recentViewModel.recentItems.collectAsStateWithLifecycle()
     val aiInsightsViewModel: AiInsightsViewModel = hiltViewModel()
+    val focusContextsViewModel: FocusContextsViewModel = hiltViewModel()
     val aiInsights by aiInsightsViewModel.messages.collectAsStateWithLifecycle()
+    val focusedContexts by focusContextsViewModel.focusedContexts.collectAsStateWithLifecycle()
 
     val tasksTotal = dayUiState.tasks.size
     val tasksCompleted =
@@ -243,6 +251,36 @@ private fun AnimatedCommandDeck(
         }
 
         item {
+            SectionHeader(
+                title = "Фокус-контексти",
+                subtitle = if (focusedContexts.isEmpty()) "Поки порожньо" else "${focusedContexts.size} активних",
+                isExpanded = true,
+                onClick = {},
+            )
+        }
+
+        if (focusedContexts.isEmpty()) {
+            item {
+                MetricCard(
+                    title = "Немає фокус-контекстів",
+                    value = "Додай контексти у фокус",
+                    subtitle = "через меню в ієрархії або з екрана контексту",
+                )
+            }
+        } else {
+            focusedContexts.forEach { focusedContext ->
+                item {
+                    FocusContextCard(
+                        name = focusedContext.name,
+                        onOpen = { onOpenFocusedContext(focusedContext.contextId) },
+                        onStartTracking = { focusContextsViewModel.startTracking(focusedContext.contextId) },
+                        onDefocus = { focusContextsViewModel.unfocus(focusedContext.contextId) },
+                    )
+                }
+            }
+        }
+
+        item {
             val stageLabel =
                 when (quickActionsStage) {
                     0 -> "Згорнуто"
@@ -260,6 +298,46 @@ private fun AnimatedCommandDeck(
         visibleQuickActions.forEach { action ->
             item {
                 ActionCardItem(action = action)
+            }
+        }
+    }
+}
+
+@Composable
+private fun FocusContextCard(
+    name: String,
+    onOpen: () -> Unit,
+    onStartTracking: () -> Unit,
+    onDefocus: () -> Unit,
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.08f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = name,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.heightIn(min = 20.dp),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedButton(onClick = onOpen, modifier = Modifier.weight(1f)) {
+                    Text("Відкрити")
+                }
+                OutlinedButton(onClick = onStartTracking, modifier = Modifier.weight(1f)) {
+                    Text("Start tracking")
+                }
+                TextButton(onClick = onDefocus, modifier = Modifier.weight(1f)) {
+                    Text("Defocus")
+                }
             }
         }
     }

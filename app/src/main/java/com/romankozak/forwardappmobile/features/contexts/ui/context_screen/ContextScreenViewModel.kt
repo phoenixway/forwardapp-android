@@ -111,6 +111,7 @@ class ContextScreenViewModel
         private val contextStructureRepository: ContextStructureRepository,
         private val contextArtifactRepository: ContextArtifactRepository,
         private val contextKeyProblemsRepository: ContextKeyProblemsRepository,
+        private val focusContextRepository: FocusContextRepository,
         private val contextTimeTrackingRepository: ContextTimeTrackingRepository,
         private val contextSessionStore: ContextSessionStore,
         private val backlogClipboardUseCase: BacklogClipboardUseCase,
@@ -314,6 +315,22 @@ class ContextScreenViewModel
                     started = SharingStarted.WhileSubscribed(5000),
                     initialValue = ContextKeyProblemsRepository.KeyProblemsData(),
                 )
+        private val focusedContextIds: StateFlow<Set<String>> =
+            focusContextRepository
+                .observeActiveFocusContextIds()
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(5000),
+                    initialValue = emptySet(),
+                )
+        val isCurrentContextFocused: StateFlow<Boolean> =
+            combine(contextIdFlow, focusedContextIds) { contextId, focusedIds ->
+                contextId.isNotBlank() && focusedIds.contains(contextId)
+            }.stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = false,
+            )
         val pickerAttachmentOptions: StateFlow<List<AttachmentOption>> =
             contextRepository.getAttachmentLibraryItemsFlow()
                 .map { results ->
@@ -769,6 +786,21 @@ class ContextScreenViewModel
                 val currentContextId = contextIdFlow.value
                 if (currentContextId.isBlank() || targetContextId.isBlank()) return@launch
                 contextKeyProblemsRepository.removeFocusContext(currentContextId, targetContextId)
+            }
+
+        fun toggleCurrentContextFocus() =
+            viewModelScope.launch(ioDispatcher) {
+                val contextId = contextIdFlow.value
+                if (contextId.isBlank()) return@launch
+                val focused = focusContextRepository.toggleFocusContext(contextId)
+                showSnackbar(
+                    if (focused) {
+                        "Контекст додано у фокус"
+                    } else {
+                        "Контекст прибрано з фокусу"
+                    },
+                    null,
+                )
             }
 
         fun onPickerAttachmentSelected(attachmentId: String) =
