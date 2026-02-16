@@ -110,6 +110,15 @@ class AiInsightsViewModel
                     val merged =
                         generated.map { item ->
                             persistedById[item.id]?.let { persisted ->
+                                if (item.id == TRACKER_UNDERUSED_INSIGHT_ID) {
+                                    // Keep this reminder unread while tracker is effectively unused.
+                                    return@let item.copy(
+                                        isRead = false,
+                                        isFavorite = persisted.isFavorite,
+                                        version = persisted.version,
+                                        isDeleted = persisted.isDeleted,
+                                    )
+                                }
                                 item.copy(
                                     isRead = persisted.isRead,
                                     isFavorite = persisted.isFavorite,
@@ -132,11 +141,13 @@ class AiInsightsViewModel
             val todayStart = startOfDay(now)
             val yesterdayStart = todayStart - 24 * 60 * 60 * 1000
             val fiveHoursAgo = now - 5 * 60 * 60 * 1000
+            val sevenDaysAgo = now - 7L * 24L * 60L * 60L * 1000L
 
             val todayRecords = records.filter { it.createdAt in todayStart until (todayStart + 24 * 60 * 60 * 1000) }
             val yesterdayRecords = records.filter { it.createdAt in yesterdayStart until todayStart }
             val lastFiveHours = records.filter { it.createdAt >= fiveHoursAgo }
             val lastDay = records.filter { it.createdAt >= yesterdayStart }
+            val lastSevenDays = records.filter { it.createdAt >= sevenDaysAgo }
 
             val messages = mutableListOf<AiInsightEntity>()
 
@@ -187,6 +198,19 @@ class AiInsightsViewModel
                 )
             } else {
                 aiInsightRepository.deleteById(CRISIS_NO_FOCUS_CONTEXT_INSIGHT_ID)
+            }
+            if (lastSevenDays.size < TRACKER_USAGE_MIN_RECORDS_PER_WEEK) {
+                messages.add(
+                    AiInsightEntity(
+                        id = TRACKER_UNDERUSED_INSIGHT_ID,
+                        text = "Трекер активностей майже не використовується. Спробуй логувати більше дій протягом дня, щоб AI Insights давали точніші підказки.",
+                        type = MessageType.INFO.name,
+                        timestamp = now,
+                        isRead = false,
+                    ),
+                )
+            } else {
+                aiInsightRepository.deleteById(TRACKER_UNDERUSED_INSIGHT_ID)
             }
 
             fun durationMinutes(record: ActivityRecord): Long {
@@ -287,6 +311,8 @@ class AiInsightsViewModel
             private const val DAY_FOCUS_TAG = "#day_focus"
             private const val TARGET_DAY_FOCUS_COUNT = 3
             private const val CRISIS_NO_FOCUS_CONTEXT_INSIGHT_ID = "crisis_no_focus_context"
+            private const val TRACKER_UNDERUSED_INSIGHT_ID = "tracker_underused"
+            private const val TRACKER_USAGE_MIN_RECORDS_PER_WEEK = 2
         }
 
         private fun startOfDay(timestamp: Long): Long {
