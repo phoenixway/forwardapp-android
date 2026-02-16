@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.data.repository
 
+import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfileItem
@@ -91,18 +92,32 @@ class ContextStructureRepository
         ) {
             ensureReservedBaseRolePresets()
             val preset = structurePresetDao.getByCode(presetCode) ?: return
+            val presetCapabilities = ContextRoleRegistry.getCapabilitiesForRole(preset.code)
+            val knownLegacyCaps =
+                setOf(
+                    "inbox",
+                    "log",
+                    "artifact",
+                    "advanced",
+                    "dashboard",
+                    "backlog",
+                    "attachments",
+                    "auto_link_subprojects",
+                )
+            val experimentalIdsFromPreset = presetCapabilities.filter { it.raw !in knownLegacyCaps }
             val structure = ensureStructure(contextId, basePresetCode = preset.code)
             val updatedStructure =
                 structure.copy(
                     basePresetCode = preset.code,
-                    enableInbox = preset.enableInbox,
-                    enableLog = preset.enableLog,
-                    enableArtifact = preset.enableArtifact,
-                    enableAdvanced = preset.enableAdvanced,
+                    enableInbox = presetCapabilities.contains(CapabilityId("inbox")),
+                    enableLog = presetCapabilities.contains(CapabilityId("log")),
+                    enableArtifact = presetCapabilities.contains(CapabilityId("artifact")),
+                    enableAdvanced = presetCapabilities.contains(CapabilityId("advanced")),
                     enableDashboard = preset.enableDashboard,
-                    enableBacklog = preset.enableBacklog,
-                    enableAttachments = preset.enableAttachments,
-                    enableAutoLinkSubprojects = preset.enableAutoLinkSubprojects,
+                    enableBacklog = presetCapabilities.contains(CapabilityId("backlog")),
+                    enableAttachments = presetCapabilities.contains(CapabilityId("attachments")),
+                    enableAutoLinkSubprojects = presetCapabilities.contains(CapabilityId("auto_link_subprojects")),
+                    experimentalCapabilityIds = experimentalIdsFromPreset,
                 )
             contextStructureDao.updateStructure(updatedStructure)
             val presetItems = structurePresetItemDao.getItemsByPresetOnce(preset.id)

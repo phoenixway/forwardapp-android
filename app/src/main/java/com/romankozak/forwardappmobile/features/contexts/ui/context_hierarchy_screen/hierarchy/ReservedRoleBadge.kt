@@ -67,6 +67,11 @@ fun ReservedRoleBadge(
                     tint = Color(0xFF4E5BA6),
                     icon = Icons.Default.Settings,
                 )
+            ContextRoleRegistry.ROLE_CRISIS_CASE ->
+                ReservedBadgeStyle(
+                    tint = Color(0xFFC62828),
+                    symbol = "!",
+                )
             else -> null
         } ?: return
 
@@ -77,6 +82,7 @@ fun ReservedRoleBadge(
             ContextRoleRegistry.ROLE_DIRECTION -> "Direction"
             ContextRoleRegistry.ROLE_MAIN_BEACON -> "Main beacon"
             ContextRoleRegistry.ROLE_MANAGEMENT -> "Management"
+            ContextRoleRegistry.ROLE_CRISIS_CASE -> "Crisis case"
             else -> "Role"
         }
     val glowModifier =

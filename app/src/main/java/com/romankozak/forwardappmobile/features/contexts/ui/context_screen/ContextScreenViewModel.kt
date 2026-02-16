@@ -110,6 +110,7 @@ class ContextScreenViewModel
         private val inboxRepository: InboxRepository,
         private val contextStructureRepository: ContextStructureRepository,
         private val contextArtifactRepository: ContextArtifactRepository,
+        private val contextKeyProblemsRepository: ContextKeyProblemsRepository,
         private val contextTimeTrackingRepository: ContextTimeTrackingRepository,
         private val contextSessionStore: ContextSessionStore,
         private val backlogClipboardUseCase: BacklogClipboardUseCase,
@@ -253,6 +254,7 @@ class ContextScreenViewModel
             contextRepository
                 .getAllContextsFlow()
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        val allContextsForPicker: StateFlow<List<Context>> = _allProjects
         val subprojectChildren: StateFlow<Map<String?, List<Context>>> =
             _allProjects
                 .map { allProjects -> allProjects.groupBy { it.parentId } }
@@ -297,6 +299,20 @@ class ContextScreenViewModel
                     scope = viewModelScope,
                     started = SharingStarted.WhileSubscribed(5000),
                     initialValue = emptyList(),
+                )
+        val keyProblemsData: StateFlow<ContextKeyProblemsRepository.KeyProblemsData> =
+            contextIdFlow
+                .flatMapLatest { contextId ->
+                    if (contextId.isBlank()) {
+                        flowOf(ContextKeyProblemsRepository.KeyProblemsData())
+                    } else {
+                        contextKeyProblemsRepository.observe(contextId)
+                    }
+                }
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(5000),
+                    initialValue = ContextKeyProblemsRepository.KeyProblemsData(),
                 )
         val pickerAttachmentOptions: StateFlow<List<AttachmentOption>> =
             contextRepository.getAttachmentLibraryItemsFlow()
@@ -729,6 +745,30 @@ class ContextScreenViewModel
                 result.errorMessage?.let { message ->
                     showSnackbar(message, null)
                 }
+            }
+
+        fun onKeyProblemsDescriptionChanged(description: String) =
+            viewModelScope.launch(ioDispatcher) {
+                val currentContextId = contextIdFlow.value
+                if (currentContextId.isBlank()) return@launch
+                contextKeyProblemsRepository.updateDescription(
+                    contextId = currentContextId,
+                    description = description,
+                )
+            }
+
+        fun addKeyProblemsFocusContext(targetContextId: String) =
+            viewModelScope.launch(ioDispatcher) {
+                val currentContextId = contextIdFlow.value
+                if (currentContextId.isBlank() || targetContextId.isBlank()) return@launch
+                contextKeyProblemsRepository.addFocusContext(currentContextId, targetContextId)
+            }
+
+        fun removeKeyProblemsFocusContext(targetContextId: String) =
+            viewModelScope.launch(ioDispatcher) {
+                val currentContextId = contextIdFlow.value
+                if (currentContextId.isBlank() || targetContextId.isBlank()) return@launch
+                contextKeyProblemsRepository.removeFocusContext(currentContextId, targetContextId)
             }
 
         fun onPickerAttachmentSelected(attachmentId: String) =

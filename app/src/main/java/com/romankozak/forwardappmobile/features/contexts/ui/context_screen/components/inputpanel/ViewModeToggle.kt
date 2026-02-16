@@ -103,6 +103,7 @@ private fun ContextViewMode.toIcon(): ImageVector =
         ContextViewMode.VET_CASE -> Icons.Default.MedicalServices
         ContextViewMode.LOG -> Icons.Outlined.History
         ContextViewMode.ARTIFACT -> Icons.Outlined.Inventory2
+        ContextViewMode.KEY_PROBLEMS -> Icons.Outlined.Description
     }
 
 private fun ContextViewMode.getDefaultInputMode() =

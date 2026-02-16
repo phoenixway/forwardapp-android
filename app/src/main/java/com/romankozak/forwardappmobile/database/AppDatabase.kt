@@ -15,6 +15,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextKeyProblemsEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfileItem
 import com.romankozak.forwardappmobile.core.data.models.entities.DirectionItemEntity
@@ -69,6 +70,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextArtifactDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextKeyProblemsDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.DirectionDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
@@ -94,6 +96,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         InboxRecord::class,
         ChatMessageEntity::class,
         ContextLog::class,
+        ContextKeyProblemsEntity::class,
         DayPlan::class,
         DayTask::class,
         DailyMetric::class,
@@ -125,7 +128,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 106,
+    version = 107,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -145,6 +148,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun inboxRecordDao(): InboxRecordDao
 
     abstract fun contextManagementDao(): ContextManagementDao
+
+    abstract fun contextKeyProblemsDao(): ContextKeyProblemsDao
 
     abstract fun noteDocumentDao(): NoteDocumentDao
 

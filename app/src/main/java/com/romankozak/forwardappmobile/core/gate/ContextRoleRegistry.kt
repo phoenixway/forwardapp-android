@@ -20,6 +20,7 @@ object ContextRoleRegistry {
     const val ROLE_ASPECT = "aspect"
     const val ROLE_MAIN_BEACON = "main-beacon"
     const val ROLE_MANAGEMENT = "management"
+    const val ROLE_CRISIS_CASE = "crisis_case"
 
     const val ROLE_VET_PATIENT = "vet_patient"
     const val ROLE_DEVELOPMENT = "development"
@@ -73,6 +74,20 @@ object ContextRoleRegistry {
                     setOf(
                         CapabilityId("backlog"),
                         CapabilityId("inbox"),
+                    ),
+            ),
+            ReservedBaseRoleDefinition(
+                code = ROLE_CRISIS_CASE,
+                label = "Crisis Case",
+                description = "Роль кризового кейсу",
+                capabilities =
+                    setOf(
+                        CapabilityId("direction"),
+                        CapabilityId("backlog"),
+                        CapabilityId("inbox"),
+                        CapabilityId("advanced"),
+                        CapabilityId("log"),
+                        CapabilityId("key_problems"),
                     ),
             ),
         )
@@ -144,6 +159,7 @@ object ContextRoleRegistry {
             add(CapabilityId("auto_link_subprojects"))
             add(CapabilityId("direction"))
             add(CapabilityId("vet_case")) // Додано вручну, якщо не покривається ролями
+            add(CapabilityId("key_problems"))
         }
     }
 }

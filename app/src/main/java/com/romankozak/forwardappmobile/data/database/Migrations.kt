@@ -1526,3 +1526,20 @@ val MIGRATION_105_106 =
             db.execSQL("UPDATE `activity_records` SET `noteText` = `text` WHERE `noteText` IS NULL")
         }
     }
+
+val MIGRATION_106_107 =
+    object : Migration(106, 107) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `context_key_problems` (
+                    `context_id` TEXT NOT NULL,
+                    `payload_json` TEXT NOT NULL,
+                    `updated_at` INTEGER NOT NULL,
+                    PRIMARY KEY(`context_id`)
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_context_key_problems_updated_at` ON `context_key_problems` (`updated_at`)")
+        }
+    }

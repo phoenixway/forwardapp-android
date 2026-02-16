@@ -68,6 +68,7 @@ enum class ContextViewMode {
     DIRECTION,
     LOG,
     ARTIFACT,
+    KEY_PROBLEMS,
     NOTES,
     VET_CASE,
 }

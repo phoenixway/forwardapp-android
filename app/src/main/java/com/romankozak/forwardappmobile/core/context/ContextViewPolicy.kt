@@ -43,6 +43,7 @@ object ContextViewPolicy {
             ContextViewMode.NOTES -> 6
             ContextViewMode.LOG -> 7
             ContextViewMode.ARTIFACT -> 8
-            ContextViewMode.VET_CASE -> 9
+            ContextViewMode.KEY_PROBLEMS -> 9
+            ContextViewMode.VET_CASE -> 10
         }
 }

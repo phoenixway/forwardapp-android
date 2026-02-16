@@ -51,6 +51,7 @@ internal fun getViewModeText(viewMode: ContextViewMode): String =
         ContextViewMode.DIRECTION -> "Directions"
         ContextViewMode.LOG -> "Log"
         ContextViewMode.ARTIFACT -> "Artifacts"
+        ContextViewMode.KEY_PROBLEMS -> "Key Problems"
         ContextViewMode.NOTES -> "Notes"
         ContextViewMode.VET_CASE -> "Vet Case"
     }
@@ -138,6 +139,11 @@ private fun ViewModeIndicator(
                 Pair(
                     Color(0xFFFBE9E7).copy(alpha = 0.7f), // Light orange-brown
                     Color(0xFFD84315).copy(alpha = 0.8f), // Darker orange
+                )
+            ContextViewMode.KEY_PROBLEMS ->
+                Pair(
+                    Color(0xFFFFEBEE).copy(alpha = 0.7f),
+                    Color(0xFFC62828).copy(alpha = 0.8f),
                 )
             ContextViewMode.NOTES ->
                 Pair(

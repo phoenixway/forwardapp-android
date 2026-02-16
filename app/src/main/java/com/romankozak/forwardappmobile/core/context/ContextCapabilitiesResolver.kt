@@ -2,10 +2,13 @@ package com.romankozak.forwardappmobile.core.context
 
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
+import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
 
 class ContextCapabilitiesResolver {
     fun resolve(config: ContextConfiguration): Set<CapabilityId> {
         return buildSet {
+            addAll(ContextRoleRegistry.getCapabilitiesForRole(config.basePresetCode))
+
             if (config.enableInbox != false) add(CapabilityId("inbox"))
             if (config.enableLog != false) add(CapabilityId("log"))
             if (config.enableArtifact != false) add(CapabilityId("artifact"))

@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
@@ -42,9 +43,11 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.BacklogListScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.direction.DirectionView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxView
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.keyproblems.KeyProblemsView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ProjectDashboardView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextUiState
+import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
 
 import java.util.Locale
 
@@ -82,8 +85,10 @@ fun GoalDetailContent(
     val goalList by viewModel.project.collectAsStateWithLifecycle()
     val projectLogs = uiState.logs
     val projectArtifact by viewModel.contextArtifact.collectAsStateWithLifecycle()
-    val isSelectionModeActive = uiState.isSelectionModeActive
+    val keyProblemsData by viewModel.keyProblemsData.collectAsStateWithLifecycle()
+    val allContexts by viewModel.allContextsForPicker.collectAsStateWithLifecycle()
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
+    val enableKeyProblems = uiState.experimentalCapabilityIds.contains(CapabilityId("key_problems"))
 
     when (currentViewMode) {
         ContextViewMode.BACKLOG -> {
@@ -197,6 +202,7 @@ fun GoalDetailContent(
                 enableAttachments = uiState.enableAttachments,
                 enableLog = uiState.enableLog,
                 enableArtifact = uiState.enableArtifact,
+                enableKeyProblems = enableKeyProblems,
             )
         }
         ContextViewMode.LOG -> {
@@ -241,6 +247,31 @@ fun GoalDetailContent(
                 enableArtifact = uiState.enableArtifact,
             )
         }
+        ContextViewMode.KEY_PROBLEMS -> {
+            val focusContexts =
+                allContexts.filter { context ->
+                    keyProblemsData.focusContextIds.contains(context.id)
+                }
+            val pickerContextOptions =
+                allContexts
+                    .filter { it.id != uiState.context?.id }
+                    .map { context ->
+                        ProjectOption(
+                            id = context.id,
+                            name = context.name,
+                            parentId = context.parentId,
+                        )
+                    }
+            KeyProblemsView(
+                modifier = modifier,
+                description = keyProblemsData.description,
+                focusContexts = focusContexts,
+                pickerContextOptions = pickerContextOptions,
+                onDescriptionChange = viewModel::onKeyProblemsDescriptionChanged,
+                onAddFocusContext = viewModel::addKeyProblemsFocusContext,
+                onRemoveFocusContext = viewModel::removeKeyProblemsFocusContext,
+            )
+        }
         ContextViewMode.NOTES, ContextViewMode.VET_CASE -> {
             Column(
                 modifier = modifier.fillMaxSize(),
@@ -272,6 +303,7 @@ private fun DashboardOverview(
     enableAttachments: Boolean,
     enableLog: Boolean,
     enableArtifact: Boolean,
+    enableKeyProblems: Boolean,
 ) {
     val activeViews =
         buildList {
@@ -282,6 +314,7 @@ private fun DashboardOverview(
             if (enableDashboard) add(DashboardViewItem(ContextViewMode.DASHBOARD, "Дашборд", Icons.Default.Dashboard))
             if (enableLog) add(DashboardViewItem(ContextViewMode.LOG, "Лог", Icons.Outlined.History))
             if (enableArtifact) add(DashboardViewItem(ContextViewMode.ARTIFACT, "Артефакт", Icons.Outlined.Inventory2))
+            if (enableKeyProblems) add(DashboardViewItem(ContextViewMode.KEY_PROBLEMS, "Ключові проблеми", Icons.Outlined.Checklist))
         }
 
     Column(
