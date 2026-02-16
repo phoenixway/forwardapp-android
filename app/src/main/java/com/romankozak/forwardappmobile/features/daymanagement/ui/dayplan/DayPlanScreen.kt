@@ -235,6 +235,9 @@ fun DayPlanScreen(
 
                             TaskList(
                                 tasks = tasks,
+                                onTaskClick = { taskWithReminder ->
+                                    viewModel.onEditTaskClicked(taskWithReminder)
+                                },
                                 onTaskLongPress = { taskWithReminder ->
                                     viewModel.onTaskLongPressed(taskWithReminder)
                                 },

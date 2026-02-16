@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,6 +39,7 @@ import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedTrailingAct
 @Composable
 fun DayTaskCard(
     taskWithReminder: DayTaskWithReminder,
+    onClick: () -> Unit,
     onToggle: () -> Unit,
     onLongPress: () -> Unit,
     modifier: Modifier = Modifier,
@@ -61,7 +63,12 @@ fun DayTaskCard(
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .clickable(onClick = onClick),
+        ) {
             DayPlanMarkdownText(
                 text = task.title,
                 style =

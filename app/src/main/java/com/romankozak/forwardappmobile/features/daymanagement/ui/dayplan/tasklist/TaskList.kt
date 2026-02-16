@@ -41,6 +41,7 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 @Composable
 fun TaskList(
     tasks: List<DayTaskWithReminder>,
+    onTaskClick: (DayTaskWithReminder) -> Unit,
     onTaskLongPress: (DayTaskWithReminder) -> Unit,
     onTasksReordered: (List<DayTaskWithReminder>) -> Unit,
     onToggleTask: (String) -> Unit,
@@ -115,6 +116,7 @@ fun TaskList(
                             ) {
                                 DayTaskCard(
                                     taskWithReminder = taskWithReminder,
+                                    onClick = { onTaskClick(taskWithReminder) },
                                     onToggle = { onToggleTask(taskWithReminder.dayTask.id) },
                                     onLongPress = { onTaskLongPress(taskWithReminder) },
                                     dragHandleModifier = Modifier.draggableHandle(),
