@@ -42,10 +42,14 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.AiInsightEntity
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
+import com.romankozak.forwardappmobile.data.repository.FocusContextRepository
+import com.romankozak.forwardappmobile.data.repository.UserAwarenessRepository
+import com.romankozak.forwardappmobile.domain.userawareness.UserAwarenessStateType
 import com.romankozak.forwardappmobile.features.ai.data.repository.AiInsightRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -81,6 +85,8 @@ class AiInsightsViewModel
         activityRepository: ActivityRepository,
         private val dayManagementRepository: DayManagementRepository,
         private val aiInsightRepository: AiInsightRepository,
+        userAwarenessRepository: UserAwarenessRepository,
+        focusContextRepository: FocusContextRepository,
     ) : ViewModel() {
         val messages: StateFlow<List<AiMessage>> =
             aiInsightRepository.observeInsights()
@@ -89,15 +95,39 @@ class AiInsightsViewModel
 
         init {
             viewModelScope.launch {
-                activityRepository.getLogStream()
-                    .map { records -> buildInsights(records) }
-                    .collect { generated ->
-                        aiInsightRepository.upsertInsights(generated)
-                    }
+                combine(
+                    activityRepository.getLogStream(),
+                    userAwarenessRepository.observeActiveState(),
+                    focusContextRepository.observeActiveFocusContextIds(),
+                ) { records, activeState, focusedContextIds ->
+                    buildInsights(
+                        records = records,
+                        activeStateType = activeState.type,
+                        hasFocusedContexts = focusedContextIds.isNotEmpty(),
+                    )
+                }.collect { generated ->
+                    val persistedById = aiInsightRepository.getAllSync().associateBy { it.id }
+                    val merged =
+                        generated.map { item ->
+                            persistedById[item.id]?.let { persisted ->
+                                item.copy(
+                                    isRead = persisted.isRead,
+                                    isFavorite = persisted.isFavorite,
+                                    version = persisted.version,
+                                    isDeleted = persisted.isDeleted,
+                                )
+                            } ?: item
+                        }
+                    aiInsightRepository.upsertInsights(merged)
+                }
             }
         }
 
-        private suspend fun buildInsights(records: List<ActivityRecord>): List<AiInsightEntity> {
+        private suspend fun buildInsights(
+            records: List<ActivityRecord>,
+            activeStateType: UserAwarenessStateType,
+            hasFocusedContexts: Boolean,
+        ): List<AiInsightEntity> {
             val now = System.currentTimeMillis()
             val todayStart = startOfDay(now)
             val yesterdayStart = todayStart - 24 * 60 * 60 * 1000
@@ -144,6 +174,19 @@ class AiInsightsViewModel
                         isRead = false,
                     ),
                 )
+            }
+            if (activeStateType == UserAwarenessStateType.CRISIS && !hasFocusedContexts) {
+                messages.add(
+                    AiInsightEntity(
+                        id = CRISIS_NO_FOCUS_CONTEXT_INSIGHT_ID,
+                        text = "Кризовий режим активний, але фокус-контекстів немає. Створи окремий контекст для цієї кризи та познач його як фокус.",
+                        type = MessageType.WARNING.name,
+                        timestamp = now,
+                        isRead = false,
+                    ),
+                )
+            } else {
+                aiInsightRepository.deleteById(CRISIS_NO_FOCUS_CONTEXT_INSIGHT_ID)
             }
 
             fun durationMinutes(record: ActivityRecord): Long {
@@ -243,6 +286,7 @@ class AiInsightsViewModel
         companion object {
             private const val DAY_FOCUS_TAG = "#day_focus"
             private const val TARGET_DAY_FOCUS_COUNT = 3
+            private const val CRISIS_NO_FOCUS_CONTEXT_INSIGHT_ID = "crisis_no_focus_context"
         }
 
         private fun startOfDay(timestamp: Long): Long {

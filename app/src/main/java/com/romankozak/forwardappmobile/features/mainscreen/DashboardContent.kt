@@ -136,7 +136,8 @@ private fun AnimatedCommandDeck(
     var overviewExpanded by remember { mutableStateOf(false) }
     var quickActionsStage by remember { mutableIntStateOf(0) }
     var aiInsightsExpanded by remember { mutableStateOf(false) }
-    var focusContextsExpanded by remember { mutableStateOf(false) }
+    var focusContextsExpanded by remember { mutableStateOf(true) }
+    var dismissedInsightIds by remember { mutableStateOf(emptySet<String>()) }
 
     val dayUiState by dayPlanViewModel.uiState.collectAsStateWithLifecycle()
     val recentItems by recentViewModel.recentItems.collectAsStateWithLifecycle()
@@ -225,37 +226,6 @@ private fun AnimatedCommandDeck(
 
         item {
             SectionHeader(
-                title = "AI Insights",
-                subtitle = if (aiInsightsExpanded) "Останні інсайти" else "Згорнуто",
-                isExpanded = aiInsightsExpanded,
-                onClick = { aiInsightsExpanded = !aiInsightsExpanded },
-            )
-        }
-
-        if (aiInsightsExpanded) {
-            val latestInsights = aiInsights.filterNot { it.isRead }.take(3)
-            if (latestInsights.isNotEmpty()) {
-                latestInsights.forEach { insight ->
-                    item {
-                        AiInsightCard(
-                            insight = insight,
-                            onMarkRead = { aiInsightsViewModel.markRead(insight.id) },
-                        )
-                    }
-                }
-            } else {
-                item {
-                    MetricCard(
-                        title = "Немає інсайтів",
-                        value = "Поки що немає аналітики",
-                        subtitle = "AI ще не згенерував інсайти",
-                    )
-                }
-            }
-        }
-
-        item {
-            SectionHeader(
                 title = "Фокус-контексти",
                 subtitle =
                     if (focusContextsExpanded) {
@@ -287,6 +257,43 @@ private fun AnimatedCommandDeck(
                             onDefocus = { focusContextsViewModel.unfocus(focusedContext.contextId) },
                         )
                     }
+                }
+            }
+        }
+
+        item {
+            SectionHeader(
+                title = "AI Insights",
+                subtitle = if (aiInsightsExpanded) "Останні інсайти" else "Згорнуто",
+                isExpanded = aiInsightsExpanded,
+                onClick = { aiInsightsExpanded = !aiInsightsExpanded },
+            )
+        }
+
+        if (aiInsightsExpanded) {
+            val latestInsights =
+                aiInsights
+                    .filterNot { it.isRead || dismissedInsightIds.contains(it.id) }
+                    .take(3)
+            if (latestInsights.isNotEmpty()) {
+                latestInsights.forEach { insight ->
+                    item(key = "deck_insight_${insight.id}") {
+                        AiInsightCard(
+                            insight = insight,
+                            onMarkRead = {
+                                dismissedInsightIds = dismissedInsightIds + insight.id
+                                aiInsightsViewModel.markRead(insight.id)
+                            },
+                        )
+                    }
+                }
+            } else {
+                item {
+                    MetricCard(
+                        title = "Немає інсайтів",
+                        value = "Поки що немає аналітики",
+                        subtitle = "AI ще не згенерував інсайти",
+                    )
                 }
             }
         }
