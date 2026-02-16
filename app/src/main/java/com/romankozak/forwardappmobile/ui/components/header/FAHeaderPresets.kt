@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.sp
 fun TodayHeader(
     date: Long?,
     statsText: String? = null,
+    titleTrailingContent: @Composable (() -> Unit)? = null,
 ): HeaderLayout {
     val primaryColor = MaterialTheme.colorScheme.primary
 
@@ -41,14 +42,20 @@ fun TodayHeader(
         // ----------------------
         topLeft = {
             Column(horizontalAlignment = Alignment.Start) {
-                Text(
-                    "Today",
-                    style =
-                        MaterialTheme.typography.titleLarge.copy(
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold,
-                        ),
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Today",
+                        style =
+                            MaterialTheme.typography.titleLarge.copy(
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                    )
+                    if (titleTrailingContent != null) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        titleTrailingContent()
+                    }
+                }
                 Column {
                     Text(
                         text = "The Alpha and Omega of everything",
@@ -116,20 +123,29 @@ fun TodayHeader(
  * StrategyHeader: простий Left + (опис) + Right-іконка.
  */
 @Composable
-fun StrategyHeader(onModeClick: () -> Unit): HeaderLayout {
+fun StrategyHeader(
+    onModeClick: () -> Unit,
+    titleTrailingContent: @Composable (() -> Unit)? = null,
+): HeaderLayout {
     val primaryColor = MaterialTheme.colorScheme.primary
 
     return LeftCenterCombinedHeaderLayout(
         left = {
             Column(horizontalAlignment = Alignment.Start) {
-                Text(
-                    "Strategy",
-                    style =
-                        MaterialTheme.typography.titleLarge.copy(
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold,
-                        ),
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Strategy",
+                        style =
+                            MaterialTheme.typography.titleLarge.copy(
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                    )
+                    if (titleTrailingContent != null) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        titleTrailingContent()
+                    }
+                }
                 Text(
                     text = "Long-term planning mode",
                     fontSize = 10.sp,
@@ -176,20 +192,29 @@ fun StrategyHeader(onModeClick: () -> Unit): HeaderLayout {
  * Strategic Arc header.
  */
 @Composable
-fun StrategicArcHeader(onModeClick: () -> Unit): HeaderLayout {
+fun StrategicArcHeader(
+    onModeClick: () -> Unit,
+    titleTrailingContent: @Composable (() -> Unit)? = null,
+): HeaderLayout {
     val primaryColor = MaterialTheme.colorScheme.primary
 
     return LeftCenterCombinedHeaderLayout(
         left = {
             Column(horizontalAlignment = Alignment.Start) {
-                Text(
-                    "Strategic Arc",
-                    style =
-                        MaterialTheme.typography.titleLarge.copy(
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold,
-                        ),
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Strategic Arc",
+                        style =
+                            MaterialTheme.typography.titleLarge.copy(
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                    )
+                    if (titleTrailingContent != null) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        titleTrailingContent()
+                    }
+                }
                 Text(
                     text = "The current Arc of your story",
                     fontSize = 10.sp,
@@ -240,6 +265,7 @@ fun CommandDeckHeaderPreset(
     onClick: (() -> Unit)? = null,
     onRightClick: (() -> Unit)? = null,
     rightContent: @Composable (() -> Unit)? = null,
+    titleTrailingContent: @Composable (() -> Unit)? = null,
 ): HeaderLayout {
     val primaryColor = MaterialTheme.colorScheme.primary
 
@@ -247,13 +273,19 @@ fun CommandDeckHeaderPreset(
         onClick = onClick,
         left = {
             Column {
-                Text(
-                    text = "Forward",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.8.sp,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Forward",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (titleTrailingContent != null) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        titleTrailingContent()
+                    }
+                }
                 Text(
                     text = "Score your goals!",
                     fontSize = 10.sp,
@@ -315,19 +347,25 @@ fun CommandDeckHeaderPreset(
  * Tactics header.
  */
 @Composable
-fun TacticsHeader(): HeaderLayout {
+fun TacticsHeader(titleTrailingContent: @Composable (() -> Unit)? = null): HeaderLayout {
     val primaryColor = MaterialTheme.colorScheme.primary
 
     return LeftCenterCombinedHeaderLayout(
         left = {
             Column {
-                Text(
-                    text = "Tactics",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.8.sp,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Tactics",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (titleTrailingContent != null) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        titleTrailingContent()
+                    }
+                }
                 Text(
                     text = "Your job is to make the impossible possible.",
                     fontSize = 10.sp,
@@ -374,19 +412,25 @@ fun TacticsHeader(): HeaderLayout {
  * Core header.
  */
 @Composable
-fun CoreHeader(): HeaderLayout {
+fun CoreHeader(titleTrailingContent: @Composable (() -> Unit)? = null): HeaderLayout {
     val primaryColor = MaterialTheme.colorScheme.primary
 
     return LeftCenterCombinedHeaderLayout(
         left = {
             Column {
-                Text(
-                    text = "Core",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.8.sp,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Core",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (titleTrailingContent != null) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        titleTrailingContent()
+                    }
+                }
                 Text(
                     text = "Your primary beacons.",
                     fontSize = 10.sp,

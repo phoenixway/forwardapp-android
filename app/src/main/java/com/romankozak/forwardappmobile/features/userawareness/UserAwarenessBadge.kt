@@ -9,6 +9,7 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -17,7 +18,9 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.domain.userawareness.UserAwarenessStateType
 import com.romankozak.forwardappmobile.domain.userawareness.UserStateInterval
@@ -41,6 +44,54 @@ fun UserAwarenessBadge(
         label = { Text(label) },
         modifier = modifier,
     )
+}
+
+@Composable
+fun UserAwarenessHeaderBadge(
+    activeState: UserStateInterval?,
+    onOpenQuickSwitch: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val state = activeState ?: return
+    if (state.type == UserAwarenessStateType.NORMAL) return
+
+    val (label, container, content) =
+        when (state.type) {
+            UserAwarenessStateType.CRISIS ->
+                Triple(
+                    "C${state.crisisLevel ?: 1}",
+                    MaterialTheme.colorScheme.errorContainer,
+                    MaterialTheme.colorScheme.onErrorContainer,
+                )
+            UserAwarenessStateType.EXHAUSTION ->
+                Triple(
+                    "EXH",
+                    MaterialTheme.colorScheme.tertiaryContainer,
+                    MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+            UserAwarenessStateType.UNPRODUCTIVE ->
+                Triple(
+                    "LOW",
+                    MaterialTheme.colorScheme.secondaryContainer,
+                    MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+            UserAwarenessStateType.NORMAL -> Triple("", Color.Transparent, Color.Transparent)
+        }
+
+    Surface(
+        onClick = onOpenQuickSwitch,
+        color = container,
+        contentColor = content,
+        shape = MaterialTheme.shapes.small,
+        modifier = modifier,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+        )
+    }
 }
 
 @Composable

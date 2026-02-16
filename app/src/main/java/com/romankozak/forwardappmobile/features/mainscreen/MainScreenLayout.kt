@@ -59,7 +59,7 @@ import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.TodayBot
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.features.strategicmanagement.StrategicManagementScreen
-import com.romankozak.forwardappmobile.features.userawareness.UserAwarenessBadge
+import com.romankozak.forwardappmobile.features.userawareness.UserAwarenessHeaderBadge
 import com.romankozak.forwardappmobile.features.userawareness.UserAwarenessQuickSwitchDialog
 import com.romankozak.forwardappmobile.features.userawareness.UserAwarenessViewModel
 import com.romankozak.forwardappmobile.ui.dialogs.WifiImportDialog
@@ -168,6 +168,12 @@ fun MainScreenLayout(
         ) { commandDeckViewModel.openContextInput() }
 
     val selectedTabIndex = (pagerState.currentPage % tabs.size + tabs.size) % tabs.size
+    val titleStateBadge: @Composable (() -> Unit) = {
+        UserAwarenessHeaderBadge(
+            activeState = activeUserAwarenessState,
+            onOpenQuickSwitch = { showStateSwitchDialog = true },
+        )
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -182,6 +188,7 @@ fun MainScreenLayout(
                                 CommandDeckHeaderPreset(
                                     onClick = {},
                                     onRightClick = { onNavigateToCharacter() },
+                                    titleTrailingContent = titleStateBadge,
                                     rightContent = {
                                         if (showBadge) {
                                             Badge(
@@ -203,7 +210,7 @@ fun MainScreenLayout(
 
                     MAIN_SCREEN_CORE_ROUTE ->
                         FAHeader(
-                            layout = CoreHeader(),
+                            layout = CoreHeader(titleTrailingContent = titleStateBadge),
                             backgroundStyle = FAHeaderBackground.CommandDeck,
                             modifier = headerModifier,
                         )
@@ -228,6 +235,7 @@ fun MainScreenLayout(
                             layout =
                                 TodayHeader(
                                     date = dayPlanUiState.dayPlan?.date,
+                                    titleTrailingContent = titleStateBadge,
                                 ),
                             backgroundStyle = FAHeaderBackground.CommandDeck,
                             modifier = headerModifier,
@@ -236,28 +244,28 @@ fun MainScreenLayout(
 
                     STRATEGIC_MANAGEMENT_ROUTE ->
                         FAHeader(
-                            layout = StrategyHeader(onModeClick = {}),
+                            layout = StrategyHeader(onModeClick = {}, titleTrailingContent = titleStateBadge),
                             backgroundStyle = FAHeaderBackground.CommandDeck,
                             modifier = headerModifier,
                         )
 
                     MAIN_SCREEN_STRATEGIC_ARC_ROUTE ->
                         FAHeader(
-                            layout = StrategicArcHeader(onModeClick = {}),
+                            layout = StrategicArcHeader(onModeClick = {}, titleTrailingContent = titleStateBadge),
                             backgroundStyle = FAHeaderBackground.CommandDeck,
                             modifier = headerModifier,
                         )
 
                     MAIN_SCREEN_TACTICS_ROUTE ->
                         FAHeader(
-                            layout = TacticsHeader(),
+                            layout = TacticsHeader(titleTrailingContent = titleStateBadge),
                             backgroundStyle = FAHeaderBackground.CommandDeck,
                             modifier = headerModifier,
                         )
 
                     else ->
                         FAHeader(
-                            layout = CommandDeckHeaderPreset(onClick = {}),
+                            layout = CommandDeckHeaderPreset(onClick = {}, titleTrailingContent = titleStateBadge),
                             backgroundStyle = FAHeaderBackground.CommandDeck,
                             modifier = headerModifier,
                         )
@@ -615,12 +623,6 @@ fun MainScreenLayout(
             onTrack = commandDeckViewModel::startContextTracking,
             onClear = commandDeckViewModel::clearContextInput,
             onDismiss = commandDeckViewModel::closeContextInput,
-        )
-
-        UserAwarenessBadge(
-            activeState = activeUserAwarenessState,
-            onOpenQuickSwitch = { showStateSwitchDialog = true },
-            modifier = Modifier.padding(top = 8.dp, end = 12.dp).align(androidx.compose.ui.Alignment.TopEnd),
         )
 
         if (showStateSwitchDialog) {
