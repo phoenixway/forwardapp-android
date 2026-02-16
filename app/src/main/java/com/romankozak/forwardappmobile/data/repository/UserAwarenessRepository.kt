@@ -28,12 +28,12 @@ class UserAwarenessRepository
                 (entity ?: UserStateIntervalEntity(
                     stateType = UserAwarenessStateType.NORMAL.name,
                     startedAt = System.currentTimeMillis(),
-                )).toDomain()
+                )).toUserStateInterval()
             }
 
         suspend fun getActiveState(now: Long = System.currentTimeMillis()): UserStateInterval {
             return appDatabase.withTransaction {
-                (userStateIntervalDao.getActive() ?: ensureDefaultStateLocked(now)).toDomain()
+                (userStateIntervalDao.getActive() ?: ensureDefaultStateLocked(now)).toUserStateInterval()
             }
         }
 
@@ -55,7 +55,7 @@ class UserAwarenessRepository
         suspend fun getStateTimeline(
             from: Long,
             to: Long,
-        ): List<UserStateInterval> = userStateIntervalDao.getTimeline(fromInclusive = from, toInclusive = to).map { it.toDomain() }
+        ): List<UserStateInterval> = userStateIntervalDao.getTimeline(fromInclusive = from, toInclusive = to).map { it.toUserStateInterval() }
 
         suspend fun applyStateChangeFromActivity(
             change: UserStateChange,
@@ -149,7 +149,7 @@ class UserAwarenessRepository
 
         suspend fun getStateAt(atMillis: Long): UserStateInterval {
             val found = userStateIntervalDao.getActiveAt(atMillis)
-            return (found ?: getActiveState(atMillis)).toDomain()
+            return if (found != null) found.toUserStateInterval() else getActiveState(atMillis)
         }
 
         suspend fun ensureDefaultState(now: Long = System.currentTimeMillis()) {
@@ -157,7 +157,7 @@ class UserAwarenessRepository
         }
 
         suspend fun ensureDefaultStateInTransaction(now: Long = System.currentTimeMillis()): UserStateInterval =
-            ensureDefaultStateLocked(now).toDomain()
+            ensureDefaultStateLocked(now).toUserStateInterval()
 
         private suspend fun applyStateChangeLocked(
             change: UserStateChange,
@@ -169,7 +169,7 @@ class UserAwarenessRepository
             val active = userStateIntervalDao.getActive() ?: ensureDefaultStateLocked(now)
 
             if (isSameState(active, normalized)) {
-                return active.toDomain()
+                return active.toUserStateInterval()
             }
 
             userStateIntervalDao.closeActiveIntervals(now)
@@ -184,7 +184,7 @@ class UserAwarenessRepository
                     endedAt = null,
                 )
             val id = userStateIntervalDao.insert(newInterval)
-            return newInterval.copy(id = id).toDomain()
+            return newInterval.copy(id = id).toUserStateInterval()
         }
 
         private suspend fun ensureDefaultStateLocked(now: Long): UserStateIntervalEntity {
@@ -229,7 +229,7 @@ class UserAwarenessRepository
         private fun normalizeLabel(label: String?): String? = label?.trim()?.ifBlank { null }
     }
 
-private fun UserStateIntervalEntity.toDomain(): UserStateInterval =
+private fun UserStateIntervalEntity.toUserStateInterval(): UserStateInterval =
     UserStateInterval(
         id = id,
         type = UserAwarenessStateType.valueOf(stateType),
