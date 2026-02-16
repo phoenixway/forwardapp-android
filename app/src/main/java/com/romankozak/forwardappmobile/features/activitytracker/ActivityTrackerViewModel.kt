@@ -4,7 +4,10 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
+import com.romankozak.forwardappmobile.data.repository.ActivityInputOutcome
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
+import com.romankozak.forwardappmobile.domain.userawareness.StateSlashCommandParser
+import com.romankozak.forwardappmobile.domain.userawareness.UserAwarenessStateType
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.domain.reminders.cancelForActivityRecord
 import com.romankozak.forwardappmobile.domain.reminders.scheduleForActivityRecord
@@ -28,6 +31,7 @@ class ActivityTrackerViewModel
         private val repository: ActivityRepository,
         private val alarmScheduler: AlarmScheduler,
         private val savedStateHandle: SavedStateHandle,
+        private val slashCommandParser: StateSlashCommandParser,
     ) : ViewModel() {
         private val _inputText = MutableStateFlow("")
         val inputText = _inputText.asStateFlow()
@@ -43,6 +47,8 @@ class ActivityTrackerViewModel
 
         private val _recordForReminder = MutableStateFlow<ActivityRecord?>(null)
         val recordForReminder = _recordForReminder.asStateFlow()
+        private val _snackbarEvents = MutableSharedFlow<String>()
+        val snackbarEvents = _snackbarEvents.asSharedFlow()
 
         val activityLog: StateFlow<List<ActivityRecord>> =
             repository
@@ -85,7 +91,12 @@ class ActivityTrackerViewModel
         fun onTimelessRecordClick() =
             viewModelScope.launch {
                 if (_inputText.value.isBlank()) return@launch
-                repository.addTimelessRecord(_inputText.value)
+                val result = repository.addTimelessRecord(_inputText.value)
+                if (result.outcome == ActivityInputOutcome.STATE_CHANGED_ONLY) {
+                    result.appliedStateChange?.let { change ->
+                        _snackbarEvents.emit(stateChangeMessage(change.type, change.crisisLevel))
+                    }
+                }
                 clearInput()
             }
 
@@ -96,12 +107,36 @@ class ActivityTrackerViewModel
                 val now = System.currentTimeMillis()
 
                 if (text.isNotBlank()) {
-                    repository.startActivity(text, now)
+                    val parsed = slashCommandParser.parse(text)
+                    if (parsed.detectedChange != null && parsed.cleanedText.isBlank()) {
+                        val result = repository.addTimelessRecord(text, now)
+                        if (result.outcome == ActivityInputOutcome.STATE_CHANGED_ONLY) {
+                            _snackbarEvents.emit(
+                                stateChangeMessage(
+                                    parsed.detectedChange.type,
+                                    parsed.detectedChange.crisisLevel,
+                                ),
+                            )
+                        }
+                    } else {
+                        repository.startActivity(text, now)
+                    }
                 } else if (ongoingActivity != null) {
                     repository.endLastActivity(now)
                 }
 
                 clearInput()
+            }
+
+        private fun stateChangeMessage(
+            type: UserAwarenessStateType,
+            crisisLevel: Int?,
+        ): String =
+            when (type) {
+                UserAwarenessStateType.NORMAL -> "Стан: NORMAL"
+                UserAwarenessStateType.CRISIS -> "Стан: CRISIS L${crisisLevel ?: 1}"
+                UserAwarenessStateType.EXHAUSTION -> "Стан: EXHAUSTION"
+                UserAwarenessStateType.UNPRODUCTIVE -> "Стан: LOW DRIVE"
             }
 
         fun onEditRequest(record: ActivityRecord) {

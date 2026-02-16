@@ -9,6 +9,7 @@ import com.romankozak.forwardappmobile.domain.ai.events.ActivityFinishedEvent
 import com.romankozak.forwardappmobile.domain.ai.events.ActivityLoggedEvent
 import com.romankozak.forwardappmobile.domain.userawareness.ContextStateMinutes
 import com.romankozak.forwardappmobile.domain.userawareness.StateSlashCommandParser
+import com.romankozak.forwardappmobile.domain.userawareness.UserStateChange
 import com.romankozak.forwardappmobile.domain.userawareness.UserAwarenessStateType
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
@@ -16,6 +17,17 @@ import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+
+enum class ActivityInputOutcome {
+    LOGGED,
+    STATE_CHANGED_ONLY,
+    IGNORED_BLANK,
+}
+
+data class ActivityInputResult(
+    val outcome: ActivityInputOutcome,
+    val appliedStateChange: UserStateChange? = null,
+)
 
 @Singleton
 class ActivityRepository
@@ -34,9 +46,23 @@ class ActivityRepository
         suspend fun addTimelessRecord(
             text: String,
             timestamp: Long = System.currentTimeMillis(),
-        ) {
-            if (text.isBlank()) return
+        ): ActivityInputResult {
+            if (text.isBlank()) return ActivityInputResult(ActivityInputOutcome.IGNORED_BLANK)
             val parsed = stateSlashCommandParser.parse(text)
+            if (parsed.cleanedText.isBlank() && parsed.detectedChange != null) {
+                appDatabase.withTransaction {
+                    userAwarenessRepository.ensureDefaultStateInTransaction(timestamp)
+                    userAwarenessRepository.applyStateChangeFromActivityInTransaction(
+                        change = parsed.detectedChange,
+                        activityId = UUID.randomUUID().toString(),
+                        now = timestamp,
+                    )
+                }
+                return ActivityInputResult(
+                    outcome = ActivityInputOutcome.STATE_CHANGED_ONLY,
+                    appliedStateChange = parsed.detectedChange,
+                )
+            }
             val recordId = UUID.randomUUID().toString()
             val record =
                 ActivityRecord(
@@ -76,6 +102,10 @@ class ActivityRepository
                     antiXp = record.antyXp ?: 0,
                     isOngoing = false,
                 ),
+            )
+            return ActivityInputResult(
+                outcome = ActivityInputOutcome.LOGGED,
+                appliedStateChange = parsed.detectedChange,
             )
         }
 

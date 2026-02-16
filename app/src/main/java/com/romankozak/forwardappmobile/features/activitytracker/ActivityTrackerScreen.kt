@@ -83,13 +83,21 @@ fun ActivityTrackerScreen(
     val recordForReminder by viewModel.recordForReminder.collectAsStateWithLifecycle()
     var showClearConfirmDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var showMatrixSplash by remember { mutableStateOf(false) }
     var quickDoneDialogState by remember { mutableStateOf<String?>(null) }
     val holdMenuController = rememberHoldMenu2()
 
+    LaunchedEffect(Unit) {
+        viewModel.snackbarEvents.collect { message ->
+            snackbarHostState.showSnackbar(message)
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
+            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
             topBar = {
                 ActivityTrackerTopAppBar(
                     onNavigateBack = { navController.popBackStack() },
