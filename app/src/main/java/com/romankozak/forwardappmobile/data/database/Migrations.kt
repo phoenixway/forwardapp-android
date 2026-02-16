@@ -1494,3 +1494,35 @@ val MIGRATION_104_105 =
             db.execSQL("ALTER TABLE `tactical_missions` ADD COLUMN `mission_order` INTEGER NOT NULL DEFAULT 0")
         }
     }
+
+val MIGRATION_105_106 =
+    object : Migration(105, 106) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `user_state_intervals` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `stateType` TEXT NOT NULL,
+                    `crisisLevel` INTEGER,
+                    `label` TEXT,
+                    `source` TEXT NOT NULL,
+                    `createdFromActivityId` TEXT,
+                    `startedAt` INTEGER NOT NULL,
+                    `endedAt` INTEGER
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_user_state_intervals_endedAt` ON `user_state_intervals` (`endedAt`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_user_state_intervals_startedAt` ON `user_state_intervals` (`startedAt`)")
+
+            db.execSQL("ALTER TABLE `activity_records` ADD COLUMN `rawNoteText` TEXT")
+            db.execSQL("ALTER TABLE `activity_records` ADD COLUMN `noteText` TEXT")
+            db.execSQL("ALTER TABLE `activity_records` ADD COLUMN `stateEventType` TEXT")
+            db.execSQL("ALTER TABLE `activity_records` ADD COLUMN `stateEventCrisisLevel` INTEGER")
+            db.execSQL("ALTER TABLE `activity_records` ADD COLUMN `stateEventLabel` TEXT")
+            db.execSQL("ALTER TABLE `activity_records` ADD COLUMN `stateEventApplied` INTEGER NOT NULL DEFAULT 0")
+
+            db.execSQL("UPDATE `activity_records` SET `rawNoteText` = `text` WHERE `rawNoteText` IS NULL")
+            db.execSQL("UPDATE `activity_records` SET `noteText` = `text` WHERE `noteText` IS NULL")
+        }
+    }

@@ -59,6 +59,9 @@ import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.TodayBot
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.features.strategicmanagement.StrategicManagementScreen
+import com.romankozak.forwardappmobile.features.userawareness.UserAwarenessBadge
+import com.romankozak.forwardappmobile.features.userawareness.UserAwarenessQuickSwitchDialog
+import com.romankozak.forwardappmobile.features.userawareness.UserAwarenessViewModel
 import com.romankozak.forwardappmobile.ui.dialogs.WifiImportDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiServerDialog
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
@@ -143,7 +146,10 @@ fun MainScreenLayout(
     val context = LocalContext.current
     val dayPlanViewModel: DayPlanViewModel = hiltViewModel()
     val dayPlanUiState by dayPlanViewModel.uiState.collectAsState()
+    val userAwarenessViewModel: UserAwarenessViewModel = hiltViewModel()
+    val activeUserAwarenessState by userAwarenessViewModel.activeState.collectAsStateWithLifecycle()
     var showAboutDialog by remember { mutableStateOf(false) }
+    var showStateSwitchDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(commandDeckViewModel) {
         commandDeckViewModel.uiEvents.collect { message ->
@@ -610,6 +616,22 @@ fun MainScreenLayout(
             onClear = commandDeckViewModel::clearContextInput,
             onDismiss = commandDeckViewModel::closeContextInput,
         )
+
+        UserAwarenessBadge(
+            activeState = activeUserAwarenessState,
+            onOpenQuickSwitch = { showStateSwitchDialog = true },
+            modifier = Modifier.padding(top = 8.dp, end = 12.dp).align(androidx.compose.ui.Alignment.TopEnd),
+        )
+
+        if (showStateSwitchDialog) {
+            UserAwarenessQuickSwitchDialog(
+                onDismiss = { showStateSwitchDialog = false },
+                onNormal = userAwarenessViewModel::setNormal,
+                onExhaustion = userAwarenessViewModel::setExhaustion,
+                onUnproductive = userAwarenessViewModel::setUnproductive,
+                onCrisis = userAwarenessViewModel::setCrisis,
+            )
+        }
 
         if (importChoiceUri != null) {
             AlertDialog(

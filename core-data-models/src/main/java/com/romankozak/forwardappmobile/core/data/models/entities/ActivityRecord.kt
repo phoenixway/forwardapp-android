@@ -12,6 +12,12 @@ data class ActivityRecord(
     @PrimaryKey
     @SerializedName("id") val id: String = UUID.randomUUID().toString(),
     @SerializedName("text") val text: String,
+    @SerializedName("rawNoteText") val rawNoteText: String? = null,
+    @SerializedName("noteText") val noteText: String? = null,
+    @SerializedName("stateEventType") val stateEventType: String? = null,
+    @SerializedName("stateEventCrisisLevel") val stateEventCrisisLevel: Int? = null,
+    @SerializedName("stateEventLabel") val stateEventLabel: String? = null,
+    @SerializedName("stateEventApplied") val stateEventApplied: Boolean = false,
     @SerializedName("createdAt") val createdAt: Long = System.currentTimeMillis(),
     @SerializedName("startTime") val startTime: Long? = null,
     @SerializedName("endTime") val endTime: Long? = null,

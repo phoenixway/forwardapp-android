@@ -31,8 +31,12 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -216,11 +220,14 @@ private fun AnimatedCommandDeck(
         }
 
         if (aiInsightsExpanded) {
-            val latestInsights = aiInsights.take(3)
+            val latestInsights = aiInsights.filterNot { it.isRead }.take(3)
             if (latestInsights.isNotEmpty()) {
                 latestInsights.forEach { insight ->
                     item {
-                        AiInsightCard(insight = insight)
+                        AiInsightCard(
+                            insight = insight,
+                            onMarkRead = { aiInsightsViewModel.markRead(insight.id) },
+                        )
                     }
                 }
             } else {
@@ -352,7 +359,11 @@ private fun ActionCardItem(action: ActionCard) {
 }
 
 @Composable
-private fun AiInsightCard(insight: AiMessage) {
+@OptIn(ExperimentalMaterial3Api::class)
+private fun AiInsightCard(
+    insight: AiMessage,
+    onMarkRead: () -> Unit,
+) {
     val backgroundColor = when (insight.type) {
         MessageType.MOTIVATION -> MaterialTheme.colorScheme.primaryContainer
         MessageType.JOKE -> MaterialTheme.colorScheme.secondaryContainer
@@ -368,27 +379,61 @@ private fun AiInsightCard(insight: AiMessage) {
         MessageType.ERROR -> MaterialTheme.colorScheme.onErrorContainer
     }
     val timeFormatter = remember { java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()) }
+    val dismissState =
+        rememberSwipeToDismissBoxState(
+            confirmValueChange = { value ->
+                if (value == SwipeToDismissBoxValue.StartToEnd || value == SwipeToDismissBoxValue.EndToStart) {
+                    onMarkRead()
+                    true
+                } else {
+                    false
+                }
+            },
+        )
 
-    Card(
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
+                        .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.CheckCircle,
+                    contentDescription = "Позначити прочитаним",
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+        },
+        enableDismissFromStartToEnd = true,
+        enableDismissFromEndToStart = true,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = backgroundColor),
     ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = backgroundColor),
         ) {
-            Text(
-                text = insight.text,
-                color = textColor,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (insight.isRead) FontWeight.Normal else FontWeight.Bold,
-            )
-            Text(
-                text = "${insight.type.name.lowercase().replaceFirstChar { it.uppercase() }} • ${timeFormatter.format(java.util.Date(insight.timestamp))}",
-                color = textColor.copy(alpha = 0.7f),
-                style = MaterialTheme.typography.labelSmall,
-            )
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = insight.text,
+                    color = textColor,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (insight.isRead) FontWeight.Normal else FontWeight.Bold,
+                )
+                Text(
+                    text = "${insight.type.name.lowercase().replaceFirstChar { it.uppercase() }} • ${timeFormatter.format(java.util.Date(insight.timestamp))}",
+                    color = textColor.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
         }
     }
 }

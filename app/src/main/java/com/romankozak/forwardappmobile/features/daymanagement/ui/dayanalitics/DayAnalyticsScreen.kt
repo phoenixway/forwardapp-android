@@ -182,6 +182,20 @@ fun AnalyticsOverviewScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
+                if (uiState.isTurbulentWeek) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        ) {
+                            Text(
+                                text = "Турбулентний період: метрики квот інтерпретуються мʼякше, без фіксації провалів.",
+                                modifier = Modifier.padding(14.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
+                }
                 item {
                     ProductivityOverviewCard(insights = uiState.insights)
                 }

@@ -92,6 +92,7 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_101_102
 import com.romankozak.forwardappmobile.data.database.MIGRATION_102_103
 import com.romankozak.forwardappmobile.data.database.MIGRATION_103_104
 import com.romankozak.forwardappmobile.data.database.MIGRATION_104_105
+import com.romankozak.forwardappmobile.data.database.MIGRATION_105_106
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
@@ -246,6 +247,7 @@ object DatabaseModule {
             MIGRATION_102_103,
             MIGRATION_103_104,
             MIGRATION_104_105,
+            MIGRATION_105_106,
         ).build()
     }
 
@@ -296,6 +298,10 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideAiInsightDao(appDatabase: AppDatabase): AiInsightDao = appDatabase.aiInsightDao()
+
+    @Provides
+    @Singleton
+    fun provideUserStateIntervalDao(appDatabase: AppDatabase) = appDatabase.userStateIntervalDao()
 
     @Provides
     @Singleton

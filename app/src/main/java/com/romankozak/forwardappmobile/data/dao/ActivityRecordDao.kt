@@ -109,4 +109,19 @@ interface ActivityRecordDao {
 
     @Query("SELECT * FROM activity_records")
     suspend fun getAllRaw(): List<ActivityRecord>
+
+    @Query(
+        """
+        SELECT * FROM activity_records
+        WHERE context_id IS NOT NULL
+          AND startTime IS NOT NULL
+          AND endTime IS NOT NULL
+          AND startTime BETWEEN :fromTimestamp AND :toTimestamp
+        ORDER BY startTime ASC
+        """,
+    )
+    suspend fun getCompletedContextActivitiesBetween(
+        fromTimestamp: Long,
+        toTimestamp: Long,
+    ): List<ActivityRecord>
 }

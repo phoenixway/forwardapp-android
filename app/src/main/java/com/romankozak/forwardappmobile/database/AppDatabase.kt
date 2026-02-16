@@ -33,6 +33,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.data.models.entities.ScriptEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.SystemAppEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.UserStateIntervalEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.AiEventEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.AiInsightEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.ChatMessageEntity
@@ -59,6 +60,7 @@ import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
 import com.romankozak.forwardappmobile.data.dao.ReminderDao
 import com.romankozak.forwardappmobile.data.dao.ScriptDao
 import com.romankozak.forwardappmobile.data.dao.SystemAppDao
+import com.romankozak.forwardappmobile.data.dao.UserStateIntervalDao
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
@@ -115,6 +117,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         TacticalMissionAttachmentCrossRef::class,
         AiEventEntity::class,
         LifeSystemStateEntity::class,
+        UserStateIntervalEntity::class,
         AiInsightEntity::class,
         GoalFts::class,
         ContextsFts::class,
@@ -122,7 +125,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 105,
+    version = 106,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -188,4 +191,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun attachmentDao(): AttachmentDao
 
     abstract fun aiInsightDao(): AiInsightDao
+
+    abstract fun userStateIntervalDao(): UserStateIntervalDao
 }

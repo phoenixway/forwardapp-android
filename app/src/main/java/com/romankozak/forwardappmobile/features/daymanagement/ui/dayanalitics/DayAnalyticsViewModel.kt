@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.WeeklyInsights
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
+import com.romankozak.forwardappmobile.data.repository.UserAwarenessRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +29,7 @@ data class DayAnalyticsUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val lastUpdated: Long? = null,
+    val isTurbulentWeek: Boolean = false,
 )
 
 @HiltViewModel
@@ -35,6 +37,7 @@ class DayAnalyticsViewModel
     @Inject
     constructor(
         private val dayManagementRepository: DayManagementRepository,
+        private val userAwarenessRepository: UserAwarenessRepository,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(DayAnalyticsUiState())
         val uiState: StateFlow<DayAnalyticsUiState> = _uiState.asStateFlow()
@@ -71,6 +74,8 @@ class DayAnalyticsViewModel
                         Instant.now()
                             .minus(range.days.toLong(), ChronoUnit.DAYS)
                             .toEpochMilli()
+                    val now = Instant.now().toEpochMilli()
+                    val awarenessFlags = userAwarenessRepository.getWeeklyReviewFlags(startDate, now)
 
                     dayManagementRepository.getWeeklyInsights(startDate)
                         .catch { exception ->
@@ -89,6 +94,7 @@ class DayAnalyticsViewModel
                                     insights = weeklyInsights,
                                     lastUpdated = System.currentTimeMillis(),
                                     error = null,
+                                    isTurbulentWeek = awarenessFlags.turbulent,
                                 )
                             }
                         }

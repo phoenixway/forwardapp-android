@@ -1,10 +1,15 @@
 package com.romankozak.forwardappmobile.data.repository
 
+import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
+import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.domain.ai.events.ActivityFinishedEvent
 import com.romankozak.forwardappmobile.domain.ai.events.ActivityLoggedEvent
+import com.romankozak.forwardappmobile.domain.userawareness.ContextStateMinutes
+import com.romankozak.forwardappmobile.domain.userawareness.StateSlashCommandParser
+import com.romankozak.forwardappmobile.domain.userawareness.UserAwarenessStateType
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import kotlinx.coroutines.flow.Flow
@@ -20,6 +25,9 @@ class ActivityRepository
         private val goalDao: GoalDao,
         private val contextDao: ContextDao,
         private val aiEventRepository: AiEventRepository,
+        private val appDatabase: AppDatabase,
+        private val userAwarenessRepository: UserAwarenessRepository,
+        private val stateSlashCommandParser: StateSlashCommandParser,
     ) {
         fun getLogStream(): Flow<List<ActivityRecord>> = activityRecordDao.getAllRecordsStream()
 
@@ -28,10 +36,18 @@ class ActivityRepository
             timestamp: Long = System.currentTimeMillis(),
         ) {
             if (text.isBlank()) return
+            val parsed = stateSlashCommandParser.parse(text)
+            val recordId = UUID.randomUUID().toString()
             val record =
                 ActivityRecord(
-                    id = UUID.randomUUID().toString(),
-                    text = text,
+                    id = recordId,
+                    text = parsed.cleanedText,
+                    rawNoteText = text,
+                    noteText = parsed.cleanedText,
+                    stateEventType = parsed.detectedChange?.type?.name,
+                    stateEventCrisisLevel = parsed.detectedChange?.crisisLevel,
+                    stateEventLabel = parsed.detectedChange?.label,
+                    stateEventApplied = parsed.detectedChange != null,
                     createdAt = timestamp,
                     startTime = null,
                     endTime = null,
@@ -41,7 +57,17 @@ class ActivityRepository
                     syncedAt = null,
                     version = 1,
                 )
-            activityRecordDao.insert(record)
+            appDatabase.withTransaction {
+                userAwarenessRepository.ensureDefaultStateInTransaction(timestamp)
+                activityRecordDao.insert(record)
+                parsed.detectedChange?.let {
+                    userAwarenessRepository.applyStateChangeFromActivityInTransaction(
+                        change = it,
+                        activityId = recordId,
+                        now = timestamp,
+                    )
+                }
+            }
             aiEventRepository.emit(
                 ActivityLoggedEvent(
                     timestamp = java.time.Instant.ofEpochMilli(timestamp),
@@ -57,12 +83,19 @@ class ActivityRepository
             text: String,
             startTime: Long,
         ): ActivityRecord {
-            endLastActivity(startTime)
+            val parsed = stateSlashCommandParser.parse(text)
             val now = System.currentTimeMillis()
+            val recordId = UUID.randomUUID().toString()
             val newRecord =
                 ActivityRecord(
-                    id = UUID.randomUUID().toString(),
-                    text = text,
+                    id = recordId,
+                    text = parsed.cleanedText,
+                    rawNoteText = text,
+                    noteText = parsed.cleanedText,
+                    stateEventType = parsed.detectedChange?.type?.name,
+                    stateEventCrisisLevel = parsed.detectedChange?.crisisLevel,
+                    stateEventLabel = parsed.detectedChange?.label,
+                    stateEventApplied = parsed.detectedChange != null,
                     createdAt = now,
                     startTime = startTime,
                     endTime = null,
@@ -72,7 +105,28 @@ class ActivityRepository
                     syncedAt = null,
                     version = 1,
                 )
-            activityRecordDao.insert(newRecord)
+            appDatabase.withTransaction {
+                userAwarenessRepository.ensureDefaultStateInTransaction(startTime)
+                val ongoingActivity = activityRecordDao.findLastOngoingActivity()
+                ongoingActivity?.let {
+                    activityRecordDao.update(
+                        it.copy(
+                            endTime = startTime,
+                            updatedAt = startTime,
+                            syncedAt = null,
+                            version = it.version + 1,
+                        ),
+                    )
+                }
+                activityRecordDao.insert(newRecord)
+                parsed.detectedChange?.let {
+                    userAwarenessRepository.applyStateChangeFromActivityInTransaction(
+                        change = it,
+                        activityId = recordId,
+                        now = startTime,
+                    )
+                }
+            }
             aiEventRepository.emit(
                 ActivityLoggedEvent(
                     timestamp = java.time.Instant.ofEpochMilli(now),
@@ -102,10 +156,11 @@ class ActivityRepository
         suspend fun startGoalActivity(goalId: String): ActivityRecord? {
             val goal = goalDao.getGoalById(goalId) ?: return null
             val now = System.currentTimeMillis()
-            endLastActivity(now)
             val newRecord =
                 ActivityRecord(
                     text = goal.text,
+                    rawNoteText = goal.text,
+                    noteText = goal.text,
                     startTime = now,
                     goalId = goalId,
                     createdAt = now,
@@ -115,7 +170,21 @@ class ActivityRepository
                     syncedAt = null,
                     version = 1,
                 )
-            activityRecordDao.insert(newRecord)
+            appDatabase.withTransaction {
+                userAwarenessRepository.ensureDefaultStateInTransaction(now)
+                val ongoingActivity = activityRecordDao.findLastOngoingActivity()
+                ongoingActivity?.let {
+                    activityRecordDao.update(
+                        it.copy(
+                            endTime = now,
+                            updatedAt = now,
+                            syncedAt = null,
+                            version = it.version + 1,
+                        ),
+                    )
+                }
+                activityRecordDao.insert(newRecord)
+            }
             aiEventRepository.emit(
                 ActivityLoggedEvent(
                     timestamp = java.time.Instant.ofEpochMilli(now),
@@ -155,10 +224,11 @@ class ActivityRepository
         suspend fun startContextActivity(contextId: String): ActivityRecord? {
             val context = contextDao.getContextById(contextId) ?: return null
             val now = System.currentTimeMillis()
-            endLastActivity(now)
             val newRecord =
                 ActivityRecord(
                     text = context.name,
+                    rawNoteText = context.name,
+                    noteText = context.name,
                     startTime = now,
                     contextId = contextId,
                     createdAt = now,
@@ -168,7 +238,21 @@ class ActivityRepository
                     syncedAt = null,
                     version = 1,
                 )
-            activityRecordDao.insert(newRecord)
+            appDatabase.withTransaction {
+                userAwarenessRepository.ensureDefaultStateInTransaction(now)
+                val ongoingActivity = activityRecordDao.findLastOngoingActivity()
+                ongoingActivity?.let {
+                    activityRecordDao.update(
+                        it.copy(
+                            endTime = now,
+                            updatedAt = now,
+                            syncedAt = null,
+                            version = it.version + 1,
+                        ),
+                    )
+                }
+                activityRecordDao.insert(newRecord)
+            }
             aiEventRepository.emit(
                 ActivityLoggedEvent(
                     timestamp = java.time.Instant.ofEpochMilli(now),
@@ -188,10 +272,18 @@ class ActivityRepository
         ) {
             if (text.isBlank()) return
             val now = System.currentTimeMillis()
+            val parsed = stateSlashCommandParser.parse(text)
+            val recordId = UUID.randomUUID().toString()
             val record =
                 ActivityRecord(
-                    id = UUID.randomUUID().toString(),
-                    text = text,
+                    id = recordId,
+                    text = parsed.cleanedText,
+                    rawNoteText = text,
+                    noteText = parsed.cleanedText,
+                    stateEventType = parsed.detectedChange?.type?.name,
+                    stateEventCrisisLevel = parsed.detectedChange?.crisisLevel,
+                    stateEventLabel = parsed.detectedChange?.label,
+                    stateEventApplied = parsed.detectedChange != null,
                     createdAt = now,
                     startTime = now,
                     endTime = now,
@@ -201,7 +293,17 @@ class ActivityRepository
                     syncedAt = null,
                     version = 1,
                 )
-            activityRecordDao.insert(record)
+            appDatabase.withTransaction {
+                userAwarenessRepository.ensureDefaultStateInTransaction(now)
+                activityRecordDao.insert(record)
+                parsed.detectedChange?.let {
+                    userAwarenessRepository.applyStateChangeFromActivityInTransaction(
+                        change = it,
+                        activityId = recordId,
+                        now = now,
+                    )
+                }
+            }
             aiEventRepository.emit(
                 ActivityFinishedEvent(
                     timestamp = java.time.Instant.ofEpochMilli(now),
@@ -273,5 +375,36 @@ class ActivityRepository
 
         fun getActivitiesForContextStream(contextId: String): Flow<List<ActivityRecord>> {
             return activityRecordDao.getRecordsForContextStream(contextId)
+        }
+
+        suspend fun getTrackedMinutesByContextAndState(
+            fromTimestamp: Long,
+            toTimestamp: Long,
+        ): List<ContextStateMinutes> {
+            val records = activityRecordDao.getCompletedContextActivitiesBetween(fromTimestamp, toTimestamp)
+            if (records.isEmpty()) return emptyList()
+
+            val buckets = linkedMapOf<String, ContextStateMinutes>()
+            records.forEach { record ->
+                val contextId = record.contextId ?: return@forEach
+                val durationMinutes =
+                    (((record.endTime ?: return@forEach) - (record.startTime ?: return@forEach)) / 60000L)
+                        .toInt()
+                        .coerceAtLeast(0)
+                if (durationMinutes == 0) return@forEach
+
+                val stateType = userAwarenessRepository.getStateAt(record.startTime ?: record.createdAt).type
+                val current = buckets[contextId] ?: ContextStateMinutes(contextId = contextId)
+                val updated =
+                    when (stateType) {
+                        UserAwarenessStateType.NORMAL -> current.copy(normalMinutes = current.normalMinutes + durationMinutes)
+                        UserAwarenessStateType.CRISIS -> current.copy(crisisMinutes = current.crisisMinutes + durationMinutes)
+                        UserAwarenessStateType.EXHAUSTION -> current.copy(exhaustionMinutes = current.exhaustionMinutes + durationMinutes)
+                        UserAwarenessStateType.UNPRODUCTIVE ->
+                            current.copy(unproductiveMinutes = current.unproductiveMinutes + durationMinutes)
+                    }
+                buckets[contextId] = updated
+            }
+            return buckets.values.toList()
         }
     }
