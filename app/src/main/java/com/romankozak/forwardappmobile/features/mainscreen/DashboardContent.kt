@@ -403,7 +403,7 @@ private fun AiInsightCard(
                 contentAlignment = Alignment.CenterStart,
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.Check,
+                    imageVector = Icons.Default.Check,
                     contentDescription = "Позначити прочитаним",
                     tint = MaterialTheme.colorScheme.primary,
                 )
