@@ -23,25 +23,28 @@ import androidx.compose.material.icons.outlined.AlternateEmail
 import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.CenterFocusStrong
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.ImportExport
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.PlayCircle
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -133,6 +136,7 @@ private fun AnimatedCommandDeck(
     var overviewExpanded by remember { mutableStateOf(false) }
     var quickActionsStage by remember { mutableIntStateOf(0) }
     var aiInsightsExpanded by remember { mutableStateOf(false) }
+    var focusContextsExpanded by remember { mutableStateOf(false) }
 
     val dayUiState by dayPlanViewModel.uiState.collectAsStateWithLifecycle()
     val recentItems by recentViewModel.recentItems.collectAsStateWithLifecycle()
@@ -253,29 +257,36 @@ private fun AnimatedCommandDeck(
         item {
             SectionHeader(
                 title = "Фокус-контексти",
-                subtitle = if (focusedContexts.isEmpty()) "Поки порожньо" else "${focusedContexts.size} активних",
-                isExpanded = true,
-                onClick = {},
+                subtitle =
+                    if (focusContextsExpanded) {
+                        if (focusedContexts.isEmpty()) "Поки порожньо" else "${focusedContexts.size} активних"
+                    } else {
+                        "Згорнуто"
+                    },
+                isExpanded = focusContextsExpanded,
+                onClick = { focusContextsExpanded = !focusContextsExpanded },
             )
         }
 
-        if (focusedContexts.isEmpty()) {
-            item {
-                MetricCard(
-                    title = "Немає фокус-контекстів",
-                    value = "Додай контексти у фокус",
-                    subtitle = "через меню в ієрархії або з екрана контексту",
-                )
-            }
-        } else {
-            focusedContexts.forEach { focusedContext ->
+        if (focusContextsExpanded) {
+            if (focusedContexts.isEmpty()) {
                 item {
-                    FocusContextCard(
-                        name = focusedContext.name,
-                        onOpen = { onOpenFocusedContext(focusedContext.contextId) },
-                        onStartTracking = { focusContextsViewModel.startTracking(focusedContext.contextId) },
-                        onDefocus = { focusContextsViewModel.unfocus(focusedContext.contextId) },
+                    MetricCard(
+                        title = "Немає фокус-контекстів",
+                        value = "Додай контексти у фокус",
+                        subtitle = "через меню в ієрархії або з екрана контексту",
                     )
+                }
+            } else {
+                focusedContexts.forEach { focusedContext ->
+                    item {
+                        FocusContextCard(
+                            name = focusedContext.name,
+                            onOpen = { onOpenFocusedContext(focusedContext.contextId) },
+                            onStartTracking = { focusContextsViewModel.startTracking(focusedContext.contextId) },
+                            onDefocus = { focusContextsViewModel.unfocus(focusedContext.contextId) },
+                        )
+                    }
                 }
             }
         }
@@ -311,32 +322,46 @@ private fun FocusContextCard(
     onDefocus: () -> Unit,
 ) {
     Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.08f)),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = name,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.heightIn(min = 20.dp),
-            )
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                OutlinedButton(onClick = onOpen, modifier = Modifier.weight(1f)) {
-                    Text("Відкрити")
+                Box(
+                    modifier = Modifier.size(34.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.CenterFocusStrong,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
                 }
-                OutlinedButton(onClick = onStartTracking, modifier = Modifier.weight(1f)) {
-                    Text("Start tracking")
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.heightIn(min = 20.dp),
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                FilledTonalIconButton(onClick = onOpen) {
+                    Icon(Icons.Outlined.OpenInNew, contentDescription = "Відкрити контекст")
                 }
-                TextButton(onClick = onDefocus, modifier = Modifier.weight(1f)) {
-                    Text("Defocus")
+                FilledTonalIconButton(onClick = onStartTracking) {
+                    Icon(Icons.Outlined.PlayCircle, contentDescription = "Start tracking")
+                }
+                FilledTonalIconButton(onClick = onDefocus) {
+                    Icon(Icons.Outlined.VisibilityOff, contentDescription = "Зняти фокус")
                 }
             }
         }
