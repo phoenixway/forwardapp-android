@@ -38,18 +38,18 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.AiInsightEntity
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.FocusContextRepository
 import com.romankozak.forwardappmobile.data.repository.UserAwarenessRepository
-import com.romankozak.forwardappmobile.domain.userawareness.UserAwarenessStateType
 import com.romankozak.forwardappmobile.features.ai.data.repository.AiInsightRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -59,7 +59,6 @@ import java.util.Date
 import java.util.Locale
 import java.util.UUID
 import javax.inject.Inject
-import kotlin.math.max
 
 enum class MessageType {
     MOTIVATION,
@@ -85,6 +84,7 @@ class AiInsightsViewModel
         activityRepository: ActivityRepository,
         private val dayManagementRepository: DayManagementRepository,
         private val aiInsightRepository: AiInsightRepository,
+        private val insightPolicyEngine: InsightPolicyEngine,
         userAwarenessRepository: UserAwarenessRepository,
         focusContextRepository: FocusContextRepository,
     ) : ViewModel() {
@@ -99,188 +99,45 @@ class AiInsightsViewModel
                     activityRepository.getLogStream(),
                     userAwarenessRepository.observeActiveState(),
                     focusContextRepository.observeActiveFocusContextIds(),
-                ) { records, activeState, focusedContextIds ->
-                    buildInsights(
+                    tickerFlow(INSIGHTS_REEVALUATION_PERIOD_MS),
+                ) { records, activeState, focusedContextIds, _ ->
+                    insightPolicyEngine.evaluate(
                         records = records,
                         activeStateType = activeState.type,
                         hasFocusedContexts = focusedContextIds.isNotEmpty(),
+                        planBaseline = ensureTodayPlanBaseline(startOfDay(System.currentTimeMillis())),
                     )
-                }.collect { generated ->
+                }.collect { evaluation ->
+                    val generated = evaluation.insights
                     val persistedById = aiInsightRepository.getAllSync().associateBy { it.id }
                     val merged =
                         generated.map { item ->
                             persistedById[item.id]?.let { persisted ->
-                                if (item.id == TRACKER_UNDERUSED_INSIGHT_ID) {
-                                    // Keep this reminder unread while tracker is effectively unused.
-                                    return@let item.copy(
-                                        isRead = false,
-                                        isFavorite = persisted.isFavorite,
-                                        version = persisted.version,
-                                        isDeleted = persisted.isDeleted,
-                                    )
-                                }
-                                item.copy(
-                                    isRead = persisted.isRead,
-                                    isFavorite = persisted.isFavorite,
-                                    version = persisted.version,
-                                    isDeleted = persisted.isDeleted,
+                                insightPolicyEngine.mergeWithPersistedFlags(
+                                    generated = item,
+                                    persisted = persisted,
+                                    now = System.currentTimeMillis(),
                                 )
                             } ?: item
                         }
                     aiInsightRepository.upsertInsights(merged)
+                    evaluation.staleInsightIds.forEach { staleId -> aiInsightRepository.deleteById(staleId) }
                 }
             }
         }
 
-        private suspend fun buildInsights(
-            records: List<ActivityRecord>,
-            activeStateType: UserAwarenessStateType,
-            hasFocusedContexts: Boolean,
-        ): List<AiInsightEntity> {
-            val now = System.currentTimeMillis()
-            val todayStart = startOfDay(now)
-            val yesterdayStart = todayStart - 24 * 60 * 60 * 1000
-            val fiveHoursAgo = now - 5 * 60 * 60 * 1000
-            val sevenDaysAgo = now - 7L * 24L * 60L * 60L * 1000L
-
-            val todayRecords = records.filter { it.createdAt in todayStart until (todayStart + 24 * 60 * 60 * 1000) }
-            val yesterdayRecords = records.filter { it.createdAt in yesterdayStart until todayStart }
-            val lastFiveHours = records.filter { it.createdAt >= fiveHoursAgo }
-            val lastDay = records.filter { it.createdAt >= yesterdayStart }
-            val lastSevenDays = records.filter { it.createdAt >= sevenDaysAgo }
-
-            val messages = mutableListOf<AiInsightEntity>()
-
-            val planAdjustments = ensureTodayPlanBaseline(todayStart)
-
-            if (todayRecords.isEmpty()) {
-                messages.add(
-                    AiInsightEntity(
-                        id = "today_no_activity",
-                        text = "Сьогодні ще не було активностей. Заплануй або відслідкуй невелику дію, щоб розігрітися.",
-                        type = MessageType.WARNING.name,
-                        timestamp = now,
-                        isRead = false,
-                    ),
-                )
-            }
-            if (planAdjustments.hadNoDayPlan) {
-                messages.add(
-                    AiInsightEntity(
-                        id = "day_plan_missing",
-                        text = "На сьогодні не було плану дня. Створи/уточни план, щоб зафіксувати курс доби.",
-                        type = MessageType.WARNING.name,
-                        timestamp = now,
-                        isRead = false,
-                    ),
-                )
-            }
-            if (planAdjustments.focusCountBefore < TARGET_DAY_FOCUS_COUNT) {
-                messages.add(
-                    AiInsightEntity(
-                        id = "day_focus_missing_${planAdjustments.focusCountBefore}",
-                        text = "У плані дня лише ${planAdjustments.focusCountBefore}/$TARGET_DAY_FOCUS_COUNT фокуси #day_focus. Додай/уточни пріоритети на добу.",
-                        type = MessageType.WARNING.name,
-                        timestamp = now,
-                        isRead = false,
-                    ),
-                )
-            }
-            if (activeStateType == UserAwarenessStateType.CRISIS && !hasFocusedContexts) {
-                messages.add(
-                    AiInsightEntity(
-                        id = CRISIS_NO_FOCUS_CONTEXT_INSIGHT_ID,
-                        text = "Кризовий режим активний, але фокус-контекстів немає. Створи окремий контекст для цієї кризи та познач його як фокус.",
-                        type = MessageType.WARNING.name,
-                        timestamp = now,
-                        isRead = false,
-                    ),
-                )
-            } else {
-                aiInsightRepository.deleteById(CRISIS_NO_FOCUS_CONTEXT_INSIGHT_ID)
-            }
-            if (lastSevenDays.size < TRACKER_USAGE_MIN_RECORDS_PER_WEEK) {
-                messages.add(
-                    AiInsightEntity(
-                        id = TRACKER_UNDERUSED_INSIGHT_ID,
-                        text = "Трекер активностей майже не використовується. Спробуй логувати більше дій протягом дня, щоб AI Insights давали точніші підказки.",
-                        type = MessageType.INFO.name,
-                        timestamp = now,
-                        isRead = false,
-                    ),
-                )
-            } else {
-                aiInsightRepository.deleteById(TRACKER_UNDERUSED_INSIGHT_ID)
-            }
-
-            fun durationMinutes(record: ActivityRecord): Long {
-                return record.durationInMillis?.let { max(1L, it / 60_000) } ?: 1L
-            }
-
-            fun buildFocusMessage(
-                windowId: String,
-                windowLabel: String,
-                windowRecords: List<ActivityRecord>,
-                minMinutes: Long,
-            ) {
-                val grouped =
-                    windowRecords
-                        .filter { it.contextId != null }
-                        .groupBy { it.contextId!! }
-                        .mapValues { entry -> entry.value.sumOf { durationMinutes(it) } }
-                        .toList()
-                        .sortedByDescending { it.second }
-                        .take(3)
-                        .filter { it.second >= minMinutes }
-
-                grouped.forEachIndexed { index, (contextId, minutes) ->
-                    messages.add(
-                        AiInsightEntity(
-                            id = "${windowId}_${contextId}_$index",
-                            text = "Фокус за $windowLabel: проєкт $contextId ~ $minutes хв.",
-                            type = MessageType.INFO.name,
-                            timestamp = now,
-                            isRead = false,
-                        ),
-                    )
+        private fun tickerFlow(periodMillis: Long) =
+            flow {
+                emit(Unit)
+                while (true) {
+                    delay(periodMillis)
+                    emit(Unit)
                 }
             }
-
-            buildFocusMessage("focus_5h", "останні 5 год", lastFiveHours, minMinutes = 20)
-            buildFocusMessage("focus_24h", "добу", lastDay, minMinutes = 60)
-
-            val yesterdayXp = yesterdayRecords.sumOf { it.xpGained ?: 0 }
-            val yesterdayAnti = yesterdayRecords.sumOf { it.antyXp ?: 0 }
-            if (yesterdayRecords.isNotEmpty() && (yesterdayXp + yesterdayAnti) <= 3) {
-                messages.add(
-                    AiInsightEntity(
-                        id = "yesterday_low_activity",
-                        text = "Вчора було мало руху (+$yesterdayXp / -$yesterdayAnti). Спробуй запланувати один сфокусований блок сьогодні.",
-                        type = MessageType.INFO.name,
-                        timestamp = now,
-                        isRead = false,
-                    ),
-                )
-            }
-
-            if (messages.isEmpty()) {
-                messages.add(
-                    AiInsightEntity(
-                        id = "keep_it_up",
-                        text = "Продовжуй у тому ж дусі! Якщо хочеш, додай маленьку дію для підтримки ритму.",
-                        type = MessageType.MOTIVATION.name,
-                        timestamp = now,
-                        isRead = false,
-                    ),
-                )
-            }
-
-            return messages
-        }
 
         private suspend fun ensureTodayPlanBaseline(
             todayStart: Long,
-        ): PlanAdjustments {
+        ): PlanBaseline {
             val existingPlanId = dayManagementRepository.getPlanIdForDate(todayStart)
             val hadNoDayPlan = existingPlanId == null
             val existingTasks =
@@ -296,23 +153,15 @@ class AiInsightsViewModel
                         (task.description?.contains(DAY_FOCUS_TAG, ignoreCase = true) == true)
                 }
 
-            return PlanAdjustments(
+            return PlanBaseline(
                 hadNoDayPlan = hadNoDayPlan,
                 focusCountBefore = focusCount,
             )
         }
 
-        private data class PlanAdjustments(
-            val hadNoDayPlan: Boolean,
-            val focusCountBefore: Int,
-        )
-
         companion object {
             private const val DAY_FOCUS_TAG = "#day_focus"
-            private const val TARGET_DAY_FOCUS_COUNT = 3
-            private const val CRISIS_NO_FOCUS_CONTEXT_INSIGHT_ID = "crisis_no_focus_context"
-            private const val TRACKER_UNDERUSED_INSIGHT_ID = "tracker_underused"
-            private const val TRACKER_USAGE_MIN_RECORDS_PER_WEEK = 2
+            private const val INSIGHTS_REEVALUATION_PERIOD_MS = 30L * 60L * 1000L
         }
 
         private fun startOfDay(timestamp: Long): Long {
