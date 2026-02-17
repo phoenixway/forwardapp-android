@@ -33,7 +33,7 @@ Usage:
 
 Options:
   --flavor <prod-release|exp-debug|exp-release>
-  --action <install|download>
+  --action <install|download|none>
   --host <device|pc>                Optional. Default: install->device, download->pc
   --keep-all-apks
   -h, --help
@@ -41,6 +41,7 @@ Options:
 Examples:
   tools/gh_deploy.sh --flavor exp-release --action install
   tools/gh_deploy.sh --flavor prod-release --action download
+  tools/gh_deploy.sh --flavor exp-release --action none
 EOF
 }
 
@@ -192,16 +193,18 @@ function select_options() {
         echo -e "${YELLOW}Що робити після білда?${NC}"
         echo "1) Встановити APK на телефон"
         echo "2) Лише скачати APK у ./dist"
-        read -p "Choice [1-2]: " a_choice
+        echo "3) Нічого не робити, лише показати команду gh download"
+        read -p "Choice [1-3]: " a_choice
         case "$a_choice" in
             1) ACTION="install" ;;
             2) ACTION="download" ;;
+            3) ACTION="none" ;;
             *) echo -e "${RED}Invalid choice!${NC}"; exit 1 ;;
         esac
     fi
 
     case "$ACTION" in
-        install|download) ;;
+        install|download|none) ;;
         *)
             echo -e "${RED}Invalid --action: $ACTION${NC}"
             print_usage
@@ -246,6 +249,14 @@ echo -e "Selected Host: ${GREEN}${HOST}${NC}"
 
 ARTIFACT_NAME="apk-${FLAVOR}-${TYPE}"
 
+if [ "$ACTION" == "none" ]; then
+    echo ""
+    echo -e "${YELLOW}Action none: build trigger skipped.${NC}"
+    echo -e "${BLUE}Run this command to download latest artifact manually:${NC}"
+    echo "gh run download \"\$(gh run list --workflow=\"$WORKFLOW_FILE\" --limit=1 --json databaseId --jq '.[0].databaseId')\" -n \"$ARTIFACT_NAME\" -D \"$DIST_DIR/$ARTIFACT_NAME\""
+    exit 0
+fi
+
 echo ""
 echo -e "${BLUE}Triggering workflow...${NC}"
 
@@ -283,7 +294,7 @@ if [ $RUN_STATUS -ne 0 ]; then
 fi
 
 echo ""
-echo -e "${GREEN}Build successful. Downloading artifact...${NC}"
+echo -e "${GREEN}Build successful.${NC}"
 
 # ------------------ DOWNLOAD ------------------
 
