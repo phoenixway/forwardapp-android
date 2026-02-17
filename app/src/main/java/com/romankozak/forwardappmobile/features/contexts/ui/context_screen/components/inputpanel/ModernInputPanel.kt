@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.comp
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -9,12 +10,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.core.theme.LocalInputPanelColors
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller
+import kotlin.math.abs
 
 @Composable
 fun ModernInputPanel(
@@ -151,6 +154,16 @@ fun ModernInputPanel(
 
     val focusRequester = remember { FocusRequester() }
     val panelColors = getPanelColors(inputMode, LocalInputPanelColors.current)
+    val availableInputModes =
+        remember(isProjectManagementEnabled, currentView) {
+            listOfNotNull(
+                InputMode.AddGoal,
+                if (currentView == ContextViewMode.DIRECTION) InputMode.AddDirection else null,
+                InputMode.AddQuickRecord,
+                if (isProjectManagementEnabled) InputMode.AddProjectLog else null,
+                InputMode.SearchGlobal,
+            )
+        }
 
     Surface(
         modifier = modifier.padding(horizontal = 12.dp, vertical = 8.dp).fillMaxWidth(),
@@ -163,7 +176,29 @@ fun ModernInputPanel(
             NavigationBar(state, actions, panelColors.contentColor, holdMenuController)
 
             Row(
-                modifier = Modifier.defaultMinSize(minHeight = 64.dp).padding(horizontal = 8.dp, vertical = 10.dp),
+                modifier =
+                    Modifier
+                        .defaultMinSize(minHeight = 64.dp)
+                        .padding(horizontal = 8.dp, vertical = 10.dp)
+                        .pointerInput(inputMode, availableInputModes) {
+                            var dragOffsetX = 0f
+                            detectHorizontalDragGestures(
+                                onHorizontalDrag = { _, dragAmount -> dragOffsetX += dragAmount },
+                                onDragEnd = {
+                                    val threshold = 56f
+                                    if (abs(dragOffsetX) >= threshold && availableInputModes.isNotEmpty()) {
+                                        val currentIndex =
+                                            availableInputModes.indexOf(inputMode).takeIf { it >= 0 } ?: 0
+                                        val step = if (dragOffsetX < 0f) 1 else -1
+                                        val nextIndex =
+                                            (currentIndex + step + availableInputModes.size) %
+                                                availableInputModes.size
+                                        onInputModeSelected(availableInputModes[nextIndex])
+                                    }
+                                    dragOffsetX = 0f
+                                },
+                            )
+                        },
                 verticalAlignment = Alignment.Bottom,
             ) {
                 InputTextField(
