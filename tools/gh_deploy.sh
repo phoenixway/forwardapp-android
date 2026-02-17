@@ -248,7 +248,27 @@ CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 ARTIFACT_NAME="apk-${FLAVOR}-${TYPE}"
 
 if [ "$ACTION" == "none" ]; then
-    echo "gh run download \"\$(gh run list --workflow=\"$WORKFLOW_FILE\" --limit=1 --json databaseId --jq '.[0].databaseId')\" -n \"$ARTIFACT_NAME\" -D \"$DIST_DIR/$ARTIFACT_NAME\""
+    DOWNLOAD_RUN_ID=$(gh run list \
+        --workflow="$WORKFLOW_FILE" \
+        --branch "$CURRENT_BRANCH" \
+        --limit=50 \
+        --json databaseId,conclusion \
+        --jq 'map(select(.conclusion=="success")) | .[0].databaseId')
+
+    if [ -z "$DOWNLOAD_RUN_ID" ] || [ "$DOWNLOAD_RUN_ID" = "null" ]; then
+        DOWNLOAD_RUN_ID=$(gh run list \
+            --workflow="$WORKFLOW_FILE" \
+            --limit=50 \
+            --json databaseId,conclusion \
+            --jq 'map(select(.conclusion=="success")) | .[0].databaseId')
+    fi
+
+    if [ -z "$DOWNLOAD_RUN_ID" ] || [ "$DOWNLOAD_RUN_ID" = "null" ]; then
+        echo -e "${RED}No successful runs found for workflow $WORKFLOW_FILE.${NC}"
+        exit 1
+    fi
+
+    echo "rm -rf \"$DIST_DIR\" && mkdir -p \"$DIST_DIR/$ARTIFACT_NAME\" && gh run download \"$DOWNLOAD_RUN_ID\" -n \"$ARTIFACT_NAME\" -D \"$DIST_DIR/$ARTIFACT_NAME\""
     exit 0
 fi
 

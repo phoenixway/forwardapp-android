@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
@@ -29,8 +27,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -315,49 +314,98 @@ private fun DashboardOverview(
             ContextViewPolicy.availableViews(enabledCapabilities)
                 .map { mode -> DashboardViewItem(mode = mode, label = mode.dashboardLabel(), icon = mode.dashboardIcon()) }
         }
+    val contextTitle = project?.name?.trim().orEmpty().ifBlank { "Контекст" }
+    val previewAttachments = attachments.take(6)
 
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        // Header Row with Title, Badge, and Settings
-        Row(
+        ElevatedCard(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.elevatedCardColors(containerColor = Color.Transparent),
+            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
         ) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = project?.name.orEmpty(),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = "Context Dashboard",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Clip,
-                )
-            }
-            IconButton(onClick = onShowProperties) {
-                Icon(Icons.Default.Settings, contentDescription = "Project properties")
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .background(
+                            brush =
+                                Brush.linearGradient(
+                                    colors =
+                                        listOf(
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f),
+                                            MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        ),
+                                ),
+                        )
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = "Context Dashboard",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            text = contextTitle,
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    IconButton(onClick = onShowProperties) {
+                        Icon(Icons.Default.Settings, contentDescription = "Context properties")
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    AssistChip(
+                        onClick = {},
+                        label = { Text("Видів: ${activeViews.size}") },
+                    )
+                    AssistChip(
+                        onClick = {},
+                        label = { Text("Вкладень: ${attachments.size}") },
+                    )
+                }
             }
         }
 
         ElevatedCard(
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
             elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp),
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
                     text = "Активні види",
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "Обери, який режим контексту відкрити зараз",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
@@ -388,75 +436,41 @@ private fun DashboardOverview(
             }
         }
 
-        // Attachments Section (Conditional and Horizontally Scrollable)
         if (enableAttachments) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Attachments",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 8.dp),
-                )
-                if (attachments.isEmpty()) {
+            ElevatedCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp),
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     Text(
-                        text = "No attachments yet",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = "Вкладення",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
-                } else {
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(vertical = 4.dp),
-                    ) {
-                        items(attachments) { item ->
-                            val (icon, title) =
-                                when (item) {
-                                    is BacklogItemContent.LinkItem ->
-                                        Icons.Outlined.Link to (
-                                            item.link.linkData.displayName?.takeIf { it.isNotBlank() }
-                                                ?: item.link.linkData.target
-                                        )
-                                    is BacklogItemContent.NoteDocumentItem -> Icons.Outlined.Description to item.document.name.ifBlank { "Document" }
-                                    is BacklogItemContent.ChecklistItem -> Icons.Outlined.Checklist to (item.checklist.name ?: "Checklist")
-                                    else -> Icons.Default.Attachment to "Attachment"
-                                }
-                            Card(
+                    if (attachments.isEmpty()) {
+                        Text(
+                            text = "Поки немає вкладень у цьому контексті",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        previewAttachments.forEach { item ->
+                            AttachmentRowSummary(
+                                item = item,
                                 onClick = { onAttachmentClick(item) },
-                                modifier =
-                                    Modifier
-                                        .width(120.dp)
-                                        .height(100.dp),
-                                shape = RoundedCornerShape(12.dp),
-                                colors =
-                                    CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                                    ),
-                            ) {
-                                Column(
-                                    modifier =
-                                        Modifier
-                                            .fillMaxSize()
-                                            .padding(12.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center,
-                                ) {
-                                    Icon(
-                                        icon,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(24.dp),
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = title,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
-                                        textAlign = TextAlign.Center,
-                                    )
-                                }
-                            }
+                            )
+                        }
+                        if (attachments.size > previewAttachments.size) {
+                            Text(
+                                text = "Ще ${attachments.size - previewAttachments.size} елемент(ів) у вкладеннях",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
                 }
