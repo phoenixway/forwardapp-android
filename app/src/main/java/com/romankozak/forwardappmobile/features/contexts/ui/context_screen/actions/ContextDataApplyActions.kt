@@ -15,7 +15,7 @@ class ContextDataApplyActions(
     private val recentItemsRepository: RecentItemsRepository,
     private val scope: CoroutineScope,
 ) {
-    private var lastSyncKey: Triple<String, String?, Int>? = null
+    private var lastSyncKey: Triple<String, String?, String>? = null
 
     fun applyLoaded(
         data: ContextData.Loaded,
@@ -35,7 +35,8 @@ class ContextDataApplyActions(
         stateManager.updateState { currentState ->
             val contextId = data.context?.id ?: currentState.context?.id.orEmpty()
             val preferredViewName = data.context?.defaultViewModeName
-            val syncKey = Triple(contextId, preferredViewName, data.config.hashCode())
+            val configFingerprint = buildStableConfigFingerprint(data.config)
+            val syncKey = Triple(contextId, preferredViewName, configFingerprint)
             val session =
                 if (lastSyncKey == syncKey) {
                     contextSessionStore.state.value
@@ -97,5 +98,31 @@ class ContextDataApplyActions(
         clearAttachmentItems()
         stateManager.clear()
         stateManager.updateState { it.copy(isContextSwitching = false) }
+    }
+
+    private fun buildStableConfigFingerprint(
+        config: com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration,
+    ): String {
+        val experimentalIds =
+            config.experimentalCapabilityIds
+                .map { it.raw.trim() }
+                .filter { it.isNotEmpty() }
+                .sorted()
+                .joinToString(",")
+
+        return listOf(
+            config.contextId,
+            config.basePresetCode.orEmpty(),
+            config.applyMode,
+            config.enableInbox.toString(),
+            config.enableLog.toString(),
+            config.enableArtifact.toString(),
+            config.enableAdvanced.toString(),
+            config.enableDashboard.toString(),
+            config.enableBacklog.toString(),
+            config.enableAttachments.toString(),
+            config.enableAutoLinkSubprojects.toString(),
+            experimentalIds,
+        ).joinToString("|")
     }
 }

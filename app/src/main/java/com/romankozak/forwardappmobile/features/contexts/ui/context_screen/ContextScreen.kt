@@ -365,6 +365,7 @@ private fun ProjectScaffold(
                     viewModel = viewModel,
                     uiState = uiState,
                     currentViewMode = sessionState.currentView,
+                    enabledCapabilities = sessionState.enabledCapabilities,
                     listState = listState,
                     inboxListState = inboxListState,
                     onEditLog = viewModel::onEditLogEntry,

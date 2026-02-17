@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,6 +35,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
+import com.romankozak.forwardappmobile.core.context.ContextViewPolicy
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
@@ -65,6 +67,7 @@ fun GoalDetailContent(
     viewModel: ContextScreenViewModel,
     uiState: ContextUiState,
     currentViewMode: ContextViewMode,
+    enabledCapabilities: Set<CapabilityId>,
     listState: LazyListState,
     inboxListState: LazyListState,
     onEditLog: (ContextLog) -> Unit,
@@ -198,6 +201,7 @@ fun GoalDetailContent(
                 onShowProperties = onShowProjectProperties,
                 currentViewMode = currentViewMode,
                 onSwitchView = onSwitchView,
+                enabledCapabilities = enabledCapabilities,
                 enableDashboard = uiState.enableDashboard,
                 enableAttachments = uiState.enableAttachments,
                 enableLog = uiState.enableLog,
@@ -299,6 +303,7 @@ private fun DashboardOverview(
     onShowProperties: () -> Unit,
     currentViewMode: ContextViewMode,
     onSwitchView: (ContextViewMode) -> Unit,
+    enabledCapabilities: Set<CapabilityId>,
     enableDashboard: Boolean,
     enableAttachments: Boolean,
     enableLog: Boolean,
@@ -306,15 +311,9 @@ private fun DashboardOverview(
     enableKeyProblems: Boolean,
 ) {
     val activeViews =
-        buildList {
-            add(DashboardViewItem(ContextViewMode.BACKLOG, "Беклог", Icons.AutoMirrored.Outlined.List))
-            add(DashboardViewItem(ContextViewMode.INBOX, "Інбокс", Icons.Outlined.Inbox))
-            add(DashboardViewItem(ContextViewMode.DIRECTION, "Напрямок", Icons.Outlined.AccountTree))
-            if (enableAttachments) add(DashboardViewItem(ContextViewMode.ATTACHMENTS, "Вкладення", Icons.Default.Attachment))
-            if (enableDashboard) add(DashboardViewItem(ContextViewMode.DASHBOARD, "Дашборд", Icons.Default.Dashboard))
-            if (enableLog) add(DashboardViewItem(ContextViewMode.LOG, "Лог", Icons.Outlined.History))
-            if (enableArtifact) add(DashboardViewItem(ContextViewMode.ARTIFACT, "Артефакт", Icons.Outlined.Inventory2))
-            if (enableKeyProblems) add(DashboardViewItem(ContextViewMode.KEY_PROBLEMS, "Ключові проблеми", Icons.Outlined.Checklist))
+        remember(enabledCapabilities) {
+            ContextViewPolicy.availableViews(enabledCapabilities)
+                .map { mode -> DashboardViewItem(mode = mode, label = mode.dashboardLabel(), icon = mode.dashboardIcon()) }
         }
 
     Column(
@@ -329,27 +328,17 @@ private fun DashboardOverview(
         ) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "Project Dashboard",
-                    style = MaterialTheme.typography.titleLarge,
+                    text = project?.name.orEmpty(),
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
-                val statusText =
-                    project?.contextStatusText?.takeIf { it.isNotBlank() }
-                        ?: project?.contextStatus
-                if (!statusText.isNullOrBlank()) {
-                    Text(
-                        text = statusText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                    )
-                }
+                Text(
+                    text = "Context Dashboard",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Clip,
+                )
             }
             IconButton(onClick = onShowProperties) {
                 Icon(Icons.Default.Settings, contentDescription = "Project properties")
@@ -481,6 +470,36 @@ private data class DashboardViewItem(
     val label: String,
     val icon: ImageVector,
 )
+
+private fun ContextViewMode.dashboardLabel(): String =
+    when (this) {
+        ContextViewMode.BACKLOG -> "Беклог"
+        ContextViewMode.INBOX -> "Інбокс"
+        ContextViewMode.DIRECTION -> "Напрямок"
+        ContextViewMode.ATTACHMENTS -> "Вкладення"
+        ContextViewMode.DASHBOARD -> "Дашборд"
+        ContextViewMode.LOG -> "Лог"
+        ContextViewMode.ARTIFACT -> "Артефакт"
+        ContextViewMode.KEY_PROBLEMS -> "Ключові проблеми"
+        ContextViewMode.ADVANCED -> "Розширений"
+        ContextViewMode.NOTES -> "Нотатки"
+        ContextViewMode.VET_CASE -> "Вет кейс"
+    }
+
+private fun ContextViewMode.dashboardIcon(): ImageVector =
+    when (this) {
+        ContextViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.List
+        ContextViewMode.INBOX -> Icons.Outlined.Inbox
+        ContextViewMode.DIRECTION -> Icons.Outlined.AccountTree
+        ContextViewMode.ATTACHMENTS -> Icons.Default.Attachment
+        ContextViewMode.DASHBOARD -> Icons.Default.Dashboard
+        ContextViewMode.LOG -> Icons.Outlined.History
+        ContextViewMode.ARTIFACT -> Icons.Outlined.Inventory2
+        ContextViewMode.KEY_PROBLEMS -> Icons.Outlined.Checklist
+        ContextViewMode.ADVANCED -> Icons.Default.Dashboard
+        ContextViewMode.NOTES -> Icons.Outlined.Description
+        ContextViewMode.VET_CASE -> Icons.Outlined.Description
+    }
 
 @Composable
 private fun AttachmentRowSummary(
