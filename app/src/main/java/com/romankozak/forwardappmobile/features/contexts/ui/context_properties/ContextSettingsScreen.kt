@@ -171,8 +171,9 @@ fun ProjectSettingsScreen(
             else -> {
                 val settingsTabIndex = it - baseTabs.size
                 val tab = capabilitySettingsTabs.getOrNull(settingsTabIndex)
-                if (tab != null && uiState.contextId != null) {
-                    CapabilitySettingsTabContent(tab = tab, contextId = uiState.contextId)
+                val contextId = uiState.contextId
+                if (tab != null && contextId != null) {
+                    CapabilitySettingsTabContent(tab = tab, contextId = contextId)
                 }
             }
         }
