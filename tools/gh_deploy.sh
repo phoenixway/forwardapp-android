@@ -293,7 +293,15 @@ if [ "$ACTION" == "none" ]; then
     echo ""
     echo -e "${YELLOW}Artifact download skipped (--action none).${NC}"
     echo -e "${BLUE}Run this command to download artifact manually:${NC}"
-    echo "rm -rf \"$DIST_DIR\" && mkdir -p \"$DIST_DIR/$ARTIFACT_NAME\" && gh run download \"$RUN_ID\" -n \"$ARTIFACT_NAME\" -D \"$DIST_DIR/$ARTIFACT_NAME\""
+    DOWNLOAD_CMD="rm -rf \"$DIST_DIR\" && mkdir -p \"$DIST_DIR/$ARTIFACT_NAME\" && gh run download \"$RUN_ID\" -n \"$ARTIFACT_NAME\" -D \"$DIST_DIR/$ARTIFACT_NAME\""
+    echo "$DOWNLOAD_CMD"
+    echo ""
+    read -r -p "Execute this command now? [y/N]: " execute_now
+    case "$execute_now" in
+        y|Y|yes|YES)
+            eval "$DOWNLOAD_CMD"
+            ;;
+    esac
     show_logging_advice "$RUN_ID"
     echo -e "\n${BLUE}Done.${NC}"
     exit 0

@@ -195,6 +195,9 @@ fun GoalDetailContent(
             DashboardOverview(
                 modifier = modifier,
                 project = goalList,
+                backlogCount = listContent.size,
+                inboxCount = inboxRecords.size,
+                directionCount = uiState.directionItems.size,
                 attachments = attachmentItems,
                 onAttachmentClick = { item -> viewModel.itemActionHandler.onItemClick(item) },
                 onShowProperties = onShowProjectProperties,
@@ -297,6 +300,9 @@ fun GoalDetailContent(
 private fun DashboardOverview(
     modifier: Modifier = Modifier,
     project: Context?,
+    backlogCount: Int,
+    inboxCount: Int,
+    directionCount: Int,
     attachments: List<BacklogItemContent>,
     onAttachmentClick: (BacklogItemContent) -> Unit,
     onShowProperties: () -> Unit,
@@ -309,12 +315,28 @@ private fun DashboardOverview(
     enableArtifact: Boolean,
     enableKeyProblems: Boolean,
 ) {
+    val countsByMode =
+        remember(backlogCount, inboxCount, directionCount, attachments.size) {
+            mapOf(
+                ContextViewMode.BACKLOG to backlogCount,
+                ContextViewMode.INBOX to inboxCount,
+                ContextViewMode.DIRECTION to directionCount,
+                ContextViewMode.ATTACHMENTS to attachments.size,
+            )
+        }
     val activeViews =
-        remember(enabledCapabilities) {
+        remember(enabledCapabilities, countsByMode) {
             ContextViewPolicy.availableViews(enabledCapabilities)
-                .map { mode -> DashboardViewItem(mode = mode, label = mode.dashboardLabel(), icon = mode.dashboardIcon()) }
+                .map { mode ->
+                    DashboardViewItem(
+                        mode = mode,
+                        label = mode.dashboardLabelWithCount(countsByMode[mode]),
+                        icon = mode.dashboardIcon(),
+                    )
+                }
         }
     val contextTitle = project?.name?.trim().orEmpty().ifBlank { "Контекст" }
+    val roleBadge = project?.roleCode.toRoleBadgeText()
     val previewAttachments = attachments.take(6)
 
     Column(
@@ -375,6 +397,12 @@ private fun DashboardOverview(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    if (!roleBadge.isNullOrBlank()) {
+                        AssistChip(
+                            onClick = {},
+                            label = { Text(roleBadge) },
+                        )
+                    }
                     AssistChip(
                         onClick = {},
                         label = { Text("Видів: ${activeViews.size}") },
@@ -500,6 +528,11 @@ private fun ContextViewMode.dashboardLabel(): String =
         ContextViewMode.VET_CASE -> "Вет кейс"
     }
 
+private fun ContextViewMode.dashboardLabelWithCount(count: Int?): String {
+    if (count == null) return dashboardLabel()
+    return "${dashboardLabel()} ($count)"
+}
+
 private fun ContextViewMode.dashboardIcon(): ImageVector =
     when (this) {
         ContextViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.List
@@ -514,6 +547,11 @@ private fun ContextViewMode.dashboardIcon(): ImageVector =
         ContextViewMode.NOTES -> Icons.Outlined.Description
         ContextViewMode.VET_CASE -> Icons.Outlined.Description
     }
+
+private fun String?.toRoleBadgeText(): String? {
+    val code = this?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+    return "role: $code"
+}
 
 @Composable
 private fun AttachmentRowSummary(
