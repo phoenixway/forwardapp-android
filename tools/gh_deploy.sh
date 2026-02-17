@@ -238,24 +238,24 @@ function select_options() {
 # ------------------ MAIN ------------------
 
 check_gh_cli
-print_header
+if [ "${ACTION:-}" != "none" ]; then
+    print_header
+fi
 select_options
 
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-echo -e "Current Branch: ${GREEN}$CURRENT_BRANCH${NC}"
-echo -e "Selected Flavor: ${GREEN}${FLAVOR}-${TYPE}${NC}"
-echo -e "Selected Action: ${GREEN}${ACTION}${NC}"
-echo -e "Selected Host: ${GREEN}${HOST}${NC}"
 
 ARTIFACT_NAME="apk-${FLAVOR}-${TYPE}"
 
 if [ "$ACTION" == "none" ]; then
-    echo ""
-    echo -e "${YELLOW}Action none: build trigger skipped.${NC}"
-    echo -e "${BLUE}Run this command to download latest artifact manually:${NC}"
     echo "gh run download \"\$(gh run list --workflow=\"$WORKFLOW_FILE\" --limit=1 --json databaseId --jq '.[0].databaseId')\" -n \"$ARTIFACT_NAME\" -D \"$DIST_DIR/$ARTIFACT_NAME\""
     exit 0
 fi
+
+echo -e "Current Branch: ${GREEN}$CURRENT_BRANCH${NC}"
+echo -e "Selected Flavor: ${GREEN}${FLAVOR}-${TYPE}${NC}"
+echo -e "Selected Action: ${GREEN}${ACTION}${NC}"
+echo -e "Selected Host: ${GREEN}${HOST}${NC}"
 
 echo ""
 echo -e "${BLUE}Triggering workflow...${NC}"
