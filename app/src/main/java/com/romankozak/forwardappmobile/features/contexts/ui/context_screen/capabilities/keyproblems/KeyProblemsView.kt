@@ -19,12 +19,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
@@ -43,6 +46,13 @@ fun KeyProblemsView(
     onRemoveFocusContext: (String) -> Unit,
 ) {
     var showContextPicker by remember { mutableStateOf(false) }
+    var descriptionValue by remember { mutableStateOf(TextFieldValue(description)) }
+
+    LaunchedEffect(description) {
+        if (description != descriptionValue.text) {
+            descriptionValue = TextFieldValue(text = description, selection = TextRange(description.length))
+        }
+    }
 
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp),
@@ -63,8 +73,11 @@ fun KeyProblemsView(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 OutlinedTextField(
-                    value = description,
-                    onValueChange = onDescriptionChange,
+                    value = descriptionValue,
+                    onValueChange = {
+                        descriptionValue = it
+                        onDescriptionChange(it.text)
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 5,
                     placeholder = { Text("Що зараз є головною проблемою?") },
