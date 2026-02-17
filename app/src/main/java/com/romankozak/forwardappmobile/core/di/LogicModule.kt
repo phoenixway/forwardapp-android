@@ -20,6 +20,9 @@ import com.romankozak.forwardappmobile.core.gate.CapabilityGate
 import com.romankozak.forwardappmobile.core.navigation.capability.ContextAwareViewResolver
 import com.romankozak.forwardappmobile.core.navigation.capability.ViewRegistry
 import com.romankozak.forwardappmobile.core.navigation.capability.ViewResolver
+import com.romankozak.forwardappmobile.core.navigation.capability.settings.CapabilitySettingsEntry
+import com.romankozak.forwardappmobile.core.navigation.capability.settings.CapabilitySettingsRegistry
+import com.romankozak.forwardappmobile.core.navigation.capability.settings.InMemoryCapabilitySettingsRegistry
 import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 import com.romankozak.forwardappmobile.domain.lifecontext.DefaultLifeContextProcessor
 import com.romankozak.forwardappmobile.domain.lifecontext.LifeContextProcessor
@@ -48,6 +51,12 @@ object LogicModule {
     @Singleton
     fun provideCapabilityRegistry(availableCapabilities: @JvmSuppressWildcards Set<CapabilityDescriptor>): CapabilityRegistry =
         InMemoryCapabilityRegistry(availableCapabilities)
+
+    @Provides
+    @Singleton
+    fun provideCapabilitySettingsRegistry(
+        capabilitySettingsEntries: @JvmSuppressWildcards Set<CapabilitySettingsEntry>,
+    ): CapabilitySettingsRegistry = InMemoryCapabilitySettingsRegistry(capabilitySettingsEntries)
 
     @Provides
     @Singleton

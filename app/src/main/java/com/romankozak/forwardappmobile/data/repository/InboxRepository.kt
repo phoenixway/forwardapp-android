@@ -39,6 +39,30 @@ class InboxRepository
         }
 
         suspend fun updateInboxRecord(record: InboxRecord) {
+            inboxRecordDao.update(record)
+        }
+
+        suspend fun getInboxRecordsForContext(contextId: String): List<InboxRecord> = inboxRecordDao.getRecordsForContext(contextId)
+
+        suspend fun updateInboxRecordsOrder(
+            contextId: String,
+            orders: Map<String, Long>,
+        ) {
+            if (orders.isEmpty()) return
+            val now = System.currentTimeMillis()
+            val existing = inboxRecordDao.getRecordsForContext(contextId)
+            existing.forEach { record ->
+                val nextOrder = orders[record.id] ?: return@forEach
+                if (record.order == nextOrder) return@forEach
+                inboxRecordDao.update(
+                    record.copy(
+                        order = nextOrder,
+                        updatedAt = now,
+                        syncedAt = null,
+                        version = record.version + 1,
+                    ),
+                )
+            }
         }
 
         suspend fun deleteInboxRecordById(recordId: String) {

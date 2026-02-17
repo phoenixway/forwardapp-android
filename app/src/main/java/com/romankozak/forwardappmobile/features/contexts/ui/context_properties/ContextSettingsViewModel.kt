@@ -7,8 +7,9 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
-import com.romankozak.forwardappmobile.core.gate.CapabilityGate
 import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
+import com.romankozak.forwardappmobile.core.navigation.capability.settings.CapabilitySettingsEntry
+import com.romankozak.forwardappmobile.core.navigation.capability.settings.CapabilitySettingsRegistry
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
@@ -39,7 +40,7 @@ class ContextSettingsViewModel
         private val structurePresetDao: StructurePresetDao,
         private val contextStructureRepository: ContextStructureRepository,
         private val structurePresetService: StructurePresetService,
-        private val capabilityGate: CapabilityGate,
+        private val capabilitySettingsRegistry: CapabilitySettingsRegistry,
     ) : ViewModel(), EvaluationTabActions, RemindersTabActions {
         private val projectId: String? = savedStateHandle["projectId"]
 
@@ -48,6 +49,9 @@ class ContextSettingsViewModel
 
         private val _events = Channel<ContextSettingsEvent>()
         val events = _events.receiveAsFlow()
+
+        fun getAvailableCapabilitySettingsTabs(enabledCapabilityIds: Set<CapabilityId>): List<CapabilitySettingsEntry> =
+            capabilitySettingsRegistry.forCapabilities(enabledCapabilityIds)
 
         init {
             viewModelScope.launch {
@@ -93,6 +97,7 @@ class ContextSettingsViewModel
                 // 4. Оновлюємо стан UI одним атомарним блоком
                 _uiState.update { state ->
                     state.copy(
+                        contextId = project.id,
                         // Метадані проекту
                         title = state.title.copy(project.name),
                         description = state.description.copy(project.description ?: ""),
@@ -115,6 +120,7 @@ class ContextSettingsViewModel
                         isScoringEnabled = project.scoringStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS,
                         // Системна конфігурація
                         basePresetCode = structure?.basePresetCode,
+                        enabledCapabilityIds = structureFeatures.filterValues { it }.keys.map(::featureLabelToCapabilityId).toSet(),
                         experimentalCapabilityIds = structure?.experimentalCapabilityIds ?: emptyList(),
                         currentPresetLabel = presetLabel,
                         features = structureFeatures,
@@ -312,18 +318,7 @@ class ContextSettingsViewModel
             if (key == "Dashboard") return
 
             // 1. Мапимо текстовий ключ UI на системний CapabilityId
-            val capabilityId =
-                when (key) {
-                    "Inbox" -> CapabilityId("inbox")
-                    "Log" -> CapabilityId("log")
-                    "Artifact" -> CapabilityId("artifact")
-                    "Advanced" -> CapabilityId("advanced")
-                    "Dashboard" -> CapabilityId("dashboard")
-                    "Backlog" -> CapabilityId("backlog")
-                    "Attachments" -> CapabilityId("attachments")
-                    "Auto link subprojects" -> CapabilityId("auto_link_subprojects")
-                    else -> CapabilityId(key.lowercase().replace(" ", "_"))
-                }
+            val capabilityId = featureLabelToCapabilityId(key)
 
             _uiState.update { state ->
                 // 2. Оновлюємо список експериментальних можливостей для збереження в БД
@@ -340,6 +335,10 @@ class ContextSettingsViewModel
                 state.copy(
                     // Оновлюємо мапу для UI списку
                     features = state.features + (key to enabled),
+                    enabledCapabilityIds =
+                        state.enabledCapabilityIds.toMutableSet().apply {
+                            if (enabled) add(capabilityId) else remove(capabilityId)
+                        },
                     // Оновлюємо список для майбутнього persistFeatureFlags()
                     experimentalCapabilityIds = updatedExperimentalIds,
                     // Синхронізуємо спеціальні прапорці стану
@@ -358,6 +357,19 @@ class ContextSettingsViewModel
                 )
             }
         }
+
+        private fun featureLabelToCapabilityId(label: String): CapabilityId =
+            when (label) {
+                "Inbox" -> CapabilityId("inbox")
+                "Log" -> CapabilityId("log")
+                "Artifact" -> CapabilityId("artifact")
+                "Advanced" -> CapabilityId("advanced")
+                "Dashboard" -> CapabilityId("dashboard")
+                "Backlog" -> CapabilityId("backlog")
+                "Attachments" -> CapabilityId("attachments")
+                "Auto link subprojects" -> CapabilityId("auto_link_subprojects")
+                else -> CapabilityId(label.lowercase().replace(" ", "_"))
+            }
 
         /**
          * Збереження стану можливостей у БД

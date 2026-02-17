@@ -158,6 +158,9 @@ class ListItemRepository
             return listItemDao.getItemsByIds(ids)
         }
 
+        suspend fun getBacklogItemsForContext(contextId: String): List<BacklogItem> =
+            listItemDao.getItemsForContextSyncForDebug(contextId)
+
         suspend fun getGoalIdsForContext(contextId: String): List<String> {
             return listItemDao.getGoalIdsForContext(contextId)
         }

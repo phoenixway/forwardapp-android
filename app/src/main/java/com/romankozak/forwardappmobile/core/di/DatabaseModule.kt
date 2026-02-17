@@ -95,6 +95,7 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_104_105
 import com.romankozak.forwardappmobile.data.database.MIGRATION_105_106
 import com.romankozak.forwardappmobile.data.database.MIGRATION_106_107
 import com.romankozak.forwardappmobile.data.database.MIGRATION_107_108
+import com.romankozak.forwardappmobile.data.database.MIGRATION_108_109
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
@@ -103,6 +104,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextArtifactDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextKeyProblemsDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextInboxSortingDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.DirectionDao
@@ -253,6 +255,7 @@ object DatabaseModule {
             MIGRATION_105_106,
             MIGRATION_106_107,
             MIGRATION_107_108,
+            MIGRATION_108_109,
         ).build()
     }
 
@@ -295,6 +298,10 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideContextKeyProblemsDao(appDatabase: AppDatabase): ContextKeyProblemsDao = appDatabase.contextKeyProblemsDao()
+
+    @Provides
+    @Singleton
+    fun provideContextInboxSortingDao(appDatabase: AppDatabase): ContextInboxSortingDao = appDatabase.contextInboxSortingDao()
 
     @Provides
     @Singleton

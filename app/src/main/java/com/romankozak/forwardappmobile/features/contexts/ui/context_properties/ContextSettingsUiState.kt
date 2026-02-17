@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProf
 import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
 
 data class ContextSettingsUiState(
+    val contextId: String? = null,
     val title: TextFieldValue = TextFieldValue(""),
     val description: TextFieldValue = TextFieldValue(""),
     val tags: List<String> = emptyList(),
@@ -30,6 +31,7 @@ data class ContextSettingsUiState(
     val isProjectManagementEnabled: Boolean = false,
     val currentPresetLabel: String? = null,
     val basePresetCode: String? = null,
+    val enabledCapabilityIds: Set<CapabilityId> = emptySet(),
     val experimentalCapabilityIds: List<CapabilityId> = emptyList(),
     val availablePresets: List<ContextRoleProfile> = emptyList(),
     val autoLinkSubprojects: Boolean = true,

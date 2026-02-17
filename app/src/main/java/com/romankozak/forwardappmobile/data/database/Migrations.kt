@@ -1567,3 +1567,20 @@ val MIGRATION_107_108 =
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_focus_context_intervals_startedAt` ON `focus_context_intervals` (`startedAt`)")
         }
     }
+
+val MIGRATION_108_109 =
+    object : Migration(108, 109) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `context_inbox_sorting` (
+                    `context_id` TEXT NOT NULL,
+                    `rules_text` TEXT NOT NULL,
+                    `updated_at` INTEGER NOT NULL,
+                    PRIMARY KEY(`context_id`)
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_context_inbox_sorting_updated_at` ON `context_inbox_sorting` (`updated_at`)")
+        }
+    }

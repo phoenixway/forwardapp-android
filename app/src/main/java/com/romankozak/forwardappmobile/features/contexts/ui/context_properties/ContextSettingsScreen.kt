@@ -57,6 +57,7 @@ import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
+import com.romankozak.forwardappmobile.core.navigation.capability.settings.CapabilitySettingsEntry
 import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
 import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.DisplayTabContent
@@ -74,6 +75,7 @@ fun ProjectSettingsScreen(
     val context = LocalContext.current
     var showPresetDialog by remember { mutableStateOf(false) }
     var showPresetPicker by remember { mutableStateOf(false) }
+    val capabilitySettingsTabs = remember(uiState.enabledCapabilityIds) { viewModel.getAvailableCapabilitySettingsTabs(uiState.enabledCapabilityIds) }
 
     LaunchedEffect(key1 = true) {
         viewModel.events.collect { event ->
@@ -94,9 +96,18 @@ fun ProjectSettingsScreen(
         }
     }
 
-    val tabs = listOf("General", "Display", "Features", "Evaluation", "Reminders")
-    val tabIcons =
+    val baseTabs = listOf("General", "Display", "Features", "Evaluation", "Reminders")
+    val baseTabIcons =
         listOf(Icons.Default.Settings, Icons.Default.Style, Icons.Default.Build, Icons.Default.BarChart, Icons.Default.Notifications)
+    val tabs = baseTabs + capabilitySettingsTabs.map { it.descriptor.tabTitle }
+    val tabIcons = baseTabIcons + List(capabilitySettingsTabs.size) { Icons.Default.Build }
+    val selectedTabIndex = uiState.selectedTabIndex.coerceIn(0, (tabs.size - 1).coerceAtLeast(0))
+
+    LaunchedEffect(selectedTabIndex) {
+        if (selectedTabIndex != uiState.selectedTabIndex) {
+            viewModel.onTabSelected(selectedTabIndex)
+        }
+    }
     val titleText = if (uiState.isNewProject) "New Project" else "Edit Project"
 
     SettingsScreen(
@@ -104,7 +115,7 @@ fun ProjectSettingsScreen(
         navController = navController,
         tabs = tabs,
         tabIcons = tabIcons,
-        selectedTabIndex = uiState.selectedTabIndex,
+        selectedTabIndex = selectedTabIndex,
         onTabSelected = viewModel::onTabSelected,
         onSave = viewModel::onSave,
         isSaveEnabled = uiState.title.text.isNotBlank(),
@@ -157,6 +168,13 @@ fun ProjectSettingsScreen(
                     reminderTime = uiState.reminderTime,
                     onViewModelAction = viewModel,
                 )
+            else -> {
+                val settingsTabIndex = it - baseTabs.size
+                val tab = capabilitySettingsTabs.getOrNull(settingsTabIndex)
+                if (tab != null && uiState.contextId != null) {
+                    CapabilitySettingsTabContent(tab = tab, contextId = uiState.contextId)
+                }
+            }
         }
     }
 
@@ -195,6 +213,18 @@ fun ProjectSettingsScreen(
             onDismiss = { viewModel.closeDescriptionEditor() },
             onSave = { newText -> viewModel.onDescriptionChangeAndCloseEditor(newText) },
         )
+    }
+}
+
+@Composable
+private fun CapabilitySettingsTabContent(
+    tab: CapabilitySettingsEntry,
+    contextId: String,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+    ) {
+        tab.Content(contextId = contextId)
     }
 }
 
