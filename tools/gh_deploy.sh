@@ -238,39 +238,12 @@ function select_options() {
 # ------------------ MAIN ------------------
 
 check_gh_cli
-if [ "${ACTION:-}" != "none" ]; then
-    print_header
-fi
+print_header
 select_options
 
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
 ARTIFACT_NAME="apk-${FLAVOR}-${TYPE}"
-
-if [ "$ACTION" == "none" ]; then
-    DOWNLOAD_RUN_ID=$(gh run list \
-        --workflow="$WORKFLOW_FILE" \
-        --branch "$CURRENT_BRANCH" \
-        --limit=50 \
-        --json databaseId,conclusion \
-        --jq 'map(select(.conclusion=="success")) | .[0].databaseId')
-
-    if [ -z "$DOWNLOAD_RUN_ID" ] || [ "$DOWNLOAD_RUN_ID" = "null" ]; then
-        DOWNLOAD_RUN_ID=$(gh run list \
-            --workflow="$WORKFLOW_FILE" \
-            --limit=50 \
-            --json databaseId,conclusion \
-            --jq 'map(select(.conclusion=="success")) | .[0].databaseId')
-    fi
-
-    if [ -z "$DOWNLOAD_RUN_ID" ] || [ "$DOWNLOAD_RUN_ID" = "null" ]; then
-        echo -e "${RED}No successful runs found for workflow $WORKFLOW_FILE.${NC}"
-        exit 1
-    fi
-
-    echo "rm -rf \"$DIST_DIR\" && mkdir -p \"$DIST_DIR/$ARTIFACT_NAME\" && gh run download \"$DOWNLOAD_RUN_ID\" -n \"$ARTIFACT_NAME\" -D \"$DIST_DIR/$ARTIFACT_NAME\""
-    exit 0
-fi
 
 echo -e "Current Branch: ${GREEN}$CURRENT_BRANCH${NC}"
 echo -e "Selected Flavor: ${GREEN}${FLAVOR}-${TYPE}${NC}"
@@ -315,6 +288,16 @@ fi
 
 echo ""
 echo -e "${GREEN}Build successful.${NC}"
+
+if [ "$ACTION" == "none" ]; then
+    echo ""
+    echo -e "${YELLOW}Artifact download skipped (--action none).${NC}"
+    echo -e "${BLUE}Run this command to download artifact manually:${NC}"
+    echo "rm -rf \"$DIST_DIR\" && mkdir -p \"$DIST_DIR/$ARTIFACT_NAME\" && gh run download \"$RUN_ID\" -n \"$ARTIFACT_NAME\" -D \"$DIST_DIR/$ARTIFACT_NAME\""
+    show_logging_advice "$RUN_ID"
+    echo -e "\n${BLUE}Done.${NC}"
+    exit 0
+fi
 
 # ------------------ DOWNLOAD ------------------
 
