@@ -89,7 +89,7 @@ fun ModernInputPanel(
                 // 1. Додаємо старі прапорці (Legacy/UI)
                 if (enableInbox) add(CapabilityId("inbox"))
                 if (enableLog) add(CapabilityId("log"))
-                if (enableArtifact) add(CapabilityId("artifact"))
+                if (enableArtifact) add(CapabilityId("advanced"))
                 if (enableBacklog) add(CapabilityId("backlog"))
                 if (enableDashboard) add(CapabilityId("dashboard"))
                 if (enableAttachments) add(CapabilityId("attachments"))

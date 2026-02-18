@@ -393,9 +393,10 @@ private fun DashboardOverview(
                         Icon(Icons.Default.Settings, contentDescription = "Context properties")
                     }
                 }
-                Row(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     if (!roleBadge.isNullOrBlank()) {
                         AssistChip(

@@ -11,7 +11,6 @@ class ContextCapabilitiesResolver {
 
             if (config.enableInbox != false) add(CapabilityId("inbox"))
             if (config.enableLog != false) add(CapabilityId("log"))
-            if (config.enableArtifact != false) add(CapabilityId("artifact"))
             if (config.enableDashboard != false) add(CapabilityId("dashboard"))
             if (config.enableBacklog != false) add(CapabilityId("backlog"))
             if (config.enableAttachments != false) add(CapabilityId("attachments"))

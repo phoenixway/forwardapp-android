@@ -28,6 +28,7 @@ object ContextViewPolicy {
     fun ContextViewMode.toCapabilityId(): CapabilityId {
         return when (this) {
             ContextViewMode.ADVANCED -> CapabilityId("advanced")
+            ContextViewMode.ARTIFACT -> CapabilityId("advanced")
             else -> CapabilityId(this.name.lowercase(Locale.ROOT))
         }
     }

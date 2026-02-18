@@ -153,7 +153,7 @@ class ContextSettingsViewModel
                 when (id.raw) {
                     "inbox" -> config.enableInbox == true
                     "log" -> config.enableLog == true
-                    "artifact" -> config.enableArtifact == true
+                    "artifact" -> config.enableAdvanced == true
                     "advanced" -> config.enableAdvanced == true
                     "dashboard" -> config.enableDashboard == true
                     "backlog" -> config.enableBacklog == true
@@ -279,7 +279,7 @@ class ContextSettingsViewModel
                 // 3. Розділяємо можливості на legacy та експериментальні
                 val allKnownLegacyCaps =
                     setOf(
-                        "inbox", "log", "artifact", "advanced", "dashboard", "backlog", "attachments",
+                        "inbox", "log", "advanced", "dashboard", "backlog", "attachments",
                         "auto_link_subprojects",
                     )
                 val experimentalIdsFromPreset = presetCapabilities.filter { it.raw !in allKnownLegacyCaps }
@@ -292,7 +292,7 @@ class ContextSettingsViewModel
                         // Оновлення legacy-прапорців
                         enableInbox = presetCapabilities.contains(CapabilityId("inbox")),
                         enableLog = presetCapabilities.contains(CapabilityId("log")),
-                        enableArtifact = presetCapabilities.contains(CapabilityId("artifact")),
+                        enableArtifact = presetCapabilities.contains(CapabilityId("advanced")),
                         enableAdvanced = presetCapabilities.contains(CapabilityId("advanced")),
                         enableDashboard = true,
                         enableBacklog = presetCapabilities.contains(CapabilityId("backlog")),
@@ -362,7 +362,6 @@ class ContextSettingsViewModel
             when (label) {
                 "Inbox" -> CapabilityId("inbox")
                 "Log" -> CapabilityId("log")
-                "Artifact" -> CapabilityId("artifact")
                 "Advanced" -> CapabilityId("advanced")
                 "Dashboard" -> CapabilityId("dashboard")
                 "Backlog" -> CapabilityId("backlog")
@@ -391,7 +390,7 @@ class ContextSettingsViewModel
                     // Підтримка legacy-колонок (для сумісності)
                     enableInbox = currentState.features["Inbox"] == true,
                     enableLog = currentState.features["Log"] == true,
-                    enableArtifact = currentState.features["Artifact"] == true,
+                    enableArtifact = currentState.features["Advanced"] == true,
                     enableAdvanced = currentState.features["Advanced"] == true,
                     enableDashboard = currentState.features["Dashboard"] == true,
                     enableBacklog = currentState.features["Backlog"] == true,

@@ -59,7 +59,7 @@ class CapabilityGate
             return when (id.raw) {
                 "inbox" -> config.enableInbox == true
                 "log" -> config.enableLog == true
-                "artifact" -> config.enableArtifact == true
+                "artifact" -> config.enableAdvanced == true
                 "advanced" -> config.enableAdvanced == true
                 "dashboard" -> config.enableDashboard == true
                 "backlog" -> config.enableBacklog == true

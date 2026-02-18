@@ -54,7 +54,7 @@ class ContextDataApplyActions(
 
             val enableInbox = session.enabledCapabilities.contains(CapabilityId("inbox"))
             val enableLog = session.enabledCapabilities.contains(CapabilityId("log"))
-            val enableArtifact = session.enabledCapabilities.contains(CapabilityId("artifact"))
+            val enableArtifact = session.enabledCapabilities.contains(CapabilityId("advanced"))
             val enableBacklog = session.enabledCapabilities.contains(CapabilityId("backlog"))
             val enableDashboard = session.enabledCapabilities.contains(CapabilityId("dashboard"))
             val enableAttachments = session.enabledCapabilities.contains(CapabilityId("attachments"))

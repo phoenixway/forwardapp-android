@@ -35,7 +35,7 @@ object ContextRoleRegistry {
                 capabilities =
                     setOf(
                         CapabilityId("backlog"),
-                        CapabilityId("artifact"),
+                        CapabilityId("advanced"),
                     ),
             ),
             ReservedBaseRoleDefinition(
@@ -45,6 +45,7 @@ object ContextRoleRegistry {
                 capabilities =
                     setOf(
                         CapabilityId("direction"),
+                        CapabilityId("advanced"),
                     ),
             ),
             ReservedBaseRoleDefinition(
@@ -63,7 +64,6 @@ object ContextRoleRegistry {
                 capabilities =
                     setOf(
                         CapabilityId("direction"),
-                        CapabilityId("artifact"),
                     ),
             ),
             ReservedBaseRoleDefinition(
@@ -153,7 +153,6 @@ object ContextRoleRegistry {
             // Додаємо можливості, які можуть не входити в жодну роль за замовчуванням,
             // але є частиною загальної системи або legacy-прапорців.
             // inbox, log, backlog, attachments вже покриті ролями або іншими джерелами.
-            add(CapabilityId("artifact"))
             add(CapabilityId("advanced"))
             add(CapabilityId("dashboard"))
             add(CapabilityId("auto_link_subprojects"))

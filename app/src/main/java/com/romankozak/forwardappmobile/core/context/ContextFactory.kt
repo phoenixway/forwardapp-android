@@ -23,7 +23,7 @@ class ContextFactory
                 // Базові стабільні прапорці для сумісності
                 enableInbox = true,
                 enableLog = true,
-                enableArtifact = true,
+                enableArtifact = false,
                 enableBacklog = true,
                 enableDashboard = true,
                 enableAttachments = true,

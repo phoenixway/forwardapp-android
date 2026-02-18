@@ -129,8 +129,6 @@ fun StructurePresetEditorScreen(
                     onInboxChange = viewModel::onEnableInboxChange,
                     enableLog = uiState.enableLog,
                     onLogChange = viewModel::onEnableLogChange,
-                    enableArtifact = uiState.enableArtifact,
-                    onArtifactChange = viewModel::onEnableArtifactChange,
                     enableAdvanced = uiState.enableAdvanced,
                     onAdvancedChange = viewModel::onEnableAdvancedChange,
                     enableDashboard = uiState.enableDashboard,
@@ -190,8 +188,6 @@ private fun FeatureToggles(
     onInboxChange: (Boolean) -> Unit,
     enableLog: Boolean,
     onLogChange: (Boolean) -> Unit,
-    enableArtifact: Boolean,
-    onArtifactChange: (Boolean) -> Unit,
     enableAdvanced: Boolean,
     onAdvancedChange: (Boolean) -> Unit,
     enableDashboard: Boolean,
@@ -214,7 +210,6 @@ private fun FeatureToggles(
         Text("Фіче-флаги", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         FeatureToggleRow("Inbox", enableInbox, onInboxChange)
         FeatureToggleRow("Log", enableLog, onLogChange)
-        FeatureToggleRow("Artifact", enableArtifact, onArtifactChange)
         FeatureToggleRow("Advanced mode", enableAdvanced, onAdvancedChange)
         FeatureToggleRow("Dashboard view", enableDashboard, onDashboardChange)
         FeatureToggleRow("Backlog view", enableBacklog, onBacklogChange)
