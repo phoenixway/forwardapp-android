@@ -115,7 +115,7 @@ fun ProjectSettingsScreen(
             viewModel.onTabSelected(selectedTabIndex)
         }
     }
-    val titleText = if (uiState.isNewProject) "New Project" else "Edit Project"
+    val titleText = if (uiState.isNewProject) "New Project" else "Edit context"
 
     SettingsScreen(
         title = titleText,

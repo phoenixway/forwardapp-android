@@ -47,7 +47,8 @@ class CapabilityGate
             val config = (currentState as? ConfigurableState)?.config ?: return false
 
             // 3. Перевірка через пресет ролі (ContextRoleRegistry)
-            val enabledByRole = ContextRoleRegistry.getCapabilitiesForRole(config.basePresetCode).contains(id)
+            val useRoleDefaults = !config.applyMode.equals(APPLY_MODE_OVERRIDE, ignoreCase = true)
+            val enabledByRole = useRoleDefaults && ContextRoleRegistry.getCapabilitiesForRole(config.basePresetCode).contains(id)
 
             // 4 & 5. Комбінована перевірка: Роль АБО Експериментальний список АБО Старий прапорець
             return enabledByRole ||
@@ -73,5 +74,9 @@ class CapabilityGate
                 "connections" -> config.enableAttachments == true
                 else -> false
             }
+        }
+
+        private companion object {
+            private const val APPLY_MODE_OVERRIDE = "OVERRIDE"
         }
     }

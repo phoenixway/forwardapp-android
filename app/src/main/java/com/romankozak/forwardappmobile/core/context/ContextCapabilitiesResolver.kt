@@ -6,7 +6,8 @@ import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
 
 class ContextCapabilitiesResolver {
     fun resolve(config: ContextConfiguration): Set<CapabilityId> {
-        val roleCapabilities = ContextRoleRegistry.getCapabilitiesForRole(config.basePresetCode)
+        val useRoleDefaults = !config.applyMode.equals(APPLY_MODE_OVERRIDE, ignoreCase = true)
+        val roleCapabilities = if (useRoleDefaults) ContextRoleRegistry.getCapabilitiesForRole(config.basePresetCode) else emptySet()
         return buildSet {
             // Legacy capabilities: explicit false in config overrides role defaults.
             if (isEnabled(roleCapabilities, "inbox", config.enableInbox, defaultEnabled = true)) add(CapabilityId("inbox"))
@@ -18,10 +19,12 @@ class ContextCapabilitiesResolver {
             }
             if (isEnabled(roleCapabilities, "advanced", config.enableAdvanced, defaultEnabled = false)) add(CapabilityId("advanced"))
 
-            // Non-legacy role capabilities are still provided by role.
-            roleCapabilities.forEach { cap ->
-                if (cap.raw !in LEGACY_CAPABILITY_IDS) {
-                    add(cap)
+            // Non-legacy role capabilities are provided only in ADDITIVE mode.
+            if (useRoleDefaults) {
+                roleCapabilities.forEach { cap ->
+                    if (cap.raw !in LEGACY_CAPABILITY_IDS) {
+                        add(cap)
+                    }
                 }
             }
 
@@ -57,6 +60,7 @@ class ContextCapabilitiesResolver {
     }
 
     private companion object {
+        private const val APPLY_MODE_OVERRIDE = "OVERRIDE"
         val LEGACY_CAPABILITY_IDS =
             setOf(
                 "inbox",

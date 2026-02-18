@@ -31,6 +31,7 @@ data class ContextSettingsUiState(
     val isProjectManagementEnabled: Boolean = false,
     val currentPresetLabel: String? = null,
     val basePresetCode: String? = null,
+    val capabilityApplyMode: String = "ADDITIVE",
     val enabledCapabilityIds: Set<CapabilityId> = emptySet(),
     val experimentalCapabilityIds: List<CapabilityId> = emptyList(),
     val availablePresets: List<ContextRoleProfile> = emptyList(),

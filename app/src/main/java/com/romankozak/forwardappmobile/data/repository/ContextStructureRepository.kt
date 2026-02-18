@@ -108,6 +108,7 @@ class ContextStructureRepository
             val updatedStructure =
                 structure.copy(
                     basePresetCode = preset.code,
+                    applyMode = "ADDITIVE",
                     enableInbox = presetCapabilities.contains(CapabilityId("inbox")),
                     enableLog = presetCapabilities.contains(CapabilityId("log")),
                     enableArtifact = presetCapabilities.contains(CapabilityId("advanced")),

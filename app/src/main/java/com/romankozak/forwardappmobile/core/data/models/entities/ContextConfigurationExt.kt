@@ -7,6 +7,7 @@ import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
 
 fun ContextConfiguration.has(id: CapabilityId): Boolean {
     if (id.raw == "dashboard") return true
+    val useRoleDefaults = !applyMode.equals("OVERRIDE", ignoreCase = true)
 
     // 1. Виправлено: activeCapabilities -> experimentalCapabilityIds
     // 2. Виправлено: baseRoleCode -> basePresetCode
@@ -15,11 +16,15 @@ fun ContextConfiguration.has(id: CapabilityId): Boolean {
     val isExperimental = experimentalCapabilityIds.contains(id)
 
     val isFromPreset =
-        basePresetCode?.let { preset ->
+        if (!useRoleDefaults) {
+            false
+        } else {
+            basePresetCode?.let { preset ->
             ContextRoleRegistry
                 .getCapabilitiesForRole(preset)
                 .contains(id)
-        } ?: false
+            } ?: false
+        }
 
     return isExperimental || isFromPreset
 }

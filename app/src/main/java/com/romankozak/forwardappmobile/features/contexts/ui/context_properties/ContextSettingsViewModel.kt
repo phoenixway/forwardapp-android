@@ -120,6 +120,7 @@ class ContextSettingsViewModel
                         isScoringEnabled = project.scoringStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS,
                         // Системна конфігурація
                         basePresetCode = structure?.basePresetCode,
+                        capabilityApplyMode = structure?.applyMode ?: APPLY_MODE_ADDITIVE,
                         enabledCapabilityIds = structureFeatures.filterValues { it }.keys.map(::featureLabelToCapabilityId).toSet(),
                         experimentalCapabilityIds = structure?.experimentalCapabilityIds ?: emptyList(),
                         currentPresetLabel = presetLabel,
@@ -146,7 +147,8 @@ class ContextSettingsViewModel
             if (config == null) return id.raw != "advanced" // дефолтні налаштування для порожнього конфігу
 
             // Перевірка через роль
-            val roleCapabilities = ContextRoleRegistry.getCapabilitiesForRole(config.basePresetCode)
+            val useRoleDefaults = !config.applyMode.equals(APPLY_MODE_OVERRIDE, ignoreCase = true)
+            val roleCapabilities = if (useRoleDefaults) ContextRoleRegistry.getCapabilitiesForRole(config.basePresetCode) else emptySet()
             val enabledByRole = roleCapabilities.contains(id)
 
             // Перевірка через legacy прапорці
@@ -288,6 +290,7 @@ class ContextSettingsViewModel
                 val updatedStructure =
                     structure.copy(
                         basePresetCode = code,
+                        applyMode = APPLY_MODE_ADDITIVE,
                         // Оновлення legacy-прапорців
                         enableInbox = presetCapabilities.contains(CapabilityId("inbox")),
                         enableLog = presetCapabilities.contains(CapabilityId("log")),
@@ -336,6 +339,7 @@ class ContextSettingsViewModel
                 state.copy(
                     // Оновлюємо мапу для UI списку
                     features = state.features + (key to enabled),
+                    capabilityApplyMode = APPLY_MODE_OVERRIDE,
                     enabledCapabilityIds =
                         state.enabledCapabilityIds.toMutableSet().apply {
                             if (enabled) add(capabilityId) else remove(capabilityId)
@@ -379,6 +383,7 @@ class ContextSettingsViewModel
                 structure.copy(
                     // Зберігаємо код обраної ролі (пресета)
                     basePresetCode = currentState.basePresetCode,
+                    applyMode = currentState.capabilityApplyMode,
                     // Зберігаємо список активованих ідентифікаторів можливостей
                     experimentalCapabilityIds = currentState.experimentalCapabilityIds,
                     // Підтримка legacy-колонок (для сумісності)
@@ -405,6 +410,11 @@ class ContextSettingsViewModel
                     autoLinkSubprojects = updated.enableAutoLinkSubprojects == true,
                 )
             }
+        }
+
+        private companion object {
+            private const val APPLY_MODE_ADDITIVE = "ADDITIVE"
+            private const val APPLY_MODE_OVERRIDE = "OVERRIDE"
         }
 
         override fun onSetReminder(
