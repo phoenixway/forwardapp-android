@@ -220,6 +220,12 @@ class ContextRepository
                     syncedAt = null,
                 )
             contextDao.update(updatedContext)
+            ensureDirectionFrontLinkForParentChangeIfNeeded(
+                oldParentId = oldParentId,
+                newParentId = newParentId,
+                childId = contextToMove.id,
+                childName = contextToMove.name,
+            )
         }
 
         // --- Делегати для інших репозиторіїв (ViewModels їх шукають тут) ---
@@ -262,6 +268,38 @@ class ContextRepository
             }
         }
 
+        /**
+         * Safety-net sync: при відкритті контексту гарантує, що активні дочірні контексти
+         * мають посилання у front списку direction (якщо флаг авто-додавання увімкнено).
+         */
+        suspend fun ensureDirectionFrontLinksForExistingChildren(parentContextId: String): Int {
+            val normalizedParentId = normalizeParentId(parentContextId) ?: return 0
+            val parentStructure = contextStructureDao.getStructureByContext(normalizedParentId)
+            val autoAddToDirectionFront = parentStructure?.enableAutoLinkSubprojects == true
+            if (!autoAddToDirectionFront) return 0
+
+            val children = contextDao.getActiveContextsByParentId(normalizedParentId)
+            if (children.isEmpty()) return 0
+
+            val existingLinkedIds =
+                directionDao
+                    .getDirectionItemsForContextSync(normalizedParentId)
+                    .mapNotNull { it.linkedContextId }
+                    .toMutableSet()
+            var added = 0
+            for (child in children) {
+                if (child.id in existingLinkedIds) continue
+                addChildContextToDirectionFront(
+                    parentContextId = normalizedParentId,
+                    childContextId = child.id,
+                    childContextName = child.name,
+                )
+                existingLinkedIds += child.id
+                added += 1
+            }
+            return added
+        }
+
         // --- Artifacts & Time Metrics ---
         fun getContextArtifactStream(id: String) = contextArtifactRepository.getContextArtifactStream(id)
 
@@ -294,11 +332,18 @@ class ContextRepository
         }
 
         suspend fun updateContext(context: Context) {
+            val previous = contextDao.getContextById(context.id)
             val now = System.currentTimeMillis()
             // bumpSync повертає копію об'єкта з новою версією та скинутим syncedAt
             val bumped = context.bumpSync(now)
 
             contextDao.update(bumped)
+            ensureDirectionFrontLinkForParentChangeIfNeeded(
+                oldParentId = previous?.parentId,
+                newParentId = bumped.parentId,
+                childId = bumped.id,
+                childName = bumped.name,
+            )
 
             // Оновлюємо відображення в списку нещодавніх проектів
             recentItemsRepository.updateRecentItemDisplayName(context.id, context.name)
@@ -310,9 +355,19 @@ class ContextRepository
          */
         suspend fun updateContexts(contexts: List<Context>): Int {
             if (contexts.isEmpty()) return 0
+            val previousById = contextDao.getContextsByIds(contexts.map { it.id }.distinct()).associateBy { it.id }
             val now = System.currentTimeMillis()
             val bumpedList = contexts.map { it.bumpSync(now) }
-            return contextDao.update(bumpedList)
+            val updated = contextDao.update(bumpedList)
+            bumpedList.forEach { bumped ->
+                ensureDirectionFrontLinkForParentChangeIfNeeded(
+                    oldParentId = previousById[bumped.id]?.parentId,
+                    newParentId = bumped.parentId,
+                    childId = bumped.id,
+                    childName = bumped.name,
+                )
+            }
+            return updated
         }
 
         suspend fun addContextComment(
@@ -449,18 +504,46 @@ class ContextRepository
                 )
             contextDao.insert(newContext)
 
-            // Якщо є батько — за налаштуванням додаємо child context у front списку direction.
-            if (parentId != null) {
-                val parentStructure = contextStructureDao.getStructureByContext(parentId)
-                val autoAddToDirectionFront = parentStructure?.enableAutoLinkSubprojects == true
-                if (autoAddToDirectionFront) {
-                    addChildContextToDirectionFront(
-                        parentContextId = parentId,
-                        childContextId = id,
-                        childContextName = name,
-                    )
-                }
-            }
+            ensureChildContextDirectionFrontLinkIfEnabled(
+                parentContextId = parentId,
+                childContextId = id,
+                childContextName = name,
+            )
+        }
+
+        private suspend fun ensureDirectionFrontLinkForParentChangeIfNeeded(
+            oldParentId: String?,
+            newParentId: String?,
+            childId: String,
+            childName: String,
+        ) {
+            val normalizedOld = normalizeParentId(oldParentId)
+            val normalizedNew = normalizeParentId(newParentId)
+            if (normalizedOld == normalizedNew) return
+            ensureChildContextDirectionFrontLinkIfEnabled(
+                parentContextId = normalizedNew,
+                childContextId = childId,
+                childContextName = childName,
+            )
+        }
+
+        private fun normalizeParentId(parentId: String?): String? =
+            parentId?.trim()?.takeIf { it.isNotEmpty() && !it.equals("null", ignoreCase = true) }
+
+        private suspend fun ensureChildContextDirectionFrontLinkIfEnabled(
+            parentContextId: String?,
+            childContextId: String,
+            childContextName: String,
+        ) {
+            val parentId = normalizeParentId(parentContextId) ?: return
+            val parentStructure = contextStructureDao.getStructureByContext(parentId)
+            val autoAddToDirectionFront = parentStructure?.enableAutoLinkSubprojects == true
+            if (!autoAddToDirectionFront) return
+            addChildContextToDirectionFront(
+                parentContextId = parentId,
+                childContextId = childContextId,
+                childContextName = childContextName,
+            )
         }
 
         private suspend fun addChildContextToDirectionFront(
@@ -534,6 +617,12 @@ class ContextRepository
                     syncedAt = null, // Скидаємо для синхронізації
                 )
             contextDao.update(updatedContext)
+            ensureDirectionFrontLinkForParentChangeIfNeeded(
+                oldParentId = oldParentId,
+                newParentId = newParentId,
+                childId = contextToMove.id,
+                childName = contextToMove.name,
+            )
         }
 
         // Додайте в ContextRepository.kt
@@ -560,7 +649,14 @@ class ContextRepository
             title: String,
         ): Context {
             val existing = contextDao.findChildByRole(parentContextId, roleCode)
-            if (existing != null) return existing
+            if (existing != null) {
+                ensureChildContextDirectionFrontLinkIfEnabled(
+                    parentContextId = parentContextId,
+                    childContextId = existing.id,
+                    childContextName = existing.name,
+                )
+                return existing
+            }
 
             val newId = java.util.UUID.randomUUID().toString()
             createContextWithId(id = newId, name = title, parentId = parentContextId, roleCode = roleCode)

@@ -58,6 +58,9 @@ interface ContextDao {
     @Query("SELECT * FROM contexts WHERE parentId = :parentId ORDER BY goal_order ASC")
     suspend fun getContextsByParentId(parentId: String): List<Context>
 
+    @Query("SELECT * FROM contexts WHERE parentId = :parentId AND is_deleted = 0 ORDER BY goal_order ASC")
+    suspend fun getActiveContextsByParentId(parentId: String): List<Context>
+
     @Query("SELECT * FROM contexts WHERE parentId = :parentId AND role_code = :roleCode AND is_deleted = 0 LIMIT 1")
     suspend fun findChildByRole(
         parentId: String,

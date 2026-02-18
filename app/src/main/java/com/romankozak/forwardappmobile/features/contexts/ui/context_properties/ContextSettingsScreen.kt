@@ -6,13 +6,13 @@ import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -51,6 +51,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.awaitEachGesture
+import androidx.compose.ui.input.pointer.awaitFirstDown
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -68,7 +71,6 @@ import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabConte
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabUiState
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.GeneralTabContent
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabContent
-import kotlin.math.abs
 
 @Composable
 fun ProjectSettingsScreen(
@@ -127,23 +129,39 @@ fun ProjectSettingsScreen(
         Box(
             modifier =
                 Modifier
-                    .fillMaxWidth()
+                    .fillMaxSize()
                     .pointerInput(selectedTabIndex, tabs.size) {
-                        var dragOffsetX = 0f
-                        detectHorizontalDragGestures(
-                            onHorizontalDrag = { _, dragAmount -> dragOffsetX += dragAmount },
-                            onDragEnd = {
-                                val threshold = 64f
-                                if (abs(dragOffsetX) >= threshold && tabs.isNotEmpty()) {
-                                    val step = if (dragOffsetX < 0f) 1 else -1
-                                    val next = (selectedTabIndex + step).coerceIn(0, tabs.lastIndex)
-                                    if (next != selectedTabIndex) {
-                                        viewModel.onTabSelected(next)
+                        awaitEachGesture {
+                            val down = awaitFirstDown(pass = PointerEventPass.Final)
+                            val pointerId = down.id
+                            var totalDx = 0f
+                            var totalDy = 0f
+
+                            while (true) {
+                                val event = awaitPointerEvent(pass = PointerEventPass.Final)
+                                val change = event.changes.firstOrNull { it.id == pointerId } ?: event.changes.firstOrNull()
+                                if (change == null) continue
+
+                                totalDx += change.position.x - change.previousPosition.x
+                                totalDy += change.position.y - change.previousPosition.y
+
+                                if (!change.pressed) {
+                                    val threshold = 40f
+                                    if (
+                                        tabs.isNotEmpty() &&
+                                        kotlin.math.abs(totalDx) >= threshold &&
+                                        kotlin.math.abs(totalDx) > kotlin.math.abs(totalDy)
+                                    ) {
+                                        val step = if (totalDx < 0f) 1 else -1
+                                        val next = (selectedTabIndex + step).coerceIn(0, tabs.lastIndex)
+                                        if (next != selectedTabIndex) {
+                                            viewModel.onTabSelected(next)
+                                        }
                                     }
+                                    break
                                 }
-                                dragOffsetX = 0f
-                            },
-                        )
+                            }
+                        }
                     },
         ) {
             when (tabs[tabIndex]) {

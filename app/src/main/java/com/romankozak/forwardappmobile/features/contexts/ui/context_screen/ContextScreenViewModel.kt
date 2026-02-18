@@ -433,6 +433,7 @@ class ContextScreenViewModel
         init {
             setupContextObserver()
             observeContextIdChanges()
+            observeDirectionFrontAutoLinkSyncOnOpen()
             tagManager.loadTags()
             activityManager.observeCurrentActivity()
         }
@@ -444,6 +445,21 @@ class ContextScreenViewModel
                         stateManager.updateState { it.copy(isContextSwitching = true) }
                         _listContent.value = emptyList()
                         _attachmentItems.value = emptyList()
+                    }
+            }
+        }
+
+        private fun observeDirectionFrontAutoLinkSyncOnOpen() {
+            viewModelScope.launch(ioDispatcher) {
+                contextIdFlow
+                    .filter { it.isNotBlank() }
+                    .distinctUntilChanged()
+                    .collectLatest { contextId ->
+                        runCatching {
+                            contextRepository.ensureDirectionFrontLinksForExistingChildren(contextId)
+                        }.onFailure { error ->
+                            Log.w(TAG, "Failed to sync child context links into direction front for context=$contextId", error)
+                        }
                     }
             }
         }
