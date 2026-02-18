@@ -70,6 +70,13 @@ class ContextRouteResolver(
                 )
             }
 
+            route.startsWith("music_note_screen/") -> {
+                val tail = route.substringAfter("music_note_screen/")
+                val id = tail.substringBefore("?")
+                val startEdit = tail.substringAfter("?", "").contains("startEdit=true")
+                NavTarget.MusicNote(id = id, startEdit = startEdit)
+            }
+
             route.startsWith("list_chooser_screen/") -> {
                 val titleEncoded = route.substringAfter("list_chooser_screen/").substringBefore("?")
                 val paramMap = parseQueryParams(route.substringAfter("?", ""))

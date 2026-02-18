@@ -10,6 +10,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
+import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.mainscreen.scopelinks.ScopeAttachmentOption
 import com.romankozak.forwardappmobile.features.mainscreen.scopelinks.toScopeAttachmentOption
@@ -37,6 +38,7 @@ class StrategicManagementViewModel
         private val settingsRepository: SettingsRepository,
         private val attachmentsRepository: AttachmentsRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
+        private val musicNoteRepository: MusicNoteRepository,
         private val checklistRepository: ChecklistRepository,
     ) : ViewModel() {
         val uiState: StateFlow<StrategicManagementUiState> =
@@ -185,6 +187,14 @@ class StrategicManagementViewModel
                             contextId = SystemContexts.STRATEGIC.raw,
                         )
                     attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)?.id
+                }
+                is NewDocumentDraft.MusicNote -> {
+                    val musicNoteId =
+                        musicNoteRepository.create(
+                            name = request.name.ifBlank { "New music note" },
+                            contextId = SystemContexts.STRATEGIC.raw,
+                        )
+                    attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.MUSIC_NOTE, musicNoteId)?.id
                 }
                 is NewDocumentDraft.Checklist -> {
                     val checklistId =

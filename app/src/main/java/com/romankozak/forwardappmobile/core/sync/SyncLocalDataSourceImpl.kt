@@ -33,6 +33,7 @@ class SyncLocalDataSourceImpl
         private val contextManagementDao: ContextManagementDao,
         private val legacyNoteDao: LegacyNoteDao,
         private val noteDocumentDao: NoteDocumentDao,
+        private val musicNoteDao: MusicNoteDao,
         private val checklistDao: ChecklistDao,
         private val recentItemDao: RecentItemDao,
         private val backlogOrderDao: BacklogOrderDao,
@@ -71,6 +72,7 @@ class SyncLocalDataSourceImpl
                 backlogOrders = backlogOrders,
                 legacyNotes = legacyNoteDao.getAll(),
                 documents = noteDocumentDao.getAllDocuments(),
+                musicNotes = musicNoteDao.getAll(),
                 checklists = checklistDao.getAllChecklists(),
                 checklistItems = checklistDao.getAllChecklistItems(),
                 activityRecords = activityRecordDao.getAllRecordsStream().first(),
@@ -120,6 +122,15 @@ class SyncLocalDataSourceImpl
                     },
                 documents =
                     local.documents.filter {
+                        logicHelper.isUnsynced(
+                            it,
+                            { it.syncedAt },
+                            { it.updatedTs() },
+                            { it.isDeleted },
+                        )
+                    },
+                musicNotes =
+                    local.musicNotes.filter {
                         logicHelper.isUnsynced(
                             it,
                             { it.syncedAt },
@@ -222,6 +233,7 @@ class SyncLocalDataSourceImpl
                 goals = local.goals.filter { it.updatedTs() > since },
                 backlogItems = local.backlogItems.filter { it.updatedTs() > since },
                 documents = local.documents.filter { it.updatedTs() > since },
+                musicNotes = local.musicNotes.filter { it.updatedTs() > since },
                 attachments = local.attachments.filter { it.updatedTs() > since },
                 contextAttachmentCrossRefs = local.contextAttachmentCrossRefs.filter { it.updatedTs() > since },
                 directionItems = local.directionItems.filter { it.updatedTs() > since },
@@ -242,6 +254,7 @@ class SyncLocalDataSourceImpl
 
                 legacyNoteDao.insertAll(content.legacyNotes.map { it.copy(syncedAt = ts) })
                 noteDocumentDao.insertAllDocuments(content.documents.map { it.copy(syncedAt = ts) })
+                musicNoteDao.insertAll(content.musicNotes.map { it.copy(syncedAt = ts) })
 
                 checklistDao.insertChecklists(content.checklists.map { it.copy(syncedAt = ts) })
                 checklistDao.insertItems(content.checklistItems.map { it.copy(syncedAt = ts) })
@@ -266,6 +279,7 @@ class SyncLocalDataSourceImpl
                 activityRecordDao.clearAll()
                 listItemDao.deleteAll()
                 noteDocumentDao.deleteAllDocuments()
+                musicNoteDao.deleteAll()
                 checklistDao.deleteAllChecklistItems()
                 checklistDao.deleteAllChecklists()
                 attachmentDao.deleteAllContextAttachmentLinks()

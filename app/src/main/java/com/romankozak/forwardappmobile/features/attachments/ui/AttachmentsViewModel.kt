@@ -13,6 +13,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusVa
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
@@ -62,6 +63,7 @@ class AttachmentsViewModel
     @Inject
     constructor(
         private val contextRepository: ContextRepository,
+        private val musicNoteRepository: MusicNoteRepository,
         private val settingsRepository: SettingsRepository,
         private val alarmScheduler: AlarmScheduler,
         private val recentItemsRepository: RecentItemsRepository,
@@ -129,7 +131,10 @@ class AttachmentsViewModel
                 if (contextId.isNotEmpty()) {
                     contextRepository.getContextContentStream(contextId).map { content ->
                         content.filter { item ->
-                            item is BacklogItemContent.LinkItem || item is BacklogItemContent.NoteDocumentItem || item is BacklogItemContent.ChecklistItem
+                            item is BacklogItemContent.LinkItem ||
+                                item is BacklogItemContent.NoteDocumentItem ||
+                                item is BacklogItemContent.MusicNoteItem ||
+                                item is BacklogItemContent.ChecklistItem
                         }
                     }
                 } else {
@@ -162,6 +167,24 @@ class AttachmentsViewModel
                         _uiEventFlow.send(
                             UiEvent.Navigate(
                                 NavTarget.Checklist(contextId = contextId.value),
+                            ),
+                        )
+                    }
+                }
+                AttachmentType.MUSIC_NOTES -> {
+                    viewModelScope.launch {
+                        val musicNoteId =
+                            musicNoteRepository.create(
+                                name = "Нові ноти",
+                                contextId = contextId.value,
+                                content = "",
+                            )
+                        _uiEventFlow.send(
+                            UiEvent.Navigate(
+                                NavTarget.MusicNote(
+                                    id = musicNoteId,
+                                    startEdit = true,
+                                ),
                             ),
                         )
                     }

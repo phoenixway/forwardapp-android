@@ -1685,3 +1685,26 @@ val MIGRATION_109_110 =
             db.execSQL("DROP TABLE `checklists_old`")
         }
     }
+
+val MIGRATION_110_111 =
+    object : Migration(110, 111) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `music_notes` (
+                    `id` TEXT NOT NULL,
+                    `contextId` TEXT NOT NULL,
+                    `name` TEXT NOT NULL,
+                    `createdAt` INTEGER NOT NULL,
+                    `updatedAt` INTEGER NOT NULL,
+                    `content` TEXT NOT NULL,
+                    `syncedAt` INTEGER,
+                    `isDeleted` INTEGER NOT NULL,
+                    `version` INTEGER NOT NULL,
+                    PRIMARY KEY(`id`)
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_music_notes_contextId` ON `music_notes` (`contextId`)")
+        }
+    }

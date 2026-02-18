@@ -25,6 +25,7 @@
     <string name="add_attachment_description">Add attachment</string>
     <string name="add_attachment_button">Add attachment</string>
     <string name="attachment_type_notes">Notes</string>
+    <string name="attachment_type_music_notes">Music notes</string>
     <string name="attachment_type_checklist">Checklist</string>
     <string name="attachment_type_web_link">Web Link</string>
     <string name="attachment_type_obsidian">Obsidian</string>

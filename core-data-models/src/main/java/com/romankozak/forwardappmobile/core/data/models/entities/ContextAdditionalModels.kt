@@ -49,6 +49,7 @@ object BacklogItemTypeValues {
     const val NOTE = "NOTE"
     const val NOTE_DOCUMENT = "NOTE_DOCUMENT"
     const val CHECKLIST = "CHECKLIST"
+    const val MUSIC_NOTE = "MUSIC_NOTE"
     const val SCRIPT = "SCRIPT"
     const val CONTEXT = "CONTEXT"
 }

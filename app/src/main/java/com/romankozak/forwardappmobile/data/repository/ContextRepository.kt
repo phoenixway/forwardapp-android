@@ -17,6 +17,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.DirectionItemEn
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.MusicNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
@@ -49,6 +50,7 @@ class ContextRepository
         private val contextLogRepository: ContextLogRepository,
         private val searchRepository: SearchRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
+        private val musicNoteRepository: MusicNoteRepository,
         private val checklistRepository: ChecklistRepository,
         private val attachmentRepository: AttachmentsRepository,
         private val goalRepository: GoalRepository,
@@ -97,6 +99,7 @@ class ContextRepository
                 listItemRepository.getAllEntitiesAsFlow(),
                 legacyNoteRepository.getAllAsFlow(),
                 noteDocumentRepository.getAllDocumentsAsFlow(),
+                musicNoteRepository.getAllMusicNotesAsFlow(),
                 checklistRepository.getAllChecklistsAsFlow(),
                 attachmentRepository.getAttachmentsForContext(contextId),
             ) { array ->
@@ -105,14 +108,15 @@ class ContextRepository
                     contextId = contextId,
                     items = array[0] as List<BacklogItem>,
                     backlogOrders = array[1] as List<BacklogOrder>,
-                    attachments = array[9] as List<AttachmentWithContext>,
+                    attachments = array[10] as List<AttachmentWithContext>,
                     reminders = array[2] as List<Reminder>,
                     goals = array[3] as List<Goal>,
                     contexts = array[4] as List<Context>,
                     links = array[5] as List<LinkItemEntity>,
                     notes = array[6] as List<LegacyNoteEntity>,
                     noteDocuments = array[7] as List<NoteDocumentEntity>,
-                    checklists = array[8] as List<ChecklistEntity>,
+                    musicNotes = array[8] as List<MusicNoteEntity>,
+                    checklists = array[9] as List<ChecklistEntity>,
                 )
             }
         }
@@ -136,6 +140,7 @@ class ContextRepository
             links: List<LinkItemEntity>,
             notes: List<LegacyNoteEntity>,
             noteDocuments: List<NoteDocumentEntity>,
+            musicNotes: List<MusicNoteEntity>,
             checklists: List<ChecklistEntity>,
         ): List<BacklogItemContent> {
             val attachmentBacklogItems =
@@ -164,6 +169,7 @@ class ContextRepository
             val linksMap = links.associateBy { it.id }
             val notesMap = notes.associateBy { it.id }
             val noteDocumentsMap = noteDocuments.associateBy { it.id }
+            val musicNotesMap = musicNotes.associateBy { it.id }
             val checklistsMap = checklists.associateBy { it.id }
 
             return combinedItems.mapNotNull { item ->
@@ -185,6 +191,13 @@ class ContextRepository
                     BacklogItemTypeValues.NOTE_DOCUMENT ->
                         noteDocumentsMap[item.entityId]?.let {
                             BacklogItemContent.NoteDocumentItem(
+                                it,
+                                item,
+                            )
+                        }
+                    BacklogItemTypeValues.MUSIC_NOTE ->
+                        musicNotesMap[item.entityId]?.let {
+                            BacklogItemContent.MusicNoteItem(
                                 it,
                                 item,
                             )
@@ -435,6 +448,12 @@ class ContextRepository
                             )
                         }
                     }
+                    BacklogItemTypeValues.MUSIC_NOTE -> {
+                        val musicNote = musicNoteRepository.getById(attachment.entityId) ?: return@forEach
+                        if (musicNote.contextId != fallbackContextId) {
+                            musicNoteRepository.update(musicNote.copy(contextId = fallbackContextId, updatedAt = now))
+                        }
+                    }
                     BacklogItemTypeValues.CHECKLIST -> {
                         val checklist = checklistRepository.getChecklistById(attachment.entityId) ?: return@forEach
                         if (checklist.contextId != fallbackContextId) {
@@ -466,6 +485,7 @@ class ContextRepository
             val attachment = attachmentRepository.getAttachmentById(attachmentId) ?: return
             when (attachment.attachmentType) {
                 BacklogItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.deleteDocument(attachment.entityId)
+                BacklogItemTypeValues.MUSIC_NOTE -> musicNoteRepository.delete(attachment.entityId)
                 BacklogItemTypeValues.CHECKLIST -> checklistRepository.deleteChecklist(attachment.entityId)
                 else -> attachmentRepository.deleteAttachment(attachmentId)
             }
@@ -521,6 +541,7 @@ class ContextRepository
                             BacklogItemTypeValues.GOAL -> goalRepository.getGoalById(entityId) == null
                             BacklogItemTypeValues.SUBLIST -> contextDao.getContextById(entityId) == null
                             BacklogItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.getDocumentById(entityId) == null
+                            BacklogItemTypeValues.MUSIC_NOTE -> musicNoteRepository.getById(entityId) == null
                             BacklogItemTypeValues.CHECKLIST -> checklistRepository.getChecklistById(entityId) == null
                             else -> false
                         }
@@ -740,6 +761,8 @@ class ContextRepository
                     when (attachment.attachmentType) {
                         BacklogItemTypeValues.NOTE_DOCUMENT ->
                             noteDocumentRepository.deleteDocument(attachment.entityId)
+                        BacklogItemTypeValues.MUSIC_NOTE ->
+                            musicNoteRepository.delete(attachment.entityId)
                         BacklogItemTypeValues.CHECKLIST ->
                             checklistRepository.deleteChecklist(attachment.entityId)
                         else ->

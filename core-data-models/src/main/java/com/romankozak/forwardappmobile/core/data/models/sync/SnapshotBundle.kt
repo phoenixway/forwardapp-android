@@ -17,6 +17,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.tactical.
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextArtifactSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ContextAttachmentCrossRefSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.NoteDocumentSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.MusicNoteSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ScriptSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.BacklogItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.BacklogOrderSnapshot
@@ -57,6 +58,7 @@ data class SnapshotBundle(
     @SerializedName("directionItems") val directionItems: List<DirectionItemSnapshot> = emptyList(),
     @SerializedName("notes") val notes: List<LegacyNoteSnapshot> = emptyList(),
     @SerializedName("documents") val documents: List<NoteDocumentSnapshot> = emptyList(),
+    @SerializedName("musicNotes") val musicNotes: List<MusicNoteSnapshot> = emptyList(),
     @SerializedName("checklists") val checklists: List<ChecklistSnapshot> = emptyList(),
     @SerializedName("checklistItems") val checklistItems: List<ChecklistItemSnapshot> = emptyList(),
     @SerializedName("artifacts") val artifacts: List<ContextArtifactSnapshot> = emptyList(),

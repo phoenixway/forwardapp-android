@@ -75,6 +75,7 @@ enum class AddConnectionType {
 enum class CreateConnectionType {
     CONTEXT,
     NOTE_DOCUMENT,
+    MUSIC_NOTE,
     CHECKLIST,
     SCRIPT,
     EXTERNAL_LINK,

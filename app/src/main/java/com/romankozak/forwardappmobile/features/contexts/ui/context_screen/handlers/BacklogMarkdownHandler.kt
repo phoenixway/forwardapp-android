@@ -76,6 +76,9 @@ class BacklogMarkdownHandler
                         is BacklogItemContent.NoteDocumentItem -> {
                             "- [D] ${item.document.name}"
                         }
+                        is BacklogItemContent.MusicNoteItem -> {
+                            "- [M] ${item.musicNote.name}"
+                        }
                         is BacklogItemContent.ChecklistItem -> {
                             "- [Ch] ${item.checklist.name}"
                         }
@@ -178,6 +181,9 @@ class BacklogMarkdownHandler
                 }
                 is BacklogItemContent.NoteDocumentItem -> {
                     "- [D] ${item.document.name}"
+                }
+                is BacklogItemContent.MusicNoteItem -> {
+                    "- [M] ${item.musicNote.name}"
                 }
                 is BacklogItemContent.ChecklistItem -> {
                     "- [Ch] ${item.checklist.name}"

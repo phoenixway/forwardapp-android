@@ -13,6 +13,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.MusicNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextData
@@ -27,13 +28,14 @@ class ContextScreenDataMapper {
         val rawItems = (args[1] as? List<*>)?.filterIsInstance<BacklogItem>() ?: emptyList()
         val checklists = (args[4] as? List<*>)?.filterIsInstance<ChecklistEntity>() ?: emptyList()
         val noteDocuments = (args[5] as? List<*>)?.filterIsInstance<NoteDocumentEntity>() ?: emptyList()
-        val directionItems = (args[6] as? List<*>)?.filterIsInstance<DirectionItemEntity>() ?: emptyList()
-        val allContexts = (args[7] as? List<*>)?.filterIsInstance<Context>() ?: emptyList()
-        val attachments = (args[8] as? List<*>)?.filterIsInstance<AttachmentWithContext>() ?: emptyList()
-        val linkItems = (args[9] as? List<*>)?.filterIsInstance<LinkItemEntity>() ?: emptyList()
-        val reminders = (args[10] as? List<*>)?.filterIsInstance<Reminder>() ?: emptyList()
-        val goals = (args[13] as? List<*>)?.filterIsInstance<Goal>() ?: emptyList()
-        val subprojects = (args[14] as? List<*>)?.filterIsInstance<Context>() ?: emptyList()
+        val musicNotes = (args[6] as? List<*>)?.filterIsInstance<MusicNoteEntity>() ?: emptyList()
+        val directionItems = (args[7] as? List<*>)?.filterIsInstance<DirectionItemEntity>() ?: emptyList()
+        val allContexts = (args[8] as? List<*>)?.filterIsInstance<Context>() ?: emptyList()
+        val attachments = (args[9] as? List<*>)?.filterIsInstance<AttachmentWithContext>() ?: emptyList()
+        val linkItems = (args[10] as? List<*>)?.filterIsInstance<LinkItemEntity>() ?: emptyList()
+        val reminders = (args[11] as? List<*>)?.filterIsInstance<Reminder>() ?: emptyList()
+        val goals = (args[14] as? List<*>)?.filterIsInstance<Goal>() ?: emptyList()
+        val subprojects = (args[15] as? List<*>)?.filterIsInstance<Context>() ?: emptyList()
 
         val linkItemsMap = linkItems.associateBy { it.id }
 
@@ -76,6 +78,14 @@ class ContextScreenDataMapper {
                             )
                         }
                     }
+                    BacklogItemTypeValues.MUSIC_NOTE -> {
+                        musicNotes.find { it.id == item.entityId }?.let { foundMusicNote ->
+                            BacklogItemContent.MusicNoteItem(
+                                musicNote = foundMusicNote,
+                                backlogItem = item,
+                            )
+                        }
+                    }
                     BacklogItemTypeValues.LINK_ITEM -> {
                         linkItemsMap[item.entityId]?.let { linkItem ->
                             BacklogItemContent.LinkItem(linkItem, item)
@@ -87,6 +97,7 @@ class ContextScreenDataMapper {
             }
 
         val noteDocumentsMap = noteDocuments.associateBy { it.id }
+        val musicNotesMap = musicNotes.associateBy { it.id }
         val checklistsMap = checklists.associateBy { it.id }
 
         val attachmentItems =
@@ -115,6 +126,10 @@ class ContextScreenDataMapper {
                             checklistsMap[attachment.attachment.entityId]?.let { checklist ->
                                 BacklogItemContent.ChecklistItem(checklist, backlogItem)
                             }
+                        BacklogItemTypeValues.MUSIC_NOTE ->
+                            musicNotesMap[attachment.attachment.entityId]?.let { musicNote ->
+                                BacklogItemContent.MusicNoteItem(musicNote, backlogItem)
+                            }
                         BacklogItemTypeValues.LINK_ITEM ->
                             linkItemsMap[attachment.attachment.entityId]?.let { linkItem ->
                                 BacklogItemContent.LinkItem(linkItem, backlogItem)
@@ -125,8 +140,8 @@ class ContextScreenDataMapper {
 
         val config = args[2] as? ContextConfiguration
         val logs = (args[3] as? List<*>)?.filterIsInstance<ContextLog>() ?: emptyList()
-        val recentItems = (args[11] as? List<*>)?.filterIsInstance<RecentItem>() ?: emptyList()
-        val notes = (args[12] as? List<*>)?.filterIsInstance<LegacyNoteEntity>() ?: emptyList()
+        val recentItems = (args[12] as? List<*>)?.filterIsInstance<RecentItem>() ?: emptyList()
+        val notes = (args[13] as? List<*>)?.filterIsInstance<LegacyNoteEntity>() ?: emptyList()
 
         val linkedContextNames =
             if (directionItems.isEmpty()) {

@@ -101,6 +101,7 @@ class ContextScreenViewModel
         private val goalRepository: GoalRepository,
         private val listItemRepository: ListItemRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
+        private val musicNoteRepository: MusicNoteRepository,
         private val checklistRepository: ChecklistRepository,
         private val reminderRepository: ReminderRepository,
         private val recentItemsRepository: RecentItemsRepository,
@@ -197,6 +198,7 @@ class ContextScreenViewModel
                 goalRepository = goalRepository,
                 contextRepository = contextRepository,
                 noteDocumentRepository = noteDocumentRepository,
+                musicNoteRepository = musicNoteRepository,
                 checklistRepository = checklistRepository,
                 noteRepository = noteRepository,
                 listItemRepository = listItemRepository,
@@ -225,7 +227,12 @@ class ContextScreenViewModel
         private val listChooserResultCoordinatorActions by lazy { ListChooserResultCoordinatorActions(listChooserResultActions = listChooserResultActions, pendingStateActions = listChooserPendingStateActions) }
         private val directionActions by lazy { DirectionActions(directionRepository = directionRepository) }
         private val directionChooserActions = DirectionChooserActions()
-        private val creationActions by lazy { CreationActions(noteDocumentRepository = noteDocumentRepository) }
+        private val creationActions by lazy {
+            CreationActions(
+                noteDocumentRepository = noteDocumentRepository,
+                musicNoteRepository = musicNoteRepository,
+            )
+        }
         private val creationResultActions = CreationResultActions()
         private val contextSettingsActions by lazy { ContextSettingsActions(contextRepository = contextRepository) }
         private val currentContextActions by lazy { CurrentContextActions(stateManager = stateManager, activityManager = activityManager, contextSettingsActions = contextSettingsActions) }
@@ -353,6 +360,7 @@ class ContextScreenViewModel
                 contextLogRepository = contextLogRepository,
                 checklistRepository = checklistRepository,
                 noteDocumentRepository = noteDocumentRepository,
+                musicNoteRepository = musicNoteRepository,
                 directionRepository = directionRepository,
                 reminderRepository = reminderRepository,
                 recentItemsRepository = recentItemsRepository,
@@ -878,6 +886,14 @@ class ContextScreenViewModel
                         )
                     contextRepository.findAttachmentIdByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)
                 }
+                is NewDocumentDraft.MusicNote -> {
+                    val musicNoteId =
+                        musicNoteRepository.create(
+                            name = request.name.ifBlank { "New music note" },
+                            contextId = currentContextId,
+                        )
+                    contextRepository.findAttachmentIdByEntity(BacklogItemTypeValues.MUSIC_NOTE, musicNoteId)
+                }
                 is NewDocumentDraft.Checklist -> {
                     val checklistId =
                         checklistRepository.createChecklist(
@@ -1211,6 +1227,7 @@ private fun AttachmentLibraryQueryResult.toAttachmentOption(): AttachmentOption 
         }
     val label =
         noteName
+            ?: musicNoteName
             ?: checklistName
             ?: scriptName
             ?: contextName

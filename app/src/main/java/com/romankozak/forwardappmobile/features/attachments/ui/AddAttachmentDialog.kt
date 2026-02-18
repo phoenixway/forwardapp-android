@@ -26,6 +26,10 @@ fun AddAttachmentDialog(
                     modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.NOTES) }.padding(16.dp),
                 )
                 Text(
+                    "Music notes",
+                    modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.MUSIC_NOTES) }.padding(16.dp),
+                )
+                Text(
                     "Web Link",
                     modifier = Modifier.fillMaxWidth().clickable { onAttachmentTypeSelected(AttachmentType.WEB_LINK) }.padding(16.dp),
                 )

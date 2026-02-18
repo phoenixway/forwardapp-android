@@ -35,6 +35,7 @@ class MergeLocalDataSourceImpl
         private val listItemDao: ListItemDao,
         private val attachmentDao: AttachmentDao,
         private val noteDocumentDao: NoteDocumentDao,
+        private val musicNoteDao: MusicNoteDao,
         private val chatDao: ChatDao,
         private val dayPlanDao: DayPlanDao,
         private val dayTaskDao: DayTaskDao,
@@ -73,6 +74,7 @@ class MergeLocalDataSourceImpl
                 backlogItems = listItemDao.getAll(),
                 directionItems = directionDao.getAllRaw(),
                 documents = noteDocumentDao.getAllDocuments(),
+                musicNotes = musicNoteDao.getAll(),
                 attachments = attachmentDao.getAll(),
                 contextAttachmentCrossRefs = attachmentDao.getAllContextAttachmentCrossRefs(),
                 dayPlans = dayPlanDao.getAllPlansSync(),
@@ -158,6 +160,7 @@ class MergeLocalDataSourceImpl
                 directionDao.insertAll(bundle.directionItems.map { it.toEntity() })
                 goalDao.insertAll(bundle.goals.map { it.toEntity() })
                 noteDocumentDao.insertAllDocuments(bundle.documents.map { it.toEntity() })
+                musicNoteDao.insertAll(bundle.musicNotes.map { it.toEntity() })
                 checklistDao.insertChecklists(bundle.checklists.map { it.toEntity() })
 
                 // --- Consolidate and auto-link attachments and cross-refs ---

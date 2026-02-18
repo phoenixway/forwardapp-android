@@ -5,6 +5,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 
 enum class AttachmentLibraryType {
     NOTE_DOCUMENT,
+    MUSIC_NOTE,
     CHECKLIST,
     LINK,
     CONTEXT,
@@ -21,7 +22,7 @@ enum class AttachmentLibraryFilter {
     fun matches(type: AttachmentLibraryType): Boolean =
         when (this) {
             All -> true
-            Notes -> type == AttachmentLibraryType.NOTE_DOCUMENT
+            Notes -> type == AttachmentLibraryType.NOTE_DOCUMENT || type == AttachmentLibraryType.MUSIC_NOTE
             Checklists -> type == AttachmentLibraryType.CHECKLIST
             Links -> type == AttachmentLibraryType.LINK
             Contexts -> type == AttachmentLibraryType.CONTEXT
@@ -52,6 +53,7 @@ data class AttachmentLibraryQueryResult(
     val ownerContextId: String?,
     val attachmentUpdatedAt: Long,
     val noteName: String?,
+    val musicNoteName: String?,
     val noteUpdatedAt: Long?,
     val checklistName: String?,
     val linkDisplayName: String?,

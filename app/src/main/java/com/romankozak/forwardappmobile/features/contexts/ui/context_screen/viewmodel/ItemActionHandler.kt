@@ -127,6 +127,7 @@ class ItemActionHandler
                             }
                         }
                         is BacklogItemContent.ChecklistItem -> recentItemsRepository.logChecklistAccess(item.checklist)
+                        is BacklogItemContent.MusicNoteItem -> {}
                         else -> {}
                     }
                 }
@@ -145,6 +146,8 @@ class ItemActionHandler
                         resultListener.showSnackbar("Застарілі нотатки недоступні для редагування", null)
                     is BacklogItemContent.NoteDocumentItem ->
                         resultListener.requestNavigation("note_document_screen/${item.document.id}")
+                    is BacklogItemContent.MusicNoteItem ->
+                        resultListener.requestNavigation("music_note_screen/${item.musicNote.id}")
                     is BacklogItemContent.ChecklistItem ->
                         resultListener.requestNavigation("checklist_screen?checklistId=${item.checklist.id}")
                 }
@@ -158,6 +161,7 @@ class ItemActionHandler
                 val isAttachment =
                     item is BacklogItemContent.LinkItem ||
                         item is BacklogItemContent.NoteDocumentItem ||
+                        item is BacklogItemContent.MusicNoteItem ||
                         item is BacklogItemContent.ChecklistItem
                 if (isAttachment) {
                     contextRepository.unlinkAttachmentFromContext(currentProjectId, item.backlogItem.id)
@@ -213,6 +217,7 @@ class ItemActionHandler
                         is BacklogItemContent.ContextLinkItem -> Pair("Назва проекту скопійована", content.project.name)
                         is BacklogItemContent.NoteItem -> Pair("Текст нотатки скопійовано", content.note.content)
                         is BacklogItemContent.NoteDocumentItem -> Pair("Назва списку скопійована", content.document.name)
+                        is BacklogItemContent.MusicNoteItem -> Pair("Назва нот скопійована", content.musicNote.name)
                         is BacklogItemContent.ChecklistItem -> Pair("Назва чекліста скопійована", content.checklist.name)
                     }
 
@@ -429,6 +434,7 @@ class ItemActionHandler
         private fun isAttachment(item: BacklogItemContent): Boolean =
             item is BacklogItemContent.LinkItem ||
                 item is BacklogItemContent.NoteDocumentItem ||
+                item is BacklogItemContent.MusicNoteItem ||
                 item is BacklogItemContent.ChecklistItem
 
         fun onRelatedLinkClick(link: RelatedLink) {

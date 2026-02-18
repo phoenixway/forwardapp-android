@@ -97,6 +97,7 @@ import com.romankozak.forwardappmobile.data.database.MIGRATION_106_107
 import com.romankozak.forwardappmobile.data.database.MIGRATION_107_108
 import com.romankozak.forwardappmobile.data.database.MIGRATION_108_109
 import com.romankozak.forwardappmobile.data.database.MIGRATION_109_110
+import com.romankozak.forwardappmobile.data.database.MIGRATION_110_111
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
@@ -113,6 +114,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.MusicNoteDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
@@ -258,6 +260,7 @@ object DatabaseModule {
             MIGRATION_107_108,
             MIGRATION_108_109,
             MIGRATION_109_110,
+            MIGRATION_110_111,
         ).build()
     }
 
@@ -340,6 +343,10 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideNoteDocumentDao(appDatabase: AppDatabase): NoteDocumentDao = appDatabase.noteDocumentDao()
+
+    @Provides
+    @Singleton
+    fun provideMusicNoteDao(appDatabase: AppDatabase): MusicNoteDao = appDatabase.musicNoteDao()
 
     @Provides
     @Singleton

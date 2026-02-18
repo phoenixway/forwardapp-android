@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@1.9.2/build/opensheetmusicdisplay.min.js"></script>
+  <style>
+    body { margin: 0; padding: 8px; font-family: sans-serif; background: transparent; }
+    #score { width: 100%; min-height: 100vh; }
+    #fallback { display: none; white-space: pre-wrap; font-family: monospace; }
+  </style>
+</head>
+<body>
+  <div id="score"></div>
+  <pre id="fallback"></pre>
+  <script>
+    let osmd = null;
+    async function renderMusicXml(xml) {
+      const score = document.getElementById('score');
+      const fallback = document.getElementById('fallback');
+      fallback.style.display = 'none';
+      score.style.display = 'block';
+
+      try {
+        if (!osmd) {
+          osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(score, {
+            autoResize: true,
+            drawTitle: true,
+            backend: "svg"
+          });
+        }
+        await osmd.load(xml);
+        osmd.render();
+      } catch (e) {
+        score.style.display = 'none';
+        fallback.style.display = 'block';
+        fallback.textContent = xml;
+      }
+    }
+
+    window.renderMusicXml = renderMusicXml;
+  </script>
+</body>
+</html>

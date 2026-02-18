@@ -911,6 +911,7 @@ class BacklogClipboardUseCase
         private fun isAttachmentType(itemType: String): Boolean =
             itemType == BacklogItemTypeValues.LINK_ITEM ||
                 itemType == BacklogItemTypeValues.NOTE_DOCUMENT ||
+                itemType == BacklogItemTypeValues.MUSIC_NOTE ||
                 itemType == BacklogItemTypeValues.CHECKLIST ||
                 itemType == BacklogItemTypeValues.SCRIPT
     }

@@ -31,6 +31,11 @@ sealed interface NavTarget {
         val contextId: String? = null,
     ) : NavTarget
 
+    data class MusicNote(
+        val id: String,
+        val startEdit: Boolean = false,
+    ) : NavTarget
+
     data class GlobalSearch(
         val query: String,
     ) : NavTarget

@@ -12,6 +12,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.tactical.Tactic
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
+import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.AddTacticalMissionUseCase
@@ -43,6 +44,7 @@ class TacticalMissionViewModel
         private val contextRepository: ContextRepository,
         private val attachmentsRepository: AttachmentsRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
+        private val musicNoteRepository: MusicNoteRepository,
         private val checklistRepository: ChecklistRepository,
         private val settingsRepository: SettingsRepository,
     ) : ViewModel() {
@@ -296,6 +298,14 @@ class TacticalMissionViewModel
                         )
                     attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)?.id
                 }
+                is NewDocumentDraft.MusicNote -> {
+                    val musicNoteId =
+                        musicNoteRepository.create(
+                            name = request.name.ifBlank { "New music note" },
+                            contextId = SystemContexts.MISSION.raw,
+                        )
+                    attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.MUSIC_NOTE, musicNoteId)?.id
+                }
                 is NewDocumentDraft.Checklist -> {
                     val checklistId =
                         checklistRepository.createChecklist(
@@ -385,6 +395,7 @@ private fun AttachmentLibraryQueryResult.toAttachmentOption(): AttachmentOption 
         }
     val label =
         noteName
+            ?: musicNoteName
             ?: checklistName
             ?: scriptName
             ?: contextName

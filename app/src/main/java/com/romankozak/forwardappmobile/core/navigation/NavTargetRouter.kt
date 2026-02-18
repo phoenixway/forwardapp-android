@@ -51,6 +51,10 @@ object NavTargetRouter {
                         ),
                     )
 
+            is NavTarget.MusicNote ->
+                "music_note_screen/${target.id}" +
+                    if (target.startEdit) "?startEdit=true" else ""
+
             is NavTarget.GlobalSearch ->
                 "global_search_screen/${target.query}"
 

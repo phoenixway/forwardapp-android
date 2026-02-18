@@ -21,6 +21,7 @@ fun AttachmentLibraryQueryResult.toScopeAttachmentOption(): ScopeAttachmentOptio
         }
     val label =
         noteName
+            ?: musicNoteName
             ?: checklistName
             ?: scriptName
             ?: contextName

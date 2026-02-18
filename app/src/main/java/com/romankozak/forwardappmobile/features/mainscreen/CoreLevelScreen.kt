@@ -164,6 +164,8 @@ fun CoreLevelScreen(
                         when {
                             option?.attachmentType == "NOTE_DOCUMENT" && !option.entityId.isNullOrBlank() ->
                                 navController.navigate("note_document_screen/${option.entityId}")
+                            option?.attachmentType == "MUSIC_NOTE" && !option.entityId.isNullOrBlank() ->
+                                navController.navigate("music_note_screen/${option.entityId}")
                             option?.attachmentType == "CHECKLIST" && !option.entityId.isNullOrBlank() ->
                                 navController.navigate("checklist_screen?checklistId=${option.entityId}")
                             option?.linkType == LinkType.CONTEXT && !option.target.isNullOrBlank() ->
@@ -330,6 +332,7 @@ private fun CreateConnectionType.toPickerCreateAction(): PickerCreateAction =
     when (this) {
         CreateConnectionType.CONTEXT -> PickerCreateAction.CONTEXT
         CreateConnectionType.NOTE_DOCUMENT -> PickerCreateAction.NOTE
+        CreateConnectionType.MUSIC_NOTE -> PickerCreateAction.MUSIC_NOTE
         CreateConnectionType.CHECKLIST -> PickerCreateAction.CHECKLIST
         CreateConnectionType.SCRIPT -> PickerCreateAction.NOTE
         CreateConnectionType.EXTERNAL_LINK -> PickerCreateAction.WEB_LINK

@@ -31,6 +31,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntit
 import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteFts
 import com.romankozak.forwardappmobile.core.data.models.entities.LifeSystemStateEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.MusicNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
@@ -81,6 +82,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.MusicNoteDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
@@ -108,6 +110,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         DailyMetric::class,
         LegacyNoteEntity::class,
         NoteDocumentEntity::class,
+        MusicNoteEntity::class,
         ChecklistEntity::class,
         ChecklistItemEntity::class,
         ScriptEntity::class,
@@ -134,7 +137,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 110,
+    version = 111,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -162,6 +165,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun focusContextIntervalDao(): FocusContextIntervalDao
 
     abstract fun noteDocumentDao(): NoteDocumentDao
+
+    abstract fun musicNoteDao(): MusicNoteDao
 
     abstract fun checklistDao(): ChecklistDao
 

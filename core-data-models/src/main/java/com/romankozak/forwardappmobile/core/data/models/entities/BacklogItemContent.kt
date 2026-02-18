@@ -36,4 +36,9 @@ sealed class BacklogItemContent {
         @SerializedName("checklist") val checklist: ChecklistEntity,
         @SerializedName("backlogItem") override val backlogItem: BacklogItem
     ) : BacklogItemContent()
+
+    data class MusicNoteItem(
+        @SerializedName("musicNote") val musicNote: MusicNoteEntity,
+        @SerializedName("backlogItem") override val backlogItem: BacklogItem
+    ) : BacklogItemContent()
 }

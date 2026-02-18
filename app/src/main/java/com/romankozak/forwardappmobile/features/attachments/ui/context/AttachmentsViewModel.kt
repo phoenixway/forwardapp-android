@@ -14,6 +14,7 @@ import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ListItemRepository
+import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
@@ -77,6 +78,7 @@ class AttachmentsViewModel
         private val alarmScheduler: AlarmScheduler,
         private val recentItemsRepository: RecentItemsRepository,
         private val listItemRepository: ListItemRepository,
+        private val musicNoteRepository: MusicNoteRepository,
         private val goalScoringManager: GoalScoringManager,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
@@ -144,6 +146,7 @@ class AttachmentsViewModel
                         content.filter { item ->
                             item is BacklogItemContent.LinkItem ||
                                 item is BacklogItemContent.NoteDocumentItem ||
+                                item is BacklogItemContent.MusicNoteItem ||
                                 item is BacklogItemContent.ChecklistItem
                         }
                     }
@@ -168,6 +171,24 @@ class AttachmentsViewModel
                         _uiEventFlow.send(
                             UiEvent.Navigate(
                                 NavTarget.NoteDocumentEdit(contextId = contextId.value, documentId = null),
+                            ),
+                        )
+                    }
+                }
+                AttachmentType.MUSIC_NOTES -> {
+                    viewModelScope.launch {
+                        val musicNoteId =
+                            musicNoteRepository.create(
+                                name = "Нові ноти",
+                                contextId = contextId.value,
+                                content = "",
+                            )
+                        _uiEventFlow.send(
+                            UiEvent.Navigate(
+                                NavTarget.MusicNote(
+                                    id = musicNoteId,
+                                    startEdit = true,
+                                ),
                             ),
                         )
                     }

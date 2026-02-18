@@ -16,6 +16,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachmen
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ContextAttachmentCrossRefSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.LegacyNoteSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.NoteDocumentSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.MusicNoteSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ScriptSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.BacklogItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.BacklogOrderSnapshot
@@ -48,6 +49,7 @@ data class BackupDiff(
     val legacyNotes: DiffResult<LegacyNoteSnapshot> = DiffResult(),
     val activityRecords: DiffResult<ActivityRecordSnapshot> = DiffResult(),
     val documents: DiffResult<NoteDocumentSnapshot> = DiffResult(),
+    val musicNotes: DiffResult<MusicNoteSnapshot> = DiffResult(),
     val checklists: DiffResult<ChecklistSnapshot> = DiffResult(),
     val checklistItems: DiffResult<ChecklistItemSnapshot> = DiffResult(),
     val linkItems: DiffResult<LinkItemEntitySnapshot> = DiffResult(),

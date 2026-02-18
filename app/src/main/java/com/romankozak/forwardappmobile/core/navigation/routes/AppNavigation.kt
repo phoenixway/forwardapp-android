@@ -31,6 +31,7 @@ import com.romankozak.forwardappmobile.features.ai.insights.AiInsightsScreen
 import com.romankozak.forwardappmobile.features.attachments.specific_types.checklist.ChecklistScreen
 import com.romankozak.forwardappmobile.features.attachments.specific_types.notedocument.NoteDocumentEditorScreen
 import com.romankozak.forwardappmobile.features.attachments.specific_types.notedocument.NoteDocumentScreen
+import com.romankozak.forwardappmobile.features.attachments.specific_types.musicnote.MusicNoteScreen
 import com.romankozak.forwardappmobile.features.attachments.specific_types.script.ScriptChooserScreen
 import com.romankozak.forwardappmobile.features.attachments.specific_types.script.ScriptEditorScreen
 import com.romankozak.forwardappmobile.features.attachments.specific_types.script.ScriptsLibraryScreen
@@ -475,6 +476,21 @@ private fun NavGraphBuilder.mainGraph(
         ChecklistScreen(
             navController = navController,
         )
+    }
+
+    composable(
+        route = "music_note_screen/{musicNoteId}?startEdit={startEdit}",
+        arguments =
+            listOf(
+                navArgument("musicNoteId") { type = NavType.StringType },
+                navArgument("startEdit") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                },
+            ),
+    ) { backStackEntry ->
+        val startEdit = backStackEntry.arguments?.getBoolean("startEdit") ?: false
+        MusicNoteScreen(navController = navController, startEdit = startEdit)
     }
 
     composable(

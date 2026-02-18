@@ -20,4 +20,10 @@ class CreationResultActions {
             is CreationActions.CreateChecklistResult.Navigate -> Outcome.Navigate(result.target)
             is CreationActions.CreateChecklistResult.Error -> Outcome.ShowMessage(result.message)
         }
+
+    fun fromMusicNoteResult(result: CreationActions.CreateMusicNoteResult): Outcome =
+        when (result) {
+            is CreationActions.CreateMusicNoteResult.Navigate -> Outcome.Navigate(result.target)
+            is CreationActions.CreateMusicNoteResult.Error -> Outcome.ShowMessage(result.message)
+        }
 }

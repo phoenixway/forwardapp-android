@@ -34,6 +34,7 @@ class FullBackupLocalDataSourceImpl
         private val goalDao: GoalDao,
         private val listItemDao: ListItemDao,
         private val noteDocumentDao: NoteDocumentDao,
+        private val musicNoteDao: MusicNoteDao,
         private val checklistDao: ChecklistDao,
         private val attachmentDao: AttachmentDao,
         private val recentItemDao: RecentItemDao,
@@ -80,6 +81,7 @@ class FullBackupLocalDataSourceImpl
                 artifacts = contextArtifactDao.getAllRaw().map { it.toSnapshot() },
                 // Knowledge Base
                 documents = noteDocumentDao.getAllDocumentsRaw().map { it.toSnapshot() },
+                musicNotes = musicNoteDao.getAll().map { it.toSnapshot() },
                 checklists = checklistDao.getAllChecklistsRaw().map { it.toSnapshot() },
                 checklistItems = checklistDao.getAllChecklistItemsRaw().map { it.toSnapshot() },
                 scripts = scriptDao.getAllRaw().map { it.toSnapshot() },
@@ -156,6 +158,9 @@ class FullBackupLocalDataSourceImpl
 
             Log.d("SyncV2", "Inserting NoteDocuments: ${bundle.documents.size}")
             noteDocumentDao.insertAllDocuments(bundle.documents.map { it.toEntity() })
+
+            Log.d("SyncV2", "Inserting MusicNotes: ${bundle.musicNotes.size}")
+            musicNoteDao.insertAll(bundle.musicNotes.map { it.toEntity() })
 
             Log.d("SyncV2", "Inserting Scripts: ${bundle.scripts.size}")
             scriptDao.insertAll(bundle.scripts.map { it.toEntity() })
@@ -313,6 +318,7 @@ class FullBackupLocalDataSourceImpl
                 projects = contextDao.getAll(),
                 goals = goalDao.getAll(),
                 documents = noteDocumentDao.getAllDocuments(),
+                musicNotes = musicNoteDao.getAll(),
                 checklists = checklistDao.getAllChecklistsRaw(),
                 checklistItems = checklistDao.getAllChecklistItemsRaw(),
                 directionItems = directionDao.getAllRaw(),

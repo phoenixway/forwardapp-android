@@ -40,6 +40,7 @@ fun ConnectionsView(
         attachmentItems.filter {
             it is BacklogItemContent.LinkItem ||
                 it is BacklogItemContent.NoteDocumentItem ||
+                it is BacklogItemContent.MusicNoteItem ||
                 it is BacklogItemContent.ChecklistItem
         }
 
@@ -196,6 +197,7 @@ private fun CreateConnectionType.toPickerCreateAction(): PickerCreateAction =
     when (this) {
         CreateConnectionType.CONTEXT -> PickerCreateAction.CONTEXT
         CreateConnectionType.NOTE_DOCUMENT -> PickerCreateAction.NOTE
+        CreateConnectionType.MUSIC_NOTE -> PickerCreateAction.MUSIC_NOTE
         CreateConnectionType.CHECKLIST -> PickerCreateAction.CHECKLIST
         CreateConnectionType.SCRIPT -> PickerCreateAction.NOTE
         CreateConnectionType.EXTERNAL_LINK -> PickerCreateAction.WEB_LINK
@@ -211,6 +213,7 @@ private fun BacklogItemContent.connectionTitle(): String =
     when (this) {
         is BacklogItemContent.LinkItem -> link.linkData.displayName?.ifBlank { link.linkData.target } ?: link.linkData.target
         is BacklogItemContent.NoteDocumentItem -> document.name
+        is BacklogItemContent.MusicNoteItem -> musicNote.name
         is BacklogItemContent.ChecklistItem -> checklist.name
         else -> ""
     }

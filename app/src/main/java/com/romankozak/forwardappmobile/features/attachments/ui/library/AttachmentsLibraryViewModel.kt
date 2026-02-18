@@ -55,6 +55,7 @@ class AttachmentsLibraryViewModel
                         val type =
                             when (result.attachmentType) {
                                 BacklogItemTypeValues.NOTE_DOCUMENT -> AttachmentLibraryType.NOTE_DOCUMENT
+                                BacklogItemTypeValues.MUSIC_NOTE -> AttachmentLibraryType.MUSIC_NOTE
                                 BacklogItemTypeValues.CHECKLIST -> AttachmentLibraryType.CHECKLIST
                                 BacklogItemTypeValues.LINK_ITEM -> AttachmentLibraryType.LINK
                                 BacklogItemTypeValues.CONTEXT -> AttachmentLibraryType.CONTEXT
@@ -119,6 +120,19 @@ class AttachmentsLibraryViewModel
                         contexts = contexts,
                         ownerContext = owner,
                         updatedAt = result.noteUpdatedAt ?: result.attachmentUpdatedAt,
+                    )
+                }
+                AttachmentLibraryType.MUSIC_NOTE -> {
+                    val name = result.musicNoteName ?: return null
+                    AttachmentLibraryItem(
+                        id = result.id,
+                        entityId = result.entityId,
+                        title = name,
+                        subtitle = null,
+                        type = type,
+                        contexts = contexts,
+                        ownerContext = owner,
+                        updatedAt = result.attachmentUpdatedAt,
                     )
                 }
                 AttachmentLibraryType.CHECKLIST -> {

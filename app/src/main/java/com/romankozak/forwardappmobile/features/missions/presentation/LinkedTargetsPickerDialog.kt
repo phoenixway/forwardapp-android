@@ -84,6 +84,7 @@ enum class LinkPickerTab {
 enum class PickerCreateAction {
     CONTEXT,
     NOTE,
+    MUSIC_NOTE,
     CHECKLIST,
     WEB_LINK,
     OBSIDIAN,
@@ -91,6 +92,8 @@ enum class PickerCreateAction {
 
 sealed interface NewDocumentDraft {
     data class Note(val name: String) : NewDocumentDraft
+
+    data class MusicNote(val name: String) : NewDocumentDraft
 
     data class Checklist(val name: String) : NewDocumentDraft
 
@@ -244,6 +247,13 @@ fun LinkedTargetsPickerDialog(
                 documentName = ""
                 documentTarget = ""
             }
+            PickerCreateAction.MUSIC_NOTE -> {
+                if (!hasAttachmentsTab || onCreateDocument == null) return@LaunchedEffect
+                selectedTab = LinkPickerTab.ATTACHMENTS
+                pendingDocumentType = DocumentCreationType.MUSIC_NOTE
+                documentName = ""
+                documentTarget = ""
+            }
             PickerCreateAction.WEB_LINK -> {
                 if (!hasAttachmentsTab || onCreateDocument == null) return@LaunchedEffect
                 selectedTab = LinkPickerTab.ATTACHMENTS
@@ -296,6 +306,15 @@ fun LinkedTargetsPickerDialog(
                                     onClick = {
                                         documentsMenuExpanded = false
                                         pendingDocumentType = DocumentCreationType.NOTE
+                                        documentName = ""
+                                        documentTarget = ""
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.attachment_type_music_notes)) },
+                                    onClick = {
+                                        documentsMenuExpanded = false
+                                        pendingDocumentType = DocumentCreationType.MUSIC_NOTE
                                         documentName = ""
                                         documentTarget = ""
                                     },
@@ -509,6 +528,7 @@ fun LinkedTargetsPickerDialog(
                 val request =
                     when (type) {
                         DocumentCreationType.NOTE -> NewDocumentDraft.Note(name = documentName.trim().ifBlank { "New note" })
+                        DocumentCreationType.MUSIC_NOTE -> NewDocumentDraft.MusicNote(name = documentName.trim().ifBlank { "New music note" })
                         DocumentCreationType.CHECKLIST -> NewDocumentDraft.Checklist(name = documentName.trim().ifBlank { "New checklist" })
                         DocumentCreationType.WEB_LINK -> NewDocumentDraft.WebLink(url = documentTarget.trim(), name = documentName.trim())
                         DocumentCreationType.OBSIDIAN ->
@@ -873,6 +893,7 @@ private fun attachmentIcon(type: LinkType?) =
 
 private enum class DocumentCreationType {
     NOTE,
+    MUSIC_NOTE,
     CHECKLIST,
     WEB_LINK,
     OBSIDIAN,
@@ -891,6 +912,7 @@ private fun DocumentCreationDialog(
     val title =
         when (type) {
             DocumentCreationType.NOTE -> stringResource(R.string.attachment_type_notes)
+            DocumentCreationType.MUSIC_NOTE -> stringResource(R.string.attachment_type_music_notes)
             DocumentCreationType.CHECKLIST -> stringResource(R.string.attachment_type_checklist)
             DocumentCreationType.WEB_LINK -> stringResource(R.string.attachment_type_web_link)
             DocumentCreationType.OBSIDIAN -> stringResource(R.string.attachment_type_obsidian)
@@ -898,6 +920,7 @@ private fun DocumentCreationDialog(
     val targetLabel =
         when (type) {
             DocumentCreationType.NOTE,
+            DocumentCreationType.MUSIC_NOTE,
             DocumentCreationType.CHECKLIST,
             -> null
             DocumentCreationType.WEB_LINK -> "URL"
@@ -931,6 +954,7 @@ private fun DocumentCreationDialog(
                 enabled =
                     when (type) {
                         DocumentCreationType.NOTE,
+                        DocumentCreationType.MUSIC_NOTE,
                         DocumentCreationType.CHECKLIST,
                         -> true
                         DocumentCreationType.WEB_LINK,

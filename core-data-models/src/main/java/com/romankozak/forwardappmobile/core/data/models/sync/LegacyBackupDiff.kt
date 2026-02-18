@@ -13,6 +13,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.MusicNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ScriptEntity
 
@@ -24,6 +25,7 @@ data class LegacyBackupDiff(
     val legacyNotes: DiffResult<LegacyNoteEntity> = DiffResult(),
     val activityRecords: DiffResult<ActivityRecord> = DiffResult(),
     val documents: DiffResult<NoteDocumentEntity> = DiffResult(),
+    val musicNotes: DiffResult<MusicNoteEntity> = DiffResult(),
     val checklists: DiffResult<ChecklistEntity> = DiffResult(),
     val checklistItems: DiffResult<ChecklistItemEntity> = DiffResult(),
     val linkItems: DiffResult<LinkItemEntity> = DiffResult(),

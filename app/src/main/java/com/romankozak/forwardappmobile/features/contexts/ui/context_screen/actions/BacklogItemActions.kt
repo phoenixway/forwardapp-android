@@ -11,12 +11,14 @@ import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.repository.ListItemRepository
+import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 
 class BacklogItemActions(
     private val goalRepository: GoalRepository,
     private val contextRepository: ContextRepository,
     private val noteDocumentRepository: NoteDocumentRepository,
+    private val musicNoteRepository: MusicNoteRepository,
     private val checklistRepository: ChecklistRepository,
     private val noteRepository: LegacyNoteRepository,
     private val listItemRepository: ListItemRepository,
@@ -61,6 +63,11 @@ class BacklogItemActions(
             is BacklogItemContent.NoteDocumentItem -> {
                 noteDocumentRepository.deleteDocument(item.document.id)
                 "Документ видалено"
+            }
+
+            is BacklogItemContent.MusicNoteItem -> {
+                musicNoteRepository.delete(item.musicNote.id)
+                "Ноти видалено"
             }
 
             is BacklogItemContent.ChecklistItem -> {

@@ -15,6 +15,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.MusicNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.DirectionItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
@@ -49,6 +50,7 @@ object SyncMapper {
             backlogOrders = legacy.backlogOrders.map { it.toSnapshot() },
             directionItems = legacy.directionItems.map { it.toSnapshot() },
             documents = legacy.documents.map { it.toSnapshot() },
+            musicNotes = legacy.musicNotes.map { it.toSnapshot() },
             checklists = legacy.checklists.map { it.toSnapshot() },
             checklistItems = legacy.checklistItems.map { it.toSnapshot() },
             activityRecords = legacy.activityRecords.map { it.toSnapshot() },
@@ -115,6 +117,37 @@ object SyncMapper {
             }
         }
 
+        // 4. Авто-зшивання Music Notes (V1 -> V2)
+        legacy.musicNotes.forEach { note ->
+            if (note.contextId.isNotBlank()) {
+                val attachmentId = generateDeterministicId(note.id, "MUSIC_NOTE")
+
+                autoAttachments.add(
+                    AttachmentSnapshot(
+                        id = attachmentId,
+                        entityId = note.id,
+                        attachmentType = "MUSIC_NOTE",
+                        ownerContextId = note.contextId,
+                        createdAt = note.createdAt,
+                        updatedAt = note.updatedAt,
+                        isDeleted = note.isDeleted,
+                        version = note.version,
+                    ),
+                )
+
+                autoCrossRefs.add(
+                    ContextAttachmentCrossRefSnapshot(
+                        contextId = note.contextId,
+                        attachmentId = attachmentId,
+                        attachmentOrder = 0,
+                        updatedAt = now,
+                        version = 1,
+                        isDeleted = false,
+                    ),
+                )
+            }
+        }
+
         return bundle.copy(
             attachments = autoAttachments,
             crossRefs = autoCrossRefs
@@ -164,6 +197,8 @@ object SyncMapper {
     fun Goal.updatedTs(): Long = this.updatedAt ?: this.createdAt
 
     fun NoteDocumentEntity.updatedTs(): Long = this.updatedAt
+
+    fun MusicNoteEntity.updatedTs(): Long = this.updatedAt
 
     fun LegacyNoteEntity.updatedTs(): Long = this.updatedAt
 

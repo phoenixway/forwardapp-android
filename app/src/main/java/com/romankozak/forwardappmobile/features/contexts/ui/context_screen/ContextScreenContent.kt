@@ -565,6 +565,7 @@ private fun AttachmentRowSummary(
                 item.link.linkData.displayName?.takeIf { it.isNotBlank() }
                     ?: item.link.linkData.target
             is BacklogItemContent.NoteDocumentItem -> item.document.name.ifBlank { "Document" }
+            is BacklogItemContent.MusicNoteItem -> item.musicNote.name.ifBlank { "Music note" }
             is BacklogItemContent.ChecklistItem -> item.checklist.name ?: "Checklist"
             else -> "Attachment"
         }
@@ -580,6 +581,7 @@ private fun AttachmentRowSummary(
             when (item) {
                 is BacklogItemContent.LinkItem -> Icons.Outlined.Link
                 is BacklogItemContent.NoteDocumentItem -> Icons.Outlined.Description
+                is BacklogItemContent.MusicNoteItem -> Icons.Outlined.MusicNote
                 is BacklogItemContent.ChecklistItem -> Icons.Outlined.Checklist
                 else -> Icons.Default.Attachment
             }

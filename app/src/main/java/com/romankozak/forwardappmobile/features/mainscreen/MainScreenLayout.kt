@@ -571,6 +571,8 @@ fun MainScreenLayout(
                                     when {
                                         attachment.attachmentType == "NOTE_DOCUMENT" && !attachment.entityId.isNullOrBlank() ->
                                             navController.navigate("note_document_screen/${attachment.entityId}")
+                                        attachment.attachmentType == "MUSIC_NOTE" && !attachment.entityId.isNullOrBlank() ->
+                                            navController.navigate("music_note_screen/${attachment.entityId}")
                                         attachment.attachmentType == "CHECKLIST" && !attachment.entityId.isNullOrBlank() ->
                                             navController.navigate("checklist_screen?checklistId=${attachment.entityId}")
                                         attachment.linkType == LinkType.CONTEXT && !attachment.target.isNullOrBlank() ->

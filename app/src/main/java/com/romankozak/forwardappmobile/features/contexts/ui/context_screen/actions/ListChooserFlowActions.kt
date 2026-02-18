@@ -46,6 +46,7 @@ class ListChooserFlowActions(
         val isAttachmentSupported =
             attachment is BacklogItemContent.LinkItem ||
                 attachment is BacklogItemContent.NoteDocumentItem ||
+                attachment is BacklogItemContent.MusicNoteItem ||
                 attachment is BacklogItemContent.ChecklistItem
         if (!isAttachmentSupported) {
             return AttachmentShareResult(message = "This attachment type does not support copying")

@@ -662,6 +662,7 @@ private fun CreateConnectionType.toPickerCreateAction(): PickerCreateAction =
     when (this) {
         CreateConnectionType.CONTEXT -> PickerCreateAction.CONTEXT
         CreateConnectionType.NOTE_DOCUMENT -> PickerCreateAction.NOTE
+        CreateConnectionType.MUSIC_NOTE -> PickerCreateAction.MUSIC_NOTE
         CreateConnectionType.CHECKLIST -> PickerCreateAction.CHECKLIST
         CreateConnectionType.SCRIPT -> PickerCreateAction.NOTE
         CreateConnectionType.EXTERNAL_LINK -> PickerCreateAction.WEB_LINK

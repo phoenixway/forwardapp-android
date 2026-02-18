@@ -136,7 +136,7 @@ private fun AnimatedCommandDeck(
     var quickActionsStage by remember { mutableIntStateOf(0) }
     var aiInsightsExpanded by remember { mutableStateOf(false) }
     var focusContextsExpanded by remember { mutableStateOf(true) }
-    var recentContextsExpanded by remember { mutableStateOf(true) }
+    var recentContextsExpanded by remember { mutableStateOf(false) }
     var dismissedInsightIds by remember { mutableStateOf(emptySet<String>()) }
 
     val recentItems by recentViewModel.recentItems.collectAsStateWithLifecycle()

@@ -118,6 +118,7 @@ class MergeRepository @Inject constructor(
             goals = logicHelper.diffEntities(incoming.goals.map { SyncMapper.normalizeGoal(it) }, local.goals, { it.id }, { it.version }, { it.updatedAt ?: 0L }),
             backlogItems = logicHelper.diffEntities(incoming.backlogItems, local.backlogItems, { it.id }, { it.version }, { it.updatedAt ?: 0L }),
             documents = logicHelper.diffEntities(incoming.documents, local.documents, { it.id }, { it.version }, { it.updatedAt }),
+            musicNotes = logicHelper.diffEntities(incoming.musicNotes, local.musicNotes, { it.id }, { it.version }, { it.updatedAt }),
             attachments = logicHelper.diffEntities(incoming.attachments, local.attachments, { it.id }, { it.version }, { it.updatedAt }),
             contextAttachmentCrossRefs = logicHelper.diffEntities(incoming.contextAttachmentCrossRefs, local.contextAttachmentCrossRefs, { "${it.contextId}-${it.attachmentId}" }, { 0L }, { it.updatedAt ?: 0L })
         )
@@ -157,6 +158,7 @@ suspend fun createBackupDiff(incoming: SnapshotBundle): BackupDiff {
             goals = logicHelper.diffEntities(incoming.goals, local.goals, { goal -> goal.id }, { goal -> goal.version }, { goal -> goal.updatedAt }),
             backlogItems = logicHelper.diffEntities(incoming.backlogItems, local.backlogItems, { item -> item.id }, { item -> item.version }, { item -> item.updatedAt }),
             documents = logicHelper.diffEntities(incoming.documents, local.documents, { doc -> doc.id }, { doc -> doc.version }, { doc -> doc.updatedAt }),
+            musicNotes = logicHelper.diffEntities(incoming.musicNotes, local.musicNotes, { note -> note.id }, { note -> note.version }, { note -> note.updatedAt }),
             attachments = logicHelper.diffEntities(incoming.attachments, local.attachments, { attachment -> attachment.id }, { attachment -> attachment.version }, { attachment -> attachment.updatedAt }),
             contextAttachmentCrossRefs = logicHelper.diffEntities(incoming.crossRefs, local.crossRefs, { crossRef -> "${crossRef.contextId}-${crossRef.attachmentId}" }, { 0L }, { crossRef -> crossRef.updatedAt })
         )

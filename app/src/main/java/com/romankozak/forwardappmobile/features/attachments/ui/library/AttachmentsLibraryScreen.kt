@@ -188,6 +188,8 @@ fun AttachmentsLibraryScreen(
                                 when (item.type) {
                                     AttachmentLibraryType.NOTE_DOCUMENT ->
                                         navController.navigate("note_document_screen/${item.entityId}")
+                                    AttachmentLibraryType.MUSIC_NOTE ->
+                                        navController.navigate("music_note_screen/${item.entityId}")
                                     AttachmentLibraryType.CHECKLIST ->
                                         navController.navigate("checklist_screen?checklistId=${item.entityId}")
                                     AttachmentLibraryType.LINK -> {
@@ -332,6 +334,7 @@ private fun AttachmentLibraryFilter.displayName(): String =
 private fun AttachmentLibraryType.label(): String =
     when (this) {
         AttachmentLibraryType.NOTE_DOCUMENT -> "Нотатка"
+        AttachmentLibraryType.MUSIC_NOTE -> "Ноти"
         AttachmentLibraryType.CHECKLIST -> "Чекліст"
         AttachmentLibraryType.LINK -> "Посилання"
         AttachmentLibraryType.CONTEXT -> "Контекст"

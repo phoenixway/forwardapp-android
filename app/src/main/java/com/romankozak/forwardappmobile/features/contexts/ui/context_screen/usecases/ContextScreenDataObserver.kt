@@ -8,6 +8,7 @@ import com.romankozak.forwardappmobile.data.repository.DirectionRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.repository.ListItemRepository
+import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
@@ -25,6 +26,7 @@ class ContextScreenDataObserver(
     private val contextLogRepository: ContextLogRepository,
     private val checklistRepository: ChecklistRepository,
     private val noteDocumentRepository: NoteDocumentRepository,
+    private val musicNoteRepository: MusicNoteRepository,
     private val directionRepository: DirectionRepository,
     private val reminderRepository: ReminderRepository,
     private val recentItemsRepository: RecentItemsRepository,
@@ -49,6 +51,7 @@ class ContextScreenDataObserver(
                     contextLogRepository.getContextLogsStream(contextId),
                     checklistRepository.getChecklistsForContext(contextId),
                     noteDocumentRepository.getDocumentsForContext(contextId),
+                    musicNoteRepository.getMusicNotesForContext(contextId),
                     directionRepository.getDirectionItemsForContext(contextId),
                     contextRepository.getAllContextsFlow(),
                     contextRepository.getAttachmentsForContextStream(contextId),

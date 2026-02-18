@@ -13,6 +13,7 @@ import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.MusicNoteDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import com.romankozak.forwardappmobile.sync.datasource.AttachmentsLocalDataSource
@@ -26,6 +27,7 @@ class AttachmentsLocalDataSourceImpl
         private val appDatabase: AppDatabase,
         private val contextDao: ContextDao,
         private val noteDocumentDao: NoteDocumentDao,
+        private val musicNoteDao: MusicNoteDao,
         private val checklistDao: ChecklistDao,
         private val linkItemDao: LinkItemDao,
         private val attachmentDao: AttachmentDao,
@@ -33,6 +35,7 @@ class AttachmentsLocalDataSourceImpl
         override suspend fun getAttachmentsBackup(): AttachmentsBackup {
             return AttachmentsBackup(
                 documents = noteDocumentDao.getAllDocuments(),
+                musicNotes = musicNoteDao.getAll(),
                 checklists = checklistDao.getAllChecklists(),
                 checklistItems = checklistDao.getAllChecklistItems(),
                 linkItemEntities = linkItemDao.getAllEntities(),
@@ -48,6 +51,7 @@ class AttachmentsLocalDataSourceImpl
                 // Import documents/checklists independently from context links.
                 // Their visibility in contexts is defined only by cross-refs.
                 noteDocumentDao.insertAllDocuments(backup.documents)
+                musicNoteDao.insertAll(backup.musicNotes)
                 checklistDao.insertChecklists(backup.checklists)
                 val importedChecklistIds = backup.checklists.map { it.id }.toSet()
                 checklistDao.insertItems(

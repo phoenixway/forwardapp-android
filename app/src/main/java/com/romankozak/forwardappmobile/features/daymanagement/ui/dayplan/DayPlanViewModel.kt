@@ -20,6 +20,7 @@ import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
+import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
@@ -98,6 +99,7 @@ class DayPlanViewModel
         private val contextRepository: ContextRepository,
         private val attachmentsRepository: AttachmentsRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
+        private val musicNoteRepository: MusicNoteRepository,
         private val checklistRepository: ChecklistRepository,
         private val settingsRepository: SettingsRepository,
     ) : ViewModel() {
@@ -274,6 +276,7 @@ class DayPlanViewModel
             relatedLink: RelatedLink?,
         ): String? =
             result.noteName?.takeIf { it.isNotBlank() }
+                ?: result.musicNoteName?.takeIf { it.isNotBlank() }
                 ?: result.checklistName?.takeIf { it.isNotBlank() }
                 ?: relatedLink?.displayName?.takeIf { it.isNotBlank() }
                 ?: relatedLink?.target?.takeIf { it.isNotBlank() }
@@ -376,6 +379,14 @@ class DayPlanViewModel
                             contextId = SystemContexts.TODAY.raw,
                         )
                     attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)?.id
+                }
+                is NewDocumentDraft.MusicNote -> {
+                    val musicNoteId =
+                        musicNoteRepository.create(
+                            name = request.name.ifBlank { "New music note" },
+                            contextId = SystemContexts.TODAY.raw,
+                        )
+                    attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.MUSIC_NOTE, musicNoteId)?.id
                 }
                 is NewDocumentDraft.Checklist -> {
                     val checklistId =

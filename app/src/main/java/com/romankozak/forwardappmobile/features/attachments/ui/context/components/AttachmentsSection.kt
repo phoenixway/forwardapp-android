@@ -219,6 +219,13 @@ private fun AttachmentItemCard(
                     onDelete = { onDeleteItem(item) },
                 )
             }
+            is BacklogItemContent.MusicNoteItem -> {
+                NoteDocumentItemRow(
+                    noteDocumentItem = BacklogItemContent.NoteDocumentItem(item.musicNote.toNoteDocumentEntity(), item.backlogItem),
+                    onClick = { onItemClick(item) },
+                    onDelete = { onDeleteItem(item) },
+                )
+            }
             else -> {}
         }
     }
@@ -259,6 +266,10 @@ private fun AddAttachmentButton(onAddAttachment: (AttachmentType) -> Unit) {
                 onAddAttachment(type)
                 showAddMenu = false
             }
+            AttachmentTypeMenuItem(R.string.attachment_type_music_notes, AttachmentType.MUSIC_NOTES) { type ->
+                onAddAttachment(type)
+                showAddMenu = false
+            }
             AttachmentTypeMenuItem(R.string.attachment_type_checklist, AttachmentType.CHECKLIST) { type ->
                 onAddAttachment(type)
                 showAddMenu = false
@@ -283,6 +294,19 @@ private fun AddAttachmentButton(onAddAttachment: (AttachmentType) -> Unit) {
         }
     }
 }
+
+private fun com.romankozak.forwardappmobile.core.data.models.entities.MusicNoteEntity.toNoteDocumentEntity() =
+    com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity(
+        id = id,
+        contextId = contextId,
+        name = name,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        content = content,
+        syncedAt = syncedAt,
+        isDeleted = isDeleted,
+        version = version,
+    )
 
 @Composable
 private fun AttachmentTypeMenuItem(

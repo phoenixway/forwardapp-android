@@ -4,6 +4,7 @@ data class AttachmentsBackup(
     val backupSchemaVersion: Int = 1,
     val exportedAt: Long = System.currentTimeMillis(),
     val documents: List<NoteDocumentEntity> = emptyList(),
+    val musicNotes: List<MusicNoteEntity> = emptyList(),
     val checklists: List<ChecklistEntity> = emptyList(),
     val checklistItems: List<ChecklistItemEntity> = emptyList(),
     val linkItemEntities: List<LinkItemEntity> = emptyList(),
