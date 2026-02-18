@@ -123,19 +123,33 @@ private fun MusicXmlViewer(
     musicXml: String,
     modifier: Modifier = Modifier,
 ) {
+    fun renderXml(webView: WebView, xml: String) {
+        val escaped = JSONObject.quote(xml)
+        webView.evaluateJavascript("window.renderMusicXml($escaped);", null)
+    }
+
     AndroidView(
         modifier = modifier,
         factory = { context ->
             WebView(context).apply {
                 settings.javaScriptEnabled = true
                 settings.allowFileAccess = true
-                webViewClient = WebViewClient()
+                webViewClient =
+                    object : WebViewClient() {
+                        override fun onPageFinished(
+                            view: WebView?,
+                            url: String?,
+                        ) {
+                            if (view != null) {
+                                renderXml(view, musicXml)
+                            }
+                        }
+                    }
                 loadUrl("file:///android_asset/musicxml_viewer.html")
             }
         },
         update = { webView ->
-            val escaped = JSONObject.quote(musicXml)
-            webView.evaluateJavascript("window.renderMusicXml($escaped);", null)
+            renderXml(webView, musicXml)
         },
     )
 }
