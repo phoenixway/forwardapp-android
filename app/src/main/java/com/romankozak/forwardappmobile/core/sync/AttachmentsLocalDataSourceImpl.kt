@@ -45,35 +45,33 @@ class AttachmentsLocalDataSourceImpl
             val existingContextIds = getAllContextIds()
 
             appDatabase.withTransaction {
-                // Імпорт документів
-                val validDocs = backup.documents.filter { it.contextId in existingContextIds }
-                noteDocumentDao.insertAllDocuments(validDocs)
-                val validDocIds = validDocs.map { it.id }.toSet()
-
-                // Імпорт чеклистів
-                val validChecklists = backup.checklists.filter { it.contextId in existingContextIds }
-                checklistDao.insertChecklists(validChecklists)
-                val validChecklistIds = validChecklists.map { it.id }.toSet()
+                // Import documents/checklists independently from context links.
+                // Their visibility in contexts is defined only by cross-refs.
+                noteDocumentDao.insertAllDocuments(backup.documents)
+                checklistDao.insertChecklists(backup.checklists)
+                val importedChecklistIds = backup.checklists.map { it.id }.toSet()
                 checklistDao.insertItems(
-                    backup.checklistItems.filter { it.checklistId in validChecklistIds },
+                    backup.checklistItems.filter { checklistItem ->
+                        checklistItem.checklistId in importedChecklistIds
+                    },
                 )
 
                 // Імпорт посилань
                 linkItemDao.insertAll(backup.linkItemEntities)
 
-                // Імпорт вкладень
-                val processedAttachments =
+                // Import attachments and sanitize invalid owner contexts.
+                val finalAttachments =
                     backup.attachments.map { att ->
                         if (att.ownerContextId != null && att.ownerContextId !in existingContextIds) {
                             att.copy(ownerContextId = null)
                         } else {
                             att
                         }
-                    }
-                attachmentDao.insertAttachments(processedAttachments)
+                    }.toMutableList()
 
-                // Імпорт зв'язків
-                val attachmentIds = processedAttachments.map { it.id }.toSet()
+                attachmentDao.insertAttachments(finalAttachments)
+
+                val attachmentIds = finalAttachments.map { it.id }.toSet()
                 val validCrossRefs =
                     backup.contextAttachmentCrossRefs.filter {
                         it.contextId in existingContextIds && it.attachmentId in attachmentIds

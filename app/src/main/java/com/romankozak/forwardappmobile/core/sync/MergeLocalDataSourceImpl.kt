@@ -4,7 +4,6 @@ import android.util.Log
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
@@ -164,51 +163,6 @@ class MergeLocalDataSourceImpl
                 // --- Consolidate and auto-link attachments and cross-refs ---
                 val finalAttachments = bundle.attachments.map { it.toEntity() }.toMutableList()
                 val finalCrossRefs = bundle.crossRefs.map { it.toEntity() }.toMutableList()
-                val existingAttachmentEntityIds = finalAttachments.mapNotNull { it.entityId }.toSet()
-
-                bundle.documents.forEach { doc ->
-                    doc.contextId?.let { contextId ->
-                        if (doc.id !in existingAttachmentEntityIds) {
-                            val attachment =
-                                AttachmentEntity(
-                                    entityId = doc.id,
-                                    attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
-                                    ownerContextId = contextId,
-                                    createdAt = doc.createdAt,
-                                    updatedAt = doc.updatedAt,
-                                )
-                            finalAttachments.add(attachment)
-                            val crossRef =
-                                ContextAttachmentCrossRef(
-                                    contextId = contextId,
-                                    attachmentId = attachment.id,
-                                )
-                            finalCrossRefs.add(crossRef)
-                        }
-                    }
-                }
-
-                bundle.checklists.forEach { checklist ->
-                    checklist.contextId?.let { contextId ->
-                        if (checklist.id !in existingAttachmentEntityIds) {
-                            val attachment =
-                                AttachmentEntity(
-                                    entityId = checklist.id,
-                                    attachmentType = BacklogItemTypeValues.CHECKLIST,
-                                    ownerContextId = contextId,
-                                    createdAt = checklist.createdAt,
-                                    updatedAt = checklist.updatedAt,
-                                )
-                            finalAttachments.add(attachment)
-                            val crossRef =
-                                ContextAttachmentCrossRef(
-                                    contextId = contextId,
-                                    attachmentId = attachment.id,
-                                )
-                            finalCrossRefs.add(crossRef)
-                        }
-                    }
-                }
 
                 Log.d("BackupImport", "Total attachments to insert: ${finalAttachments.size}")
                 attachmentDao.insertAttachments(finalAttachments)

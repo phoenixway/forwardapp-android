@@ -848,7 +848,7 @@ class BacklogClipboardUseCase
             refLoop@ for (requestedId in requestedIds) {
                 var sourceListItemIdForCut: String? = null
                 val attachmentId =
-                    contextRepository.getAttachmentById(requestedId)?.id ?: run {
+                    run {
                         val item = itemsById[requestedId]
                         if (item == null) {
                             invalid += 1
