@@ -6,6 +6,9 @@ import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +47,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -51,10 +55,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.awaitEachGesture
-import androidx.compose.ui.input.pointer.awaitFirstDown
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -108,6 +108,7 @@ fun ProjectSettingsScreen(
     val tabs = baseTabs + capabilitySettingsTabs.map { it.descriptor.tabTitle }
     val tabIcons = baseTabIcons + List(capabilitySettingsTabs.size) { Icons.Default.Build }
     val selectedTabIndex = uiState.selectedTabIndex.coerceIn(0, (tabs.size - 1).coerceAtLeast(0))
+    var dragOffsetX by remember(selectedTabIndex, tabs.size) { mutableFloatStateOf(0f) }
 
     LaunchedEffect(selectedTabIndex) {
         if (selectedTabIndex != uiState.selectedTabIndex) {
@@ -130,39 +131,24 @@ fun ProjectSettingsScreen(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .pointerInput(selectedTabIndex, tabs.size) {
-                        awaitEachGesture {
-                            val down = awaitFirstDown(pass = PointerEventPass.Final)
-                            val pointerId = down.id
-                            var totalDx = 0f
-                            var totalDy = 0f
-
-                            while (true) {
-                                val event = awaitPointerEvent(pass = PointerEventPass.Final)
-                                val change = event.changes.firstOrNull { it.id == pointerId } ?: event.changes.firstOrNull()
-                                if (change == null) continue
-
-                                totalDx += change.position.x - change.previousPosition.x
-                                totalDy += change.position.y - change.previousPosition.y
-
-                                if (!change.pressed) {
-                                    val threshold = 40f
-                                    if (
-                                        tabs.isNotEmpty() &&
-                                        kotlin.math.abs(totalDx) >= threshold &&
-                                        kotlin.math.abs(totalDx) > kotlin.math.abs(totalDy)
-                                    ) {
-                                        val step = if (totalDx < 0f) 1 else -1
-                                        val next = (selectedTabIndex + step).coerceIn(0, tabs.lastIndex)
-                                        if (next != selectedTabIndex) {
-                                            viewModel.onTabSelected(next)
-                                        }
-                                    }
-                                    break
+                    .draggable(
+                        orientation = Orientation.Horizontal,
+                        state =
+                            rememberDraggableState { delta ->
+                                dragOffsetX += delta
+                            },
+                        onDragStopped = {
+                            val threshold = 40f
+                            if (tabs.isNotEmpty() && kotlin.math.abs(dragOffsetX) >= threshold) {
+                                val step = if (dragOffsetX < 0f) 1 else -1
+                                val next = (selectedTabIndex + step).coerceIn(0, tabs.lastIndex)
+                                if (next != selectedTabIndex) {
+                                    viewModel.onTabSelected(next)
                                 }
                             }
-                        }
-                    },
+                            dragOffsetX = 0f
+                        },
+                    ),
         ) {
             when (tabs[tabIndex]) {
                 "General" ->
