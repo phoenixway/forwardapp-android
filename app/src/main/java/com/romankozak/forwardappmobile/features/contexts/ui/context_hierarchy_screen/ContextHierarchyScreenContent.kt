@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,6 +27,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.ExpandingProjectHierarchyBottomNav
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.ModernBottomNavButton
@@ -68,7 +71,21 @@ fun ProjectHierarchyScreenContent(
             uiState.currentBreadcrumbs.isNotEmpty()
         }
 
-    Column(modifier = modifier.fillMaxSize()) {
+    Column(
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(
+                    brush =
+                        Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.surface,
+                                MaterialTheme.colorScheme.surfaceContainerLowest,
+                                MaterialTheme.colorScheme.surface,
+                            ),
+                        ),
+                ),
+    ) {
         if (isSearchActive && searchQuery.isNotBlank()) {
             SearchResultsView(
                 results = uiState.searchResults,
@@ -122,10 +139,21 @@ fun ProjectHierarchyScreenContent(
                     }
 
                 Box(
-                    modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp),
+                    modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 20.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(emptyText, style = MaterialTheme.typography.bodyLarge)
+                    Surface(
+                        shape = MaterialTheme.shapes.large,
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        tonalElevation = 1.dp,
+                    ) {
+                        Text(
+                            text = emptyText,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                        )
+                    }
                 }
             } else {
                 ProjectHierarchyView(

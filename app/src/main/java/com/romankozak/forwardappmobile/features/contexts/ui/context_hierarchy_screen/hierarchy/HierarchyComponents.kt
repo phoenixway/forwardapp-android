@@ -10,6 +10,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -163,31 +164,50 @@ fun ProjectRow(
     displayName: AnnotatedString? = null,
     isFocused: Boolean = false,
 ) {
-    val backgroundColor by animateColorAsState(
+    val highlightColor by animateColorAsState(
         targetValue =
             when {
-                isHighlighted -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-                isFocused -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                isHighlighted -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.56f)
+                isFocused -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.42f)
                 else -> Color.Transparent
             },
-        animationSpec = tween(durationMillis = 500),
+        animationSpec = tween(durationMillis = 350),
         label = "Background Animation",
     )
 
-    val indentation = (level * 24).dp
+    val baseCardColor =
+        MaterialTheme.colorScheme.surfaceContainerLowest.copy(
+            alpha = (0.86f - (level * 0.06f)).coerceIn(0.64f, 0.9f),
+        )
+    val containerColor =
+        if (highlightColor == Color.Transparent) {
+            baseCardColor
+        } else {
+            highlightColor
+        }
+    val borderColor =
+        when {
+            isHighlighted -> MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+            isFocused -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.30f)
+            else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
+        }
+
+    val indentation = (level * 18).dp
 
     Column(
         modifier =
             modifier
                 .fillMaxWidth()
-                .clip(MaterialTheme.shapes.medium)
-                .background(backgroundColor),
+                .padding(start = indentation)
+                .clip(RoundedCornerShape(16.dp))
+                .background(containerColor)
+                .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(16.dp)),
     ) {
         if (isHovered && !isDraggingDown && !isCurrentlyDragging) {
             HorizontalDivider(
                 thickness = 2.dp,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = indentation),
+                modifier = Modifier.padding(horizontal = 10.dp),
             )
         }
 
@@ -197,15 +217,14 @@ fun ProjectRow(
                     .fillMaxWidth()
                     .clickable { onProjectClick(project.id) }
                     .alpha(if (isCurrentlyDragging) 0.6f else 1f)
-                    .padding(start = indentation)
-                    .padding(vertical = 8.dp, horizontal = 4.dp),
+                    .padding(vertical = 8.dp, horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(modifier = Modifier.size(40.dp), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.size(36.dp), contentAlignment = Alignment.Center) {
                 if (hasChildren && !showFocusButton) {
                     IconButton(
                         onClick = { onToggleExpanded(project) },
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(30.dp),
                     ) {
                         Icon(
                             imageVector = if (project.isExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
@@ -218,9 +237,16 @@ fun ProjectRow(
                 }
             }
 
+            Icon(
+                imageVector = if (hasChildren) Icons.Outlined.AccountTree else Icons.Outlined.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = if (hasChildren) 0.9f else 0.45f),
+                modifier = Modifier.size(if (hasChildren) 16.dp else 14.dp),
+            )
+            Spacer(modifier = Modifier.width(6.dp))
             ReservedRoleBadge(
                 roleCode = project.roleCode,
-                modifier = Modifier.padding(end = 6.dp),
+                modifier = Modifier.padding(end = 8.dp),
             )
             Text(
                 text = displayName ?: AnnotatedString(project.name),
@@ -231,7 +257,7 @@ fun ProjectRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style =
-                    MaterialTheme.typography.bodyLarge.copy(
+                    MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Normal,
                     ),
                 color =
@@ -280,7 +306,7 @@ fun ProjectRow(
             HorizontalDivider(
                 thickness = 2.dp,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = indentation),
+                modifier = Modifier.padding(horizontal = 10.dp),
             )
         }
     }
