@@ -1589,9 +1589,11 @@ val MIGRATION_109_110 =
     object : Migration(109, 110) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("ALTER TABLE `note_documents` RENAME TO `note_documents_old`")
+            db.execSQL("DROP INDEX IF EXISTS `index_note_documents_contextId`")
+            db.execSQL("DROP INDEX IF EXISTS `index_note_documents_projectId`")
             db.execSQL(
                 """
-                CREATE TABLE IF NOT EXISTS `note_documents` (
+                CREATE TABLE `note_documents` (
                     `id` TEXT NOT NULL,
                     `contextId` TEXT NOT NULL,
                     `name` TEXT NOT NULL,
@@ -1606,22 +1608,41 @@ val MIGRATION_109_110 =
                 )
                 """.trimIndent(),
             )
-            db.execSQL("CREATE INDEX IF NOT EXISTS `index_note_documents_contextId` ON `note_documents` (`contextId`)")
+            db.execSQL("CREATE INDEX `index_note_documents_contextId` ON `note_documents` (`contextId`)")
+            val oldNoteContextColumn =
+                db.query("PRAGMA table_info(`note_documents_old`)").use { cursor ->
+                    var hasContextId = false
+                    var hasProjectId = false
+                    val nameIndex = cursor.getColumnIndex("name")
+                    while (cursor.moveToNext()) {
+                        when (cursor.getString(nameIndex)) {
+                            "contextId" -> hasContextId = true
+                            "projectId" -> hasProjectId = true
+                        }
+                    }
+                    when {
+                        hasContextId -> "contextId"
+                        hasProjectId -> "projectId"
+                        else -> "contextId"
+                    }
+                }
             db.execSQL(
                 """
                 INSERT INTO `note_documents`
                 (`id`, `contextId`, `name`, `createdAt`, `updatedAt`, `content`, `lastCursorPosition`, `syncedAt`, `isDeleted`, `version`)
                 SELECT
-                `id`, `contextId`, `name`, `createdAt`, `updatedAt`, `content`, `lastCursorPosition`, `syncedAt`, `isDeleted`, `version`
+                `id`, `$oldNoteContextColumn`, `name`, `createdAt`, `updatedAt`, `content`, `lastCursorPosition`, `syncedAt`, `isDeleted`, `version`
                 FROM `note_documents_old`
                 """.trimIndent(),
             )
             db.execSQL("DROP TABLE `note_documents_old`")
 
             db.execSQL("ALTER TABLE `checklists` RENAME TO `checklists_old`")
+            db.execSQL("DROP INDEX IF EXISTS `index_checklists_contextId`")
+            db.execSQL("DROP INDEX IF EXISTS `index_checklists_projectId`")
             db.execSQL(
                 """
-                CREATE TABLE IF NOT EXISTS `checklists` (
+                CREATE TABLE `checklists` (
                     `id` TEXT NOT NULL,
                     `contextId` TEXT NOT NULL,
                     `name` TEXT NOT NULL,
@@ -1634,13 +1655,30 @@ val MIGRATION_109_110 =
                 )
                 """.trimIndent(),
             )
-            db.execSQL("CREATE INDEX IF NOT EXISTS `index_checklists_contextId` ON `checklists` (`contextId`)")
+            db.execSQL("CREATE INDEX `index_checklists_contextId` ON `checklists` (`contextId`)")
+            val oldChecklistContextColumn =
+                db.query("PRAGMA table_info(`checklists_old`)").use { cursor ->
+                    var hasContextId = false
+                    var hasProjectId = false
+                    val nameIndex = cursor.getColumnIndex("name")
+                    while (cursor.moveToNext()) {
+                        when (cursor.getString(nameIndex)) {
+                            "contextId" -> hasContextId = true
+                            "projectId" -> hasProjectId = true
+                        }
+                    }
+                    when {
+                        hasContextId -> "contextId"
+                        hasProjectId -> "projectId"
+                        else -> "contextId"
+                    }
+                }
             db.execSQL(
                 """
                 INSERT INTO `checklists`
                 (`id`, `contextId`, `name`, `createdAt`, `updatedAt`, `syncedAt`, `isDeleted`, `version`)
                 SELECT
-                `id`, `contextId`, `name`, `createdAt`, `updatedAt`, `syncedAt`, `isDeleted`, `version`
+                `id`, `$oldChecklistContextColumn`, `name`, `createdAt`, `updatedAt`, `syncedAt`, `isDeleted`, `version`
                 FROM `checklists_old`
                 """.trimIndent(),
             )
