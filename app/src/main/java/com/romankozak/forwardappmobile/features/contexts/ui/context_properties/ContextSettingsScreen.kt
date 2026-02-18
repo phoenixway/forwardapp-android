@@ -6,7 +6,9 @@ import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -49,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -65,6 +68,7 @@ import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabConte
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabUiState
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.GeneralTabContent
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabContent
+import kotlin.math.abs
 
 @Composable
 fun ProjectSettingsScreen(
@@ -119,61 +123,84 @@ fun ProjectSettingsScreen(
         onTabSelected = viewModel::onTabSelected,
         onSave = viewModel::onSave,
         isSaveEnabled = uiState.title.text.isNotBlank(),
-    ) {
-        when (tabs[it]) {
-            "General" ->
-                GeneralTabContent(
-                    title = uiState.title,
-                    onTitleChange = viewModel::onTextChange,
-                    titleLabel = "Назва проекту",
-                    description = uiState.description,
-                    onDescriptionChange = viewModel::onDescriptionChange,
-                    onExpandDescriptionClick = viewModel::openDescriptionEditor,
-                    tags = uiState.tags,
-                    onAddTag = viewModel::onAddTag,
-                    onRemoveTag = viewModel::onRemoveTag,
-                )
-            "Display" ->
-                DisplayTabContent(
-                    showCheckboxes = uiState.showCheckboxes,
-                    onShowCheckboxesChange = viewModel::onShowCheckboxesChange,
-                )
-            "Features" ->
-                FeaturesTabContent(
-                    currentPreset = uiState.currentPresetLabel,
-                    onApplyPreset = { showPresetPicker = true },
-                    features = uiState.features,
-                    onToggleFeature = viewModel::onToggleFeature,
-                )
-            "Evaluation" ->
-                EvaluationTabContent(
-                    uiState =
-                        EvaluationTabUiState(
-                            valueImportance = uiState.valueImportance,
-                            valueImpact = uiState.valueImpact,
-                            effort = uiState.effort,
-                            cost = uiState.cost,
-                            risk = uiState.risk,
-                            weightEffort = uiState.weightEffort,
-                            weightCost = uiState.weightCost,
-                            weightRisk = uiState.weightRisk,
-                            rawScore = uiState.rawScore,
-                            scoringStatus = uiState.scoringStatus,
-                            isScoringEnabled = uiState.isScoringEnabled,
-                        ),
-                    onViewModelAction = viewModel,
-                )
-            "Reminders" ->
-                RemindersTabContent(
-                    reminderTime = uiState.reminderTime,
-                    onViewModelAction = viewModel,
-                )
-            else -> {
-                val settingsTabIndex = it - baseTabs.size
-                val tab = capabilitySettingsTabs.getOrNull(settingsTabIndex)
-                val contextId = uiState.contextId
-                if (tab != null && contextId != null) {
-                    CapabilitySettingsTabContent(tab = tab, contextId = contextId)
+    ) { tabIndex ->
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .pointerInput(selectedTabIndex, tabs.size) {
+                        var dragOffsetX = 0f
+                        detectHorizontalDragGestures(
+                            onHorizontalDrag = { _, dragAmount -> dragOffsetX += dragAmount },
+                            onDragEnd = {
+                                val threshold = 64f
+                                if (abs(dragOffsetX) >= threshold && tabs.isNotEmpty()) {
+                                    val step = if (dragOffsetX < 0f) 1 else -1
+                                    val next = (selectedTabIndex + step).coerceIn(0, tabs.lastIndex)
+                                    if (next != selectedTabIndex) {
+                                        viewModel.onTabSelected(next)
+                                    }
+                                }
+                                dragOffsetX = 0f
+                            },
+                        )
+                    },
+        ) {
+            when (tabs[tabIndex]) {
+                "General" ->
+                    GeneralTabContent(
+                        title = uiState.title,
+                        onTitleChange = viewModel::onTextChange,
+                        titleLabel = "Назва проекту",
+                        description = uiState.description,
+                        onDescriptionChange = viewModel::onDescriptionChange,
+                        onExpandDescriptionClick = viewModel::openDescriptionEditor,
+                        tags = uiState.tags,
+                        onAddTag = viewModel::onAddTag,
+                        onRemoveTag = viewModel::onRemoveTag,
+                    )
+                "Display" ->
+                    DisplayTabContent(
+                        showCheckboxes = uiState.showCheckboxes,
+                        onShowCheckboxesChange = viewModel::onShowCheckboxesChange,
+                    )
+                "Features" ->
+                    FeaturesTabContent(
+                        currentPreset = uiState.currentPresetLabel,
+                        onApplyPreset = { showPresetPicker = true },
+                        features = uiState.features,
+                        onToggleFeature = viewModel::onToggleFeature,
+                    )
+                "Evaluation" ->
+                    EvaluationTabContent(
+                        uiState =
+                            EvaluationTabUiState(
+                                valueImportance = uiState.valueImportance,
+                                valueImpact = uiState.valueImpact,
+                                effort = uiState.effort,
+                                cost = uiState.cost,
+                                risk = uiState.risk,
+                                weightEffort = uiState.weightEffort,
+                                weightCost = uiState.weightCost,
+                                weightRisk = uiState.weightRisk,
+                                rawScore = uiState.rawScore,
+                                scoringStatus = uiState.scoringStatus,
+                                isScoringEnabled = uiState.isScoringEnabled,
+                            ),
+                        onViewModelAction = viewModel,
+                    )
+                "Reminders" ->
+                    RemindersTabContent(
+                        reminderTime = uiState.reminderTime,
+                        onViewModelAction = viewModel,
+                    )
+                else -> {
+                    val settingsTabIndex = tabIndex - baseTabs.size
+                    val tab = capabilitySettingsTabs.getOrNull(settingsTabIndex)
+                    val contextId = uiState.contextId
+                    if (tab != null && contextId != null) {
+                        CapabilitySettingsTabContent(tab = tab, contextId = contextId)
+                    }
                 }
             }
         }

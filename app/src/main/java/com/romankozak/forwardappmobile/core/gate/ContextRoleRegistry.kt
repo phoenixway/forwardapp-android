@@ -155,7 +155,6 @@ object ContextRoleRegistry {
             // inbox, log, backlog, attachments вже покриті ролями або іншими джерелами.
             add(CapabilityId("advanced"))
             add(CapabilityId("dashboard"))
-            add(CapabilityId("auto_link_subprojects"))
             add(CapabilityId("direction"))
             add(CapabilityId("vet_case")) // Додано вручну, якщо не покривається ролями
             add(CapabilityId("key_problems"))

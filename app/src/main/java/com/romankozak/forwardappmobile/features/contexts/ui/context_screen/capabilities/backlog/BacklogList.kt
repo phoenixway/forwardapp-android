@@ -1,8 +1,11 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -81,6 +84,36 @@ fun BacklogListScreen(
             onRemindersClick = { onRemindersClick(selectedItemForActions!!) },
             onDeleteEverywhere = { onDeleteEverywhere(selectedItemForActions!!) },
         )
+    }
+
+    if (sortedItems.isEmpty()) {
+        Box(
+            modifier = modifier.fillMaxSize().padding(horizontal = 20.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Checklist,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                    modifier = Modifier.size(28.dp),
+                )
+                Text(
+                    text = "Беклог порожній",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "Додай першу ціль або посилання на контекст через панель вводу нижче",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        return
     }
 
     LazyColumn(

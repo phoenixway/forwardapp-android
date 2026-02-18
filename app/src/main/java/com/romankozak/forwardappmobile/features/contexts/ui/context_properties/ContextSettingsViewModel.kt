@@ -125,7 +125,7 @@ class ContextSettingsViewModel
                         currentPresetLabel = presetLabel,
                         features = structureFeatures,
                         // Синхронізація ключових прапорців для UI-логіки
-                        autoLinkSubprojects = structureFeatures["Auto link subprojects"] ?: true,
+                        autoLinkSubprojects = structure?.enableAutoLinkSubprojects ?: true,
                         isProjectManagementEnabled = structureFeatures["Advanced"] == true,
                     )
                 }
@@ -146,19 +146,19 @@ class ContextSettingsViewModel
             if (config == null) return id.raw != "advanced" // дефолтні налаштування для порожнього конфігу
 
             // Перевірка через роль
-            val enabledByRole = ContextRoleRegistry.getCapabilitiesForRole(config.basePresetCode).contains(id)
+            val roleCapabilities = ContextRoleRegistry.getCapabilitiesForRole(config.basePresetCode)
+            val enabledByRole = roleCapabilities.contains(id)
 
             // Перевірка через legacy прапорці
             val isLegacy =
                 when (id.raw) {
-                    "inbox" -> config.enableInbox == true
-                    "log" -> config.enableLog == true
-                    "artifact" -> config.enableAdvanced == true
-                    "advanced" -> config.enableAdvanced == true
-                    "dashboard" -> config.enableDashboard == true
-                    "backlog" -> config.enableBacklog == true
-                    "attachments" -> config.enableAttachments == true
-                    "auto_link_subprojects" -> config.enableAutoLinkSubprojects == true
+                    "inbox" -> config.enableInbox ?: enabledByRole
+                    "log" -> config.enableLog ?: enabledByRole
+                    "artifact" -> config.enableAdvanced ?: enabledByRole
+                    "advanced" -> config.enableAdvanced ?: enabledByRole
+                    "dashboard" -> config.enableDashboard ?: enabledByRole
+                    "backlog" -> config.enableBacklog ?: enabledByRole
+                    "attachments" -> config.enableAttachments ?: enabledByRole
                     else -> false
                 }
 
@@ -262,7 +262,6 @@ class ContextSettingsViewModel
             _uiState.update {
                 it.copy(
                     autoLinkSubprojects = enabled,
-                    features = it.features + ("Auto link subprojects" to enabled),
                 )
             }
         }
@@ -280,7 +279,6 @@ class ContextSettingsViewModel
                 val allKnownLegacyCaps =
                     setOf(
                         "inbox", "log", "advanced", "dashboard", "backlog", "attachments",
-                        "auto_link_subprojects",
                     )
                 val experimentalIdsFromPreset = presetCapabilities.filter { it.raw !in allKnownLegacyCaps }
 
@@ -297,7 +295,7 @@ class ContextSettingsViewModel
                         enableDashboard = true,
                         enableBacklog = presetCapabilities.contains(CapabilityId("backlog")),
                         enableAttachments = presetCapabilities.contains(CapabilityId("attachments")),
-                        enableAutoLinkSubprojects = presetCapabilities.contains(CapabilityId("auto_link_subprojects")),
+                        enableAutoLinkSubprojects = structure.enableAutoLinkSubprojects,
                         // Оновлення списку експериментальних ID
                         experimentalCapabilityIds = experimentalIdsFromPreset,
                     )
@@ -348,12 +346,6 @@ class ContextSettingsViewModel
                         } else {
                             state.isProjectManagementEnabled
                         },
-                    autoLinkSubprojects =
-                        if (capabilityId.raw == "auto_link_subprojects") {
-                            enabled
-                        } else {
-                            state.autoLinkSubprojects
-                        },
                 )
             }
         }
@@ -366,7 +358,6 @@ class ContextSettingsViewModel
                 "Dashboard" -> CapabilityId("dashboard")
                 "Backlog" -> CapabilityId("backlog")
                 "Attachments" -> CapabilityId("attachments")
-                "Auto link subprojects" -> CapabilityId("auto_link_subprojects")
                 else -> CapabilityId(label.lowercase().replace(" ", "_"))
             }
 
@@ -395,7 +386,7 @@ class ContextSettingsViewModel
                     enableDashboard = currentState.features["Dashboard"] == true,
                     enableBacklog = currentState.features["Backlog"] == true,
                     enableAttachments = currentState.features["Attachments"] == true,
-                    enableAutoLinkSubprojects = currentState.features["Auto link subprojects"] == true,
+                    enableAutoLinkSubprojects = currentState.autoLinkSubprojects,
                     updatedAt = System.currentTimeMillis(),
                 )
 

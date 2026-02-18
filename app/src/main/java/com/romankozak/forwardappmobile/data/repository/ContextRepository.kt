@@ -13,6 +13,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
+import com.romankozak.forwardappmobile.core.data.models.entities.DirectionItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity
@@ -53,6 +54,7 @@ class ContextRepository
         private val contextTimeTrackingRepository: ContextTimeTrackingRepository,
         private val contextArtifactRepository: ContextArtifactRepository,
         private val listItemRepository: ListItemRepository,
+        private val contextStructureDao: ContextStructureDao,
         private val directionDao: DirectionDao,
         private val backlogOrderRepository: BacklogOrderRepository,
         private val aiEventRepository: AiEventRepository,
@@ -447,10 +449,52 @@ class ContextRepository
                 )
             contextDao.insert(newContext)
 
-            // Якщо є батько — створюємо зв'язок у списку відображення
+            // Якщо є батько — за налаштуванням додаємо child context у front списку direction.
             if (parentId != null) {
-                listItemRepository.addContextLinkToContext(id, parentId)
+                val parentStructure = contextStructureDao.getStructureByContext(parentId)
+                val autoAddToDirectionFront = parentStructure?.enableAutoLinkSubprojects == true
+                if (autoAddToDirectionFront) {
+                    addChildContextToDirectionFront(
+                        parentContextId = parentId,
+                        childContextId = id,
+                        childContextName = name,
+                    )
+                }
             }
+        }
+
+        private suspend fun addChildContextToDirectionFront(
+            parentContextId: String,
+            childContextId: String,
+            childContextName: String,
+        ) {
+            val existing = directionDao.getDirectionItemsForContextSync(parentContextId)
+            if (existing.any { it.linkedContextId == childContextId && !it.isDeleted }) return
+
+            val now = System.currentTimeMillis()
+            if (existing.isNotEmpty()) {
+                directionDao.updateAll(
+                    existing.map { item ->
+                        item.copy(
+                            itemOrder = item.itemOrder + 1,
+                            updatedAt = now,
+                            version = item.version + 1,
+                            syncedAt = null,
+                        )
+                    },
+                )
+            }
+
+            directionDao.insert(
+                DirectionItemEntity(
+                    contextId = parentContextId,
+                    text = childContextName,
+                    linkedContextId = childContextId,
+                    itemOrder = 0,
+                    updatedAt = now,
+                    version = 1,
+                ),
+            )
         }
 
         /**

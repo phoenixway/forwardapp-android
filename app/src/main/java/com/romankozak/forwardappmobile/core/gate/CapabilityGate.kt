@@ -64,7 +64,6 @@ class CapabilityGate
                 "dashboard" -> config.enableDashboard == true
                 "backlog" -> config.enableBacklog == true
                 "attachments" -> config.enableAttachments == true
-                "auto_link_subprojects" -> config.enableAutoLinkSubprojects == true
                 else -> false
             }
         }

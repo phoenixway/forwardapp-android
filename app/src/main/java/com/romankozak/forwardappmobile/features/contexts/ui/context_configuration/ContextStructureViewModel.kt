@@ -30,7 +30,7 @@ data class ProjectStructureUiState(
             "Dashboard" to true,
             "Backlog" to true,
             "Attachments" to true,
-            "Auto link subprojects" to true,
+            "Auto add child context in context hierarchy to direction front" to true,
         ),
     val isLoading: Boolean = false,
     val message: String? = null,
@@ -45,6 +45,7 @@ class ProjectStructureViewModel
         private val structurePresetService: StructurePresetService,
         private val structurePresetDao: StructurePresetDao,
     ) : ViewModel() {
+        private val autoLinkLabel = "Auto add child context in context hierarchy to direction front"
         private val projectId: String = checkNotNull(savedStateHandle["projectId"])
 
         private val _uiState = MutableStateFlow(ProjectStructureUiState(projectId = projectId))
@@ -76,7 +77,7 @@ class ProjectStructureViewModel
                                 "Dashboard" to (structure.structure.enableDashboard ?: _uiState.value.featureFlags["Dashboard"] ?: true),
                                 "Backlog" to (structure.structure.enableBacklog ?: _uiState.value.featureFlags["Backlog"] ?: true),
                                 "Attachments" to (structure.structure.enableAttachments ?: _uiState.value.featureFlags["Attachments"] ?: true),
-                                "Auto link subprojects" to (structure.structure.enableAutoLinkSubprojects ?: _uiState.value.featureFlags["Auto link subprojects"] ?: true),
+                                autoLinkLabel to (structure.structure.enableAutoLinkSubprojects ?: _uiState.value.featureFlags[autoLinkLabel] ?: true),
                             )
                         _uiState.update {
                             it.copy(
@@ -163,7 +164,7 @@ class ProjectStructureViewModel
                         enableDashboard = updatedFlags["Dashboard"],
                         enableBacklog = updatedFlags["Backlog"],
                         enableAttachments = updatedFlags["Attachments"],
-                        enableAutoLinkSubprojects = updatedFlags["Auto link subprojects"],
+                        enableAutoLinkSubprojects = updatedFlags[autoLinkLabel],
                     ),
                 )
             }
