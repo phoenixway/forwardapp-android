@@ -187,9 +187,9 @@ fun ProjectRow(
         }
     val borderColor =
         when {
-            isHighlighted -> MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
-            isFocused -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.30f)
-            else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
+            isHighlighted -> MaterialTheme.colorScheme.primary.copy(alpha = 0.26f)
+            isFocused -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.22f)
+            else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f)
         }
 
     val indentation = (level * 18).dp
@@ -201,7 +201,7 @@ fun ProjectRow(
                 .padding(start = indentation)
                 .clip(RoundedCornerShape(16.dp))
                 .background(containerColor)
-                .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(16.dp)),
+                .border(width = 0.8.dp, color = borderColor, shape = RoundedCornerShape(16.dp)),
     ) {
         if (isHovered && !isDraggingDown && !isCurrentlyDragging) {
             HorizontalDivider(
