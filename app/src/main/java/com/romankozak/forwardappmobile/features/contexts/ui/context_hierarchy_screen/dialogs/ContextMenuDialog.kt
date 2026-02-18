@@ -72,7 +72,7 @@ fun ContextMenuDialog(
                 )
                 HorizontalDivider()
                 DialogActionItem(
-                    text = "Додати підпроект",
+                    text = "Додати дочірній контекст",
                     icon = Icons.Default.Add,
                     onClick = { onAddSubprojectRequest(project) },
                 )

@@ -40,7 +40,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.attachments.AttachmentsView
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.connections.ConnectionsView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.BacklogListScreen
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.direction.DirectionView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxView
@@ -168,8 +168,8 @@ fun GoalDetailContent(
                 onEditArtifact = {/*TODO*/},
             )
         }
-        ContextViewMode.ATTACHMENTS -> {
-            AttachmentsView(
+        ContextViewMode.CONNECTIONS -> {
+            ConnectionsView(
                 modifier = modifier,
                 viewModel = viewModel,
                 attachmentItems = attachmentItems,
@@ -321,7 +321,7 @@ private fun DashboardOverview(
                 ContextViewMode.BACKLOG to backlogCount,
                 ContextViewMode.INBOX to inboxCount,
                 ContextViewMode.DIRECTION to directionCount,
-                ContextViewMode.ATTACHMENTS to attachments.size,
+                ContextViewMode.CONNECTIONS to attachments.size,
             )
         }
     val activeViews =
@@ -477,13 +477,13 @@ private fun DashboardOverview(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = "Вкладення",
+                        text = "Connections",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     if (attachments.isEmpty()) {
                         Text(
-                            text = "Поки немає вкладень у цьому контексті",
+                            text = "Поки немає зв'язків у цьому контексті",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -496,7 +496,7 @@ private fun DashboardOverview(
                         }
                         if (attachments.size > previewAttachments.size) {
                             Text(
-                                text = "Ще ${attachments.size - previewAttachments.size} елемент(ів) у вкладеннях",
+                                text = "Ще ${attachments.size - previewAttachments.size} елемент(ів) у зв'язках",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -519,7 +519,7 @@ private fun ContextViewMode.dashboardLabel(): String =
         ContextViewMode.BACKLOG -> "Беклог"
         ContextViewMode.INBOX -> "Інбокс"
         ContextViewMode.DIRECTION -> "Напрямок"
-        ContextViewMode.ATTACHMENTS -> "Вкладення"
+        ContextViewMode.CONNECTIONS -> "Connections"
         ContextViewMode.DASHBOARD -> "Дашборд"
         ContextViewMode.LOG -> "Лог"
         ContextViewMode.ARTIFACT -> "Артефакт"
@@ -539,7 +539,7 @@ private fun ContextViewMode.dashboardIcon(): ImageVector =
         ContextViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.List
         ContextViewMode.INBOX -> Icons.Outlined.Inbox
         ContextViewMode.DIRECTION -> Icons.Outlined.AccountTree
-        ContextViewMode.ATTACHMENTS -> Icons.Default.Attachment
+        ContextViewMode.CONNECTIONS -> Icons.Default.Attachment
         ContextViewMode.DASHBOARD -> Icons.Default.Dashboard
         ContextViewMode.LOG -> Icons.Outlined.History
         ContextViewMode.ARTIFACT -> Icons.Outlined.Inventory2

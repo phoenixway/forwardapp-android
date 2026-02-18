@@ -1584,3 +1584,66 @@ val MIGRATION_108_109 =
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_context_inbox_sorting_updated_at` ON `context_inbox_sorting` (`updated_at`)")
         }
     }
+
+val MIGRATION_109_110 =
+    object : Migration(109, 110) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `note_documents` RENAME TO `note_documents_old`")
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `note_documents` (
+                    `id` TEXT NOT NULL,
+                    `contextId` TEXT NOT NULL,
+                    `name` TEXT NOT NULL,
+                    `createdAt` INTEGER NOT NULL,
+                    `updatedAt` INTEGER NOT NULL,
+                    `content` TEXT,
+                    `lastCursorPosition` INTEGER NOT NULL DEFAULT 0,
+                    `syncedAt` INTEGER,
+                    `isDeleted` INTEGER NOT NULL,
+                    `version` INTEGER NOT NULL,
+                    PRIMARY KEY(`id`)
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_note_documents_contextId` ON `note_documents` (`contextId`)")
+            db.execSQL(
+                """
+                INSERT INTO `note_documents`
+                (`id`, `contextId`, `name`, `createdAt`, `updatedAt`, `content`, `lastCursorPosition`, `syncedAt`, `isDeleted`, `version`)
+                SELECT
+                `id`, `contextId`, `name`, `createdAt`, `updatedAt`, `content`, `lastCursorPosition`, `syncedAt`, `isDeleted`, `version`
+                FROM `note_documents_old`
+                """.trimIndent(),
+            )
+            db.execSQL("DROP TABLE `note_documents_old`")
+
+            db.execSQL("ALTER TABLE `checklists` RENAME TO `checklists_old`")
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `checklists` (
+                    `id` TEXT NOT NULL,
+                    `contextId` TEXT NOT NULL,
+                    `name` TEXT NOT NULL,
+                    `createdAt` INTEGER NOT NULL,
+                    `updatedAt` INTEGER NOT NULL,
+                    `syncedAt` INTEGER,
+                    `isDeleted` INTEGER NOT NULL,
+                    `version` INTEGER NOT NULL,
+                    PRIMARY KEY(`id`)
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_checklists_contextId` ON `checklists` (`contextId`)")
+            db.execSQL(
+                """
+                INSERT INTO `checklists`
+                (`id`, `contextId`, `name`, `createdAt`, `updatedAt`, `syncedAt`, `isDeleted`, `version`)
+                SELECT
+                `id`, `contextId`, `name`, `createdAt`, `updatedAt`, `syncedAt`, `isDeleted`, `version`
+                FROM `checklists_old`
+                """.trimIndent(),
+            )
+            db.execSQL("DROP TABLE `checklists_old`")
+        }
+    }

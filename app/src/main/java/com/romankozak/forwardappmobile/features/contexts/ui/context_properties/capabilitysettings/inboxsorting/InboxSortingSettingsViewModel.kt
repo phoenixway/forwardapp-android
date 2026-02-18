@@ -77,7 +77,7 @@ class InboxSortingSettingsViewModel
                     when (target) {
                         InboxSortingService.SortTarget.BACKLOG -> "беклог"
                         InboxSortingService.SortTarget.INBOX_RECORDS -> "inbox записи"
-                        InboxSortingService.SortTarget.ATTACHMENTS -> "вкладення"
+                        InboxSortingService.SortTarget.ATTACHMENTS -> "зв'язки"
                     }
                 _uiState.update {
                     it.copy(
@@ -88,4 +88,3 @@ class InboxSortingSettingsViewModel
             }
         }
     }
-

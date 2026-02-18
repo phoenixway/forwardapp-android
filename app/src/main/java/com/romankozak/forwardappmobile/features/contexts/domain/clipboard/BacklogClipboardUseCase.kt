@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DirectionRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.ListItemRepository
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -831,26 +832,56 @@ class BacklogClipboardUseCase
             targetContextId: String,
         ): AttachmentCopyResult {
             if (refs.isEmpty()) return AttachmentCopyResult(0, 0, 0, emptyList())
-            val requestedItemIds = refs.map { it.listItemId }
-            val itemsById = listItemRepository.getItemsByIds(requestedItemIds).associateBy { it.id }
-            val sourceItems = requestedItemIds.mapNotNull(itemsById::get)
+            val requestedIds = refs.map { it.listItemId }
+            val itemsById = listItemRepository.getItemsByIds(requestedIds).associateBy { it.id }
+            val existingTargetAttachmentIds =
+                contextRepository
+                    .getAttachmentsForContextStream(targetContextId)
+                    .first()
+                    .map { it.attachment.id }
+                    .toMutableSet()
             var duplicates = 0
-            var invalid = requestedItemIds.size - sourceItems.size
-            val entriesToCreate = mutableListOf<Pair<String, String>>()
+            var invalid = 0
             val insertedSourceItemIds = mutableListOf<String>()
-            for (item in sourceItems) {
-                if (!isAttachmentType(item.itemType)) {
-                    invalid += 1
-                    continue
-                }
-                if (listItemRepository.doesLinkExist(item.entityId, targetContextId)) {
+            var created = 0
+
+            refLoop@ for (requestedId in requestedIds) {
+                var sourceListItemIdForCut: String? = null
+                val attachmentId =
+                    contextRepository.getAttachmentById(requestedId)?.id ?: run {
+                        val item = itemsById[requestedId]
+                        if (item == null) {
+                            invalid += 1
+                            continue@refLoop
+                        }
+                        if (!isAttachmentType(item.itemType)) {
+                            invalid += 1
+                            continue@refLoop
+                        }
+                        val resolvedAttachmentId =
+                            contextRepository.findAttachmentIdByEntity(
+                                attachmentType = item.itemType,
+                                entityId = item.entityId,
+                            )
+                        if (resolvedAttachmentId == null) {
+                            invalid += 1
+                            continue@refLoop
+                        }
+                        sourceListItemIdForCut = item.id
+                        resolvedAttachmentId
+                    }
+
+                if (attachmentId in existingTargetAttachmentIds) {
                     duplicates += 1
                     continue
                 }
-                entriesToCreate += item.itemType to item.entityId
-                insertedSourceItemIds += item.id
+                contextRepository.linkAttachmentToContext(attachmentId, targetContextId)
+                existingTargetAttachmentIds += attachmentId
+                created += 1
+                if (sourceListItemIdForCut != null) {
+                    insertedSourceItemIds += sourceListItemIdForCut
+                }
             }
-            val created = listItemRepository.addEntityLinksToContext(targetContextId, entriesToCreate)
             return AttachmentCopyResult(
                 created = created,
                 duplicates = duplicates,

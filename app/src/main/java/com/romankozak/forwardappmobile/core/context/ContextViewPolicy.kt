@@ -39,7 +39,7 @@ object ContextViewPolicy {
             ContextViewMode.BACKLOG -> 1
             ContextViewMode.INBOX -> 2
             ContextViewMode.ADVANCED -> 3
-            ContextViewMode.ATTACHMENTS -> 4
+            ContextViewMode.CONNECTIONS -> 4
             ContextViewMode.DIRECTION -> 5
             ContextViewMode.NOTES -> 6
             ContextViewMode.LOG -> 7

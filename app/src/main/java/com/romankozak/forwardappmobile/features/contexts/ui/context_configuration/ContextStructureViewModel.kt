@@ -30,7 +30,7 @@ data class ProjectStructureUiState(
             "Advanced" to false,
             "Dashboard" to true,
             "Backlog" to true,
-            "Attachments" to true,
+            "Connections" to true,
             "Auto add child context in context hierarchy to direction front" to true,
         ),
     val isLoading: Boolean = false,
@@ -78,7 +78,13 @@ class ProjectStructureViewModel
                                 "Advanced" to (structure.structure.enableAdvanced ?: _uiState.value.featureFlags["Advanced"] ?: false),
                                 "Dashboard" to (structure.structure.enableDashboard ?: _uiState.value.featureFlags["Dashboard"] ?: true),
                                 "Backlog" to (structure.structure.enableBacklog ?: _uiState.value.featureFlags["Backlog"] ?: true),
-                                "Attachments" to (structure.structure.enableAttachments ?: _uiState.value.featureFlags["Attachments"] ?: true),
+                                "Connections" to
+                                    (
+                                        structure.structure.enableAttachments
+                                            ?: _uiState.value.featureFlags["Connections"]
+                                            ?: _uiState.value.featureFlags["Attachments"]
+                                            ?: true
+                                    ),
                                 autoLinkLabel to (structure.structure.enableAutoLinkSubprojects ?: _uiState.value.featureFlags[autoLinkLabel] ?: true),
                             )
                         _uiState.update {
@@ -165,7 +171,7 @@ class ProjectStructureViewModel
                         enableAdvanced = updatedFlags["Advanced"],
                         enableDashboard = updatedFlags["Dashboard"],
                         enableBacklog = updatedFlags["Backlog"],
-                        enableAttachments = updatedFlags["Attachments"],
+                        enableAttachments = updatedFlags["Connections"] ?: updatedFlags["Attachments"],
                         enableAutoLinkSubprojects = updatedFlags[autoLinkLabel],
                     ),
                 )

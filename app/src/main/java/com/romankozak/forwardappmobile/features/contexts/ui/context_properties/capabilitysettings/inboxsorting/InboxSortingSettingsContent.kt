@@ -38,7 +38,7 @@ fun InboxSortingSettingsContent(
             style = MaterialTheme.typography.titleMedium,
         )
         Text(
-            text = "Формат: backlog:newest|oldest, inbox:newest|oldest|alpha, attachments:newest|oldest|type|alpha",
+            text = "Формат: backlog:newest|oldest, inbox:newest|oldest|alpha, connections:newest|oldest|type|alpha",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -83,7 +83,7 @@ fun InboxSortingSettingsContent(
                 onClick = { viewModel.applySort(InboxSortingService.SortTarget.ATTACHMENTS) },
                 enabled = !uiState.isSaving && !uiState.isApplying,
             ) {
-                Text("Sort Attachments")
+                Text("Sort Connections")
             }
         }
 
@@ -97,4 +97,3 @@ fun InboxSortingSettingsContent(
         }
     }
 }
-

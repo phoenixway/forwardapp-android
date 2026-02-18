@@ -1,12 +1,9 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions
 
 import com.romankozak.forwardappmobile.core.data.models.entities.DirectionItemEntity
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DirectionRepository
-import java.util.UUID
 
 class DirectionActions(
-    private val contextRepository: ContextRepository,
     private val directionRepository: DirectionRepository,
 ) {
     private var isLinkedNavigationInProgress: Boolean = false
@@ -40,16 +37,10 @@ class DirectionActions(
         if (trimmed.isBlank()) return "Напрямок не може бути порожнім."
         if (parentContextId.isBlank()) return null
 
-        val childContextId = UUID.randomUUID().toString()
-        contextRepository.createContextWithId(
-            id = childContextId,
-            name = trimmed,
-            parentId = parentContextId,
-        )
         directionRepository.addDirectionItem(
             contextId = parentContextId,
             text = trimmed,
-            linkedContextId = childContextId,
+            linkedContextId = null,
         )
         return null
     }

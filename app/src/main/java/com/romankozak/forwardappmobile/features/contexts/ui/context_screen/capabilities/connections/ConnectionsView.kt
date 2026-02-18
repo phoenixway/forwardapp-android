@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.attachments
+package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.connections
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,7 +25,7 @@ import com.romankozak.forwardappmobile.ui.components.ConnectionsPanel
 import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
 
 @Composable
-fun AttachmentsView(
+fun ConnectionsView(
     modifier: Modifier = Modifier,
     viewModel: ContextScreenViewModel,
     attachmentItems: List<BacklogItemContent>,

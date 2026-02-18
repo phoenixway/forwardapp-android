@@ -301,14 +301,14 @@ class ItemActionHandler
                 _showAttachmentPasteDialog.value = true
                 return
             }
-            continuePaste(targetViewMode = targetViewMode, includeAttachments = targetViewMode == ContextViewMode.ATTACHMENTS)
+            continuePaste(targetViewMode = targetViewMode, includeAttachments = targetViewMode == ContextViewMode.CONNECTIONS)
         }
 
         fun onAttachmentPasteDecision(includeAttachments: Boolean) {
             val target = pendingPasteTargetViewMode
             _showAttachmentPasteDialog.value = false
             if (target == null) return
-            continuePaste(targetViewMode = target, includeAttachments = includeAttachments || target == ContextViewMode.ATTACHMENTS)
+            continuePaste(targetViewMode = target, includeAttachments = includeAttachments || target == ContextViewMode.CONNECTIONS)
         }
 
         private fun continuePaste(
@@ -331,7 +331,7 @@ class ItemActionHandler
                     pendingPasteTargetViewMode = null
                 }
 
-                ContextViewMode.ATTACHMENTS -> {
+                ContextViewMode.CONNECTIONS -> {
                     pasteIntoCurrentAttachments()
                     pendingPasteTargetViewMode = null
                 }

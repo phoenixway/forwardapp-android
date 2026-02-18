@@ -13,7 +13,9 @@ class ContextCapabilitiesResolver {
             if (isEnabled(roleCapabilities, "log", config.enableLog, defaultEnabled = true)) add(CapabilityId("log"))
             if (isEnabled(roleCapabilities, "dashboard", config.enableDashboard, defaultEnabled = true)) add(CapabilityId("dashboard"))
             if (isEnabled(roleCapabilities, "backlog", config.enableBacklog, defaultEnabled = true)) add(CapabilityId("backlog"))
-            if (isEnabled(roleCapabilities, "attachments", config.enableAttachments, defaultEnabled = true)) add(CapabilityId("attachments"))
+            if (isEnabledAny(roleCapabilities, setOf("attachments", "connections"), config.enableAttachments, defaultEnabled = true)) {
+                add(CapabilityId("connections"))
+            }
             if (isEnabled(roleCapabilities, "advanced", config.enableAdvanced, defaultEnabled = false)) add(CapabilityId("advanced"))
 
             // Non-legacy role capabilities are still provided by role.
@@ -44,6 +46,16 @@ class ContextCapabilitiesResolver {
         return roleCapabilities.contains(CapabilityId(capabilityRaw)) || defaultEnabled
     }
 
+    private fun isEnabledAny(
+        roleCapabilities: Set<CapabilityId>,
+        capabilityRaws: Set<String>,
+        override: Boolean?,
+        defaultEnabled: Boolean,
+    ): Boolean {
+        if (override != null) return override
+        return capabilityRaws.any { raw -> roleCapabilities.contains(CapabilityId(raw)) } || defaultEnabled
+    }
+
     private companion object {
         val LEGACY_CAPABILITY_IDS =
             setOf(
@@ -52,6 +64,7 @@ class ContextCapabilitiesResolver {
                 "dashboard",
                 "backlog",
                 "attachments",
+                "connections",
                 "advanced",
             )
     }

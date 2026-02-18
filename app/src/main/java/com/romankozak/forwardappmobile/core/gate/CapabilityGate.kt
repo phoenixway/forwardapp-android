@@ -30,7 +30,13 @@ class CapabilityGate
          */
         fun isEnabled(id: CapabilityId): Boolean {
             // 1. Якщо фіча не зареєстрована в системі — вона вимкнена за замовчуванням
-            if (registry.get(id) == null) return false
+            if (registry.get(id) == null) {
+                if (id.raw == "connections" && registry.get(CapabilityId("attachments")) != null) {
+                    // Legacy alias support.
+                } else {
+                    return false
+                }
+            }
 
             val currentState = contextController.current()
 
@@ -64,6 +70,7 @@ class CapabilityGate
                 "dashboard" -> config.enableDashboard == true
                 "backlog" -> config.enableBacklog == true
                 "attachments" -> config.enableAttachments == true
+                "connections" -> config.enableAttachments == true
                 else -> false
             }
         }

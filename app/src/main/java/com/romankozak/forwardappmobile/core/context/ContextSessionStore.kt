@@ -58,7 +58,7 @@ class ContextSessionStore(
     ): ContextSessionState {
         val enabled = capabilitiesResolver.resolve(config)
         val availableViews = ContextViewPolicy.availableViews(enabled)
-        val preferred = preferredViewName?.let { runCatching { ContextViewMode.valueOf(it) }.getOrNull() }
+        val preferred = preferredViewName?.let(::parseViewMode)
         val resolved = ContextViewPolicy.resolveView(availableViews, preferred, currentView)
 
         val newState =
@@ -88,6 +88,11 @@ class ContextSessionStore(
             current.copyViews(resolved)
         }
         return resolved
+    }
+
+    private fun parseViewMode(raw: String): ContextViewMode? {
+        if (raw.equals("ATTACHMENTS", ignoreCase = true)) return ContextViewMode.CONNECTIONS
+        return runCatching { ContextViewMode.valueOf(raw) }.getOrNull()
     }
 
     private fun ContextState.copyViews(mode: ContextViewMode): ContextState {

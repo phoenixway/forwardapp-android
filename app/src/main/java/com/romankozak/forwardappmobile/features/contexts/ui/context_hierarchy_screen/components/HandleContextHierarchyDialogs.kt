@@ -30,10 +30,17 @@ fun HandleProjectHierarchyDialogs(
         is DialogState.Hidden -> { }
         is DialogState.AddProject -> {
             AddProjectDialog(
-                title = if (state.parentId == null) "Створити новий проект" else "Створити підпроект",
+                title = if (state.parentId == null) "Create new context" else "Add child context",
+                roleOptions =
+                    uiState.availableContextRoles.map { role ->
+                        com.romankozak.forwardappmobile.ui.dialogs.RoleOption(
+                            code = role.code,
+                            label = role.label,
+                        )
+                    },
                 onDismiss = { onEvent(ContextHierarchyScreenEvent.DismissDialog) },
-                onConfirm = { name ->
-                    onEvent(ContextHierarchyScreenEvent.AddContextConfirm(name, state.parentId))
+                onConfirm = { name, roleCode ->
+                    onEvent(ContextHierarchyScreenEvent.AddContextConfirm(name, state.parentId, roleCode))
                 },
             )
         }

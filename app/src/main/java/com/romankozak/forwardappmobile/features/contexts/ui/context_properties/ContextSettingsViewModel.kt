@@ -159,6 +159,7 @@ class ContextSettingsViewModel
                     "dashboard" -> config.enableDashboard ?: enabledByRole
                     "backlog" -> config.enableBacklog ?: enabledByRole
                     "attachments" -> config.enableAttachments ?: enabledByRole
+                    "connections" -> config.enableAttachments ?: enabledByRole
                     else -> false
                 }
 
@@ -278,7 +279,7 @@ class ContextSettingsViewModel
                 // 3. Розділяємо можливості на legacy та експериментальні
                 val allKnownLegacyCaps =
                     setOf(
-                        "inbox", "log", "advanced", "dashboard", "backlog", "attachments",
+                        "inbox", "log", "advanced", "dashboard", "backlog", "attachments", "connections",
                     )
                 val experimentalIdsFromPreset = presetCapabilities.filter { it.raw !in allKnownLegacyCaps }
 
@@ -294,7 +295,9 @@ class ContextSettingsViewModel
                         enableAdvanced = presetCapabilities.contains(CapabilityId("advanced")),
                         enableDashboard = true,
                         enableBacklog = presetCapabilities.contains(CapabilityId("backlog")),
-                        enableAttachments = presetCapabilities.contains(CapabilityId("attachments")),
+                        enableAttachments =
+                            presetCapabilities.contains(CapabilityId("connections")) ||
+                                presetCapabilities.contains(CapabilityId("attachments")),
                         enableAutoLinkSubprojects = structure.enableAutoLinkSubprojects,
                         // Оновлення списку експериментальних ID
                         experimentalCapabilityIds = experimentalIdsFromPreset,
@@ -357,7 +360,7 @@ class ContextSettingsViewModel
                 "Advanced" -> CapabilityId("advanced")
                 "Dashboard" -> CapabilityId("dashboard")
                 "Backlog" -> CapabilityId("backlog")
-                "Attachments" -> CapabilityId("attachments")
+                "Attachments", "Connections" -> CapabilityId("connections")
                 else -> CapabilityId(label.lowercase().replace(" ", "_"))
             }
 
@@ -385,8 +388,10 @@ class ContextSettingsViewModel
                     enableAdvanced = currentState.features["Advanced"] == true,
                     enableDashboard = currentState.features["Dashboard"] == true,
                     enableBacklog = currentState.features["Backlog"] == true,
-                    enableAttachments = currentState.features["Attachments"] == true,
-                    enableAutoLinkSubprojects = currentState.autoLinkSubprojects,
+                    enableAttachments = currentState.features["Connections"] ?: currentState.features["Attachments"] == true,
+                    // Керується окремою вкладкою Direction settings.
+                    // Тут не перезаписуємо, щоб не затирати актуальне значення.
+                    enableAutoLinkSubprojects = structure.enableAutoLinkSubprojects,
                     updatedAt = System.currentTimeMillis(),
                 )
 

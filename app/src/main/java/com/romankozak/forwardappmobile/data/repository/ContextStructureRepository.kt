@@ -42,7 +42,7 @@ class ContextStructureRepository
                         enableAdvanced = capabilities.contains("advanced"),
                         enableDashboard = true,
                         enableBacklog = capabilities.contains("backlog"),
-                        enableAttachments = capabilities.contains("attachments"),
+                        enableAttachments = capabilities.contains("attachments") || capabilities.contains("connections"),
                         enableAutoLinkSubprojects = existing?.enableAutoLinkSubprojects ?: true,
                         createdAt = existing?.createdAt ?: now,
                         updatedAt = now,
@@ -101,6 +101,7 @@ class ContextStructureRepository
                     "dashboard",
                     "backlog",
                     "attachments",
+                    "connections",
                 )
             val experimentalIdsFromPreset = presetCapabilities.filter { it.raw !in knownLegacyCaps }
             val structure = ensureStructure(contextId, basePresetCode = preset.code)
@@ -113,7 +114,9 @@ class ContextStructureRepository
                     enableAdvanced = presetCapabilities.contains(CapabilityId("advanced")),
                     enableDashboard = preset.enableDashboard,
                     enableBacklog = presetCapabilities.contains(CapabilityId("backlog")),
-                    enableAttachments = presetCapabilities.contains(CapabilityId("attachments")),
+                    enableAttachments =
+                        presetCapabilities.contains(CapabilityId("connections")) ||
+                            presetCapabilities.contains(CapabilityId("attachments")),
                     enableAutoLinkSubprojects = preset.enableAutoLinkSubprojects ?: true,
                     experimentalCapabilityIds = experimentalIdsFromPreset,
                 )

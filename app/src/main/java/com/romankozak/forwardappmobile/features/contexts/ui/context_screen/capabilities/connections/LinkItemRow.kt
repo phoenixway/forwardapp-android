@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.attachments
+package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.connections
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring

@@ -92,7 +92,7 @@ fun ModernInputPanel(
                 if (enableArtifact) add(CapabilityId("advanced"))
                 if (enableBacklog) add(CapabilityId("backlog"))
                 if (enableDashboard) add(CapabilityId("dashboard"))
-                if (enableAttachments) add(CapabilityId("attachments"))
+                if (enableAttachments) add(CapabilityId("connections"))
                 if (isProjectManagementEnabled) add(CapabilityId("advanced"))
 
                 // 2. Додаємо всі динамічні фічі (Ветеринар, Нотатки і т.д.), ігноруючи пошкоджені значення

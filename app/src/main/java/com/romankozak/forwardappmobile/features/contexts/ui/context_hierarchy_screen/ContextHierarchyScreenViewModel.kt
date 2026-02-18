@@ -665,6 +665,7 @@ class ContextHierarchyScreenViewModel
                             id = UUID.randomUUID().toString(),
                             name = event.name,
                             parentId = event.parentId,
+                            roleCode = event.roleCode,
                             allProjects = _allProjectsFlat.value,
                         )
                     }

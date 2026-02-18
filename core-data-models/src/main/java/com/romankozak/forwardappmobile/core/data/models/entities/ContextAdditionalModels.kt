@@ -63,7 +63,7 @@ enum class ContextViewMode {
     BACKLOG,
     INBOX,
     ADVANCED,
-    ATTACHMENTS,
+    CONNECTIONS,
     DASHBOARD,
     DIRECTION,
     LOG,

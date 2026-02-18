@@ -223,7 +223,7 @@ class ContextScreenViewModel
             )
         }
         private val listChooserResultCoordinatorActions by lazy { ListChooserResultCoordinatorActions(listChooserResultActions = listChooserResultActions, pendingStateActions = listChooserPendingStateActions) }
-        private val directionActions by lazy { DirectionActions(contextRepository = contextRepository, directionRepository = directionRepository) }
+        private val directionActions by lazy { DirectionActions(directionRepository = directionRepository) }
         private val directionChooserActions = DirectionChooserActions()
         private val creationActions by lazy { CreationActions(noteDocumentRepository = noteDocumentRepository) }
         private val creationResultActions = CreationResultActions()

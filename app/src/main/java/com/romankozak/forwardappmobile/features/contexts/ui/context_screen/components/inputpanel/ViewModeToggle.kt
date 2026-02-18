@@ -96,7 +96,7 @@ private fun ContextViewMode.toIcon(): ImageVector =
         ContextViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.ListAlt
         ContextViewMode.INBOX -> Icons.AutoMirrored.Outlined.Notes
         ContextViewMode.ADVANCED -> Icons.Outlined.Dashboard
-        ContextViewMode.ATTACHMENTS -> Icons.Default.Attachment
+        ContextViewMode.CONNECTIONS -> Icons.Default.Attachment
         ContextViewMode.DASHBOARD -> Icons.Outlined.ViewModule
         ContextViewMode.DIRECTION -> Icons.Outlined.Explore
         ContextViewMode.NOTES -> Icons.Outlined.Description

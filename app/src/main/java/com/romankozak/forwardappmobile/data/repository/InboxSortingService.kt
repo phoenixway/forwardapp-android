@@ -81,7 +81,7 @@ class InboxSortingService
             if (current.isEmpty()) return 0
 
             val sorted =
-                when (resolveMode(rulesText, "attachments", default = "newest")) {
+                when (resolveMode(rulesText, keys = listOf("connections", "attachments"), default = "newest")) {
                     "oldest" -> current.sortedBy { it.attachment.createdAt }
                     "type" -> current.sortedBy { it.attachment.attachmentType.lowercase() }
                     "alpha" -> current.sortedBy { attachmentSortLabel(it).lowercase() }
@@ -104,8 +104,20 @@ class InboxSortingService
             key: String,
             default: String,
         ): String {
+            return resolveMode(rulesText, keys = listOf(key), default = default)
+        }
+
+        private fun resolveMode(
+            rulesText: String,
+            keys: List<String>,
+            default: String,
+        ): String {
             if (rulesText.isBlank()) return default
-            val pattern = Regex("""(?im)^\s*${Regex.escape(key)}\s*:\s*([a-z_]+)\s*$""")
-            return pattern.find(rulesText)?.groupValues?.getOrNull(1)?.trim()?.lowercase().orEmpty().ifBlank { default }
+            keys.forEach { key ->
+                val pattern = Regex("""(?im)^\s*${Regex.escape(key)}\s*:\s*([a-z_]+)\s*$""")
+                val found = pattern.find(rulesText)?.groupValues?.getOrNull(1)?.trim()?.lowercase()
+                if (!found.isNullOrBlank()) return found
+            }
+            return default
         }
     }

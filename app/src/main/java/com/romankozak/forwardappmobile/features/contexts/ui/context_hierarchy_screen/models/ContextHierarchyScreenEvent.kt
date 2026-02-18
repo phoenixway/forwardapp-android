@@ -138,7 +138,7 @@ sealed interface ContextHierarchyScreenEvent {
 
     data class PerformWifiImport(val address: String) : ContextHierarchyScreenEvent
 
-    data class AddContextConfirm(val name: String, val parentId: String?) : ContextHierarchyScreenEvent
+    data class AddContextConfirm(val name: String, val parentId: String?, val roleCode: String? = null) : ContextHierarchyScreenEvent
 
     data class AddSubprojectRequest(val parentProject: Context) : ContextHierarchyScreenEvent
 

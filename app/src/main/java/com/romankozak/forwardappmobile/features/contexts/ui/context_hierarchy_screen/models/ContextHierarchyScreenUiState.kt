@@ -10,6 +10,11 @@ import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 
 typealias MainScreenUiState = ProjectHierarchyScreenUiState
 
+data class ContextRoleOption(
+    val code: String,
+    val label: String,
+)
+
 data class ProjectHierarchyScreenUiState(
     val subStateStack: List<MainSubState> = listOf(ProjectHierarchyScreenSubState.Hierarchy),
     val searchQuery: TextFieldValue = TextFieldValue(""),
@@ -43,6 +48,7 @@ data class ProjectHierarchyScreenUiState(
     val searchResults: List<SearchResult> = emptyList(),
     val recordForReminderDialog: ActivityRecord? = null,
     val contextMarkerToEmojiMap: Map<String, String> = emptyMap(),
+    val availableContextRoles: List<ContextRoleOption> = emptyList(),
     val featureToggles: Map<FeatureFlag, Boolean> = emptyMap(),
 ) {
     val currentSubState: MainSubState

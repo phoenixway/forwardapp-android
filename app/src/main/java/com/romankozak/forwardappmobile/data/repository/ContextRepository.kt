@@ -29,6 +29,7 @@ import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Provider
@@ -389,10 +390,59 @@ class ContextRepository
             if (contextsToDelete.isEmpty()) return
 
             val ids = contextsToDelete.map { it.id }
+            rebindSharedAttachmentEntitiesBeforeContextDeletion(ids.toSet())
             listItemRepository.deleteItemsForContexts(ids)
             val now = System.currentTimeMillis()
             directionDao.markDeletedByLinkedContextIds(ids, now)
             contextsToDelete.forEach { contextDao.insert(it.softDelete(now)) }
+        }
+
+        private suspend fun rebindSharedAttachmentEntitiesBeforeContextDeletion(
+            deletingContextIds: Set<String>,
+        ) {
+            if (deletingContextIds.isEmpty()) return
+
+            val activeContextIds =
+                contextDao
+                    .getAll()
+                    .asSequence()
+                    .filter { !it.isDeleted && it.id !in deletingContextIds }
+                    .map { it.id }
+                    .toSet()
+            if (activeContextIds.isEmpty()) return
+
+            val linksByAttachmentId =
+                attachmentRepository
+                    .getAllAttachmentLinks()
+                    .first()
+                    .groupBy { it.attachmentId }
+            if (linksByAttachmentId.isEmpty()) return
+
+            val now = System.currentTimeMillis()
+            linksByAttachmentId.forEach { (attachmentId, links) ->
+                val attachment = attachmentRepository.getAttachmentById(attachmentId) ?: return@forEach
+                val ownerContextId = attachment.ownerContextId ?: return@forEach
+                if (ownerContextId !in deletingContextIds) return@forEach
+
+                val fallbackContextId = links.map { it.contextId }.firstOrNull { it in activeContextIds } ?: return@forEach
+
+                when (attachment.attachmentType) {
+                    BacklogItemTypeValues.NOTE_DOCUMENT -> {
+                        val document = noteDocumentRepository.getDocumentById(attachment.entityId) ?: return@forEach
+                        if (document.contextId != fallbackContextId) {
+                            noteDocumentRepository.updateDocument(
+                                document.copy(contextId = fallbackContextId, updatedAt = now),
+                            )
+                        }
+                    }
+                    BacklogItemTypeValues.CHECKLIST -> {
+                        val checklist = checklistRepository.getChecklistById(attachment.entityId) ?: return@forEach
+                        if (checklist.contextId != fallbackContextId) {
+                            checklistRepository.updateChecklist(checklist.copy(contextId = fallbackContextId, updatedAt = now))
+                        }
+                    }
+                }
+            }
         }
 
         suspend fun addLinkItemToContextFromLink(

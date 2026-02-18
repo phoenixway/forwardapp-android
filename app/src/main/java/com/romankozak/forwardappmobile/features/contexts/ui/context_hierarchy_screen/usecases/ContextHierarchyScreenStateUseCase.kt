@@ -5,13 +5,17 @@ import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData
+import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
+import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.AppStatistics
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextRoleOption
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DialogState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FilterState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyItem
@@ -48,6 +52,7 @@ class ProjectHierarchyScreenStateUseCase
         private val syncUseCase: SyncUseCase,
         private val navigationUseCase: NavigationUseCase,
         private val settingsRepository: SettingsRepository,
+        private val structurePresetDao: StructurePresetDao,
         private val contextHandler: ContextHandler,
         private val recentItemsRepository: RecentItemsRepository,
     ) {
@@ -147,6 +152,12 @@ class ProjectHierarchyScreenStateUseCase
                 }
                     .stateIn(scope, SharingStarted.Lazily, ExpensiveCalculations())
 
+            val availableContextRolesFlow =
+                structurePresetDao
+                    .getAll()
+                    .map(::buildAvailableContextRoles)
+                    .stateIn(scope, SharingStarted.WhileSubscribed(5_000), buildAvailableContextRoles(emptyList()))
+
             val coreUiStateFlow =
                 combine(
                     searchUseCase.subStateStack,
@@ -199,6 +210,7 @@ class ProjectHierarchyScreenStateUseCase
                     obsidianVaultNameFlow,
                     navigationSnapshot,
                     contextHandler.contextMarkerToEmojiMap,
+                    availableContextRolesFlow,
                     FeatureToggles.overrides,
                 ) { values ->
                     val coreState = values[0] as CoreUiState
@@ -223,7 +235,10 @@ class ProjectHierarchyScreenStateUseCase
                     val contextMarkerToEmojiMap = values[12] as Map<String, String>
 
                     @Suppress("UNCHECKED_CAST")
-                    val featureToggles = values[13] as Map<FeatureFlag, Boolean>
+                    val availableContextRoles = values[13] as List<ContextRoleOption>
+
+                    @Suppress("UNCHECKED_CAST")
+                    val featureToggles = values[14] as Map<FeatureFlag, Boolean>
 
                     ProjectHierarchyScreenUiState(
                         subStateStack = coreState.subStateStack,
@@ -256,6 +271,7 @@ class ProjectHierarchyScreenStateUseCase
                         searchResults = searchResults,
                         recordForReminderDialog = recordForReminder,
                         contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+                        availableContextRoles = availableContextRoles,
                         featureToggles = featureToggles,
                     )
                 }
@@ -303,6 +319,23 @@ class ProjectHierarchyScreenStateUseCase
             val recentItems: List<RecentItem> = emptyList(),
             val allContexts: List<UiContext> = emptyList(),
         )
+
+        private fun buildAvailableContextRoles(presets: List<ContextRoleProfile>): List<ContextRoleOption> {
+            val rolesByCode = linkedMapOf<String, ContextRoleOption>()
+
+            ContextRoleRegistry.getReservedBaseRoleDefinitions().forEach { definition ->
+                rolesByCode[definition.code] = ContextRoleOption(code = definition.code, label = definition.label)
+            }
+
+            presets.forEach { preset ->
+                val code = preset.code.trim()
+                if (code.isEmpty()) return@forEach
+                val label = preset.label.trim().ifBlank { code }
+                rolesByCode[code] = ContextRoleOption(code = code, label = label)
+            }
+
+            return rolesByCode.values.toList()
+        }
     }
 
 /**

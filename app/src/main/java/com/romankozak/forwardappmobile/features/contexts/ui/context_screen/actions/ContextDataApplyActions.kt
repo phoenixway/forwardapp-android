@@ -57,7 +57,7 @@ class ContextDataApplyActions(
             val enableArtifact = session.enabledCapabilities.contains(CapabilityId("advanced"))
             val enableBacklog = session.enabledCapabilities.contains(CapabilityId("backlog"))
             val enableDashboard = session.enabledCapabilities.contains(CapabilityId("dashboard"))
-            val enableAttachments = session.enabledCapabilities.contains(CapabilityId("attachments"))
+            val enableAttachments = session.enabledCapabilities.contains(CapabilityId("connections"))
             val isProjectManagementEnabled = session.enabledCapabilities.contains(CapabilityId("advanced"))
 
             if (

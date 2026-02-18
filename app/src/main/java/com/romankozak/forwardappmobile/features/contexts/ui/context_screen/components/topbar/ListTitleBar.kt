@@ -46,7 +46,7 @@ internal fun getViewModeText(viewMode: ContextViewMode): String =
         ContextViewMode.BACKLOG -> "Backlog"
         ContextViewMode.INBOX -> "Inbox"
         ContextViewMode.ADVANCED -> "Advanced View"
-        ContextViewMode.ATTACHMENTS -> "Attachments"
+        ContextViewMode.CONNECTIONS -> "Connections"
         ContextViewMode.DASHBOARD -> "Dashboard"
         ContextViewMode.DIRECTION -> "Directions"
         ContextViewMode.LOG -> "Log"
@@ -115,7 +115,7 @@ private fun ViewModeIndicator(
                     Color(0xFFF3E5F5).copy(alpha = 0.7f),
                     Color(0xFF7B1FA2).copy(alpha = 0.8f),
                 )
-            ContextViewMode.ATTACHMENTS ->
+            ContextViewMode.CONNECTIONS ->
                 Pair(
                     Color(0xFFF5F5F5).copy(alpha = 0.7f),
                     Color(0xFF616161).copy(alpha = 0.8f),

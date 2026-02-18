@@ -145,8 +145,8 @@ fun UniversalEditorScreen(
             when (it) {
                 is UniversalEditorEvent.ShowLocation -> {
                     val projectId = it.projectId
-                    android.util.Log.d("ProjectRevealDebug", "Navigating to project screen for projectId: $projectId in ATTACHMENTS mode")
-                    navController.navigate("goal_detail_screen/$projectId?initialViewMode=${ContextViewMode.ATTACHMENTS.name}")
+                    android.util.Log.d("ProjectRevealDebug", "Navigating to project screen for projectId: $projectId in CONNECTIONS mode")
+                    navController.navigate("goal_detail_screen/$projectId?initialViewMode=${ContextViewMode.CONNECTIONS.name}")
                 }
 
                 is UniversalEditorEvent.ShowError -> {

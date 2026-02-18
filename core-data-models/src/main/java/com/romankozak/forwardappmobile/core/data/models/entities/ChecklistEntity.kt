@@ -10,14 +10,6 @@ import java.util.UUID
 
 @Entity(
     tableName = "checklists",
-    foreignKeys = [
-        ForeignKey(
-            entity = Context::class,
-            parentColumns = ["id"],
-            childColumns = ["contextId"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-    ],
     indices = [Index(value = ["contextId"], name = "index_checklists_contextId")],
 )
 data class ChecklistEntity(

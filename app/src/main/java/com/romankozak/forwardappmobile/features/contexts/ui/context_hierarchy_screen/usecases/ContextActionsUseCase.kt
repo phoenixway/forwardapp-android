@@ -28,10 +28,11 @@ class ContextActionsUseCase
             id: String,
             parentId: String?,
             name: String,
+            roleCode: String? = null,
             allProjects: List<Context>,
         ) = withContext(ioDispatcher) {
             if (name.isBlank()) return@withContext
-            contextRepository.createContextWithId(id, name, parentId)
+            contextRepository.createContextWithId(id, name, parentId, roleCode = roleCode)
             if (parentId != null) {
                 val parentProject = allProjects.find { it.id == parentId }
                 if (parentProject != null && !parentProject.isExpanded) {

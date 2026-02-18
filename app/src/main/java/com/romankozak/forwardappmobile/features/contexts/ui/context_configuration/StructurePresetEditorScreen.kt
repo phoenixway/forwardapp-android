@@ -213,7 +213,7 @@ private fun FeatureToggles(
         FeatureToggleRow("Advanced mode", enableAdvanced, onAdvancedChange)
         FeatureToggleRow("Dashboard view", enableDashboard, onDashboardChange)
         FeatureToggleRow("Backlog view", enableBacklog, onBacklogChange)
-        FeatureToggleRow("Attachments view", enableAttachments, onAttachmentsChange)
+        FeatureToggleRow("Connections view", enableAttachments, onAttachmentsChange)
         FeatureToggleRow("Auto add child context in context hierarchy to direction front", enableAutoLinkSubprojects, onAutoLinkSubprojectsChange)
     }
 }

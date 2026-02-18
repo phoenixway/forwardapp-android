@@ -186,7 +186,7 @@ private fun ProjectScaffold(
         when (uiState.currentViewMode) {
             ContextViewMode.BACKLOG -> canPasteIntoCurrentBacklog
             ContextViewMode.DIRECTION -> canPasteIntoCurrentDirection
-            ContextViewMode.ATTACHMENTS -> canPasteIntoCurrentAttachments
+            ContextViewMode.CONNECTIONS -> canPasteIntoCurrentAttachments
             else -> false
         }
 

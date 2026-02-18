@@ -102,7 +102,7 @@ object ContextRoleRegistry {
                 setOf(
                     CapabilityId("notes"),
                     CapabilityId("treatment_plan"),
-                    CapabilityId("attachments"),
+                    CapabilityId("connections"),
                 ),
             ROLE_DEVELOPMENT to
                 setOf(
@@ -152,13 +152,14 @@ object ContextRoleRegistry {
 
             // Додаємо можливості, які можуть не входити в жодну роль за замовчуванням,
             // але є частиною загальної системи або legacy-прапорців.
-            // inbox, log, backlog, attachments вже покриті ролями або іншими джерелами.
+            // inbox, log, backlog, connections вже покриті ролями або іншими джерелами.
             add(CapabilityId("advanced"))
             add(CapabilityId("dashboard"))
             add(CapabilityId("direction"))
             add(CapabilityId("vet_case")) // Додано вручну, якщо не покривається ролями
             add(CapabilityId("key_problems"))
             add(CapabilityId("inbox_sorting"))
+            add(CapabilityId("connections"))
         }
     }
 }
