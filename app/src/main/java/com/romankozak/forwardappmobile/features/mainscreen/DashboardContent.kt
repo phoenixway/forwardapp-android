@@ -60,7 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.romankozak.forwardappmobile.core.data.models.entities.TaskStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
 import com.romankozak.forwardappmobile.features.ai.insights.AiInsightsViewModel
 import com.romankozak.forwardappmobile.features.ai.insights.AiMessage
 import com.romankozak.forwardappmobile.features.ai.insights.MessageType
@@ -133,23 +133,25 @@ private fun AnimatedCommandDeck(
     dayPlanViewModel: DayPlanViewModel,
     recentViewModel: RecentViewModel,
 ) {
-    var overviewExpanded by remember { mutableStateOf(false) }
     var quickActionsStage by remember { mutableIntStateOf(0) }
     var aiInsightsExpanded by remember { mutableStateOf(false) }
     var focusContextsExpanded by remember { mutableStateOf(true) }
+    var recentContextsExpanded by remember { mutableStateOf(true) }
     var dismissedInsightIds by remember { mutableStateOf(emptySet<String>()) }
 
-    val dayUiState by dayPlanViewModel.uiState.collectAsStateWithLifecycle()
     val recentItems by recentViewModel.recentItems.collectAsStateWithLifecycle()
     val aiInsightsViewModel: AiInsightsViewModel = hiltViewModel()
     val focusContextsViewModel: FocusContextsViewModel = hiltViewModel()
     val aiInsights by aiInsightsViewModel.messages.collectAsStateWithLifecycle()
     val focusedContexts by focusContextsViewModel.focusedContexts.collectAsStateWithLifecycle()
-
-    val tasksTotal = dayUiState.tasks.size
-    val tasksCompleted =
-        dayUiState.tasks.count {
-            it.dayTask.completed || it.dayTask.status == TaskStatus.COMPLETED
+    val recentContexts =
+        remember(recentItems) {
+            recentItems
+                .asSequence()
+                .filter { it.type == RecentItemType.PROJECT }
+                .distinctBy { it.target }
+                .take(5)
+                .toList()
         }
 
     val actions =
@@ -189,43 +191,6 @@ private fun AnimatedCommandDeck(
     ) {
         item {
             SectionHeader(
-                title = "Огляд",
-                subtitle = if (overviewExpanded) "Розгорнуто" else "Згорнуто",
-                isExpanded = overviewExpanded,
-                onClick = { overviewExpanded = !overviewExpanded },
-            )
-        }
-
-        if (overviewExpanded) {
-            item {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    MetricCard(
-                        title = "Сьогодні",
-                        value = "$tasksCompleted / $tasksTotal",
-                        subtitle = "виконано задач",
-                    )
-                    MetricCard(
-                        title = "Recent",
-                        value = "${recentItems.size}",
-                        subtitle = "останні переходи",
-                    )
-                }
-            }
-
-            item {
-                MetricCard(
-                    title = "План дня",
-                    value = "${dayUiState.dayPlan?.linkedProjectIds.orEmpty().size} контекстів / ${dayUiState.dayPlan?.linkedAttachmentIds.orEmpty().size} вкладень",
-                    subtitle = "scope-посилання поточного дня",
-                )
-            }
-        }
-
-        item {
-            SectionHeader(
                 title = "Фокус-контексти",
                 subtitle =
                     if (focusContextsExpanded) {
@@ -255,6 +220,43 @@ private fun AnimatedCommandDeck(
                             onOpen = { onOpenFocusedContext(focusedContext.contextId) },
                             onStartTracking = { focusContextsViewModel.startTracking(focusedContext.contextId) },
                             onDefocus = { focusContextsViewModel.unfocus(focusedContext.contextId) },
+                        )
+                    }
+                }
+            }
+        }
+
+        item {
+            SectionHeader(
+                title = "Недавні контексти",
+                subtitle =
+                    if (recentContextsExpanded) {
+                        if (recentContexts.isEmpty()) "Поки порожньо" else "${recentContexts.size} останніх"
+                    } else {
+                        "Згорнуто"
+                    },
+                isExpanded = recentContextsExpanded,
+                onClick = { recentContextsExpanded = !recentContextsExpanded },
+            )
+        }
+
+        if (recentContextsExpanded) {
+            if (recentContexts.isEmpty()) {
+                item {
+                    MetricCard(
+                        title = "Немає недавніх контекстів",
+                        value = "Поки що порожньо",
+                        subtitle = "Відкрий кілька контекстів, і вони з’являться тут",
+                    )
+                }
+            } else {
+                recentContexts.forEach { recent ->
+                    item(key = "recent_context_${recent.id}") {
+                        RecentContextCard(
+                            name = recent.displayName,
+                            onOpen = { onOpenFocusedContext(recent.target) },
+                            onStartTracking = { focusContextsViewModel.startTracking(recent.target) },
+                            onDefocus = { focusContextsViewModel.unfocus(recent.target) },
                         )
                     }
                 }
@@ -316,6 +318,44 @@ private fun AnimatedCommandDeck(
         visibleQuickActions.forEach { action ->
             item {
                 ActionCardItem(action = action)
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecentContextCard(
+    name: String,
+    onOpen: () -> Unit,
+    onStartTracking: () -> Unit,
+    onDefocus: () -> Unit,
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.32f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = name,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                FilledTonalIconButton(onClick = onOpen) {
+                    Icon(Icons.Outlined.OpenInNew, contentDescription = "Відкрити контекст")
+                }
+                FilledTonalIconButton(onClick = onStartTracking) {
+                    Icon(Icons.Outlined.PlayCircle, contentDescription = "Start tracking")
+                }
+                FilledTonalIconButton(onClick = onDefocus) {
+                    Icon(Icons.Outlined.VisibilityOff, contentDescription = "Зняти фокус")
+                }
             }
         }
     }
