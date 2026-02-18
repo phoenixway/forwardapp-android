@@ -5,7 +5,7 @@ object MusicNoteToMusicXmlConverter {
 
     fun convert(content: String, title: String): String {
         val measures = mutableListOf<MutableList<ParsedNote>>()
-        measures += mutableListOf()
+        measures.add(mutableListOf())
         var beatsInMeasure = 0
 
         content.lineSequence().forEach { line ->
@@ -14,7 +14,7 @@ object MusicNoteToMusicXmlConverter {
                 if (token.isEmpty()) return@forEach
                 if (token == "|") {
                     if (measures.last().isNotEmpty()) {
-                        measures += mutableListOf()
+                        measures.add(mutableListOf())
                         beatsInMeasure = 0
                     }
                     return@forEach
@@ -31,7 +31,7 @@ object MusicNoteToMusicXmlConverter {
                     }
 
                 if (beatsInMeasure >= 4) {
-                    measures += mutableListOf()
+                    measures.add(mutableListOf())
                     beatsInMeasure = 0
                 }
                 measures.last().add(ParsedNote(step = step, octave = octave, alter = alter))
