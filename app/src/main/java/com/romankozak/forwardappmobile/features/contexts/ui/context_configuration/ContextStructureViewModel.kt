@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.domain.structure.StructurePresetService
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
@@ -42,6 +43,7 @@ class ProjectStructureViewModel
     constructor(
         savedStateHandle: SavedStateHandle,
         private val contextStructureRepository: ContextStructureRepository,
+        private val contextRepository: ContextRepository,
         private val structurePresetService: StructurePresetService,
         private val structurePresetDao: StructurePresetDao,
     ) : ViewModel() {
@@ -167,6 +169,9 @@ class ProjectStructureViewModel
                         enableAutoLinkSubprojects = updatedFlags[autoLinkLabel],
                     ),
                 )
+                if (key == autoLinkLabel && enabled) {
+                    contextRepository.ensureDirectionFrontLinksForExistingChildren(projectId)
+                }
             }
         }
     }

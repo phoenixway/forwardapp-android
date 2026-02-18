@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_properties.
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -24,6 +25,7 @@ class DirectionSettingsViewModel
     @Inject
     constructor(
         private val contextStructureRepository: ContextStructureRepository,
+        private val contextRepository: ContextRepository,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(DirectionSettingsUiState())
         val uiState: StateFlow<DirectionSettingsUiState> = _uiState.asStateFlow()
@@ -65,6 +67,9 @@ class DirectionSettingsViewModel
                         updatedAt = System.currentTimeMillis(),
                     ),
                 )
+                if (enabled) {
+                    contextRepository.ensureDirectionFrontLinksForExistingChildren(contextId)
+                }
                 _uiState.update { it.copy(isSaving = false) }
             }
         }
