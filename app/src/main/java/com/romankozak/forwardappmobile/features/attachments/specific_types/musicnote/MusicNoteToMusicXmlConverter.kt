@@ -1,63 +1,148 @@
 package com.romankozak.forwardappmobile.features.attachments.specific_types.musicnote
 
 object MusicNoteToMusicXmlConverter {
-    private val tokenRegex = Regex("^([a-gA-G])([#b]?)(\\d)$")
+    private const val DIVISIONS_PER_QUARTER = 8
+    private val noteRegex = Regex("^([a-gA-G])([#b]{0,2})(\\d+)?([+-]*)$")
+    private val octaveDirectiveRegex = Regex("^@?oct\\s*=\\s*(-?\\d+)\\s*$", RegexOption.IGNORE_CASE)
+    private val durationDirectiveRegex = Regex("^@?dur\\s*=\\s*(\\d+)\\s*$", RegexOption.IGNORE_CASE)
+    private val meterDirectiveRegex = Regex("^@?m\\s*=\\s*(\\d+)\\s*/\\s*(\\d+)\\s*$", RegexOption.IGNORE_CASE)
 
     fun convert(content: String, title: String): String {
-        val measures = mutableListOf<MutableList<ParsedNote>>()
-        measures.add(mutableListOf())
-        var beatsInMeasure = 0
+        val measures = mutableListOf(ParsedMeasure())
+        var durationInMeasure = 0
+        var defaultOctave = 4
+        var defaultDurationDenominator = 4
+        var beatsPerMeasure = 4
+        var beatUnit = 4
+        var isDurationModeEnabled = false
 
         content.lineSequence().forEach { line ->
             line.split(Regex("\\s+")).forEach { tokenRaw ->
                 val token = tokenRaw.trim().trim('.', ',', ';', ':')
                 if (token.isEmpty()) return@forEach
-                if (token == "|") {
-                    if (measures.last().isNotEmpty()) {
-                        measures.add(mutableListOf())
-                        beatsInMeasure = 0
+
+                fun currentMeasure(): ParsedMeasure = measures.last()
+                fun startNewMeasure() {
+                    measures.add(
+                        ParsedMeasure(
+                            beats = beatsPerMeasure,
+                            beatType = beatUnit,
+                        ),
+                    )
+                    durationInMeasure = 0
+                }
+
+                octaveDirectiveRegex.matchEntire(token)?.let { match ->
+                    defaultOctave = match.groupValues[1].toIntOrNull() ?: defaultOctave
+                    return@forEach
+                }
+
+                durationDirectiveRegex.matchEntire(token)?.let { match ->
+                    defaultDurationDenominator =
+                        normalizeDurationDenominator(match.groupValues[1].toIntOrNull())
+                    isDurationModeEnabled = true
+                    return@forEach
+                }
+
+                meterDirectiveRegex.matchEntire(token)?.let { match ->
+                    val parsedBeats = match.groupValues[1].toIntOrNull()
+                    val parsedBeatUnit = normalizeBeatType(match.groupValues[2].toIntOrNull())
+                    if (parsedBeats != null && parsedBeats > 0) {
+                        beatsPerMeasure = parsedBeats
+                    }
+                    beatUnit = parsedBeatUnit
+
+                    if (currentMeasure().notes.isEmpty()) {
+                        currentMeasure().beats = beatsPerMeasure
+                        currentMeasure().beatType = beatUnit
+                    } else {
+                        startNewMeasure()
                     }
                     return@forEach
                 }
-                val match = tokenRegex.matchEntire(token) ?: return@forEach
+
+                if (token == "|") {
+                    if (currentMeasure().notes.isNotEmpty()) {
+                        startNewMeasure()
+                    }
+                    return@forEach
+                }
+
+                val match = noteRegex.matchEntire(token) ?: return@forEach
                 val step = match.groupValues[1].uppercase()
                 val accidental = match.groupValues[2]
-                val octave = match.groupValues[3].toIntOrNull() ?: return@forEach
-                val alter =
-                    when (accidental) {
-                        "#" -> 1
-                        "b" -> -1
-                        else -> 0
+                val numericSuffix = match.groupValues[3].toIntOrNull()
+                val octaveShift = match.groupValues[4]
+                val alter = accidental.count { it == '#' } - accidental.count { it == 'b' }
+                val durationDenominator =
+                    if (isDurationModeEnabled) {
+                        normalizeDurationDenominator(numericSuffix ?: defaultDurationDenominator)
+                    } else {
+                        defaultDurationDenominator
                     }
+                val xmlDuration = durationValueFromDenominator(durationDenominator)
+                val octaveBase = if (isDurationModeEnabled) defaultOctave else (numericSuffix ?: defaultOctave)
+                val octave = octaveBase + octaveShift.sumOf { if (it == '+') 1 else -1 }
+                val measureDuration = measureDurationFromTime(currentMeasure().beats, currentMeasure().beatType)
 
-                if (beatsInMeasure >= 4) {
-                    measures.add(mutableListOf())
-                    beatsInMeasure = 0
+                if (durationInMeasure + xmlDuration > measureDuration && currentMeasure().notes.isNotEmpty()) {
+                    startNewMeasure()
                 }
-                measures.last().add(ParsedNote(step = step, octave = octave, alter = alter))
-                beatsInMeasure += 1
+                currentMeasure().notes.add(
+                    ParsedNote(
+                        step = step,
+                        octave = octave,
+                        alter = alter,
+                        durationDenominator = durationDenominator,
+                    ),
+                )
+                durationInMeasure += xmlDuration
             }
         }
 
-        val normalizedMeasures = measures.filter { it.isNotEmpty() }.toMutableList()
+        val normalizedMeasures = measures.filter { it.notes.isNotEmpty() }.toMutableList()
         if (normalizedMeasures.isEmpty()) {
-            normalizedMeasures += mutableListOf(ParsedNote(step = "C", octave = 4, alter = 0, isRest = true, duration = 4, type = "whole"))
+            normalizedMeasures +=
+                ParsedMeasure(
+                    beats = beatsPerMeasure,
+                    beatType = beatUnit,
+                    notes = mutableListOf(ParsedNote(step = "C", octave = defaultOctave, alter = 0, isRest = true, durationDenominator = 1)),
+                )
         }
 
         val part = buildString {
-            normalizedMeasures.forEachIndexed { index, notes ->
+            normalizedMeasures.forEachIndexed { index, measure ->
                 append("<measure number=\"")
                 append(index + 1)
                 append("\">")
                 if (index == 0) {
                     append("<attributes>")
-                    append("<divisions>1</divisions>")
+                    append("<divisions>")
+                    append(DIVISIONS_PER_QUARTER)
+                    append("</divisions>")
                     append("<key><fifths>0</fifths></key>")
-                    append("<time><beats>4</beats><beat-type>4</beat-type></time>")
+                    append("<time><beats>")
+                    append(measure.beats)
+                    append("</beats><beat-type>")
+                    append(measure.beatType)
+                    append("</beat-type></time>")
                     append("<clef><sign>G</sign><line>2</line></clef>")
                     append("</attributes>")
+                } else {
+                    val previous = normalizedMeasures[index - 1]
+                    if (previous.beats != measure.beats || previous.beatType != measure.beatType) {
+                        append("<attributes>")
+                        append("<time><beats>")
+                        append(measure.beats)
+                        append("</beats><beat-type>")
+                        append(measure.beatType)
+                        append("</beat-type></time>")
+                        append("</attributes>")
+                    }
                 }
-                notes.forEach { note ->
+                measure.notes.forEach { note ->
+                    val noteDuration = durationValueFromDenominator(note.durationDenominator)
+                    val noteType = typeFromDenominator(note.durationDenominator)
                     append("<note>")
                     if (note.isRest) {
                         append("<rest/>")
@@ -75,10 +160,10 @@ object MusicNoteToMusicXmlConverter {
                         append("</octave></pitch>")
                     }
                     append("<duration>")
-                    append(note.duration)
+                    append(noteDuration)
                     append("</duration>")
                     append("<type>")
-                    append(note.type)
+                    append(noteType)
                     append("</type>")
                     append("</note>")
                 }
@@ -111,12 +196,53 @@ object MusicNoteToMusicXmlConverter {
             .replace("\"", "&quot;")
             .replace("'", "&apos;")
 
+    private fun normalizeDurationDenominator(raw: Int?): Int {
+        val value = raw ?: return 4
+        if (value <= 0) return 4
+        return when (value) {
+            1, 2, 4, 8, 16, 32 -> value
+            else -> 4
+        }
+    }
+
+    private fun durationValueFromDenominator(denominator: Int): Int =
+        (DIVISIONS_PER_QUARTER * 4) / normalizeDurationDenominator(denominator)
+
+    private fun normalizeBeatType(raw: Int?): Int {
+        val value = raw ?: return 4
+        return when (value) {
+            1, 2, 4, 8, 16, 32 -> value
+            else -> 4
+        }
+    }
+
+    private fun measureDurationFromTime(
+        beats: Int,
+        beatType: Int,
+    ): Int = beats * ((DIVISIONS_PER_QUARTER * 4) / normalizeBeatType(beatType))
+
+    private fun typeFromDenominator(denominator: Int): String =
+        when (normalizeDurationDenominator(denominator)) {
+            1 -> "whole"
+            2 -> "half"
+            4 -> "quarter"
+            8 -> "eighth"
+            16 -> "16th"
+            32 -> "32nd"
+            else -> "quarter"
+        }
+
     private data class ParsedNote(
         val step: String,
         val octave: Int,
         val alter: Int,
         val isRest: Boolean = false,
-        val duration: Int = 1,
-        val type: String = "quarter",
+        val durationDenominator: Int = 4,
+    )
+
+    private data class ParsedMeasure(
+        var beats: Int = 4,
+        var beatType: Int = 4,
+        val notes: MutableList<ParsedNote> = mutableListOf(),
     )
 }
