@@ -48,7 +48,10 @@ class StrategicManagementViewModel
                         projects.filter {
                             it.tags?.contains(STRATEGIC_TAG) == true
                         }
-                    StrategicManagementUiState(dashboardProjects = strategic)
+                    StrategicManagementUiState(
+                        allProjects = projects,
+                        dashboardProjects = strategic,
+                    )
                 }
                 .stateIn(
                     scope = viewModelScope,

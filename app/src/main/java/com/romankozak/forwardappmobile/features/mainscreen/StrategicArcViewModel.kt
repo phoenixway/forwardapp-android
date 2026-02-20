@@ -32,6 +32,7 @@ import javax.inject.Inject
 private const val STRATEGIC_ARC_TAG = "arc"
 
 data class StrategicArcUiState(
+    val allProjects: List<Context> = emptyList(),
     val projects: List<Context> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
@@ -55,7 +56,10 @@ class StrategicArcViewModel
                         projects.filter {
                             it.tags?.contains("arc") == true
                         }
-                    StrategicArcUiState(projects = arcProjects)
+                    StrategicArcUiState(
+                        allProjects = projects,
+                        projects = arcProjects,
+                    )
                 }
                 .stateIn(
                     scope = viewModelScope,

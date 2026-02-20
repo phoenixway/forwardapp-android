@@ -288,7 +288,7 @@ fun StrategicArcScreen(
     activeLinkPickerTab?.let { initialTab ->
         val availableAttachmentIds = attachmentOptions.map { it.id }.toSet()
         LinkedTargetsPickerDialog(
-            contextOptions = uiState.projects.map { ProjectOption(id = it.id, name = it.name, parentId = it.parentId) },
+            contextOptions = uiState.allProjects.map { ProjectOption(id = it.id, name = it.name, parentId = it.parentId) },
             attachmentOptions = attachmentOptions.map { AttachmentOption(id = it.id, name = it.name, linkType = it.linkType, attachmentType = it.attachmentType, entityId = it.entityId, target = it.target) },
             preselectedContextIds = uiState.projects.map { it.id }.toSet(),
             preselectedAttachmentIds = linkedAttachmentIds.filter { it in availableAttachmentIds }.toSet(),

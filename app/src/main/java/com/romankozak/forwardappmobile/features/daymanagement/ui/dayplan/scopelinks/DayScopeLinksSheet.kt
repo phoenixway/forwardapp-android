@@ -127,6 +127,7 @@ fun DayScopeLinksSheet(
                     AddConnectionType.OBSIDIAN_NOTE -> onAddObsidianClick()
                 }
             },
+            onAddButtonClick = onAddContextClick,
             onCreateConnection = { type ->
                 onCreateConnectionClick(type)
             },
