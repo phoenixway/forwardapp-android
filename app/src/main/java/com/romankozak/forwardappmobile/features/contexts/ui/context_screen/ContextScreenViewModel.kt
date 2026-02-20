@@ -1225,14 +1225,16 @@ private fun AttachmentLibraryQueryResult.toAttachmentOption(): AttachmentOption 
         linkDisplayName?.let { json ->
             runCatching { Gson().fromJson(json, RelatedLink::class.java) }.getOrNull()
         }
+    val linkLabel =
+        relatedLink?.displayName?.takeIf { it.isNotBlank() }
+            ?: relatedLink?.target?.takeIf { it.isNotBlank() }
     val label =
-        noteName
-            ?: musicNoteName
-            ?: checklistName
-            ?: scriptName
+        noteName?.takeIf { it.isNotBlank() }
+            ?: musicNoteName?.takeIf { it.isNotBlank() }
+            ?: checklistName?.takeIf { it.isNotBlank() }
+            ?: scriptName?.takeIf { it.isNotBlank() }
+            ?: linkLabel
             ?: contextName
-            ?: relatedLink?.displayName
-            ?: relatedLink?.target
             ?: "Attachment ${id.takeLast(4)}"
 
     return AttachmentOption(

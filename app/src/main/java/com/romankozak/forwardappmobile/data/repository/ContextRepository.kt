@@ -10,6 +10,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemType
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogOrder
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
@@ -32,6 +33,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
@@ -572,8 +574,16 @@ class ContextRepository
                     updatedAt = now,
                     version = 1,
                     roleCode = roleCode,
-                )
+            )
             contextDao.insert(newContext)
+            contextStructureDao.insertStructure(
+                ContextConfiguration(
+                    id = UUID.randomUUID().toString(),
+                    contextId = id,
+                    basePresetCode = roleCode?.trim()?.takeIf { it.isNotBlank() },
+                    enableAutoLinkSubprojects = true,
+                ),
+            )
 
             ensureChildContextDirectionFrontLinkIfEnabled(
                 parentContextId = parentId,
