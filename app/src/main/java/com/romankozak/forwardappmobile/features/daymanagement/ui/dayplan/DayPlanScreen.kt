@@ -1,7 +1,6 @@
 package com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan
 
 import android.util.Log
-import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
@@ -57,6 +56,7 @@ import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderProper
 import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
 import com.romankozak.forwardappmobile.ui.components.orderToken
 import com.romankozak.forwardappmobile.ui.common.MatrixRainView
+import java.net.URLEncoder
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -100,6 +100,17 @@ private fun ErrorState(
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = onRetry) { Text("Спробувати ще раз") }
     }
+}
+
+private fun buildExternalTarget(
+    linkType: LinkType?,
+    target: String,
+): String {
+    val trimmed = target.trim()
+    if (linkType == LinkType.OBSIDIAN && !trimmed.startsWith("obsidian://", ignoreCase = true)) {
+        return "obsidian://open?file=${URLEncoder.encode(trimmed, "UTF-8")}"
+    }
+    return trimmed
 }
 
 @Composable
@@ -351,15 +362,22 @@ fun DayPlanScreen(
                 option?.linkType == LinkType.CONTEXT && !option.target.isNullOrBlank() ->
                     navController.navigate("goal_detail_screen/${option.target}")
                 (option?.linkType == LinkType.URL || option?.linkType == LinkType.OBSIDIAN) && !option.target.isNullOrBlank() -> {
+                    val resolvedTarget = buildExternalTarget(option.linkType, option.target)
                     runCatching {
                         context.startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse(option.target)).apply {
+                            Intent(Intent.ACTION_VIEW, Uri.parse(resolvedTarget)).apply {
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             },
                         )
                     }.onFailure {
-                        if (it !is ActivityNotFoundException) {
-                            Log.e(TAG, "Cannot open link: ${option.target}", it)
+                        Log.e(TAG, "Cannot open link: ${option.target}", it)
+                        navController.navigate("attachments_library_screen") {
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                        runCatching {
+                            navController.getBackStackEntry("attachments_library_screen")
+                                .savedStateHandle["attachment_library_query"] = attachmentId
                         }
                     }
                 }

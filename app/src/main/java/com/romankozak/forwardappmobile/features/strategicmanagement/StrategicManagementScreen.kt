@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.features.strategicmanagement
 
-import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.*
@@ -206,22 +205,21 @@ fun StrategicManagementScreen(
                                 navController.navigate("goal_detail_screen/${option.target}")
                             (option?.linkType == LinkType.URL || option?.linkType == LinkType.OBSIDIAN) &&
                                 !option.target.isNullOrBlank() -> {
+                                val resolvedTarget = buildExternalTarget(option.linkType, option.target)
                                 runCatching {
                                     context.startActivity(
-                                        Intent(Intent.ACTION_VIEW, Uri.parse(option.target)).apply {
+                                        Intent(Intent.ACTION_VIEW, Uri.parse(resolvedTarget)).apply {
                                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                         },
                                     )
                                 }.onFailure {
-                                    if (it !is ActivityNotFoundException) {
-                                        navController.navigate("attachments_library_screen") {
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                        runCatching {
-                                            navController.getBackStackEntry("attachments_library_screen")
-                                                .savedStateHandle["attachment_library_query"] = item.id
-                                        }
+                                    navController.navigate("attachments_library_screen") {
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                    runCatching {
+                                        navController.getBackStackEntry("attachments_library_screen")
+                                            .savedStateHandle["attachment_library_query"] = item.id
                                     }
                                 }
                             }
@@ -359,6 +357,17 @@ fun StrategicManagementScreen(
             },
         )
     }
+}
+
+private fun buildExternalTarget(
+    linkType: LinkType?,
+    target: String,
+): String {
+    val trimmed = target.trim()
+    if (linkType == LinkType.OBSIDIAN && !trimmed.startsWith("obsidian://", ignoreCase = true)) {
+        return "obsidian://open?file=${URLEncoder.encode(trimmed, "UTF-8")}"
+    }
+    return trimmed
 }
 
 private fun CreateConnectionType.toPickerCreateAction(): PickerCreateAction =

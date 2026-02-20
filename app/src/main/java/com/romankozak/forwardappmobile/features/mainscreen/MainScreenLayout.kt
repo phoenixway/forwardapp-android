@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.features.mainscreen
 
-import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
@@ -74,6 +73,7 @@ import com.romankozak.forwardappmobile.ui.components.header.StrategyHeader
 import com.romankozak.forwardappmobile.ui.components.header.TacticsHeader
 import com.romankozak.forwardappmobile.ui.components.header.TodayHeader
 import kotlinx.coroutines.launch
+import java.net.URLEncoder
 import java.util.Calendar
 
 const val MAIN_SCREEN_DASHBOARD_ROUTE = "command_deck_dashboard"
@@ -579,22 +579,21 @@ fun MainScreenLayout(
                                             navController.navigate("goal_detail_screen/${attachment.target}")
                                         (attachment.linkType == LinkType.URL || attachment.linkType == LinkType.OBSIDIAN) &&
                                             !attachment.target.isNullOrBlank() -> {
+                                            val resolvedTarget = buildExternalTarget(attachment.linkType, attachment.target)
                                             runCatching {
                                                 context.startActivity(
-                                                    Intent(Intent.ACTION_VIEW, Uri.parse(attachment.target)).apply {
+                                                    Intent(Intent.ACTION_VIEW, Uri.parse(resolvedTarget)).apply {
                                                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                                     },
                                                 )
                                             }.onFailure {
-                                                if (it !is ActivityNotFoundException) {
-                                                    navController.navigate("attachments_library_screen") {
-                                                        launchSingleTop = true
-                                                        restoreState = true
-                                                    }
-                                                    runCatching {
-                                                        navController.getBackStackEntry("attachments_library_screen")
-                                                            .savedStateHandle["attachment_library_query"] = attachment.id
-                                                    }
+                                                navController.navigate("attachments_library_screen") {
+                                                    launchSingleTop = true
+                                                    restoreState = true
+                                                }
+                                                runCatching {
+                                                    navController.getBackStackEntry("attachments_library_screen")
+                                                        .savedStateHandle["attachment_library_query"] = attachment.id
                                                 }
                                             }
                                         }
@@ -721,4 +720,15 @@ private fun isSameDay(
     val cal2 = Calendar.getInstance().apply { timeInMillis = other }
     return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
         cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
+}
+
+private fun buildExternalTarget(
+    linkType: LinkType?,
+    target: String,
+): String {
+    val trimmed = target.trim()
+    if (linkType == LinkType.OBSIDIAN && !trimmed.startsWith("obsidian://", ignoreCase = true)) {
+        return "obsidian://open?file=${URLEncoder.encode(trimmed, "UTF-8")}"
+    }
+    return trimmed
 }
