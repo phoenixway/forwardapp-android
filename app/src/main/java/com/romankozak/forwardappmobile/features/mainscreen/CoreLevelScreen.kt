@@ -3,7 +3,6 @@ package com.romankozak.forwardappmobile.features.mainscreen
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -26,11 +25,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
-import com.romankozak.forwardappmobile.core.navigation.routes.MAIN_GRAPH_ROUTE
 import com.romankozak.forwardappmobile.features.attachments.ui.AddObsidianLinkDialog
 import com.romankozak.forwardappmobile.features.attachments.ui.AddWebLinkDialog
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentChooserScreen
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
@@ -41,7 +37,6 @@ import com.romankozak.forwardappmobile.ui.components.AddConnectionType
 import com.romankozak.forwardappmobile.ui.components.ConnectionItemUi
 import com.romankozak.forwardappmobile.ui.components.ConnectionType
 import com.romankozak.forwardappmobile.ui.components.ConnectionsPanel
-import com.romankozak.forwardappmobile.ui.components.ContextLinkList
 import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
 import com.romankozak.forwardappmobile.ui.components.orderToken
 import com.romankozak.forwardappmobile.ui.components.sortConnectionsByOrder
@@ -67,8 +62,6 @@ fun CoreLevelScreen(
     var pendingCreateAction by remember { mutableStateOf<PickerCreateAction?>(null) }
     var showAddUrlDialog by remember { mutableStateOf(false) }
     var showAddObsidianDialog by remember { mutableStateOf(false) }
-    val mainScreenViewModel: ContextHierarchyScreenViewModel =
-        hiltViewModel(navController.getBackStackEntry(MAIN_GRAPH_ROUTE))
 
     LaunchedEffect(navController) {
         val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
@@ -84,6 +77,103 @@ fun CoreLevelScreen(
             }
     }
 
+    val availableAttachmentById = attachmentOptions.associateBy { it.id }
+    val validAttachmentIds = linkedAttachmentIds.filter { it in availableAttachmentById.keys }
+    val urlIds = validAttachmentIds.filter { id -> availableAttachmentById[id]?.linkType == LinkType.URL }
+    val obsidianIds = validAttachmentIds.filter { id -> availableAttachmentById[id]?.linkType == LinkType.OBSIDIAN }
+    val generalAttachmentIds =
+        validAttachmentIds.filter { id ->
+            availableAttachmentById[id]?.linkType !in setOf(LinkType.URL, LinkType.OBSIDIAN)
+        }
+    val items =
+        buildList {
+            addAll(uiState.projects.map { ConnectionItemUi(it.id, it.name, ConnectionType.CONTEXT) })
+            addAll(
+                generalAttachmentIds.map { id ->
+                    val option = availableAttachmentById[id]
+                    ConnectionItemUi(
+                        id = id,
+                        title = option?.name ?: "Вкладення ${id.take(8)}",
+                        type =
+                            when (option?.attachmentType) {
+                                "NOTE_DOCUMENT" -> ConnectionType.NOTE_DOCUMENT
+                                "MUSIC_NOTE" -> ConnectionType.MUSIC_NOTE
+                                "CHECKLIST" -> ConnectionType.CHECKLIST
+                                "SCRIPT" -> ConnectionType.SCRIPT
+                                else -> ConnectionType.ATTACHMENT
+                            },
+                    )
+                },
+            )
+            addAll(
+                urlIds.map { id ->
+                    ConnectionItemUi(
+                        id = id,
+                        title = availableAttachmentById[id]?.name ?: "URL ${id.take(8)}",
+                        type = ConnectionType.URL,
+                    )
+                },
+            )
+            addAll(
+                obsidianIds.map { id ->
+                    ConnectionItemUi(
+                        id = id,
+                        title = availableAttachmentById[id]?.name ?: "Obsidian ${id.take(8)}",
+                        type = ConnectionType.OBSIDIAN_NOTE,
+                    )
+                },
+            )
+        }
+    val sortedItems = sortConnectionsByOrder(items, connectionsOrder)
+
+    val onConnectionClick: (ConnectionItemUi) -> Unit = { item ->
+        if (item.type == ConnectionType.CONTEXT) {
+            navController.navigate("goal_detail_screen/${item.id}")
+        } else {
+            val option = availableAttachmentById[item.id]
+            when {
+                option?.attachmentType == "NOTE_DOCUMENT" && !option.entityId.isNullOrBlank() ->
+                    navController.navigate("note_document_screen/${option.entityId}")
+                option?.attachmentType == "MUSIC_NOTE" && !option.entityId.isNullOrBlank() ->
+                    navController.navigate("music_note_screen/${option.entityId}")
+                option?.attachmentType == "CHECKLIST" && !option.entityId.isNullOrBlank() ->
+                    navController.navigate("checklist_screen?checklistId=${option.entityId}")
+                option?.linkType == LinkType.CONTEXT && !option.target.isNullOrBlank() ->
+                    navController.navigate("goal_detail_screen/${option.target}")
+                (option?.linkType == LinkType.URL || option?.linkType == LinkType.OBSIDIAN) &&
+                    !option.target.isNullOrBlank() -> {
+                    val resolvedTarget = buildExternalTarget(option.linkType, option.target)
+                    runCatching {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse(resolvedTarget)).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            },
+                        )
+                    }.onFailure {
+                        navController.navigate("attachments_library_screen") {
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                        runCatching {
+                            navController.getBackStackEntry("attachments_library_screen")
+                                .savedStateHandle["attachment_library_query"] = item.id
+                        }
+                    }
+                }
+                else -> {
+                    navController.navigate("attachments_library_screen") {
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                    runCatching {
+                        navController.getBackStackEntry("attachments_library_screen")
+                            .savedStateHandle["attachment_library_query"] = item.id
+                    }
+                }
+            }
+        }
+    }
+
     if (uiState.isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
@@ -93,123 +183,64 @@ fun CoreLevelScreen(
             Text(text = uiState.error!!)
         }
     } else {
-        ContextLinkList(
-            items = uiState.projects,
-            onAddClick = null,
-            onItemClick = { project ->
-                navController.navigate("goal_detail_screen/${project.id}")
+        ConnectionsPanel(
+            items = sortedItems,
+            onConnectionClick = onConnectionClick,
+            onConnectionRemove = { item ->
+                if (item.type == ConnectionType.CONTEXT) {
+                    viewModel.removeCoreLink(item.id)
+                } else {
+                    viewModel.removeAttachmentLink(item.id)
+                }
             },
-            onRevealClick = { project ->
-                mainScreenViewModel.onEvent(ContextHierarchyScreenEvent.RevealContextInHierarchy(project.id))
-                navController.popBackStack()
+            onAddButtonClick = {
+                pendingCreateAction = null
+                activeLinkPickerTab = LinkPickerTab.CONTEXTS
             },
-            onRemoveClick = { project ->
-                viewModel.removeCoreLink(project.id)
+            onAddConnection = { type ->
+                when (type) {
+                    AddConnectionType.CONTEXT -> {
+                        val disabledIds = uiState.projects.joinToString(",") { it.id }
+                        val title = URLEncoder.encode("Додати контекст у ядро", "UTF-8")
+                        val route =
+                            if (disabledIds.isBlank()) {
+                                "list_chooser_screen/$title"
+                            } else {
+                                "list_chooser_screen/$title?disabledIds=$disabledIds"
+                            }
+                        navController.navigate(route)
+                    }
+
+                    AddConnectionType.ATTACHMENT -> {
+                        pendingCreateAction = null
+                        showAttachmentChooser = true
+                    }
+                    AddConnectionType.EXTERNAL_LINK -> showAddUrlDialog = true
+                    AddConnectionType.OBSIDIAN_NOTE -> showAddObsidianDialog = true
+                }
             },
-            contentPadding = PaddingValues(bottom = 20.dp),
+            onCreateConnection = { type ->
+                pendingCreateAction = type.toPickerCreateAction()
+                activeLinkPickerTab =
+                    if (type == CreateConnectionType.CONTEXT) {
+                        LinkPickerTab.CONTEXTS
+                    } else {
+                        LinkPickerTab.ATTACHMENTS
+                    }
+            },
+            preferActionsBesideTitleWhenWide = true,
+            onConnectionsReordered = { reordered ->
+                viewModel.updateConnectionsOrder(reordered.map { it.orderToken() })
+            },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         )
     }
 
     if (isScopeLinksSheetVisible) {
-        val availableAttachmentById = attachmentOptions.associateBy { it.id }
-        val validAttachmentIds = linkedAttachmentIds.filter { it in availableAttachmentById.keys }
-        val urlIds = validAttachmentIds.filter { id -> availableAttachmentById[id]?.linkType == LinkType.URL }
-        val obsidianIds = validAttachmentIds.filter { id -> availableAttachmentById[id]?.linkType == LinkType.OBSIDIAN }
-        val generalAttachmentIds =
-            validAttachmentIds.filter { id ->
-                availableAttachmentById[id]?.linkType !in setOf(LinkType.URL, LinkType.OBSIDIAN)
-            }
-        val items =
-            buildList {
-                addAll(uiState.projects.map { ConnectionItemUi(it.id, it.name, ConnectionType.CONTEXT) })
-                addAll(
-                    generalAttachmentIds.map { id ->
-                        val option = availableAttachmentById[id]
-                        ConnectionItemUi(
-                            id = id,
-                            title = option?.name ?: "Вкладення ${id.take(8)}",
-                            type =
-                                when (option?.attachmentType) {
-                                    "NOTE_DOCUMENT" -> ConnectionType.NOTE_DOCUMENT
-                                    "MUSIC_NOTE" -> ConnectionType.MUSIC_NOTE
-                                    "CHECKLIST" -> ConnectionType.CHECKLIST
-                                    "SCRIPT" -> ConnectionType.SCRIPT
-                                    else -> ConnectionType.ATTACHMENT
-                                },
-                        )
-                    },
-                )
-                addAll(
-                    urlIds.map { id ->
-                        ConnectionItemUi(
-                            id = id,
-                            title = availableAttachmentById[id]?.name ?: "URL ${id.take(8)}",
-                            type = ConnectionType.URL,
-                        )
-                    },
-                )
-                addAll(
-                    obsidianIds.map { id ->
-                        ConnectionItemUi(
-                            id = id,
-                            title = availableAttachmentById[id]?.name ?: "Obsidian ${id.take(8)}",
-                            type = ConnectionType.OBSIDIAN_NOTE,
-                        )
-                    },
-                )
-            }
-        val sortedItems = sortConnectionsByOrder(items, connectionsOrder)
-
         ModalBottomSheet(onDismissRequest = viewModel::dismissScopeLinksSheet) {
             ConnectionsPanel(
                 items = sortedItems,
-                onConnectionClick = { item ->
-                    if (item.type == ConnectionType.CONTEXT) {
-                        navController.navigate("goal_detail_screen/${item.id}")
-                    } else {
-                        val option = availableAttachmentById[item.id]
-                        when {
-                            option?.attachmentType == "NOTE_DOCUMENT" && !option.entityId.isNullOrBlank() ->
-                                navController.navigate("note_document_screen/${option.entityId}")
-                            option?.attachmentType == "MUSIC_NOTE" && !option.entityId.isNullOrBlank() ->
-                                navController.navigate("music_note_screen/${option.entityId}")
-                            option?.attachmentType == "CHECKLIST" && !option.entityId.isNullOrBlank() ->
-                                navController.navigate("checklist_screen?checklistId=${option.entityId}")
-                            option?.linkType == LinkType.CONTEXT && !option.target.isNullOrBlank() ->
-                                navController.navigate("goal_detail_screen/${option.target}")
-                            (option?.linkType == LinkType.URL || option?.linkType == LinkType.OBSIDIAN) &&
-                                !option.target.isNullOrBlank() -> {
-                                val resolvedTarget = buildExternalTarget(option.linkType, option.target)
-                                runCatching {
-                                    context.startActivity(
-                                        Intent(Intent.ACTION_VIEW, Uri.parse(resolvedTarget)).apply {
-                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                        },
-                                    )
-                                }.onFailure {
-                                    navController.navigate("attachments_library_screen") {
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                    runCatching {
-                                        navController.getBackStackEntry("attachments_library_screen")
-                                            .savedStateHandle["attachment_library_query"] = item.id
-                                    }
-                                }
-                            }
-                            else -> {
-                                navController.navigate("attachments_library_screen") {
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                                runCatching {
-                                    navController.getBackStackEntry("attachments_library_screen")
-                                        .savedStateHandle["attachment_library_query"] = item.id
-                                }
-                            }
-                        }
-                    }
-                },
+                onConnectionClick = onConnectionClick,
                 onConnectionRemove = { item ->
                     if (item.type == ConnectionType.CONTEXT) {
                         viewModel.removeCoreLink(item.id)

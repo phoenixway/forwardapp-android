@@ -348,7 +348,12 @@ class BacklogClipboardUseCase
             if (attachmentRefs.isEmpty()) return BacklogPasteReport(totalRequested = 0, skippedInvalid = 1)
             return when (payload.operation) {
                 ClipboardOperation.COPY -> {
-                    val copyResult = copyAttachmentRefsToContext(attachmentRefs, targetContextId)
+                    val copyResult =
+                        copyAttachmentRefsToContext(
+                            refs = attachmentRefs,
+                            targetContextId = targetContextId,
+                            sourceContextId = payload.sourceContextId,
+                        )
                     BacklogPasteReport(
                         totalRequested = attachmentRefs.size,
                         createdAttachments = copyResult.created,
@@ -358,14 +363,29 @@ class BacklogClipboardUseCase
                 }
 
                 ClipboardOperation.CUT -> {
-                    val copyResult = copyAttachmentRefsToContext(attachmentRefs, targetContextId)
+                    val copyResult =
+                        copyAttachmentRefsToContext(
+                            refs = attachmentRefs,
+                            targetContextId = targetContextId,
+                            sourceContextId = payload.sourceContextId,
+                        )
                     if (copyResult.insertedSourceItemIds.isNotEmpty()) {
                         listItemRepository.deleteListItems(copyResult.insertedSourceItemIds)
+                    }
+                    if (payload.sourceContextId.isNotBlank() && copyResult.sourceAttachmentIdsForCut.isNotEmpty()) {
+                        copyResult.sourceAttachmentIdsForCut.forEach { attachmentId ->
+                            contextRepository.unlinkAttachmentFromContext(
+                                contextId = payload.sourceContextId,
+                                attachmentId = attachmentId,
+                            )
+                        }
+                    }
+                    if (copyResult.insertedSourceItemIds.isNotEmpty() || copyResult.sourceAttachmentIdsForCut.isNotEmpty()) {
                         clipboardService.clear()
                     }
                     BacklogPasteReport(
                         totalRequested = attachmentRefs.size,
-                        moved = copyResult.insertedSourceItemIds.size,
+                        moved = copyResult.insertedSourceItemIds.size + copyResult.sourceAttachmentIdsForCut.size,
                         createdAttachments = copyResult.created,
                         skippedDuplicates = copyResult.duplicates,
                         skippedInvalid = copyResult.invalid,
@@ -454,7 +474,12 @@ class BacklogClipboardUseCase
             }
 
             if (includeAttachments && attachmentRefs.isNotEmpty()) {
-                val attachmentCopy = copyAttachmentRefsToContext(attachmentRefs, targetContextId)
+                val attachmentCopy =
+                    copyAttachmentRefsToContext(
+                        refs = attachmentRefs,
+                        targetContextId = targetContextId,
+                        sourceContextId = null,
+                    )
                 createdAttachments += attachmentCopy.created
                 skippedDuplicates += attachmentCopy.duplicates
                 skippedInvalid += attachmentCopy.invalid
@@ -558,13 +583,27 @@ class BacklogClipboardUseCase
             }
 
             if (includeAttachments && attachmentRefs.isNotEmpty()) {
-                val attachmentCopy = copyAttachmentRefsToContext(attachmentRefs, targetContextId)
+                val attachmentCopy =
+                    copyAttachmentRefsToContext(
+                        refs = attachmentRefs,
+                        targetContextId = targetContextId,
+                        sourceContextId = sourceContextId,
+                    )
                 createdAttachments += attachmentCopy.created
                 skippedDuplicates += attachmentCopy.duplicates
                 skippedInvalid += attachmentCopy.invalid
                 if (attachmentCopy.insertedSourceItemIds.isNotEmpty()) {
                     listItemRepository.deleteListItems(attachmentCopy.insertedSourceItemIds)
                     moved += attachmentCopy.insertedSourceItemIds.size
+                }
+                if (sourceContextId.isNotBlank() && attachmentCopy.sourceAttachmentIdsForCut.isNotEmpty()) {
+                    attachmentCopy.sourceAttachmentIdsForCut.forEach { attachmentId ->
+                        contextRepository.unlinkAttachmentFromContext(
+                            contextId = sourceContextId,
+                            attachmentId = attachmentId,
+                        )
+                    }
+                    moved += attachmentCopy.sourceAttachmentIdsForCut.size
                 }
             }
 
@@ -658,7 +697,12 @@ class BacklogClipboardUseCase
 
             val created = directionRepository.addDirectionItems(targetContextId, itemsToCreate)
             if (includeAttachments && attachmentRefs.isNotEmpty()) {
-                val attachmentCopy = copyAttachmentRefsToContext(attachmentRefs, targetContextId)
+                val attachmentCopy =
+                    copyAttachmentRefsToContext(
+                        refs = attachmentRefs,
+                        targetContextId = targetContextId,
+                        sourceContextId = null,
+                    )
                 createdAttachments += attachmentCopy.created
                 skippedDuplicates += attachmentCopy.duplicates
                 skippedInvalid += attachmentCopy.invalid
@@ -779,13 +823,27 @@ class BacklogClipboardUseCase
             }
 
             if (includeAttachments && attachmentRefs.isNotEmpty()) {
-                val attachmentCopy = copyAttachmentRefsToContext(attachmentRefs, targetContextId)
+                val attachmentCopy =
+                    copyAttachmentRefsToContext(
+                        refs = attachmentRefs,
+                        targetContextId = targetContextId,
+                        sourceContextId = sourceContextId,
+                    )
                 createdAttachments += attachmentCopy.created
                 skippedDuplicates += attachmentCopy.duplicates
                 skippedInvalid += attachmentCopy.invalid
                 if (attachmentCopy.insertedSourceItemIds.isNotEmpty()) {
                     listItemRepository.deleteListItems(attachmentCopy.insertedSourceItemIds)
                     moved += attachmentCopy.insertedSourceItemIds.size
+                }
+                if (sourceContextId.isNotBlank() && attachmentCopy.sourceAttachmentIdsForCut.isNotEmpty()) {
+                    attachmentCopy.sourceAttachmentIdsForCut.forEach { attachmentId ->
+                        contextRepository.unlinkAttachmentFromContext(
+                            contextId = sourceContextId,
+                            attachmentId = attachmentId,
+                        )
+                    }
+                    moved += attachmentCopy.sourceAttachmentIdsForCut.size
                 }
             }
 
@@ -825,15 +883,27 @@ class BacklogClipboardUseCase
             val duplicates: Int,
             val invalid: Int,
             val insertedSourceItemIds: List<String>,
+            val sourceAttachmentIdsForCut: List<String>,
         )
 
         private suspend fun copyAttachmentRefsToContext(
             refs: List<ClipboardEntityRef.BacklogAttachment>,
             targetContextId: String,
+            sourceContextId: String?,
         ): AttachmentCopyResult {
-            if (refs.isEmpty()) return AttachmentCopyResult(0, 0, 0, emptyList())
+            if (refs.isEmpty()) return AttachmentCopyResult(0, 0, 0, emptyList(), emptyList())
             val requestedIds = refs.map { it.listItemId }
             val itemsById = listItemRepository.getItemsByIds(requestedIds).associateBy { it.id }
+            val sourceAttachmentsById =
+                sourceContextId
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { contextId ->
+                        contextRepository
+                            .getAttachmentsForContextStream(contextId)
+                            .first()
+                            .associateBy { it.attachment.id }
+                    }
+                    ?: emptyMap()
             val existingTargetAttachmentIds =
                 contextRepository
                     .getAttachmentsForContextStream(targetContextId)
@@ -843,17 +913,14 @@ class BacklogClipboardUseCase
             var duplicates = 0
             var invalid = 0
             val insertedSourceItemIds = mutableListOf<String>()
+            val sourceAttachmentIdsForCut = mutableListOf<String>()
             var created = 0
 
             refLoop@ for (requestedId in requestedIds) {
                 var sourceListItemIdForCut: String? = null
+                val item = itemsById[requestedId]
                 val attachmentId =
-                    run {
-                        val item = itemsById[requestedId]
-                        if (item == null) {
-                            invalid += 1
-                            continue@refLoop
-                        }
+                    if (item != null) {
                         if (!isAttachmentType(item.itemType)) {
                             invalid += 1
                             continue@refLoop
@@ -869,6 +936,18 @@ class BacklogClipboardUseCase
                         }
                         sourceListItemIdForCut = item.id
                         resolvedAttachmentId
+                    } else {
+                        // In Connections view we copy attachment IDs directly, not backlog list item IDs.
+                        val attachmentWithContext = sourceAttachmentsById[requestedId]
+                        if (attachmentWithContext == null) {
+                            invalid += 1
+                            continue@refLoop
+                        }
+                        if (!isAttachmentType(attachmentWithContext.attachment.attachmentType)) {
+                            invalid += 1
+                            continue@refLoop
+                        }
+                        requestedId
                     }
 
                 if (attachmentId in existingTargetAttachmentIds) {
@@ -880,6 +959,8 @@ class BacklogClipboardUseCase
                 created += 1
                 if (sourceListItemIdForCut != null) {
                     insertedSourceItemIds += sourceListItemIdForCut
+                } else if (sourceContextId != null) {
+                    sourceAttachmentIdsForCut += attachmentId
                 }
             }
             return AttachmentCopyResult(
@@ -887,6 +968,7 @@ class BacklogClipboardUseCase
                 duplicates = duplicates,
                 invalid = invalid,
                 insertedSourceItemIds = insertedSourceItemIds,
+                sourceAttachmentIdsForCut = sourceAttachmentIdsForCut,
             )
         }
 
