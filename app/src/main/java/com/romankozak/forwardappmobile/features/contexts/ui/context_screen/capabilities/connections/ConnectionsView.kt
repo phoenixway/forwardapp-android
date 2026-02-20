@@ -20,6 +20,7 @@ import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTarg
 import com.romankozak.forwardappmobile.features.missions.presentation.PickerCreateAction
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
 import com.romankozak.forwardappmobile.ui.components.ConnectionItemUi
+import com.romankozak.forwardappmobile.ui.components.ConnectionPanelMode
 import com.romankozak.forwardappmobile.ui.components.ConnectionType
 import com.romankozak.forwardappmobile.ui.components.ConnectionsPanel
 import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
@@ -102,6 +103,7 @@ fun ConnectionsView(
     ) {
         ConnectionsPanel(
             items = items,
+            mode = ConnectionPanelMode.NORMAL,
             onConnectionClick = { item ->
                 val directItem = attachmentByConnectionId[item.id]
                 if (directItem != null) {
@@ -227,6 +229,9 @@ private fun BacklogItemContent.connectionType(): ConnectionType =
                 LinkType.OBSIDIAN -> ConnectionType.OBSIDIAN_NOTE
                 null -> ConnectionType.ATTACHMENT
             }
+        is BacklogItemContent.NoteDocumentItem -> ConnectionType.NOTE_DOCUMENT
+        is BacklogItemContent.MusicNoteItem -> ConnectionType.MUSIC_NOTE
+        is BacklogItemContent.ChecklistItem -> ConnectionType.CHECKLIST
         else -> ConnectionType.ATTACHMENT
     }
 

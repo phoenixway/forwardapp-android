@@ -4,6 +4,9 @@ fun ConnectionItemUi.orderToken(): String =
     when (type) {
         ConnectionType.CONTEXT -> "C:$id"
         ConnectionType.ATTACHMENT -> "A:$id"
+        ConnectionType.NOTE_DOCUMENT -> "A:$id"
+        ConnectionType.CHECKLIST -> "A:$id"
+        ConnectionType.MUSIC_NOTE -> "A:$id"
         ConnectionType.SCRIPT -> "S:$id"
         ConnectionType.URL -> "U:$id"
         ConnectionType.OBSIDIAN_NOTE -> "O:$id"

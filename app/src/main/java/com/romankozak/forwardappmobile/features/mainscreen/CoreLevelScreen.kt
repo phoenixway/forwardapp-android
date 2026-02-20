@@ -125,10 +125,18 @@ fun CoreLevelScreen(
                 addAll(uiState.projects.map { ConnectionItemUi(it.id, it.name, ConnectionType.CONTEXT) })
                 addAll(
                     generalAttachmentIds.map { id ->
+                        val option = availableAttachmentById[id]
                         ConnectionItemUi(
                             id = id,
-                            title = availableAttachmentById[id]?.name ?: "Вкладення ${id.take(8)}",
-                            type = ConnectionType.ATTACHMENT,
+                            title = option?.name ?: "Вкладення ${id.take(8)}",
+                            type =
+                                when (option?.attachmentType) {
+                                    "NOTE_DOCUMENT" -> ConnectionType.NOTE_DOCUMENT
+                                    "MUSIC_NOTE" -> ConnectionType.MUSIC_NOTE
+                                    "CHECKLIST" -> ConnectionType.CHECKLIST
+                                    "SCRIPT" -> ConnectionType.SCRIPT
+                                    else -> ConnectionType.ATTACHMENT
+                                },
                         )
                     },
                 )

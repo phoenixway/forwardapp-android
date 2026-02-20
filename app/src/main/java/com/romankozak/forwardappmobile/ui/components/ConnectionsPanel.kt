@@ -22,11 +22,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material3.CardDefaults
@@ -60,6 +63,9 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 enum class ConnectionType {
     CONTEXT,
     ATTACHMENT,
+    NOTE_DOCUMENT,
+    CHECKLIST,
+    MUSIC_NOTE,
     SCRIPT,
     URL,
     OBSIDIAN_NOTE,
@@ -82,6 +88,11 @@ enum class CreateConnectionType {
     OBSIDIAN_NOTE,
 }
 
+enum class ConnectionPanelMode {
+    NORMAL,
+    COMPACT,
+}
+
 data class ConnectionItemUi(
     val id: String,
     val title: String,
@@ -98,6 +109,7 @@ fun ConnectionsPanel(
     onAddConnection: (AddConnectionType) -> Unit,
     onAddButtonClick: (() -> Unit)? = null,
     onCreateConnection: ((CreateConnectionType) -> Unit)? = null,
+    mode: ConnectionPanelMode = ConnectionPanelMode.COMPACT,
     preferActionsBesideTitleWhenWide: Boolean = false,
     onConnectionsReordered: (List<ConnectionItemUi>) -> Unit = {},
     modifier: Modifier = Modifier,
@@ -195,6 +207,7 @@ fun ConnectionsPanel(
                                 onRemove = { onConnectionRemove(item) },
                                 onCopy = onConnectionCopy?.let { { it(item) } },
                                 onCut = onConnectionCut?.let { { it(item) } },
+                                mode = mode,
                                 preferActionsBesideTitleWhenWide = preferActionsBesideTitleWhenWide,
                                 typeIconModifier =
                                     with(this@ReorderableItem) {
@@ -230,12 +243,22 @@ private fun ConnectionRow(
     onRemove: () -> Unit,
     onCopy: (() -> Unit)? = null,
     onCut: (() -> Unit)? = null,
+    mode: ConnectionPanelMode = ConnectionPanelMode.COMPACT,
     preferActionsBesideTitleWhenWide: Boolean = false,
     typeIconModifier: Modifier = Modifier,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-            val showActionsOnRight = preferActionsBesideTitleWhenWide && maxWidth >= 420.dp
+            val showActionsOnRight =
+                when (mode) {
+                    ConnectionPanelMode.COMPACT -> true
+                    ConnectionPanelMode.NORMAL -> preferActionsBesideTitleWhenWide && maxWidth >= 420.dp
+                }
+            val titleMaxLines =
+                when (mode) {
+                    ConnectionPanelMode.NORMAL -> 4
+                    ConnectionPanelMode.COMPACT -> 2
+                }
 
             Row(
                 modifier =
@@ -251,7 +274,7 @@ private fun ConnectionRow(
                     Text(
                         text = item.title,
                         style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 1,
+                        maxLines = titleMaxLines,
                         overflow = TextOverflow.Ellipsis,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
@@ -352,6 +375,9 @@ private val ConnectionType.icon: ImageVector
         when (this) {
             ConnectionType.CONTEXT -> Icons.Outlined.AccountTree
             ConnectionType.ATTACHMENT -> Icons.Outlined.AttachFile
+            ConnectionType.NOTE_DOCUMENT -> Icons.Outlined.Description
+            ConnectionType.CHECKLIST -> Icons.Outlined.Checklist
+            ConnectionType.MUSIC_NOTE -> Icons.Outlined.MusicNote
             ConnectionType.SCRIPT -> Icons.Outlined.Code
             ConnectionType.URL -> Icons.Outlined.Language
             ConnectionType.OBSIDIAN_NOTE -> Icons.Outlined.StickyNote2
@@ -362,8 +388,11 @@ private val ConnectionType.tint: Color
         when (this) {
             ConnectionType.CONTEXT -> Color(0xFF2E7D32)
             ConnectionType.ATTACHMENT -> Color(0xFF1565C0)
+            ConnectionType.NOTE_DOCUMENT -> Color(0xFF00897B)
+            ConnectionType.CHECKLIST -> Color(0xFF5E35B1)
+            ConnectionType.MUSIC_NOTE -> Color(0xFFE65100)
             ConnectionType.SCRIPT -> Color(0xFF00695C)
-            ConnectionType.URL -> Color(0xFF6A1B9A)
+            ConnectionType.URL -> Color(0xFF3949AB)
             ConnectionType.OBSIDIAN_NOTE -> Color(0xFF455A64)
         }
 
@@ -372,7 +401,10 @@ private val ConnectionType.label: String
         when (this) {
             ConnectionType.CONTEXT -> "Контекст"
             ConnectionType.ATTACHMENT -> "Вкладення"
+            ConnectionType.NOTE_DOCUMENT -> "Нотатка"
+            ConnectionType.CHECKLIST -> "Чекліст"
+            ConnectionType.MUSIC_NOTE -> "Музичні ноти"
             ConnectionType.SCRIPT -> "Скрипт"
-            ConnectionType.URL -> "URL"
-            ConnectionType.OBSIDIAN_NOTE -> "Obsidian"
+            ConnectionType.URL -> "Веб-посилання"
+            ConnectionType.OBSIDIAN_NOTE -> "Посилання Obsidian"
         }

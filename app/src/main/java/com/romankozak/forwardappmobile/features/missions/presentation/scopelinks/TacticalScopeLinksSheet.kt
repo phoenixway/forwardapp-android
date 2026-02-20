@@ -70,10 +70,18 @@ fun TacticalScopeLinksSheet(
             )
             addAll(
                 validLinkedGeneralAttachmentIds.map { id ->
+                    val option = attachmentOptions.firstOrNull { it.id == id }
                     ConnectionItemUi(
                         id = id,
-                        title = attachmentOptions.firstOrNull { it.id == id }?.name ?: "Вкладення ${id.take(8)}",
-                        type = ConnectionType.ATTACHMENT,
+                        title = option?.name ?: "Вкладення ${id.take(8)}",
+                        type =
+                            when (option?.attachmentType) {
+                                "NOTE_DOCUMENT" -> ConnectionType.NOTE_DOCUMENT
+                                "MUSIC_NOTE" -> ConnectionType.MUSIC_NOTE
+                                "CHECKLIST" -> ConnectionType.CHECKLIST
+                                "SCRIPT" -> ConnectionType.SCRIPT
+                                else -> ConnectionType.ATTACHMENT
+                            },
                     )
                 },
             )
