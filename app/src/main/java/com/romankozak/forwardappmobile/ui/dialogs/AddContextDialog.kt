@@ -37,6 +37,7 @@ data class RoleOption(
 fun AddProjectDialog(
     title: String,
     roleOptions: List<RoleOption> = emptyList(),
+    preferredRoleCode: String? = null,
     onDismiss: () -> Unit,
     onConfirm: (String, String?) -> Unit,
 ) {
@@ -55,7 +56,22 @@ fun AddProjectDialog(
             listOf(RoleOption(code = null, label = "No role")) + source
         }
     var roleExpanded by remember { mutableStateOf(false) }
-    var selectedRole by remember { mutableStateOf(availableRoles.first()) }
+    val initialRole =
+        remember(availableRoles, preferredRoleCode) {
+            val preferred = preferredRoleCode?.trim()?.takeIf { it.isNotEmpty() }
+            if (preferred == null) {
+                availableRoles.first()
+            } else {
+                availableRoles.firstOrNull { it.code?.equals(preferred, ignoreCase = true) == true }
+                    ?: availableRoles.firstOrNull {
+                        preferred.equals("others", ignoreCase = true) &&
+                            (it.code?.equals("other", ignoreCase = true) == true ||
+                                it.code?.equals("others", ignoreCase = true) == true)
+                    }
+                    ?: availableRoles.first()
+            }
+        }
+    var selectedRole by remember(availableRoles, preferredRoleCode) { mutableStateOf(initialRole) }
 
     AlertDialog(
         onDismissRequest = onDismiss,

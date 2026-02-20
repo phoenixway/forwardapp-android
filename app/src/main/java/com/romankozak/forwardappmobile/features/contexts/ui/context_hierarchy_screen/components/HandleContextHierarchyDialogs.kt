@@ -38,6 +38,7 @@ fun HandleProjectHierarchyDialogs(
                             label = role.label,
                         )
                     },
+                preferredRoleCode = if (state.parentId != null) "others" else null,
                 onDismiss = { onEvent(ContextHierarchyScreenEvent.DismissDialog) },
                 onConfirm = { name, roleCode ->
                     onEvent(ContextHierarchyScreenEvent.AddContextConfirm(name, state.parentId, roleCode))
