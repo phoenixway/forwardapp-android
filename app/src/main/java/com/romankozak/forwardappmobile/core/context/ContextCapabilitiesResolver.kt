@@ -8,13 +8,14 @@ class ContextCapabilitiesResolver {
     fun resolve(config: ContextConfiguration): Set<CapabilityId> {
         val useRoleDefaults = !config.applyMode.equals(APPLY_MODE_OVERRIDE, ignoreCase = true)
         val roleCapabilities = if (useRoleDefaults) ContextRoleRegistry.getCapabilitiesForRole(config.basePresetCode) else emptySet()
+        val useLegacyDefaults = shouldUseLegacyDefaults(config)
         return buildSet {
             // Legacy capabilities: explicit false in config overrides role defaults.
-            if (isEnabled(roleCapabilities, "inbox", config.enableInbox, defaultEnabled = true)) add(CapabilityId("inbox"))
-            if (isEnabled(roleCapabilities, "log", config.enableLog, defaultEnabled = true)) add(CapabilityId("log"))
-            if (isEnabled(roleCapabilities, "dashboard", config.enableDashboard, defaultEnabled = true)) add(CapabilityId("dashboard"))
-            if (isEnabled(roleCapabilities, "backlog", config.enableBacklog, defaultEnabled = true)) add(CapabilityId("backlog"))
-            if (isEnabledAny(roleCapabilities, setOf("attachments", "connections"), config.enableAttachments, defaultEnabled = true)) {
+            if (isEnabled(roleCapabilities, "inbox", config.enableInbox, defaultEnabled = useLegacyDefaults)) add(CapabilityId("inbox"))
+            if (isEnabled(roleCapabilities, "log", config.enableLog, defaultEnabled = useLegacyDefaults)) add(CapabilityId("log"))
+            if (isEnabled(roleCapabilities, "dashboard", config.enableDashboard, defaultEnabled = useLegacyDefaults)) add(CapabilityId("dashboard"))
+            if (isEnabled(roleCapabilities, "backlog", config.enableBacklog, defaultEnabled = useLegacyDefaults)) add(CapabilityId("backlog"))
+            if (isEnabledAny(roleCapabilities, setOf("attachments", "connections"), config.enableAttachments, defaultEnabled = useLegacyDefaults)) {
                 add(CapabilityId("connections"))
             }
             if (isEnabled(roleCapabilities, "advanced", config.enableAdvanced, defaultEnabled = false)) add(CapabilityId("advanced"))
@@ -37,6 +38,20 @@ class ContextCapabilitiesResolver {
                 }
             }
         }
+    }
+
+    private fun shouldUseLegacyDefaults(config: ContextConfiguration): Boolean {
+        val hasPreset = !config.basePresetCode.isNullOrBlank()
+        val hasLegacyOverrides =
+            config.enableInbox != null ||
+                config.enableLog != null ||
+                config.enableDashboard != null ||
+                config.enableBacklog != null ||
+                config.enableAttachments != null ||
+                config.enableAdvanced != null ||
+                config.enableArtifact != null
+        val hasExperimentalOverrides = config.experimentalCapabilityIds.isNotEmpty()
+        return !hasPreset && !hasLegacyOverrides && !hasExperimentalOverrides
     }
 
     private fun isEnabled(

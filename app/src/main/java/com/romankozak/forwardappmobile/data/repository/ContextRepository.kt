@@ -60,6 +60,7 @@ class ContextRepository
         private val contextArtifactRepository: ContextArtifactRepository,
         private val listItemRepository: ListItemRepository,
         private val contextStructureDao: ContextStructureDao,
+        private val structurePresetDao: StructurePresetDao,
         private val directionDao: DirectionDao,
         private val backlogOrderRepository: BacklogOrderRepository,
         private val aiEventRepository: AiEventRepository,
@@ -564,6 +565,8 @@ class ContextRepository
             roleCode: String? = null,
         ) {
             val now = System.currentTimeMillis()
+            val normalizedRoleCode = roleCode?.trim()?.takeIf { it.isNotBlank() }
+            val preset = normalizedRoleCode?.let { structurePresetDao.getByCode(it) }
             val newContext =
                 Context(
                     id = id,
@@ -573,15 +576,22 @@ class ContextRepository
                     createdAt = now,
                     updatedAt = now,
                     version = 1,
-                    roleCode = roleCode,
+                    roleCode = normalizedRoleCode,
             )
             contextDao.insert(newContext)
             contextStructureDao.insertStructure(
                 ContextConfiguration(
                     id = UUID.randomUUID().toString(),
                     contextId = id,
-                    basePresetCode = roleCode?.trim()?.takeIf { it.isNotBlank() },
-                    enableAutoLinkSubprojects = true,
+                    basePresetCode = normalizedRoleCode,
+                    enableInbox = preset?.enableInbox,
+                    enableLog = preset?.enableLog,
+                    enableArtifact = preset?.enableArtifact,
+                    enableAdvanced = preset?.enableAdvanced ?: preset?.enableArtifact,
+                    enableDashboard = preset?.enableDashboard,
+                    enableBacklog = preset?.enableBacklog,
+                    enableAttachments = preset?.enableAttachments,
+                    enableAutoLinkSubprojects = preset?.enableAutoLinkSubprojects ?: true,
                 ),
             )
 
