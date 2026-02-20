@@ -32,6 +32,7 @@ import javax.inject.Inject
 private val CORE_TAGS = setOf("core", "main-beacons")
 
 data class CoreLevelUiState(
+    val allProjects: List<Context> = emptyList(),
     val projects: List<Context> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
@@ -55,7 +56,10 @@ class CoreLevelViewModel
                         projects.filter {
                             it.tags?.contains("main-beacons") == true || it.tags?.contains("core") == true
                         }
-                    CoreLevelUiState(projects = coreProjects)
+                    CoreLevelUiState(
+                        allProjects = projects,
+                        projects = coreProjects,
+                    )
                 }
                 .stateIn(
                     scope = viewModelScope,

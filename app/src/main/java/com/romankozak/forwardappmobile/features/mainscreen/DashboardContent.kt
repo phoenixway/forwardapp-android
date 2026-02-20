@@ -369,6 +369,7 @@ private fun FocusContextCard(
     onDefocus: () -> Unit,
 ) {
     Card(
+        onClick = onOpen,
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth(),
@@ -401,9 +402,6 @@ private fun FocusContextCard(
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                FilledTonalIconButton(onClick = onOpen) {
-                    Icon(Icons.Outlined.OpenInNew, contentDescription = "Відкрити контекст")
-                }
                 FilledTonalIconButton(onClick = onStartTracking) {
                     Icon(Icons.Outlined.PlayCircle, contentDescription = "Start tracking")
                 }
