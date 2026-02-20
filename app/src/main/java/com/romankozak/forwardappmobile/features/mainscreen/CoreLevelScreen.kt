@@ -233,7 +233,10 @@ fun CoreLevelScreen(
             onConnectionsReordered = { reordered ->
                 viewModel.updateConnectionsOrder(reordered.map { it.orderToken() })
             },
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
         )
     }
 
