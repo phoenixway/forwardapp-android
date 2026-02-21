@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistItemEntity
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
+import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +30,7 @@ data class ChecklistUiState(
     val title: String = "",
     val items: List<ChecklistItemUiModel> = emptyList(),
     val showCheckboxes: Boolean = true,
+    val isEditing: Boolean = true,
     val pendingFocusItemId: String? = null,
     val errorMessage: String? = null,
     val showUndoSnackbar: Boolean = false,
@@ -40,6 +42,7 @@ class ChecklistViewModel
     @Inject
     constructor(
         private val checklistRepository: ChecklistRepository,
+        private val noteDocumentRepository: NoteDocumentRepository,
         private val recentItemsRepository: RecentItemsRepository,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
@@ -136,6 +139,10 @@ class ChecklistViewModel
 
         fun onToggleCheckboxVisibility() {
             _uiState.update { it.copy(showCheckboxes = !it.showCheckboxes) }
+        }
+
+        fun onToggleEditingMode() {
+            _uiState.update { it.copy(isEditing = !it.isEditing) }
         }
 
         fun onItemContentChange(
@@ -331,6 +338,8 @@ class ChecklistViewModel
         fun onPendingFocusConsumed() {
             _uiState.update { it.copy(pendingFocusItemId = null) }
         }
+
+        suspend fun findDocumentIdByName(name: String): String? = noteDocumentRepository.findDocumentByName(name)?.id
 
         private fun normalizeOrder(items: List<ChecklistItemUiModel>) {
             viewModelScope.launch {

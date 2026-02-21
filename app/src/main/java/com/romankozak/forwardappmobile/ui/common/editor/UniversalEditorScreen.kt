@@ -455,12 +455,7 @@ private fun Editor(
                     .verticalScroll(scrollState)
                     .padding(start = 16.dp, end = 16.dp, top = 16.dp),
         ) {
-            val visualTransformation =
-                if (readOnly) {
-                    ListVisualTransformation(emptySet(), textColor, accentColor)
-                } else {
-                    VisualTransformation.None
-                }
+            val readModeTransformation = ListVisualTransformation(emptySet(), textColor, accentColor)
 
             val baseModifier =
                 Modifier.padding(start = 16.dp)
@@ -471,7 +466,7 @@ private fun Editor(
                     .focusProperties { canFocus = isEditing }
 
             if (readOnly) {
-                val transformed = visualTransformation.filter(AnnotatedString(content.text))
+                val transformed = readModeTransformation.filter(AnnotatedString(content.text))
                 ClickableText(
                     text = transformed.text,
                     modifier = baseModifier,
@@ -541,7 +536,8 @@ private fun Editor(
                             },
                     textStyle = TextStyle(fontSize = 16.sp, lineHeight = 24.sp, color = textColor),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    visualTransformation = visualTransformation,
+                    // In edit mode we always keep raw source text visible, including [[...]].
+                    visualTransformation = VisualTransformation.None,
                     readOnly = false,
                     interactionSource = remember { MutableInteractionSource() },
                     singleLine = false,

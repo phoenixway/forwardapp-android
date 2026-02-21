@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -33,7 +34,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.outlined.CheckBoxOutlineBlank
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DeleteSweep
@@ -83,18 +86,25 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.R
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
+import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.ReorderableLazyListState
 import sh.calvin.reorderable.rememberReorderableLazyListState
+import java.net.URLEncoder
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -172,6 +182,8 @@ fun ChecklistScreen(
                 onBack = { navController.popBackStack() },
                 showCheckboxes = uiState.showCheckboxes,
                 onToggleCheckboxes = viewModel::onToggleCheckboxVisibility,
+                isEditing = uiState.isEditing,
+                onToggleEditing = viewModel::onToggleEditingMode,
                 onClearCompleted = viewModel::onClearCompleted,
                 onExportMarkdown = {
                     val markdown = viewModel.buildMarkdownExport()
@@ -209,6 +221,7 @@ fun ChecklistScreen(
             if (!uiState.isLoading && uiState.errorMessage == null) {
                 FloatingActionButton(
                     onClick = { viewModel.onAddItem(uiState.items.lastOrNull()?.id) },
+                    enabled = uiState.isEditing,
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Add,
@@ -271,6 +284,27 @@ fun ChecklistScreen(
                     onAddBelow = viewModel::onAddItem,
                     onDelete = viewModel::onDeleteItem,
                     onFocusConsumed = viewModel::onPendingFocusConsumed,
+                    isEditing = uiState.isEditing,
+                    onWikiLinkClick = { link ->
+                        coroutineScope.launch {
+                            when {
+                                link.startsWith("#") || link.startsWith("@") -> {
+                                    val encoded = URLEncoder.encode(link, "UTF-8")
+                                    val target = NavTarget.GlobalSearch(query = encoded)
+                                    navController.navigate(NavTargetRouter.routeOf(target))
+                                }
+                                else -> {
+                                    val targetId = viewModel.findDocumentIdByName(link)
+                                    if (targetId != null) {
+                                        val target = NavTarget.NoteDocument(id = targetId, startEdit = false)
+                                        navController.navigate(NavTargetRouter.routeOf(target))
+                                    } else {
+                                        snackbarHostState.showSnackbar("Не зміг відкрити вкладення \"$link\"")
+                                    }
+                                }
+                            }
+                        }
+                    },
                     onShowItemActions = { item ->
                         selectedItem = item
                         showBottomSheet = true
@@ -292,6 +326,8 @@ private fun ChecklistContent(
     onCheckedChange: (String, Boolean) -> Unit,
     onAddBelow: (String?) -> Unit,
     onDelete: (String) -> Unit,
+    isEditing: Boolean,
+    onWikiLinkClick: (String) -> Unit,
     onFocusConsumed: () -> Unit,
     onShowItemActions: (ChecklistItemUiModel) -> Unit,
 ) {
@@ -352,57 +388,67 @@ private fun ChecklistContent(
                                 }
                             },
                         )
-                    SwipeToDismissBox(
-                        state = dismissState,
-                        backgroundContent = {
-                            val color =
-                                when (dismissState.dismissDirection) {
-                                    SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
-                                    SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primaryContainer
-                                    else -> Color.Transparent
-                                }
-                            val icon =
-                                when (dismissState.dismissDirection) {
-                                    SwipeToDismissBoxValue.EndToStart -> Icons.Outlined.Delete
-                                    SwipeToDismissBoxValue.StartToEnd -> Icons.Default.ContentCopy
-                                    else -> null
-                                }
-                            val alignment =
-                                when (dismissState.dismissDirection) {
-                                    SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
-                                    SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
-                                    else -> Alignment.Center
-                                }
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .fillMaxSize()
-                                        .background(color)
-                                        .padding(horizontal = 16.dp),
-                                contentAlignment = alignment,
-                            ) {
-                                if (icon != null) {
-                                    Icon(
-                                        imageVector = icon,
-                                        contentDescription = null,
-                                    )
-                                }
-                            }
-                        },
-                    ) {
+
+                    val content: @Composable () -> Unit = {
                         ChecklistItemRow(
                             item = item,
                             reorderableScope = reorderableScope,
                             showCheckbox = uiState.showCheckboxes,
+                            isEditing = isEditing,
                             isDragging = isDragging,
                             shouldRequestFocus = item.id == uiState.pendingFocusItemId,
                             onFocusConsumed = onFocusConsumed,
                             onContentChange = { onContentChange(item.id, it) },
                             onCheckedChange = { onCheckedChange(item.id, it) },
                             onAddBelow = { onAddBelow(item.id) },
-                            onDelete = { onDelete(item.id) },
+                            onWikiLinkClick = onWikiLinkClick,
                             onShowItemActions = { onShowItemActions(item) },
                         )
+                    }
+
+                    if (isEditing) {
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            backgroundContent = {
+                                val color =
+                                    when (dismissState.dismissDirection) {
+                                        SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                                        SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primaryContainer
+                                        else -> Color.Transparent
+                                    }
+                                val icon =
+                                    when (dismissState.dismissDirection) {
+                                        SwipeToDismissBoxValue.EndToStart -> Icons.Outlined.Delete
+                                        SwipeToDismissBoxValue.StartToEnd -> Icons.Default.ContentCopy
+                                        else -> null
+                                    }
+                                val alignment =
+                                    when (dismissState.dismissDirection) {
+                                        SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                                        SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                                        else -> Alignment.Center
+                                    }
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxSize()
+                                            .background(color)
+                                            .padding(horizontal = 16.dp),
+                                    contentAlignment = alignment,
+                                ) {
+                                    if (icon != null) {
+                                        Icon(
+                                            imageVector = icon,
+                                            contentDescription = null,
+                                        )
+                                    }
+                                }
+                            },
+                        ) {
+                            content()
+                        }
+                    } else {
+                        content()
                     }
                 }
             }
@@ -421,6 +467,8 @@ private fun ChecklistTopBar(
     onBack: () -> Unit,
     showCheckboxes: Boolean,
     onToggleCheckboxes: () -> Unit,
+    isEditing: Boolean,
+    onToggleEditing: () -> Unit,
     onClearCompleted: () -> Unit,
     onExportMarkdown: () -> Unit,
     onImportFromClipboard: () -> Unit,
@@ -454,6 +502,12 @@ private fun ChecklistTopBar(
             }
         },
         actions = {
+            IconButton(onClick = onToggleEditing) {
+                Icon(
+                    imageVector = if (isEditing) Icons.Filled.Visibility else Icons.Filled.Edit,
+                    contentDescription = if (isEditing) "Switch to read mode" else "Switch to edit mode",
+                )
+            }
             IconButton(onClick = { menuExpanded = true }) {
                 Icon(
                     imageVector = Icons.Filled.MoreVert,
@@ -550,13 +604,14 @@ private fun ChecklistItemRow(
     item: ChecklistItemUiModel,
     reorderableScope: ReorderableCollectionItemScope,
     showCheckbox: Boolean,
+    isEditing: Boolean,
     isDragging: Boolean,
     shouldRequestFocus: Boolean,
     onFocusConsumed: () -> Unit,
     onContentChange: (String) -> Unit,
     onCheckedChange: (Boolean) -> Unit,
     onAddBelow: () -> Unit,
-    onDelete: () -> Unit,
+    onWikiLinkClick: (String) -> Unit,
     onShowItemActions: (ChecklistItemUiModel) -> Unit,
 ) {
     val focusRequester = remember { FocusRequester() }
@@ -625,66 +680,133 @@ private fun ChecklistItemRow(
                 Spacer(modifier = Modifier.width(1.dp))
             }
 
-            OutlinedTextField(
-                value = item.content,
-                onValueChange = onContentChange,
-                modifier =
+            if (isEditing) {
+                OutlinedTextField(
+                    value = item.content,
+                    onValueChange = onContentChange,
+                    modifier =
 
-                    Modifier
-                        .weight(1f)
-                        .focusRequester(focusRequester)
-                        .onKeyEvent { event ->
-
-                            if (event.type == KeyEventType.KeyUp && event.key == Key.Enter) {
-                                onAddBelow()
-
-                                true
-                            } else if (event.type == KeyEventType.KeyUp && event.key == Key.Tab) {
-                                focusManager.clearFocus()
-
-                                false
-                            } else {
-                                false
-                            }
-                        },
-                placeholder = {
-                    Text(
-                        text = stringResource(R.string.checklist_item_placeholder),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                },
-                minLines = 1,
-                maxLines = 10,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(onNext = { onAddBelow() }),
-                colors =
-                    OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
-                        disabledBorderColor = Color.Transparent,
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                    ),
-                textStyle = MaterialTheme.typography.bodyMedium,
-            )
-
-            IconButton(
-                onClick = { onShowItemActions(item) },
-                modifier =
-                    with(reorderableScope) {
                         Modifier
-                            .draggableHandle()
-                            .padding(top = 16.dp)
-                            .size(40.dp)
+                            .weight(1f)
+                            .focusRequester(focusRequester)
+                            .onKeyEvent { event ->
+
+                                if (event.type == KeyEventType.KeyUp && event.key == Key.Enter) {
+                                    onAddBelow()
+
+                                    true
+                                } else if (event.type == KeyEventType.KeyUp && event.key == Key.Tab) {
+                                    focusManager.clearFocus()
+
+                                    false
+                                } else {
+                                    false
+                                }
+                            },
+                    placeholder = {
+                        Text(
+                            text = stringResource(R.string.checklist_item_placeholder),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
                     },
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More options",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                    modifier = Modifier.size(24.dp),
+                    minLines = 1,
+                    maxLines = 10,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    keyboardActions = KeyboardActions(onNext = { onAddBelow() }),
+                    colors =
+                        OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent,
+                            disabledBorderColor = Color.Transparent,
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                        ),
+                    textStyle = MaterialTheme.typography.bodyMedium,
                 )
+            } else {
+                ChecklistReadOnlyText(
+                    text = item.content,
+                    onWikiLinkClick = onWikiLinkClick,
+                    modifier = Modifier.weight(1f).padding(horizontal = 16.dp, vertical = 14.dp),
+                )
+            }
+
+            if (isEditing) {
+                IconButton(
+                    onClick = { onShowItemActions(item) },
+                    modifier =
+                        with(reorderableScope) {
+                            Modifier
+                                .draggableHandle()
+                                .padding(top = 16.dp)
+                                .size(40.dp)
+                        },
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More options",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
             }
         }
     }
+}
+
+@Composable
+private fun ChecklistReadOnlyText(
+    text: String,
+    onWikiLinkClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val accentColor = MaterialTheme.colorScheme.primary
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val wikiLinkRegex = Regex("\\[\\[([^\\[\\]]+)\\]\\]")
+
+    val annotatedText =
+        remember(text, accentColor, textColor) {
+            buildAnnotatedString {
+                var cursor = 0
+                for (match in wikiLinkRegex.findAll(text)) {
+                    if (match.range.first > cursor) {
+                        withStyle(SpanStyle(color = textColor)) {
+                            append(text.substring(cursor, match.range.first))
+                        }
+                    }
+                    val linkValue = match.groupValues[1]
+                    val start = length
+                    append(linkValue)
+                    val end = length
+                    addStyle(
+                        style = SpanStyle(color = accentColor, textDecoration = TextDecoration.Underline),
+                        start = start,
+                        end = end,
+                    )
+                    addStringAnnotation(
+                        tag = "wikilink",
+                        annotation = linkValue,
+                        start = start,
+                        end = end,
+                    )
+                    cursor = match.range.last + 1
+                }
+                if (cursor < text.length) {
+                    withStyle(SpanStyle(color = textColor)) {
+                        append(text.substring(cursor))
+                    }
+                }
+            }
+        }
+
+    ClickableText(
+        text = annotatedText,
+        modifier = modifier,
+        style = MaterialTheme.typography.bodyMedium.copy(color = textColor),
+        onClick = { offset ->
+            annotatedText.getStringAnnotations("wikilink", offset, offset).firstOrNull()?.let { link ->
+                onWikiLinkClick(link.item)
+            }
+        },
+    )
 }
