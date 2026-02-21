@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -276,7 +277,13 @@ fun LinkedTargetsPickerDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Surface(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .imePadding(),
+            color = MaterialTheme.colorScheme.background,
+        ) {
             Scaffold(
                 floatingActionButton = {
                     if (selectedTab == LinkPickerTab.CONTEXTS && hasContextsTab && onCreateRootContext != null) {
@@ -479,6 +486,7 @@ fun LinkedTargetsPickerDialog(
 
     if (showAddContextDialog && onCreateRootContext != null) {
         AlertDialog(
+            modifier = Modifier.imePadding(),
             onDismissRequest = { showAddContextDialog = false },
             title = { Text(stringResource(R.string.add_action_project)) },
             text = {
@@ -928,6 +936,7 @@ private fun DocumentCreationDialog(
         }
 
     AlertDialog(
+        modifier = Modifier.imePadding(),
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
