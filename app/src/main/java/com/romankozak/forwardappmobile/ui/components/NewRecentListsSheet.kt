@@ -22,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
@@ -109,7 +110,21 @@ private fun RecentItemCard(
     onClick: () -> Unit,
     onPinClick: () -> Unit,
 ) {
-    val color = getColorsForType(item.type)
+    val accentColor = getColorsForType(item.type)
+    val cardBackground = MaterialTheme.colorScheme.surfaceContainerHigh
+    val textColor =
+        if (contrastRatio(accentColor, cardBackground) >= 4.5f) {
+            accentColor
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        }
+    val borderColor =
+        if (contrastRatio(accentColor, cardBackground) >= 2.2f) {
+            accentColor
+        } else {
+            MaterialTheme.colorScheme.outline
+        }
+
     Card(
         modifier =
             Modifier
@@ -117,11 +132,11 @@ private fun RecentItemCard(
                 .clickable(onClick = onClick)
                 .border(
                     width = 1.dp,
-                    color = color,
+                    color = borderColor,
                     shape = MaterialTheme.shapes.medium,
                 ),
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        colors = CardDefaults.cardColors(containerColor = cardBackground),
     ) {
         Column(
             modifier =
@@ -146,13 +161,13 @@ private fun RecentItemCard(
                         },
                     contentDescription = null,
                     modifier = Modifier.size(36.dp),
-                    tint = color,
+                    tint = accentColor,
                 )
                 IconButton(onClick = onPinClick, modifier = Modifier.size(24.dp)) {
                     Icon(
                         imageVector = if (item.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
                         contentDescription = "Pin",
-                        tint = color,
+                        tint = accentColor,
                         modifier = Modifier.size(18.dp),
                     )
                 }
@@ -160,7 +175,7 @@ private fun RecentItemCard(
             Text(
                 text = item.displayName.ifBlank { fallbackRecentItemTitle(item) },
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                color = color,
+                color = textColor,
                 maxLines = 3,
             )
         }
@@ -186,3 +201,9 @@ private fun fallbackRecentItemTitle(item: RecentItem): String =
         RecentItemType.CHECKLIST -> "Чекліст"
         RecentItemType.OBSIDIAN_LINK -> item.target.ifBlank { "Посилання" }
     }
+
+private fun contrastRatio(foreground: Color, background: Color): Float {
+    val lighter = maxOf(foreground.luminance(), background.luminance())
+    val darker = minOf(foreground.luminance(), background.luminance())
+    return (lighter + 0.05f) / (darker + 0.05f)
+}
