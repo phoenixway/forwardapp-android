@@ -22,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -112,18 +113,22 @@ private fun RecentItemCard(
 ) {
     val accentColor = getColorsForType(item.type)
     val cardBackground = MaterialTheme.colorScheme.surfaceContainerHigh
-    val textColor =
+    val baseTextColor =
         if (contrastRatio(accentColor, cardBackground) >= 4.5f) {
             accentColor
         } else {
             MaterialTheme.colorScheme.onSurface
         }
-    val borderColor =
+    val baseBorderColor =
         if (contrastRatio(accentColor, cardBackground) >= 2.2f) {
             accentColor
         } else {
             MaterialTheme.colorScheme.outline
         }
+    val isChecklist = item.type == RecentItemType.CHECKLIST
+    val textColor = if (isChecklist) softenAgainstBackground(baseTextColor, cardBackground) else baseTextColor
+    val borderColor = if (isChecklist) softenAgainstBackground(baseBorderColor, cardBackground) else baseBorderColor
+    val typeIconColor = if (isChecklist) textColor else accentColor
 
     Card(
         modifier =
@@ -161,13 +166,13 @@ private fun RecentItemCard(
                         },
                     contentDescription = null,
                     modifier = Modifier.size(36.dp),
-                    tint = accentColor,
+                    tint = typeIconColor,
                 )
                 IconButton(onClick = onPinClick, modifier = Modifier.size(24.dp)) {
                     Icon(
                         imageVector = if (item.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
                         contentDescription = "Pin",
-                        tint = accentColor,
+                        tint = typeIconColor,
                         modifier = Modifier.size(18.dp),
                     )
                 }
@@ -207,3 +212,5 @@ private fun contrastRatio(foreground: Color, background: Color): Float {
     val darker = minOf(foreground.luminance(), background.luminance())
     return (lighter + 0.05f) / (darker + 0.05f)
 }
+
+private fun softenAgainstBackground(color: Color, background: Color): Color = lerp(color, background, 0.30f)
