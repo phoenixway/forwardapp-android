@@ -46,6 +46,9 @@ interface ChecklistDao {
     @Query("SELECT * FROM checklists")
     fun getAllChecklistsAsFlow(): Flow<List<ChecklistEntity>>
 
+    @Query("SELECT * FROM checklists WHERE LOWER(name) = LOWER(:name) LIMIT 1")
+    suspend fun findByName(name: String): ChecklistEntity?
+
     @Query("SELECT * FROM checklists")
     suspend fun getAllChecklists(): List<ChecklistEntity>
 

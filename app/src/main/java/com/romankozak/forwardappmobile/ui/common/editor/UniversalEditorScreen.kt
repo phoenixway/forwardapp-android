@@ -73,6 +73,7 @@ fun UniversalEditorScreen(
     onNavigateBack: () -> Unit,
     onWikiLinkClick: (String) -> Unit = {},
     linkSuggestions: List<String> = emptyList(),
+    contextSuggestions: List<String> = emptyList(),
     navController: NavController,
     viewModel: UniversalEditorViewModel = hiltViewModel(),
     contentFocusRequester: FocusRequester,
@@ -270,6 +271,7 @@ fun UniversalEditorScreen(
                 onToggleCheckbox = viewModel::onToggleCheckbox,
                 onWikiLinkClick = onWikiLinkClick,
                 linkSuggestions = linkSuggestions,
+                contextSuggestions = contextSuggestions,
                 contentFocusRequester = contentFocusRequester,
                 isToolbarVisible = isToolbarVisible,
                 readOnly = readOnly,
@@ -359,6 +361,7 @@ private fun Editor(
     onToggleCheckbox: (Int) -> Unit,
     onWikiLinkClick: (String) -> Unit,
     linkSuggestions: List<String>,
+    contextSuggestions: List<String>,
     contentFocusRequester: FocusRequester,
     isToolbarVisible: Boolean,
     readOnly: Boolean,
@@ -422,12 +425,21 @@ private fun Editor(
         }
 
     val filteredSuggestions =
-        remember(activeQuery, linkSuggestions) {
+        remember(activeQuery, linkSuggestions, contextSuggestions) {
             activeQuery?.let { q ->
                 if (q.query.length < 3) {
                     emptyList()
                 } else {
-                    linkSuggestions.filter { it.contains(q.query, ignoreCase = true) }.take(6)
+                    when (q.prefix) {
+                        "[[" ->
+                            linkSuggestions
+                                .filter { suggestion ->
+                                    val display = extractWikiLinkDisplay(suggestion)
+                                    display.contains(q.query, ignoreCase = true) || suggestion.contains(q.query, ignoreCase = true)
+                                }.take(6)
+                        "@" -> contextSuggestions.filter { it.contains(q.query, ignoreCase = true) }.take(6)
+                        else -> emptyList()
+                    }
                 }
             } ?: emptyList()
         }
@@ -560,7 +572,7 @@ private fun Editor(
                 Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     filteredSuggestions.forEach { suggestion ->
                         Text(
-                            text = suggestion,
+                            text = if (activeQuery?.prefix == "[[") extractWikiLinkDisplay(suggestion) else suggestion,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier =
@@ -656,6 +668,14 @@ private fun ShowToolbarButton(onClick: () -> Unit) {
             }
         }
     }
+}
+
+private fun extractWikiLinkDisplay(raw: String): String {
+    val trimmed = raw.trim()
+    val parts = trimmed.split("|", limit = 2)
+    if (parts.size == 2 && parts[1].isNotBlank()) return parts[1]
+    val typed = Regex("""^(doc|ctx|music|checklist):(.+)$""", RegexOption.IGNORE_CASE).matchEntire(trimmed)
+    return typed?.groupValues?.get(2)?.takeIf { it.isNotBlank() } ?: trimmed
 }
 
 private class ListVisualTransformation(
@@ -791,7 +811,7 @@ private class ListVisualTransformation(
                                     val start = length
                                     when (tag) {
                                         "wikilink" -> {
-                                            append(contentText)
+                                            append(extractWikiLinkDisplay(contentText))
                                         }
                                         "tag" -> append("#$contentText")
                                         "context" -> append("@$contentText")

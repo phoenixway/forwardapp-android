@@ -5,11 +5,16 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.ui.common.editor.NoteTitleExtractor
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -20,6 +25,9 @@ class NoteDocumentEditorViewModel
     @Inject
     constructor(
         private val noteDocumentRepository: NoteDocumentRepository,
+        private val musicNoteRepository: MusicNoteRepository,
+        private val checklistRepository: ChecklistRepository,
+        private val contextRepository: ContextRepository,
         private val application: Application,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
@@ -27,9 +35,28 @@ class NoteDocumentEditorViewModel
         private var listId: String? = null
 
         val linkSuggestions =
-            noteDocumentRepository.getAllDocumentsAsFlow()
-                .map { docs -> docs.map { it.name.ifBlank { "Untitled" } } }
+            combine(
+                noteDocumentRepository.getAllDocumentsAsFlow(),
+                musicNoteRepository.getAllMusicNotesAsFlow(),
+                checklistRepository.getAllChecklistsAsFlow(),
+                contextRepository.getAllContextsFlow(),
+            ) { docs, musicNotes, checklists, contexts ->
+                (docs.map { doc -> "doc:${doc.id}|${doc.name.ifBlank { "Untitled" }}" } +
+                    musicNotes.map { note -> "music:${note.id}|${note.name.ifBlank { "Untitled" }}" } +
+                    checklists.map { checklist -> "checklist:${checklist.id}|${checklist.name.ifBlank { "Untitled" }}" } +
+                    contexts.map { ctx -> "ctx:${ctx.id}|${ctx.name.ifBlank { "Untitled" }}" })
+                    .filter { token -> token.substringAfter('|', "").isNotBlank() }
+                    .distinct()
+            }
                 .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+        val contextSuggestions =
+            contextRepository.getAllContextsFlow()
+                .map { contexts ->
+                    contexts.map { it.name }
+                        .filter { it.isNotBlank() }
+                        .distinct()
+                }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
         fun loadDocument(id: String) {
             listId = id
@@ -70,4 +97,15 @@ class NoteDocumentEditorViewModel
         }
 
         suspend fun findDocumentIdByName(name: String): String? = noteDocumentRepository.findDocumentByName(name)?.id
+
+        suspend fun findMusicNoteIdByName(name: String): String? = musicNoteRepository.findByName(name)?.id
+
+        suspend fun findChecklistIdByName(name: String): String? = checklistRepository.findByName(name)?.id
+
+        suspend fun findContextIdByName(name: String): String? =
+            contextRepository
+                .getAllContextsFlow()
+                .first()
+                .firstOrNull { it.name.equals(name, ignoreCase = true) }
+                ?.id
     }

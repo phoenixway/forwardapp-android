@@ -18,6 +18,21 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
 
+private data class TypedWikiLink(
+    val type: String,
+    val targetId: String,
+    val label: String?,
+)
+
+private fun parseTypedWikiLink(raw: String): TypedWikiLink? {
+    val match = Regex("""^(doc|ctx|music|checklist):([^|]+)(?:\|(.+))?$""", RegexOption.IGNORE_CASE).matchEntire(raw.trim()) ?: return null
+    return TypedWikiLink(
+        type = match.groupValues[1].lowercase(),
+        targetId = match.groupValues[2].trim(),
+        label = match.groupValues.getOrNull(3)?.takeIf { it.isNotBlank() }?.trim(),
+    )
+}
+
 @Composable
 fun NoteDocumentEditorScreen(
     navController: NavController,
@@ -58,24 +73,66 @@ fun NoteDocumentEditorScreen(
         onWikiLinkClick = { link ->
             coroutineScope.launch {
                 when {
-                    link.startsWith("#") || link.startsWith("@") -> {
+                    link.startsWith("#") -> {
                         val encoded = URLEncoder.encode(link, "UTF-8")
-                        val target = NavTarget.GlobalSearch(query = encoded)
-                        navController.navigate(NavTargetRouter.routeOf(target))
+                        navController.navigate(NavTargetRouter.routeOf(NavTarget.GlobalSearch(query = encoded)))
+                    }
+                    link.startsWith("@") -> {
+                        val contextName = link.removePrefix("@").trim()
+                        val contextId = viewModel.findContextIdByName(contextName)
+                        if (contextId != null) {
+                            navController.navigate(NavTargetRouter.routeOf(NavTarget.ContextDetail(contextId = contextId)))
+                        } else {
+                            val encoded = URLEncoder.encode(link, "UTF-8")
+                            navController.navigate(NavTargetRouter.routeOf(NavTarget.GlobalSearch(query = encoded)))
+                        }
                     }
                     else -> {
-                        val targetId = viewModel.findDocumentIdByName(link)
-                        if (targetId != null) {
-                            val target = NavTarget.NoteDocument(id = targetId, startEdit = false)
-                            navController.navigate(NavTargetRouter.routeOf(target))
-                        } else {
-                            viewModel.universalEditorViewModel.showError("Не зміг відкрити вкладення \"$link\"")
+                        val typed = parseTypedWikiLink(link)
+                        if (typed != null) {
+                            when (typed.type) {
+                                "doc" -> {
+                                    navController.navigate(NavTargetRouter.routeOf(NavTarget.NoteDocument(id = typed.targetId, startEdit = false)))
+                                }
+                                "ctx" -> {
+                                    navController.navigate(NavTargetRouter.routeOf(NavTarget.ContextDetail(contextId = typed.targetId)))
+                                }
+                                "music" -> {
+                                    navController.navigate(NavTargetRouter.routeOf(NavTarget.MusicNote(id = typed.targetId, startEdit = false)))
+                                }
+                                "checklist" -> {
+                                    navController.navigate(NavTargetRouter.routeOf(NavTarget.Checklist(id = typed.targetId, contextId = null)))
+                                }
+                            }
+                            return@launch
                         }
+                        val documentId = viewModel.findDocumentIdByName(link)
+                        if (documentId != null) {
+                            navController.navigate(NavTargetRouter.routeOf(NavTarget.NoteDocument(id = documentId, startEdit = false)))
+                            return@launch
+                        }
+                        val musicNoteId = viewModel.findMusicNoteIdByName(link)
+                        if (musicNoteId != null) {
+                            navController.navigate(NavTargetRouter.routeOf(NavTarget.MusicNote(id = musicNoteId, startEdit = false)))
+                            return@launch
+                        }
+                        val checklistId = viewModel.findChecklistIdByName(link)
+                        if (checklistId != null) {
+                            navController.navigate(NavTargetRouter.routeOf(NavTarget.Checklist(id = checklistId, contextId = null)))
+                            return@launch
+                        }
+                        val contextId = viewModel.findContextIdByName(link)
+                        if (contextId != null) {
+                            navController.navigate(NavTargetRouter.routeOf(NavTarget.ContextDetail(contextId = contextId)))
+                            return@launch
+                        }
+                        viewModel.universalEditorViewModel.showError("Не зміг відкрити вкладення \"$link\"")
                     }
                 }
             }
         },
         linkSuggestions = viewModel.linkSuggestions.collectAsStateWithLifecycle().value,
+        contextSuggestions = viewModel.contextSuggestions.collectAsStateWithLifecycle().value,
         viewModel = viewModel.universalEditorViewModel,
         navController = navController,
         contentFocusRequester = focusRequester,

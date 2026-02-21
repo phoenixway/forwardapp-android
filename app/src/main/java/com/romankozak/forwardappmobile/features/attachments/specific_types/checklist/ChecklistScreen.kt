@@ -106,6 +106,19 @@ import sh.calvin.reorderable.ReorderableLazyListState
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import java.net.URLEncoder
 
+private data class ChecklistTypedWikiLink(
+    val type: String,
+    val targetId: String,
+)
+
+private fun parseChecklistTypedWikiLink(raw: String): ChecklistTypedWikiLink? {
+    val match = Regex("""^(doc|ctx|music|checklist):([^|]+)(?:\|(.+))?$""", RegexOption.IGNORE_CASE).matchEntire(raw.trim()) ?: return null
+    return ChecklistTypedWikiLink(
+        type = match.groupValues[1].lowercase(),
+        targetId = match.groupValues[2].trim(),
+    )
+}
+
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ChecklistScreen(
@@ -293,6 +306,16 @@ fun ChecklistScreen(
                                     navController.navigate(NavTargetRouter.routeOf(target))
                                 }
                                 else -> {
+                                    val typed = parseChecklistTypedWikiLink(link)
+                                    if (typed != null) {
+                                        when (typed.type) {
+                                            "doc" -> navController.navigate(NavTargetRouter.routeOf(NavTarget.NoteDocument(id = typed.targetId, startEdit = false)))
+                                            "ctx" -> navController.navigate(NavTargetRouter.routeOf(NavTarget.ContextDetail(contextId = typed.targetId)))
+                                            "music" -> navController.navigate(NavTargetRouter.routeOf(NavTarget.MusicNote(id = typed.targetId, startEdit = false)))
+                                            "checklist" -> navController.navigate(NavTargetRouter.routeOf(NavTarget.Checklist(id = typed.targetId, contextId = null)))
+                                        }
+                                        return@launch
+                                    }
                                     val targetId = viewModel.findDocumentIdByName(link)
                                     if (targetId != null) {
                                         val target = NavTarget.NoteDocument(id = targetId, startEdit = false)
@@ -775,7 +798,7 @@ private fun ChecklistReadOnlyText(
                     }
                     val linkValue = match.groupValues[1]
                     val start = length
-                    append(linkValue)
+                    append(extractChecklistWikiDisplay(linkValue))
                     val end = length
                     addStyle(
                         style = SpanStyle(color = accentColor, textDecoration = TextDecoration.Underline),
@@ -808,4 +831,12 @@ private fun ChecklistReadOnlyText(
             }
         },
     )
+}
+
+private fun extractChecklistWikiDisplay(raw: String): String {
+    val trimmed = raw.trim()
+    val parts = trimmed.split("|", limit = 2)
+    if (parts.size == 2 && parts[1].isNotBlank()) return parts[1]
+    val typed = Regex("""^(doc|ctx|music|checklist):(.+)$""", RegexOption.IGNORE_CASE).matchEntire(trimmed)
+    return typed?.groupValues?.get(2)?.takeIf { it.isNotBlank() } ?: trimmed
 }

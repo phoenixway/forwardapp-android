@@ -24,6 +24,8 @@ class ChecklistRepository
 
         fun getAllChecklistsAsFlow(): Flow<List<ChecklistEntity>> = checklistDao.getAllChecklistsAsFlow()
 
+        suspend fun findByName(name: String): ChecklistEntity? = checklistDao.findByName(name)
+
         suspend fun getChecklistById(id: String): ChecklistEntity? = checklistDao.getChecklistById(id)
 
         fun observeChecklistById(id: String): Flow<ChecklistEntity?> = checklistDao.observeChecklistById(id)
