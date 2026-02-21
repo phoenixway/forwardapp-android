@@ -218,10 +218,9 @@ fun ChecklistScreen(
             )
         },
         floatingActionButton = {
-            if (!uiState.isLoading && uiState.errorMessage == null) {
+            if (!uiState.isLoading && uiState.errorMessage == null && uiState.isEditing) {
                 FloatingActionButton(
                     onClick = { viewModel.onAddItem(uiState.items.lastOrNull()?.id) },
-                    enabled = uiState.isEditing,
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Add,
