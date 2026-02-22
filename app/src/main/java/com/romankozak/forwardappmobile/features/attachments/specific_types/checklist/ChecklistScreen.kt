@@ -702,12 +702,14 @@ private fun ChecklistItemRow(
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     var hasInputFocus by remember(item.id) { mutableStateOf(false) }
+    var wasFocusedAtLeastOnce by remember(item.id) { mutableStateOf(false) }
 
     val hapticFeedback = LocalHapticFeedback.current
 
     LaunchedEffect(shouldRequestFocus) {
         if (shouldRequestFocus) {
             hasInputFocus = true
+            wasFocusedAtLeastOnce = false
             onFocusConsumed()
         }
     }
@@ -783,7 +785,14 @@ private fun ChecklistItemRow(
                                 Modifier
                                     .fillMaxWidth()
                                     .focusRequester(focusRequester)
-                                    .onFocusChanged { state -> hasInputFocus = state.isFocused }
+                                    .onFocusChanged { state ->
+                                        if (state.isFocused) {
+                                            wasFocusedAtLeastOnce = true
+                                            hasInputFocus = true
+                                        } else if (wasFocusedAtLeastOnce) {
+                                            hasInputFocus = false
+                                        }
+                                    }
                                     .onKeyEvent { event ->
 
                                         if (event.type == KeyEventType.KeyUp && event.key == Key.Enter) {
