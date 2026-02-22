@@ -112,8 +112,7 @@ object ContextRoleRegistry {
                 ),
             ROLE_DEFAULT to
                 setOf(
-                    CapabilityId("inbox"),
-                    CapabilityId("log"),
+                    CapabilityId("dashboard"),
                 ),
         )
 

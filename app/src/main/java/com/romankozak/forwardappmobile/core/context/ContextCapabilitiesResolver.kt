@@ -10,12 +10,14 @@ class ContextCapabilitiesResolver {
         val roleCapabilities = if (useRoleDefaults) ContextRoleRegistry.getCapabilitiesForRole(config.basePresetCode) else emptySet()
         val useLegacyDefaults = shouldUseLegacyDefaults(config)
         return buildSet {
-            // Legacy capabilities: explicit false in config overrides role defaults.
-            if (isEnabled(roleCapabilities, "inbox", config.enableInbox, defaultEnabled = useLegacyDefaults)) add(CapabilityId("inbox"))
-            if (isEnabled(roleCapabilities, "log", config.enableLog, defaultEnabled = useLegacyDefaults)) add(CapabilityId("log"))
+            // Legacy capabilities:
+            // - for contexts without role/preset we keep only dashboard as the safe default;
+            // - explicit overrides in config still win.
+            if (isEnabled(roleCapabilities, "inbox", config.enableInbox, defaultEnabled = false)) add(CapabilityId("inbox"))
+            if (isEnabled(roleCapabilities, "log", config.enableLog, defaultEnabled = false)) add(CapabilityId("log"))
             if (isEnabled(roleCapabilities, "dashboard", config.enableDashboard, defaultEnabled = useLegacyDefaults)) add(CapabilityId("dashboard"))
-            if (isEnabled(roleCapabilities, "backlog", config.enableBacklog, defaultEnabled = useLegacyDefaults)) add(CapabilityId("backlog"))
-            if (isEnabledAny(roleCapabilities, setOf("attachments", "connections"), config.enableAttachments, defaultEnabled = useLegacyDefaults)) {
+            if (isEnabled(roleCapabilities, "backlog", config.enableBacklog, defaultEnabled = false)) add(CapabilityId("backlog"))
+            if (isEnabledAny(roleCapabilities, setOf("attachments", "connections"), config.enableAttachments, defaultEnabled = false)) {
                 add(CapabilityId("connections"))
             }
             if (isEnabled(roleCapabilities, "advanced", config.enableAdvanced, defaultEnabled = false)) add(CapabilityId("advanced"))

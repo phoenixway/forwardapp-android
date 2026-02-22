@@ -1708,3 +1708,29 @@ val MIGRATION_110_111 =
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_music_notes_contextId` ON `music_notes` (`contextId`)")
         }
     }
+
+val MIGRATION_111_112 =
+    object : Migration(111, 112) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                UPDATE `context_structures`
+                SET
+                    `enable_inbox` = 0,
+                    `enable_log` = 0,
+                    `enable_backlog` = 0,
+                    `enable_attachments` = 0,
+                    `enable_advanced` = 0,
+                    `enable_artifact` = 0,
+                    `enable_dashboard` = 1,
+                    `updatedAt` = CAST(strftime('%s','now') AS INTEGER) * 1000
+                WHERE lower(trim(`base_preset_code`)) = 'default'
+                  AND `contextId` IN (
+                        SELECT `id`
+                        FROM `contexts`
+                        WHERE `role_code` IS NULL OR trim(`role_code`) = ''
+                  )
+                """.trimIndent(),
+            )
+        }
+    }
