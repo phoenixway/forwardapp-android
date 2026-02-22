@@ -81,6 +81,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
@@ -700,13 +701,20 @@ private fun ChecklistItemRow(
 ) {
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    var hasInputFocus by remember(item.id) { mutableStateOf(false) }
 
     val hapticFeedback = LocalHapticFeedback.current
 
     LaunchedEffect(shouldRequestFocus) {
         if (shouldRequestFocus) {
-            focusRequester.requestFocus()
+            hasInputFocus = true
             onFocusConsumed()
+        }
+    }
+
+    LaunchedEffect(hasInputFocus) {
+        if (hasInputFocus) {
+            focusRequester.requestFocus()
         }
     }
 
@@ -765,48 +773,75 @@ private fun ChecklistItemRow(
             }
 
             if (isEditing) {
-                OutlinedTextField(
-                    value = item.content,
-                    onValueChange = onContentChange,
-                    modifier =
+                Column(modifier = Modifier.weight(1f)) {
+                    if (hasInputFocus) {
+                        OutlinedTextField(
+                            value = item.content,
+                            onValueChange = onContentChange,
+                            modifier =
 
-                        Modifier
-                            .weight(1f)
-                            .focusRequester(focusRequester)
-                            .onKeyEvent { event ->
+                                Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(focusRequester)
+                                    .onFocusChanged { state -> hasInputFocus = state.isFocused }
+                                    .onKeyEvent { event ->
 
-                                if (event.type == KeyEventType.KeyUp && event.key == Key.Enter) {
-                                    onAddBelow()
+                                        if (event.type == KeyEventType.KeyUp && event.key == Key.Enter) {
+                                            onAddBelow()
 
-                                    true
-                                } else if (event.type == KeyEventType.KeyUp && event.key == Key.Tab) {
-                                    focusManager.clearFocus()
+                                            true
+                                        } else if (event.type == KeyEventType.KeyUp && event.key == Key.Tab) {
+                                            focusManager.clearFocus()
 
-                                    false
-                                } else {
-                                    false
-                                }
+                                            false
+                                        } else {
+                                            false
+                                        }
+                                    },
+                            placeholder = {
+                                Text(
+                                    text = stringResource(R.string.checklist_item_placeholder),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                )
                             },
-                    placeholder = {
+                            minLines = 1,
+                            maxLines = 10,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                            keyboardActions = KeyboardActions(onNext = { onAddBelow() }),
+                            colors =
+                                OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color.Transparent,
+                                    unfocusedBorderColor = Color.Transparent,
+                                    disabledBorderColor = Color.Transparent,
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                ),
+                            textStyle = MaterialTheme.typography.bodyMedium,
+                        )
+                    } else if (item.content.isBlank()) {
                         Text(
                             text = stringResource(R.string.checklist_item_placeholder),
                             style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        hasInputFocus = true
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 14.dp),
                         )
-                    },
-                    minLines = 1,
-                    maxLines = 10,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    keyboardActions = KeyboardActions(onNext = { onAddBelow() }),
-                    colors =
-                        OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.Transparent,
-                            unfocusedBorderColor = Color.Transparent,
-                            disabledBorderColor = Color.Transparent,
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                        ),
-                    textStyle = MaterialTheme.typography.bodyMedium,
-                )
+                    } else {
+                        ChecklistReadOnlyText(
+                            text = item.content,
+                            onWikiLinkClick = onWikiLinkClick,
+                            onPlainTextClick = {
+                                hasInputFocus = true
+                            },
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                        )
+                    }
+                }
             } else {
                 ChecklistReadOnlyText(
                     text = item.content,
@@ -842,6 +877,7 @@ private fun ChecklistItemRow(
 private fun ChecklistReadOnlyText(
     text: String,
     onWikiLinkClick: (String) -> Unit,
+    onPlainTextClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val accentColor = MaterialTheme.colorScheme.primary
@@ -888,9 +924,8 @@ private fun ChecklistReadOnlyText(
         modifier = modifier,
         style = MaterialTheme.typography.bodyMedium.copy(color = textColor),
         onClick = { offset ->
-            annotatedText.getStringAnnotations("wikilink", offset, offset).firstOrNull()?.let { link ->
-                onWikiLinkClick(link.item)
-            }
+            val link = annotatedText.getStringAnnotations("wikilink", offset, offset).firstOrNull()
+            if (link != null) onWikiLinkClick(link.item) else onPlainTextClick()
         },
     )
 }
