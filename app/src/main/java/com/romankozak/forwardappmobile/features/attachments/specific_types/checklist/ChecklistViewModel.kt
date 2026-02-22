@@ -6,13 +6,18 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistItemEntity
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -43,6 +48,8 @@ class ChecklistViewModel
     constructor(
         private val checklistRepository: ChecklistRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
+        private val musicNoteRepository: MusicNoteRepository,
+        private val contextRepository: ContextRepository,
         private val recentItemsRepository: RecentItemsRepository,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
@@ -59,6 +66,27 @@ class ChecklistViewModel
         private val projectId: String? = savedStateHandle.get<String>("projectId")
 
         private var hasLoggedAccess = false
+
+        val linkSuggestions: StateFlow<List<String>> =
+            combine(
+                noteDocumentRepository.getAllDocumentsAsFlow(),
+                musicNoteRepository.getAllMusicNotesAsFlow(),
+                checklistRepository.getAllChecklistsAsFlow(),
+                contextRepository.getAllContextsFlow(),
+            ) { docs, musicNotes, checklists, contexts ->
+                (docs.map { doc -> "doc:${doc.id}|${doc.name.ifBlank { "Untitled" }}" } +
+                    musicNotes.map { note -> "music:${note.id}|${note.name.ifBlank { "Untitled" }}" } +
+                    checklists.map { checklist -> "checklist:${checklist.id}|${checklist.name.ifBlank { "Untitled" }}" } +
+                    contexts.map { ctx -> "ctx:${ctx.id}|${ctx.name.ifBlank { "Untitled" }}" })
+                    .filter { token -> token.substringAfter('|', "").isNotBlank() }
+                    .distinct()
+            }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+        val contextSuggestions: StateFlow<List<String>> =
+            contextRepository.getAllContextsFlow()
+                .map { contexts ->
+                    contexts.map { it.name }.filter { it.isNotBlank() }.distinct()
+                }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
         init {
             viewModelScope.launch {
@@ -340,6 +368,17 @@ class ChecklistViewModel
         }
 
         suspend fun findDocumentIdByName(name: String): String? = noteDocumentRepository.findDocumentByName(name)?.id
+
+        fun insertLinkIntoItem(
+            itemId: String,
+            linkToken: String,
+        ) {
+            val entity = itemsById.value[itemId] ?: return
+            val insertion = "[[$linkToken]]"
+            val separator = if (entity.content.isBlank() || entity.content.endsWith(" ")) "" else " "
+            val newContent = entity.content + separator + insertion
+            onItemContentChange(itemId, newContent)
+        }
 
         private fun normalizeOrder(items: List<ChecklistItemUiModel>) {
             viewModelScope.launch {

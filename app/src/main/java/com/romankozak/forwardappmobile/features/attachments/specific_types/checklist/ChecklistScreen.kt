@@ -7,6 +7,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -31,6 +34,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.ContentCopy
@@ -134,6 +139,7 @@ fun ChecklistScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val clipboardManager = LocalClipboardManager.current
     val coroutineScope = rememberCoroutineScope()
+    val linkSuggestions by viewModel.linkSuggestions.collectAsStateWithLifecycle()
 
     LaunchedEffect(uiState.showUndoSnackbar) {
         if (uiState.showUndoSnackbar) {
@@ -153,6 +159,8 @@ fun ChecklistScreen(
     val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableStateOf<ChecklistItemUiModel?>(null) }
+    var showAttachmentPicker by remember { mutableStateOf(false) }
+    var showContextPicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.pendingFocusItemId, uiState.items) {
         val targetId = uiState.pendingFocusItemId ?: return@LaunchedEffect
@@ -183,8 +191,60 @@ fun ChecklistScreen(
                             selectedItem?.let { viewModel.onDeleteItem(it.id) }
                         },
                 )
+                ListItem(
+                    headlineContent = { Text("Додати посилання на вкладення") },
+                    leadingContent = {
+                        Icon(
+                            Icons.Default.AttachFile,
+                            contentDescription = "Вкладення",
+                        )
+                    },
+                    modifier =
+                        Modifier.clickable {
+                            showBottomSheet = false
+                            showAttachmentPicker = true
+                        },
+                )
+                ListItem(
+                    headlineContent = { Text("Додати посилання на контекст") },
+                    leadingContent = {
+                        Icon(
+                            Icons.Default.AccountTree,
+                            contentDescription = "Контекст",
+                        )
+                    },
+                    modifier =
+                        Modifier.clickable {
+                            showBottomSheet = false
+                            showContextPicker = true
+                        },
+                )
             }
         }
+    }
+
+    if (showAttachmentPicker) {
+        ChecklistLinkPickerDialog(
+            title = "Виберіть вкладення",
+            suggestions = linkSuggestions.filterNot { it.startsWith("ctx:", ignoreCase = true) },
+            onDismiss = { showAttachmentPicker = false },
+            onSelect = { token ->
+                selectedItem?.let { item -> viewModel.insertLinkIntoItem(item.id, token) }
+                showAttachmentPicker = false
+            },
+        )
+    }
+
+    if (showContextPicker) {
+        ChecklistLinkPickerDialog(
+            title = "Виберіть контекст",
+            suggestions = linkSuggestions.filter { it.startsWith("ctx:", ignoreCase = true) },
+            onDismiss = { showContextPicker = false },
+            onSelect = { token ->
+                selectedItem?.let { item -> viewModel.insertLinkIntoItem(item.id, token) }
+                showContextPicker = false
+            },
+        )
     }
 
     Scaffold(
@@ -830,6 +890,62 @@ private fun ChecklistReadOnlyText(
                 onWikiLinkClick(link.item)
             }
         },
+    )
+}
+
+@Composable
+private fun ChecklistLinkPickerDialog(
+    title: String,
+    suggestions: List<String>,
+    onDismiss: () -> Unit,
+    onSelect: (String) -> Unit,
+) {
+    var query by remember { mutableStateOf("") }
+    val filtered =
+        remember(query, suggestions) {
+            if (query.isBlank()) {
+                suggestions.take(24)
+            } else {
+                suggestions.filter {
+                    extractChecklistWikiDisplay(it).contains(query, ignoreCase = true) || it.contains(query, ignoreCase = true)
+                }.take(24)
+            }
+        }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    placeholder = { Text("Пошук...") },
+                )
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 320.dp)
+                            .verticalScroll(rememberScrollState()),
+                ) {
+                    filtered.forEach { token ->
+                        Text(
+                            text = extractChecklistWikiDisplay(token),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onSelect(token) }
+                                    .padding(horizontal = 6.dp, vertical = 10.dp),
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Закрити") } },
     )
 }
 

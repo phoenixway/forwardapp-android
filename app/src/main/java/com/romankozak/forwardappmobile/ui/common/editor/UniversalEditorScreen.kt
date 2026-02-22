@@ -103,6 +103,8 @@ fun UniversalEditorScreen(
     }
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showAttachmentPicker by remember { mutableStateOf(false) }
+    var showContextPicker by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -165,6 +167,50 @@ fun UniversalEditorScreen(
         )
     }
 
+    if (showAttachmentPicker) {
+        LinkPickerDialog(
+            title = "Виберіть вкладення",
+            suggestions = linkSuggestions.filterNot { it.startsWith("ctx:", ignoreCase = true) },
+            onDismiss = { showAttachmentPicker = false },
+            onSelect = { token ->
+                val current = uiState.content
+                val insertion = "[[$token]]"
+                val start = current.selection.start
+                val end = current.selection.end
+                val newText = current.text.replaceRange(start, end, insertion)
+                val newCursor = start + insertion.length
+                viewModel.onContentChange(TextFieldValue(newText, TextRange(newCursor)))
+                showAttachmentPicker = false
+            },
+        )
+    }
+
+    if (showContextPicker) {
+        val contextTokens =
+            linkSuggestions.filter { it.startsWith("ctx:", ignoreCase = true) }
+                .ifEmpty { contextSuggestions.map { "ctx:unknown|$it" } }
+        LinkPickerDialog(
+            title = "Виберіть контекст",
+            suggestions = contextTokens,
+            onDismiss = { showContextPicker = false },
+            onSelect = { token ->
+                val current = uiState.content
+                val insertion =
+                    if (token.startsWith("ctx:unknown|")) {
+                        "@${token.substringAfter('|')} "
+                    } else {
+                        "[[$token]]"
+                    }
+                val start = current.selection.start
+                val end = current.selection.end
+                val newText = current.text.replaceRange(start, end, insertion)
+                val newCursor = start + insertion.length
+                viewModel.onContentChange(TextFieldValue(newText, TextRange(newCursor)))
+                showContextPicker = false
+            },
+        )
+    }
+
     Scaffold(
         modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerLow).imePadding(),
         topBar = {
@@ -183,6 +229,9 @@ fun UniversalEditorScreen(
                 onShare = viewModel::onShare,
                 onShowLocation = viewModel::onShowLocation,
                 showLocationEnabled = uiState.projectId != null,
+                canInsertLinks = uiState.isEditing && (linkSuggestions.isNotEmpty() || contextSuggestions.isNotEmpty()),
+                onInsertAttachmentLink = { showAttachmentPicker = true },
+                onInsertContextLink = { showContextPicker = true },
             )
         },
         bottomBar = {
@@ -298,6 +347,9 @@ private fun EditorTopAppBar(
     onShare: () -> Unit,
     onShowLocation: () -> Unit,
     showLocationEnabled: Boolean,
+    canInsertLinks: Boolean,
+    onInsertAttachmentLink: () -> Unit,
+    onInsertContextLink: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -327,6 +379,24 @@ private fun EditorTopAppBar(
                         onClick = {
                             menuExpanded = false
                             onShowLocation()
+                        },
+                    )
+                }
+                if (canInsertLinks) {
+                    DropdownMenuItem(
+                        text = { Text("Вставити посилання на вкладення") },
+                        leadingIcon = { Icon(Icons.Default.AttachFile, contentDescription = null) },
+                        onClick = {
+                            menuExpanded = false
+                            onInsertAttachmentLink()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Вставити посилання на контекст") },
+                        leadingIcon = { Icon(Icons.Default.AccountTree, contentDescription = null) },
+                        onClick = {
+                            menuExpanded = false
+                            onInsertContextLink()
                         },
                     )
                 }
@@ -668,6 +738,64 @@ private fun ShowToolbarButton(onClick: () -> Unit) {
             }
         }
     }
+}
+
+@Composable
+private fun LinkPickerDialog(
+    title: String,
+    suggestions: List<String>,
+    onDismiss: () -> Unit,
+    onSelect: (String) -> Unit,
+) {
+    var query by remember { mutableStateOf("") }
+    val filtered =
+        remember(query, suggestions) {
+            if (query.isBlank()) {
+                suggestions.take(24)
+            } else {
+                suggestions.filter {
+                    extractWikiLinkDisplay(it).contains(query, ignoreCase = true) || it.contains(query, ignoreCase = true)
+                }.take(24)
+            }
+        }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    placeholder = { Text("Пошук...") },
+                )
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 320.dp)
+                            .verticalScroll(rememberScrollState()),
+                ) {
+                    filtered.forEach { token ->
+                        Text(
+                            text = extractWikiLinkDisplay(token),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onSelect(token) }
+                                    .padding(horizontal = 6.dp, vertical = 10.dp),
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Закрити") }
+        },
+    )
 }
 
 private fun extractWikiLinkDisplay(raw: String): String {
