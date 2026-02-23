@@ -115,6 +115,10 @@ fun ConnectionsView(
                 }
             },
             onConnectionRemove = { item ->
+                val attachmentId = attachmentIdFromConnectionId(item.id) ?: return@ConnectionsPanel
+                viewModel.unlinkAttachmentFromCurrentContextById(attachmentId)
+            },
+            onConnectionDeleteEverywhere = { item ->
                 val directItem = attachmentByConnectionId[item.id]
                 if (directItem != null) {
                     viewModel.onDeleteEverywhere(directItem)

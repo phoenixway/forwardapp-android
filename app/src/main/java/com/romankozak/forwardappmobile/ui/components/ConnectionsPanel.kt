@@ -39,6 +39,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,6 +57,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.romankozak.forwardappmobile.ui.components.connectionspanel.ConnectionsCreateActionsDialog
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -104,6 +107,7 @@ fun ConnectionsPanel(
     items: List<ConnectionItemUi>,
     onConnectionClick: (ConnectionItemUi) -> Unit,
     onConnectionRemove: (ConnectionItemUi) -> Unit,
+    onConnectionDeleteEverywhere: ((ConnectionItemUi) -> Unit)? = null,
     onConnectionCopy: ((ConnectionItemUi) -> Unit)? = null,
     onConnectionCut: ((ConnectionItemUi) -> Unit)? = null,
     onAddConnection: (AddConnectionType) -> Unit,
@@ -116,6 +120,7 @@ fun ConnectionsPanel(
 ) {
     val hapticFeedback = LocalHapticFeedback.current
     var showCreateActionsDialog by remember { mutableStateOf(false) }
+    var pendingRemovalItem by remember { mutableStateOf<ConnectionItemUi?>(null) }
     var internalItems by remember { mutableStateOf(items) }
     val lazyListState = rememberLazyListState()
     val reorderableState =
@@ -204,7 +209,7 @@ fun ConnectionsPanel(
                             ConnectionRow(
                                 item = item,
                                 onOpen = { onConnectionClick(item) },
-                                onRemove = { onConnectionRemove(item) },
+                                onRemoveRequest = { pendingRemovalItem = item },
                                 onCopy = onConnectionCopy?.let { { it(item) } },
                                 onCut = onConnectionCut?.let { { it(item) } },
                                 mode = mode,
@@ -234,13 +239,28 @@ fun ConnectionsPanel(
             },
         )
     }
+
+    pendingRemovalItem?.let { item ->
+        DeleteConnectionDialog(
+            item = item,
+            onDismiss = { pendingRemovalItem = null },
+            onDeleteEverywhere = {
+                (onConnectionDeleteEverywhere ?: onConnectionRemove)(item)
+                pendingRemovalItem = null
+            },
+            onDeleteFromListOnly = {
+                onConnectionRemove(item)
+                pendingRemovalItem = null
+            },
+        )
+    }
 }
 
 @Composable
 private fun ConnectionRow(
     item: ConnectionItemUi,
     onOpen: () -> Unit,
-    onRemove: () -> Unit,
+    onRemoveRequest: () -> Unit,
     onCopy: (() -> Unit)? = null,
     onCut: (() -> Unit)? = null,
     mode: ConnectionPanelMode = ConnectionPanelMode.COMPACT,
@@ -289,7 +309,7 @@ private fun ConnectionRow(
                         ConnectionActionsRow(
                             onCopy = onCopy,
                             onCut = onCut,
-                            onRemove = onRemove,
+                            onRemove = onRemoveRequest,
                         )
                     }
                 }
@@ -298,7 +318,7 @@ private fun ConnectionRow(
                     ConnectionActionsRow(
                         onCopy = onCopy,
                         onCut = onCut,
-                        onRemove = onRemove,
+                        onRemove = onRemoveRequest,
                     )
                 }
             }
@@ -307,6 +327,67 @@ private fun ConnectionRow(
             modifier = Modifier.padding(horizontal = 12.dp),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
         )
+    }
+}
+
+@Composable
+private fun DeleteConnectionDialog(
+    item: ConnectionItemUi,
+    onDismiss: () -> Unit,
+    onDeleteEverywhere: () -> Unit,
+    onDeleteFromListOnly: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = true),
+    ) {
+        ElevatedCard(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = "Видалити зв'язок?",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = item.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(onClick = onDeleteEverywhere) {
+                        Text(text = "Видалити всюди", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(onClick = onDeleteFromListOnly) {
+                        Text(text = "Видалити з цього списку")
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text(text = "Відмінити")
+                    }
+                }
+            }
+        }
     }
 }
 

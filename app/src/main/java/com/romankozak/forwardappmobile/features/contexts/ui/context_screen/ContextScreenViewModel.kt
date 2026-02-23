@@ -861,6 +861,16 @@ class ContextScreenViewModel
                 forceRefresh()
             }
 
+        fun unlinkAttachmentFromCurrentContextById(attachmentId: String) =
+            viewModelScope.launch {
+                if (attachmentId.isBlank()) return@launch
+                val currentContextId = contextIdFlow.value
+                if (currentContextId.isBlank()) return@launch
+                contextRepository.unlinkAttachmentFromContext(currentContextId, attachmentId)
+                showSnackbar("Зв'язок видалено з цього списку", null)
+                forceRefresh()
+            }
+
         suspend fun createRootContextForPicker(name: String): String? {
             val trimmed = name.trim()
             if (trimmed.isBlank()) return null
