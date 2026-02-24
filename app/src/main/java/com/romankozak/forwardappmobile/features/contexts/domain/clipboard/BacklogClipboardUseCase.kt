@@ -1060,15 +1060,14 @@ class BacklogClipboardUseCase
 
             val requestedContextIds = refs.map { it.contextId }.distinct()
             val existingTargets = mutableSetOf<String>()
-            contextRepository
-                .getAttachmentsForContextStream(targetContextId)
-                .first()
-                .asSequence()
-                .filter { it.attachment.attachmentType == BacklogItemTypeValues.LINK_ITEM }
-                .mapNotNull { attachment ->
-                    listItemRepository.getLinkItemById(attachment.attachment.entityId)?.linkData
-                }.filter { link -> link.type == LinkType.CONTEXT }
-                .mapTo(existingTargets) { it.target }
+            val existingAttachments = contextRepository.getAttachmentsForContextStream(targetContextId).first()
+            for (attachment in existingAttachments) {
+                if (attachment.attachment.attachmentType != BacklogItemTypeValues.LINK_ITEM) continue
+                val linkData = listItemRepository.getLinkItemById(attachment.attachment.entityId)?.linkData ?: continue
+                if (linkData.type == LinkType.CONTEXT) {
+                    existingTargets += linkData.target
+                }
+            }
 
             var created = 0
             var duplicates = 0
