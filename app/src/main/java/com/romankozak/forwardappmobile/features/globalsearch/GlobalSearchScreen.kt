@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
@@ -18,13 +19,16 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.outlined.MoveToInbox
@@ -47,16 +51,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
-import com.romankozak.forwardappmobile.core.data.models.entities.GlobalGoalSearchResult
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
-import com.romankozak.forwardappmobile.features.globalsearch.components.InboxSearchResultItem
-import com.romankozak.forwardappmobile.features.globalsearch.components.LinkSearchResultItem
-import com.romankozak.forwardappmobile.features.globalsearch.components.ProjectSearchResultItem
-import com.romankozak.forwardappmobile.features.globalsearch.components.SearchResultItem
-import com.romankozak.forwardappmobile.features.globalsearch.components.SubprojectSearchResultItem
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
@@ -364,6 +361,7 @@ private fun EmptySearchContent(
 }
 
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 private fun SearchResultsContent(
     results: List<GlobalSearchResultItem>,
     viewModel: GlobalSearchViewModel,
@@ -373,97 +371,126 @@ private fun SearchResultsContent(
     modifier: Modifier = Modifier,
 ) {
     val haptic = LocalHapticFeedback.current
+    val formatter = remember { SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()) }
+    val groupedResults = remember(results) {
+        results
+            .groupBy { it.groupKey() }
+            .map { (key, items) ->
+                val presentation = items.first().typePresentation()
+                ResultGroup(key = key, presentation = presentation, items = items)
+            }
+    }
 
     LazyColumn(
         modifier = modifier,
         state = listState,
         contentPadding = PaddingValues(vertical = 8.dp),
     ) {
-        itemsIndexed(
-            items = results,
-            key = { _, result -> result.uniqueId },
-        ) { index, result ->
-            AnimatedVisibility(
-                visible = true,
-                enter =
-                    slideInVertically(
-                        animationSpec =
-                            spring(
-                                dampingRatio = 0.7f,
-                                stiffness = 300f,
-                            ),
-                        initialOffsetY = { it / 2 },
-                    ) +
-                        fadeIn(
+        groupedResults.forEach { group ->
+            stickyHeader(key = "header_${group.key}") {
+                SearchResultGroupHeader(
+                    presentation = group.presentation,
+                    count = group.items.size,
+                )
+            }
+
+            itemsIndexed(
+                items = group.items,
+                key = { _, result -> result.uniqueId },
+            ) { index, result ->
+                AnimatedVisibility(
+                    visible = true,
+                    enter =
+                        slideInVertically(
                             animationSpec =
-                                tween(
-                                    durationMillis = 300,
-                                    delayMillis = index * 40,
+                                spring(
+                                    dampingRatio = 0.7f,
+                                    stiffness = 300f,
                                 ),
-                        ),
-            ) {
-                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-                    when (result) {
+                            initialOffsetY = { it / 2 },
+                        ) +
+                            fadeIn(
+                                animationSpec =
+                                    tween(
+                                        durationMillis = 300,
+                                        delayMillis = index * 35,
+                                    ),
+                            ),
+                ) {
+                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                        val typePresentation = result.typePresentation()
+                        when (result) {
                         is GlobalSearchResultItem.GoalItem -> {
-                            val searchResult =
-                                GlobalGoalSearchResult(
-                                    goal = result.goal,
-                                    contextId = result.backlogItem.contextId,
-                                    contextName = result.projectName,
-                                    pathSegments = result.pathSegments,
-                                )
-                            SearchResultItem(
-                                result = searchResult,
-                                onOpenAsProject = {
+                            UnifiedSearchResultCard(
+                                presentation = typePresentation,
+                                title = result.goal.text,
+                                subtitle = result.goal.description,
+                                supporting = result.pathSegments.joinToString(" → ").ifBlank { result.projectName },
+                                onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    viewModel.navigateToProjectForResult(searchResult.contextId, searchResult.contextName)
+                                    viewModel.navigateToProjectForResult(result.backlogItem.contextId, result.projectName)
                                 },
-                                onOpenInNavigation = {
+                                secondaryActionIcon = Icons.Default.Navigation,
+                                secondaryActionDescription = "Відкрити в навігації",
+                                onSecondaryAction = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    viewModel.goBackToRevealProject(searchResult.contextId)
+                                    viewModel.goBackToRevealProject(result.backlogItem.contextId)
                                 },
                             )
                         }
                         is GlobalSearchResultItem.LinkItem -> {
                             val searchResult = result.searchResult
                             val linkData = searchResult.link.linkData
-                            LinkSearchResultItem(
-                                result = searchResult,
+                            val secondaryAction: (() -> Unit)? =
+                                when (linkData.type) {
+                                    LinkType.CONTEXT -> {
+                                        {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            viewModel.navigateToProjectForResult(linkData.target, null)
+                                        }
+                                    }
+                                    LinkType.URL,
+                                    LinkType.OBSIDIAN,
+                                    -> {
+                                        {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            handleRelatedLinkClick(
+                                                link = linkData,
+                                                obsidianVaultName = obsidianVaultName,
+                                                context = context,
+                                            )
+                                        }
+                                    }
+                                    null -> null
+                                }
+                            UnifiedSearchResultCard(
+                                presentation = typePresentation,
+                                title = linkData.displayName ?: linkData.target,
+                                subtitle = linkData.target,
+                                supporting = "Контекст: ${searchResult.contextName}",
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     viewModel.navigateToProjectForResult(searchResult.contextId, searchResult.contextName)
                                 },
-                                onGoToTargetProject = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    viewModel.navigateToProjectForResult(linkData.target, null)
-                                },
-                                onOpenInObsidian = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    handleRelatedLinkClick(
-                                        link = linkData,
-                                        obsidianVaultName = obsidianVaultName,
-                                        context = context,
-                                    )
-                                },
-                                onOpenUrl = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    handleRelatedLinkClick(
-                                        link = linkData,
-                                        obsidianVaultName = obsidianVaultName,
-                                        context = context,
-                                    )
-                                },
+                                secondaryActionIcon = if (secondaryAction != null) Icons.AutoMirrored.Filled.OpenInNew else null,
+                                secondaryActionDescription = "Додаткова дія",
+                                onSecondaryAction = secondaryAction,
                             )
                         }
                         is GlobalSearchResultItem.SubcontextItem -> {
                             val subproject = result.searchResult.subcontext
-                            SubprojectSearchResultItem(
-                                result = result.searchResult,
+                            UnifiedSearchResultCard(
+                                presentation = typePresentation,
+                                title = subproject.name,
+                                subtitle = "Батьківський контекст: ${result.searchResult.parentContextName}",
+                                supporting = result.searchResult.pathSegments.joinToString(" → "),
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     viewModel.navigateToProjectForResult(subproject.id, subproject.name)
                                 },
-                                onOpenInNavigation = {
+                                secondaryActionIcon = Icons.Default.Navigation,
+                                secondaryActionDescription = "Відкрити в навігації",
+                                onSecondaryAction = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     viewModel.goBackToRevealProject(subproject.id)
                                 },
@@ -471,13 +498,18 @@ private fun SearchResultsContent(
                         }
                         is GlobalSearchResultItem.ContextItem -> {
                             val project = result.searchResult.context
-                            ProjectSearchResultItem(
-                                result = result.searchResult,
+                            UnifiedSearchResultCard(
+                                presentation = typePresentation,
+                                title = project.name,
+                                subtitle = project.description,
+                                supporting = result.searchResult.pathSegments.joinToString(" → "),
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     viewModel.navigateToProjectForResult(project.id, project.name)
                                 },
-                                onOpenInNavigation = {
+                                secondaryActionIcon = Icons.Default.Navigation,
+                                secondaryActionDescription = "Відкрити в навігації",
+                                onSecondaryAction = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     viewModel.goBackToRevealProject(project.id)
                                 },
@@ -485,21 +517,57 @@ private fun SearchResultsContent(
                         }
 
                         is GlobalSearchResultItem.ActivityItem -> {
-                            ActivitySearchResultItem(record = result.record)
+                            UnifiedSearchResultCard(
+                                presentation = typePresentation,
+                                title = result.record.text,
+                                subtitle = result.record.noteText,
+                                supporting = "Трекер: ${formatter.format(Date(result.record.createdAt))}",
+                                onClick = {
+                                    val contextId = result.record.contextId
+                                    if (!contextId.isNullOrBlank()) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        viewModel.navigateToProjectForResult(contextId, null)
+                                    }
+                                },
+                                secondaryActionIcon = null,
+                                secondaryActionDescription = null,
+                                onSecondaryAction = null,
+                            )
                         }
                         is GlobalSearchResultItem.InboxItem -> {
-                            InboxSearchResultItem(
-                                record = result.record,
+                            UnifiedSearchResultCard(
+                                presentation = typePresentation,
+                                title = result.record.text,
+                                subtitle = null,
+                                supporting = "Inbox: ${formatter.format(Date(result.record.createdAt))}",
                                 onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.navigateToProjectForResult(result.record.contextId, null)
+                                },
+                                secondaryActionIcon = Icons.Default.ChevronRight,
+                                secondaryActionDescription = "Відкрити контекст",
+                                onSecondaryAction = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     viewModel.navigateToProjectForResult(result.record.contextId, null)
                                 },
                             )
                         }
                         is GlobalSearchResultItem.AttachmentItem -> {
-                            AttachmentSearchResultItem(
-                                searchResult = result.searchResult,
+                            UnifiedSearchResultCard(
+                                presentation = typePresentation,
+                                title = result.searchResult.title,
+                                subtitle = result.searchResult.subtitle,
+                                supporting = "Контекст: ${result.searchResult.contextName ?: "не вказано"}",
                                 onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    val contextId = result.searchResult.ownerContextId
+                                    if (!contextId.isNullOrBlank()) {
+                                        viewModel.navigateToProjectForResult(contextId, result.searchResult.contextName)
+                                    }
+                                },
+                                secondaryActionIcon = Icons.Default.ChevronRight,
+                                secondaryActionDescription = "Відкрити контекст",
+                                onSecondaryAction = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     val contextId = result.searchResult.ownerContextId
                                     if (!contextId.isNullOrBlank()) {
@@ -508,17 +576,150 @@ private fun SearchResultsContent(
                                 },
                             )
                         }
+                        }
+                        ResultTypeBadge(
+                            presentation = typePresentation,
+                            modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 8.dp),
+                        )
                     }
-                    ResultTypeBadge(
-                        presentation = result.typePresentation(),
-                        modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 8.dp),
-                    )
                 }
             }
         }
 
         item {
             Spacer(modifier = Modifier.height(80.dp))
+        }
+    }
+}
+
+@Composable
+private fun SearchResultGroupHeader(
+    presentation: ResultTypePresentation,
+    count: Int,
+) {
+    val (container, content) = resultBadgeColors(presentation.tone)
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                imageVector = presentation.icon,
+                contentDescription = presentation.label,
+                tint = content,
+                modifier = Modifier.size(14.dp),
+            )
+            Text(
+                text = presentation.label,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = container,
+            ) {
+                Text(
+                    text = count.toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = content,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun UnifiedSearchResultCard(
+    presentation: ResultTypePresentation,
+    title: String,
+    subtitle: String?,
+    supporting: String?,
+    onClick: () -> Unit,
+    secondaryActionIcon: ImageVector?,
+    secondaryActionDescription: String?,
+    onSecondaryAction: (() -> Unit)?,
+) {
+    val (badgeContainer, badgeContent) = resultBadgeColors(presentation.tone)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(16.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .size(34.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(badgeContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = presentation.icon,
+                    contentDescription = presentation.label,
+                    tint = badgeContent,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (!subtitle.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (!supporting.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = supporting,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+
+            if (secondaryActionIcon != null && onSecondaryAction != null) {
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(
+                    onClick = onSecondaryAction,
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(
+                        imageVector = secondaryActionIcon,
+                        contentDescription = secondaryActionDescription ?: "Action",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
         }
     }
 }
@@ -544,6 +745,23 @@ private enum class GlobalSearchFilter(val label: String) {
             Inbox -> item is GlobalSearchResultItem.InboxItem
         }
 }
+
+private data class ResultGroup(
+    val key: String,
+    val presentation: ResultTypePresentation,
+    val items: List<GlobalSearchResultItem>,
+)
+
+private fun GlobalSearchResultItem.groupKey(): String =
+    when (this) {
+        is GlobalSearchResultItem.AttachmentItem -> "attachments"
+        is GlobalSearchResultItem.ContextItem -> "contexts"
+        is GlobalSearchResultItem.SubcontextItem -> "subcontexts"
+        is GlobalSearchResultItem.GoalItem -> "goals"
+        is GlobalSearchResultItem.LinkItem -> "links"
+        is GlobalSearchResultItem.ActivityItem -> "activity"
+        is GlobalSearchResultItem.InboxItem -> "inbox"
+    }
 
 private fun GlobalSearchResultItem.typePresentation(): ResultTypePresentation =
     when (this) {
@@ -596,14 +814,7 @@ private fun ResultTypeBadge(
     presentation: ResultTypePresentation,
     modifier: Modifier = Modifier,
 ) {
-    val (container, content) =
-        when (presentation.tone) {
-            ResultBadgeTone.Primary -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
-            ResultBadgeTone.Secondary -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
-            ResultBadgeTone.Tertiary -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
-            ResultBadgeTone.Surface ->
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f) to MaterialTheme.colorScheme.onSurfaceVariant
-        }
+    val (container, content) = resultBadgeColors(presentation.tone)
 
     Surface(
         modifier = modifier,
@@ -630,6 +841,16 @@ private fun ResultTypeBadge(
         }
     }
 }
+
+@Composable
+private fun resultBadgeColors(tone: ResultBadgeTone) =
+    when (tone) {
+        ResultBadgeTone.Primary -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+        ResultBadgeTone.Secondary -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+        ResultBadgeTone.Tertiary -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+        ResultBadgeTone.Surface ->
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f) to MaterialTheme.colorScheme.onSurfaceVariant
+    }
 
 private data class ResultTypePresentation(
     val label: String,
@@ -664,68 +885,6 @@ private fun ResultsCountBadge(
     }
 }
 
-@Composable
-private fun ActivitySearchResultItem(record: ActivityRecord) {
-    val formatter = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-            ),
-        shape = RoundedCornerShape(16.dp),
-    ) {
-        Row(
-            modifier =
-                Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.History,
-                    contentDescription = "Запис трекера",
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                    modifier = Modifier.size(22.dp),
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = record.text,
-                    style =
-                        MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = FontWeight.SemiBold,
-                        ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = "Запис трекера від ${formatter.format(Date(record.createdAt))}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-}
-
 private fun handleRelatedLinkClick(
     link: RelatedLink,
     obsidianVaultName: String,
@@ -753,48 +912,5 @@ private fun handleRelatedLinkClick(
         }
     } catch (e: Exception) {
         Toast.makeText(context, "Не вдалося відкрити посилання.", Toast.LENGTH_LONG).show()
-    }
-}
-
-@Composable
-private fun AttachmentSearchResultItem(
-    searchResult: com.romankozak.forwardappmobile.core.data.models.entities.GlobalAttachmentSearchResult,
-    onClick: () -> Unit,
-) {
-    val subtitle = searchResult.subtitle
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        shape = RoundedCornerShape(16.dp),
-        onClick = onClick,
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = searchResult.title,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (!subtitle.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            if (!searchResult.contextName.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Контекст: ${searchResult.contextName}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
     }
 }
