@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -17,17 +18,25 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material.icons.outlined.MoveToInbox
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -71,6 +80,11 @@ fun GlobalSearchScreen(
 
     val showScrollToTopButton by remember {
         derivedStateOf { listState.firstVisibleItemIndex > 5 }
+    }
+    val filters = remember { GlobalSearchFilter.values().toList() }
+    var selectedFilter by remember { mutableStateOf(GlobalSearchFilter.All) }
+    val filteredResults by remember(uiState.results, selectedFilter) {
+        derivedStateOf { uiState.results.filter { selectedFilter.matches(it) } }
     }
 
     val loadingScale by animateFloatAsState(
@@ -127,12 +141,12 @@ fun GlobalSearchScreen(
                 },
                 actions = {
                     AnimatedVisibility(
-                        visible = !uiState.isLoading && uiState.results.isNotEmpty(),
+                        visible = !uiState.isLoading && filteredResults.isNotEmpty(),
                         enter = fadeIn(animationSpec = tween(delayMillis = 200)) + scaleIn(),
                         exit = fadeOut() + scaleOut(),
                     ) {
                         ResultsCountBadge(
-                            count = uiState.results.size,
+                            count = filteredResults.size,
                             modifier = Modifier.padding(end = 16.dp),
                         )
                     }
@@ -195,16 +209,39 @@ fun GlobalSearchScreen(
                     )
                 },
                 trailingIcon = {
-                    IconButton(onClick = viewModel::onSubmitSearch) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Запустити пошук",
-                        )
+                    Row {
+                        if (uiState.query.isNotBlank()) {
+                            IconButton(onClick = { viewModel.onQueryChange("") }) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "Очистити запит",
+                                )
+                            }
+                        }
+                        IconButton(onClick = viewModel::onSubmitSearch) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Запустити пошук",
+                            )
+                        }
                     }
                 },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { viewModel.onSubmitSearch() }),
             )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(filters.size) { index ->
+                    val filter = filters[index]
+                    FilterChip(
+                        selected = selectedFilter == filter,
+                        onClick = { selectedFilter = filter },
+                        label = { Text(filter.label) },
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -218,7 +255,7 @@ fun GlobalSearchScreen(
                                     .graphicsLayer(scaleX = loadingScale, scaleY = loadingScale),
                         )
                     }
-                    uiState.results.isEmpty() -> {
+                    filteredResults.isEmpty() -> {
                         EmptySearchContent(
                             query = uiState.query,
                             modifier = Modifier.fillMaxSize(),
@@ -226,7 +263,7 @@ fun GlobalSearchScreen(
                     }
                     else -> {
                         SearchResultsContent(
-                            results = uiState.results,
+                            results = filteredResults,
                             viewModel = viewModel,
                             obsidianVaultName = obsidianVaultName,
                             context = context,
@@ -370,7 +407,9 @@ private fun SearchResultsContent(
                                 ),
                         ),
             ) {
-                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                    ResultTypeBadge(presentation = result.typePresentation())
+                    Spacer(modifier = Modifier.height(6.dp))
                     when (result) {
                         is GlobalSearchResultItem.GoalItem -> {
                             val searchResult =
@@ -486,6 +525,114 @@ private fun SearchResultsContent(
         }
     }
 }
+
+private enum class GlobalSearchFilter(val label: String) {
+    All("Всі"),
+    Attachments("Вкладення"),
+    Contexts("Контексти"),
+    Goals("Цілі"),
+    Links("Посилання"),
+    Activity("Активності"),
+    Inbox("Inbox"),
+    ;
+
+    fun matches(item: GlobalSearchResultItem): Boolean =
+        when (this) {
+            All -> true
+            Attachments -> item is GlobalSearchResultItem.AttachmentItem
+            Contexts -> item is GlobalSearchResultItem.ContextItem || item is GlobalSearchResultItem.SubcontextItem
+            Goals -> item is GlobalSearchResultItem.GoalItem
+            Links -> item is GlobalSearchResultItem.LinkItem
+            Activity -> item is GlobalSearchResultItem.ActivityItem
+            Inbox -> item is GlobalSearchResultItem.InboxItem
+        }
+}
+
+private fun GlobalSearchResultItem.typePresentation(): ResultTypePresentation =
+    when (this) {
+        is GlobalSearchResultItem.AttachmentItem ->
+            ResultTypePresentation(
+                label = "Вкладення",
+                icon = Icons.Default.Description,
+                container = Color(0xFFE3F2FD),
+                content = Color(0xFF0D47A1),
+            )
+        is GlobalSearchResultItem.ContextItem ->
+            ResultTypePresentation(
+                label = "Контекст",
+                icon = Icons.Default.AccountTree,
+                container = Color(0xFFE8F5E9),
+                content = Color(0xFF1B5E20),
+            )
+        is GlobalSearchResultItem.SubcontextItem ->
+            ResultTypePresentation(
+                label = "Підконтекст",
+                icon = Icons.Default.AccountTree,
+                container = Color(0xFFF1F8E9),
+                content = Color(0xFF33691E),
+            )
+        is GlobalSearchResultItem.GoalItem ->
+            ResultTypePresentation(
+                label = "Ціль",
+                icon = Icons.Default.Flag,
+                container = Color(0xFFFFF3E0),
+                content = Color(0xFFE65100),
+            )
+        is GlobalSearchResultItem.LinkItem ->
+            ResultTypePresentation(
+                label = "Посилання",
+                icon = Icons.Default.Link,
+                container = Color(0xFFEDE7F6),
+                content = Color(0xFF4527A0),
+            )
+        is GlobalSearchResultItem.ActivityItem ->
+            ResultTypePresentation(
+                label = "Активність",
+                icon = Icons.Default.History,
+                container = Color(0xFFFFFDE7),
+                content = Color(0xFFF57F17),
+            )
+        is GlobalSearchResultItem.InboxItem ->
+            ResultTypePresentation(
+                label = "Inbox",
+                icon = Icons.Outlined.MoveToInbox,
+                container = Color(0xFFE0F7FA),
+                content = Color(0xFF006064),
+            )
+    }
+
+@Composable
+private fun ResultTypeBadge(presentation: ResultTypePresentation) {
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = presentation.container,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Icon(
+                imageVector = presentation.icon,
+                contentDescription = presentation.label,
+                tint = presentation.content,
+                modifier = Modifier.size(12.dp),
+            )
+            Text(
+                text = presentation.label,
+                style = MaterialTheme.typography.labelSmall,
+                color = presentation.content,
+            )
+        }
+    }
+}
+
+private data class ResultTypePresentation(
+    val label: String,
+    val icon: ImageVector,
+    val container: Color,
+    val content: Color,
+)
 
 @Composable
 private fun ResultsCountBadge(
