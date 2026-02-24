@@ -319,6 +319,13 @@ private fun NavGraphBuilder.mainGraph(
         GlobalSearchScreen(viewModel = viewModel, navController = navController)
     }
 
+    composable("global_search") {
+        val viewModel: GlobalSearchViewModel = hiltViewModel()
+        viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
+
+        GlobalSearchScreen(viewModel = viewModel, navController = navController)
+    }
+
     composable("attachments_library_screen") {
         AttachmentsLibraryScreen(navController = navController)
     }

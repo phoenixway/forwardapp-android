@@ -18,7 +18,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
-import com.romankozak.forwardappmobile.core.navigation.routes.GOAL_LISTS_ROUTE
 import com.romankozak.forwardappmobile.features.mainscreen.DashboardBottomBar
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.features.strategicmanagement.StrategicManagementViewModel
@@ -71,16 +70,7 @@ fun StrategyBottomPanel(
         ) {
             DashboardBottomBar(
                 onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
-                onNavigateToProjectSearch = {
-                    navController.navigate(GOAL_LISTS_ROUTE) {
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                    runCatching {
-                        navController.getBackStackEntry(GOAL_LISTS_ROUTE)
-                            .savedStateHandle["open_search_dialog"] = true
-                    }
-                },
+                onNavigateToProjectSearch = onNavigateToGlobalSearch,
                 onNavigateToTracker = onNavigateToTracker,
                 onNavigateToInbox = onNavigateToInbox,
                 onNavigateToReminders = onNavigateToReminders,

@@ -25,6 +25,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import kotlinx.coroutines.flow.collectLatest
+import java.net.URLEncoder
 
 private const val UI_TAG = "ProjectHierarchyScreenUI_DEBUG"
 
@@ -52,7 +53,10 @@ fun ProjectHierarchyScreen(
                 }
                 is ProjectUiEvent.NavigateToDetails -> navController.navigate("goal_detail_screen/${event.projectId}")
                 is ProjectUiEvent.ShowToast -> Toast.makeText(navController.context, event.message, Toast.LENGTH_LONG).show()
-                is ProjectUiEvent.NavigateToGlobalSearch -> navController.navigate("global_search_screen/${event.query}")
+                is ProjectUiEvent.NavigateToGlobalSearch -> {
+                    val encoded = URLEncoder.encode(event.query, "UTF-8")
+                    navController.navigate("global_search_screen/$encoded")
+                }
                 is ProjectUiEvent.NavigateToSettings -> navController.navigate("settings_screen")
                 is ProjectUiEvent.NavigateToEditProjectScreen ->
                     navController.navigate(

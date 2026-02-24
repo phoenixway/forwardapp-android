@@ -443,9 +443,9 @@ private fun MoreBottomSheetContent(
                         .padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Outlined.Search, contentDescription = "Search in projects")
+                Icon(Icons.Outlined.Search, contentDescription = "Search everywhere")
                 Spacer(modifier = Modifier.width(16.dp))
-                Text("Search in projects")
+                Text("Search everywhere")
             }
             Row(
                 modifier =

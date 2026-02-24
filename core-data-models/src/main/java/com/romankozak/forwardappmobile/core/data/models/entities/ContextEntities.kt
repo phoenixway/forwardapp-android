@@ -204,6 +204,17 @@ data class GlobalContextSearchResult(
     val pathSegments: List<String>,
 )
 
+data class GlobalAttachmentSearchResult(
+    @SerializedName("attachmentId") val attachmentId: String,
+    @SerializedName("entityId") val entityId: String,
+    @SerializedName("attachmentType") val attachmentType: String,
+    @SerializedName("ownerContextId") val ownerContextId: String?,
+    @SerializedName("title") val title: String,
+    @SerializedName("subtitle") val subtitle: String?,
+    @SerializedName("contextName") val contextName: String?,
+    @SerializedName("updatedAt") val updatedAt: Long,
+)
+
 sealed class GlobalSearchResultItem {
     abstract val timestamp: Long
     abstract val uniqueId: String
@@ -243,5 +254,10 @@ sealed class GlobalSearchResultItem {
     data class InboxItem(@SerializedName("record") val record: InboxRecord) : GlobalSearchResultItem() {
         override val timestamp: Long get() = record.createdAt
         override val uniqueId: String get() = "inbox_${record.id}"
+    }
+
+    data class AttachmentItem(@SerializedName("searchResult") val searchResult: GlobalAttachmentSearchResult) : GlobalSearchResultItem() {
+        override val timestamp: Long get() = searchResult.updatedAt
+        override val uniqueId: String get() = "attachment_${searchResult.attachmentId}"
     }
 }

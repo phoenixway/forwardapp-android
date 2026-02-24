@@ -8,6 +8,8 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -17,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,6 +32,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -60,7 +64,6 @@ fun GlobalSearchScreen(
     viewModel: GlobalSearchViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val query = viewModel.query
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsState()
     val context = LocalContext.current
     val listState = rememberLazyListState()
@@ -94,18 +97,20 @@ fun GlobalSearchScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Результати пошуку",
+                            text = "Search everywhere",
                             style = MaterialTheme.typography.titleLarge,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        Text(
-                            text = "\"$query\"",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        if (uiState.query.isNotBlank()) {
+                            Text(
+                                text = "\"${uiState.query}\"",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
                 },
                 navigationIcon = {
@@ -160,7 +165,7 @@ fun GlobalSearchScreen(
         },
         floatingActionButtonPosition = FabPosition.End,
     ) { paddingValues ->
-        Box(
+        Column(
             modifier =
                 Modifier
                     .fillMaxSize()
@@ -174,35 +179,64 @@ fun GlobalSearchScreen(
                                     ),
                                 startY = 0.1f,
                             ),
-                    ).padding(paddingValues),
+                    ).padding(paddingValues)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
-            when {
-                uiState.isLoading -> {
-                    LoadingContent(
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .graphicsLayer(scaleX = loadingScale, scaleY = loadingScale),
+            OutlinedTextField(
+                value = uiState.query,
+                onValueChange = viewModel::onQueryChange,
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                placeholder = { Text("Введіть запит для пошуку по контекстах і вкладеннях") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Пошук",
                     )
-                }
-                uiState.results.isEmpty() -> {
-                    EmptySearchContent(
-                        query = query,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
-                else -> {
-                    SearchResultsContent(
-                        results = uiState.results,
-                        viewModel = viewModel,
-                        obsidianVaultName = obsidianVaultName,
-                        context = context,
-                        listState = listState,
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .graphicsLayer(alpha = resultsAlpha),
-                    )
+                },
+                trailingIcon = {
+                    IconButton(onClick = viewModel::onSubmitSearch) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Запустити пошук",
+                        )
+                    }
+                },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { viewModel.onSubmitSearch() }),
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                when {
+                    uiState.isLoading -> {
+                        LoadingContent(
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer(scaleX = loadingScale, scaleY = loadingScale),
+                        )
+                    }
+                    uiState.results.isEmpty() -> {
+                        EmptySearchContent(
+                            query = uiState.query,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                    else -> {
+                        SearchResultsContent(
+                            results = uiState.results,
+                            viewModel = viewModel,
+                            obsidianVaultName = obsidianVaultName,
+                            context = context,
+                            listState = listState,
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer(alpha = resultsAlpha),
+                        )
+                    }
                 }
             }
         }
@@ -273,7 +307,7 @@ private fun EmptySearchContent(
             }
 
             Text(
-                text = "Нічого не знайдено",
+                text = if (query.isBlank()) "Введіть запит" else "Нічого не знайдено",
                 style =
                     MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.Bold,
@@ -283,7 +317,11 @@ private fun EmptySearchContent(
             )
 
             Text(
-                text = "За запитом \"$query\" результатів не знайдено.\nСпробуйте змінити пошуковий запит.",
+                text = if (query.isBlank()) {
+                    "Search everywhere шукає по контекстах, цілях, активностях, інбоксу та вкладеннях."
+                } else {
+                    "За запитом \"$query\" результатів не знайдено.\nСпробуйте змінити пошуковий запит."
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -426,6 +464,18 @@ private fun SearchResultsContent(
                                 },
                             )
                         }
+                        is GlobalSearchResultItem.AttachmentItem -> {
+                            AttachmentSearchResultItem(
+                                searchResult = result.searchResult,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    val contextId = result.searchResult.ownerContextId
+                                    if (!contextId.isNullOrBlank()) {
+                                        viewModel.navigateToProjectForResult(contextId, result.searchResult.contextName)
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -546,5 +596,46 @@ private fun handleRelatedLinkClick(
         }
     } catch (e: Exception) {
         Toast.makeText(context, "Не вдалося відкрити посилання.", Toast.LENGTH_LONG).show()
+    }
+}
+
+@Composable
+private fun AttachmentSearchResultItem(
+    searchResult: com.romankozak.forwardappmobile.core.data.models.entities.GlobalAttachmentSearchResult,
+    onClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        shape = RoundedCornerShape(16.dp),
+        onClick = onClick,
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = searchResult.title,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (!searchResult.subtitle.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = searchResult.subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (!searchResult.contextName.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Контекст: ${searchResult.contextName}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
     }
 }
