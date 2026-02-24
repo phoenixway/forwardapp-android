@@ -58,6 +58,8 @@ fun HandleProjectHierarchyDialogs(
                 onAddToDayPlanRequest = { project -> onEvent(ContextHierarchyScreenEvent.AddToDayPlanRequest(project)) },
                 onSetReminderRequest = { project -> onEvent(ContextHierarchyScreenEvent.SetReminderRequest(project)) },
                 onToggleUserFocusRequest = { project -> onEvent(ContextHierarchyScreenEvent.ToggleUserFocusContext(project)) },
+                onCopyContextLinkRequest = { project -> onEvent(ContextHierarchyScreenEvent.CopyContextLink(project)) },
+                onCutContextLinkRequest = { project -> onEvent(ContextHierarchyScreenEvent.CutContextLink(project)) },
             )
         }
         is DialogState.ConfirmDelete -> {

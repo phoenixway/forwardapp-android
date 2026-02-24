@@ -579,7 +579,7 @@ private fun SearchResultsContent(
                         }
                         ResultTypeBadge(
                             presentation = typePresentation,
-                            modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 8.dp),
+                            modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 8.dp, end = 8.dp),
                         )
                     }
                 }

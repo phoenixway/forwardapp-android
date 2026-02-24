@@ -30,6 +30,7 @@ import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
@@ -74,6 +75,7 @@ class ContextHierarchyScreenViewModel
         private val focusContextRepository: FocusContextRepository,
         private val activityRepository: ActivityRepository,
         private val recentItemsRepository: RecentItemsRepository,
+        private val backlogClipboardUseCase: BacklogClipboardUseCase,
         private val noteRepository: LegacyNoteRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
         private val checklistRepository: ChecklistRepository,
@@ -537,6 +539,26 @@ class ContextHierarchyScreenViewModel
                             ),
                         )
                         dialogUseCase.dismissDialog()
+                    }
+                }
+                is ContextHierarchyScreenEvent.CopyContextLink -> {
+                    backlogClipboardUseCase.copyBacklogContextLinks(
+                        sourceContextId = event.project.id,
+                        contextIds = listOf(event.project.id),
+                    )
+                    dialogUseCase.dismissDialog()
+                    viewModelScope.launch {
+                        _uiEventChannel.send(ProjectUiEvent.ShowToast("Контекст скопійовано в буфер як посилання"))
+                    }
+                }
+                is ContextHierarchyScreenEvent.CutContextLink -> {
+                    backlogClipboardUseCase.cutBacklogContextLinks(
+                        sourceContextId = event.project.id,
+                        contextIds = listOf(event.project.id),
+                    )
+                    dialogUseCase.dismissDialog()
+                    viewModelScope.launch {
+                        _uiEventChannel.send(ProjectUiEvent.ShowToast("Контекст вирізано в буфер як посилання"))
                     }
                 }
                 is ContextHierarchyScreenEvent.GoToSettings -> {

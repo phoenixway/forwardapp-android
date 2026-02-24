@@ -28,6 +28,8 @@ fun ContextMenuDialog(
     onAddToDayPlanRequest: (Context) -> Unit,
     onSetReminderRequest: (Context) -> Unit,
     onToggleUserFocusRequest: (Context) -> Unit,
+    onCopyContextLinkRequest: (Context) -> Unit,
+    onCutContextLinkRequest: (Context) -> Unit,
 ) {
     Dialog(onDismissRequest = onDismissRequest) {
         Card(
@@ -62,6 +64,18 @@ fun ContextMenuDialog(
                     text = "Встановити нагадування",
                     icon = Icons.Default.Alarm,
                     onClick = { onSetReminderRequest(project) },
+                )
+                HorizontalDivider()
+                DialogActionItem(
+                    text = "Копіювати як посилання",
+                    icon = Icons.Default.ContentCopy,
+                    onClick = { onCopyContextLinkRequest(project) },
+                )
+                HorizontalDivider()
+                DialogActionItem(
+                    text = "Вирізати як посилання",
+                    icon = Icons.Default.ContentCut,
+                    onClick = { onCutContextLinkRequest(project) },
                 )
                 HorizontalDivider()
                 // Структурні зміни
