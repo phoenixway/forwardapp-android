@@ -8,9 +8,9 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -34,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -66,7 +65,7 @@ import java.util.Locale
 
 private const val TAG = "SEARCH_DEBUG"
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun GlobalSearchScreen(
     navController: NavController,
@@ -202,12 +201,6 @@ fun GlobalSearchScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 placeholder = { Text("Введіть запит для пошуку по контекстах і вкладеннях") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Пошук",
-                    )
-                },
                 trailingIcon = {
                     Row {
                         if (uiState.query.isNotBlank()) {
@@ -232,9 +225,11 @@ fun GlobalSearchScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(filters.size) { index ->
-                    val filter = filters[index]
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                filters.forEach { filter ->
                     FilterChip(
                         selected = selectedFilter == filter,
                         onClick = { selectedFilter = filter },
@@ -407,9 +402,7 @@ private fun SearchResultsContent(
                                 ),
                         ),
             ) {
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-                    ResultTypeBadge(presentation = result.typePresentation())
-                    Spacer(modifier = Modifier.height(6.dp))
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                     when (result) {
                         is GlobalSearchResultItem.GoalItem -> {
                             val searchResult =
@@ -516,6 +509,10 @@ private fun SearchResultsContent(
                             )
                         }
                     }
+                    ResultTypeBadge(
+                        presentation = result.typePresentation(),
+                        modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 8.dp),
+                    )
                 }
             }
         }
@@ -554,58 +551,65 @@ private fun GlobalSearchResultItem.typePresentation(): ResultTypePresentation =
             ResultTypePresentation(
                 label = "Вкладення",
                 icon = Icons.Default.Description,
-                container = Color(0xFFE3F2FD),
-                content = Color(0xFF0D47A1),
+                tone = ResultBadgeTone.Primary,
             )
         is GlobalSearchResultItem.ContextItem ->
             ResultTypePresentation(
                 label = "Контекст",
                 icon = Icons.Default.AccountTree,
-                container = Color(0xFFE8F5E9),
-                content = Color(0xFF1B5E20),
+                tone = ResultBadgeTone.Secondary,
             )
         is GlobalSearchResultItem.SubcontextItem ->
             ResultTypePresentation(
                 label = "Підконтекст",
                 icon = Icons.Default.AccountTree,
-                container = Color(0xFFF1F8E9),
-                content = Color(0xFF33691E),
+                tone = ResultBadgeTone.Secondary,
             )
         is GlobalSearchResultItem.GoalItem ->
             ResultTypePresentation(
                 label = "Ціль",
                 icon = Icons.Default.Flag,
-                container = Color(0xFFFFF3E0),
-                content = Color(0xFFE65100),
+                tone = ResultBadgeTone.Tertiary,
             )
         is GlobalSearchResultItem.LinkItem ->
             ResultTypePresentation(
                 label = "Посилання",
                 icon = Icons.Default.Link,
-                container = Color(0xFFEDE7F6),
-                content = Color(0xFF4527A0),
+                tone = ResultBadgeTone.Tertiary,
             )
         is GlobalSearchResultItem.ActivityItem ->
             ResultTypePresentation(
                 label = "Активність",
                 icon = Icons.Default.History,
-                container = Color(0xFFFFFDE7),
-                content = Color(0xFFF57F17),
+                tone = ResultBadgeTone.Surface,
             )
         is GlobalSearchResultItem.InboxItem ->
             ResultTypePresentation(
                 label = "Inbox",
                 icon = Icons.Outlined.MoveToInbox,
-                container = Color(0xFFE0F7FA),
-                content = Color(0xFF006064),
+                tone = ResultBadgeTone.Surface,
             )
     }
 
 @Composable
-private fun ResultTypeBadge(presentation: ResultTypePresentation) {
+private fun ResultTypeBadge(
+    presentation: ResultTypePresentation,
+    modifier: Modifier = Modifier,
+) {
+    val (container, content) =
+        when (presentation.tone) {
+            ResultBadgeTone.Primary -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+            ResultBadgeTone.Secondary -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+            ResultBadgeTone.Tertiary -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+            ResultBadgeTone.Surface ->
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f) to MaterialTheme.colorScheme.onSurfaceVariant
+        }
+
     Surface(
+        modifier = modifier,
         shape = RoundedCornerShape(10.dp),
-        color = presentation.container,
+        color = container,
+        tonalElevation = 0.dp,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -615,13 +619,13 @@ private fun ResultTypeBadge(presentation: ResultTypePresentation) {
             Icon(
                 imageVector = presentation.icon,
                 contentDescription = presentation.label,
-                tint = presentation.content,
+                tint = content,
                 modifier = Modifier.size(12.dp),
             )
             Text(
                 text = presentation.label,
                 style = MaterialTheme.typography.labelSmall,
-                color = presentation.content,
+                color = content,
             )
         }
     }
@@ -630,9 +634,15 @@ private fun ResultTypeBadge(presentation: ResultTypePresentation) {
 private data class ResultTypePresentation(
     val label: String,
     val icon: ImageVector,
-    val container: Color,
-    val content: Color,
+    val tone: ResultBadgeTone,
 )
+
+private enum class ResultBadgeTone {
+    Primary,
+    Secondary,
+    Tertiary,
+    Surface,
+}
 
 @Composable
 private fun ResultsCountBadge(
