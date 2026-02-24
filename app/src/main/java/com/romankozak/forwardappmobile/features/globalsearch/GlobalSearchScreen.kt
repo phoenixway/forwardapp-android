@@ -604,6 +604,8 @@ private fun AttachmentSearchResultItem(
     searchResult: com.romankozak.forwardappmobile.core.data.models.entities.GlobalAttachmentSearchResult,
     onClick: () -> Unit,
 ) {
+    val subtitle = searchResult.subtitle
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
@@ -618,10 +620,10 @@ private fun AttachmentSearchResultItem(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (!searchResult.subtitle.isNullOrBlank()) {
+            if (!subtitle.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = searchResult.subtitle,
+                    text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
