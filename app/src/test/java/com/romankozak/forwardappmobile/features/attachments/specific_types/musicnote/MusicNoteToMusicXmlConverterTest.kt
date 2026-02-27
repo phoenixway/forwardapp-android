@@ -41,4 +41,44 @@ class MusicNoteToMusicXmlConverterTest {
         assertTrue(xml.contains("<octave>4</octave>"))
         assertTrue(xml.contains("<octave>2</octave>"))
     }
+
+    @Test
+    fun parenthesisPhraseCreatesSlurStartAndStop() {
+        val xml =
+            MusicNoteToMusicXmlConverter.convert(
+                content = "@oct=4 @dur=4 ( C D )",
+                title = "t",
+            )
+
+        assertTrue(xml.contains("<slur type=\"start\"/>"))
+        assertTrue(xml.contains("<slur type=\"stop\"/>"))
+    }
+
+    @Test
+    fun commaCreatesBreathMark() {
+        val xml =
+            MusicNoteToMusicXmlConverter.convert(
+                content = "@oct=4 @dur=4 C, D",
+                title = "t",
+            )
+
+        assertTrue(xml.contains("<breath-mark/>"))
+    }
+
+    @Test
+    fun emptyLineCreatesSystemBreak() {
+        val xml =
+            MusicNoteToMusicXmlConverter.convert(
+                content =
+                    """
+                    @oct=4 @dur=4
+                    C D
+                    
+                    E F
+                    """.trimIndent(),
+                title = "t",
+            )
+
+        assertTrue(xml.contains("<print new-system=\"yes\"/>"))
+    }
 }

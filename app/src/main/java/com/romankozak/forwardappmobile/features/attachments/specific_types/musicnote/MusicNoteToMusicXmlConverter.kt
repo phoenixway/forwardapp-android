@@ -27,6 +27,8 @@ object MusicNoteToMusicXmlConverter {
 
         val pendingAboveTexts = ArrayDeque<String>()
         val pendingLyrics = ArrayDeque<String>()
+        var pendingSlurStart = false
+        var pendingSlurStop = false
 
         fun currentMeasure(): ParsedMeasure = measures.last()
 
@@ -38,6 +40,14 @@ object MusicNoteToMusicXmlConverter {
                 ),
             )
             durationInMeasure = 0
+        }
+
+        fun findLastParsedNote(): ParsedNote? {
+            for (index in measures.lastIndex downTo 0) {
+                val notes = measures[index].notes
+                if (notes.isNotEmpty()) return notes.last()
+            }
+            return null
         }
 
         fun attachMeasureComment(text: String) {
@@ -56,7 +66,15 @@ object MusicNoteToMusicXmlConverter {
 
         content.lineSequence().forEach { rawLine ->
             val line = rawLine.trim()
-            if (line.isEmpty()) return@forEach
+            if (line.isEmpty()) {
+                if (currentMeasure().notes.isNotEmpty()) {
+                    startNewMeasure()
+                    currentMeasure().startsNewSystem = true
+                } else if (measures.size > 1) {
+                    currentMeasure().startsNewSystem = true
+                }
+                return@forEach
+            }
             if (line.startsWith("#") || line.startsWith("//")) return@forEach
 
             if (line.startsWith("^")) {
@@ -78,6 +96,30 @@ object MusicNoteToMusicXmlConverter {
             tokenizeLine(line).forEach { tokenRaw ->
                 val token = tokenRaw.trim()
                 if (token.isEmpty()) return@forEach
+
+                if (token == "(") {
+                    pendingSlurStart = true
+                    return@forEach
+                }
+
+                if (token == ")") {
+                    val lastNote = findLastParsedNote()
+                    if (lastNote != null && !lastNote.isRest) {
+                        lastNote.slurStop = true
+                    } else {
+                        pendingSlurStop = true
+                    }
+                    return@forEach
+                }
+
+                if (token == ",") {
+                    findLastParsedNote()?.let { lastNote ->
+                        if (!lastNote.isRest) {
+                            lastNote.breathMark = true
+                        }
+                    }
+                    return@forEach
+                }
 
                 octaveDirectiveRegex.matchEntire(token)?.let { match ->
                     defaultOctave = match.groupValues[1].toIntOrNull() ?: defaultOctave
@@ -157,8 +199,45 @@ object MusicNoteToMusicXmlConverter {
                     return@forEach
                 }
 
-                val cleanedToken = token.trim('.', ',', ';', ':')
-                if (cleanedToken.isEmpty()) return@forEach
+                var parsedToken = token.trim('.', ';', ':')
+                val hasTrailingBreath = parsedToken.endsWith(",")
+                if (hasTrailingBreath) {
+                    parsedToken = parsedToken.dropLast(1)
+                }
+
+                var localStartsSlur = false
+                var localStopsSlur = false
+                while (parsedToken.startsWith("(")) {
+                    localStartsSlur = true
+                    parsedToken = parsedToken.drop(1)
+                }
+                while (parsedToken.endsWith(")")) {
+                    localStopsSlur = true
+                    parsedToken = parsedToken.dropLast(1)
+                }
+
+                val cleanedToken = parsedToken
+                if (cleanedToken.isEmpty()) {
+                    if (localStartsSlur) {
+                        pendingSlurStart = true
+                    }
+                    if (localStopsSlur) {
+                        val lastNote = findLastParsedNote()
+                        if (lastNote != null && !lastNote.isRest) {
+                            lastNote.slurStop = true
+                        } else {
+                            pendingSlurStop = true
+                        }
+                    }
+                    if (hasTrailingBreath) {
+                        findLastParsedNote()?.let { lastNote ->
+                            if (!lastNote.isRest) {
+                                lastNote.breathMark = true
+                            }
+                        }
+                    }
+                    return@forEach
+                }
 
                 val inlineComment = extractInlineComment(cleanedToken)
                 val noteToken = inlineComment.base
@@ -213,6 +292,9 @@ object MusicNoteToMusicXmlConverter {
 
                 val lyricText = if (pendingLyrics.isNotEmpty()) pendingLyrics.removeFirst() else null
 
+                val noteSlurStart = pendingSlurStart || localStartsSlur
+                val noteSlurStop = pendingSlurStop || localStopsSlur
+
                 currentMeasure().notes.add(
                     ParsedNote(
                         step = step,
@@ -221,8 +303,13 @@ object MusicNoteToMusicXmlConverter {
                         durationDenominator = durationDenominator,
                         lyricText = lyricText,
                         noteDirections = noteDirections,
+                        slurStart = noteSlurStart,
+                        slurStop = noteSlurStop,
+                        breathMark = hasTrailingBreath,
                     ),
                 )
+                pendingSlurStart = false
+                pendingSlurStop = false
                 durationInMeasure += xmlDuration
             }
         }
@@ -251,6 +338,9 @@ object MusicNoteToMusicXmlConverter {
                 append("<measure number=\"")
                 append(index + 1)
                 append("\">")
+                if (index > 0 && measure.startsNewSystem) {
+                    append("<print new-system=\"yes\"/>")
+                }
 
                 if (index == 0) {
                     append("<attributes>")
@@ -316,6 +406,19 @@ object MusicNoteToMusicXmlConverter {
                         append("<lyric><text>")
                         append(xmlEscape(note.lyricText))
                         append("</text></lyric>")
+                    }
+                    if (!note.isRest && (note.slurStart || note.slurStop || note.breathMark)) {
+                        append("<notations>")
+                        if (note.slurStart) {
+                            append("<slur type=\"start\"/>")
+                        }
+                        if (note.slurStop) {
+                            append("<slur type=\"stop\"/>")
+                        }
+                        if (note.breathMark) {
+                            append("<articulations><breath-mark/></articulations>")
+                        }
+                        append("</notations>")
                     }
                     append("</note>")
                 }
@@ -488,6 +591,9 @@ object MusicNoteToMusicXmlConverter {
         val durationDenominator: Int = 4,
         val lyricText: String? = null,
         val noteDirections: List<String> = emptyList(),
+        var slurStart: Boolean = false,
+        var slurStop: Boolean = false,
+        var breathMark: Boolean = false,
     )
 
     private data class ParsedMeasure(
@@ -495,6 +601,7 @@ object MusicNoteToMusicXmlConverter {
         var beatType: Int = 4,
         val notes: MutableList<ParsedNote> = mutableListOf(),
         val measureDirections: MutableList<String> = mutableListOf(),
+        var startsNewSystem: Boolean = false,
         var rightBarStyle: BarStyle = BarStyle.SINGLE,
     )
 
