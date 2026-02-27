@@ -336,6 +336,9 @@ class InputHandler(
             RecentItemType.CHECKLIST -> {
                 resultListener.requestNavigation("checklist_screen?checklistId=${item.target}")
             }
+            RecentItemType.MUSIC_NOTE -> {
+                resultListener.requestNavigation("music_note_screen/${item.target}")
+            }
             RecentItemType.OBSIDIAN_LINK -> {
                 resultListener.createObsidianNote(item.target)
             }

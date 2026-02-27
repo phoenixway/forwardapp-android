@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
+import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +25,7 @@ class MusicNoteViewModel
     @Inject
     constructor(
         private val musicNoteRepository: MusicNoteRepository,
+        private val recentItemsRepository: RecentItemsRepository,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val musicNoteId: String = savedStateHandle["musicNoteId"] ?: ""
@@ -42,6 +44,7 @@ class MusicNoteViewModel
                     _uiState.update { it.copy(isLoading = false) }
                     return@launch
                 }
+                recentItemsRepository.logMusicNoteAccess(note)
                 _uiState.update {
                     it.copy(
                         id = note.id,
@@ -66,12 +69,13 @@ class MusicNoteViewModel
             if (current.id.isBlank()) return
             viewModelScope.launch {
                 val existing = musicNoteRepository.getById(current.id) ?: return@launch
-                musicNoteRepository.update(
+                val updated =
                     existing.copy(
                         name = current.name.trim().ifBlank { "Music note" },
                         content = current.content,
-                    ),
-                )
+                    )
+                musicNoteRepository.update(updated)
+                recentItemsRepository.logMusicNoteAccess(updated)
             }
         }
     }

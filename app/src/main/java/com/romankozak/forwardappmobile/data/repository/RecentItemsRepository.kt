@@ -4,6 +4,7 @@ import android.util.Log
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.MusicNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
@@ -122,6 +123,27 @@ class RecentItemsRepository
                     )
                 }
             Log.d("Recents_Debug", "Logging obsidian link access: $recentItem")
+            recentItemDao.logAccess(recentItem)
+        }
+
+        suspend fun logMusicNoteAccess(note: MusicNoteEntity) {
+            val existingItem = recentItemDao.getRecentItemById(note.id)
+            val recentItem =
+                if (existingItem != null) {
+                    existingItem.copy(
+                        lastAccessed = System.currentTimeMillis(),
+                        displayName = note.name,
+                    )
+                } else {
+                    RecentItem(
+                        id = note.id,
+                        type = RecentItemType.MUSIC_NOTE,
+                        lastAccessed = System.currentTimeMillis(),
+                        displayName = note.name,
+                        target = note.id,
+                    )
+                }
+            Log.d("Recents_Debug", "Logging music note access: $recentItem")
             recentItemDao.logAccess(recentItem)
         }
 

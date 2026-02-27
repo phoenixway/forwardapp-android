@@ -26,7 +26,8 @@
           osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(score, {
             autoResize: true,
             drawTitle: true,
-            backend: "svg"
+            backend: "svg",
+            newSystemFromXML: true
           });
         }
         await osmd.load(xml);

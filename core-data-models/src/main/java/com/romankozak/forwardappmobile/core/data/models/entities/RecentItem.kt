@@ -10,6 +10,7 @@ enum class RecentItemType {
     NOTE_DOCUMENT,
     OBSIDIAN_LINK,
     CHECKLIST,
+    MUSIC_NOTE,
 }
 
 @Entity(tableName = "recent_items")

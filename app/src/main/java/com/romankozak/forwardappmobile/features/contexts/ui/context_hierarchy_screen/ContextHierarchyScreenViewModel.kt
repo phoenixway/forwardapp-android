@@ -27,6 +27,7 @@ import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.FocusContextRepository
 import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
+import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
@@ -79,6 +80,7 @@ class ContextHierarchyScreenViewModel
         private val noteRepository: LegacyNoteRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
         private val checklistRepository: ChecklistRepository,
+        private val musicNoteRepository: MusicNoteRepository,
         private val application: Application,
         private val savedStateHandle: SavedStateHandle,
         private val planningUseCase: PlanningUseCase,
@@ -818,6 +820,16 @@ class ContextHierarchyScreenViewModel
                         _uiEventChannel.send(
                             ProjectUiEvent.Navigate(
                                 NavTarget.Checklist(id = item.target),
+                            ),
+                        )
+                    }
+                    RecentItemType.MUSIC_NOTE -> {
+                        musicNoteRepository.getById(item.target)?.let {
+                            recentItemsRepository.logMusicNoteAccess(it)
+                        }
+                        _uiEventChannel.send(
+                            ProjectUiEvent.Navigate(
+                                NavTarget.MusicNote(id = item.target),
                             ),
                         )
                     }

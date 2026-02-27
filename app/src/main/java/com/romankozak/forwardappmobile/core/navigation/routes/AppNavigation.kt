@@ -205,6 +205,9 @@ private fun NavGraphBuilder.mainGraph(
                     RecentItemType.CHECKLIST ->
                         navController.navigate("checklist_screen?checklistId=${item.target}")
 
+                    RecentItemType.MUSIC_NOTE ->
+                        navController.navigate("music_note_screen/${item.target}")
+
                     RecentItemType.OBSIDIAN_LINK -> {
                         // Поки що просто лог або нічого
                         Log.d("RecentItemNav", "Obsidian link clicked: ${item.target}")

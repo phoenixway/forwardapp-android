@@ -9,6 +9,7 @@ import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
+import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.ui.common.editor.NoteTitleExtractor
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,6 +29,7 @@ class NoteDocumentEditorViewModel
         private val musicNoteRepository: MusicNoteRepository,
         private val checklistRepository: ChecklistRepository,
         private val contextRepository: ContextRepository,
+        private val recentItemsRepository: RecentItemsRepository,
         private val application: Application,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
@@ -62,6 +64,7 @@ class NoteDocumentEditorViewModel
             listId = id
             viewModelScope.launch {
                 noteDocumentRepository.getDocumentById(id)?.let { document ->
+                    recentItemsRepository.logNoteDocumentAccess(document)
                     Log.d("CursorDebug", "Loaded document with lastCursorPosition: ${document.lastCursorPosition}")
                     // Встановлюємо projectId для "Show Location"
                     universalEditorViewModel.setProjectId(document.contextId)

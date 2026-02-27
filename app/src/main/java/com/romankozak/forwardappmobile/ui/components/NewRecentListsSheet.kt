@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -162,6 +163,7 @@ private fun RecentItemCard(
                             RecentItemType.NOTE -> Icons.AutoMirrored.Outlined.Note
                             RecentItemType.NOTE_DOCUMENT -> Icons.AutoMirrored.Outlined.List
                             RecentItemType.CHECKLIST -> Icons.Outlined.Checklist
+                            RecentItemType.MUSIC_NOTE -> Icons.Outlined.MusicNote
                             RecentItemType.OBSIDIAN_LINK -> Icons.Outlined.Link
                         },
                     contentDescription = null,
@@ -194,6 +196,7 @@ private fun getColorsForType(type: RecentItemType): Color {
         RecentItemType.NOTE -> MaterialTheme.colorScheme.secondary
         RecentItemType.NOTE_DOCUMENT -> MaterialTheme.colorScheme.tertiary
         RecentItemType.CHECKLIST -> MaterialTheme.colorScheme.tertiaryContainer
+        RecentItemType.MUSIC_NOTE -> MaterialTheme.colorScheme.secondaryContainer
         RecentItemType.OBSIDIAN_LINK -> MaterialTheme.colorScheme.primaryContainer
     }
 }
@@ -204,6 +207,7 @@ private fun fallbackRecentItemTitle(item: RecentItem): String =
         RecentItemType.NOTE -> "Нотатка"
         RecentItemType.NOTE_DOCUMENT -> "Документ"
         RecentItemType.CHECKLIST -> "Чекліст"
+        RecentItemType.MUSIC_NOTE -> "Музичні ноти"
         RecentItemType.OBSIDIAN_LINK -> item.target.ifBlank { "Посилання" }
     }
 

@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -48,7 +49,13 @@ fun MusicNoteScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(uiState.name.ifBlank { "Ноти" }) },
+                title = {
+                    Text(
+                        text = uiState.name.ifBlank { "Ноти" },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
                 navigationIcon = {
                     IconButton(
                         onClick = {
