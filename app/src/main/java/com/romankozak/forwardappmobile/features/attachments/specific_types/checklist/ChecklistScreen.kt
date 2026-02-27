@@ -71,7 +71,6 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.awaitFrame
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -106,6 +105,7 @@ import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 import sh.calvin.reorderable.ReorderableItem
@@ -696,7 +696,7 @@ private fun ChecklistItemRow(
 
     LaunchedEffect(hasInputFocus) {
         if (hasInputFocus) {
-            awaitFrame()
+            delay(1)
             runCatching { focusRequester.requestFocus() }
         }
     }
