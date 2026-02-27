@@ -39,9 +39,7 @@ import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.outlined.CheckBoxOutlineBlank
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DeleteSweep
@@ -259,8 +257,6 @@ fun ChecklistScreen(
                 onBack = { navController.popBackStack() },
                 showCheckboxes = uiState.showCheckboxes,
                 onToggleCheckboxes = viewModel::onToggleCheckboxVisibility,
-                isEditing = uiState.isEditing,
-                onToggleEditing = viewModel::onToggleEditingMode,
                 onClearCompleted = viewModel::onClearCompleted,
                 onExportMarkdown = {
                     val markdown = viewModel.buildMarkdownExport()
@@ -295,7 +291,7 @@ fun ChecklistScreen(
             )
         },
         floatingActionButton = {
-            if (!uiState.isLoading && uiState.errorMessage == null && uiState.isEditing) {
+            if (!uiState.isLoading && uiState.errorMessage == null) {
                 FloatingActionButton(
                     onClick = { viewModel.onAddItem(uiState.items.lastOrNull()?.id) },
                 ) {
@@ -360,7 +356,6 @@ fun ChecklistScreen(
                     onAddBelow = viewModel::onAddItem,
                     onDelete = viewModel::onDeleteItem,
                     onFocusConsumed = viewModel::onPendingFocusConsumed,
-                    isEditing = uiState.isEditing,
                     onWikiLinkClick = { link ->
                         coroutineScope.launch {
                             when {
@@ -412,7 +407,6 @@ private fun ChecklistContent(
     onCheckedChange: (String, Boolean) -> Unit,
     onAddBelow: (String?) -> Unit,
     onDelete: (String) -> Unit,
-    isEditing: Boolean,
     onWikiLinkClick: (String) -> Unit,
     onFocusConsumed: () -> Unit,
     onShowItemActions: (ChecklistItemUiModel) -> Unit,
@@ -442,7 +436,6 @@ private fun ChecklistContent(
         }
     }
 
-    val focusManager = LocalFocusManager.current
     AnimatedVisibility(
         visible = uiState.items.isNotEmpty(),
         enter = fadeIn(),
@@ -480,7 +473,6 @@ private fun ChecklistContent(
                             item = item,
                             reorderableScope = reorderableScope,
                             showCheckbox = uiState.showCheckboxes,
-                            isEditing = isEditing,
                             isDragging = isDragging,
                             shouldRequestFocus = item.id == uiState.pendingFocusItemId,
                             onFocusConsumed = onFocusConsumed,
@@ -492,48 +484,44 @@ private fun ChecklistContent(
                         )
                     }
 
-                    if (isEditing) {
-                        SwipeToDismissBox(
-                            state = dismissState,
-                            backgroundContent = {
-                                val color =
-                                    when (dismissState.dismissDirection) {
-                                        SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
-                                        SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primaryContainer
-                                        else -> Color.Transparent
-                                    }
-                                val icon =
-                                    when (dismissState.dismissDirection) {
-                                        SwipeToDismissBoxValue.EndToStart -> Icons.Outlined.Delete
-                                        SwipeToDismissBoxValue.StartToEnd -> Icons.Default.ContentCopy
-                                        else -> null
-                                    }
-                                val alignment =
-                                    when (dismissState.dismissDirection) {
-                                        SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
-                                        SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
-                                        else -> Alignment.Center
-                                    }
-                                Box(
-                                    modifier =
-                                        Modifier
-                                            .fillMaxSize()
-                                            .background(color)
-                                            .padding(horizontal = 16.dp),
-                                    contentAlignment = alignment,
-                                ) {
-                                    if (icon != null) {
-                                        Icon(
-                                            imageVector = icon,
-                                            contentDescription = null,
-                                        )
-                                    }
+                    SwipeToDismissBox(
+                        state = dismissState,
+                        backgroundContent = {
+                            val color =
+                                when (dismissState.dismissDirection) {
+                                    SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                                    SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primaryContainer
+                                    else -> Color.Transparent
                                 }
-                            },
-                        ) {
-                            content()
-                        }
-                    } else {
+                            val icon =
+                                when (dismissState.dismissDirection) {
+                                    SwipeToDismissBoxValue.EndToStart -> Icons.Outlined.Delete
+                                    SwipeToDismissBoxValue.StartToEnd -> Icons.Default.ContentCopy
+                                    else -> null
+                                }
+                            val alignment =
+                                when (dismissState.dismissDirection) {
+                                    SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                                    SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                                    else -> Alignment.Center
+                                }
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .fillMaxSize()
+                                        .background(color)
+                                        .padding(horizontal = 16.dp),
+                                contentAlignment = alignment,
+                            ) {
+                                if (icon != null) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = null,
+                                    )
+                                }
+                            }
+                        },
+                    ) {
                         content()
                     }
                 }
@@ -553,8 +541,6 @@ private fun ChecklistTopBar(
     onBack: () -> Unit,
     showCheckboxes: Boolean,
     onToggleCheckboxes: () -> Unit,
-    isEditing: Boolean,
-    onToggleEditing: () -> Unit,
     onClearCompleted: () -> Unit,
     onExportMarkdown: () -> Unit,
     onImportFromClipboard: () -> Unit,
@@ -588,12 +574,6 @@ private fun ChecklistTopBar(
             }
         },
         actions = {
-            IconButton(onClick = onToggleEditing) {
-                Icon(
-                    imageVector = if (isEditing) Icons.Filled.Visibility else Icons.Filled.Edit,
-                    contentDescription = if (isEditing) "Switch to read mode" else "Switch to edit mode",
-                )
-            }
             IconButton(onClick = { menuExpanded = true }) {
                 Icon(
                     imageVector = Icons.Filled.MoreVert,
@@ -690,7 +670,6 @@ private fun ChecklistItemRow(
     item: ChecklistItemUiModel,
     reorderableScope: ReorderableCollectionItemScope,
     showCheckbox: Boolean,
-    isEditing: Boolean,
     isDragging: Boolean,
     shouldRequestFocus: Boolean,
     onFocusConsumed: () -> Unit,
@@ -715,8 +694,8 @@ private fun ChecklistItemRow(
         }
     }
 
-    LaunchedEffect(hasInputFocus, isEditing) {
-        if (hasInputFocus && isEditing) {
+    LaunchedEffect(hasInputFocus) {
+        if (hasInputFocus) {
             awaitFrame()
             runCatching { focusRequester.requestFocus() }
         }
@@ -776,109 +755,95 @@ private fun ChecklistItemRow(
                 Spacer(modifier = Modifier.width(1.dp))
             }
 
-            if (isEditing) {
-                Column(modifier = Modifier.weight(1f)) {
-                    if (hasInputFocus) {
-                        OutlinedTextField(
-                            value = item.content,
-                            onValueChange = onContentChange,
-                            modifier =
-
-                                Modifier
-                                    .fillMaxWidth()
-                                    .focusRequester(focusRequester)
-                                    .onFocusChanged { state ->
-                                        if (state.isFocused) {
-                                            wasFocusedAtLeastOnce = true
-                                            hasInputFocus = true
-                                        } else if (wasFocusedAtLeastOnce) {
-                                            hasInputFocus = false
-                                        }
-                                    }
-                                    .onKeyEvent { event ->
-
-                                        if (event.type == KeyEventType.KeyUp && event.key == Key.Enter) {
-                                            onAddBelow()
-
-                                            true
-                                        } else if (event.type == KeyEventType.KeyUp && event.key == Key.Tab) {
-                                            focusManager.clearFocus()
-
-                                            false
-                                        } else {
-                                            false
-                                        }
-                                    },
-                            placeholder = {
-                                Text(
-                                    text = stringResource(R.string.checklist_item_placeholder),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                )
-                            },
-                            minLines = 1,
-                            maxLines = 10,
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                            keyboardActions = KeyboardActions(onNext = { onAddBelow() }),
-                            colors =
-                                OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = Color.Transparent,
-                                    unfocusedBorderColor = Color.Transparent,
-                                    disabledBorderColor = Color.Transparent,
-                                    focusedContainerColor = Color.Transparent,
-                                    unfocusedContainerColor = Color.Transparent,
-                                ),
-                            textStyle = MaterialTheme.typography.bodyMedium,
-                        )
-                    } else if (item.content.isBlank()) {
-                        Text(
-                            text = stringResource(R.string.checklist_item_placeholder),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        hasInputFocus = true
-                                    }
-                                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                        )
-                    } else {
-                        ChecklistReadOnlyText(
-                            text = item.content,
-                            onWikiLinkClick = onWikiLinkClick,
-                            onPlainTextClick = {
-                                hasInputFocus = true
-                            },
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-                        )
-                    }
-                }
-            } else {
-                ChecklistReadOnlyText(
-                    text = item.content,
-                    onWikiLinkClick = onWikiLinkClick,
-                    modifier = Modifier.weight(1f).padding(horizontal = 16.dp, vertical = 14.dp),
-                )
-            }
-
-            if (isEditing) {
-                IconButton(
-                    onClick = { onShowItemActions(item) },
-                    modifier =
-                        with(reorderableScope) {
+            Column(modifier = Modifier.weight(1f)) {
+                if (hasInputFocus) {
+                    OutlinedTextField(
+                        value = item.content,
+                        onValueChange = onContentChange,
+                        modifier =
                             Modifier
-                                .draggableHandle()
-                                .padding(top = 16.dp)
-                                .size(40.dp)
+                                .fillMaxWidth()
+                                .focusRequester(focusRequester)
+                                .onFocusChanged { state ->
+                                    if (state.isFocused) {
+                                        wasFocusedAtLeastOnce = true
+                                        hasInputFocus = true
+                                    } else if (wasFocusedAtLeastOnce) {
+                                        hasInputFocus = false
+                                    }
+                                }
+                                .onKeyEvent { event ->
+                                    if (event.type == KeyEventType.KeyUp && event.key == Key.Enter) {
+                                        onAddBelow()
+                                        true
+                                    } else if (event.type == KeyEventType.KeyUp && event.key == Key.Tab) {
+                                        focusManager.clearFocus()
+                                        false
+                                    } else {
+                                        false
+                                    }
+                                },
+                        placeholder = {
+                            Text(
+                                text = stringResource(R.string.checklist_item_placeholder),
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
                         },
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "More options",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                        modifier = Modifier.size(24.dp),
+                        minLines = 1,
+                        maxLines = 10,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                        keyboardActions = KeyboardActions(onNext = { onAddBelow() }),
+                        colors =
+                            OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color.Transparent,
+                                unfocusedBorderColor = Color.Transparent,
+                                disabledBorderColor = Color.Transparent,
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                            ),
+                        textStyle = MaterialTheme.typography.bodyMedium,
+                    )
+                } else if (item.content.isBlank()) {
+                    Text(
+                        text = stringResource(R.string.checklist_item_placeholder),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    hasInputFocus = true
+                                }
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                    )
+                } else {
+                    ChecklistReadOnlyText(
+                        text = item.content,
+                        onWikiLinkClick = onWikiLinkClick,
+                        onPlainTextClick = {
+                            hasInputFocus = true
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
                     )
                 }
+            }
+
+            IconButton(
+                onClick = { onShowItemActions(item) },
+                modifier =
+                    with(reorderableScope) {
+                        Modifier
+                            .draggableHandle()
+                            .padding(top = 16.dp)
+                            .size(40.dp)
+                    },
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More options",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                    modifier = Modifier.size(24.dp),
+                )
             }
         }
     }

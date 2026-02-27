@@ -35,7 +35,6 @@ data class ChecklistUiState(
     val title: String = "",
     val items: List<ChecklistItemUiModel> = emptyList(),
     val showCheckboxes: Boolean = true,
-    val isEditing: Boolean = true,
     val pendingFocusItemId: String? = null,
     val errorMessage: String? = null,
     val showUndoSnackbar: Boolean = false,
@@ -167,10 +166,6 @@ class ChecklistViewModel
 
         fun onToggleCheckboxVisibility() {
             _uiState.update { it.copy(showCheckboxes = !it.showCheckboxes) }
-        }
-
-        fun onToggleEditingMode() {
-            _uiState.update { it.copy(isEditing = !it.isEditing) }
         }
 
         fun onItemContentChange(
