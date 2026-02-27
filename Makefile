@@ -24,7 +24,7 @@ DEVICE_FLAG=-s $(DEVICE_ID)
 
 # --- Цілі (Targets) ---
 
-.PHONY: work-end work-start all debug-cycle release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test sync-contract get-android-dumps exp-cycle build-exp install-exp start-exp stop-exp logcat-exp backup
+.PHONY: work-end work-start all debug-cycle release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test sync-contract get-android-dumps get-release-apk exp-cycle build-exp install-exp start-exp stop-exp logcat-exp backup
 
 work-start:
 	@echo "▶ Starting agent workflow…"
@@ -194,6 +194,10 @@ get-android-dumps:
 	else \
 		echo "Failed to extract dumps: tar stream invalid (maybe empty or permission issue)"; \
 	fi
+
+# Завантажити останній exp-release APK через GitHub deploy скрипт
+get-release-apk:
+	@./tools/gh_deploy.sh --flavor exp-release --action download
 
 clear-dumps:
 	@echo "🗑️  Clearing sync dumps on device and local /tmp..."; \
