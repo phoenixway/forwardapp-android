@@ -26,6 +26,7 @@ signing.properties
 **/build/
 **/build/**
 dist/**
+backups/
 apps/android/build/
 forwardapp-devtools/context/.Context.md.kate-swp
 .aider*

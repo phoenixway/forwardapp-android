@@ -24,7 +24,7 @@ DEVICE_FLAG=-s $(DEVICE_ID)
 
 # --- Цілі (Targets) ---
 
-.PHONY: work-end work-start all debug-cycle release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test sync-contract get-android-dumps exp-cycle build-exp install-exp start-exp stop-exp logcat-exp
+.PHONY: work-end work-start all debug-cycle release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test sync-contract get-android-dumps exp-cycle build-exp install-exp start-exp stop-exp logcat-exp backup
 
 work-start:
 	@echo "▶ Starting agent workflow…"
@@ -151,6 +151,11 @@ logcat-exp:
 
 # ============== СЕРВІСНІ КОМАНДИ ==============
 
+backup:
+	@echo "🗄️  Створюю backup проєкту..."
+	@./tools/backup.sh
+	@echo "✅  Backup завершено."
+
 ## Очистити проєкт (видалити папку build)
 clean:
 	@echo "🧹  Очищую проєкт..."
@@ -257,6 +262,7 @@ help:
 	@echo "  make test           - Виконати unit й instrumentation тести."
 	@echo ""
 	@echo "  make clean          - Очистити проєкт."
+	@echo "  make backup         - Створити zip backup проєкту (без build/cache/logs)."
 	@echo ""
 	@echo "  make help           - Показати цю довідку."
 	@echo "---"
