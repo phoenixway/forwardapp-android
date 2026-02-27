@@ -4,12 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Link
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
@@ -19,7 +14,6 @@ import android.net.Uri
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.features.mainscreen.DashboardBottomBar
-import com.romankozak.forwardappmobile.features.missions.presentation.TacticalMissionViewModel
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
@@ -51,11 +45,8 @@ fun TacticsBottomPanel(
     onShowAbout: () -> Unit,
     featureToggles: Map<FeatureFlag, Boolean>,
     onNavigateToRecentItem: (RecentItem) -> Unit,
-    tacticalMissionViewModel: TacticalMissionViewModel = hiltViewModel(),
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
-    val isScopeLinksSheetVisible by tacticalMissionViewModel.isScopeLinksSheetVisible.collectAsState()
-
     CommonBottomPanelLayout {
         Box(
             modifier = Modifier
@@ -89,12 +80,6 @@ fun TacticsBottomPanel(
                 onNavigateToScripts = onNavigateToScripts,
                 onShowAbout = onShowAbout,
                 featureToggles = featureToggles,
-                leadingIcon = Icons.Outlined.Link,
-                leadingLabel = if (isScopeLinksSheetVisible) "Закрити" else "Посилання",
-                onLeadingClick = tacticalMissionViewModel::toggleScopeLinksSheet,
-                quickActionIcon = Icons.Outlined.Add,
-                quickActionLabel = "Додати місію",
-                onQuickActionClick = { tacticalMissionViewModel.openAddMissionDialog() },
                 recentViewModel = recentViewModel,
             )
         }

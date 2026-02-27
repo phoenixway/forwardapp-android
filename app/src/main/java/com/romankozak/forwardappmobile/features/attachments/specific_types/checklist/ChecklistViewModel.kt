@@ -362,6 +362,10 @@ class ChecklistViewModel
             _uiState.update { it.copy(pendingFocusItemId = null) }
         }
 
+        fun onRequestItemFocus(itemId: String) {
+            _uiState.update { it.copy(pendingFocusItemId = itemId) }
+        }
+
         suspend fun findDocumentIdByName(name: String): String? = noteDocumentRepository.findDocumentByName(name)?.id
 
         fun insertLinkIntoItem(

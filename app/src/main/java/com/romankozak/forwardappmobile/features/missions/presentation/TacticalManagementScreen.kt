@@ -7,7 +7,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DeleteOutline
@@ -63,6 +66,7 @@ fun TacticalManagementScreen(
     var showAddObsidianDialog by remember { mutableStateOf(false) }
     var selectedMissionIds by remember { mutableStateOf(setOf<Long>()) }
     var statusMenuExpanded by remember { mutableStateOf(false) }
+    var isFabMenuExpanded by remember { mutableStateOf(false) }
     val selectionMode = selectedMissionIds.isNotEmpty()
 
     LaunchedEffect(missions) {
@@ -70,141 +74,179 @@ fun TacticalManagementScreen(
         selectedMissionIds = selectedMissionIds.filter { it in existingIds }.toSet()
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        if (selectionMode) {
-            Surface(
-                tonalElevation = 2.dp,
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            if (selectionMode) {
+                Surface(
+                    tonalElevation = 2.dp,
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(
-                        text = "Вибрано: ${selectedMissionIds.size}",
-                        style = MaterialTheme.typography.labelLarge,
-                    )
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState())
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "Вибрано: ${selectedMissionIds.size}",
+                            style = MaterialTheme.typography.labelLarge,
+                        )
 
-                    Box {
-                        FilledTonalButton(onClick = { statusMenuExpanded = true }) {
-                            Text("Змінити статус")
+                        Box {
+                            FilledTonalButton(onClick = { statusMenuExpanded = true }) {
+                                Text("Змінити статус")
+                            }
+                            DropdownMenu(
+                                expanded = statusMenuExpanded,
+                                onDismissRequest = { statusMenuExpanded = false },
+                            ) {
+                                listOf(
+                                    MissionStatus.ACTIVE to "Активна",
+                                    MissionStatus.INACTIVE to "Неактивна",
+                                    MissionStatus.PAUSED to "На паузі",
+                                ).forEach { (status, label) ->
+                                    DropdownMenuItem(
+                                        text = { Text(label) },
+                                        onClick = {
+                                            missions
+                                                .filter { it.id in selectedMissionIds }
+                                                .forEach { mission ->
+                                                    viewModel.updateMission(mission.copy(status = status))
+                                                }
+                                            selectedMissionIds = emptySet()
+                                            statusMenuExpanded = false
+                                        },
+                                    )
+                                }
+                            }
                         }
-                        DropdownMenu(
-                            expanded = statusMenuExpanded,
-                            onDismissRequest = { statusMenuExpanded = false },
+
+                        OutlinedButton(
+                            onClick = {
+                                missions
+                                    .filter { it.id in selectedMissionIds }
+                                    .forEach { mission ->
+                                        viewModel.updateMission(mission.copy(status = MissionStatus.COMPLETED))
+                                    }
+                                selectedMissionIds = emptySet()
+                            },
                         ) {
-                            listOf(
-                                MissionStatus.ACTIVE to "Активна",
-                                MissionStatus.INACTIVE to "Неактивна",
-                                MissionStatus.PAUSED to "На паузі",
-                            ).forEach { (status, label) ->
-                                DropdownMenuItem(
-                                    text = { Text(label) },
-                                    onClick = {
-                                        missions
-                                            .filter { it.id in selectedMissionIds }
-                                            .forEach { mission ->
-                                                viewModel.updateMission(mission.copy(status = status))
-                                            }
-                                        selectedMissionIds = emptySet()
-                                        statusMenuExpanded = false
-                                    },
-                                )
-                            }
+                            Text("Виконані")
                         }
-                    }
 
-                    OutlinedButton(
-                        onClick = {
-                            missions
-                                .filter { it.id in selectedMissionIds }
-                                .forEach { mission ->
-                                    viewModel.updateMission(mission.copy(status = MissionStatus.COMPLETED))
+                        OutlinedButton(
+                            onClick = {
+                                missions
+                                    .filter { it.id in selectedMissionIds }
+                                    .forEach { mission ->
+                                        viewModel.updateMission(mission.copy(status = MissionStatus.ACTIVE))
+                                    }
+                                selectedMissionIds = emptySet()
+                            },
+                        ) {
+                            Text("Невиконані")
+                        }
+
+                        Button(
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                            onClick = {
+                                selectedMissionIds.forEach { id ->
+                                    viewModel.deleteMission(id)
                                 }
-                            selectedMissionIds = emptySet()
-                        },
-                    ) {
-                        Text("Виконані")
-                    }
+                                selectedMissionIds = emptySet()
+                            },
+                        ) {
+                            Text("Видалити", color = MaterialTheme.colorScheme.onErrorContainer)
+                        }
 
-                    OutlinedButton(
-                        onClick = {
-                            missions
-                                .filter { it.id in selectedMissionIds }
-                                .forEach { mission ->
-                                    viewModel.updateMission(mission.copy(status = MissionStatus.ACTIVE))
-                                }
-                            selectedMissionIds = emptySet()
-                        },
-                    ) {
-                        Text("Невиконані")
-                    }
-
-                    Button(
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                        onClick = {
-                            selectedMissionIds.forEach { id ->
-                                viewModel.deleteMission(id)
-                            }
-                            selectedMissionIds = emptySet()
-                        },
-                    ) {
-                        Text("Видалити", color = MaterialTheme.colorScheme.onErrorContainer)
-                    }
-
-                    TextButton(onClick = { selectedMissionIds = emptySet() }) {
-                        Text("Скасувати")
+                        TextButton(onClick = { selectedMissionIds = emptySet() }) {
+                            Text("Скасувати")
+                        }
                     }
                 }
             }
+
+            TacticalMissionList(
+                missions = missions,
+                projectOptions = projectOptions,
+                attachmentOptions = attachmentOptions,
+                selectedMissionIds = selectedMissionIds,
+                selectionMode = selectionMode,
+                onMissionToggled = { viewModel.toggleMissionCompleted(it) },
+                onMissionSelectionToggle = { mission ->
+                    selectedMissionIds =
+                        if (mission.id in selectedMissionIds) {
+                            selectedMissionIds - mission.id
+                        } else {
+                            selectedMissionIds + mission.id
+                        }
+                },
+                onMissionClick = { mission ->
+                    if (!selectionMode) {
+                        editingMission = mission
+                    }
+                },
+                onMissionLongPress = { mission ->
+                    selectedMissionIds =
+                        if (mission.id in selectedMissionIds) {
+                            selectedMissionIds
+                        } else {
+                            selectedMissionIds + mission.id
+                        }
+                },
+                onMissionMoreClick = { mission -> actionMenuMission = mission },
+                onLinkedContextClick = onLinkedProjectClick,
+                onLinkedAttachmentClick = { attachmentId ->
+                    val option =
+                        attachmentOptions.firstOrNull { it.id == attachmentId }
+                            ?: AttachmentOption(id = attachmentId, name = attachmentId)
+                    onLinkedAttachmentClick(option)
+                },
+                onMissionsReordered = viewModel::reorderMissions,
+                modifier = Modifier.weight(1f),
+            )
         }
 
-        TacticalMissionList(
-            missions = missions,
-            projectOptions = projectOptions,
-            attachmentOptions = attachmentOptions,
-            selectedMissionIds = selectedMissionIds,
-            selectionMode = selectionMode,
-            onMissionToggled = { viewModel.toggleMissionCompleted(it) },
-            onMissionSelectionToggle = { mission ->
-                selectedMissionIds =
-                    if (mission.id in selectedMissionIds) {
-                        selectedMissionIds - mission.id
-                    } else {
-                        selectedMissionIds + mission.id
-                    }
-            },
-            onMissionClick = { mission ->
-                if (!selectionMode) {
-                    editingMission = mission
-                }
-            },
-            onMissionLongPress = { mission ->
-                selectedMissionIds =
-                    if (mission.id in selectedMissionIds) {
-                        selectedMissionIds
-                    } else {
-                        selectedMissionIds + mission.id
-                    }
-            },
-            onMissionMoreClick = { mission -> actionMenuMission = mission },
-            onLinkedContextClick = onLinkedProjectClick,
-            onLinkedAttachmentClick = { attachmentId ->
-                val option =
-                    attachmentOptions.firstOrNull { it.id == attachmentId }
-                        ?: AttachmentOption(id = attachmentId, name = attachmentId)
-                onLinkedAttachmentClick(option)
-            },
-            onMissionsReordered = viewModel::reorderMissions,
-            modifier = Modifier.weight(1f),
-        )
-
+        Box(
+            modifier =
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 16.dp, bottom = 96.dp),
+        ) {
+            FloatingActionButton(onClick = { isFabMenuExpanded = !isFabMenuExpanded }) {
+                Icon(Icons.Default.Menu, contentDescription = "Меню дій тактик")
+            }
+            DropdownMenu(
+                expanded = isFabMenuExpanded,
+                onDismissRequest = { isFabMenuExpanded = false },
+                modifier =
+                    Modifier.background(
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(16.dp),
+                    ),
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Додати місію") },
+                    leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                    onClick = {
+                        isFabMenuExpanded = false
+                        viewModel.openAddMissionDialog()
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text("Показати зв'язки") },
+                    leadingIcon = { Icon(Icons.Outlined.Link, contentDescription = null) },
+                    onClick = {
+                        isFabMenuExpanded = false
+                        viewModel.toggleScopeLinksSheet()
+                    },
+                )
+            }
+        }
     }
 
     actionMenuMission?.let { mission ->

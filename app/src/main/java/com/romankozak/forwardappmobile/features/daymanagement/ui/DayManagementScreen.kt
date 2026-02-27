@@ -13,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material3.*
@@ -91,7 +92,7 @@ fun DayManagementScreen(
         floatingActionButton = {
             Box {
                 FloatingActionButton(onClick = { isFabMenuExpanded = !isFabMenuExpanded }) {
-                    Icon(Icons.Default.Add, contentDescription = "Меню дій дня")
+                    Icon(Icons.Default.Menu, contentDescription = "Меню дій дня")
                 }
                 DropdownMenu(
                     expanded = isFabMenuExpanded,

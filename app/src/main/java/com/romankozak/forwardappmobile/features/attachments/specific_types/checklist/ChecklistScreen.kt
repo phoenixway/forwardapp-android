@@ -355,6 +355,7 @@ fun ChecklistScreen(
                     onCheckedChange = viewModel::onToggleItemChecked,
                     onAddBelow = viewModel::onAddItem,
                     onDelete = viewModel::onDeleteItem,
+                    onRequestFocus = viewModel::onRequestItemFocus,
                     onFocusConsumed = viewModel::onPendingFocusConsumed,
                     onWikiLinkClick = { link ->
                         coroutineScope.launch {
@@ -407,6 +408,7 @@ private fun ChecklistContent(
     onCheckedChange: (String, Boolean) -> Unit,
     onAddBelow: (String?) -> Unit,
     onDelete: (String) -> Unit,
+    onRequestFocus: (String) -> Unit,
     onWikiLinkClick: (String) -> Unit,
     onFocusConsumed: () -> Unit,
     onShowItemActions: (ChecklistItemUiModel) -> Unit,
@@ -479,6 +481,7 @@ private fun ChecklistContent(
                             onContentChange = { onContentChange(item.id, it) },
                             onCheckedChange = { onCheckedChange(item.id, it) },
                             onAddBelow = { onAddBelow(item.id) },
+                            onRequestFocus = { onRequestFocus(item.id) },
                             onWikiLinkClick = onWikiLinkClick,
                             onShowItemActions = { onShowItemActions(item) },
                         )
@@ -676,6 +679,7 @@ private fun ChecklistItemRow(
     onContentChange: (String) -> Unit,
     onCheckedChange: (Boolean) -> Unit,
     onAddBelow: () -> Unit,
+    onRequestFocus: () -> Unit,
     onWikiLinkClick: (String) -> Unit,
     onShowItemActions: (ChecklistItemUiModel) -> Unit,
 ) {
@@ -812,7 +816,7 @@ private fun ChecklistItemRow(
                             Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    hasInputFocus = true
+                                    onRequestFocus()
                                 }
                                 .padding(horizontal = 16.dp, vertical = 14.dp),
                     )
@@ -821,7 +825,7 @@ private fun ChecklistItemRow(
                         text = item.content,
                         onWikiLinkClick = onWikiLinkClick,
                         onPlainTextClick = {
-                            hasInputFocus = true
+                            onRequestFocus()
                         },
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
                     )
