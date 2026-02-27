@@ -21,7 +21,6 @@ object MusicNoteToMusicXmlConverter {
         var defaultDurationDenominator = 4
         var beatsPerMeasure = 4
         var beatUnit = 4
-        var isDurationModeEnabled = false
 
         var resolvedTitle = title.ifBlank { "Music note" }
         var composer: String? = null
@@ -87,7 +86,6 @@ object MusicNoteToMusicXmlConverter {
 
                 durationDirectiveRegex.matchEntire(token)?.let { match ->
                     defaultDurationDenominator = normalizeDurationDenominator(match.groupValues[1].toIntOrNull())
-                    isDurationModeEnabled = true
                     return@forEach
                 }
 
@@ -122,7 +120,18 @@ object MusicNoteToMusicXmlConverter {
                     return@forEach
                 }
 
-                if (token == "|") {
+                if (token == "|" || token == "||") {
+                    if (token == "||") {
+                        val targetIndex =
+                            if (currentMeasure().notes.isEmpty() && measures.size > 1) {
+                                measures.lastIndex - 1
+                            } else {
+                                measures.lastIndex
+                            }
+                        if (targetIndex >= 0) {
+                            measures[targetIndex].rightBarStyle = BarStyle.DOUBLE
+                        }
+                    }
                     if (currentMeasure().notes.isNotEmpty()) {
                         startNewMeasure()
                     }
@@ -157,12 +166,7 @@ object MusicNoteToMusicXmlConverter {
 
                 restRegex.matchEntire(noteToken)?.let { restMatch ->
                     val numericSuffix = restMatch.groupValues[1].toIntOrNull()
-                    val durationDenominator =
-                        if (isDurationModeEnabled) {
-                            normalizeDurationDenominator(numericSuffix ?: defaultDurationDenominator)
-                        } else {
-                            defaultDurationDenominator
-                        }
+                    val durationDenominator = normalizeDurationDenominator(numericSuffix ?: defaultDurationDenominator)
                     val xmlDuration = durationValueFromDenominator(durationDenominator)
                     val measureDuration = measureDurationFromTime(currentMeasure().beats, currentMeasure().beatType)
 
@@ -190,15 +194,9 @@ object MusicNoteToMusicXmlConverter {
                 val octaveShift = match.groupValues[4]
 
                 val alter = accidental.count { it == '#' } - accidental.count { it == 'b' }
-                val durationDenominator =
-                    if (isDurationModeEnabled) {
-                        normalizeDurationDenominator(numericSuffix ?: defaultDurationDenominator)
-                    } else {
-                        defaultDurationDenominator
-                    }
+                val durationDenominator = normalizeDurationDenominator(numericSuffix ?: defaultDurationDenominator)
                 val xmlDuration = durationValueFromDenominator(durationDenominator)
-                val octaveBase = if (isDurationModeEnabled) defaultOctave else (numericSuffix ?: defaultOctave)
-                val octave = octaveBase + octaveShift.sumOf { if (it == '+') 1 else -1 }
+                val octave = defaultOctave + octaveShift.sumOf { if (it == '+') 1 else -1 }
 
                 val measureDuration = measureDurationFromTime(currentMeasure().beats, currentMeasure().beatType)
                 if (durationInMeasure + xmlDuration > measureDuration && currentMeasure().notes.isNotEmpty()) {
@@ -320,6 +318,10 @@ object MusicNoteToMusicXmlConverter {
                         append("</text></lyric>")
                     }
                     append("</note>")
+                }
+                when (measure.rightBarStyle) {
+                    BarStyle.DOUBLE -> append("<barline location=\"right\"><bar-style>light-light</bar-style></barline>")
+                    BarStyle.SINGLE -> Unit
                 }
                 append("</measure>")
             }
@@ -493,5 +495,11 @@ object MusicNoteToMusicXmlConverter {
         var beatType: Int = 4,
         val notes: MutableList<ParsedNote> = mutableListOf(),
         val measureDirections: MutableList<String> = mutableListOf(),
+        var rightBarStyle: BarStyle = BarStyle.SINGLE,
     )
+
+    private enum class BarStyle {
+        SINGLE,
+        DOUBLE,
+    }
 }
