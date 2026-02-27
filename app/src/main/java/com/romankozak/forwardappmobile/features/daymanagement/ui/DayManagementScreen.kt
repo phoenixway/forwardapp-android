@@ -33,12 +33,6 @@ import com.romankozak.forwardappmobile.features.daymanagement.ui.dayanalitics.Da
 import com.romankozak.forwardappmobile.features.daymanagement.ui.daydashboard.DayDashboardScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
-import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
-import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
-import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenuItem
-import com.romankozak.forwardappmobile.features.common.components.holdmenu2.IconPosition
-import com.romankozak.forwardappmobile.features.common.components.holdmenu2.MenuAlignment
-import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -61,16 +55,7 @@ fun DayManagementScreen(
 
     // Instantiate DayPlanViewModel here, scoped to the COMMAND_DECK_TODAY_ROUTE
     val dayPlanViewModel: DayPlanViewModel = hiltViewModel()
-    val holdMenuController = rememberHoldMenu2()
-    val fabMenuItems =
-        remember {
-            listOf(
-                HoldMenuItem(label = "Додати задачу", icon = Icons.Default.Add),
-                HoldMenuItem(label = "Показати зв'язки", icon = Icons.Outlined.Link),
-                HoldMenuItem(label = "Назад", icon = Icons.AutoMirrored.Filled.ArrowBack),
-                HoldMenuItem(label = "Вперед", icon = Icons.AutoMirrored.Filled.ArrowForward),
-            )
-        }
+    var isFabMenuExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(key1 = Unit) {
         viewModel.uiEvent.collect { event ->
@@ -104,23 +89,52 @@ fun DayManagementScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
-            HoldMenu2Button(
-                items = fabMenuItems,
-                controller = holdMenuController,
-                onSelect = { index ->
-                    when (index) {
-                        0 -> dayPlanViewModel.openAddTaskDialog()
-                        1 -> dayPlanViewModel.toggleScopeLinksSheet()
-                        2 -> dayPlanViewModel.navigateToPreviousDay()
-                        3 -> dayPlanViewModel.navigateToNextDay()
-                    }
-                },
-                onTap = { dayPlanViewModel.openAddTaskDialog() },
-                menuAlignment = MenuAlignment.END,
-                iconPosition = IconPosition.END,
-            ) {
-                FloatingActionButton(onClick = { dayPlanViewModel.openAddTaskDialog() }) {
-                    Icon(Icons.Default.Add, contentDescription = "Додати задачу")
+            Box {
+                FloatingActionButton(onClick = { isFabMenuExpanded = !isFabMenuExpanded }) {
+                    Icon(Icons.Default.Add, contentDescription = "Меню дій дня")
+                }
+                DropdownMenu(
+                    expanded = isFabMenuExpanded,
+                    onDismissRequest = { isFabMenuExpanded = false },
+                    modifier =
+                        Modifier
+                            .background(
+                                color = MaterialTheme.colorScheme.surface,
+                                shape = RoundedCornerShape(16.dp),
+                            ),
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Додати задачу") },
+                        leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                        onClick = {
+                            isFabMenuExpanded = false
+                            dayPlanViewModel.openAddTaskDialog()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Показати зв'язки") },
+                        leadingIcon = { Icon(Icons.Outlined.Link, contentDescription = null) },
+                        onClick = {
+                            isFabMenuExpanded = false
+                            dayPlanViewModel.toggleScopeLinksSheet()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Назад") },
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) },
+                        onClick = {
+                            isFabMenuExpanded = false
+                            dayPlanViewModel.navigateToPreviousDay()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Вперед") },
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null) },
+                        onClick = {
+                            isFabMenuExpanded = false
+                            dayPlanViewModel.navigateToNextDay()
+                        },
+                    )
                 }
             }
         },
@@ -190,8 +204,6 @@ fun DayManagementScreen(
                     )
                 }
             }
-
-            HoldMenu2Overlay(controller = holdMenuController)
         }
     }
 }
