@@ -73,6 +73,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.awaitFrame
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -714,9 +715,10 @@ private fun ChecklistItemRow(
         }
     }
 
-    LaunchedEffect(hasInputFocus) {
-        if (hasInputFocus) {
-            focusRequester.requestFocus()
+    LaunchedEffect(hasInputFocus, isEditing) {
+        if (hasInputFocus && isEditing) {
+            awaitFrame()
+            runCatching { focusRequester.requestFocus() }
         }
     }
 

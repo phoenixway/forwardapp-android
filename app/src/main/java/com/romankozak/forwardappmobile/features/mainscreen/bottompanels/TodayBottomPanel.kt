@@ -11,21 +11,12 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
 import android.net.Uri
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Link
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
-import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.features.mainscreen.DashboardBottomBar
-import kotlinx.coroutines.launch // Assuming launch is used inside DashboardBottomBar
 
 @Composable
 fun TodayBottomPanel(
@@ -54,14 +45,8 @@ fun TodayBottomPanel(
     onShowAbout: () -> Unit,
     featureToggles: Map<FeatureFlag, Boolean>,
     onNavigateToRecentItem: (RecentItem) -> Unit,
-    onNavigateToPreviousDay: () -> Unit,
-    onNavigateToNextDay: () -> Unit,
-    isNextDayNavigationEnabled: Boolean,
-    dayPlanViewModel: DayPlanViewModel = hiltViewModel(),
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
-    val isScopeLinksSheetVisible by dayPlanViewModel.isScopeLinksSheetVisible.collectAsState()
-
     CommonBottomPanelLayout {
         Box(
             modifier = Modifier
@@ -95,19 +80,6 @@ fun TodayBottomPanel(
                 onNavigateToScripts = onNavigateToScripts,
                 onShowAbout = onShowAbout,
                 featureToggles = featureToggles,
-                leadingIcon = Icons.Outlined.Link,
-                leadingLabel = if (isScopeLinksSheetVisible) "Закрити" else "Посилання",
-                onLeadingClick = dayPlanViewModel::toggleScopeLinksSheet,
-                quickActionIcon = Icons.Outlined.Add,
-                quickActionLabel = "Додати ціль",
-                onQuickActionClick = { dayPlanViewModel.openAddTaskDialog() },
-                middleLeftIcon = Icons.AutoMirrored.Filled.ArrowBack,
-                middleLeftLabel = "Попередній",
-                onMiddleLeftClick = onNavigateToPreviousDay,
-                middleCenterIcon = Icons.AutoMirrored.Filled.ArrowForward,
-                middleCenterLabel = "Наступний",
-                onMiddleCenterClick = onNavigateToNextDay,
-                middleCenterEnabled = isNextDayNavigationEnabled,
                 recentViewModel = recentViewModel,
             )
         }

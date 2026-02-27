@@ -515,6 +515,11 @@ class DayPlanViewModel
                         return@launch
                     }
 
+                    // New tasks should appear at the top in Today list.
+                    val currentTasks = uiState.value.tasks
+                    val minOrder = currentTasks.minOfOrNull { it.dayTask.order } ?: 0L
+                    val topOrder = minOrder - 1
+
                     if (recurrenceRule != null) {
                         dayManagementRepository.addRecurringTask(
                             title = trimmedTitle,
@@ -524,10 +529,9 @@ class DayPlanViewModel
                             recurrenceRule = recurrenceRule,
                             dayPlanId = dayPlanId,
                             points = points,
+                            order = topOrder,
                         )
                     } else {
-                        val currentTasks = uiState.value.tasks
-                        val maxOrder = currentTasks.maxOfOrNull { it.dayTask.order } ?: 0L
                         dayManagementRepository.addTaskToDayPlan(
                             NewTaskParameters(
                                 dayPlanId = dayPlanId,
@@ -535,7 +539,7 @@ class DayPlanViewModel
                                 description = description.trim().takeIf { it.isNotEmpty() },
                                 estimatedDurationMinutes = duration?.takeIf { it > 0 && it <= 1440 },
                                 priority = priority,
-                                order = maxOrder + 1,
+                                order = topOrder,
                                 points = points,
                             ),
                         )

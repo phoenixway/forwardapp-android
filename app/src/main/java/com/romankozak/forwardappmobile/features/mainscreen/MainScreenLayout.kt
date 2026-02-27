@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.features.mainscreen
 
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -330,18 +329,6 @@ fun MainScreenLayout(
                                 onShowAbout = { showAboutDialog = true },
                                 featureToggles = contextUiState.featureToggles,
                                 onNavigateToRecentItem = onNavigateToRecentItem,
-                                onNavigateToPreviousDay = {
-                                    Log.d("TodayTab", "onNavigateToPreviousDay callback invoked.")
-                                    dayPlanViewModel.navigateToPreviousDay()
-                                },
-                                onNavigateToNextDay = {
-                                    Log.d(
-                                        "TodayTab",
-                                        "onNavigateToNextDay callback invoked. Enabled: ${!dayPlanUiState.isToday}",
-                                    )
-                                    dayPlanViewModel.navigateToNextDay()
-                                },
-                                isNextDayNavigationEnabled = !dayPlanUiState.isToday,
                                 recentViewModel = recentViewModel,
                             )
                         MAIN_SCREEN_TACTICS_ROUTE ->

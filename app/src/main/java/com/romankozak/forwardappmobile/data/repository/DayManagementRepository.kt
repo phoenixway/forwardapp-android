@@ -152,6 +152,7 @@ class DayManagementRepository
             projectId: String? = null,
             taskType: String? = null,
             points: Int = 0,
+            order: Long? = null,
         ) {
             withContext(ioDispatcher) {
                 val dayPlan = dayPlanDao.getPlanById(dayPlanId) ?: return@withContext
@@ -188,6 +189,7 @@ class DayManagementRepository
                         estimatedDurationMinutes = duration,
                         taskType = resolvedTaskType,
                         points = points,
+                        order = order,
                     )
                 val dayTask =
                     addTaskToDayPlan(taskParams).copy(

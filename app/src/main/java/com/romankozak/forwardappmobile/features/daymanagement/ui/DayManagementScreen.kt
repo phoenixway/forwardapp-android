@@ -9,8 +9,12 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,6 +33,12 @@ import com.romankozak.forwardappmobile.features.daymanagement.ui.dayanalitics.Da
 import com.romankozak.forwardappmobile.features.daymanagement.ui.daydashboard.DayDashboardScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenuItem
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.IconPosition
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.MenuAlignment
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -51,6 +61,16 @@ fun DayManagementScreen(
 
     // Instantiate DayPlanViewModel here, scoped to the COMMAND_DECK_TODAY_ROUTE
     val dayPlanViewModel: DayPlanViewModel = hiltViewModel()
+    val holdMenuController = rememberHoldMenu2()
+    val fabMenuItems =
+        remember {
+            listOf(
+                HoldMenuItem(label = "Додати задачу", icon = Icons.Default.Add),
+                HoldMenuItem(label = "Показати зв'язки", icon = Icons.Outlined.Link),
+                HoldMenuItem(label = "Назад", icon = Icons.AutoMirrored.Filled.ArrowBack),
+                HoldMenuItem(label = "Вперед", icon = Icons.AutoMirrored.Filled.ArrowForward),
+            )
+        }
 
     LaunchedEffect(key1 = Unit) {
         viewModel.uiEvent.collect { event ->
@@ -83,7 +103,27 @@ fun DayManagementScreen(
         containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        floatingActionButton = {},
+        floatingActionButton = {
+            HoldMenu2Button(
+                items = fabMenuItems,
+                controller = holdMenuController,
+                onSelect = { index ->
+                    when (index) {
+                        0 -> dayPlanViewModel.openAddTaskDialog()
+                        1 -> dayPlanViewModel.toggleScopeLinksSheet()
+                        2 -> dayPlanViewModel.navigateToPreviousDay()
+                        3 -> dayPlanViewModel.navigateToNextDay()
+                    }
+                },
+                onTap = { dayPlanViewModel.openAddTaskDialog() },
+                menuAlignment = MenuAlignment.END,
+                iconPosition = IconPosition.END,
+            ) {
+                FloatingActionButton(onClick = { dayPlanViewModel.openAddTaskDialog() }) {
+                    Icon(Icons.Default.Add, contentDescription = "Додати задачу")
+                }
+            }
+        },
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             Box(modifier = Modifier.fillMaxSize()) {
@@ -150,6 +190,8 @@ fun DayManagementScreen(
                     )
                 }
             }
+
+            HoldMenu2Overlay(controller = holdMenuController)
         }
     }
 }
