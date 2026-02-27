@@ -196,7 +196,7 @@ fun StrategicManagementScreen(
         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.05f),
         floatingActionButton = {
             if (!uiState.isLoading && uiState.error == null && currentTab == StrategicManagementTab.DASHBOARD) {
-                Box(modifier = Modifier.padding(bottom = 96.dp)) {
+                Box(modifier = Modifier.padding(bottom = 72.dp)) {
                     FloatingActionButton(onClick = { isFabMenuExpanded = !isFabMenuExpanded }) {
                         Icon(Icons.Default.Menu, contentDescription = "Меню дій стратегії")
                     }
