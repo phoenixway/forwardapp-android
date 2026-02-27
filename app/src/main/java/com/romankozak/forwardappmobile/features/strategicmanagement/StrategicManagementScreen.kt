@@ -2,9 +2,19 @@ package com.romankozak.forwardappmobile.features.strategicmanagement
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -69,6 +79,7 @@ fun StrategicManagementScreen(
     var pendingCreateAction by remember { mutableStateOf<PickerCreateAction?>(null) }
     var showAddUrlDialog by remember { mutableStateOf(false) }
     var showAddObsidianDialog by remember { mutableStateOf(false) }
+    var isFabMenuExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(navController) {
         val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
@@ -183,6 +194,49 @@ fun StrategicManagementScreen(
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.05f),
+        floatingActionButton = {
+            if (!uiState.isLoading && uiState.error == null && currentTab == StrategicManagementTab.DASHBOARD) {
+                Box(modifier = Modifier.padding(bottom = 96.dp)) {
+                    FloatingActionButton(onClick = { isFabMenuExpanded = !isFabMenuExpanded }) {
+                        Icon(Icons.Default.Menu, contentDescription = "Меню дій стратегії")
+                    }
+                    DropdownMenu(
+                        expanded = isFabMenuExpanded,
+                        onDismissRequest = { isFabMenuExpanded = false },
+                        modifier =
+                            Modifier.background(
+                                color = MaterialTheme.colorScheme.surface,
+                                shape = RoundedCornerShape(16.dp),
+                            ),
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Додати посилання") },
+                            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                            onClick = {
+                                isFabMenuExpanded = false
+                                val disabledIds = contexts.joinToString(",") { it.id }
+                                val title = URLEncoder.encode("Додати стратегічний контекст", "UTF-8")
+                                val route =
+                                    if (disabledIds.isBlank()) {
+                                        "list_chooser_screen/$title"
+                                    } else {
+                                        "list_chooser_screen/$title?disabledIds=$disabledIds"
+                                    }
+                                navController.navigate(route)
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Показати зв'язки") },
+                            leadingIcon = { Icon(Icons.Outlined.Link, contentDescription = null) },
+                            onClick = {
+                                isFabMenuExpanded = false
+                                viewModel.toggleScopeLinksSheet()
+                            },
+                        )
+                    }
+                }
+            }
+        },
     ) { paddingValues ->
         Column(modifier = Modifier.fillMaxSize()) { // Removed padding(paddingValues) here
             if (uiState.isLoading) {

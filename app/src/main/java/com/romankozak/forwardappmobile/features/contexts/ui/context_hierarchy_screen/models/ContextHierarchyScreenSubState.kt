@@ -31,7 +31,10 @@ sealed class DialogState {
 
     data class AddProject(val parentId: String?) : DialogState()
 
-    data class ProjectMenu(val project: Context) : DialogState()
+    data class ProjectMenu(
+        val project: Context,
+        val canPasteContextLinks: Boolean = false,
+    ) : DialogState()
 
     data class ConfirmDelete(val project: Context) : DialogState()
 

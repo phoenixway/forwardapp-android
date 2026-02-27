@@ -2,13 +2,24 @@ package com.romankozak.forwardappmobile.features.mainscreen
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -63,6 +74,7 @@ fun CoreLevelScreen(
     var pendingCreateAction by remember { mutableStateOf<PickerCreateAction?>(null) }
     var showAddUrlDialog by remember { mutableStateOf(false) }
     var showAddObsidianDialog by remember { mutableStateOf(false) }
+    var isFabMenuExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(navController) {
         val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
@@ -175,69 +187,118 @@ fun CoreLevelScreen(
         }
     }
 
-    if (uiState.isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-    } else if (uiState.error != null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(text = uiState.error!!)
-        }
-    } else {
-        ConnectionsPanel(
-            items = sortedItems,
-            onConnectionClick = onConnectionClick,
-            onConnectionRemove = { item ->
-                if (item.type == ConnectionType.CONTEXT) {
-                    viewModel.removeCoreLink(item.id)
-                } else {
-                    viewModel.removeAttachmentLink(item.id)
-                }
-            },
-            onAddButtonClick = {
-                pendingCreateAction = null
-                activeLinkPickerTab = LinkPickerTab.CONTEXTS
-            },
-            onAddConnection = { type ->
-                when (type) {
-                    AddConnectionType.CONTEXT -> {
-                        val disabledIds = uiState.projects.joinToString(",") { it.id }
-                        val title = URLEncoder.encode("Додати контекст у ядро", "UTF-8")
-                        val route =
-                            if (disabledIds.isBlank()) {
-                                "list_chooser_screen/$title"
-                            } else {
-                                "list_chooser_screen/$title?disabledIds=$disabledIds"
-                            }
-                        navController.navigate(route)
-                    }
-
-                    AddConnectionType.ATTACHMENT -> {
-                        pendingCreateAction = null
-                        showAttachmentChooser = true
-                    }
-                    AddConnectionType.EXTERNAL_LINK -> showAddUrlDialog = true
-                    AddConnectionType.OBSIDIAN_NOTE -> showAddObsidianDialog = true
-                }
-            },
-            onCreateConnection = { type ->
-                pendingCreateAction = type.toPickerCreateAction()
-                activeLinkPickerTab =
-                    if (type == CreateConnectionType.CONTEXT) {
-                        LinkPickerTab.CONTEXTS
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (uiState.isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (uiState.error != null) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = uiState.error!!)
+            }
+        } else {
+            ConnectionsPanel(
+                items = sortedItems,
+                onConnectionClick = onConnectionClick,
+                onConnectionRemove = { item ->
+                    if (item.type == ConnectionType.CONTEXT) {
+                        viewModel.removeCoreLink(item.id)
                     } else {
-                        LinkPickerTab.ATTACHMENTS
+                        viewModel.removeAttachmentLink(item.id)
                     }
-            },
-            preferActionsBesideTitleWhenWide = true,
-            onConnectionsReordered = { reordered ->
-                viewModel.updateConnectionsOrder(reordered.map { it.orderToken() })
-            },
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-        )
+                },
+                onAddButtonClick = {
+                    pendingCreateAction = null
+                    activeLinkPickerTab = LinkPickerTab.CONTEXTS
+                },
+                onAddConnection = { type ->
+                    when (type) {
+                        AddConnectionType.CONTEXT -> {
+                            val disabledIds = uiState.projects.joinToString(",") { it.id }
+                            val title = URLEncoder.encode("Додати контекст у ядро", "UTF-8")
+                            val route =
+                                if (disabledIds.isBlank()) {
+                                    "list_chooser_screen/$title"
+                                } else {
+                                    "list_chooser_screen/$title?disabledIds=$disabledIds"
+                                }
+                            navController.navigate(route)
+                        }
+
+                        AddConnectionType.ATTACHMENT -> {
+                            pendingCreateAction = null
+                            showAttachmentChooser = true
+                        }
+                        AddConnectionType.EXTERNAL_LINK -> showAddUrlDialog = true
+                        AddConnectionType.OBSIDIAN_NOTE -> showAddObsidianDialog = true
+                    }
+                },
+                onCreateConnection = { type ->
+                    pendingCreateAction = type.toPickerCreateAction()
+                    activeLinkPickerTab =
+                        if (type == CreateConnectionType.CONTEXT) {
+                            LinkPickerTab.CONTEXTS
+                        } else {
+                            LinkPickerTab.ATTACHMENTS
+                        }
+                },
+                preferActionsBesideTitleWhenWide = true,
+                onConnectionsReordered = { reordered ->
+                    viewModel.updateConnectionsOrder(reordered.map { it.orderToken() })
+                },
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
+
+        if (!uiState.isLoading && uiState.error == null) {
+            Box(
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 16.dp, bottom = 96.dp),
+            ) {
+                FloatingActionButton(onClick = { isFabMenuExpanded = !isFabMenuExpanded }) {
+                    Icon(Icons.Default.Menu, contentDescription = "Меню дій ядра")
+                }
+                DropdownMenu(
+                    expanded = isFabMenuExpanded,
+                    onDismissRequest = { isFabMenuExpanded = false },
+                    modifier =
+                        Modifier.background(
+                            color = MaterialTheme.colorScheme.surface,
+                            shape = RoundedCornerShape(16.dp),
+                        ),
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Додати посилання") },
+                        leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                        onClick = {
+                            isFabMenuExpanded = false
+                            val disabledIds = uiState.projects.joinToString(",") { it.id }
+                            val title = URLEncoder.encode("Додати контекст у ядро", "UTF-8")
+                            val route =
+                                if (disabledIds.isBlank()) {
+                                    "list_chooser_screen/$title"
+                                } else {
+                                    "list_chooser_screen/$title?disabledIds=$disabledIds"
+                                }
+                            navController.navigate(route)
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Показати зв'язки") },
+                        leadingIcon = { Icon(Icons.Outlined.Link, contentDescription = null) },
+                        onClick = {
+                            isFabMenuExpanded = false
+                            viewModel.toggleScopeLinksSheet()
+                        },
+                    )
+                }
+            }
+        }
     }
 
     if (isScopeLinksSheetVisible) {

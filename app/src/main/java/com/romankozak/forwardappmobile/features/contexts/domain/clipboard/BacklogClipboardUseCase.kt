@@ -91,6 +91,14 @@ class BacklogClipboardUseCase
             }
         }
 
+        fun canPasteContextLinksIntoBacklog(targetContextId: String): Boolean {
+            if (targetContextId.isBlank()) return false
+            val payload = clipboardService.payload.value ?: return false
+            val hasContextRefs = payload.entities.any { it is ClipboardEntityRef.BacklogContextLink }
+            if (!hasContextRefs) return false
+            return canPasteIntoBacklog(targetContextId)
+        }
+
         fun canPasteIntoDirection(targetContextId: String): Boolean {
             if (targetContextId.isBlank()) return false
             val payload = clipboardService.payload.value ?: return false

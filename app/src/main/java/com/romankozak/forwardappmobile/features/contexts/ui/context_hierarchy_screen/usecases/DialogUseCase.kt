@@ -38,8 +38,11 @@ class DialogUseCase
             dialogStateManager.onAddSubprojectRequest(parentProject)
         }
 
-        fun onMenuRequested(project: Context) {
-            dialogStateManager.onMenuRequested(project)
+        fun onMenuRequested(
+            project: Context,
+            canPasteContextLinks: Boolean = false,
+        ) {
+            dialogStateManager.onMenuRequested(project, canPasteContextLinks)
         }
 
         fun onDeleteRequest(project: Context) {

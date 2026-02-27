@@ -24,8 +24,15 @@ class DialogStateManager
             _dialogState.value = DialogState.AddProject(parentProject.id)
         }
 
-        fun onMenuRequested(project: Context) {
-            _dialogState.value = DialogState.ProjectMenu(project)
+        fun onMenuRequested(
+            project: Context,
+            canPasteContextLinks: Boolean = false,
+        ) {
+            _dialogState.value =
+                DialogState.ProjectMenu(
+                    project = project,
+                    canPasteContextLinks = canPasteContextLinks,
+                )
         }
 
         fun onDeleteRequest(project: Context) {

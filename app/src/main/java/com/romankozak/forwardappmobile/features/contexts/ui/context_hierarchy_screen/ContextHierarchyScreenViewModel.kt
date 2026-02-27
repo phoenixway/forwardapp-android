@@ -369,7 +369,10 @@ class ContextHierarchyScreenViewModel
                     )
 
                 is ContextHierarchyScreenEvent.ContextClick -> onProjectClicked(event.projectId)
-                is ContextHierarchyScreenEvent.ContextMenuRequest -> dialogUseCase.onMenuRequested(event.project)
+                is ContextHierarchyScreenEvent.ContextMenuRequest -> {
+                    val canPaste = backlogClipboardUseCase.canPasteContextLinksIntoBacklog(event.project.id)
+                    dialogUseCase.onMenuRequested(event.project, canPaste)
+                }
                 is ContextHierarchyScreenEvent.ToggleContextExpanded -> onToggleExpanded(event.project)
                 is ContextHierarchyScreenEvent.ContextReorder -> {
                     viewModelScope.launch {
@@ -561,6 +564,25 @@ class ContextHierarchyScreenViewModel
                     dialogUseCase.dismissDialog()
                     viewModelScope.launch {
                         _uiEventChannel.send(ProjectUiEvent.ShowToast("Контекст вирізано в буфер як посилання"))
+                    }
+                }
+                is ContextHierarchyScreenEvent.PasteContextLink -> {
+                    viewModelScope.launch {
+                        val report =
+                            backlogClipboardUseCase.pasteBacklogGoals(
+                                targetContextId = event.project.id,
+                                mode = event.mode,
+                            )
+                        dialogUseCase.dismissDialog()
+                        _uiEventChannel.send(
+                            ProjectUiEvent.ShowToast(
+                                if (report.changedCount > 0) {
+                                    "Вставлено: ${report.toUserMessage()}"
+                                } else {
+                                    "Немає придатних контекстів для вставки"
+                                },
+                            ),
+                        )
                     }
                 }
                 is ContextHierarchyScreenEvent.GoToSettings -> {

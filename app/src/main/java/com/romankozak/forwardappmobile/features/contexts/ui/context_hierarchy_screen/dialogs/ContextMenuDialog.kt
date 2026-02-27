@@ -30,6 +30,8 @@ fun ContextMenuDialog(
     onToggleUserFocusRequest: (Context) -> Unit,
     onCopyContextLinkRequest: (Context) -> Unit,
     onCutContextLinkRequest: (Context) -> Unit,
+    onPasteContextLinkRequest: (Context) -> Unit,
+    canPasteContextLinks: Boolean,
 ) {
     Dialog(onDismissRequest = onDismissRequest) {
         Card(
@@ -77,6 +79,14 @@ fun ContextMenuDialog(
                     icon = Icons.Default.ContentCut,
                     onClick = { onCutContextLinkRequest(project) },
                 )
+                if (canPasteContextLinks) {
+                    HorizontalDivider()
+                    DialogActionItem(
+                        text = "Вставити",
+                        icon = Icons.Default.ContentPaste,
+                        onClick = { onPasteContextLinkRequest(project) },
+                    )
+                }
                 HorizontalDivider()
                 // Структурні зміни
                 DialogActionItem(

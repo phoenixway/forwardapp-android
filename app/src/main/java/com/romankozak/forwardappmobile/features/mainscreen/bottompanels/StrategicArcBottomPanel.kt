@@ -5,25 +5,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import android.net.Uri
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Link
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.features.mainscreen.DashboardBottomBar
-import com.romankozak.forwardappmobile.features.mainscreen.StrategicArcViewModel
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
-import java.net.URLEncoder
 
 @Composable
 fun StrategicArcBottomPanel(
@@ -52,12 +45,8 @@ fun StrategicArcBottomPanel(
     onShowAbout: () -> Unit,
     featureToggles: Map<FeatureFlag, Boolean>,
     onNavigateToRecentItem: (RecentItem) -> Unit,
-    strategicArcViewModel: StrategicArcViewModel = hiltViewModel(),
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
-    val isScopeLinksSheetVisible by strategicArcViewModel.isScopeLinksSheetVisible.collectAsState()
-    val uiState by strategicArcViewModel.uiState.collectAsState()
-
     CommonBottomPanelLayout {
         Box(
             modifier = Modifier
@@ -91,22 +80,6 @@ fun StrategicArcBottomPanel(
                 onNavigateToScripts = onNavigateToScripts,
                 onShowAbout = onShowAbout,
                 featureToggles = featureToggles,
-                leadingIcon = Icons.Outlined.Link,
-                leadingLabel = if (isScopeLinksSheetVisible) "Закрити" else "Посилання",
-                onLeadingClick = strategicArcViewModel::toggleScopeLinksSheet,
-                quickActionIcon = Icons.Outlined.Add,
-                quickActionLabel = "Додати посилання",
-                onQuickActionClick = {
-                    val disabledIds = uiState.projects.joinToString(",") { it.id }
-                    val title = URLEncoder.encode("Додати стратегічну арку", "UTF-8")
-                    val route =
-                        if (disabledIds.isBlank()) {
-                            "list_chooser_screen/$title"
-                        } else {
-                            "list_chooser_screen/$title?disabledIds=$disabledIds"
-                        }
-                    navController.navigate(route)
-                },
                 recentViewModel = recentViewModel,
             )
         }

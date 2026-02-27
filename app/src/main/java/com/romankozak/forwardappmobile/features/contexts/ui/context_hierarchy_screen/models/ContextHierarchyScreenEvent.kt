@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.theme.ThemeMode
 import com.romankozak.forwardappmobile.core.theme.ThemeName
+import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogPasteMode
 import com.romankozak.forwardappmobile.features.settings.settings.models.PlanningSettings
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 
@@ -99,6 +100,11 @@ sealed interface ContextHierarchyScreenEvent {
     data class CopyContextLink(val project: Context) : ContextHierarchyScreenEvent
 
     data class CutContextLink(val project: Context) : ContextHierarchyScreenEvent
+
+    data class PasteContextLink(
+        val project: Context,
+        val mode: BacklogPasteMode = BacklogPasteMode.AS_LINK,
+    ) : ContextHierarchyScreenEvent
 
     data object GoToSettings : ContextHierarchyScreenEvent
 

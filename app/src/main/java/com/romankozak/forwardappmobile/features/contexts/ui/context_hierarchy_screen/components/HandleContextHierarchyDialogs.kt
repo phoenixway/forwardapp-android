@@ -60,6 +60,8 @@ fun HandleProjectHierarchyDialogs(
                 onToggleUserFocusRequest = { project -> onEvent(ContextHierarchyScreenEvent.ToggleUserFocusContext(project)) },
                 onCopyContextLinkRequest = { project -> onEvent(ContextHierarchyScreenEvent.CopyContextLink(project)) },
                 onCutContextLinkRequest = { project -> onEvent(ContextHierarchyScreenEvent.CutContextLink(project)) },
+                onPasteContextLinkRequest = { project -> onEvent(ContextHierarchyScreenEvent.PasteContextLink(project)) },
+                canPasteContextLinks = state.canPasteContextLinks,
             )
         }
         is DialogState.ConfirmDelete -> {
