@@ -29,6 +29,8 @@ object MusicNoteToMusicXmlConverter {
         val pendingLyrics = ArrayDeque<String>()
         var pendingSlurStart = false
         var pendingSlurStop = false
+        var isChordMode = false
+        var chordHasRoot = false
 
         fun currentMeasure(): ParsedMeasure = measures.last()
 
@@ -99,6 +101,12 @@ object MusicNoteToMusicXmlConverter {
 
                 if (token == "(") {
                     pendingSlurStart = true
+                    return@forEach
+                }
+
+                if (token == "[") {
+                    isChordMode = true
+                    chordHasRoot = false
                     return@forEach
                 }
 
@@ -207,6 +215,8 @@ object MusicNoteToMusicXmlConverter {
 
                 var localStartsSlur = false
                 var localStopsSlur = false
+                var localStartsChord = false
+                var localEndsChord = false
                 while (parsedToken.startsWith("(")) {
                     localStartsSlur = true
                     parsedToken = parsedToken.drop(1)
@@ -214,6 +224,19 @@ object MusicNoteToMusicXmlConverter {
                 while (parsedToken.endsWith(")")) {
                     localStopsSlur = true
                     parsedToken = parsedToken.dropLast(1)
+                }
+                while (parsedToken.startsWith("[")) {
+                    localStartsChord = true
+                    parsedToken = parsedToken.drop(1)
+                }
+                while (parsedToken.endsWith("]")) {
+                    localEndsChord = true
+                    parsedToken = parsedToken.dropLast(1)
+                }
+
+                if (localStartsChord) {
+                    isChordMode = true
+                    chordHasRoot = false
                 }
 
                 val cleanedToken = parsedToken
@@ -236,6 +259,10 @@ object MusicNoteToMusicXmlConverter {
                             }
                         }
                     }
+                    if (localEndsChord || token == "]") {
+                        isChordMode = false
+                        chordHasRoot = false
+                    }
                     return@forEach
                 }
 
@@ -248,8 +275,9 @@ object MusicNoteToMusicXmlConverter {
                     val durationDenominator = normalizeDurationDenominator(numericSuffix ?: defaultDurationDenominator)
                     val xmlDuration = durationValueFromDenominator(durationDenominator)
                     val measureDuration = measureDurationFromTime(currentMeasure().beats, currentMeasure().beatType)
+                    val isChordTone = isChordMode && chordHasRoot
 
-                    if (durationInMeasure + xmlDuration > measureDuration && currentMeasure().notes.isNotEmpty()) {
+                    if (!isChordTone && durationInMeasure + xmlDuration > measureDuration && currentMeasure().notes.isNotEmpty()) {
                         startNewMeasure()
                     }
 
@@ -260,9 +288,19 @@ object MusicNoteToMusicXmlConverter {
                             alter = 0,
                             isRest = true,
                             durationDenominator = durationDenominator,
+                            isChordTone = isChordTone,
                         ),
                     )
-                    durationInMeasure += xmlDuration
+                    if (!isChordTone) {
+                        durationInMeasure += xmlDuration
+                        if (isChordMode) {
+                            chordHasRoot = true
+                        }
+                    }
+                    if (localEndsChord || token == "]") {
+                        isChordMode = false
+                        chordHasRoot = false
+                    }
                     return@forEach
                 }
 
@@ -276,9 +314,10 @@ object MusicNoteToMusicXmlConverter {
                 val durationDenominator = normalizeDurationDenominator(numericSuffix ?: defaultDurationDenominator)
                 val xmlDuration = durationValueFromDenominator(durationDenominator)
                 val octave = defaultOctave + octaveShift.sumOf { if (it == '+') 1 else -1 }
+                val isChordTone = isChordMode && chordHasRoot
 
                 val measureDuration = measureDurationFromTime(currentMeasure().beats, currentMeasure().beatType)
-                if (durationInMeasure + xmlDuration > measureDuration && currentMeasure().notes.isNotEmpty()) {
+                if (!isChordTone && durationInMeasure + xmlDuration > measureDuration && currentMeasure().notes.isNotEmpty()) {
                     startNewMeasure()
                 }
 
@@ -306,11 +345,21 @@ object MusicNoteToMusicXmlConverter {
                         slurStart = noteSlurStart,
                         slurStop = noteSlurStop,
                         breathMark = hasTrailingBreath,
+                        isChordTone = isChordTone,
                     ),
                 )
                 pendingSlurStart = false
                 pendingSlurStop = false
-                durationInMeasure += xmlDuration
+                if (!isChordTone) {
+                    durationInMeasure += xmlDuration
+                    if (isChordMode) {
+                        chordHasRoot = true
+                    }
+                }
+                if (localEndsChord || token == "]") {
+                    isChordMode = false
+                    chordHasRoot = false
+                }
             }
         }
 
@@ -381,6 +430,9 @@ object MusicNoteToMusicXmlConverter {
                     val noteType = typeFromDenominator(note.durationDenominator)
 
                     append("<note>")
+                    if (note.isChordTone && !note.isRest) {
+                        append("<chord/>")
+                    }
                     if (note.isRest) {
                         append("<rest/>")
                     } else {
@@ -594,6 +646,7 @@ object MusicNoteToMusicXmlConverter {
         var slurStart: Boolean = false,
         var slurStop: Boolean = false,
         var breathMark: Boolean = false,
+        val isChordTone: Boolean = false,
     )
 
     private data class ParsedMeasure(

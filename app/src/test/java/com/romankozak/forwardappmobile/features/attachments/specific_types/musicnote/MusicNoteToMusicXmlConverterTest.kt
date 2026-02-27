@@ -81,4 +81,15 @@ class MusicNoteToMusicXmlConverterTest {
 
         assertTrue(xml.contains("<print new-system=\"yes\"/>"))
     }
+
+    @Test
+    fun bracketSyntaxCreatesSimultaneousChordNotes() {
+        val xml =
+            MusicNoteToMusicXmlConverter.convert(
+                content = "@oct=4 [c4 e4 g4]",
+                title = "t",
+            )
+
+        assertTrue(xml.contains("<chord/>"))
+    }
 }
