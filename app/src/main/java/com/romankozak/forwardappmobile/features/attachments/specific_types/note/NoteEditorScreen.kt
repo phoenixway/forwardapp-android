@@ -33,5 +33,6 @@ fun NoteEditorScreen(
         navController = navController,
         contentFocusRequester = focusRequester,
         startInEditMode = noteId == null,
+        foldingPersistenceKey = noteId?.let { "legacy_note:$it" },
     )
 }

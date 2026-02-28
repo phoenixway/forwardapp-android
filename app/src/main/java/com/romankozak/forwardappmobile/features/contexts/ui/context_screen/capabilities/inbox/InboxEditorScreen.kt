@@ -31,5 +31,6 @@ fun InboxEditorScreen(
         viewModel = viewModel.universalEditorViewModel,
         navController = navController,
         contentFocusRequester = focusRequester,
+        foldingPersistenceKey = inboxId?.let { "inbox:$it" },
     )
 }

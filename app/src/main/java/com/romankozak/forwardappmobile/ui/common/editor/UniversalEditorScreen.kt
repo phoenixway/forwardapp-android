@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.ui.common.editor
 
 import android.app.Activity
+import android.content.Context
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.BorderStroke
@@ -79,6 +80,7 @@ fun UniversalEditorScreen(
     viewModel: UniversalEditorViewModel = hiltViewModel(),
     contentFocusRequester: FocusRequester,
     startInEditMode: Boolean = false,
+    foldingPersistenceKey: String? = null,
 ) {
     var isToolbarVisible by remember { mutableStateOf(false) }
     val topBarContainerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -326,6 +328,7 @@ fun UniversalEditorScreen(
                 isToolbarVisible = isToolbarVisible,
                 readOnly = readOnly,
                 isEditing = isEditing,
+                foldingPersistenceKey = foldingPersistenceKey,
             )
             if (uiState.isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -437,6 +440,7 @@ private fun Editor(
     isToolbarVisible: Boolean,
     readOnly: Boolean,
     isEditing: Boolean,
+    foldingPersistenceKey: String?,
 ) {
     val scrollState = rememberScrollState()
     var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
@@ -446,6 +450,7 @@ private fun Editor(
     val accentColor = MaterialTheme.colorScheme.primary
     val density = LocalDensity.current
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
 
     val imeHeight = WindowInsets.ime.getBottom(density)
     val isImeVisible = imeHeight > 0
@@ -527,7 +532,16 @@ private fun Editor(
         }
     val readModeLines = remember(readModeSource) { readModeSource.lines() }
     val readModeHeadingLevels = remember(readModeSource) { HeadingFolding.computeHeadingLevels(readModeLines) }
-    var collapsedHeadingLines by rememberSaveable { mutableStateOf(listOf<Int>()) }
+    var collapsedHeadingLines by
+        rememberSaveable(foldingPersistenceKey) {
+            mutableStateOf(
+                if (foldingPersistenceKey.isNullOrBlank()) {
+                    listOf()
+                } else {
+                    loadCollapsedHeadings(context, foldingPersistenceKey)
+                },
+            )
+        }
     val sanitizedCollapsedHeadingLines =
         remember(collapsedHeadingLines, readModeHeadingLevels) {
             HeadingFolding.sanitizeCollapsedHeadings(collapsedHeadingLines, readModeHeadingLevels)
@@ -538,6 +552,11 @@ private fun Editor(
         if (collapsedHeadingLines != normalized) {
             collapsedHeadingLines = normalized
         }
+    }
+
+    LaunchedEffect(foldingPersistenceKey, sanitizedCollapsedHeadingLines) {
+        if (foldingPersistenceKey.isNullOrBlank()) return@LaunchedEffect
+        saveCollapsedHeadings(context, foldingPersistenceKey, sanitizedCollapsedHeadingLines)
     }
 
     LaunchedEffect(content.selection, textLayoutResult, imeHeight, isToolbarVisible) {
@@ -861,6 +880,36 @@ private fun extractWikiLinkDisplay(raw: String): String {
     if (parts.size == 2 && parts[1].isNotBlank()) return parts[1]
     val typed = Regex("""^(doc|ctx|music|checklist):(.+)$""", RegexOption.IGNORE_CASE).matchEntire(trimmed)
     return typed?.groupValues?.get(2)?.takeIf { it.isNotBlank() } ?: trimmed
+}
+
+private const val FOLDING_PREFS_NAME = "universal_editor_heading_folding"
+private const val FOLDING_PREFS_PREFIX = "folded_headings_"
+
+private fun loadCollapsedHeadings(
+    context: Context,
+    persistenceKey: String,
+): List<Int> {
+    val prefs = context.getSharedPreferences(FOLDING_PREFS_NAME, Context.MODE_PRIVATE)
+    val raw = prefs.getString(FOLDING_PREFS_PREFIX + persistenceKey, "") ?: ""
+    if (raw.isBlank()) return emptyList()
+    return raw.split(",")
+        .mapNotNull { token -> token.trim().toIntOrNull() }
+        .distinct()
+        .sorted()
+}
+
+private fun saveCollapsedHeadings(
+    context: Context,
+    persistenceKey: String,
+    collapsedHeadings: Set<Int>,
+) {
+    val prefs = context.getSharedPreferences(FOLDING_PREFS_NAME, Context.MODE_PRIVATE)
+    if (collapsedHeadings.isEmpty()) {
+        prefs.edit().remove(FOLDING_PREFS_PREFIX + persistenceKey).apply()
+        return
+    }
+    val serialized = collapsedHeadings.toList().sorted().joinToString(",")
+    prefs.edit().putString(FOLDING_PREFS_PREFIX + persistenceKey, serialized).apply()
 }
 
 private class ListVisualTransformation(

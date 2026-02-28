@@ -137,5 +137,6 @@ fun NoteDocumentEditorScreen(
         navController = navController,
         contentFocusRequester = focusRequester,
         startInEditMode = startEdit || documentId == null,
+        foldingPersistenceKey = documentId?.let { "note_document:$it" },
     )
 }
