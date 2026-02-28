@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -514,6 +515,31 @@ private fun Editor(
             } ?: emptyList()
         }
 
+    val sourceLines = remember(content.text) { content.text.lines() }
+    val firstLine = sourceLines.firstOrNull().orEmpty()
+    val showDocumentTitle = firstLine.isNotBlank()
+    val documentTitle = if (showDocumentTitle) NoteTitleExtractor.extract(content.text) else ""
+    val readModeSource =
+        if (showDocumentTitle) {
+            sourceLines.drop(1).joinToString("\n")
+        } else {
+            content.text
+        }
+    val readModeLines = remember(readModeSource) { readModeSource.lines() }
+    val readModeHeadingLevels = remember(readModeSource) { HeadingFolding.computeHeadingLevels(readModeLines) }
+    var collapsedHeadingLines by rememberSaveable { mutableStateOf(listOf<Int>()) }
+    val sanitizedCollapsedHeadingLines =
+        remember(collapsedHeadingLines, readModeHeadingLevels) {
+            HeadingFolding.sanitizeCollapsedHeadings(collapsedHeadingLines, readModeHeadingLevels)
+        }
+
+    LaunchedEffect(readModeHeadingLevels) {
+        val normalized = sanitizedCollapsedHeadingLines.toList().sorted()
+        if (collapsedHeadingLines != normalized) {
+            collapsedHeadingLines = normalized
+        }
+    }
+
     LaunchedEffect(content.selection, textLayoutResult, imeHeight, isToolbarVisible) {
         delay(100)
 
@@ -537,7 +563,7 @@ private fun Editor(
                     .verticalScroll(scrollState)
                     .padding(start = 16.dp, end = 16.dp, top = 16.dp),
         ) {
-            val readModeTransformation = ListVisualTransformation(emptySet(), textColor, accentColor)
+            val readModeTransformation = ListVisualTransformation(sanitizedCollapsedHeadingLines, textColor, accentColor)
 
             val baseModifier =
                 Modifier.padding(start = 16.dp)
@@ -548,23 +574,54 @@ private fun Editor(
                     .focusProperties { canFocus = isEditing }
 
             if (readOnly) {
-                val transformed = readModeTransformation.filter(AnnotatedString(content.text))
-                ClickableText(
-                    text = transformed.text,
-                    modifier = baseModifier,
-                    style = TextStyle(fontSize = 16.sp, lineHeight = 24.sp, color = textColor),
-                    onClick = { clickOffset: Int ->
-                        val annotation =
-                            transformed.text.getStringAnnotations("wikilink", clickOffset, clickOffset).firstOrNull()
-                                ?: transformed.text.getStringAnnotations("tag", clickOffset, clickOffset).firstOrNull()
-                                ?: transformed.text.getStringAnnotations("context", clickOffset, clickOffset).firstOrNull()
-                        when (annotation?.tag) {
-                            "wikilink" -> onWikiLinkClick(annotation.item)
-                            "tag" -> onWikiLinkClick("#${annotation.item}")
-                            "context" -> onWikiLinkClick("@${annotation.item}")
-                        }
-                    },
-                )
+                val transformed = readModeTransformation.filter(AnnotatedString(readModeSource))
+
+                Column(
+                    modifier = baseModifier.animateContentSize(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    if (showDocumentTitle) {
+                        Text(
+                            text = documentTitle,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = textColor,
+                        )
+                    }
+                    if (readModeSource.isNotBlank()) {
+                        ClickableText(
+                            text = transformed.text,
+                            style = TextStyle(fontSize = 16.sp, lineHeight = 24.sp, color = textColor),
+                            onClick = { clickOffset: Int ->
+                                val headingToggle =
+                                    transformed.text.getStringAnnotations("fold_heading", clickOffset, clickOffset).firstOrNull()
+                                val headingLineIndex = headingToggle?.item?.toIntOrNull()
+                                if (headingLineIndex != null) {
+                                    collapsedHeadingLines =
+                                        if (sanitizedCollapsedHeadingLines.contains(headingLineIndex)) {
+                                            sanitizedCollapsedHeadingLines
+                                                .filterNot { it == headingLineIndex }
+                                                .sorted()
+                                        } else {
+                                            (sanitizedCollapsedHeadingLines + headingLineIndex)
+                                                .toList()
+                                                .sorted()
+                                        }
+                                    return@ClickableText
+                                }
+                                val annotation =
+                                    transformed.text.getStringAnnotations("wikilink", clickOffset, clickOffset).firstOrNull()
+                                        ?: transformed.text.getStringAnnotations("tag", clickOffset, clickOffset).firstOrNull()
+                                        ?: transformed.text.getStringAnnotations("context", clickOffset, clickOffset).firstOrNull()
+                                when (annotation?.tag) {
+                                    "wikilink" -> onWikiLinkClick(annotation.item)
+                                    "tag" -> onWikiLinkClick("#${annotation.item}")
+                                    "context" -> onWikiLinkClick("@${annotation.item}")
+                                }
+                            },
+                        )
+                    }
+                }
             } else {
                 BasicTextField(
                     value = content,
@@ -807,7 +864,7 @@ private fun extractWikiLinkDisplay(raw: String): String {
 }
 
 private class ListVisualTransformation(
-    private val collapsedLines: Set<Int>,
+    private val collapsedHeadingLines: Set<Int>,
     private val textColor: Color,
     private val accentColor: Color,
 ) : VisualTransformation {
@@ -816,29 +873,21 @@ private class ListVisualTransformation(
         val lines = originalText.lines()
 
         data class LineInfo(val originalIndex: Int, val transformedLength: Int)
-        val visibleLines = mutableListOf<IndexedValue<String>>()
         val lineInfos = mutableListOf<LineInfo>()
+        val headingLevels = HeadingFolding.computeHeadingLevels(lines)
+        val sanitizedCollapsedHeadings =
+            HeadingFolding.sanitizeCollapsedHeadings(collapsedHeadingLines, headingLevels)
+        val visibleLineIndices =
+            HeadingFolding.computeVisibleLineIndices(
+                lines = lines,
+                headingLevels = headingLevels,
+                collapsedHeadingLines = sanitizedCollapsedHeadings,
+            )
+        val visibleLines = visibleLineIndices.map { index -> IndexedValue(index, lines[index]) }
         val wikiLinkRegex = Regex("\\[\\[([^\\[\\]]+)\\]\\]")
         val tagRegex = Regex("#(\\w+)")
         val contextRegex = Regex("@(\\w+)")
-
-        var i = 0
-        while (i < lines.size) {
-            val line = lines[i]
-            visibleLines.add(IndexedValue(i, line))
-            if (collapsedLines.contains(i)) {
-                val indent = line.takeWhile { it.isWhitespace() }.length
-                i++
-                while (
-                    i < lines.size &&
-                    (lines[i].isBlank() || lines[i].takeWhile { it.isWhitespace() }.length > indent)
-                ) {
-                    i++
-                }
-            } else {
-                i++
-            }
-        }
+        val headingRegex = Regex("""^(\s*)(#{1,6})(?:\s+|$)(.*)$""")
 
         val transformedText =
             buildAnnotatedString {
@@ -846,7 +895,6 @@ private class ListVisualTransformation(
                     val (originalIndex, line) = indexedValue
                     val lineStart = length
 
-                    val headingRegex = Regex("""^(\s*)(#+\s)(.*)""")
                     val bulletRegex = Regex("""^(\s*)\*\s(.*)""")
                     val numberedRegex = Regex("""^(\s*)(\d+)\.\s(.*)""")
                     val checkedRegex = Regex("""^(\s*)-\s\[x\]\s(.*)""", RegexOption.IGNORE_CASE)
@@ -863,15 +911,37 @@ private class ListVisualTransformation(
                     var matched = false
 
                     if (!matched) {
-                        headingRegex.find(line)?.let {
-                            val (indent, hashes, content) = it.destructured
+                        val headingLevel = headingLevels[originalIndex]
+                        if (headingLevel != null) {
+                            val headingMatch = headingRegex.find(line)
+                            val indent = headingMatch?.groupValues?.getOrNull(1).orEmpty()
+                            val hashes = headingMatch?.groupValues?.getOrNull(2).orEmpty().ifEmpty { "#".repeat(headingLevel) }
+                            val contentPart = headingMatch?.groupValues?.getOrNull(3).orEmpty().trimStart()
+                            val foldMarker = if (sanitizedCollapsedHeadings.contains(originalIndex)) "▸ " else "▾ "
+                            val headingStart = length
+
+                            withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) {
+                                append(foldMarker)
+                            }
                             append(indent)
                             withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) {
                                 append(hashes)
+                                if (contentPart.isNotBlank()) {
+                                    append(" ")
+                                }
                             }
-                            withStyle(SpanStyle(color = textColor, fontWeight = FontWeight.Bold)) {
-                                append(content)
+                            if (contentPart.isNotBlank()) {
+                                withStyle(SpanStyle(color = textColor, fontWeight = FontWeight.Bold)) {
+                                    append(contentPart)
+                                }
                             }
+
+                            addStringAnnotation(
+                                tag = "fold_heading",
+                                annotation = originalIndex.toString(),
+                                start = headingStart,
+                                end = length,
+                            )
                             matched = true
                         }
                     }

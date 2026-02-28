@@ -139,6 +139,7 @@ fun ProjectsScreen(
                 navController = navController,
                 viewModel = editorViewModel,
                 contentFocusRequester = focusRequester, // Додано кому для відповідності INFO
+                startInEditMode = true,
             )
         }
         else -> {

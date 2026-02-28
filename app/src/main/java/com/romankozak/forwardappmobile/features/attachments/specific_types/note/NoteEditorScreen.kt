@@ -32,5 +32,6 @@ fun NoteEditorScreen(
         viewModel = viewModel.universalEditorViewModel,
         navController = navController,
         contentFocusRequester = focusRequester,
+        startInEditMode = noteId == null,
     )
 }
