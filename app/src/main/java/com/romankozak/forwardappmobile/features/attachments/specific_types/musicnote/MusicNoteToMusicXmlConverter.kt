@@ -447,6 +447,11 @@ object MusicNoteToMusicXmlConverter {
                         append("<octave>")
                         append(note.octave)
                         append("</octave></pitch>")
+                        accidentalNameFromAlter(note.alter)?.let { accidental ->
+                            append("<accidental>")
+                            append(accidental)
+                            append("</accidental>")
+                        }
                     }
                     append("<duration>")
                     append(noteDuration)
@@ -628,6 +633,15 @@ object MusicNoteToMusicXmlConverter {
             16 -> "16th"
             32 -> "32nd"
             else -> "quarter"
+        }
+
+    private fun accidentalNameFromAlter(alter: Int): String? =
+        when (alter) {
+            -2 -> "flat-flat"
+            -1 -> "flat"
+            1 -> "sharp"
+            2 -> "double-sharp"
+            else -> null
         }
 
     private data class InlineComment(

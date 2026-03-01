@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.features.attachments.specific_types.musicnote
 
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class MusicNoteToMusicXmlConverterTest {
@@ -91,5 +92,17 @@ class MusicNoteToMusicXmlConverterTest {
             )
 
         assertTrue(xml.contains("<chord/>"))
+    }
+
+    @Test
+    fun repeatedFlatNotesRenderAccidentalEachTime() {
+        val xml =
+            MusicNoteToMusicXmlConverter.convert(
+                content = "@oct=4 @dur=4 bb bb",
+                title = "t",
+            )
+
+        val count = Regex("<accidental>flat</accidental>").findAll(xml).count()
+        assertEquals(2, count)
     }
 }
