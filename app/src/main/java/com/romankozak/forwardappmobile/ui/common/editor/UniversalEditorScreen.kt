@@ -934,8 +934,7 @@ private class ListVisualTransformation(
         val tagRegex = Regex("#(\\w+)")
         val contextRegex = Regex("@(\\w+)")
         val headingRegex = Regex("""^(\s*)(#{1,6})(?:\s+|$)(.*)$""")
-        val separatorSidePadding = "         "
-        val separatorRenderLine = "──────────"
+        val separatorRenderLine = "────────────────────────────────"
         val separatorColor = textColor.copy(alpha = 0.45f)
 
         val transformedText =
@@ -962,9 +961,7 @@ private class ListVisualTransformation(
                     if (!matched) {
                         if (isMarkdownSeparatorLine(line)) {
                             withStyle(SpanStyle(color = separatorColor)) {
-                                append(separatorSidePadding)
                                 append(separatorRenderLine)
-                                append(separatorSidePadding)
                             }
                             matched = true
                         }
