@@ -241,51 +241,53 @@ fun UniversalEditorScreen(
                     hostState = snackbarHostState,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                 )
-                Box(modifier = Modifier.navigationBarsPadding()) {
-                    AnimatedContent(
-                        targetState = isToolbarVisible,
-                        label = "toolbar_visibility",
-                        transitionSpec = {
-                            (slideInVertically { height -> height } + fadeIn()).togetherWith(
-                                slideOutVertically { height -> height } + fadeOut(),
-                            )
-                        },
-                    ) { isVisible ->
-                        if (isVisible) {
-                            ExperimentalEnhancedListToolbar(
-                                state = uiState.toolbarState,
-                                onIndentBlock = viewModel::onIndentBlock,
-                                onDeIndentBlock = viewModel::onDeIndentBlock,
-                                onMoveBlockUp = viewModel::onMoveBlockUp,
-                                onMoveBlockDown = viewModel::onMoveBlockDown,
-                                onIndentLine = viewModel::onIndentLine,
-                                onDeIndentLine = viewModel::onDeIndentLine,
-                                onMoveLineUp = viewModel::onMoveLineUp,
-                                onMoveLineDown = viewModel::onMoveLineDown,
-                                onDeleteLine = viewModel::onDeleteLine,
-                                onCopyLine = viewModel::onCopyLine,
-                                onCutLine = viewModel::onCutLine,
-                                onPasteLine = viewModel::onPasteLine,
-                                onToggleBullet = viewModel::onToggleBullet,
-                                onToggleCheckbox = viewModel::onToggleCheckbox,
-                                onUndo = viewModel::onUndo,
-                                onRedo = viewModel::onRedo,
-                                onToggleVisibility = { isToolbarVisible = false },
-                                onInsertDateTime = viewModel::onInsertDateTime,
-                                onInsertTime = viewModel::onInsertTime,
-                                onInsertAttachmentLink = { showAttachmentPicker = true },
-                                onInsertContextLink = { showContextPicker = true },
-                                canInsertAttachmentLink = uiState.isEditing && linkSuggestions.any { !it.startsWith("ctx:", ignoreCase = true) },
-                                canInsertContextLink = uiState.isEditing && (linkSuggestions.any { it.startsWith("ctx:", ignoreCase = true) } || contextSuggestions.isNotEmpty()),
-                                onH1 = viewModel::onH1,
-                                onH2 = viewModel::onH2,
-                                onH3 = viewModel::onH3,
-                                onBold = viewModel::onBold,
-                                onItalic = viewModel::onItalic,
-                                onInsertSeparator = viewModel::onInsertSeparator,
-                            )
-                        } else {
-                            ShowToolbarButton(onClick = { isToolbarVisible = true })
+                if (isEditing) {
+                    Box(modifier = Modifier.navigationBarsPadding()) {
+                        AnimatedContent(
+                            targetState = isToolbarVisible,
+                            label = "toolbar_visibility",
+                            transitionSpec = {
+                                (slideInVertically { height -> height } + fadeIn()).togetherWith(
+                                    slideOutVertically { height -> height } + fadeOut(),
+                                )
+                            },
+                        ) { isVisible ->
+                            if (isVisible) {
+                                ExperimentalEnhancedListToolbar(
+                                    state = uiState.toolbarState,
+                                    onIndentBlock = viewModel::onIndentBlock,
+                                    onDeIndentBlock = viewModel::onDeIndentBlock,
+                                    onMoveBlockUp = viewModel::onMoveBlockUp,
+                                    onMoveBlockDown = viewModel::onMoveBlockDown,
+                                    onIndentLine = viewModel::onIndentLine,
+                                    onDeIndentLine = viewModel::onDeIndentLine,
+                                    onMoveLineUp = viewModel::onMoveLineUp,
+                                    onMoveLineDown = viewModel::onMoveLineDown,
+                                    onDeleteLine = viewModel::onDeleteLine,
+                                    onCopyLine = viewModel::onCopyLine,
+                                    onCutLine = viewModel::onCutLine,
+                                    onPasteLine = viewModel::onPasteLine,
+                                    onToggleBullet = viewModel::onToggleBullet,
+                                    onToggleCheckbox = viewModel::onToggleCheckbox,
+                                    onUndo = viewModel::onUndo,
+                                    onRedo = viewModel::onRedo,
+                                    onToggleVisibility = { isToolbarVisible = false },
+                                    onInsertDateTime = viewModel::onInsertDateTime,
+                                    onInsertTime = viewModel::onInsertTime,
+                                    onInsertAttachmentLink = { showAttachmentPicker = true },
+                                    onInsertContextLink = { showContextPicker = true },
+                                    canInsertAttachmentLink = uiState.isEditing && linkSuggestions.any { !it.startsWith("ctx:", ignoreCase = true) },
+                                    canInsertContextLink = uiState.isEditing && (linkSuggestions.any { it.startsWith("ctx:", ignoreCase = true) } || contextSuggestions.isNotEmpty()),
+                                    onH1 = viewModel::onH1,
+                                    onH2 = viewModel::onH2,
+                                    onH3 = viewModel::onH3,
+                                    onBold = viewModel::onBold,
+                                    onItalic = viewModel::onItalic,
+                                    onInsertSeparator = viewModel::onInsertSeparator,
+                                )
+                            } else {
+                                ShowToolbarButton(onClick = { isToolbarVisible = true })
+                            }
                         }
                     }
                 }
@@ -930,7 +932,7 @@ private class ListVisualTransformation(
         val tagRegex = Regex("#(\\w+)")
         val contextRegex = Regex("@(\\w+)")
         val headingRegex = Regex("""^(\s*)(#{1,6})(?:\s+|$)(.*)$""")
-        val separatorRenderLine = "────────────────────────"
+        val separatorRenderLine = "────────────"
 
         val transformedText =
             buildAnnotatedString {
