@@ -215,7 +215,7 @@ fun TacticalManagementScreen(
             modifier =
                 Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 72.dp),
+                    .padding(end = 16.dp, bottom = 56.dp),
         ) {
             FloatingActionButton(onClick = { isFabMenuExpanded = !isFabMenuExpanded }) {
                 Icon(Icons.Default.Menu, contentDescription = "Меню дій тактик")

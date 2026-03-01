@@ -118,6 +118,7 @@ fun ProjectsScreen(
                 navController = navController,
                 viewModel = editorViewModel,
                 contentFocusRequester = focusRequester,
+                foldingPersistenceKey = "context_artifact:${artifact.id}",
             )
         }
         uiState.showNoteDocumentEditor -> {
@@ -140,6 +141,7 @@ fun ProjectsScreen(
                 viewModel = editorViewModel,
                 contentFocusRequester = focusRequester, // Додано кому для відповідності INFO
                 startInEditMode = true,
+                foldingPersistenceKey = projectId?.let { "new_note_document:$it" },
             )
         }
         else -> {

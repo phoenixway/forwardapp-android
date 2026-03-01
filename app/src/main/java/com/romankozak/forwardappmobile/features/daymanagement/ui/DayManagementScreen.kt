@@ -90,7 +90,7 @@ fun DayManagementScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
-            Box(modifier = Modifier.padding(bottom = 72.dp)) {
+            Box(modifier = Modifier.padding(bottom = 56.dp)) {
                 FloatingActionButton(onClick = { isFabMenuExpanded = !isFabMenuExpanded }) {
                     Icon(Icons.Default.Menu, contentDescription = "Меню дій дня")
                 }
