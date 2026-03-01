@@ -34,6 +34,7 @@ import com.romankozak.forwardappmobile.features.daymanagement.ui.dayanalitics.Da
 import com.romankozak.forwardappmobile.features.daymanagement.ui.daydashboard.DayDashboardScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
+import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckFabDefaults
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -90,7 +91,7 @@ fun DayManagementScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
-            Box(modifier = Modifier.padding(bottom = 56.dp)) {
+            Box(modifier = Modifier.padding(bottom = CommandDeckFabDefaults.BottomPadding)) {
                 FloatingActionButton(onClick = { isFabMenuExpanded = !isFabMenuExpanded }) {
                     Icon(Icons.Default.Menu, contentDescription = "Меню дій дня")
                 }

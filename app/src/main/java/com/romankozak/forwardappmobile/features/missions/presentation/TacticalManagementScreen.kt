@@ -35,6 +35,7 @@ import com.romankozak.forwardappmobile.features.missions.presentation.missionlis
 import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.TacticalScopeLinksSheet
 import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.dialogs.TacticalAddObsidianDialog
 import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.dialogs.TacticalAddUrlDialog
+import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckFabDefaults
 import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
 import com.romankozak.forwardappmobile.ui.components.orderToken
 import kotlinx.coroutines.delay
@@ -215,7 +216,7 @@ fun TacticalManagementScreen(
             modifier =
                 Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 56.dp),
+                    .padding(end = 16.dp, bottom = CommandDeckFabDefaults.BottomPadding),
         ) {
             FloatingActionButton(onClick = { isFabMenuExpanded = !isFabMenuExpanded }) {
                 Icon(Icons.Default.Menu, contentDescription = "Меню дій тактик")

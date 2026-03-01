@@ -608,37 +608,39 @@ private fun Editor(
                         )
                     }
                     if (readModeSource.isNotBlank()) {
-                        ClickableText(
-                            text = transformed.text,
-                            style = TextStyle(fontSize = 16.sp, lineHeight = 24.sp, color = textColor),
-                            onClick = { clickOffset: Int ->
-                                val headingToggle =
-                                    transformed.text.getStringAnnotations("fold_heading", clickOffset, clickOffset).firstOrNull()
-                                val headingLineIndex = headingToggle?.item?.toIntOrNull()
-                                if (headingLineIndex != null) {
-                                    collapsedHeadingLines =
-                                        if (sanitizedCollapsedHeadingLines.contains(headingLineIndex)) {
-                                            sanitizedCollapsedHeadingLines
-                                                .filterNot { it == headingLineIndex }
-                                                .sorted()
-                                        } else {
-                                            (sanitizedCollapsedHeadingLines + headingLineIndex)
-                                                .toList()
-                                                .sorted()
-                                        }
-                                    return@ClickableText
-                                }
-                                val annotation =
-                                    transformed.text.getStringAnnotations("wikilink", clickOffset, clickOffset).firstOrNull()
-                                        ?: transformed.text.getStringAnnotations("tag", clickOffset, clickOffset).firstOrNull()
-                                        ?: transformed.text.getStringAnnotations("context", clickOffset, clickOffset).firstOrNull()
-                                when (annotation?.tag) {
-                                    "wikilink" -> onWikiLinkClick(annotation.item)
-                                    "tag" -> onWikiLinkClick("#${annotation.item}")
-                                    "context" -> onWikiLinkClick("@${annotation.item}")
-                                }
-                            },
-                        )
+                        SelectionContainer {
+                            ClickableText(
+                                text = transformed.text,
+                                style = TextStyle(fontSize = 16.sp, lineHeight = 24.sp, color = textColor),
+                                onClick = { clickOffset: Int ->
+                                    val headingToggle =
+                                        transformed.text.getStringAnnotations("fold_heading", clickOffset, clickOffset).firstOrNull()
+                                    val headingLineIndex = headingToggle?.item?.toIntOrNull()
+                                    if (headingLineIndex != null) {
+                                        collapsedHeadingLines =
+                                            if (sanitizedCollapsedHeadingLines.contains(headingLineIndex)) {
+                                                sanitizedCollapsedHeadingLines
+                                                    .filterNot { it == headingLineIndex }
+                                                    .sorted()
+                                            } else {
+                                                (sanitizedCollapsedHeadingLines + headingLineIndex)
+                                                    .toList()
+                                                    .sorted()
+                                            }
+                                        return@ClickableText
+                                    }
+                                    val annotation =
+                                        transformed.text.getStringAnnotations("wikilink", clickOffset, clickOffset).firstOrNull()
+                                            ?: transformed.text.getStringAnnotations("tag", clickOffset, clickOffset).firstOrNull()
+                                            ?: transformed.text.getStringAnnotations("context", clickOffset, clickOffset).firstOrNull()
+                                    when (annotation?.tag) {
+                                        "wikilink" -> onWikiLinkClick(annotation.item)
+                                        "tag" -> onWikiLinkClick("#${annotation.item}")
+                                        "context" -> onWikiLinkClick("@${annotation.item}")
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
             } else {
@@ -882,6 +884,16 @@ private fun extractWikiLinkDisplay(raw: String): String {
     return typed?.groupValues?.get(2)?.takeIf { it.isNotBlank() } ?: trimmed
 }
 
+private fun isMarkdownSeparatorLine(line: String): Boolean {
+    val trimmed = line.trim()
+    if (trimmed.length < 3) return false
+    val compact = trimmed.replace(" ", "")
+    if (compact.length < 3) return false
+    val first = compact.first()
+    if (first != '*' && first != '-' && first != '_') return false
+    return compact.all { it == first }
+}
+
 private const val FOLDING_PREFS_NAME = "universal_editor_heading_folding"
 private const val FOLDING_PREFS_PREFIX = "folded_headings_"
 
@@ -937,6 +949,7 @@ private class ListVisualTransformation(
         val tagRegex = Regex("#(\\w+)")
         val contextRegex = Regex("@(\\w+)")
         val headingRegex = Regex("""^(\s*)(#{1,6})(?:\s+|$)(.*)$""")
+        val separatorRenderLine = "────────────────────────"
 
         val transformedText =
             buildAnnotatedString {
@@ -958,6 +971,15 @@ private class ListVisualTransformation(
                         )
 
                     var matched = false
+
+                    if (!matched) {
+                        if (isMarkdownSeparatorLine(line)) {
+                            withStyle(SpanStyle(color = accentColor.copy(alpha = 0.7f), fontWeight = FontWeight.Medium)) {
+                                append(separatorRenderLine)
+                            }
+                            matched = true
+                        }
+                    }
 
                     if (!matched) {
                         val headingLevel = headingLevels[originalIndex]

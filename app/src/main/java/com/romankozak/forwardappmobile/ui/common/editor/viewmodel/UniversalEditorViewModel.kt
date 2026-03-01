@@ -123,6 +123,24 @@ class UniversalEditorViewModel
             val prevLineEnd = text.lastIndexOf('\n', startIndex = selectionStart - 2)
             val prevLineStart = if (prevLineEnd == -1) 0 else prevLineEnd + 1
             val prevLine = text.substring(prevLineStart, selectionStart - 1)
+            val newlineIndex = selectionStart - 1
+
+            // If user pressed Enter on a line that only contains list marker + optional spaces,
+            // remove the marker and cancel the line break (keep caret on the same line).
+            val markerOnlyLineIndent = extractMarkerOnlyLineIndent(prevLine)
+            if (markerOnlyLineIndent != null && newlineIndex in text.indices) {
+                val markerStartOffset = prevLineStart + markerOnlyLineIndent.length
+                val withoutInsertedNewline = text.removeRange(newlineIndex, newlineIndex + 1)
+                val updatedText = withoutInsertedNewline.removeRange(markerStartOffset, newlineIndex)
+                val newSelection = TextRange(markerStartOffset)
+                _uiState.update {
+                    it.copy(
+                        content = TextFieldValue(updatedText, newSelection),
+                        toolbarState = computeToolbarState(TextFieldValue(updatedText, newSelection), true),
+                    )
+                }
+                return
+            }
 
             val marker = detectListMarker(prevLine)
             val indent = prevLine.takeWhile { it.isWhitespace() }
@@ -147,6 +165,22 @@ class UniversalEditorViewModel
                 _uiState.update {
                     it.copy(content = newValue, toolbarState = computeToolbarState(newValue, editingMode))
                 }
+            }
+        }
+
+        private fun extractMarkerOnlyLineIndent(line: String): String? {
+            val patterns =
+                listOf(
+                    Regex("""^(\s*)-\s*$"""),
+                    Regex("""^(\s*)•\s*$"""),
+                    Regex("""^(\s*)☐\s*$"""),
+                    Regex("""^(\s*)☑\s*$"""),
+                    Regex("""^(\s*)\d+\.\s*$"""),
+                    Regex("""^(\s*)-\s\[\s\]\s*$""", RegexOption.IGNORE_CASE),
+                    Regex("""^(\s*)-\s\[x\]\s*$""", RegexOption.IGNORE_CASE),
+                )
+            return patterns.firstNotNullOfOrNull { pattern ->
+                pattern.find(line)?.groupValues?.getOrNull(1)
             }
         }
 

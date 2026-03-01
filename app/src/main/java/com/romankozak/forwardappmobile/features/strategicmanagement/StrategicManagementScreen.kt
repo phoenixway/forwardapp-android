@@ -42,6 +42,7 @@ import com.romankozak.forwardappmobile.features.lifestate.AnalysisContent
 import com.romankozak.forwardappmobile.features.lifestate.ChatSection
 import com.romankozak.forwardappmobile.features.lifestate.LifeStateChatViewModel
 import com.romankozak.forwardappmobile.features.lifestate.LifeStateViewModel
+import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckFabDefaults
 import com.romankozak.forwardappmobile.features.mainscreen.scopelinks.ScopeAttachmentOption
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentChooserScreen
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
@@ -196,7 +197,7 @@ fun StrategicManagementScreen(
         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.05f),
         floatingActionButton = {
             if (!uiState.isLoading && uiState.error == null && currentTab == StrategicManagementTab.DASHBOARD) {
-                Box(modifier = Modifier.padding(bottom = 56.dp)) {
+                Box(modifier = Modifier.padding(bottom = CommandDeckFabDefaults.BottomPadding)) {
                     FloatingActionButton(onClick = { isFabMenuExpanded = !isFabMenuExpanded }) {
                         Icon(Icons.Default.Menu, contentDescription = "Меню дій стратегії")
                     }
