@@ -294,23 +294,25 @@ fun UniversalEditorScreen(
             }
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    val nextMode = !isEditing
-                    viewModel.setEditingMode(nextMode)
-                    if (nextMode) {
-                        contentFocusRequester.requestFocus()
-                        keyboardController?.show()
+            Box(modifier = Modifier.padding(bottom = 16.dp)) {
+                FloatingActionButton(
+                    onClick = {
+                        val nextMode = !isEditing
+                        viewModel.setEditingMode(nextMode)
+                        if (nextMode) {
+                            contentFocusRequester.requestFocus()
+                            keyboardController?.show()
+                        } else {
+                            focusManager.clearFocus(force = true)
+                            keyboardController?.hide()
+                        }
+                    },
+                ) {
+                    if (isEditing) {
+                        Icon(Icons.Default.Visibility, contentDescription = "Switch to read mode")
                     } else {
-                        focusManager.clearFocus(force = true)
-                        keyboardController?.hide()
+                        Icon(Icons.Default.Edit, contentDescription = "Switch to edit mode")
                     }
-                },
-            ) {
-                if (isEditing) {
-                    Icon(Icons.Default.Visibility, contentDescription = "Switch to read mode")
-                } else {
-                    Icon(Icons.Default.Edit, contentDescription = "Switch to edit mode")
                 }
             }
         },
@@ -932,7 +934,8 @@ private class ListVisualTransformation(
         val tagRegex = Regex("#(\\w+)")
         val contextRegex = Regex("@(\\w+)")
         val headingRegex = Regex("""^(\s*)(#{1,6})(?:\s+|$)(.*)$""")
-        val separatorRenderLine = "────────────"
+        val separatorRenderLine = "──────────────────"
+        val separatorColor = textColor.copy(alpha = 0.45f)
 
         val transformedText =
             buildAnnotatedString {
@@ -957,7 +960,9 @@ private class ListVisualTransformation(
 
                     if (!matched) {
                         if (isMarkdownSeparatorLine(line)) {
-                            withStyle(SpanStyle(color = accentColor.copy(alpha = 0.7f), fontWeight = FontWeight.Medium)) {
+                            val indent = line.takeWhile { it.isWhitespace() }
+                            append(indent)
+                            withStyle(SpanStyle(color = separatorColor)) {
                                 append(separatorRenderLine)
                             }
                             matched = true
