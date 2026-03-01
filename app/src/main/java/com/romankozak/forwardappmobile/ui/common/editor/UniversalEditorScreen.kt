@@ -15,6 +15,7 @@ import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -232,9 +233,6 @@ fun UniversalEditorScreen(
                 onShare = viewModel::onShare,
                 onShowLocation = viewModel::onShowLocation,
                 showLocationEnabled = uiState.projectId != null,
-                canInsertLinks = uiState.isEditing && (linkSuggestions.isNotEmpty() || contextSuggestions.isNotEmpty()),
-                onInsertAttachmentLink = { showAttachmentPicker = true },
-                onInsertContextLink = { showContextPicker = true },
             )
         },
         bottomBar = {
@@ -275,6 +273,10 @@ fun UniversalEditorScreen(
                                 onToggleVisibility = { isToolbarVisible = false },
                                 onInsertDateTime = viewModel::onInsertDateTime,
                                 onInsertTime = viewModel::onInsertTime,
+                                onInsertAttachmentLink = { showAttachmentPicker = true },
+                                onInsertContextLink = { showContextPicker = true },
+                                canInsertAttachmentLink = uiState.isEditing && linkSuggestions.any { !it.startsWith("ctx:", ignoreCase = true) },
+                                canInsertContextLink = uiState.isEditing && (linkSuggestions.any { it.startsWith("ctx:", ignoreCase = true) } || contextSuggestions.isNotEmpty()),
                                 onH1 = viewModel::onH1,
                                 onH2 = viewModel::onH2,
                                 onH3 = viewModel::onH3,
@@ -351,9 +353,6 @@ private fun EditorTopAppBar(
     onShare: () -> Unit,
     onShowLocation: () -> Unit,
     showLocationEnabled: Boolean,
-    canInsertLinks: Boolean,
-    onInsertAttachmentLink: () -> Unit,
-    onInsertContextLink: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -383,24 +382,6 @@ private fun EditorTopAppBar(
                         onClick = {
                             menuExpanded = false
                             onShowLocation()
-                        },
-                    )
-                }
-                if (canInsertLinks) {
-                    DropdownMenuItem(
-                        text = { Text("Вставити посилання на вкладення") },
-                        leadingIcon = { Icon(Icons.Default.AttachFile, contentDescription = null) },
-                        onClick = {
-                            menuExpanded = false
-                            onInsertAttachmentLink()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Вставити посилання на контекст") },
-                        leadingIcon = { Icon(Icons.Default.AccountTree, contentDescription = null) },
-                        onClick = {
-                            menuExpanded = false
-                            onInsertContextLink()
                         },
                     )
                 }

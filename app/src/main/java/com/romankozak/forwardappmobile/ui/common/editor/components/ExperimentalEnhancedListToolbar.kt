@@ -54,6 +54,10 @@ fun ExperimentalEnhancedListToolbar(
     onToggleVisibility: () -> Unit = {},
     onInsertDateTime: () -> Unit = {},
     onInsertTime: () -> Unit = {},
+    onInsertAttachmentLink: () -> Unit = {},
+    onInsertContextLink: () -> Unit = {},
+    canInsertAttachmentLink: Boolean = false,
+    canInsertContextLink: Boolean = false,
     onH1: () -> Unit = {},
     onH2: () -> Unit = {},
     onH3: () -> Unit = {},
@@ -408,6 +412,24 @@ fun ExperimentalEnhancedListToolbar(
                                             onClick = {
                                                 haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                                 onInsertSeparator()
+                                            },
+                                        )
+                                        EnhancedToolbarButton(
+                                            icon = Icons.Default.AttachFile,
+                                            description = "Вставити посилання на вкладення",
+                                            enabled = canInsertAttachmentLink,
+                                            onClick = {
+                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                onInsertAttachmentLink()
+                                            },
+                                        )
+                                        EnhancedToolbarButton(
+                                            icon = Icons.Default.AccountTree,
+                                            description = "Вставити посилання на контекст",
+                                            enabled = canInsertContextLink,
+                                            onClick = {
+                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                onInsertContextLink()
                                             },
                                         )
                                     }

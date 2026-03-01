@@ -50,7 +50,6 @@ android {
                         "-Xjsr305=strict",
                         "-Xcontext-receivers",
                         "-Xskip-prerelease-check",
-                        "-Xenable-k2-mode",
                 )
     }
 
