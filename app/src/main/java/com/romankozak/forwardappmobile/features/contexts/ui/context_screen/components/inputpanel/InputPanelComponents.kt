@@ -63,8 +63,8 @@ internal fun InputTextField(
             onValueChange = onValueChange,
             modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp).focusRequester(focusRequester),
             textStyle = MaterialTheme.typography.bodyLarge.copy(color = panelColors.contentColor),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-            keyboardActions = KeyboardActions(onSend = { if (inputValue.text.isNotBlank()) onSubmit() }),
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Default),
+            keyboardActions = KeyboardActions(),
             cursorBrush = SolidColor(panelColors.accentColor),
             decorationBox = { innerTextField ->
                 Row(modifier = Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {

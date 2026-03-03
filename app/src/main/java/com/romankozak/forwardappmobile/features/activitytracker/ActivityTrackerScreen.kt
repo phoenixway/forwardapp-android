@@ -674,6 +674,39 @@ private fun ActivityInputBar(
                     )
                 }
 
+            val icon: ImageVector
+            val tint: Color
+            val description: String
+
+            if (isActivityOngoing) {
+                if (text.isNotBlank()) {
+                    icon = Icons.Default.Sync
+                    tint = MaterialTheme.colorScheme.tertiary
+                    description = "Зупинити поточну та почати нову"
+                } else {
+                    icon = Icons.Default.StopCircle
+                    tint = MaterialTheme.colorScheme.error
+                    description = "Зупинити"
+                }
+            } else {
+                icon = Icons.Default.PlayCircle
+                tint = MaterialTheme.colorScheme.primary
+                description = "Почати"
+            }
+
+            IconButton(
+                onClick = {
+                    if (text.isNotBlank() || isActivityOngoing) onToggleStartStop()
+                },
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = description,
+                    tint = tint,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
+
             HoldMenu2Button(
                 items = menuItems,
                 controller = holdMenuController,
@@ -683,44 +716,17 @@ private fun ActivityInputBar(
                         1 -> onTimelessClick()
                     }
                 },
-                onTap = {
-                    if (text.isNotBlank() || isActivityOngoing) {
-                        onToggleStartStop()
-                    }
-                },
                 menuAlignment = MenuAlignment.END,
                 iconPosition = IconPosition.END,
             ) {
-                val icon: ImageVector
-                val tint: Color
-                val description: String
-
-                if (isActivityOngoing) {
-                    if (text.isNotBlank()) {
-                        icon = Icons.Default.Sync
-                        tint = MaterialTheme.colorScheme.tertiary
-                        description = "Зупинити поточну та почати нову"
-                    } else {
-                        icon = Icons.Default.StopCircle
-                        tint = MaterialTheme.colorScheme.error
-                        description = "Зупинити"
-                    }
-                } else {
-                    icon = Icons.Default.PlayCircle
-                    tint = MaterialTheme.colorScheme.primary
-                    description = "Почати"
-                }
-
-                IconButton(
-                    onClick = {
-                        if (text.isNotBlank() || isActivityOngoing) onToggleStartStop()
-                    },
+                Box(
+                    modifier = Modifier.size(40.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = icon,
-                        contentDescription = description,
-                        tint = tint,
-                        modifier = Modifier.size(28.dp),
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "Додаткові дії",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
