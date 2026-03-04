@@ -14,9 +14,14 @@ class ContextViewActions(
         val session = contextSessionStore.dispatch(ContextCommand.SelectView(mode))
         val resolved = session.currentView
         stateManager.switchViewMode(resolved)
-        if (resolved == ContextViewMode.DIRECTION) {
-            stateManager.setInputMode(InputMode.AddDirection)
-        }
+        stateManager.setInputMode(resolved.defaultInputMode())
         return resolved
     }
 }
+
+private fun ContextViewMode.defaultInputMode(): InputMode =
+    when (this) {
+        ContextViewMode.INBOX, ContextViewMode.ADVANCED -> InputMode.AddQuickRecord
+        ContextViewMode.DIRECTION -> InputMode.AddDirection
+        else -> InputMode.AddGoal
+    }

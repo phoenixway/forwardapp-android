@@ -3,7 +3,9 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.acti
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.context.ContextCommand
 import com.romankozak.forwardappmobile.core.context.ContextSessionStore
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextData
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextStateManager
 import kotlinx.coroutines.CoroutineScope
@@ -59,6 +61,14 @@ class ContextDataApplyActions(
             val enableDashboard = session.enabledCapabilities.contains(CapabilityId("dashboard"))
             val enableAttachments = session.enabledCapabilities.contains(CapabilityId("connections"))
             val isProjectManagementEnabled = session.enabledCapabilities.contains(CapabilityId("advanced"))
+            val resolvedInputMode =
+                when {
+                    currentState.inputMode != InputMode.AddGoal -> currentState.inputMode
+                    session.currentView == ContextViewMode.DIRECTION -> InputMode.AddDirection
+                    session.currentView == ContextViewMode.INBOX || session.currentView == ContextViewMode.ADVANCED ->
+                        InputMode.AddQuickRecord
+                    else -> InputMode.AddGoal
+                }
 
             if (
                 currentState.enableInbox == enableInbox &&
@@ -70,6 +80,7 @@ class ContextDataApplyActions(
                 currentState.isProjectManagementEnabled == isProjectManagementEnabled &&
                 currentState.experimentalCapabilityIds == data.config.experimentalCapabilityIds &&
                 currentState.currentViewMode == session.currentView &&
+                currentState.inputMode == resolvedInputMode &&
                 !currentState.isContextSwitching
             ) {
                 currentState
@@ -84,6 +95,7 @@ class ContextDataApplyActions(
                     isProjectManagementEnabled = isProjectManagementEnabled,
                     experimentalCapabilityIds = data.config.experimentalCapabilityIds,
                     currentViewMode = session.currentView,
+                    inputMode = resolvedInputMode,
                     isContextSwitching = false,
                 )
             }

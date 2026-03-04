@@ -61,6 +61,12 @@ fun HandleProjectHierarchyDialogs(
                 onCopyContextLinkRequest = { project -> onEvent(ContextHierarchyScreenEvent.CopyContextLink(project)) },
                 onCutContextLinkRequest = { project -> onEvent(ContextHierarchyScreenEvent.CutContextLink(project)) },
                 onPasteContextLinkRequest = { project -> onEvent(ContextHierarchyScreenEvent.PasteContextLink(project)) },
+                onAddNoteDocumentRequest = { project ->
+                    onEvent(ContextHierarchyScreenEvent.AddNoteDocumentToContextRequest(project))
+                },
+                onAddChecklistRequest = { project ->
+                    onEvent(ContextHierarchyScreenEvent.AddChecklistToContextRequest(project))
+                },
                 canPasteContextLinks = state.canPasteContextLinks,
             )
         }

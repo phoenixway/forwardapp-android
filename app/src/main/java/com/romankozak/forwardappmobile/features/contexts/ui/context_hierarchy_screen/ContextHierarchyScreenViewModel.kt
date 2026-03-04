@@ -413,6 +413,14 @@ class ContextHierarchyScreenViewModel
                 is ContextHierarchyScreenEvent.AddChecklistRequest -> {
                     createChecklistInInbox()
                 }
+                is ContextHierarchyScreenEvent.AddNoteDocumentToContextRequest -> {
+                    dialogUseCase.dismissDialog()
+                    createNoteInContext(event.project.id)
+                }
+                is ContextHierarchyScreenEvent.AddChecklistToContextRequest -> {
+                    dialogUseCase.dismissDialog()
+                    createChecklistInContext(event.project.id)
+                }
                 is ContextHierarchyScreenEvent.ListChooserResult -> {
                     val targetProjectId = event.projectId?.takeUnless { it.isBlank() || it == "root" }
                     when (val action = pendingChooserAction.value) {
@@ -890,11 +898,25 @@ class ContextHierarchyScreenViewModel
                 viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox проект не знайдено")) }
                 return
             }
+            createNoteInContext(inboxProjectId)
+        }
+
+        private fun createChecklistInInbox() {
+            val inboxProjectId =
+                _allProjectsFlat.value.firstOrNull { it.id == SystemContexts.INBOX.raw }?.id
+            if (inboxProjectId == null) {
+                viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox проект не знайдено")) }
+                return
+            }
+            createChecklistInContext(inboxProjectId)
+        }
+
+        private fun createNoteInContext(contextId: String) {
             viewModelScope.launch {
                 val documentId =
                     noteDocumentRepository.createDocument(
                         name = "Нова нотатка",
-                        contextId = inboxProjectId,
+                        contextId = contextId,
                         content = "",
                     )
                 _uiEventChannel.send(
@@ -905,15 +927,9 @@ class ContextHierarchyScreenViewModel
             }
         }
 
-        private fun createChecklistInInbox() {
-            val inboxProjectId =
-                _allProjectsFlat.value.firstOrNull { it.id == SystemContexts.INBOX.raw }?.id
-            if (inboxProjectId == null) {
-                viewModelScope.launch { _uiEventChannel.send(ProjectUiEvent.ShowToast("Inbox проект не знайдено")) }
-                return
-            }
+        private fun createChecklistInContext(contextId: String) {
             viewModelScope.launch {
-                val checklistId = checklistRepository.createChecklist(name = "Новий чекліст", contextId = inboxProjectId)
+                val checklistId = checklistRepository.createChecklist(name = "Новий чекліст", contextId = contextId)
                 _uiEventChannel.send(
                     ProjectUiEvent.Navigate(
                         NavTarget.Checklist(id = checklistId),

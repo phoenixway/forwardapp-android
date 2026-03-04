@@ -41,6 +41,10 @@ sealed interface ContextHierarchyScreenEvent {
 
     data object AddChecklistRequest : ContextHierarchyScreenEvent
 
+    data class AddNoteDocumentToContextRequest(val project: Context) : ContextHierarchyScreenEvent
+
+    data class AddChecklistToContextRequest(val project: Context) : ContextHierarchyScreenEvent
+
     data class ListChooserResult(val projectId: String?) : ContextHierarchyScreenEvent
 
     data class DeleteRequest(val project: Context) : ContextHierarchyScreenEvent
