@@ -673,6 +673,12 @@ private fun ActivityInputBar(
                         HoldMenuItem(label = "Коментар", icon = Icons.Default.AddComment),
                     )
                 }
+            val onMenuSelect: (Int) -> Unit = { index ->
+                when (index) {
+                    0 -> if (text.isNotBlank()) onQuickDoneClick(text)
+                    1 -> onTimelessClick()
+                }
+            }
 
             val icon: ImageVector
             val tint: Color
@@ -694,28 +700,31 @@ private fun ActivityInputBar(
                 description = "Почати"
             }
 
-            IconButton(
-                onClick = {
-                    if (text.isNotBlank() || isActivityOngoing) onToggleStartStop()
-                },
+            HoldMenu2Button(
+                items = menuItems,
+                controller = holdMenuController,
+                onSelect = onMenuSelect,
+                menuAlignment = MenuAlignment.END,
+                iconPosition = IconPosition.END,
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = description,
-                    tint = tint,
-                    modifier = Modifier.size(28.dp),
-                )
+                IconButton(
+                    onClick = {
+                        if (text.isNotBlank() || isActivityOngoing) onToggleStartStop()
+                    },
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = description,
+                        tint = tint,
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
             }
 
             HoldMenu2Button(
                 items = menuItems,
                 controller = holdMenuController,
-                onSelect = { index ->
-                    when (index) {
-                        0 -> if (text.isNotBlank()) onQuickDoneClick(text)
-                        1 -> onTimelessClick()
-                    }
-                },
+                onSelect = onMenuSelect,
                 menuAlignment = MenuAlignment.END,
                 iconPosition = IconPosition.END,
             ) {
