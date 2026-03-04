@@ -84,7 +84,7 @@ class NoteDocumentEditorViewModel
             listId?.let {
                 viewModelScope.launch {
                     noteDocumentRepository.getDocumentById(it)?.let { document ->
-                        val name = NoteTitleExtractor.extract(content).take(100)
+                        val name = NoteTitleExtractor.extractOrNull(content)?.take(100) ?: document.name
                         Log.d("NoteTitleExtractor", "saveDocument extracted title='$name'")
                         val updatedDocument =
                             document.copy(

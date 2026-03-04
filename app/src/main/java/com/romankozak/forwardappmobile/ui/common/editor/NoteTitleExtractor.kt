@@ -5,7 +5,7 @@ import android.util.Log
 object NoteTitleExtractor {
     private const val TAG = "NoteTitleExtractor"
 
-    fun extract(content: String): String {
+    fun extractOrNull(content: String): String? {
         val firstLine = content.lineSequence().firstOrNull().orEmpty()
         Log.d(TAG, "Raw first line: '$firstLine'")
 
@@ -56,6 +56,8 @@ object NoteTitleExtractor {
         val normalized = cleaned.replace(Regex("\\s+"), " ").trim()
         Log.d(TAG, "Normalized title: '$normalized'")
 
-        return if (normalized.isNotBlank()) normalized else "Новий документ"
+        return normalized.takeIf { it.isNotBlank() }
     }
+
+    fun extract(content: String): String = extractOrNull(content) ?: "Новий документ"
 }

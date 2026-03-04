@@ -189,7 +189,7 @@ fun ContextMenuDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(bottom = 2.dp),
-                    modifier = Modifier.height(224.dp),
+                    modifier = Modifier.height(304.dp),
                 ) {
                     items(menuItems) { item ->
                         ActionGridItem(
