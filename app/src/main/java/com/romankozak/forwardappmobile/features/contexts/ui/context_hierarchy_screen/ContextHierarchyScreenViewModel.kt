@@ -31,7 +31,6 @@ import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
@@ -76,7 +75,6 @@ class ContextHierarchyScreenViewModel
         private val focusContextRepository: FocusContextRepository,
         private val activityRepository: ActivityRepository,
         private val recentItemsRepository: RecentItemsRepository,
-        private val backlogClipboardUseCase: BacklogClipboardUseCase,
         private val noteRepository: LegacyNoteRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
         private val checklistRepository: ChecklistRepository,
@@ -99,6 +97,16 @@ class ContextHierarchyScreenViewModel
         private sealed class PendingChooserAction {
             data object MoveProject : PendingChooserAction()
         }
+
+        private enum class ContextClipboardOperation {
+            COPY,
+            CUT,
+        }
+
+        private data class ContextClipboardPayload(
+            val contextId: String,
+            val operation: ContextClipboardOperation,
+        )
 
         var enhancedNavigationManager: EnhancedNavigationManager? = null
             set(value) {
@@ -164,6 +172,7 @@ class ContextHierarchyScreenViewModel
         private val _showRecentListsSheet = MutableStateFlow(false)
         private val _isBottomNavExpanded = MutableStateFlow(false)
         private val _showSearchDialog = MutableStateFlow(false)
+        private val contextClipboard = MutableStateFlow<ContextClipboardPayload?>(null)
         private val pendingChooserAction = MutableStateFlow<PendingChooserAction?>(null)
         private val projectBeingMovedId =
             savedStateHandle.getStateFlow<String?>(PROJECT_BEING_MOVED_ID_KEY, null)
@@ -370,7 +379,7 @@ class ContextHierarchyScreenViewModel
 
                 is ContextHierarchyScreenEvent.ContextClick -> onProjectClicked(event.projectId)
                 is ContextHierarchyScreenEvent.ContextMenuRequest -> {
-                    val canPaste = backlogClipboardUseCase.canPasteContextLinksIntoBacklog(event.project.id)
+                    val canPaste = canPasteContextInto(event.project.id)
                     dialogUseCase.onMenuRequested(event.project, canPaste)
                 }
                 is ContextHierarchyScreenEvent.ToggleContextExpanded -> onToggleExpanded(event.project)
@@ -555,42 +564,90 @@ class ContextHierarchyScreenViewModel
                     }
                 }
                 is ContextHierarchyScreenEvent.CopyContextLink -> {
-                    backlogClipboardUseCase.copyBacklogContextLinks(
-                        sourceContextId = event.project.id,
-                        contextIds = listOf(event.project.id),
-                    )
+                    contextClipboard.value =
+                        ContextClipboardPayload(
+                            contextId = event.project.id,
+                            operation = ContextClipboardOperation.COPY,
+                        )
                     dialogUseCase.dismissDialog()
                     viewModelScope.launch {
-                        _uiEventChannel.send(ProjectUiEvent.ShowToast("Контекст скопійовано в буфер як посилання"))
+                        _uiEventChannel.send(ProjectUiEvent.ShowToast("Контекст скопійовано"))
                     }
                 }
                 is ContextHierarchyScreenEvent.CutContextLink -> {
-                    backlogClipboardUseCase.cutBacklogContextLinks(
-                        sourceContextId = event.project.id,
-                        contextIds = listOf(event.project.id),
-                    )
+                    contextClipboard.value =
+                        ContextClipboardPayload(
+                            contextId = event.project.id,
+                            operation = ContextClipboardOperation.CUT,
+                        )
                     dialogUseCase.dismissDialog()
                     viewModelScope.launch {
-                        _uiEventChannel.send(ProjectUiEvent.ShowToast("Контекст вирізано в буфер як посилання"))
+                        _uiEventChannel.send(ProjectUiEvent.ShowToast("Контекст вирізано"))
                     }
                 }
                 is ContextHierarchyScreenEvent.PasteContextLink -> {
                     viewModelScope.launch {
-                        val report =
-                            backlogClipboardUseCase.pasteBacklogGoals(
-                                targetContextId = event.project.id,
-                                mode = event.mode,
-                            )
-                        dialogUseCase.dismissDialog()
-                        _uiEventChannel.send(
-                            ProjectUiEvent.ShowToast(
-                                if (report.changedCount > 0) {
-                                    "Вставлено: ${report.toUserMessage()}"
-                                } else {
-                                    "Немає придатних контекстів для вставки"
-                                },
-                            ),
-                        )
+                        val payload = contextClipboard.value
+                        if (payload == null) {
+                            dialogUseCase.dismissDialog()
+                            _uiEventChannel.send(ProjectUiEvent.ShowToast("Буфер порожній"))
+                            return@launch
+                        }
+
+                        val allProjects = _allProjectsFlat.value
+                        val source = allProjects.firstOrNull { it.id == payload.contextId }
+                        if (source == null) {
+                            contextClipboard.value = null
+                            dialogUseCase.dismissDialog()
+                            _uiEventChannel.send(ProjectUiEvent.ShowToast("Контекст у буфері більше не існує"))
+                            return@launch
+                        }
+
+                        if (!canPasteContextInto(event.project.id, allProjects, payload)) {
+                            dialogUseCase.dismissDialog()
+                            _uiEventChannel.send(ProjectUiEvent.ShowToast("Неможливо вставити в цей контекст"))
+                            return@launch
+                        }
+
+                        when (payload.operation) {
+                            ContextClipboardOperation.CUT -> {
+                                withContext(ioDispatcher) {
+                                    val allowSystemMoves = settingsRepo.allowSystemProjectMovesFlow.first()
+                                    contextRepository.moveContext(
+                                        contextToMove = source,
+                                        newParentId = event.project.id,
+                                        allowSystemMoves = allowSystemMoves,
+                                    )
+                                }
+                                contextClipboard.value = null
+                                dialogUseCase.dismissDialog()
+                                _uiEventChannel.send(ProjectUiEvent.ShowToast("Контекст переміщено"))
+                            }
+
+                            ContextClipboardOperation.COPY -> {
+                                val copiedName =
+                                    generateCopiedContextName(
+                                        baseName = source.name,
+                                        targetParentId = event.project.id,
+                                        allProjects = allProjects,
+                                    )
+                                withContext(ioDispatcher) {
+                                    contextRepository.createContextWithId(
+                                        id = UUID.randomUUID().toString(),
+                                        name = copiedName,
+                                        parentId = event.project.id,
+                                        roleCode = source.roleCode,
+                                    )
+                                    allProjects.firstOrNull { it.id == event.project.id }
+                                        ?.takeIf { !it.isExpanded }
+                                        ?.let { parent ->
+                                            contextRepository.updateContext(parent.copy(isExpanded = true))
+                                        }
+                                }
+                                dialogUseCase.dismissDialog()
+                                _uiEventChannel.send(ProjectUiEvent.ShowToast("Контекст скопійовано в обраний контекст"))
+                            }
+                        }
                     }
                 }
                 is ContextHierarchyScreenEvent.GoToSettings -> {
@@ -980,6 +1037,66 @@ class ContextHierarchyScreenViewModel
 
         private fun onNavigateToProject(projectId: String) {
             navigationUseCase.onNavigateToProject(viewModelScope, projectId)
+        }
+
+        private fun canPasteContextInto(targetContextId: String): Boolean {
+            val payload = contextClipboard.value ?: return false
+            return canPasteContextInto(
+                targetContextId = targetContextId,
+                allProjects = _allProjectsFlat.value,
+                payload = payload,
+            )
+        }
+
+        private fun canPasteContextInto(
+            targetContextId: String,
+            allProjects: List<Context>,
+            payload: ContextClipboardPayload,
+        ): Boolean {
+            if (targetContextId.isBlank()) return false
+            val source = allProjects.firstOrNull { it.id == payload.contextId } ?: return false
+            val target = allProjects.firstOrNull { it.id == targetContextId } ?: return false
+
+            return when (payload.operation) {
+                ContextClipboardOperation.COPY -> source.id != target.id
+                ContextClipboardOperation.CUT ->
+                    source.id != target.id && !isDescendantOrSelf(
+                        candidateDescendantId = target.id,
+                        ancestorId = source.id,
+                        allProjects = allProjects,
+                    )
+            }
+        }
+
+        private fun isDescendantOrSelf(
+            candidateDescendantId: String,
+            ancestorId: String,
+            allProjects: List<Context>,
+        ): Boolean {
+            if (candidateDescendantId == ancestorId) return true
+            val parentById = allProjects.associate { it.id to it.parentId }
+            var currentParent = parentById[candidateDescendantId]
+            while (!currentParent.isNullOrBlank()) {
+                if (currentParent == ancestorId) return true
+                currentParent = parentById[currentParent]
+            }
+            return false
+        }
+
+        private fun generateCopiedContextName(
+            baseName: String,
+            targetParentId: String,
+            allProjects: List<Context>,
+        ): String {
+            val siblingNames = allProjects.filter { it.parentId == targetParentId }.map { it.name }.toSet()
+            val firstCandidate = "$baseName (копія)"
+            if (firstCandidate !in siblingNames) return firstCandidate
+            var index = 2
+            while (true) {
+                val candidate = "$baseName (копія $index)"
+                if (candidate !in siblingNames) return candidate
+                index += 1
+            }
         }
 
         suspend fun getInboxProjectId(): String? =
