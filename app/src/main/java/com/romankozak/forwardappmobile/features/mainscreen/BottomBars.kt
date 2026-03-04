@@ -108,8 +108,8 @@ fun DashboardBottomBar(
     middleLeftLabel: String = "Tracker",
     onMiddleLeftClick: () -> Unit = onNavigateToTracker,
     middleLeftEnabled: Boolean = true,
-    middleCenterIcon: ImageVector = Icons.Outlined.AlternateEmail,
-    middleCenterLabel: String = "Contexts",
+    middleCenterIcon: ImageVector = Icons.Outlined.Search,
+    middleCenterLabel: String = "Search",
     onMiddleCenterClick: () -> Unit = onNavigateToProjectHierarchy,
     middleCenterEnabled: Boolean = true,
     recentViewModel: RecentViewModel = hiltViewModel(),
@@ -391,8 +391,8 @@ fun DashboardBottomBar(
 
         BarButton(
             icon = middleCenterIcon,
-            onClick = onMiddleCenterClick,
-            onLongClick = onNavigateToProjectSearch,
+            onClick = onNavigateToProjectSearch,
+            onLongClick = onMiddleCenterClick,
             label = middleCenterLabel,
             enabled = middleCenterEnabled,
         )
