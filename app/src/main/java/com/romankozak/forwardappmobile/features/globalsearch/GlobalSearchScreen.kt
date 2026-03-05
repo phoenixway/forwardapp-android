@@ -10,6 +10,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.text.KeyboardActions
@@ -49,6 +50,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -96,6 +98,8 @@ fun GlobalSearchScreen(
     var selectedSort by remember { mutableStateOf(GlobalSearchSort.Relevance) }
     var showTypeSheet by remember { mutableStateOf(false) }
     var showSortSheet by remember { mutableStateOf(false) }
+    var showModeMenu by remember { mutableStateOf(false) }
+    val currentMode = uiState.mode
     val filteredResults by remember(uiState.results, selectedTypes, selectedSort, uiState.query) {
         derivedStateOf {
             uiState.results
@@ -188,12 +192,21 @@ fun GlobalSearchScreen(
                 },
                 actions = {
                     AnimatedVisibility(
-                        visible = !uiState.isLoading && filteredResults.isNotEmpty(),
+                        visible = !uiState.isLoading && when (currentMode) {
+                            OmniboxMode.DataSearch -> filteredResults.isNotEmpty()
+                            OmniboxMode.Command -> uiState.commandResults.isNotEmpty()
+                            else -> false
+                        },
                         enter = fadeIn(animationSpec = tween(delayMillis = 200)) + scaleIn(),
                         exit = fadeOut() + scaleOut(),
                     ) {
                         ResultsCountBadge(
-                            count = filteredResults.size,
+                            count =
+                                when (currentMode) {
+                                    OmniboxMode.DataSearch -> filteredResults.size
+                                    OmniboxMode.Command -> uiState.commandResults.size
+                                    else -> 0
+                                },
                             modifier = Modifier.padding(end = 16.dp),
                         )
                     }
@@ -259,13 +272,62 @@ fun GlobalSearchScreen(
                                 .heightIn(min = 56.dp)
                                 .focusRequester(focusRequester),
                         singleLine = true,
-                        placeholder = { Text("Пошук по контекстах, цілях, активностях і вкладеннях") },
+                        placeholder = { Text(placeholderForMode(currentMode)) },
                         leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            Box {
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    modifier =
+                                        Modifier
+                                            .size(34.dp)
+                                            .pointerInput(currentMode) {
+                                                var totalDrag = 0f
+                                                detectHorizontalDragGestures(
+                                                    onHorizontalDrag = { _, dragAmount ->
+                                                        totalDrag += dragAmount
+                                                    },
+                                                    onDragEnd = {
+                                                        when {
+                                                            totalDrag > 36f -> viewModel.cycleMode(forward = false)
+                                                            totalDrag < -36f -> viewModel.cycleMode(forward = true)
+                                                        }
+                                                        totalDrag = 0f
+                                                    },
+                                                )
+                                            }
+                                            .clickable { showModeMenu = true },
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = modeIcon(currentMode),
+                                            contentDescription = "Режим omnibox",
+                                            tint = MaterialTheme.colorScheme.onSurface,
+                                        )
+                                    }
+                                }
+                                DropdownMenu(
+                                    expanded = showModeMenu,
+                                    onDismissRequest = { showModeMenu = false },
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                ) {
+                                    OmniboxMode.entries.forEach { mode ->
+                                        DropdownMenuItem(
+                                            text = { Text(modeTitle(mode)) },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = modeIcon(mode),
+                                                    contentDescription = null,
+                                                )
+                                            },
+                                            onClick = {
+                                                showModeMenu = false
+                                                viewModel.setMode(mode)
+                                            },
+                                        )
+                                    }
+                                }
+                            }
                         },
                         trailingIcon = {
                             Row {
@@ -280,7 +342,7 @@ fun GlobalSearchScreen(
                                 IconButton(onClick = viewModel::onSubmitSearch) {
                                     Icon(
                                         imageVector = Icons.Default.Search,
-                                        contentDescription = "Запустити пошук",
+                                        contentDescription = "Виконати",
                                     )
                                 }
                             }
@@ -298,28 +360,30 @@ fun GlobalSearchScreen(
                             ),
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    if (currentMode == OmniboxMode.DataSearch) {
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        FilterSelectorChip(
-                            icon = Icons.Default.Tune,
-                            label = formatTypeChipLabel(selectedTypes, typeOptions.toSet()),
-                            isActive = selectedTypes.size != typeOptions.size,
-                            onClick = { showTypeSheet = true },
-                            modifier = Modifier.weight(1f),
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            FilterSelectorChip(
+                                icon = Icons.Default.Tune,
+                                label = formatTypeChipLabel(selectedTypes, typeOptions.toSet()),
+                                isActive = selectedTypes.size != typeOptions.size,
+                                onClick = { showTypeSheet = true },
+                                modifier = Modifier.weight(1f),
+                            )
 
-                        FilterSelectorChip(
-                            icon = Icons.Default.Sort,
-                            label = selectedSort.label,
-                            isActive = selectedSort != GlobalSearchSort.Relevance,
-                            onClick = { showSortSheet = true },
-                            modifier = Modifier.weight(1f),
-                        )
+                            FilterSelectorChip(
+                                icon = Icons.Default.Sort,
+                                label = selectedSort.label,
+                                isActive = selectedSort != GlobalSearchSort.Relevance,
+                                onClick = { showSortSheet = true },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                     }
                 }
             }
@@ -327,42 +391,76 @@ fun GlobalSearchScreen(
             Spacer(modifier = Modifier.height(10.dp))
 
             Box(modifier = Modifier.fillMaxSize()) {
-                when {
-                    uiState.query.isBlank() -> {
-                        SearchStartContent(
-                            history = uiState.searchHistory,
-                            onHistoryClick = viewModel::onSelectHistoryQuery,
-                            onRemoveHistoryEntry = viewModel::removeSearchHistoryEntry,
-                            onClearHistory = viewModel::clearSearchHistory,
+                when (currentMode) {
+                    OmniboxMode.DataSearch -> {
+                        when {
+                            uiState.query.isBlank() -> {
+                                SearchStartContent(
+                                    history = uiState.searchHistory,
+                                    onHistoryClick = viewModel::onSelectHistoryQuery,
+                                    onRemoveHistoryEntry = viewModel::removeSearchHistoryEntry,
+                                    onClearHistory = viewModel::clearSearchHistory,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+                            uiState.isLoading -> {
+                                LoadingContent(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer(scaleX = loadingScale, scaleY = loadingScale),
+                                )
+                            }
+                            filteredResults.isEmpty() -> {
+                                EmptySearchContent(
+                                    query = uiState.query,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+                            else -> {
+                                SearchResultsContent(
+                                    results = filteredResults,
+                                    query = uiState.query,
+                                    viewModel = viewModel,
+                                    obsidianVaultName = obsidianVaultName,
+                                    context = context,
+                                    listState = listState,
+                                    modifier =
+                                        Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer(alpha = resultsAlpha),
+                                )
+                            }
+                        }
+                    }
+                    OmniboxMode.Command -> {
+                        CommandResultsContent(
+                            results = uiState.commandResults,
+                            query = uiState.query,
+                            onCommandClick = viewModel::onCommandClick,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
-                    uiState.isLoading -> {
-                        LoadingContent(
-                            modifier =
-                                Modifier
-                                    .fillMaxSize()
-                                    .graphicsLayer(scaleX = loadingScale, scaleY = loadingScale),
-                        )
-                    }
-                    filteredResults.isEmpty() -> {
-                        EmptySearchContent(
+                    OmniboxMode.QuickCatchInbox -> {
+                        QuickActionModeContent(
+                            title = "Quick catch to Inbox",
+                            subtitle = "Введи текст і натисни пошук/Enter. Запис одразу додасться в inbox.",
+                            buttonLabel = "Додати в Inbox",
+                            onSubmit = viewModel::onSubmitSearch,
                             query = uiState.query,
+                            icon = Icons.Outlined.MoveToInbox,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
-                    else -> {
-                        SearchResultsContent(
-                            results = filteredResults,
+                    OmniboxMode.StartActivity -> {
+                        QuickActionModeContent(
+                            title = "Start record new activity",
+                            subtitle = "Введи назву активності. Буде створено новий запис і відкрито Tracker.",
+                            buttonLabel = "Почати активність",
+                            onSubmit = viewModel::onSubmitSearch,
                             query = uiState.query,
-                            viewModel = viewModel,
-                            obsidianVaultName = obsidianVaultName,
-                            context = context,
-                            listState = listState,
-                            modifier =
-                                Modifier
-                                    .fillMaxSize()
-                                    .graphicsLayer(alpha = resultsAlpha),
+                            icon = Icons.Default.History,
+                            modifier = Modifier.fillMaxSize(),
                         )
                     }
                 }
@@ -370,6 +468,160 @@ fun GlobalSearchScreen(
         }
     }
 }
+
+@Composable
+private fun CommandResultsContent(
+    results: List<OmniboxCommandResult>,
+    query: String,
+    onCommandClick: (OmniboxCommandId) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (results.isEmpty()) {
+        EmptySearchContent(query = query, modifier = modifier)
+        return
+    }
+    LazyColumn(
+        modifier = modifier,
+        contentPadding = PaddingValues(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        itemsIndexed(
+            items = results,
+            key = { _, item -> item.id.name },
+        ) { _, item ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { onCommandClick(item.id) },
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border =
+                    androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                    ),
+            ) {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Icon(
+                        imageVector = commandIcon(item.id),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        HighlightedText(
+                            text = item.title,
+                            query = query,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 2,
+                        )
+                        Text(
+                            text = item.subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+        }
+        item { Spacer(modifier = Modifier.height(72.dp)) }
+    }
+}
+
+@Composable
+private fun QuickActionModeContent(
+    title: String,
+    subtitle: String,
+    buttonLabel: String,
+    onSubmit: () -> Unit,
+    query: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        ) {
+            Column(
+                modifier = Modifier.padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                FilledTonalButton(
+                    onClick = onSubmit,
+                    enabled = query.isNotBlank(),
+                ) {
+                    Text(buttonLabel)
+                }
+            }
+        }
+    }
+}
+
+private fun modeIcon(mode: OmniboxMode): ImageVector =
+    when (mode) {
+        OmniboxMode.DataSearch -> Icons.Default.Search
+        OmniboxMode.Command -> Icons.Default.Tune
+        OmniboxMode.QuickCatchInbox -> Icons.Outlined.MoveToInbox
+        OmniboxMode.StartActivity -> Icons.Default.History
+    }
+
+private fun modeTitle(mode: OmniboxMode): String =
+    when (mode) {
+        OmniboxMode.DataSearch -> "Пошук даних"
+        OmniboxMode.Command -> "Команди"
+        OmniboxMode.QuickCatchInbox -> "Quick catch to inbox"
+        OmniboxMode.StartActivity -> "Start record activity"
+    }
+
+private fun placeholderForMode(mode: OmniboxMode): String =
+    when (mode) {
+        OmniboxMode.DataSearch -> "Пошук по контекстах, цілях, активностях і вкладеннях"
+        OmniboxMode.Command -> "Команда або екран (fuzzy), напр. ctx, rem, ai"
+        OmniboxMode.QuickCatchInbox -> "Швидкий запис в inbox..."
+        OmniboxMode.StartActivity -> "Назва нової активності..."
+    }
+
+private fun commandIcon(commandId: OmniboxCommandId): ImageVector =
+    when (commandId) {
+        OmniboxCommandId.OpenContexts -> Icons.Default.AccountTree
+        OmniboxCommandId.OpenInbox -> Icons.Outlined.MoveToInbox
+        OmniboxCommandId.OpenTracker -> Icons.Default.History
+        OmniboxCommandId.OpenReminders -> Icons.Default.History
+        OmniboxCommandId.OpenSettings -> Icons.Default.Tune
+        OmniboxCommandId.OpenSearch -> Icons.Default.Search
+        OmniboxCommandId.OpenAttachments -> Icons.Default.Description
+        OmniboxCommandId.OpenScripts -> Icons.Default.Sort
+        OmniboxCommandId.OpenAiChat -> Icons.Default.Navigation
+        OmniboxCommandId.OpenAiInsights -> Icons.Default.Navigation
+        OmniboxCommandId.OpenAiLife -> Icons.Default.Navigation
+        OmniboxCommandId.OpenStructurePresets -> Icons.Default.Tune
+    }
 
 @Composable
 private fun LoadingContent(modifier: Modifier = Modifier) {
