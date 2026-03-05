@@ -492,10 +492,13 @@ private fun ProjectBottomBar(
                 onAddNestedProjectClick = { showContextPicker = true },
                 onShowCurrentContextInHierarchyFocus = {
                     val contextIdToReveal = project?.id ?: return@ModernInputPanel
-                    navigationManager.navigate(target = NavTarget.ContextHierarchy) {
+                    navigationManager.navigate(
+                        target = NavTarget.ContextHierarchy,
+                        builder = {
                         launchSingleTop = true
                         restoreState = true
-                    }
+                        },
+                    )
                     runCatching {
                         navController.getBackStackEntry("goal_lists_screen")
                             .savedStateHandle["projectIdToReveal"] = contextIdToReveal

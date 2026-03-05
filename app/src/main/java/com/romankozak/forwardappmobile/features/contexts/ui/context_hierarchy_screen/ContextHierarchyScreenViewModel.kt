@@ -519,10 +519,13 @@ class ContextHierarchyScreenViewModel
                 is ContextHierarchyScreenEvent.DayPlanClick -> onDayPlanClicked()
                 is ContextHierarchyScreenEvent.ContextSelected -> onContextSelected(event.name)
                 is ContextHierarchyScreenEvent.CommandDeckClick -> {
-                    enhancedNavigationManager?.navigate(COMMAND_DECK_ROUTE) {
+                    enhancedNavigationManager?.navigate(
+                        route = COMMAND_DECK_ROUTE,
+                        builder = {
                         popUpTo(COMMAND_DECK_ROUTE) { inclusive = true }
                         launchSingleTop = true
-                    }
+                        },
+                    )
                 }
 
                 is ContextHierarchyScreenEvent.EditRequest -> {
