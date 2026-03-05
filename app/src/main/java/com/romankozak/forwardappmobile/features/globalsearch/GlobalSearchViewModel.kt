@@ -33,7 +33,7 @@ class GlobalSearchViewModel
     constructor(
         private val contextRepository: ContextRepository,
         private val settingsRepository: SettingsRepository,
-        savedStateHandle: SavedStateHandle,
+        private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         companion object {
             private const val SEARCH_HISTORY_KEY = "global_search_history"
