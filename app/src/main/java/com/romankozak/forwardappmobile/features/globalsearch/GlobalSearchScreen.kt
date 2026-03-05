@@ -169,7 +169,7 @@ fun GlobalSearchScreen(
                 title = {
                     Text(
                         text = "Пошук",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -241,7 +241,7 @@ fun GlobalSearchScreen(
                                 startY = 0.1f,
                             ),
                     ).padding(paddingValues)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, top = 4.dp, bottom = 12.dp),
         ) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
