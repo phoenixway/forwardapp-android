@@ -15,7 +15,9 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -91,6 +93,7 @@ fun GlobalSearchScreen(
     val filters = remember { GlobalSearchFilter.values().toList() }
     var selectedFilter by remember { mutableStateOf(GlobalSearchFilter.All) }
     var selectedSort by remember { mutableStateOf(GlobalSearchSort.Relevance) }
+    var showSortMenu by remember { mutableStateOf(false) }
     val filteredResults by remember(uiState.results, selectedFilter, selectedSort, uiState.query) {
         derivedStateOf {
             uiState.results
@@ -232,6 +235,7 @@ fun GlobalSearchScreen(
                 modifier =
                     Modifier
                         .fillMaxWidth()
+                        .height(48.dp)
                         .focusRequester(focusRequester),
                 singleLine = true,
                 placeholder = { Text("Введіть запит для пошуку по контекстах і вкладеннях") },
@@ -257,37 +261,51 @@ fun GlobalSearchScreen(
                 keyboardActions = KeyboardActions(onSearch = { viewModel.onSubmitSearch() }),
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
-            FlowRow(
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                filters.forEach { filter ->
-                    FilterChip(
-                        selected = selectedFilter == filter,
-                        onClick = { selectedFilter = filter },
-                        label = { Text(filter.label) },
+                LazyRow(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    items(filters) { filter ->
+                        FilterChip(
+                            selected = selectedFilter == filter,
+                            onClick = { selectedFilter = filter },
+                            label = { Text(filter.label) },
+                            modifier = Modifier.heightIn(min = 32.dp),
+                        )
+                    }
+                }
+
+                Box {
+                    AssistChip(
+                        onClick = { showSortMenu = true },
+                        label = { Text("Сорт: ${selectedSort.label}") },
+                        modifier = Modifier.heightIn(min = 32.dp),
                     )
+                    DropdownMenu(
+                        expanded = showSortMenu,
+                        onDismissRequest = { showSortMenu = false },
+                    ) {
+                        GlobalSearchSort.entries.forEach { sort ->
+                            DropdownMenuItem(
+                                text = { Text(sort.label) },
+                                onClick = {
+                                    selectedSort = sort
+                                    showSortMenu = false
+                                },
+                            )
+                        }
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                GlobalSearchSort.entries.forEach { sort ->
-                    FilterChip(
-                        selected = selectedSort == sort,
-                        onClick = { selectedSort = sort },
-                        label = { Text(sort.label) },
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
 
             Box(modifier = Modifier.fillMaxSize()) {
                 when {
