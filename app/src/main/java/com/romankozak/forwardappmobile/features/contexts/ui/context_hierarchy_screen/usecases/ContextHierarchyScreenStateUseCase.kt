@@ -160,29 +160,43 @@ class ProjectHierarchyScreenStateUseCase
                     .map(::buildAvailableContextRoles)
                     .stateIn(scope, SharingStarted.WhileSubscribed(5_000), buildAvailableContextRoles(emptyList()))
 
-            val coreUiStateFlow =
+            val baseCoreUiStateFlow =
                 combine(
                     searchUseCase.subStateStack,
                     searchUseCase.searchQuery,
                     hierarchyState,
                     searchUseCase.currentBreadcrumbs,
                     planningUseCase.planningMode,
-                    searchUseCase.searchResultFilter,
-                    searchUseCase.searchResultSort,
-                ) { subStateStack, searchQuery, hierarchy, breadcrumbs, planningMode, searchResultFilter, searchResultSort ->
+                ) { subStateStack, searchQuery, hierarchy, breadcrumbs, planningMode ->
                     CoreUiState(
                         subStateStack = subStateStack,
                         searchQuery = searchQuery,
                         projectHierarchy = hierarchy,
                         currentBreadcrumbs = breadcrumbs,
                         planningMode = planningMode,
-                        searchResultFilter = searchResultFilter,
-                        searchResultSort = searchResultSort,
+                        searchResultFilter = SearchResultFilter.All,
+                        searchResultSort = SearchResultSort.Relevance,
                         flattenedHierarchy =
                             flattenHierarchyWithLevels(
                                 hierarchy.topLevelProjects,
                                 hierarchy.childMap,
                             ),
+                    )
+                }
+
+            val searchControlsFlow =
+                combine(
+                    searchUseCase.searchResultFilter,
+                    searchUseCase.searchResultSort,
+                ) { filter, sort ->
+                    filter to sort
+                }
+
+            val coreUiStateFlow =
+                combine(baseCoreUiStateFlow, searchControlsFlow) { baseCoreState, searchControls ->
+                    baseCoreState.copy(
+                        searchResultFilter = searchControls.first,
+                        searchResultSort = searchControls.second,
                     )
                 }
 
