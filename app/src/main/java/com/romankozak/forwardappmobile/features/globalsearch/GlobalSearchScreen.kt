@@ -47,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -100,6 +101,7 @@ fun GlobalSearchScreen(
     var showSortSheet by remember { mutableStateOf(false) }
     var showModeMenu by remember { mutableStateOf(false) }
     val currentMode = uiState.mode
+    val modePalette = rememberModePalette(currentMode)
     val filteredResults by remember(uiState.results, selectedTypes, selectedSort, uiState.query) {
         derivedStateOf {
             uiState.results
@@ -249,7 +251,7 @@ fun GlobalSearchScreen(
                                 colors =
                                     listOf(
                                         MaterialTheme.colorScheme.surface,
-                                        MaterialTheme.colorScheme.background,
+                                        modePalette.screenBottomTint,
                                     ),
                                 startY = 0.1f,
                             ),
@@ -259,7 +261,7 @@ fun GlobalSearchScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                color = modePalette.searchSurface,
                 tonalElevation = 1.dp,
             ) {
                 Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
@@ -277,7 +279,7 @@ fun GlobalSearchScreen(
                             Box {
                                 Surface(
                                     shape = RoundedCornerShape(10.dp),
-                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    color = modePalette.modeIconContainer,
                                     modifier =
                                         Modifier
                                             .size(34.dp)
@@ -302,7 +304,7 @@ fun GlobalSearchScreen(
                                         Icon(
                                             imageVector = modeIcon(currentMode),
                                             contentDescription = "Режим omnibox",
-                                            tint = MaterialTheme.colorScheme.onSurface,
+                                            tint = modePalette.iconTint,
                                         )
                                     }
                                 }
@@ -352,11 +354,15 @@ fun GlobalSearchScreen(
                         shape = RoundedCornerShape(14.dp),
                         colors =
                             TextFieldDefaults.colors(
-                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                focusedContainerColor = modePalette.inputFocusedContainer,
+                                unfocusedContainerColor = modePalette.inputContainer,
+                                disabledContainerColor = modePalette.inputContainer,
                                 focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
                                 unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                                focusedLeadingIconColor = modePalette.iconTint,
+                                unfocusedLeadingIconColor = modePalette.iconTint,
+                                focusedTrailingIconColor = modePalette.iconTint,
+                                unfocusedTrailingIconColor = modePalette.iconTint,
                             ),
                     )
 
@@ -438,6 +444,7 @@ fun GlobalSearchScreen(
                             results = uiState.commandResults,
                             query = uiState.query,
                             onCommandClick = viewModel::onCommandClick,
+                            accentColor = modePalette.iconTint,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
@@ -474,6 +481,7 @@ private fun CommandResultsContent(
     results: List<OmniboxCommandResult>,
     query: String,
     onCommandClick: (OmniboxCommandId) -> Unit,
+    accentColor: Color,
     modifier: Modifier = Modifier,
 ) {
     if (results.isEmpty()) {
@@ -511,7 +519,7 @@ private fun CommandResultsContent(
                     Icon(
                         imageVector = commandIcon(item.id),
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = accentColor,
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         HighlightedText(
@@ -622,6 +630,60 @@ private fun commandIcon(commandId: OmniboxCommandId): ImageVector =
         OmniboxCommandId.OpenAiLife -> Icons.Default.Navigation
         OmniboxCommandId.OpenStructurePresets -> Icons.Default.Tune
     }
+
+private data class OmniboxModePalette(
+    val searchSurface: Color,
+    val screenBottomTint: Color,
+    val inputContainer: Color,
+    val inputFocusedContainer: Color,
+    val modeIconContainer: Color,
+    val iconTint: Color,
+)
+
+@Composable
+private fun rememberModePalette(mode: OmniboxMode): OmniboxModePalette {
+    val scheme = MaterialTheme.colorScheme
+    return remember(mode, scheme) {
+        when (mode) {
+            OmniboxMode.DataSearch ->
+                OmniboxModePalette(
+                    searchSurface = scheme.surfaceContainerLow,
+                    screenBottomTint = scheme.background,
+                    inputContainer = scheme.surfaceVariant.copy(alpha = 0.88f),
+                    inputFocusedContainer = scheme.surfaceVariant,
+                    modeIconContainer = scheme.primaryContainer.copy(alpha = 0.45f),
+                    iconTint = scheme.primary.copy(alpha = 0.9f),
+                )
+            OmniboxMode.Command ->
+                OmniboxModePalette(
+                    searchSurface = scheme.secondaryContainer.copy(alpha = 0.22f),
+                    screenBottomTint = scheme.secondaryContainer.copy(alpha = 0.10f),
+                    inputContainer = scheme.secondaryContainer.copy(alpha = 0.28f),
+                    inputFocusedContainer = scheme.secondaryContainer.copy(alpha = 0.36f),
+                    modeIconContainer = scheme.secondaryContainer.copy(alpha = 0.5f),
+                    iconTint = scheme.secondary.copy(alpha = 0.92f),
+                )
+            OmniboxMode.QuickCatchInbox ->
+                OmniboxModePalette(
+                    searchSurface = scheme.tertiaryContainer.copy(alpha = 0.20f),
+                    screenBottomTint = scheme.tertiaryContainer.copy(alpha = 0.10f),
+                    inputContainer = scheme.tertiaryContainer.copy(alpha = 0.28f),
+                    inputFocusedContainer = scheme.tertiaryContainer.copy(alpha = 0.36f),
+                    modeIconContainer = scheme.tertiaryContainer.copy(alpha = 0.52f),
+                    iconTint = scheme.tertiary.copy(alpha = 0.92f),
+                )
+            OmniboxMode.StartActivity ->
+                OmniboxModePalette(
+                    searchSurface = scheme.primaryContainer.copy(alpha = 0.20f),
+                    screenBottomTint = scheme.primaryContainer.copy(alpha = 0.09f),
+                    inputContainer = scheme.primaryContainer.copy(alpha = 0.28f),
+                    inputFocusedContainer = scheme.primaryContainer.copy(alpha = 0.36f),
+                    modeIconContainer = scheme.primaryContainer.copy(alpha = 0.54f),
+                    iconTint = scheme.primary.copy(alpha = 0.9f),
+                )
+        }
+    }
+}
 
 @Composable
 private fun LoadingContent(modifier: Modifier = Modifier) {
