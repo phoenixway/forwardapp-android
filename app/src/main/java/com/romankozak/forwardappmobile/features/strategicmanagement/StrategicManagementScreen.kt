@@ -35,6 +35,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
+import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.features.attachments.ui.AddObsidianLinkDialog
 import com.romankozak.forwardappmobile.features.attachments.ui.AddWebLinkDialog
@@ -65,6 +68,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun StrategicManagementScreen(
     navController: NavController,
+    navigationManager: EnhancedNavigationManager? = null,
     viewModel: StrategicManagementViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -81,6 +85,23 @@ fun StrategicManagementScreen(
     var showAddUrlDialog by remember { mutableStateOf(false) }
     var showAddObsidianDialog by remember { mutableStateOf(false) }
     var isFabMenuExpanded by remember { mutableStateOf(false) }
+    val openTarget: (NavTarget, Boolean) -> Unit = { target, recordInHistory ->
+        navigationManager.navigateOrFallback(
+            navController = navController,
+            target = target,
+            recordInHistory = recordInHistory,
+        )
+    }
+    val navigateToStrategicChooser: () -> Unit = {
+        val disabledIds = uiState.dashboardProjects.joinToString(",") { it.id }.ifBlank { null }
+        openTarget(
+            NavTarget.ListChooser(
+                title = "Додати стратегічний контекст",
+                disabledIds = disabledIds,
+            ),
+            false,
+        )
+    }
 
     LaunchedEffect(navController) {
         val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
@@ -147,18 +168,18 @@ fun StrategicManagementScreen(
     val sortedItems = sortConnectionsByOrder(items, connectionsOrder)
     val onConnectionClick: (ConnectionItemUi) -> Unit = { item ->
         if (item.type == ConnectionType.CONTEXT) {
-            navController.navigate("goal_detail_screen/${item.id}")
+            openTarget(NavTarget.ContextDetail(contextId = item.id), true)
         } else {
             val option = availableAttachmentById[item.id]
             when {
                 option?.attachmentType == "NOTE_DOCUMENT" && !option.entityId.isNullOrBlank() ->
-                    navController.navigate("note_document_screen/${option.entityId}")
+                    openTarget(NavTarget.NoteDocument(id = option.entityId), false)
                 option?.attachmentType == "MUSIC_NOTE" && !option.entityId.isNullOrBlank() ->
-                    navController.navigate("music_note_screen/${option.entityId}")
+                    openTarget(NavTarget.MusicNote(id = option.entityId), false)
                 option?.attachmentType == "CHECKLIST" && !option.entityId.isNullOrBlank() ->
-                    navController.navigate("checklist_screen?checklistId=${option.entityId}")
+                    openTarget(NavTarget.Checklist(id = option.entityId), false)
                 option?.linkType == LinkType.CONTEXT && !option.target.isNullOrBlank() ->
-                    navController.navigate("goal_detail_screen/${option.target}")
+                    openTarget(NavTarget.ContextDetail(contextId = option.target), true)
                 (option?.linkType == LinkType.URL || option?.linkType == LinkType.OBSIDIAN) &&
                     !option.target.isNullOrBlank() -> {
                     val resolvedTarget = buildExternalTarget(option.linkType, option.target)
@@ -169,7 +190,10 @@ fun StrategicManagementScreen(
                             },
                         )
                     }.onFailure {
-                        navController.navigate("attachments_library_screen") {
+                        navigationManager.navigateOrFallback(
+                            navController = navController,
+                            target = NavTarget.AttachmentsLibrary,
+                        ) {
                             launchSingleTop = true
                             restoreState = true
                         }
@@ -180,7 +204,10 @@ fun StrategicManagementScreen(
                     }
                 }
                 else -> {
-                    navController.navigate("attachments_library_screen") {
+                    navigationManager.navigateOrFallback(
+                        navController = navController,
+                        target = NavTarget.AttachmentsLibrary,
+                    ) {
                         launchSingleTop = true
                         restoreState = true
                     }
@@ -215,15 +242,7 @@ fun StrategicManagementScreen(
                             leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
                             onClick = {
                                 isFabMenuExpanded = false
-                                val disabledIds = contexts.joinToString(",") { it.id }
-                                val title = URLEncoder.encode("Додати стратегічний контекст", "UTF-8")
-                                val route =
-                                    if (disabledIds.isBlank()) {
-                                        "list_chooser_screen/$title"
-                                    } else {
-                                        "list_chooser_screen/$title?disabledIds=$disabledIds"
-                                    }
-                                navController.navigate(route)
+                                navigateToStrategicChooser()
                             },
                         )
                         DropdownMenuItem(
@@ -271,15 +290,7 @@ fun StrategicManagementScreen(
                             onAddConnection = { type ->
                                 when (type) {
                                     AddConnectionType.CONTEXT -> {
-                                        val disabledIds = contexts.joinToString(",") { it.id }
-                                        val title = URLEncoder.encode("Додати стратегічний контекст", "UTF-8")
-                                        val route =
-                                            if (disabledIds.isBlank()) {
-                                                "list_chooser_screen/$title"
-                                            } else {
-                                                "list_chooser_screen/$title?disabledIds=$disabledIds"
-                                            }
-                                        navController.navigate(route)
+                                        navigateToStrategicChooser()
                                     }
                                     AddConnectionType.ATTACHMENT -> {
                                         pendingCreateAction = null
@@ -349,15 +360,7 @@ fun StrategicManagementScreen(
                 onAddConnection = { type ->
                     when (type) {
                         AddConnectionType.CONTEXT -> {
-                            val disabledIds = contexts.joinToString(",") { it.id }
-                            val title = URLEncoder.encode("Додати стратегічний контекст", "UTF-8")
-                            val route =
-                                if (disabledIds.isBlank()) {
-                                    "list_chooser_screen/$title"
-                                } else {
-                                    "list_chooser_screen/$title?disabledIds=$disabledIds"
-                                }
-                            navController.navigate(route)
+                            navigateToStrategicChooser()
                         }
                         AddConnectionType.ATTACHMENT -> {
                             viewModel.dismissScopeLinksSheet()

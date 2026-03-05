@@ -5,9 +5,13 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementScreen
 
-fun NavGraphBuilder.dayManagementGraph(navController: NavController) {
+fun NavGraphBuilder.dayManagementGraph(
+    navController: NavController,
+    navigationManager: EnhancedNavigationManager? = null,
+) {
     composable(
         route = "$DAY_MANAGEMENT_ROUTE/{$DAY_PLAN_DATE_ARG}?startTab={startTab}",
         arguments =
@@ -21,7 +25,11 @@ fun NavGraphBuilder.dayManagementGraph(navController: NavController) {
             ),
     ) { backStackEntry ->
         val startTab = backStackEntry.arguments?.getString("startTab")
-        DayManagementScreen(mainNavController = navController, startTab = startTab)
+        DayManagementScreen(
+            mainNavController = navController,
+            navigationManager = navigationManager,
+            startTab = startTab,
+        )
     }
 }
 
@@ -31,12 +39,5 @@ fun NavController.navigateToDayManagement(
     date: Long,
     startTab: String? = null,
 ) {
-    // Формуємо маршрут, додаючи startTab як query-параметр, якщо він існує
-    val route =
-        if (startTab != null) {
-            "$DAY_MANAGEMENT_ROUTE/$date?startTab=$startTab"
-        } else {
-            "$DAY_MANAGEMENT_ROUTE/$date"
-        }
-    this.navigate(route)
+    this.navigate(NavigationRoutes.dayManagement(date = date, startTab = startTab))
 }

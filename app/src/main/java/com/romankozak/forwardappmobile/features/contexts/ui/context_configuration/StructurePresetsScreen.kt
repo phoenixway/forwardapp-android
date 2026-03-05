@@ -41,25 +41,28 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
+import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
-import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
+import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StructurePresetsScreen(
     navController: NavController,
+    navigationManager: EnhancedNavigationManager? = null,
     viewModel: StructurePresetsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var presetDialog by remember { mutableStateOf(false) }
     val navigateToEditor: (String?, String?) -> Unit = { presetId, copyFrom ->
-        navController.navigate(
-            NavTargetRouter.routeOf(
-                NavTarget.StructurePresetEditor(
-                    presetId = presetId,
-                    copyFromPresetId = copyFrom,
-                ),
-            ),
+        val target =
+            NavTarget.StructurePresetEditor(
+                presetId = presetId,
+                copyFromPresetId = copyFrom,
+            )
+        navigationManager.navigateOrFallback(
+            navController = navController,
+            target = target,
         )
     }
 

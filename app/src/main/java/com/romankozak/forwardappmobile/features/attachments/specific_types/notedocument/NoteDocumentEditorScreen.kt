@@ -11,8 +11,9 @@ import androidx.compose.ui.platform.LocalView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
-import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
+import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.ui.common.editor.UniversalEditorScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -36,6 +37,7 @@ private fun parseTypedWikiLink(raw: String): TypedWikiLink? {
 @Composable
 fun NoteDocumentEditorScreen(
     navController: NavController,
+    navigationManager: EnhancedNavigationManager? = null,
     startEdit: Boolean = false,
     viewModel: NoteDocumentEditorViewModel = hiltViewModel(),
 ) {
@@ -75,16 +77,28 @@ fun NoteDocumentEditorScreen(
                 when {
                     link.startsWith("#") -> {
                         val encoded = URLEncoder.encode(link, "UTF-8")
-                        navController.navigate(NavTargetRouter.routeOf(NavTarget.GlobalSearch(query = encoded)))
+                        navigationManager.navigateOrFallback(
+                            navController = navController,
+                            target = NavTarget.GlobalSearch(query = encoded),
+                            recordInHistory = true,
+                        )
                     }
                     link.startsWith("@") -> {
                         val contextName = link.removePrefix("@").trim()
                         val contextId = viewModel.findContextIdByName(contextName)
                         if (contextId != null) {
-                            navController.navigate(NavTargetRouter.routeOf(NavTarget.ContextDetail(contextId = contextId)))
+                            navigationManager.navigateOrFallback(
+                                navController = navController,
+                                target = NavTarget.ContextDetail(contextId = contextId),
+                                recordInHistory = true,
+                            )
                         } else {
                             val encoded = URLEncoder.encode(link, "UTF-8")
-                            navController.navigate(NavTargetRouter.routeOf(NavTarget.GlobalSearch(query = encoded)))
+                            navigationManager.navigateOrFallback(
+                                navController = navController,
+                                target = NavTarget.GlobalSearch(query = encoded),
+                                recordInHistory = true,
+                            )
                         }
                     }
                     else -> {
@@ -92,38 +106,64 @@ fun NoteDocumentEditorScreen(
                         if (typed != null) {
                             when (typed.type) {
                                 "doc" -> {
-                                    navController.navigate(NavTargetRouter.routeOf(NavTarget.NoteDocument(id = typed.targetId, startEdit = false)))
+                                    navigationManager.navigateOrFallback(
+                                        navController = navController,
+                                        target = NavTarget.NoteDocument(id = typed.targetId, startEdit = false),
+                                    )
                                 }
                                 "ctx" -> {
-                                    navController.navigate(NavTargetRouter.routeOf(NavTarget.ContextDetail(contextId = typed.targetId)))
+                                    navigationManager.navigateOrFallback(
+                                        navController = navController,
+                                        target = NavTarget.ContextDetail(contextId = typed.targetId),
+                                        recordInHistory = true,
+                                    )
                                 }
                                 "music" -> {
-                                    navController.navigate(NavTargetRouter.routeOf(NavTarget.MusicNote(id = typed.targetId, startEdit = false)))
+                                    navigationManager.navigateOrFallback(
+                                        navController = navController,
+                                        target = NavTarget.MusicNote(id = typed.targetId, startEdit = false),
+                                    )
                                 }
                                 "checklist" -> {
-                                    navController.navigate(NavTargetRouter.routeOf(NavTarget.Checklist(id = typed.targetId, contextId = null)))
+                                    navigationManager.navigateOrFallback(
+                                        navController = navController,
+                                        target = NavTarget.Checklist(id = typed.targetId, contextId = null),
+                                    )
                                 }
                             }
                             return@launch
                         }
                         val documentId = viewModel.findDocumentIdByName(link)
                         if (documentId != null) {
-                            navController.navigate(NavTargetRouter.routeOf(NavTarget.NoteDocument(id = documentId, startEdit = false)))
+                            navigationManager.navigateOrFallback(
+                                navController = navController,
+                                target = NavTarget.NoteDocument(id = documentId, startEdit = false),
+                            )
                             return@launch
                         }
                         val musicNoteId = viewModel.findMusicNoteIdByName(link)
                         if (musicNoteId != null) {
-                            navController.navigate(NavTargetRouter.routeOf(NavTarget.MusicNote(id = musicNoteId, startEdit = false)))
+                            navigationManager.navigateOrFallback(
+                                navController = navController,
+                                target = NavTarget.MusicNote(id = musicNoteId, startEdit = false),
+                            )
                             return@launch
                         }
                         val checklistId = viewModel.findChecklistIdByName(link)
                         if (checklistId != null) {
-                            navController.navigate(NavTargetRouter.routeOf(NavTarget.Checklist(id = checklistId, contextId = null)))
+                            navigationManager.navigateOrFallback(
+                                navController = navController,
+                                target = NavTarget.Checklist(id = checklistId, contextId = null),
+                            )
                             return@launch
                         }
                         val contextId = viewModel.findContextIdByName(link)
                         if (contextId != null) {
-                            navController.navigate(NavTargetRouter.routeOf(NavTarget.ContextDetail(contextId = contextId)))
+                            navigationManager.navigateOrFallback(
+                                navController = navController,
+                                target = NavTarget.ContextDetail(contextId = contextId),
+                                recordInHistory = true,
+                            )
                             return@launch
                         }
                         viewModel.universalEditorViewModel.showError("Не зміг відкрити вкладення \"$link\"")
@@ -135,6 +175,7 @@ fun NoteDocumentEditorScreen(
         contextSuggestions = viewModel.contextSuggestions.collectAsStateWithLifecycle().value,
         viewModel = viewModel.universalEditorViewModel,
         navController = navController,
+        navigationManager = navigationManager,
         contentFocusRequester = focusRequester,
         startInEditMode = startEdit || documentId == null,
         foldingPersistenceKey = documentId?.let { "note_document:$it" },

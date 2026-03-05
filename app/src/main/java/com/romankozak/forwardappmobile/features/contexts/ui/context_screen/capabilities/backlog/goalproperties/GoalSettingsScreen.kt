@@ -19,7 +19,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
+import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.ContextSettingsEvent
 import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
 import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreen
@@ -31,6 +32,7 @@ import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabConten
 @Composable
 fun GoalSettingsScreen(
     navController: NavController,
+    navigationManager: EnhancedNavigationManager? = null,
     viewModel: GoalSettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -42,7 +44,11 @@ fun GoalSettingsScreen(
         viewModel.events.collect {
             when (it) {
                 is ContextSettingsEvent.NavigateBack -> navController.popBackStack()
-                is ContextSettingsEvent.Navigate -> navController.navigate(NavTargetRouter.routeOf(it.target))
+                is ContextSettingsEvent.Navigate ->
+                    navigationManager.navigateOrFallback(
+                        navController = navController,
+                        target = it.target,
+                    )
             }
         }
     }

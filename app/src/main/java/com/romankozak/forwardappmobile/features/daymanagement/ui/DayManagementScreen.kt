@@ -28,6 +28,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
+import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayanalitics.DayAnalyticsScreen
@@ -40,6 +43,7 @@ import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckFabDefault
 @Composable
 fun DayManagementScreen(
     mainNavController: NavController,
+    navigationManager: EnhancedNavigationManager? = null,
     viewModel: DayManagementViewModel = hiltViewModel(),
     modifier: Modifier = Modifier,
     startTab: String? = null,
@@ -63,7 +67,11 @@ fun DayManagementScreen(
         viewModel.uiEvent.collect { event ->
             when (event) {
                 is DayManagementUiEvent.NavigateToProject -> {
-                    mainNavController.navigate("goal_detail_screen/${event.projectId}")
+                    navigationManager.navigateOrFallback(
+                        navController = mainNavController,
+                        target = NavTarget.ContextDetail(contextId = event.projectId),
+                        recordInHistory = true,
+                    )
                 }
             }
         }
@@ -165,7 +173,11 @@ fun DayManagementScreen(
                                     DayPlanScreen(
                                         initialDayPlanId = planId,
                                         onNavigateToProject = { projectId: String ->
-                                            mainNavController.navigate("goal_detail_screen/$projectId")
+                                            navigationManager.navigateOrFallback(
+                                                navController = mainNavController,
+                                                target = NavTarget.ContextDetail(contextId = projectId),
+                                                recordInHistory = true,
+                                            )
                                         },
                                         onNavigateToBacklog = { task: DayTask ->
                                             // <-- ПОСТАВТЕ ЛОГИ ТУТ
@@ -174,8 +186,14 @@ fun DayManagementScreen(
                                                 Log.d(TAG, "3. УМОВА ВИКОНАНА: projectId не є null. Значення: $projectId")
                                                 val goalIdToHighlight = task.goalId ?: task.id
                                                 Log.d(TAG, "   - Формую маршрут з goalId: $goalIdToHighlight")
-                                                mainNavController.navigate(
-                                                    "goal_detail_screen/$projectId?goalId=$goalIdToHighlight",
+                                                navigationManager.navigateOrFallback(
+                                                    navController = mainNavController,
+                                                    target =
+                                                        NavTarget.ContextDetail(
+                                                            contextId = projectId,
+                                                            goalId = goalIdToHighlight,
+                                                        ),
+                                                    recordInHistory = true,
                                                 )
                                             }
                                                 ?: run {
@@ -186,9 +204,15 @@ fun DayManagementScreen(
                                                     )
                                                 }
                                         },
-                                        onNavigateToSettings = { mainNavController.navigate("settings_screen") },
+                                        onNavigateToSettings = {
+                                            navigationManager.navigateOrFallback(
+                                                navController = mainNavController,
+                                                target = NavTarget.Settings,
+                                            )
+                                        },
                                         addTaskTrigger = addTaskTrigger,
                                         navController = mainNavController,
+                                        navigationManager = navigationManager,
                                         viewModel = dayPlanViewModel, // Pass the shared instance
                                     )
                                 DayManagementTab.DASHBOARD -> DayDashboardScreen(dayPlanId = planId)

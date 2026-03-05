@@ -60,11 +60,42 @@ sealed interface NavTarget {
 
     data object Chat : NavTarget
 
+    data object GlobalSearchHome : NavTarget
+
+    data object CommandDeck : NavTarget
+
+    data object Sync : NavTarget
+
+    data object ManageContexts : NavTarget
+
+    data object ScriptChooser : NavTarget
+
     data object AttachmentsLibrary : NavTarget
 
     data object ScriptsLibrary : NavTarget
 
     data object TacticalManagement : NavTarget
+
+    data object StrategicManagement : NavTarget
+
+    data class ProjectSettings(
+        val goalId: String? = null,
+        val projectId: String? = null,
+    ) : NavTarget
+
+    data class DayPlan(
+        val dayPlanId: String,
+        val startTab: String? = null,
+    ) : NavTarget
+
+    data class DayManagement(
+        val date: Long,
+        val startTab: String? = null,
+    ) : NavTarget
+
+    data class EditTask(
+        val taskId: String,
+    ) : NavTarget
 
     data class ScriptEditor(
         val contextId: String? = null,

@@ -18,6 +18,7 @@ import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.utils.handleRelatedLinkClick
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.UiEvent
@@ -69,29 +70,45 @@ fun GoalDetailEffects(
                     Log.d(TAG, "GoalDetailEffects: Отримано подію Navigate.")
                     val route = NavTargetRouter.routeOf(event.target)
                     val currentListId = list?.id
+                    val navigationManager = viewModel.enhancedNavigationManager
                     if (event.target is com.romankozak.forwardappmobile.core.navigation.NavTarget.ContextDetail &&
                         currentListId == event.target.contextId
                     ) {
                         return@collect
                     }
                     val isContextRoute = route.startsWith("goal_detail_screen/")
+                    val shouldRecordHistory =
+                        event.target is NavTarget.ContextDetail ||
+                            event.target is NavTarget.GlobalSearch ||
+                            event.target is NavTarget.ContextHierarchy
                     if (isContextRoute) {
                         val currentDestId = navController.currentBackStackEntry?.destination?.id
-                        navController.navigate(route) {
+                        navigationManager.navigate(
+                            target = event.target,
+                            recordInHistory = shouldRecordHistory,
+                            builder = {
                             if (currentDestId != null) {
                                 popUpTo(currentDestId) { inclusive = true }
                             }
                             launchSingleTop = true
                             restoreState = false
-                        }
+                        },
+                        )
                         viewModel.consumeLinkedContextReplace()
                     } else if (viewModel.consumeLinkedContextReplace()) {
-                        navController.navigate(route) {
+                        navigationManager.navigate(
+                            target = event.target,
+                            recordInHistory = shouldRecordHistory,
+                            builder = {
                             launchSingleTop = true
                             restoreState = false
-                        }
+                        },
+                        )
                     } else {
-                        navController.navigate(route)
+                        navigationManager.navigate(
+                            target = event.target,
+                            recordInHistory = shouldRecordHistory,
+                        )
                     }
                 }
 

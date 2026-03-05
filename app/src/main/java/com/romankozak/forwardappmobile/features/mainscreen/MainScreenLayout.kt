@@ -42,6 +42,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
+import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
+import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.core.navigation.routes.GOAL_LISTS_ROUTE
 import com.romankozak.forwardappmobile.core.navigation.routes.STRATEGIC_MANAGEMENT_ROUTE
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerViewModel
@@ -84,6 +87,7 @@ const val MAIN_SCREEN_TODAY_ROUTE = "command_deck_today"
 @Composable
 fun MainScreenLayout(
     navController: NavController,
+    navigationManager: EnhancedNavigationManager? = null,
     onNavigateToProjectHierarchy: () -> Unit,
     onNavigateToPresets: () -> Unit,
     onNavigateToCharacter: () -> Unit,
@@ -527,25 +531,41 @@ fun MainScreenLayout(
                                 onNavigateToAttachments = onNavigateToAttachments,
                                 onNavigateToScripts = onNavigateToScripts,
                                 onOpenFocusedContext = { contextId ->
-                                    navController.navigate("goal_detail_screen/$contextId")
+                                    navigationManager.navigateOrFallback(
+                                        navController = navController,
+                                        target = NavTarget.ContextDetail(contextId = contextId),
+                                        recordInHistory = true,
+                                    )
                                 },
                                 dayPlanViewModel = dayPlanViewModel,
                                 recentViewModel = recentViewModel,
                             )
                         }
                         CommandDeckTab.Strategy -> {
-                            StrategicManagementScreen(navController = navController)
+                            StrategicManagementScreen(
+                                navController = navController,
+                                navigationManager = navigationManager,
+                            )
                         }
                         CommandDeckTab.Core -> {
-                            CoreLevelScreen(navController = navController)
+                            CoreLevelScreen(
+                                navController = navController,
+                                navigationManager = navigationManager,
+                            )
                         }
                         CommandDeckTab.StrategicArc -> {
-                            StrategicArcScreen(navController = navController)
+                            StrategicArcScreen(
+                                navController = navController,
+                                navigationManager = navigationManager,
+                            )
                         }
                         CommandDeckTab.Tactics -> {
                             TacticalManagementScreen(
                                 onLinkedProjectClick = { projectId ->
-                                    navController.navigate(GOAL_LISTS_ROUTE) {
+                                    navigationManager.navigateOrFallback(
+                                        navController = navController,
+                                        target = NavTarget.ContextHierarchy,
+                                    ) {
                                         launchSingleTop = true
                                         restoreState = true
                                     }
@@ -557,13 +577,26 @@ fun MainScreenLayout(
                                 onLinkedAttachmentClick = { attachment ->
                                     when {
                                         attachment.attachmentType == "NOTE_DOCUMENT" && !attachment.entityId.isNullOrBlank() ->
-                                            navController.navigate("note_document_screen/${attachment.entityId}")
+                                            navigationManager.navigateOrFallback(
+                                                navController = navController,
+                                                target = NavTarget.NoteDocument(id = attachment.entityId),
+                                            )
                                         attachment.attachmentType == "MUSIC_NOTE" && !attachment.entityId.isNullOrBlank() ->
-                                            navController.navigate("music_note_screen/${attachment.entityId}")
+                                            navigationManager.navigateOrFallback(
+                                                navController = navController,
+                                                target = NavTarget.MusicNote(id = attachment.entityId),
+                                            )
                                         attachment.attachmentType == "CHECKLIST" && !attachment.entityId.isNullOrBlank() ->
-                                            navController.navigate("checklist_screen?checklistId=${attachment.entityId}")
+                                            navigationManager.navigateOrFallback(
+                                                navController = navController,
+                                                target = NavTarget.Checklist(id = attachment.entityId),
+                                            )
                                         attachment.linkType == LinkType.CONTEXT && !attachment.target.isNullOrBlank() ->
-                                            navController.navigate("goal_detail_screen/${attachment.target}")
+                                            navigationManager.navigateOrFallback(
+                                                navController = navController,
+                                                target = NavTarget.ContextDetail(contextId = attachment.target),
+                                                recordInHistory = true,
+                                            )
                                         (attachment.linkType == LinkType.URL || attachment.linkType == LinkType.OBSIDIAN) &&
                                             !attachment.target.isNullOrBlank() -> {
                                             val resolvedTarget = buildExternalTarget(attachment.linkType, attachment.target)
@@ -574,7 +607,10 @@ fun MainScreenLayout(
                                                     },
                                                 )
                                             }.onFailure {
-                                                navController.navigate("attachments_library_screen") {
+                                                navigationManager.navigateOrFallback(
+                                                    navController = navController,
+                                                    target = NavTarget.AttachmentsLibrary,
+                                                ) {
                                                     launchSingleTop = true
                                                     restoreState = true
                                                 }
@@ -585,7 +621,10 @@ fun MainScreenLayout(
                                             }
                                         }
                                         else -> {
-                                            navController.navigate("attachments_library_screen") {
+                                            navigationManager.navigateOrFallback(
+                                                navController = navController,
+                                                target = NavTarget.AttachmentsLibrary,
+                                            ) {
                                                 launchSingleTop = true
                                                 restoreState = true
                                             }
@@ -599,7 +638,11 @@ fun MainScreenLayout(
                             )
                         }
                         CommandDeckTab.Today -> {
-                            DayManagementScreen(mainNavController = navController, startTab = "PLAN")
+                            DayManagementScreen(
+                                mainNavController = navController,
+                                navigationManager = navigationManager,
+                                startTab = "PLAN",
+                            )
                         }
                     }
                 }

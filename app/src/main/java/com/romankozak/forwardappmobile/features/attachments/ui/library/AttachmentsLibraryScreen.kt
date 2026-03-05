@@ -49,16 +49,19 @@ import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
+import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
+import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryFilter
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryItem
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryType
 import com.romankozak.forwardappmobile.sync.AttachmentsLibraryEvent
-import java.net.URLEncoder
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AttachmentsLibraryScreen(
     navController: NavController,
+    navigationManager: EnhancedNavigationManager? = null,
     viewModel: AttachmentsLibraryViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -99,8 +102,11 @@ fun AttachmentsLibraryScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is AttachmentsLibraryEvent.NavigateToContextChooser -> {
-                    val title = URLEncoder.encode(event.title, "UTF-8")
-                    navController.navigate("list_chooser_screen/$title")
+                    val target = NavTarget.ListChooser(title = event.title)
+                    navigationManager.navigateOrFallback(
+                        navController = navController,
+                        target = target,
+                    )
                 }
                 is AttachmentsLibraryEvent.ShowToast -> {
                     Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
@@ -187,17 +193,30 @@ fun AttachmentsLibraryScreen(
                             onClick = {
                                 when (item.type) {
                                     AttachmentLibraryType.NOTE_DOCUMENT ->
-                                        navController.navigate("note_document_screen/${item.entityId}")
+                                        navigationManager.navigateOrFallback(
+                                            navController = navController,
+                                            target = NavTarget.NoteDocument(id = item.entityId),
+                                        )
                                     AttachmentLibraryType.MUSIC_NOTE ->
-                                        navController.navigate("music_note_screen/${item.entityId}")
+                                        navigationManager.navigateOrFallback(
+                                            navController = navController,
+                                            target = NavTarget.MusicNote(id = item.entityId),
+                                        )
                                     AttachmentLibraryType.CHECKLIST ->
-                                        navController.navigate("checklist_screen?checklistId=${item.entityId}")
+                                        navigationManager.navigateOrFallback(
+                                            navController = navController,
+                                            target = NavTarget.Checklist(id = item.entityId),
+                                        )
                                     AttachmentLibraryType.LINK -> {
                                         val linkData = item.linkData
                                         if (linkData != null) {
                                             when (linkData.type) {
                                                 LinkType.CONTEXT ->
-                                                    navController.navigate("goal_detail_screen/${linkData.target}")
+                                                    navigationManager.navigateOrFallback(
+                                                        navController = navController,
+                                                        target = NavTarget.ContextDetail(contextId = linkData.target),
+                                                        recordInHistory = true,
+                                                    )
                                                 LinkType.URL, null ->
                                                     openExternalLink(context, linkData.target)
                                                 LinkType.OBSIDIAN ->
@@ -206,7 +225,11 @@ fun AttachmentsLibraryScreen(
                                         }
                                     }
                                     AttachmentLibraryType.CONTEXT ->
-                                        navController.navigate("goal_detail_screen/${item.entityId}")
+                                        navigationManager.navigateOrFallback(
+                                            navController = navController,
+                                            target = NavTarget.ContextDetail(contextId = item.entityId),
+                                            recordInHistory = true,
+                                        )
                                 }
                             },
                             onShareClick = { viewModel.onShareToContextClick(item) },

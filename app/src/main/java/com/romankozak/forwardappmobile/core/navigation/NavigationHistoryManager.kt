@@ -21,6 +21,7 @@ class NavigationHistoryManager(
     }
 
     private val _history = MutableStateFlow<List<NavigationEntry>>(emptyList())
+    val history: StateFlow<List<NavigationEntry>> = _history.asStateFlow()
     private val _currentIndex = MutableStateFlow(-1)
 
     private val _canGoBack = MutableStateFlow(false)

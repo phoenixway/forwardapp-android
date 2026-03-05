@@ -103,8 +103,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.R
+import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
-import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
+import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableCollectionItemScope
@@ -130,6 +131,7 @@ private fun parseChecklistTypedWikiLink(raw: String): ChecklistTypedWikiLink? {
 @Composable
 fun ChecklistScreen(
     navController: NavController,
+    navigationManager: EnhancedNavigationManager? = null,
     viewModel: ChecklistViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -363,23 +365,47 @@ fun ChecklistScreen(
                                 link.startsWith("#") || link.startsWith("@") -> {
                                     val encoded = URLEncoder.encode(link, "UTF-8")
                                     val target = NavTarget.GlobalSearch(query = encoded)
-                                    navController.navigate(NavTargetRouter.routeOf(target))
+                                    navigationManager.navigateOrFallback(
+                                        navController = navController,
+                                        target = target,
+                                        recordInHistory = true,
+                                    )
                                 }
                                 else -> {
                                     val typed = parseChecklistTypedWikiLink(link)
                                     if (typed != null) {
                                         when (typed.type) {
-                                            "doc" -> navController.navigate(NavTargetRouter.routeOf(NavTarget.NoteDocument(id = typed.targetId, startEdit = false)))
-                                            "ctx" -> navController.navigate(NavTargetRouter.routeOf(NavTarget.ContextDetail(contextId = typed.targetId)))
-                                            "music" -> navController.navigate(NavTargetRouter.routeOf(NavTarget.MusicNote(id = typed.targetId, startEdit = false)))
-                                            "checklist" -> navController.navigate(NavTargetRouter.routeOf(NavTarget.Checklist(id = typed.targetId, contextId = null)))
+                                            "doc" ->
+                                                navigationManager.navigateOrFallback(
+                                                    navController = navController,
+                                                    target = NavTarget.NoteDocument(id = typed.targetId, startEdit = false),
+                                                )
+                                            "ctx" ->
+                                                navigationManager.navigateOrFallback(
+                                                    navController = navController,
+                                                    target = NavTarget.ContextDetail(contextId = typed.targetId),
+                                                    recordInHistory = true,
+                                                )
+                                            "music" ->
+                                                navigationManager.navigateOrFallback(
+                                                    navController = navController,
+                                                    target = NavTarget.MusicNote(id = typed.targetId, startEdit = false),
+                                                )
+                                            "checklist" ->
+                                                navigationManager.navigateOrFallback(
+                                                    navController = navController,
+                                                    target = NavTarget.Checklist(id = typed.targetId, contextId = null),
+                                                )
                                         }
                                         return@launch
                                     }
                                     val targetId = viewModel.findDocumentIdByName(link)
                                     if (targetId != null) {
                                         val target = NavTarget.NoteDocument(id = targetId, startEdit = false)
-                                        navController.navigate(NavTargetRouter.routeOf(target))
+                                        navigationManager.navigateOrFallback(
+                                            navController = navController,
+                                            target = target,
+                                        )
                                     } else {
                                         snackbarHostState.showSnackbar("Не зміг відкрити вкладення \"$link\"")
                                     }

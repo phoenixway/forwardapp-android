@@ -31,6 +31,7 @@ class EnhancedNavigationManager(
     val canGoBack: StateFlow<Boolean> = historyManager.canGoBack
     val canGoForward: StateFlow<Boolean> = historyManager.canGoForward
     val currentEntry: StateFlow<NavigationEntry?> = historyManager.currentEntry
+    val history: StateFlow<List<NavigationEntry>> = historyManager.history
 
     private val _showNavigationMenu = MutableStateFlow(false)
     val showNavigationMenu: StateFlow<Boolean> = _showNavigationMenu.asStateFlow()
@@ -38,23 +39,30 @@ class EnhancedNavigationManager(
     fun navigate(
         route: String,
         builder: (NavOptionsBuilder.() -> Unit)? = null,
+        historyEntry: NavigationEntry? = null,
     ) {
+        historyEntry?.let(historyManager::addEntry)
         sendNavigationCommand(NavigationCommand.Navigate(route, builder))
     }
 
     fun navigate(
         target: NavTarget,
         builder: (NavOptionsBuilder.() -> Unit)? = null,
+        recordInHistory: Boolean = false,
+        historyTitle: String? = null,
     ) {
+        if (recordInHistory) {
+            historyEntryForTarget(target, historyTitle)?.let(historyManager::addEntry)
+        }
         sendNavigationCommand(NavigationCommand.NavigateTarget(target, builder))
     }
 
     fun navigateToProjectHierarchyScreen(isInitial: Boolean = false) {
-        val entry = NavigationEntry.createProjectHierarchyScreen()
-        historyManager.addEntry(entry)
-
         if (!isInitial) {
-            sendNavigationCommand(NavigationCommand.Navigate("goal_lists_screen"))
+            navigate(
+                target = NavTarget.ContextHierarchy,
+                recordInHistory = true,
+            )
         }
     }
 
@@ -62,15 +70,18 @@ class EnhancedNavigationManager(
         projectId: String,
         projectName: String,
     ) {
-        val entry = NavigationEntry.createProjectScreen(projectId, projectName)
-        historyManager.addEntry(entry)
-        sendNavigationCommand(NavigationCommand.Navigate("goal_detail_screen/$projectId"))
+        navigate(
+            target = NavTarget.ContextDetail(contextId = projectId),
+            recordInHistory = true,
+            historyTitle = projectName,
+        )
     }
 
     fun navigateToGlobalSearch(query: String) {
-        val entry = NavigationEntry.createGlobalSearch(query)
-        historyManager.addEntry(entry)
-        sendNavigationCommand(NavigationCommand.Navigate("global_search_screen/$query"))
+        navigate(
+            target = NavTarget.GlobalSearch(query),
+            recordInHistory = true,
+        )
     }
 
     fun goBack() {
@@ -129,8 +140,9 @@ class EnhancedNavigationManager(
     fun navigateHome() {
         historyManager.clearHistory()
 
-        sendNavigationCommand(
-            NavigationCommand.Navigate("goal_lists_screen") {
+        navigate(
+            route = "goal_lists_screen",
+            builder = {
                 popUpTo("goal_lists_screen") { inclusive = true }
                 launchSingleTop = true
             },
@@ -176,11 +188,46 @@ class EnhancedNavigationManager(
         val entry = NavigationEntry.createProjectHierarchyScreen()
         historyManager.addEntry(entry)
 
-        sendNavigationCommand(
-            NavigationCommand.Navigate("goal_lists_screen") {
+        navigate(
+            route = "goal_lists_screen",
+            builder = {
                 popUpTo("goal_lists_screen") { inclusive = true }
                 launchSingleTop = true
             },
         )
+    }
+
+    private fun historyEntryForTarget(
+        target: NavTarget,
+        titleOverride: String?,
+    ): NavigationEntry? {
+        val route = NavTargetRouter.routeOf(target)
+        return when (target) {
+            NavTarget.ContextHierarchy ->
+                NavigationEntry(
+                    type = NavigationType.PROJECT_HIERARCHY_SCREEN,
+                    id = "main",
+                    title = titleOverride ?: "Contexts",
+                    route = route,
+                )
+
+            is NavTarget.ContextDetail ->
+                NavigationEntry(
+                    type = NavigationType.PROJECT_SCREEN,
+                    id = target.contextId,
+                    title = titleOverride ?: "Context",
+                    route = route,
+                )
+
+            is NavTarget.GlobalSearch ->
+                NavigationEntry(
+                    type = NavigationType.GLOBAL_SEARCH,
+                    id = "search_${target.query}",
+                    title = titleOverride ?: "Search: ${target.query}",
+                    route = route,
+                )
+
+            else -> null
+        }
     }
 }

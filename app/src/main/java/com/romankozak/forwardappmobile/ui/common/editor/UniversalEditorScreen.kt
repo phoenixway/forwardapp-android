@@ -62,6 +62,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
+import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.ui.common.components.ShareDialog
 import com.romankozak.forwardappmobile.ui.common.editor.components.ExperimentalEnhancedListToolbar
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorEvent
@@ -78,6 +80,7 @@ fun UniversalEditorScreen(
     linkSuggestions: List<String> = emptyList(),
     contextSuggestions: List<String> = emptyList(),
     navController: NavController,
+    navigationManager: EnhancedNavigationManager? = null,
     viewModel: UniversalEditorViewModel = hiltViewModel(),
     contentFocusRequester: FocusRequester,
     startInEditMode: Boolean = false,
@@ -153,7 +156,13 @@ fun UniversalEditorScreen(
                 is UniversalEditorEvent.ShowLocation -> {
                     val projectId = it.projectId
                     android.util.Log.d("ProjectRevealDebug", "Navigating to project screen for projectId: $projectId in CONNECTIONS mode")
-                    navController.navigate("goal_detail_screen/$projectId?initialViewMode=${ContextViewMode.CONNECTIONS.name}")
+                    navigationManager?.navigate(
+                        target = NavTarget.ContextDetail(
+                            contextId = projectId,
+                            initialViewMode = ContextViewMode.CONNECTIONS.name,
+                        ),
+                        recordInHistory = true,
+                    ) ?: navController.navigate("goal_detail_screen/$projectId?initialViewMode=${ContextViewMode.CONNECTIONS.name}")
                 }
 
                 is UniversalEditorEvent.ShowError -> {

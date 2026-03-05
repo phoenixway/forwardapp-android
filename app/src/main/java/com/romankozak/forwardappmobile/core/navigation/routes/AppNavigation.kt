@@ -70,19 +70,18 @@ import com.romankozak.forwardappmobile.features.vet_case.VetCaseSummaryScreen
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import kotlinx.coroutines.launch
 import java.net.URLDecoder
-import java.net.URLEncoder
 
-const val MAIN_GRAPH_ROUTE = "main_graph"
-const val COMMAND_DECK_ROUTE = "command_deck_screen"
-const val CHARACTER_SCREEN_ROUTE = "character_screen"
-const val GOAL_LISTS_ROUTE = "goal_lists_screen"
-const val AI_INSIGHTS_ROUTE = "ai_insights_screen"
-const val LIFE_STATE_ROUTE = "life_state_screen"
-const val SELECTIVE_IMPORT_ROUTE = "selective_import_screen?fileUri={fileUri}"
-const val PLACEHOLDER_ROUTE = "placeholder_screen/{viewId}/{screenId}"
-const val KANBAN_ROUTE = "kanban_screen"
-const val VET_CASE_SUMMARY_ROUTE = "vet_case_summary_screen"
-const val VET_CASE_HISTORY_ROUTE = "vet_case_history_screen"
+const val MAIN_GRAPH_ROUTE = NavigationRoutes.MAIN_GRAPH
+const val COMMAND_DECK_ROUTE = NavigationRoutes.COMMAND_DECK
+const val CHARACTER_SCREEN_ROUTE = NavigationRoutes.CHARACTER
+const val GOAL_LISTS_ROUTE = NavigationRoutes.GOAL_LISTS
+const val AI_INSIGHTS_ROUTE = NavigationRoutes.AI_INSIGHTS
+const val LIFE_STATE_ROUTE = NavigationRoutes.LIFE_STATE
+const val SELECTIVE_IMPORT_ROUTE = NavigationRoutes.SELECTIVE_IMPORT_PATTERN
+const val PLACEHOLDER_ROUTE = NavigationRoutes.PLACEHOLDER_PATTERN
+const val KANBAN_ROUTE = NavigationRoutes.KANBAN
+const val VET_CASE_SUMMARY_ROUTE = NavigationRoutes.VET_CASE_SUMMARY
+const val VET_CASE_HISTORY_ROUTE = NavigationRoutes.VET_CASE_HISTORY
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -146,30 +145,45 @@ private fun NavGraphBuilder.mainGraph(
         val parentEntry = remember(backStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) }
         val goalListViewModel: ContextHierarchyScreenViewModel = hiltViewModel(parentEntry)
         val commandDeckViewModel: CommandDeckViewModel = hiltViewModel(parentEntry)
+        val navigationManager = appNavigationViewModel.navigationManager
         val scope = rememberCoroutineScope()
 
         MainScreenLayout(
             navController = navController,
-            onNavigateToProjectHierarchy = { navController.navigate(GOAL_LISTS_ROUTE) },
-            onNavigateToPresets = {
-                navController.navigate(NavTargetRouter.routeOf(NavTarget.StructurePresets))
+            navigationManager = navigationManager,
+            onNavigateToProjectHierarchy = {
+                navigationManager.navigate(
+                    target = NavTarget.ContextHierarchy,
+                    recordInHistory = true,
+                )
             },
-            onNavigateToCharacter = { navController.navigate(CHARACTER_SCREEN_ROUTE) },
-            onNavigateToGlobalSearch = { navController.navigate("global_search") },
-            onNavigateToSettings = { navController.navigate("settings_screen") },
+            onNavigateToPresets = {
+                navigationManager.navigate(target = NavTarget.StructurePresets)
+            },
+            onNavigateToCharacter = { navigationManager.navigate(route = CHARACTER_SCREEN_ROUTE) },
+            onNavigateToGlobalSearch = { navigationManager.navigate(target = NavTarget.GlobalSearchHome) },
+            onNavigateToSettings = { navigationManager.navigate(target = NavTarget.Settings) },
             onNavigateToInbox = {
                 scope.launch {
                     val inboxId = goalListViewModel.getInboxProjectId()
                     if (inboxId != null) {
-                        navController.navigate("goal_detail_screen/$inboxId?initialViewMode=INBOX")
+                        navigationManager.navigate(
+                            target =
+                                NavTarget.ContextDetail(
+                                    contextId = inboxId,
+                                    initialViewMode = "INBOX",
+                                ),
+                            recordInHistory = true,
+                            historyTitle = "Inbox",
+                        )
                     }
                 }
             },
-            onNavigateToTracker = { navController.navigate("activity_tracker_screen") },
-            onNavigateToReminders = { navController.navigate("reminders_screen") },
-            onNavigateToAiChat = { navController.navigate(CHAT_ROUTE) },
-            onNavigateToAiInsights = { navController.navigate(AI_INSIGHTS_ROUTE) },
-            onNavigateToAiLifeManagement = { navController.navigate(LIFE_STATE_ROUTE) },
+            onNavigateToTracker = { navigationManager.navigate(target = NavTarget.Tracker) },
+            onNavigateToReminders = { navigationManager.navigate(target = NavTarget.Reminders) },
+            onNavigateToAiChat = { navigationManager.navigate(target = NavTarget.Chat) },
+            onNavigateToAiInsights = { navigationManager.navigate(target = NavTarget.AiInsights) },
+            onNavigateToAiLifeManagement = { navigationManager.navigate(target = NavTarget.LifeState) },
             onExportToFile = { commandDeckViewModel.onEvent(CommandDeckEvent.ExportToFile) },
             onImportFromFileRequest = { uri ->
                 commandDeckViewModel.onEvent(
@@ -177,8 +191,7 @@ private fun NavGraphBuilder.mainGraph(
                 )
             },
             onSelectiveImportFromFileRequest = { uri ->
-                val encodedUri = URLEncoder.encode(uri.toString(), "UTF-8")
-                navController.navigate("selective_import_screen?fileUri=$encodedUri")
+                navigationManager.navigate(route = NavigationRoutes.selectiveImport(uri.toString()))
             },
             onExportAttachments = { commandDeckViewModel.onEvent(CommandDeckEvent.ExportAttachments) },
             onImportAttachmentsFromFileRequest = { uri ->
@@ -189,24 +202,29 @@ private fun NavGraphBuilder.mainGraph(
             onShowWifiImport = { commandDeckViewModel.onShowWifiImportDialog() },
             onNavigateToSyncScreenWithData = { json ->
                 syncDataViewModel.jsonString = json
-                navController.navigate("sync_screen")
+                navigationManager.navigate(target = NavTarget.Sync)
             },
-            onNavigateToAttachments = { navController.navigate("attachments_library_screen") },
-            onNavigateToScripts = { navController.navigate("scripts_library_screen") },
+            onNavigateToAttachments = { navigationManager.navigate(target = NavTarget.AttachmentsLibrary) },
+            onNavigateToScripts = { navigationManager.navigate(target = NavTarget.ScriptsLibrary) },
             onNavigateToRecentItem = { item: RecentItem ->
                 when (item.type) {
-                    RecentItemType.PROJECT -> navController.navigate("goal_detail_screen/${item.target}")
+                    RecentItemType.PROJECT ->
+                        navigationManager.navigate(
+                            target = NavTarget.ContextDetail(contextId = item.target),
+                            recordInHistory = true,
+                            historyTitle = "Context",
+                        )
 
                     RecentItemType.NOTE,
                     RecentItemType.NOTE_DOCUMENT,
                     ->
-                        navController.navigate("note_document_screen/${item.target}")
+                        navigationManager.navigate(target = NavTarget.NoteDocument(id = item.target))
 
                     RecentItemType.CHECKLIST ->
-                        navController.navigate("checklist_screen?checklistId=${item.target}")
+                        navigationManager.navigate(target = NavTarget.Checklist(id = item.target))
 
                     RecentItemType.MUSIC_NOTE ->
-                        navController.navigate("music_note_screen/${item.target}")
+                        navigationManager.navigate(target = NavTarget.MusicNote(id = item.target))
 
                     RecentItemType.OBSIDIAN_LINK -> {
                         // Поки що просто лог або нічого
@@ -225,18 +243,21 @@ private fun NavGraphBuilder.mainGraph(
     }
 
     composable(
-        route = "project_structure_screen/{projectId}",
+        route = "${NavigationRoutes.PROJECT_STRUCTURE}/{projectId}",
         arguments = listOf(navArgument("projectId") { type = NavType.StringType }),
     ) {
         ProjectStructureScreen(navController = navController)
     }
 
-    composable("structure_presets_screen") {
-        StructurePresetsScreen(navController = navController)
+    composable(NavigationRoutes.STRUCTURE_PRESETS) {
+        StructurePresetsScreen(
+            navController = navController,
+            navigationManager = appNavigationViewModel.navigationManager,
+        )
     }
 
     composable(
-        route = "structure_preset_editor_screen?presetId={presetId}&copyFromPresetId={copyFromPresetId}",
+        route = NavigationRoutes.STRUCTURE_PRESET_EDITOR_PATTERN,
         arguments =
             listOf(
                 navArgument("presetId") {
@@ -264,14 +285,14 @@ private fun NavGraphBuilder.mainGraph(
             navController = navController,
             syncDataViewModel = syncDataViewModel,
             viewModel = viewModel,
+            navigationManager = appNavigationViewModel.navigationManager,
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = this,
         )
     }
 
     composable(
-        route =
-            "goal_detail_screen/{listId}?goalId={goalId}&itemIdToHighlight={itemIdToHighlight}&inboxRecordIdToHighlight={inboxRecordIdToHighlight}&initialViewMode={initialViewMode}&originContextId={originContextId}",
+        route = NavigationRoutes.CONTEXT_DETAIL_PATTERN,
         arguments =
             listOf(
                 navArgument("listId") { type = NavType.StringType },
@@ -313,7 +334,7 @@ private fun NavGraphBuilder.mainGraph(
     }
 
     composable(
-        "global_search_screen/{query}",
+        "${NavigationRoutes.GLOBAL_SEARCH}/{query}",
         arguments = listOf(navArgument("query") { type = NavType.StringType }),
     ) {
         val viewModel: GlobalSearchViewModel = hiltViewModel()
@@ -322,24 +343,32 @@ private fun NavGraphBuilder.mainGraph(
         GlobalSearchScreen(viewModel = viewModel, navController = navController)
     }
 
-    composable("global_search") {
+    composable(NavigationRoutes.GLOBAL_SEARCH_HOME) {
         val viewModel: GlobalSearchViewModel = hiltViewModel()
         viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
 
         GlobalSearchScreen(viewModel = viewModel, navController = navController)
     }
 
-    composable("attachments_library_screen") {
-        AttachmentsLibraryScreen(navController = navController)
+    composable(NavigationRoutes.ATTACHMENTS_LIBRARY) {
+        AttachmentsLibraryScreen(
+            navController = navController,
+            navigationManager = appNavigationViewModel.navigationManager,
+        )
     }
 
-    composable("scripts_library_screen") { ScriptsLibraryScreen(navController = navController) }
+    composable(NavigationRoutes.SCRIPTS_LIBRARY) {
+        ScriptsLibraryScreen(
+            navController = navController,
+            navigationManager = appNavigationViewModel.navigationManager,
+        )
+    }
 
-    composable("script_chooser_screen") { ScriptChooserScreen(navController = navController) }
+    composable(NavigationRoutes.SCRIPT_CHOOSER) { ScriptChooserScreen(navController = navController) }
 
     composable(LIFE_STATE_ROUTE) { LifeStateScreen(navController = navController) }
 
-    composable("settings_screen") { backStackEntry ->
+    composable(NavigationRoutes.SETTINGS) { backStackEntry ->
         val parentEntry = remember(backStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) }
         val goalListViewModel: ContextHierarchyScreenViewModel = hiltViewModel(parentEntry)
 
@@ -350,7 +379,9 @@ private fun NavGraphBuilder.mainGraph(
             planningSettings = uiState.planningSettings,
             initialVaultName = uiState.obsidianVaultName,
             reservedContextCount = reservedContextCount,
-            onManageContextsClick = { navController.navigate("manage_contexts_screen") },
+            onManageContextsClick = {
+                appNavigationViewModel.navigationManager.navigate(target = NavTarget.ManageContexts)
+            },
             onBack = { navController.popBackStack() },
             onSave = { settings ->
                 goalListViewModel.onEvent(ContextHierarchyScreenEvent.SaveSettings(settings))
@@ -358,7 +389,7 @@ private fun NavGraphBuilder.mainGraph(
         )
     }
 
-    composable("manage_contexts_screen") { backStackEntry ->
+    composable(NavigationRoutes.MANAGE_CONTEXTS) { backStackEntry ->
         val parentEntry = remember(backStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) }
         val goalListViewModel: ContextHierarchyScreenViewModel = hiltViewModel(parentEntry)
 
@@ -374,10 +405,10 @@ private fun NavGraphBuilder.mainGraph(
         )
     }
 
-    composable("activity_tracker_screen") { ActivityTrackerScreen(navController = navController) }
+    composable(NavigationRoutes.ACTIVITY_TRACKER) { ActivityTrackerScreen(navController = navController) }
 
     composable(
-        route = "project_settings_screen?goalId={goalId}&projectId={projectId}",
+        route = NavigationRoutes.PROJECT_SETTINGS_PATTERN,
         arguments =
             listOf(
                 navArgument("goalId") {
@@ -390,20 +421,25 @@ private fun NavGraphBuilder.mainGraph(
                 },
             ),
     ) {
-        ProjectSettingsScreen(navController = navController, viewModel = hiltViewModel())
-    }
-
-    composable(
-        route = "goal_settings_screen/{goalId}",
-        arguments = listOf(navArgument("goalId") { type = NavType.StringType }),
-    ) {
-        GoalSettingsScreen(
+        ProjectSettingsScreen(
             navController = navController,
+            navigationManager = appNavigationViewModel.navigationManager,
             viewModel = hiltViewModel(),
         )
     }
 
-    composable("sync_screen") {
+    composable(
+        route = "${NavigationRoutes.GOAL_SETTINGS}/{goalId}",
+        arguments = listOf(navArgument("goalId") { type = NavType.StringType }),
+    ) {
+        GoalSettingsScreen(
+            navController = navController,
+            navigationManager = appNavigationViewModel.navigationManager,
+            viewModel = hiltViewModel(),
+        )
+    }
+
+    composable(NavigationRoutes.SYNC) {
         SyncScreen(
             syncDataViewModel = syncDataViewModel,
             onSyncComplete = { navController.popBackStack() },
@@ -412,7 +448,7 @@ private fun NavGraphBuilder.mainGraph(
 
     // Об'єднаний екран для перегляду/редагування існуючого списку
     composable(
-        route = "note_document_screen/{documentId}?startEdit={startEdit}",
+        route = "${NavigationRoutes.NOTE_DOCUMENT}/{documentId}?startEdit={startEdit}",
         arguments =
             listOf(
                 navArgument("documentId") { type = NavType.StringType },
@@ -423,18 +459,25 @@ private fun NavGraphBuilder.mainGraph(
             ),
     ) { backStackEntry ->
         val startEdit = backStackEntry.arguments?.getBoolean("startEdit") ?: false
-        NoteDocumentEditorScreen(navController = navController, startEdit = startEdit)
+        NoteDocumentEditorScreen(
+            navController = navController,
+            navigationManager = appNavigationViewModel.navigationManager,
+            startEdit = startEdit,
+        )
     }
 
     composable(
-        route = "note_document_create_screen/{projectId}",
+        route = "${NavigationRoutes.NOTE_DOCUMENT_CREATE}/{projectId}",
         arguments = listOf(navArgument("projectId") { type = NavType.StringType }),
     ) {
-        NoteDocumentScreen(navController = navController)
+        NoteDocumentScreen(
+            navController = navController,
+            navigationManager = appNavigationViewModel.navigationManager,
+        )
     }
 
     composable(
-        route = "note_document_edit_screen?projectId={projectId}&documentId={documentId}",
+        route = NavigationRoutes.NOTE_DOCUMENT_EDIT_PATTERN,
         arguments =
             listOf(
                 navArgument("projectId") {
@@ -447,11 +490,14 @@ private fun NavGraphBuilder.mainGraph(
                 },
             ),
     ) {
-        NoteDocumentScreen(navController = navController)
+        NoteDocumentScreen(
+            navController = navController,
+            navigationManager = appNavigationViewModel.navigationManager,
+        )
     }
 
     composable(
-        route = "script_editor_screen?projectId={projectId}&scriptId={scriptId}",
+        route = NavigationRoutes.SCRIPT_EDITOR_PATTERN,
         arguments =
             listOf(
                 navArgument("projectId") {
@@ -470,7 +516,7 @@ private fun NavGraphBuilder.mainGraph(
     }
 
     composable(
-        route = "checklist_screen?projectId={projectId}&checklistId={checklistId}",
+        route = NavigationRoutes.CHECKLIST_PATTERN,
         arguments =
             listOf(
                 navArgument("projectId") {
@@ -485,11 +531,12 @@ private fun NavGraphBuilder.mainGraph(
     ) {
         ChecklistScreen(
             navController = navController,
+            navigationManager = appNavigationViewModel.navigationManager,
         )
     }
 
     composable(
-        route = "music_note_screen/{musicNoteId}?startEdit={startEdit}",
+        route = NavigationRoutes.MUSIC_NOTE_PATTERN,
         arguments =
             listOf(
                 navArgument("musicNoteId") { type = NavType.StringType },
@@ -560,27 +607,32 @@ private fun NavGraphBuilder.mainGraph(
             onToggleShowDescendants = viewModel::toggleShowDescendants,
         )
     }
-    chatScreen(navController)
-    dayManagementGraph(navController)
-    dayManagementScreen(navController)
-    strategicManagementScreen(navController)
+    chatScreen(navController, appNavigationViewModel.navigationManager)
+    dayManagementGraph(navController, appNavigationViewModel.navigationManager)
+    dayManagementScreen(navController, appNavigationViewModel.navigationManager)
+    strategicManagementScreen(navController, appNavigationViewModel.navigationManager)
 
-    composable("tactical_management_screen") { TacticalManagementScreen() }
+    composable(NavigationRoutes.TACTICAL_MANAGEMENT) { TacticalManagementScreen() }
 
 
     composable(AI_INSIGHTS_ROUTE) { AiInsightsScreen(navController = navController) }
 
-    composable("reminders_screen") { RemindersScreen(navController = navController) }
+    composable(NavigationRoutes.REMINDERS) {
+        RemindersScreen(
+            navController = navController,
+            navigationManager = appNavigationViewModel.navigationManager,
+        )
+    }
 
     composable(
-        route = "edit_task_screen/{taskId}",
+        route = "${NavigationRoutes.EDIT_TASK}/{taskId}",
         arguments = listOf(navArgument("taskId") { type = NavType.StringType }),
     ) {
         EditTaskScreen(onNavigateUp = { navController.navigateUp() })
     }
 
     composable(
-        route = "inbox_editor_screen/{inboxId}",
+        route = "${NavigationRoutes.INBOX_EDITOR}/{inboxId}",
         arguments = listOf(navArgument("inboxId") { type = NavType.StringType }),
     ) {
         InboxEditorScreen(navController = navController)
@@ -614,7 +666,7 @@ private fun NavGraphBuilder.mainGraph(
     composable(VET_CASE_HISTORY_ROUTE) { VetCaseHistoryScreen() }
 
     composable(
-        route = "placeholder_screen/{viewId}/{screenId}",
+        route = NavigationRoutes.PLACEHOLDER_PATTERN,
         arguments =
             listOf(
                 navArgument("viewId") {

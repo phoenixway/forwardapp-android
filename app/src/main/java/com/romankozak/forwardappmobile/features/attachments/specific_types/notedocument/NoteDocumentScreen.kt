@@ -57,6 +57,9 @@ import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
+import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.ui.common.editor.components.ExperimentalEnhancedListToolbar
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -97,6 +100,7 @@ private fun ShowToolbarButton(onClick: () -> Unit) {
 @Composable
 fun NoteDocumentScreen(
     navController: NavController,
+    navigationManager: EnhancedNavigationManager? = null,
     viewModel: NoteDocumentViewModel = hiltViewModel(),
 ) {
     var isToolbarVisible by remember { mutableStateOf(true) }
@@ -158,7 +162,10 @@ fun NoteDocumentScreen(
                     navController.popBackStack()
                 }
                 is NoteDocumentEvent.OpenDocument -> {
-                    navController.navigate("note_document_screen/${event.documentId}?startEdit=false")
+                    navigationManager.navigateOrFallback(
+                        navController = navController,
+                        target = NavTarget.NoteDocument(id = event.documentId, startEdit = false),
+                    )
                 }
                 is NoteDocumentEvent.ShowError -> {}
                 is NoteDocumentEvent.ShowSuccess -> {}

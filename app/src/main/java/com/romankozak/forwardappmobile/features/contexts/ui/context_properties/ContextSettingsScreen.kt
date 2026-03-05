@@ -62,7 +62,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
-import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
+import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.core.navigation.capability.settings.CapabilitySettingsEntry
 import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
 import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreen
@@ -75,6 +76,7 @@ import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabConten
 @Composable
 fun ProjectSettingsScreen(
     navController: NavController,
+    navigationManager: EnhancedNavigationManager? = null,
     viewModel: ContextSettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -96,7 +98,10 @@ fun ProjectSettingsScreen(
                     navController.popBackStack()
                 }
                 is ContextSettingsEvent.Navigate -> {
-                    navController.navigate(NavTargetRouter.routeOf(event.target))
+                    navigationManager.navigateOrFallback(
+                        navController = navController,
+                        target = event.target,
+                    )
                 }
             }
         }
@@ -230,10 +235,9 @@ fun ProjectSettingsScreen(
             },
             onEditPresets = {
                 showPresetPicker = false
-                navController.navigate(
-                    NavTargetRouter.routeOf(
-                        NavTarget.StructurePresets,
-                    ),
+                navigationManager.navigateOrFallback(
+                    navController = navController,
+                    target = NavTarget.StructurePresets,
                 )
             },
         )

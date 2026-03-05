@@ -38,6 +38,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
+import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
@@ -124,6 +127,7 @@ fun DayPlanScreen(
     onNavigateToSettings: () -> Unit,
     addTaskTrigger: Int,
     navController: NavController,
+    navigationManager: EnhancedNavigationManager? = null,
 ) {
     val systemUiController = rememberSystemUiController()
     val isLight = !isSystemInDarkTheme()
@@ -160,7 +164,10 @@ fun DayPlanScreen(
         viewModel.uiEvent.collect {
             when (it) {
                 is DayPlanUiEvent.NavigateToEditTask -> {
-                    navController.navigate("edit_task_screen/${it.taskId}")
+                    navigationManager.navigateOrFallback(
+                        navController = navController,
+                        target = NavTarget.EditTask(taskId = it.taskId),
+                    )
                 }
             }
         }
@@ -262,13 +269,23 @@ fun DayPlanScreen(
                                 onParentInfoClick = { parentInfo ->
                                     when (parentInfo.type) {
                                         ParentType.PROJECT -> {
-                                            navController.navigate("goal_detail_screen/${parentInfo.id}")
+                                            navigationManager.navigateOrFallback(
+                                                navController = navController,
+                                                target = NavTarget.ContextDetail(contextId = parentInfo.id),
+                                                recordInHistory = true,
+                                            )
                                         }
 
                                         ParentType.GOAL -> {
                                             parentInfo.projectId?.let { listId ->
-                                                navController.navigate(
-                                                    "goal_detail_screen/$listId?goalId=${parentInfo.id}",
+                                                navigationManager.navigateOrFallback(
+                                                    navController = navController,
+                                                    target =
+                                                        NavTarget.ContextDetail(
+                                                            contextId = listId,
+                                                            goalId = parentInfo.id,
+                                                        ),
+                                                    recordInHistory = true,
                                                 )
                                             }
                                                 ?: run {
@@ -348,19 +365,36 @@ fun DayPlanScreen(
             }
         },
         onContextClick = { contextId ->
-            navController.navigate("goal_detail_screen/$contextId")
+            navigationManager.navigateOrFallback(
+                navController = navController,
+                target = NavTarget.ContextDetail(contextId = contextId),
+                recordInHistory = true,
+            )
         },
         onAttachmentClick = { attachmentId ->
             val option = uiState.availableAttachments.firstOrNull { it.id == attachmentId }
             when {
                 option?.attachmentType == "NOTE_DOCUMENT" && !option.entityId.isNullOrBlank() ->
-                    navController.navigate("note_document_screen/${option.entityId}")
+                    navigationManager.navigateOrFallback(
+                        navController = navController,
+                        target = NavTarget.NoteDocument(id = option.entityId),
+                    )
                 option?.attachmentType == "MUSIC_NOTE" && !option.entityId.isNullOrBlank() ->
-                    navController.navigate("music_note_screen/${option.entityId}")
+                    navigationManager.navigateOrFallback(
+                        navController = navController,
+                        target = NavTarget.MusicNote(id = option.entityId),
+                    )
                 option?.attachmentType == "CHECKLIST" && !option.entityId.isNullOrBlank() ->
-                    navController.navigate("checklist_screen?checklistId=${option.entityId}")
+                    navigationManager.navigateOrFallback(
+                        navController = navController,
+                        target = NavTarget.Checklist(id = option.entityId),
+                    )
                 option?.linkType == LinkType.CONTEXT && !option.target.isNullOrBlank() ->
-                    navController.navigate("goal_detail_screen/${option.target}")
+                    navigationManager.navigateOrFallback(
+                        navController = navController,
+                        target = NavTarget.ContextDetail(contextId = option.target),
+                        recordInHistory = true,
+                    )
                 (option?.linkType == LinkType.URL || option?.linkType == LinkType.OBSIDIAN) && !option.target.isNullOrBlank() -> {
                     val resolvedTarget = buildExternalTarget(option.linkType, option.target)
                     runCatching {
@@ -371,7 +405,10 @@ fun DayPlanScreen(
                         )
                     }.onFailure {
                         Log.e(TAG, "Cannot open link: ${option.target}", it)
-                        navController.navigate("attachments_library_screen") {
+                        navigationManager.navigateOrFallback(
+                            navController = navController,
+                            target = NavTarget.AttachmentsLibrary,
+                        ) {
                             launchSingleTop = true
                             restoreState = true
                         }
@@ -382,7 +419,10 @@ fun DayPlanScreen(
                     }
                 }
                 else -> {
-                    navController.navigate("attachments_library_screen") {
+                    navigationManager.navigateOrFallback(
+                        navController = navController,
+                        target = NavTarget.AttachmentsLibrary,
+                    ) {
                         launchSingleTop = true
                         restoreState = true
                     }

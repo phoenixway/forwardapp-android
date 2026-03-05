@@ -56,6 +56,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
+import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
+import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.domain.aichat.RoleFile
 import com.romankozak.forwardappmobile.domain.aichat.RoleFolder
 import com.romankozak.forwardappmobile.domain.aichat.RoleItem
@@ -72,6 +75,7 @@ private const val TAG = "AI_CHAT_DEBUG"
 @Composable
 fun ChatScreen(
     navController: NavController,
+    navigationManager: EnhancedNavigationManager? = null,
     viewModel: ChatViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -270,7 +274,10 @@ fun ChatScreen(
                                         DropdownMenuItem(
                                             text = { Text("Execute script") },
                                             onClick = {
-                                                navController.navigate("script_chooser_screen")
+                                                navigationManager.navigateOrFallback(
+                                                    navController = navController,
+                                                    target = NavTarget.ScriptChooser,
+                                                )
                                                 showMenu = false
                                             },
                                         )
@@ -301,7 +308,10 @@ fun ChatScreen(
                                     DropdownMenuItem(
                                         text = { Text("Settings") },
                                         onClick = {
-                                            navController.navigate("settings_screen")
+                                            navigationManager.navigateOrFallback(
+                                                navController = navController,
+                                                target = NavTarget.Settings,
+                                            )
                                             showMenu = false
                                         },
                                     )

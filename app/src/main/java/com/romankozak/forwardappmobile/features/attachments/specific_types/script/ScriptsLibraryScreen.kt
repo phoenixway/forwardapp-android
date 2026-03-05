@@ -39,6 +39,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
+import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
+import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import java.text.DateFormat
 import java.util.Date
 
@@ -46,6 +49,7 @@ import java.util.Date
 @Composable
 fun ScriptsLibraryScreen(
     navController: NavController,
+    navigationManager: EnhancedNavigationManager? = null,
     viewModel: ScriptsLibraryViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -74,7 +78,12 @@ fun ScriptsLibraryScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { navController.navigate("script_editor_screen") },
+                onClick = {
+                    navigationManager.navigateOrFallback(
+                        navController = navController,
+                        target = NavTarget.ScriptEditor(),
+                    )
+                },
                 icon = { Icon(Icons.Filled.Add, contentDescription = "Новий скрипт") },
                 text = { Text("Новий скрипт") },
             )
@@ -127,7 +136,12 @@ fun ScriptsLibraryScreen(
                     items(uiState.items, key = { it.id }) { item ->
                         ScriptCard(
                             item = item,
-                            onOpen = { navController.navigate("script_editor_screen?scriptId=${item.id}") },
+                            onOpen = {
+                                navigationManager.navigateOrFallback(
+                                    navController = navController,
+                                    target = NavTarget.ScriptEditor(scriptId = item.id),
+                                )
+                            },
                         )
                     }
                 }

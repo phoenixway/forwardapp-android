@@ -17,9 +17,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
-import com.romankozak.forwardappmobile.core.navigation.routes.navigateToDayManagement
-import com.romankozak.forwardappmobile.core.navigation.routes.navigateToStrategicManagement
+import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
+import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.ProjectHierarchyScreenScaffold
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
@@ -35,6 +35,7 @@ fun ProjectHierarchyScreen(
     navController: NavController,
     syncDataViewModel: SyncDataViewModel,
     viewModel: ContextHierarchyScreenViewModel = hiltViewModel(),
+    navigationManager: EnhancedNavigationManager? = null,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
@@ -49,24 +50,51 @@ fun ProjectHierarchyScreen(
             when (event) {
                 is ProjectUiEvent.NavigateToSyncScreenWithData -> {
                     syncDataViewModel.jsonString = event.json
-                    navController.navigate("sync_screen")
+                    navigationManager.navigateOrFallback(
+                        navController = navController,
+                        target = NavTarget.Sync,
+                    )
                 }
-                is ProjectUiEvent.NavigateToDetails -> navController.navigate("goal_detail_screen/${event.projectId}")
+                is ProjectUiEvent.NavigateToDetails ->
+                    navigationManager.navigateOrFallback(
+                        navController = navController,
+                        target = NavTarget.ContextDetail(contextId = event.projectId),
+                        recordInHistory = true,
+                    )
                 is ProjectUiEvent.ShowToast -> Toast.makeText(navController.context, event.message, Toast.LENGTH_LONG).show()
                 is ProjectUiEvent.NavigateToGlobalSearch -> {
                     val encoded = URLEncoder.encode(event.query, "UTF-8")
-                    navController.navigate("global_search_screen/$encoded")
-                }
-                is ProjectUiEvent.NavigateToSettings -> navController.navigate("settings_screen")
-                is ProjectUiEvent.NavigateToEditProjectScreen ->
-                    navController.navigate(
-                        "project_settings_screen?projectId=${event.projectId}",
+                    navigationManager.navigateOrFallback(
+                        navController = navController,
+                        target = NavTarget.GlobalSearch(query = encoded),
+                        recordInHistory = true,
                     )
-                is ProjectUiEvent.Navigate -> navController.navigate(NavTargetRouter.routeOf(event.target))
+                }
+                is ProjectUiEvent.NavigateToSettings ->
+                    navigationManager.navigateOrFallback(
+                        navController = navController,
+                        target = NavTarget.Settings,
+                    )
+                is ProjectUiEvent.NavigateToEditProjectScreen ->
+                    navigationManager.navigateOrFallback(
+                        navController = navController,
+                        target = NavTarget.ProjectSettings(projectId = event.projectId),
+                    )
+                is ProjectUiEvent.Navigate ->
+                    navigationManager.navigateOrFallback(
+                        navController = navController,
+                        target = event.target,
+                    )
                 is ProjectUiEvent.NavigateToDayPlan ->
-                    navController.navigateToDayManagement(event.date, event.startTab)
+                    navigationManager.navigateOrFallback(
+                        navController = navController,
+                        target = NavTarget.DayManagement(date = event.date, startTab = event.startTab),
+                    )
                 is ProjectUiEvent.NavigateToStrategicManagement ->
-                    navController.navigateToStrategicManagement()
+                    navigationManager.navigateOrFallback(
+                        navController = navController,
+                        target = NavTarget.StrategicManagement,
+                    )
                 is ProjectUiEvent.FocusSearchField -> {
                 }
                 is ProjectUiEvent.HideKeyboard -> {

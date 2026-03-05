@@ -28,6 +28,8 @@ import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
@@ -116,6 +118,7 @@ fun ProjectsScreen(
                 onAutoSave = { content, _ -> viewModel.onAutoSaveArtifact(content) },
                 onNavigateBack = { viewModel.onDismissArtifactEditor() },
                 navController = navController,
+                navigationManager = viewModel.enhancedNavigationManager,
                 viewModel = editorViewModel,
                 contentFocusRequester = focusRequester,
                 foldingPersistenceKey = "context_artifact:${artifact.id}",
@@ -138,6 +141,7 @@ fun ProjectsScreen(
                 onAutoSave = null,
                 onNavigateBack = { viewModel.onDismissNoteDocumentEditor() },
                 navController = navController,
+                navigationManager = viewModel.enhancedNavigationManager,
                 viewModel = editorViewModel,
                 contentFocusRequester = focusRequester, // Додано кому для відповідності INFO
                 startInEditMode = true,
@@ -194,6 +198,7 @@ private fun ProjectScaffold(
         }
 
     val holdMenuController = rememberHoldMenu2()
+    val navigationManager = viewModel.enhancedNavigationManager
 
     val targetBackgroundColor = MaterialTheme.colorScheme.surfaceContainer
     val animatedBackgroundColor by animateColorAsState(
@@ -317,7 +322,9 @@ private fun ProjectScaffold(
                                     },
                                 onInboxClick = {
                                     val today = System.currentTimeMillis()
-                                    navController.navigate("day_plan_screen/$today?startTab=INBOX")
+                                    navigationManager.navigate(
+                                        target = NavTarget.DayPlan(dayPlanId = today.toString(), startTab = "INBOX"),
+                                    )
                                 },
                                 onMarkAsComplete = { viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds) },
                                 onMarkAsIncomplete = { viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds) },
@@ -347,6 +354,7 @@ private fun ProjectScaffold(
                         onMenuExpandedChange = { menuExpanded = it },
                         project = project,
                         onShowDisplayPropertiesClick = viewModel::onShowDisplayPropertiesDialog,
+                        navigationManager = navigationManager,
                         holdMenuController = holdMenuController,
                     )
                 }
@@ -389,7 +397,9 @@ private fun ProjectScaffold(
                     },
                     onShowProjectProperties = {
                         menuExpanded = false
-                        navController.navigate("project_settings_screen?projectId=${project?.id}")
+                        navigationManager.navigate(
+                            target = NavTarget.ProjectSettings(projectId = project?.id),
+                        )
                     },
                     onSwitchView = viewModel::onProjectViewChange,
                     onLinkDirectionRequest = { itemId ->
@@ -435,6 +445,7 @@ private fun ProjectBottomBar(
     onMenuExpandedChange: (Boolean) -> Unit,
     project: Context?,
     onShowDisplayPropertiesClick: () -> Unit,
+    navigationManager: EnhancedNavigationManager,
     holdMenuController: com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller,
 ) {
     val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = false) }
@@ -456,7 +467,9 @@ private fun ProjectBottomBar(
             onReminderClick = viewModel::setReminderForOngoingActivity,
             onIndicatorClick = {
                 val today = System.currentTimeMillis()
-                navController.navigate("day_plan_screen/$today?startTab=TRACK")
+                navigationManager.navigate(
+                    target = NavTarget.DayPlan(dayPlanId = today.toString(), startTab = "TRACK"),
+                )
             },
             indicatorState = indicatorState,
         )
@@ -479,7 +492,7 @@ private fun ProjectBottomBar(
                 onAddNestedProjectClick = { showContextPicker = true },
                 onShowCurrentContextInHierarchyFocus = {
                     val contextIdToReveal = project?.id ?: return@ModernInputPanel
-                    navController.navigate("goal_lists_screen") {
+                    navigationManager.navigate(target = NavTarget.ContextHierarchy) {
                         launchSingleTop = true
                         restoreState = true
                     }
@@ -493,11 +506,13 @@ private fun ProjectBottomBar(
                 onBackClick = { viewModel.onBackPressed() },
                 onForwardClick = { viewModel.onForwardPressed() },
                 onShowProjectHierarchy = viewModel::onHomeClick,
-                onNavigateHome = { navController.navigate("command_deck_screen") },
+                onNavigateHome = { navigationManager.navigate(target = NavTarget.CommandDeck) },
                 onEditList = {
                     Log.d("EDIT_PROJECT_DEBUG", "LIST EDITING")
                     onMenuExpandedChange(false)
-                    navController.navigate("project_settings_screen?projectId=${project?.id}")
+                    navigationManager.navigate(
+                        target = NavTarget.ProjectSettings(projectId = project?.id),
+                    )
                 },
                 onShareList = { viewModel.onExportBacklogToMarkdown() },
                 onDeleteList = { viewModel.deleteCurrentProject() },

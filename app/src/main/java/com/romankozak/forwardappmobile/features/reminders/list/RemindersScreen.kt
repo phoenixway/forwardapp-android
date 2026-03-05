@@ -42,7 +42,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
+import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.ProjectItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.GoalItem
@@ -58,6 +59,7 @@ import com.romankozak.forwardappmobile.features.reminders.viewmodel.RemindersUiE
 @Composable
 fun RemindersScreen(
     navController: NavController,
+    navigationManager: EnhancedNavigationManager? = null,
     viewModel: ReminderViewModel = hiltViewModel(),
 ) {
     val reminders by viewModel.reminders.collectAsStateWithLifecycle()
@@ -71,7 +73,10 @@ fun RemindersScreen(
         viewModel.uiEvent.collect { event ->
             when (event) {
                 is RemindersUiEvent.Navigate -> {
-                    navController.navigate(NavTargetRouter.routeOf(event.target))
+                    navigationManager.navigateOrFallback(
+                        navController = navController,
+                        target = event.target,
+                    )
                 }
             }
         }
