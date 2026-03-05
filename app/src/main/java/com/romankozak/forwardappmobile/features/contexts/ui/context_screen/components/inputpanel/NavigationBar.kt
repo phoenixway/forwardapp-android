@@ -26,9 +26,6 @@ internal fun NavigationBar(
     ) {
         BackForwardButton(state, actions, contentColor)
 
-        IconButton(onClick = actions.onShowProjectHierarchy, modifier = Modifier.size(40.dp)) {
-            Icon(Icons.Outlined.AlternateEmail, null, tint = contentColor.copy(alpha = 0.7f))
-        }
         IconButton(onClick = actions.onNavigateHome, modifier = Modifier.size(34.dp)) {
             Text(
                 text = "⌬",
@@ -40,11 +37,11 @@ internal fun NavigationBar(
         IconButton(onClick = actions.onRecentsClick, modifier = Modifier.size(34.dp)) {
             Icon(Icons.Outlined.History, null, tint = contentColor.copy(alpha = 0.8f))
         }
-        IconButton(onClick = actions.onAddContextLink, modifier = Modifier.size(34.dp)) {
-            Icon(Icons.Outlined.Add, null, tint = contentColor.copy(alpha = 0.8f))
-        }
         IconButton(onClick = actions.onShowCurrentContextInHierarchyFocus, modifier = Modifier.size(34.dp)) {
             Icon(Icons.Outlined.MyLocation, null, tint = contentColor.copy(alpha = 0.8f))
+        }
+        IconButton(onClick = actions.onAddContextLink, modifier = Modifier.size(34.dp)) {
+            Icon(Icons.Outlined.Add, null, tint = contentColor.copy(alpha = 0.8f))
         }
 
         Spacer(Modifier.weight(1f))

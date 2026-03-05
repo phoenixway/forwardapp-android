@@ -85,6 +85,7 @@ fun UniversalEditorScreen(
     contentFocusRequester: FocusRequester,
     startInEditMode: Boolean = false,
     foldingPersistenceKey: String? = null,
+    useFirstLineAsTitle: Boolean = true,
 ) {
     var isToolbarVisible by remember { mutableStateOf(false) }
     val topBarContainerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -344,6 +345,7 @@ fun UniversalEditorScreen(
                 readOnly = readOnly,
                 isEditing = isEditing,
                 foldingPersistenceKey = foldingPersistenceKey,
+                useFirstLineAsTitle = useFirstLineAsTitle,
             )
             if (uiState.isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -435,6 +437,7 @@ private fun Editor(
     readOnly: Boolean,
     isEditing: Boolean,
     foldingPersistenceKey: String?,
+    useFirstLineAsTitle: Boolean,
 ) {
     val scrollState = rememberScrollState()
     var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
@@ -516,7 +519,7 @@ private fun Editor(
 
     val sourceLines = remember(content.text) { content.text.lines() }
     val firstLine = sourceLines.firstOrNull().orEmpty()
-    val showDocumentTitle = firstLine.isNotBlank()
+    val showDocumentTitle = useFirstLineAsTitle && firstLine.isNotBlank()
     val documentTitle = if (showDocumentTitle) NoteTitleExtractor.extract(content.text) else ""
     val readModeSource =
         if (showDocumentTitle) {

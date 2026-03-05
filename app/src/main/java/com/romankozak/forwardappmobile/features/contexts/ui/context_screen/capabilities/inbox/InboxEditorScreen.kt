@@ -32,5 +32,6 @@ fun InboxEditorScreen(
         navController = navController,
         contentFocusRequester = focusRequester,
         foldingPersistenceKey = inboxId?.let { "inbox:$it" },
+        useFirstLineAsTitle = false,
     )
 }

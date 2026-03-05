@@ -241,7 +241,13 @@ fun GlobalSearchScreen(
         },
         floatingActionButtonPosition = FabPosition.End,
     ) { paddingValues ->
-        Column(
+        val contentBottomPadding =
+            when (currentMode) {
+                OmniboxMode.DataSearch -> 150.dp
+                OmniboxMode.Command -> 116.dp
+                OmniboxMode.QuickCatchInbox, OmniboxMode.StartActivity -> 116.dp
+            }
+        Box(
             modifier =
                 Modifier
                     .fillMaxSize()
@@ -258,8 +264,95 @@ fun GlobalSearchScreen(
                     ).padding(paddingValues)
                     .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp),
         ) {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(bottom = contentBottomPadding),
+            ) {
+                when (currentMode) {
+                    OmniboxMode.DataSearch -> {
+                        when {
+                            uiState.query.isBlank() -> {
+                                SearchStartContent(
+                                    history = uiState.searchHistory,
+                                    onHistoryClick = viewModel::onSelectHistoryQuery,
+                                    onRemoveHistoryEntry = viewModel::removeSearchHistoryEntry,
+                                    onClearHistory = viewModel::clearSearchHistory,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+                            uiState.isLoading -> {
+                                LoadingContent(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer(scaleX = loadingScale, scaleY = loadingScale),
+                                )
+                            }
+                            filteredResults.isEmpty() -> {
+                                EmptySearchContent(
+                                    query = uiState.query,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+                            else -> {
+                                SearchResultsContent(
+                                    results = filteredResults,
+                                    query = uiState.query,
+                                    viewModel = viewModel,
+                                    obsidianVaultName = obsidianVaultName,
+                                    context = context,
+                                    listState = listState,
+                                    modifier =
+                                        Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer(alpha = resultsAlpha),
+                                )
+                            }
+                        }
+                    }
+                    OmniboxMode.Command -> {
+                        CommandResultsContent(
+                            results = uiState.commandResults,
+                            query = uiState.query,
+                            onCommandClick = viewModel::onCommandClick,
+                            accentColor = modePalette.iconTint,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                    OmniboxMode.QuickCatchInbox -> {
+                        QuickActionModeContent(
+                            title = "Quick catch to Inbox",
+                            subtitle = "Введи текст і натисни пошук/Enter. Запис одразу додасться в inbox.",
+                            buttonLabel = "Додати в Inbox",
+                            onSubmit = viewModel::onSubmitSearch,
+                            query = uiState.query,
+                            icon = Icons.Outlined.MoveToInbox,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                    OmniboxMode.StartActivity -> {
+                        QuickActionModeContent(
+                            title = "Start record new activity",
+                            subtitle = "Введи назву активності. Буде створено новий запис і відкрито Tracker.",
+                            buttonLabel = "Почати активність",
+                            onSubmit = viewModel::onSubmitSearch,
+                            query = uiState.query,
+                            icon = Icons.Default.History,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                }
+            }
+
             Surface(
-                modifier = Modifier.fillMaxWidth(),
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .imePadding(),
                 shape = RoundedCornerShape(18.dp),
                 color = modePalette.searchSurface,
                 tonalElevation = 1.dp,
@@ -390,85 +483,6 @@ fun GlobalSearchScreen(
                                 modifier = Modifier.weight(1f),
                             )
                         }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Box(modifier = Modifier.fillMaxSize()) {
-                when (currentMode) {
-                    OmniboxMode.DataSearch -> {
-                        when {
-                            uiState.query.isBlank() -> {
-                                SearchStartContent(
-                                    history = uiState.searchHistory,
-                                    onHistoryClick = viewModel::onSelectHistoryQuery,
-                                    onRemoveHistoryEntry = viewModel::removeSearchHistoryEntry,
-                                    onClearHistory = viewModel::clearSearchHistory,
-                                    modifier = Modifier.fillMaxSize(),
-                                )
-                            }
-                            uiState.isLoading -> {
-                                LoadingContent(
-                                    modifier =
-                                        Modifier
-                                            .fillMaxSize()
-                                            .graphicsLayer(scaleX = loadingScale, scaleY = loadingScale),
-                                )
-                            }
-                            filteredResults.isEmpty() -> {
-                                EmptySearchContent(
-                                    query = uiState.query,
-                                    modifier = Modifier.fillMaxSize(),
-                                )
-                            }
-                            else -> {
-                                SearchResultsContent(
-                                    results = filteredResults,
-                                    query = uiState.query,
-                                    viewModel = viewModel,
-                                    obsidianVaultName = obsidianVaultName,
-                                    context = context,
-                                    listState = listState,
-                                    modifier =
-                                        Modifier
-                                            .fillMaxSize()
-                                            .graphicsLayer(alpha = resultsAlpha),
-                                )
-                            }
-                        }
-                    }
-                    OmniboxMode.Command -> {
-                        CommandResultsContent(
-                            results = uiState.commandResults,
-                            query = uiState.query,
-                            onCommandClick = viewModel::onCommandClick,
-                            accentColor = modePalette.iconTint,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    }
-                    OmniboxMode.QuickCatchInbox -> {
-                        QuickActionModeContent(
-                            title = "Quick catch to Inbox",
-                            subtitle = "Введи текст і натисни пошук/Enter. Запис одразу додасться в inbox.",
-                            buttonLabel = "Додати в Inbox",
-                            onSubmit = viewModel::onSubmitSearch,
-                            query = uiState.query,
-                            icon = Icons.Outlined.MoveToInbox,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    }
-                    OmniboxMode.StartActivity -> {
-                        QuickActionModeContent(
-                            title = "Start record new activity",
-                            subtitle = "Введи назву активності. Буде створено новий запис і відкрито Tracker.",
-                            buttonLabel = "Почати активність",
-                            onSubmit = viewModel::onSubmitSearch,
-                            query = uiState.query,
-                            icon = Icons.Default.History,
-                            modifier = Modifier.fillMaxSize(),
-                        )
                     }
                 }
             }
