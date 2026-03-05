@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.globalsearch
 
+import android.content.res.Configuration
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
@@ -34,6 +35,8 @@ import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.outlined.MoveToInbox
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,9 +44,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -77,10 +85,26 @@ fun GlobalSearchScreen(
     val showScrollToTopButton by remember {
         derivedStateOf { listState.firstVisibleItemIndex > 5 }
     }
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val configuration = LocalConfiguration.current
     val filters = remember { GlobalSearchFilter.values().toList() }
     var selectedFilter by remember { mutableStateOf(GlobalSearchFilter.All) }
-    val filteredResults by remember(uiState.results, selectedFilter) {
-        derivedStateOf { uiState.results.filter { selectedFilter.matches(it) } }
+    var selectedSort by remember { mutableStateOf(GlobalSearchSort.Relevance) }
+    val filteredResults by remember(uiState.results, selectedFilter, selectedSort, uiState.query) {
+        derivedStateOf {
+            uiState.results
+                .filter { selectedFilter.matches(it) }
+                .let { results ->
+                    when (selectedSort) {
+                        GlobalSearchSort.Relevance -> results
+                        GlobalSearchSort.Type ->
+                            results.sortedBy { it.groupKey() }
+                        GlobalSearchSort.Alphabetical ->
+                            results.sortedBy { resultTitle(it).lowercase(Locale.getDefault()) }
+                    }
+                }
+        }
     }
 
     val loadingScale by animateFloatAsState(
@@ -98,6 +122,16 @@ fun GlobalSearchScreen(
     BackHandler {
         if (!navController.popBackStack()) {
             viewModel.enhancedNavigationManager.goBack()
+        }
+    }
+
+    LaunchedEffect(configuration.keyboard, configuration.hardKeyboardHidden) {
+        focusRequester.requestFocus()
+        val hasVisibleHardwareKeyboard =
+            configuration.keyboard != Configuration.KEYBOARD_NOKEYS &&
+                configuration.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO
+        if (!hasVisibleHardwareKeyboard) {
+            keyboardController?.show()
         }
     }
 
@@ -195,7 +229,10 @@ fun GlobalSearchScreen(
             OutlinedTextField(
                 value = uiState.query,
                 onValueChange = viewModel::onQueryChange,
-                modifier = Modifier.fillMaxWidth(),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester),
                 singleLine = true,
                 placeholder = { Text("Введіть запит для пошуку по контекстах і вкладеннях") },
                 trailingIcon = {
@@ -235,10 +272,34 @@ fun GlobalSearchScreen(
                 }
             }
 
+            Spacer(modifier = Modifier.height(8.dp))
+
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                GlobalSearchSort.entries.forEach { sort ->
+                    FilterChip(
+                        selected = selectedSort == sort,
+                        onClick = { selectedSort = sort },
+                        label = { Text(sort.label) },
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(12.dp))
 
             Box(modifier = Modifier.fillMaxSize()) {
                 when {
+                    uiState.query.isBlank() -> {
+                        SearchStartContent(
+                            history = uiState.searchHistory,
+                            onHistoryClick = viewModel::onSelectHistoryQuery,
+                            onRemoveHistoryEntry = viewModel::removeSearchHistoryEntry,
+                            onClearHistory = viewModel::clearSearchHistory,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
                     uiState.isLoading -> {
                         LoadingContent(
                             modifier =
@@ -256,6 +317,7 @@ fun GlobalSearchScreen(
                     else -> {
                         SearchResultsContent(
                             results = filteredResults,
+                            query = uiState.query,
                             viewModel = viewModel,
                             obsidianVaultName = obsidianVaultName,
                             context = context,
@@ -360,10 +422,90 @@ private fun EmptySearchContent(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SearchStartContent(
+    history: List<String>,
+    onHistoryClick: (String) -> Unit,
+    onRemoveHistoryEntry: (String) -> Unit,
+    onClearHistory: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.padding(horizontal = 4.dp).padding(top = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            tonalElevation = 1.dp,
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "Пошук по всьому застосунку",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "Контексти, цілі, активності, inbox, вкладення та посилання.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        if (history.isNotEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Історія пошуку",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                TextButton(onClick = onClearHistory) {
+                    Text("Очистити все")
+                }
+            }
+
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                history.forEach { query ->
+                    InputChip(
+                        selected = false,
+                        onClick = { onHistoryClick(query) },
+                        label = { Text(query) },
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { onRemoveHistoryEntry(query) },
+                                modifier = Modifier.size(20.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "Видалити з історії",
+                                    modifier = Modifier.size(12.dp),
+                                )
+                            }
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
 private fun SearchResultsContent(
     results: List<GlobalSearchResultItem>,
+    query: String,
     viewModel: GlobalSearchViewModel,
     obsidianVaultName: String,
     context: Context,
@@ -423,6 +565,7 @@ private fun SearchResultsContent(
                         is GlobalSearchResultItem.GoalItem -> {
                             UnifiedSearchResultCard(
                                 presentation = typePresentation,
+                                query = query,
                                 title = result.goal.text,
                                 subtitle = result.goal.description,
                                 supporting = result.pathSegments.joinToString(" → ").ifBlank { result.projectName },
@@ -465,6 +608,7 @@ private fun SearchResultsContent(
                                 }
                             UnifiedSearchResultCard(
                                 presentation = typePresentation,
+                                query = query,
                                 title = linkData.displayName ?: linkData.target,
                                 subtitle = linkData.target,
                                 supporting = "Контекст: ${searchResult.contextName}",
@@ -481,6 +625,7 @@ private fun SearchResultsContent(
                             val subproject = result.searchResult.subcontext
                             UnifiedSearchResultCard(
                                 presentation = typePresentation,
+                                query = query,
                                 title = subproject.name,
                                 subtitle = "Батьківський контекст: ${result.searchResult.parentContextName}",
                                 supporting = result.searchResult.pathSegments.joinToString(" → "),
@@ -500,6 +645,7 @@ private fun SearchResultsContent(
                             val project = result.searchResult.context
                             UnifiedSearchResultCard(
                                 presentation = typePresentation,
+                                query = query,
                                 title = project.name,
                                 subtitle = project.description,
                                 supporting = result.searchResult.pathSegments.joinToString(" → "),
@@ -519,6 +665,7 @@ private fun SearchResultsContent(
                         is GlobalSearchResultItem.ActivityItem -> {
                             UnifiedSearchResultCard(
                                 presentation = typePresentation,
+                                query = query,
                                 title = result.record.text,
                                 subtitle = result.record.noteText,
                                 supporting = "Трекер: ${formatter.format(Date(result.record.createdAt))}",
@@ -537,6 +684,7 @@ private fun SearchResultsContent(
                         is GlobalSearchResultItem.InboxItem -> {
                             UnifiedSearchResultCard(
                                 presentation = typePresentation,
+                                query = query,
                                 title = result.record.text,
                                 subtitle = null,
                                 supporting = "Inbox: ${formatter.format(Date(result.record.createdAt))}",
@@ -555,6 +703,7 @@ private fun SearchResultsContent(
                         is GlobalSearchResultItem.AttachmentItem -> {
                             UnifiedSearchResultCard(
                                 presentation = typePresentation,
+                                query = query,
                                 title = result.searchResult.title,
                                 subtitle = result.searchResult.subtitle,
                                 supporting = "Контекст: ${result.searchResult.contextName ?: "не вказано"}",
@@ -636,6 +785,7 @@ private fun SearchResultGroupHeader(
 @Composable
 private fun UnifiedSearchResultCard(
     presentation: ResultTypePresentation,
+    query: String,
     title: String,
     subtitle: String?,
     supporting: String?,
@@ -677,31 +827,31 @@ private fun UnifiedSearchResultCard(
             Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
+                HighlightedText(
                     text = title,
+                    query = query,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
                 )
                 if (!subtitle.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(
+                    HighlightedText(
                         text = subtitle,
+                        query = query,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 if (!supporting.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text(
+                    HighlightedText(
                         text = supporting,
+                        query = query,
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -722,6 +872,43 @@ private fun UnifiedSearchResultCard(
             }
         }
     }
+}
+
+@Composable
+private fun HighlightedText(
+    text: String,
+    query: String,
+    style: androidx.compose.ui.text.TextStyle,
+    color: androidx.compose.ui.graphics.Color,
+    maxLines: Int,
+) {
+    val annotated =
+        remember(text, query) {
+            if (query.isBlank()) return@remember buildAnnotatedString { append(text) }
+            val loweredText = text.lowercase(Locale.getDefault())
+            val loweredQuery = query.lowercase(Locale.getDefault())
+            val start = loweredText.indexOf(loweredQuery)
+            if (start < 0) {
+                buildAnnotatedString { append(text) }
+            } else {
+                val end = start + query.length
+                buildAnnotatedString {
+                    append(text.substring(0, start))
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                        append(text.substring(start, end))
+                    }
+                    append(text.substring(end))
+                }
+            }
+        }
+
+    Text(
+        text = annotated,
+        style = style,
+        color = color,
+        maxLines = maxLines,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 
 private enum class GlobalSearchFilter(val label: String) {
@@ -745,6 +932,23 @@ private enum class GlobalSearchFilter(val label: String) {
             Inbox -> item is GlobalSearchResultItem.InboxItem
         }
 }
+
+private enum class GlobalSearchSort(val label: String) {
+    Relevance("Релевантність"),
+    Type("Тип"),
+    Alphabetical("A-Z"),
+}
+
+private fun resultTitle(item: GlobalSearchResultItem): String =
+    when (item) {
+        is GlobalSearchResultItem.GoalItem -> item.goal.text
+        is GlobalSearchResultItem.LinkItem -> item.searchResult.link.linkData.displayName ?: item.searchResult.link.linkData.target
+        is GlobalSearchResultItem.SubcontextItem -> item.searchResult.subcontext.name
+        is GlobalSearchResultItem.ContextItem -> item.searchResult.context.name
+        is GlobalSearchResultItem.ActivityItem -> item.record.text
+        is GlobalSearchResultItem.InboxItem -> item.record.text
+        is GlobalSearchResultItem.AttachmentItem -> item.searchResult.title
+    }
 
 private data class ResultGroup(
     val key: String,

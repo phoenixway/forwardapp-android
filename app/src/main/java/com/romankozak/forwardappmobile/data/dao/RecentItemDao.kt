@@ -35,4 +35,10 @@ interface RecentItemDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAllSync(items: List<RecentItem>)
+
+    @Query("DELETE FROM recent_items WHERE id = :id")
+    suspend fun deleteById(id: String)
+
+    @Query("DELETE FROM recent_items WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<String>)
 }

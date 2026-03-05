@@ -151,6 +151,38 @@ class RecentItemsRepository
             recentItemDao.logAccess(item)
         }
 
+        suspend fun removeRecentItem(itemId: String) {
+            recentItemDao.deleteById(itemId)
+        }
+
+        suspend fun syncProjectRecentItemsWithContexts(allProjects: List<Context>) {
+            val contextsById = allProjects.associateBy { it.id }
+            val projectRecents = recentItemDao.getAllSync().filter { it.type == RecentItemType.PROJECT }
+
+            val staleItemIds =
+                projectRecents
+                    .filter { recent -> contextsById[recent.target] == null }
+                    .map { it.id }
+
+            if (staleItemIds.isNotEmpty()) {
+                recentItemDao.deleteByIds(staleItemIds)
+            }
+
+            val renamedItems =
+                projectRecents.mapNotNull { recent ->
+                    val context = contextsById[recent.target] ?: return@mapNotNull null
+                    if (recent.displayName != context.name) {
+                        recent.copy(displayName = context.name)
+                    } else {
+                        null
+                    }
+                }
+
+            if (renamedItems.isNotEmpty()) {
+                recentItemDao.insertAllSync(renamedItems)
+            }
+        }
+
         suspend fun updateRecentItemDisplayName(
             itemId: String,
             displayName: String,

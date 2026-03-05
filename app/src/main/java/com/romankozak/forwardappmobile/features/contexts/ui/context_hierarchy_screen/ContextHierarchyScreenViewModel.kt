@@ -204,6 +204,9 @@ class ContextHierarchyScreenViewModel
             viewModelScope.launch {
                 _allProjectsFlat.collect { projects ->
                     HierarchyDebugLogger.d { "_allProjectsFlat size=${projects.size}" }
+                    withContext(ioDispatcher) {
+                        recentItemsRepository.syncProjectRecentItemsWithContexts(projects)
+                    }
                 }
             }
             viewModelScope.launch {
@@ -790,7 +793,7 @@ class ContextHierarchyScreenViewModel
                     dialogUseCase.dismissDialog()
                 }
                 is ContextHierarchyScreenEvent.CloseSearch -> searchUseCase.onCloseSearch()
-                is ContextHierarchyScreenEvent.NavigateToContext -> navigationUseCase.onNavigateToProject(viewModelScope, event.projectId)
+                is ContextHierarchyScreenEvent.NavigateToContext -> onNavigateToProject(event.projectId)
                 is ContextHierarchyScreenEvent.CollapseAll -> navigationUseCase.onCollapseAll(viewModelScope)
                 is ContextHierarchyScreenEvent.UpdateLightTheme -> themingUseCase.updateLightTheme(viewModelScope, event.themeName)
                 is ContextHierarchyScreenEvent.UpdateDarkTheme -> themingUseCase.updateDarkTheme(viewModelScope, event.themeName)
@@ -853,6 +856,7 @@ class ContextHierarchyScreenViewModel
             viewModelScope.launch {
                 val project = _allProjectsFlat.value.find { it.id == projectId }
                 if (project != null) {
+                    recentItemsRepository.logProjectAccess(project)
                     enhancedNavigationManager?.navigateToProject(projectId, project.name)
                 }
             }
@@ -889,6 +893,9 @@ class ContextHierarchyScreenViewModel
                         if (project != null) {
                             searchUseCase.popToSubState(ProjectHierarchyScreenSubState.Hierarchy)
                             enhancedNavigationManager?.navigateToProject(item.target, project.name)
+                        } else {
+                            recentItemsRepository.removeRecentItem(item.id)
+                            _uiEventChannel.send(ProjectUiEvent.ShowToast("Контекст більше не існує"))
                         }
                     }
                     RecentItemType.NOTE -> {
@@ -1043,7 +1050,10 @@ class ContextHierarchyScreenViewModel
         }
 
         private fun onNavigateToProject(projectId: String) {
-            navigationUseCase.onNavigateToProject(viewModelScope, projectId)
+            viewModelScope.launch {
+                contextRepository.getContextById(projectId)?.let { recentItemsRepository.logProjectAccess(it) }
+                navigationUseCase.onNavigateToProject(viewModelScope, projectId)
+            }
         }
 
         private fun canPasteContextInto(targetContextId: String): Boolean {
