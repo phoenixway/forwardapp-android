@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
@@ -50,7 +50,16 @@ fun DirectionView(
     val lazyListState = rememberLazyListState()
     val reorderableState =
         rememberReorderableLazyListState(lazyListState) { from, to ->
-            onMove(from.index, to.index)
+            if (items.isEmpty()) return@rememberReorderableLazyListState
+            val safeFromIndex = from.index.coerceIn(0, items.lastIndex)
+            val safeToIndex = to.index.coerceIn(0, items.lastIndex)
+            val fromItem = items[safeFromIndex]
+            val toItem = items[safeToIndex]
+            val originalFrom = items.indexOfFirst { it.id == fromItem.id }
+            val originalTo = items.indexOfFirst { it.id == toItem.id }
+            if (originalFrom >= 0 && originalTo >= 0) {
+                onMove(originalFrom, originalTo)
+            }
         }
 
     var editingItem by remember { mutableStateOf<DirectionItemEntity?>(null) }
@@ -82,10 +91,11 @@ fun DirectionView(
         } else {
             LazyColumn(
                 state = lazyListState,
-                modifier = Modifier.fillMaxSize().padding(top = 16.dp),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(top = 16.dp, bottom = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                items(items, key = { it.id }) { item ->
+                itemsIndexed(items, key = { _, item -> item.id }) { _, item ->
                     ReorderableItem(reorderableState, key = item.id) { isDragging ->
                         DirectionItemCard(
                             item = item,
@@ -118,9 +128,6 @@ fun DirectionView(
                             onCut = { onCutItem(item) },
                         )
                     }
-                }
-                item {
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
         }
