@@ -518,18 +518,6 @@ fun MainScreenLayout(
                         CommandDeckTab.Dashboard -> {
                             DashboardContent(
                                 modifier = Modifier.fillMaxSize(),
-                                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
-                                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
-                                onNavigateToSettings = onNavigateToSettings,
-                                onNavigateToInbox = onNavigateToInbox,
-                                onNavigateToTracker = onNavigateToTracker,
-                                onNavigateToReminders = onNavigateToReminders,
-                                onNavigateToAiChat = onNavigateToAiChat,
-                                onNavigateToAiInsights = onNavigateToAiInsights,
-                                onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
-                                onNavigateToImportExport = onExportToFile,
-                                onNavigateToAttachments = onNavigateToAttachments,
-                                onNavigateToScripts = onNavigateToScripts,
                                 onOpenFocusedContext = { contextId ->
                                     navigationManager.navigateOrFallback(
                                         navController = navController,
@@ -537,8 +525,6 @@ fun MainScreenLayout(
                                         recordInHistory = true,
                                     )
                                 },
-                                dayPlanViewModel = dayPlanViewModel,
-                                recentViewModel = recentViewModel,
                             )
                         }
                         CommandDeckTab.Strategy -> {
