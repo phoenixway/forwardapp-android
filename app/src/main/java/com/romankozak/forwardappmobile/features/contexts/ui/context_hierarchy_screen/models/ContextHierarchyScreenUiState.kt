@@ -46,6 +46,8 @@ data class ProjectHierarchyScreenUiState(
     val syncStatus: WifiSyncStatus = WifiSyncStatus.Disabled,
     val showSearchDialog: Boolean = false,
     val searchResults: List<SearchResult> = emptyList(),
+    val searchResultFilter: SearchResultFilter = SearchResultFilter.All,
+    val searchResultSort: SearchResultSort = SearchResultSort.Relevance,
     val recordForReminderDialog: ActivityRecord? = null,
     val contextMarkerToEmojiMap: Map<String, String> = emptyMap(),
     val availableContextRoles: List<ContextRoleOption> = emptyList(),

@@ -25,7 +25,9 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenPlanningMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResultFilter
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResult
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResultSort
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.flattenHierarchyWithLevels
 import com.romankozak.forwardappmobile.ui.dialogs.UiContext
 import dagger.hilt.android.scopes.ViewModelScoped
@@ -165,13 +167,17 @@ class ProjectHierarchyScreenStateUseCase
                     hierarchyState,
                     searchUseCase.currentBreadcrumbs,
                     planningUseCase.planningMode,
-                ) { subStateStack, searchQuery, hierarchy, breadcrumbs, planningMode ->
+                    searchUseCase.searchResultFilter,
+                    searchUseCase.searchResultSort,
+                ) { subStateStack, searchQuery, hierarchy, breadcrumbs, planningMode, searchResultFilter, searchResultSort ->
                     CoreUiState(
                         subStateStack = subStateStack,
                         searchQuery = searchQuery,
                         projectHierarchy = hierarchy,
                         currentBreadcrumbs = breadcrumbs,
                         planningMode = planningMode,
+                        searchResultFilter = searchResultFilter,
+                        searchResultSort = searchResultSort,
                         flattenedHierarchy =
                             flattenHierarchyWithLevels(
                                 hierarchy.topLevelProjects,
@@ -269,6 +275,8 @@ class ProjectHierarchyScreenStateUseCase
                         syncStatus = syncState.syncStatus,
                         showSearchDialog = dialogState.showSearchDialog,
                         searchResults = searchResults,
+                        searchResultFilter = coreState.searchResultFilter,
+                        searchResultSort = coreState.searchResultSort,
                         recordForReminderDialog = recordForReminder,
                         contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                         availableContextRoles = availableContextRoles,
@@ -304,6 +312,8 @@ class ProjectHierarchyScreenStateUseCase
             val projectHierarchy: ContextHierarchyData,
             val currentBreadcrumbs: List<BreadcrumbItem>,
             val planningMode: PlanningMode,
+            val searchResultFilter: SearchResultFilter,
+            val searchResultSort: SearchResultSort,
             val flattenedHierarchy: List<FlatHierarchyItem>,
         )
 

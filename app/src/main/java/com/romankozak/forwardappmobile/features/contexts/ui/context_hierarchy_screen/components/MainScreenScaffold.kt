@@ -320,6 +320,8 @@ fun ProjectHierarchyScreenScaffold(
             onEvent(ContextHierarchyScreenEvent.SearchFromHistory(it))
             showSearchHistorySheet = false
         },
+        onRemoveHistoryEntry = { onEvent(ContextHierarchyScreenEvent.RemoveSearchHistoryEntry(it)) },
+        onClearAllHistory = { onEvent(ContextHierarchyScreenEvent.ClearSearchHistory) },
     )
 
     NewRecentListsSheet(

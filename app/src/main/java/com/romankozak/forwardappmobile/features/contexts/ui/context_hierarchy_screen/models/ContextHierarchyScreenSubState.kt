@@ -67,3 +67,15 @@ data class SearchResult(
     val matchedText: String? = null,
     val parentPath: List<String> = emptyList(),
 )
+
+enum class SearchResultFilter {
+    All,
+    WithPath,
+    RootOnly,
+}
+
+enum class SearchResultSort {
+    Relevance,
+    Alphabetical,
+    HierarchyDepth,
+}

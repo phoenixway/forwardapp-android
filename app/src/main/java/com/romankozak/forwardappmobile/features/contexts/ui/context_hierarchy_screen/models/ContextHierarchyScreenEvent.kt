@@ -15,6 +15,14 @@ sealed interface ContextHierarchyScreenEvent {
 
     data class SearchFromHistory(val query: String) : ContextHierarchyScreenEvent
 
+    data class RemoveSearchHistoryEntry(val query: String) : ContextHierarchyScreenEvent
+
+    data object ClearSearchHistory : ContextHierarchyScreenEvent
+
+    data class SearchFilterChanged(val filter: SearchResultFilter) : ContextHierarchyScreenEvent
+
+    data class SearchSortChanged(val sort: SearchResultSort) : ContextHierarchyScreenEvent
+
     data class GlobalSearchPerform(val query: String) : ContextHierarchyScreenEvent
 
     data class SearchResultClick(val projectId: String) : ContextHierarchyScreenEvent

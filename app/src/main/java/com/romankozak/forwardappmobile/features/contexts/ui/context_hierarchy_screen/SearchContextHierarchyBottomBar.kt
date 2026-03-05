@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen
 
+import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -35,6 +36,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
@@ -50,9 +53,18 @@ fun SearchProjectHierarchyBottomBar(
     onShowSearchHistory: () -> Unit,
 ) {
     val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val configuration = LocalConfiguration.current
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(configuration.keyboard, configuration.hardKeyboardHidden) {
         focusRequester.requestFocus()
+
+        val hasVisibleHardwareKeyboard =
+            configuration.keyboard != Configuration.KEYBOARD_NOKEYS &&
+                configuration.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO
+        if (!hasVisibleHardwareKeyboard) {
+            keyboardController?.show()
+        }
     }
 
     Surface(

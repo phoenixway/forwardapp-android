@@ -12,15 +12,22 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,7 +36,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.ExpandingProjectHierarchyBottomNav
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.ModernBottomNavButton
@@ -42,7 +48,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun ProjectHierarchyScreenContent(
     modifier: Modifier = Modifier,
@@ -87,12 +93,38 @@ fun ProjectHierarchyScreenContent(
                         ),
                 ),
     ) {
-        if (isSearchActive && searchQuery.isNotBlank()) {
-            SearchResultsView(
-                results = uiState.searchResults,
-                onRevealClick = { onEvent(ContextHierarchyScreenEvent.SearchResultClick(it)) },
-                onOpenClick = { onEvent(ContextHierarchyScreenEvent.ContextClick(it)) },
-            )
+        if (isSearchActive) {
+            when {
+                searchQuery.isBlank() -> {
+                    SearchStartState(
+                        history = uiState.searchHistory,
+                        onSuggestionClick = {
+                            onEvent(ContextHierarchyScreenEvent.SearchFromHistory(it))
+                        },
+                    )
+                }
+                !uiState.isReadyForFiltering -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+                else -> {
+                    SearchResultsView(
+                        results = uiState.searchResults,
+                        query = searchQuery,
+                        selectedFilter = uiState.searchResultFilter,
+                        selectedSort = uiState.searchResultSort,
+                        onFilterChange = { onEvent(ContextHierarchyScreenEvent.SearchFilterChanged(it)) },
+                        onSortChange = { onEvent(ContextHierarchyScreenEvent.SearchSortChanged(it)) },
+                        onRevealClick = { onEvent(ContextHierarchyScreenEvent.SearchResultClick(it)) },
+                        onOpenClick = { onEvent(ContextHierarchyScreenEvent.ContextClick(it)) },
+                        onPerformGlobalSearch = { onEvent(ContextHierarchyScreenEvent.GlobalSearchPerform(it)) },
+                    )
+                }
+            }
         } else {
             val showBreadcrumbs =
                 remember(uiState.currentBreadcrumbs) {
@@ -188,6 +220,74 @@ fun ProjectHierarchyScreenContent(
                     onDeleteProject = { onEvent(ContextHierarchyScreenEvent.DeleteRequest(it)) },
                     onEditProject = { onEvent(ContextHierarchyScreenEvent.EditRequest(it)) },
                 )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SearchStartState(
+    history: List<String>,
+    onSuggestionClick: (String) -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            tonalElevation = 1.dp,
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                androidx.compose.material3.Icon(
+                    imageVector = Icons.Outlined.Search,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "Start typing to search contexts",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "You can search by context name, tag, or a part of text.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f))
+
+        if (history.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                androidx.compose.material3.Icon(
+                    imageVector = Icons.Outlined.History,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "Recent searches",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    history.take(8).forEach { query ->
+                        FilterChip(
+                            selected = false,
+                            onClick = { onSuggestionClick(query) },
+                            label = { Text(query) },
+                        )
+                    }
+                }
             }
         }
     }

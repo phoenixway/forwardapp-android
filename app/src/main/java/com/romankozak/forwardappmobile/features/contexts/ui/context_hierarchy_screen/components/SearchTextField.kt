@@ -98,7 +98,7 @@ fun SearchTextField(
                 Box(modifier = Modifier.weight(1f)) {
                     if (searchQuery.text.isEmpty()) {
                         Text(
-                            text = "Search contexts...",
+                            text = "Search by name, tag, or text...",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                             modifier = Modifier.semantics { contentDescription = "Search placeholder" },

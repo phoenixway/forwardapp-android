@@ -13,6 +13,8 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.MainSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResultFilter
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResultSort
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.navigation.RevealResult
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.buildPathToProject
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.findAncestorsRecursive
@@ -72,6 +74,12 @@ class SearchUseCase
         private val _isSearchActive = MutableStateFlow(false)
         val isSearchActive = _isSearchActive.asStateFlow()
 
+        private val _searchResultFilter = MutableStateFlow(SearchResultFilter.All)
+        val searchResultFilter = _searchResultFilter.asStateFlow()
+
+        private val _searchResultSort = MutableStateFlow(SearchResultSort.Relevance)
+        val searchResultSort = _searchResultSort.asStateFlow()
+
         val highlightedProjectId = MutableStateFlow<String?>(null)
         val currentBreadcrumbs = MutableStateFlow<List<BreadcrumbItem>>(emptyList())
         val focusedProjectId = MutableStateFlow<String?>(null)
@@ -126,6 +134,25 @@ class SearchUseCase
             pushSubState(ProjectHierarchyScreenSubState.LocalSearch(query))
             onSearchQueryChanged(TextFieldValue(query, TextRange(query.length)))
             onToggleSearch(true)
+        }
+
+        fun removeSearchHistoryEntry(query: String) {
+            if (query.isBlank()) return
+            val currentHistory = savedStateHandle.get<List<String>>(SEARCH_HISTORY_KEY) ?: emptyList()
+            savedStateHandle[SEARCH_HISTORY_KEY] =
+                currentHistory.filterNot { it.equals(query, ignoreCase = true) }
+        }
+
+        fun clearSearchHistory() {
+            savedStateHandle[SEARCH_HISTORY_KEY] = emptyList<String>()
+        }
+
+        fun onSearchFilterChanged(filter: SearchResultFilter) {
+            _searchResultFilter.value = filter
+        }
+
+        fun onSearchSortChanged(sort: SearchResultSort) {
+            _searchResultSort.value = sort
         }
 
         fun clearAllSearchState() {

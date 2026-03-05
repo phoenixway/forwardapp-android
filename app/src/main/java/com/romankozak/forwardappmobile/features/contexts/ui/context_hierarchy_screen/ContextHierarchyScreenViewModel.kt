@@ -370,6 +370,10 @@ class ContextHierarchyScreenViewModel
             when (event) {
                 is ContextHierarchyScreenEvent.SearchQueryChanged -> searchUseCase.onSearchQueryChanged(event.query)
                 is ContextHierarchyScreenEvent.SearchFromHistory -> searchUseCase.onSearchQueryFromHistory(event.query)
+                is ContextHierarchyScreenEvent.RemoveSearchHistoryEntry -> searchUseCase.removeSearchHistoryEntry(event.query)
+                is ContextHierarchyScreenEvent.ClearSearchHistory -> searchUseCase.clearSearchHistory()
+                is ContextHierarchyScreenEvent.SearchFilterChanged -> searchUseCase.onSearchFilterChanged(event.filter)
+                is ContextHierarchyScreenEvent.SearchSortChanged -> searchUseCase.onSearchSortChanged(event.sort)
                 is ContextHierarchyScreenEvent.GlobalSearchPerform -> searchUseCase.onPerformGlobalSearch(event.query)
                 is ContextHierarchyScreenEvent.SearchResultClick ->
                     searchUseCase.onSearchResultClick(
