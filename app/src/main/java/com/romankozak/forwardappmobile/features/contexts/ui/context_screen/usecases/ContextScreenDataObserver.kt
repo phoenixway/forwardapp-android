@@ -57,7 +57,7 @@ class ContextScreenDataObserver(
                     contextRepository.getAttachmentsForContextStream(contextId),
                     listItemRepository.getAllEntitiesAsFlow(),
                     reminderRepository.getRemindersForEntityFlow(contextId),
-                    recentItemsRepository.getRecentItemsForContextFlow(contextId),
+                    recentItemsRepository.getRecentItems(100),
                     noteRepository.getNotesForContext(contextId),
                     goalRepository.getGoalsByContextIdFlow(contextId),
                     contextRepository.getSubprojectsByParentIdFlow(contextId),

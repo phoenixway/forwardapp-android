@@ -439,18 +439,6 @@ private fun MoreBottomSheetContent(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .clickable(onClick = onNavigateToProjectSearch)
-                        .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(Icons.Outlined.Search, contentDescription = "Search everywhere")
-                Spacer(modifier = Modifier.width(16.dp))
-                Text("Search everywhere")
-            }
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
                         .clickable(onClick = onNavigateToProjectHierarchy)
                         .padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
