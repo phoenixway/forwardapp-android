@@ -8,6 +8,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
@@ -15,15 +16,15 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Description
@@ -34,6 +35,8 @@ import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material.icons.filled.Sort
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.MoveToInbox
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -70,8 +73,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private const val TAG = "SEARCH_DEBUG"
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun GlobalSearchScreen(
@@ -90,14 +91,15 @@ fun GlobalSearchScreen(
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     val configuration = LocalConfiguration.current
-    val filters = remember { GlobalSearchFilter.values().toList() }
-    var selectedFilter by remember { mutableStateOf(GlobalSearchFilter.All) }
+    val typeOptions = remember { GlobalSearchType.entries }
+    var selectedTypes by remember { mutableStateOf(typeOptions.toSet()) }
     var selectedSort by remember { mutableStateOf(GlobalSearchSort.Relevance) }
-    var showSortMenu by remember { mutableStateOf(false) }
-    val filteredResults by remember(uiState.results, selectedFilter, selectedSort, uiState.query) {
+    var showTypeSheet by remember { mutableStateOf(false) }
+    var showSortSheet by remember { mutableStateOf(false) }
+    val filteredResults by remember(uiState.results, selectedTypes, selectedSort, uiState.query) {
         derivedStateOf {
             uiState.results
-                .filter { selectedFilter.matches(it) }
+                .filter { result -> selectedTypes.any { it.matches(result) } }
                 .let { results ->
                     when (selectedSort) {
                         GlobalSearchSort.Relevance -> results
@@ -136,6 +138,29 @@ fun GlobalSearchScreen(
         if (!hasVisibleHardwareKeyboard) {
             keyboardController?.show()
         }
+    }
+
+    if (showTypeSheet) {
+        TypeBottomSheet(
+            options = typeOptions,
+            selected = selectedTypes,
+            onApply = {
+                selectedTypes = if (it.isEmpty()) typeOptions.toSet() else it
+                showTypeSheet = false
+            },
+            onDismiss = { showTypeSheet = false },
+        )
+    }
+
+    if (showSortSheet) {
+        SortBottomSheet(
+            selectedSort = selectedSort,
+            onSortSelected = {
+                selectedSort = it
+                showSortSheet = false
+            },
+            onDismiss = { showSortSheet = false },
+        )
     }
 
     Scaffold(
@@ -229,83 +254,88 @@ fun GlobalSearchScreen(
                     ).padding(paddingValues)
                     .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
-            OutlinedTextField(
-                value = uiState.query,
-                onValueChange = viewModel::onQueryChange,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .focusRequester(focusRequester),
-                singleLine = true,
-                placeholder = { Text("Введіть запит для пошуку по контекстах і вкладеннях") },
-                trailingIcon = {
-                    Row {
-                        if (uiState.query.isNotBlank()) {
-                            IconButton(onClick = { viewModel.onQueryChange("") }) {
-                                Icon(
-                                    imageVector = Icons.Default.Clear,
-                                    contentDescription = "Очистити запит",
-                                )
-                            }
-                        }
-                        IconButton(onClick = viewModel::onSubmitSearch) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                tonalElevation = 1.dp,
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                    TextField(
+                        value = uiState.query,
+                        onValueChange = viewModel::onQueryChange,
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 56.dp)
+                                .focusRequester(focusRequester),
+                        singleLine = true,
+                        placeholder = { Text("Пошук по контекстах, цілях, активностях і вкладеннях") },
+                        leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Search,
-                                contentDescription = "Запустити пошук",
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                        }
-                    }
-                },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { viewModel.onSubmitSearch() }),
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                LazyRow(
-                    modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    items(filters) { filter ->
-                        FilterChip(
-                            selected = selectedFilter == filter,
-                            onClick = { selectedFilter = filter },
-                            label = { Text(filter.label) },
-                            modifier = Modifier.heightIn(min = 32.dp),
-                        )
-                    }
-                }
-
-                Box {
-                    AssistChip(
-                        onClick = { showSortMenu = true },
-                        label = { Text("Сорт: ${selectedSort.label}") },
-                        modifier = Modifier.heightIn(min = 32.dp),
+                        },
+                        trailingIcon = {
+                            Row {
+                                if (uiState.query.isNotBlank()) {
+                                    IconButton(onClick = { viewModel.onQueryChange("") }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Clear,
+                                            contentDescription = "Очистити запит",
+                                        )
+                                    }
+                                }
+                                IconButton(onClick = viewModel::onSubmitSearch) {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = "Запустити пошук",
+                                    )
+                                }
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { viewModel.onSubmitSearch() }),
+                        shape = RoundedCornerShape(14.dp),
+                        colors =
+                            TextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                                unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                            ),
                     )
-                    DropdownMenu(
-                        expanded = showSortMenu,
-                        onDismissRequest = { showSortMenu = false },
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        GlobalSearchSort.entries.forEach { sort ->
-                            DropdownMenuItem(
-                                text = { Text(sort.label) },
-                                onClick = {
-                                    selectedSort = sort
-                                    showSortMenu = false
-                                },
-                            )
-                        }
+                        FilterSelectorChip(
+                            icon = Icons.Default.Tune,
+                            label = formatTypeChipLabel(selectedTypes, typeOptions.toSet()),
+                            isActive = selectedTypes.size != typeOptions.size,
+                            onClick = { showTypeSheet = true },
+                            modifier = Modifier.weight(1f),
+                        )
+
+                        FilterSelectorChip(
+                            icon = Icons.Default.Sort,
+                            label = selectedSort.label,
+                            isActive = selectedSort != GlobalSearchSort.Relevance,
+                            onClick = { showSortSheet = true },
+                            modifier = Modifier.weight(1f),
+                        )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Box(modifier = Modifier.fillMaxSize()) {
                 when {
@@ -514,6 +544,187 @@ private fun SearchStartContent(
                         },
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FilterSelectorChip(
+    icon: ImageVector,
+    label: String,
+    isActive: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val containerColor =
+        if (isActive) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant
+        }
+    val contentColor =
+        if (isActive) {
+            MaterialTheme.colorScheme.onPrimaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        }
+
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(999.dp),
+        color = containerColor,
+        modifier = modifier.height(38.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(16.dp),
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                color = contentColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                imageVector = Icons.Default.ArrowDropDown,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TypeBottomSheet(
+    options: List<GlobalSearchType>,
+    selected: Set<GlobalSearchType>,
+    onApply: (Set<GlobalSearchType>) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var draft by remember(selected) { mutableStateOf(selected) }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(bottom = 16.dp),
+        ) {
+            Text(
+                text = "Типи результатів",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            )
+            HorizontalDivider()
+
+            ListItem(
+                headlineContent = { Text("Усі типи") },
+                leadingContent = {
+                    Icon(Icons.Default.Search, contentDescription = null)
+                },
+                trailingContent = {
+                    if (draft.size == options.size) {
+                        Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { draft = options.toSet() },
+            )
+            options.forEach { type ->
+                ListItem(
+                    headlineContent = { Text(type.label) },
+                    leadingContent = { Icon(type.icon, contentDescription = null) },
+                    trailingContent = {
+                        if (type in draft) {
+                            Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        }
+                    },
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp)
+                            .clickable {
+                                draft =
+                                    if (type in draft) {
+                                        draft - type
+                                    } else {
+                                        draft + type
+                                    }
+                            },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f),
+                ) { Text("Скасувати") }
+                Button(
+                    onClick = { onApply(draft) },
+                    modifier = Modifier.weight(1f),
+                ) { Text("Застосувати") }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SortBottomSheet(
+    selectedSort: GlobalSearchSort,
+    onSortSelected: (GlobalSearchSort) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(bottom = 16.dp),
+        ) {
+            Text(
+                text = "Сортування",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            )
+            HorizontalDivider()
+
+            GlobalSearchSort.entries.forEach { sort ->
+                ListItem(
+                    headlineContent = { Text(sort.label) },
+                    leadingContent = { Icon(Icons.Default.Sort, contentDescription = null) },
+                    trailingContent = {
+                        if (selectedSort == sort) {
+                            Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().clickable { onSortSelected(sort) },
+                )
             }
         }
     }
@@ -929,19 +1140,20 @@ private fun HighlightedText(
     )
 }
 
-private enum class GlobalSearchFilter(val label: String) {
-    All("Всі"),
-    Attachments("Вкладення"),
-    Contexts("Контексти"),
-    Goals("Цілі"),
-    Links("Посилання"),
-    Activity("Активності"),
-    Inbox("Inbox"),
+private enum class GlobalSearchType(
+    val label: String,
+    val icon: ImageVector,
+) {
+    Attachments("Вкладення", Icons.Default.Description),
+    Contexts("Контексти", Icons.Default.AccountTree),
+    Goals("Цілі", Icons.Default.Flag),
+    Links("Посилання", Icons.Default.Link),
+    Activity("Активності", Icons.Default.History),
+    Inbox("Inbox", Icons.Outlined.MoveToInbox),
     ;
 
     fun matches(item: GlobalSearchResultItem): Boolean =
         when (this) {
-            All -> true
             Attachments -> item is GlobalSearchResultItem.AttachmentItem
             Contexts -> item is GlobalSearchResultItem.ContextItem || item is GlobalSearchResultItem.SubcontextItem
             Goals -> item is GlobalSearchResultItem.GoalItem
@@ -949,6 +1161,15 @@ private enum class GlobalSearchFilter(val label: String) {
             Activity -> item is GlobalSearchResultItem.ActivityItem
             Inbox -> item is GlobalSearchResultItem.InboxItem
         }
+}
+
+private fun formatTypeChipLabel(
+    selected: Set<GlobalSearchType>,
+    all: Set<GlobalSearchType>,
+): String {
+    if (selected.size == all.size) return "Типи: Усі"
+    if (selected.size == 1) return "Типи: ${selected.first().label}"
+    return "Типи: ${selected.size}"
 }
 
 private enum class GlobalSearchSort(val label: String) {
