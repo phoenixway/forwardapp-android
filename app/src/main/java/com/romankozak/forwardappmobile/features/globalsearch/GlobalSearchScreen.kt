@@ -51,6 +51,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -100,8 +103,12 @@ fun GlobalSearchScreen(
     var showTypeSheet by remember { mutableStateOf(false) }
     var showSortSheet by remember { mutableStateOf(false) }
     var showModeMenu by remember { mutableStateOf(false) }
+    var selectedCommandIndex by remember { mutableStateOf<Int?>(null) }
+    var selectedDataIndex by remember { mutableStateOf<Int?>(null) }
+    var selectionArea by remember { mutableStateOf(OmniboxSelectionArea.None) }
     val currentMode = uiState.mode
     val modePalette = rememberModePalette(currentMode)
+    val submitCommandIndex = selectedCommandIndex.takeIf { selectionArea == OmniboxSelectionArea.Command }
     val filteredResults by remember(uiState.results, selectedTypes, selectedSort, uiState.query) {
         derivedStateOf {
             uiState.results
@@ -129,6 +136,86 @@ fun GlobalSearchScreen(
         animationSpec = tween(durationMillis = 400, easing = EaseOutCubic),
         label = "results_alpha",
     )
+    val selectedDataResultUniqueId =
+        remember(filteredResults, selectedDataIndex) {
+            selectedDataIndex?.let { index -> filteredResults.getOrNull(index)?.uniqueId }
+        }
+
+    LaunchedEffect(currentMode, uiState.commandResults, uiState.hybridCommandResults, filteredResults) {
+        when (currentMode) {
+            OmniboxMode.Command -> {
+                val size = uiState.commandResults.size
+                selectedCommandIndex = if (size > 0) 0 else null
+                selectedDataIndex = null
+                selectionArea = if (size > 0) OmniboxSelectionArea.Command else OmniboxSelectionArea.None
+            }
+            OmniboxMode.DataSearch -> {
+                val commandSize = uiState.hybridCommandResults.size
+                val dataSize = filteredResults.size
+                when {
+                    commandSize > 0 -> {
+                        selectedCommandIndex = 0
+                        selectedDataIndex = if (dataSize > 0) 0 else null
+                        selectionArea = OmniboxSelectionArea.Command
+                    }
+                    dataSize > 0 -> {
+                        selectedCommandIndex = null
+                        selectedDataIndex = 0
+                        selectionArea = OmniboxSelectionArea.Data
+                    }
+                    else -> {
+                        selectedCommandIndex = null
+                        selectedDataIndex = null
+                        selectionArea = OmniboxSelectionArea.None
+                    }
+                }
+            }
+            else -> {
+                selectedCommandIndex = null
+                selectedDataIndex = null
+                selectionArea = OmniboxSelectionArea.None
+            }
+        }
+    }
+
+    fun openDataResultPrimary(result: GlobalSearchResultItem) {
+        when (result) {
+            is GlobalSearchResultItem.GoalItem -> {
+                viewModel.onDataResultOpened(result.uniqueId)
+                viewModel.navigateToProjectForResult(result.backlogItem.contextId, result.projectName)
+            }
+            is GlobalSearchResultItem.LinkItem -> {
+                viewModel.onDataResultOpened(result.uniqueId)
+                viewModel.navigateToProjectForResult(result.searchResult.contextId, result.searchResult.contextName)
+            }
+            is GlobalSearchResultItem.SubcontextItem -> {
+                viewModel.onDataResultOpened(result.uniqueId)
+                viewModel.navigateToProjectForResult(result.searchResult.subcontext.id, result.searchResult.subcontext.name)
+            }
+            is GlobalSearchResultItem.ContextItem -> {
+                viewModel.onDataResultOpened(result.uniqueId)
+                viewModel.navigateToProjectForResult(result.searchResult.context.id, result.searchResult.context.name)
+            }
+            is GlobalSearchResultItem.ActivityItem -> {
+                val contextId = result.record.contextId
+                if (!contextId.isNullOrBlank()) {
+                    viewModel.onDataResultOpened(result.uniqueId)
+                    viewModel.navigateToProjectForResult(contextId, null)
+                }
+            }
+            is GlobalSearchResultItem.InboxItem -> {
+                viewModel.onDataResultOpened(result.uniqueId)
+                viewModel.navigateToProjectForResult(result.record.contextId, null)
+            }
+            is GlobalSearchResultItem.AttachmentItem -> {
+                val contextId = result.searchResult.ownerContextId
+                if (!contextId.isNullOrBlank()) {
+                    viewModel.onDataResultOpened(result.uniqueId)
+                    viewModel.navigateToProjectForResult(contextId, result.searchResult.contextName)
+                }
+            }
+        }
+    }
 
     BackHandler {
         if (!navController.popBackStack()) {
@@ -283,7 +370,7 @@ fun GlobalSearchScreen(
                                 )
                             }
                             uiState.isLoading -> {
-                                LoadingContent(
+                                DataSearchLoadingContent(
                                     modifier =
                                         Modifier
                                             .fillMaxSize()
@@ -291,24 +378,45 @@ fun GlobalSearchScreen(
                                 )
                             }
                             filteredResults.isEmpty() -> {
-                                EmptySearchContent(
+                                EmptyDataSearchContent(
                                     query = uiState.query,
+                                    commandResults = uiState.hybridCommandResults,
+                                    selectedCommandIndex = selectedCommandIndex,
+                                    accentColor = modePalette.iconTint,
+                                    onCommandClick = viewModel::onCommandClick,
+                                    onQuickCatch = viewModel::quickCatchCurrentQuery,
+                                    onStartActivity = viewModel::startActivityFromCurrentQuery,
+                                    onRunBestCommand = viewModel::runBestCommandForCurrentQuery,
                                     modifier = Modifier.fillMaxSize(),
                                 )
                             }
                             else -> {
-                                SearchResultsContent(
-                                    results = filteredResults,
-                                    query = uiState.query,
-                                    viewModel = viewModel,
-                                    obsidianVaultName = obsidianVaultName,
-                                    context = context,
-                                    listState = listState,
-                                    modifier =
-                                        Modifier
-                                            .fillMaxSize()
-                                            .graphicsLayer(alpha = resultsAlpha),
-                                )
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                if (uiState.hybridCommandResults.isNotEmpty()) {
+                                    HybridCommandSection(
+                                        results = uiState.hybridCommandResults,
+                                        selectedCommandIndex = selectedCommandIndex.takeIf { selectionArea == OmniboxSelectionArea.Command },
+                                        accentColor = modePalette.iconTint,
+                                        onCommandClick = viewModel::onCommandClick,
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    }
+                                    SearchResultsContent(
+                                        results = filteredResults,
+                                        query = uiState.query,
+                                        viewModel = viewModel,
+                                        obsidianVaultName = obsidianVaultName,
+                                        context = context,
+                                        listState = listState,
+                                        selectedResultUniqueId = selectedDataResultUniqueId,
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .weight(1f)
+                                                .graphicsLayer(alpha = resultsAlpha),
+                                    )
+                                }
                             }
                         }
                     }
@@ -316,6 +424,8 @@ fun GlobalSearchScreen(
                         CommandResultsContent(
                             results = uiState.commandResults,
                             query = uiState.query,
+                            recentCommands = uiState.recentCommands,
+                            selectedCommandIndex = selectedCommandIndex,
                             onCommandClick = viewModel::onCommandClick,
                             accentColor = modePalette.iconTint,
                             modifier = Modifier.fillMaxSize(),
@@ -358,6 +468,12 @@ fun GlobalSearchScreen(
                 tonalElevation = 1.dp,
             ) {
                 Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                    ModePill(
+                        mode = currentMode,
+                        palette = modePalette,
+                        modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+                    )
+
                     TextField(
                         value = uiState.query,
                         onValueChange = viewModel::onQueryChange,
@@ -365,7 +481,130 @@ fun GlobalSearchScreen(
                             Modifier
                                 .fillMaxWidth()
                                 .heightIn(min = 56.dp)
-                                .focusRequester(focusRequester),
+                                .focusRequester(focusRequester)
+                                .onPreviewKeyEvent { keyEvent ->
+                                    if (keyEvent.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                                    when (keyEvent.key) {
+                                        Key.DirectionDown -> {
+                                            when (currentMode) {
+                                                OmniboxMode.Command -> {
+                                                    val commands = uiState.commandResults
+                                                    if (commands.isEmpty()) return@onPreviewKeyEvent false
+                                                    val current = selectedCommandIndex ?: -1
+                                                    selectedCommandIndex = (current + 1).coerceAtMost(commands.lastIndex)
+                                                    true
+                                                }
+                                                OmniboxMode.DataSearch -> {
+                                                    val commandSize = uiState.hybridCommandResults.size
+                                                    val dataSize = filteredResults.size
+                                                    if (commandSize == 0 && dataSize == 0) return@onPreviewKeyEvent false
+                                                    when (selectionArea) {
+                                                        OmniboxSelectionArea.Command -> {
+                                                            val current = selectedCommandIndex ?: 0
+                                                            if (current < commandSize - 1) {
+                                                                selectedCommandIndex = current + 1
+                                                            } else if (dataSize > 0) {
+                                                                selectionArea = OmniboxSelectionArea.Data
+                                                                selectedDataIndex = 0
+                                                            }
+                                                        }
+                                                        OmniboxSelectionArea.Data -> {
+                                                            val current = selectedDataIndex ?: -1
+                                                            selectedDataIndex = (current + 1).coerceAtMost(dataSize - 1)
+                                                        }
+                                                        OmniboxSelectionArea.None -> {
+                                                            if (commandSize > 0) {
+                                                                selectionArea = OmniboxSelectionArea.Command
+                                                                selectedCommandIndex = 0
+                                                            } else if (dataSize > 0) {
+                                                                selectionArea = OmniboxSelectionArea.Data
+                                                                selectedDataIndex = 0
+                                                            }
+                                                        }
+                                                    }
+                                                    true
+                                                }
+                                                else -> false
+                                            }
+                                        }
+                                        Key.DirectionUp -> {
+                                            when (currentMode) {
+                                                OmniboxMode.Command -> {
+                                                    val commands = uiState.commandResults
+                                                    if (commands.isEmpty()) return@onPreviewKeyEvent false
+                                                    val current = selectedCommandIndex ?: commands.size
+                                                    selectedCommandIndex = (current - 1).coerceAtLeast(0)
+                                                    true
+                                                }
+                                                OmniboxMode.DataSearch -> {
+                                                    val commandSize = uiState.hybridCommandResults.size
+                                                    val dataSize = filteredResults.size
+                                                    if (commandSize == 0 && dataSize == 0) return@onPreviewKeyEvent false
+                                                    when (selectionArea) {
+                                                        OmniboxSelectionArea.Command -> {
+                                                            val current = selectedCommandIndex ?: commandSize
+                                                            selectedCommandIndex = (current - 1).coerceAtLeast(0)
+                                                        }
+                                                        OmniboxSelectionArea.Data -> {
+                                                            val current = selectedDataIndex ?: dataSize
+                                                            if (current > 0) {
+                                                                selectedDataIndex = current - 1
+                                                            } else if (commandSize > 0) {
+                                                                selectionArea = OmniboxSelectionArea.Command
+                                                                selectedCommandIndex = commandSize - 1
+                                                            }
+                                                        }
+                                                        OmniboxSelectionArea.None -> {
+                                                            if (dataSize > 0) {
+                                                                selectionArea = OmniboxSelectionArea.Data
+                                                                selectedDataIndex = dataSize - 1
+                                                            } else if (commandSize > 0) {
+                                                                selectionArea = OmniboxSelectionArea.Command
+                                                                selectedCommandIndex = commandSize - 1
+                                                            }
+                                                        }
+                                                    }
+                                                    true
+                                                }
+                                                else -> false
+                                            }
+                                        }
+                                        Key.Enter, Key.NumPadEnter -> {
+                                            when (currentMode) {
+                                                OmniboxMode.Command -> {
+                                                    viewModel.onSubmitSearch(selectedCommandIndex)
+                                                    true
+                                                }
+                                                OmniboxMode.DataSearch -> {
+                                                    when (selectionArea) {
+                                                        OmniboxSelectionArea.Command -> {
+                                                            viewModel.onSubmitSearch(selectedCommandIndex)
+                                                            true
+                                                        }
+                                                        OmniboxSelectionArea.Data -> {
+                                                            val result = selectedDataIndex?.let { filteredResults.getOrNull(it) }
+                                                            if (result != null) {
+                                                                openDataResultPrimary(result)
+                                                                true
+                                                            } else {
+                                                                false
+                                                            }
+                                                        }
+                                                        OmniboxSelectionArea.None -> {
+                                                            viewModel.onSubmitSearch(selectedCommandIndex)
+                                                            true
+                                                        }
+                                                    }
+                                                }
+                                                else -> {
+                                                    viewModel.onSubmitSearch()
+                                                    true
+                                                }
+                                            }
+                                        }
+                                        else -> false
+                                    }
+                                },
                         singleLine = true,
                         placeholder = { Text(placeholderForMode(currentMode)) },
                         leadingIcon = {
@@ -434,7 +673,7 @@ fun GlobalSearchScreen(
                                         )
                                     }
                                 }
-                                IconButton(onClick = viewModel::onSubmitSearch) {
+                                IconButton(onClick = { viewModel.onSubmitSearch(submitCommandIndex) }) {
                                     Icon(
                                         imageVector = Icons.Default.Search,
                                         contentDescription = "Виконати",
@@ -443,7 +682,7 @@ fun GlobalSearchScreen(
                             }
                         },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(onSearch = { viewModel.onSubmitSearch() }),
+                        keyboardActions = KeyboardActions(onSearch = { viewModel.onSubmitSearch(submitCommandIndex) }),
                         shape = RoundedCornerShape(14.dp),
                         colors =
                             TextFieldDefaults.colors(
@@ -457,6 +696,13 @@ fun GlobalSearchScreen(
                                 focusedTrailingIconColor = modePalette.iconTint,
                                 unfocusedTrailingIconColor = modePalette.iconTint,
                             ),
+                    )
+
+                    Text(
+                        text = keyboardHintForMode(currentMode),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 6.dp, top = 6.dp),
                     )
 
                     if (currentMode == OmniboxMode.DataSearch) {
@@ -494,6 +740,8 @@ fun GlobalSearchScreen(
 private fun CommandResultsContent(
     results: List<OmniboxCommandResult>,
     query: String,
+    recentCommands: List<OmniboxCommandId>,
+    selectedCommandIndex: Int?,
     onCommandClick: (OmniboxCommandId) -> Unit,
     accentColor: Color,
     modifier: Modifier = Modifier,
@@ -507,10 +755,36 @@ private fun CommandResultsContent(
         contentPadding = PaddingValues(vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        if (query.isBlank() && recentCommands.isNotEmpty()) {
+            item("recent_commands_label") {
+                Text(
+                    text = "Нещодавні команди",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            item("recent_commands_chips") {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    recentCommands.take(6).forEach { commandId ->
+                        AssistChip(
+                            onClick = { onCommandClick(commandId) },
+                            label = { Text(commandTitle(commandId)) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = commandIcon(commandId),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            },
+                        )
+                    }
+                }
+            }
+        }
         itemsIndexed(
             items = results,
             key = { _, item -> item.id.name },
-        ) { _, item ->
+        ) { index, item ->
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { onCommandClick(item.id) },
@@ -518,8 +792,12 @@ private fun CommandResultsContent(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 border =
                     androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                        if (selectedCommandIndex == index) 1.4.dp else 1.dp,
+                        if (selectedCommandIndex == index) {
+                            accentColor.copy(alpha = 0.45f)
+                        } else {
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                        },
                     ),
             ) {
                 Row(
@@ -555,6 +833,109 @@ private fun CommandResultsContent(
             }
         }
         item { Spacer(modifier = Modifier.height(72.dp)) }
+    }
+}
+
+@Composable
+private fun HybridCommandSection(
+    results: List<OmniboxCommandResult>,
+    selectedCommandIndex: Int?,
+    accentColor: Color,
+    onCommandClick: (OmniboxCommandId) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            text = "Команди",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        results.forEachIndexed { index, command ->
+            Surface(
+                onClick = { onCommandClick(command.id) },
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                border =
+                    androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        if (selectedCommandIndex == index) accentColor.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f),
+                    ),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(commandIcon(command.id), contentDescription = null, tint = accentColor, modifier = Modifier.size(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(command.title, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            command.subtitle,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyDataSearchContent(
+    query: String,
+    commandResults: List<OmniboxCommandResult>,
+    selectedCommandIndex: Int?,
+    accentColor: Color,
+    onCommandClick: (OmniboxCommandId) -> Unit,
+    onQuickCatch: () -> Unit,
+    onStartActivity: () -> Unit,
+    onRunBestCommand: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        if (commandResults.isNotEmpty()) {
+            HybridCommandSection(
+                results = commandResults,
+                selectedCommandIndex = selectedCommandIndex,
+                accentColor = accentColor,
+                onCommandClick = onCommandClick,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        EmptySearchContent(query = query, modifier = Modifier.weight(1f).fillMaxWidth())
+        Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "Швидкі дії для \"$query\"",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilledTonalButton(onClick = onQuickCatch, modifier = Modifier.weight(1f)) {
+                        Text("В inbox")
+                    }
+                    FilledTonalButton(onClick = onStartActivity, modifier = Modifier.weight(1f)) {
+                        Text("В activity")
+                    }
+                }
+                TextButton(onClick = onRunBestCommand, modifier = Modifier.fillMaxWidth()) {
+                    Text("Виконати найкращу команду")
+                }
+            }
+        }
     }
 }
 
@@ -621,12 +1002,57 @@ private fun modeTitle(mode: OmniboxMode): String =
         OmniboxMode.StartActivity -> "Start record activity"
     }
 
+@Composable
+private fun ModePill(
+    mode: OmniboxMode,
+    palette: OmniboxModePalette,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(999.dp),
+        color = palette.modeIconContainer,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = modeIcon(mode),
+                contentDescription = null,
+                tint = palette.iconTint,
+                modifier = Modifier.size(14.dp),
+            )
+            Text(
+                text = modeTitle(mode),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+private enum class OmniboxSelectionArea {
+    None,
+    Command,
+    Data,
+}
+
 private fun placeholderForMode(mode: OmniboxMode): String =
     when (mode) {
         OmniboxMode.DataSearch -> "Пошук по контекстах, цілях, активностях і вкладеннях"
         OmniboxMode.Command -> "Команда або екран (fuzzy), напр. ctx, rem, ai"
         OmniboxMode.QuickCatchInbox -> "Швидкий запис в inbox..."
         OmniboxMode.StartActivity -> "Назва нової активності..."
+    }
+
+private fun keyboardHintForMode(mode: OmniboxMode): String =
+    when (mode) {
+        OmniboxMode.DataSearch -> "↑/↓ переміщення, Enter відкриває вибране"
+        OmniboxMode.Command -> "↑/↓ переміщення, Enter виконує команду"
+        OmniboxMode.QuickCatchInbox -> "Enter додає запис в inbox"
+        OmniboxMode.StartActivity -> "Enter стартує нову активність"
     }
 
 private fun commandIcon(commandId: OmniboxCommandId): ImageVector =
@@ -643,6 +1069,22 @@ private fun commandIcon(commandId: OmniboxCommandId): ImageVector =
         OmniboxCommandId.OpenAiInsights -> Icons.Default.Navigation
         OmniboxCommandId.OpenAiLife -> Icons.Default.Navigation
         OmniboxCommandId.OpenStructurePresets -> Icons.Default.Tune
+    }
+
+private fun commandTitle(commandId: OmniboxCommandId): String =
+    when (commandId) {
+        OmniboxCommandId.OpenContexts -> "Контексти"
+        OmniboxCommandId.OpenInbox -> "Inbox"
+        OmniboxCommandId.OpenTracker -> "Tracker"
+        OmniboxCommandId.OpenReminders -> "Reminders"
+        OmniboxCommandId.OpenSettings -> "Settings"
+        OmniboxCommandId.OpenSearch -> "Search"
+        OmniboxCommandId.OpenAttachments -> "Attachments"
+        OmniboxCommandId.OpenScripts -> "Scripts"
+        OmniboxCommandId.OpenAiChat -> "AI Chat"
+        OmniboxCommandId.OpenAiInsights -> "AI Insights"
+        OmniboxCommandId.OpenAiLife -> "AI Life"
+        OmniboxCommandId.OpenStructurePresets -> "Presets"
     }
 
 private data class OmniboxModePalette(
@@ -719,6 +1161,30 @@ private fun LoadingContent(modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+}
+
+@Composable
+private fun DataSearchLoadingContent(modifier: Modifier = Modifier) {
+    val shimmer = rememberInfiniteTransition(label = "search_skeleton")
+    val pulse by shimmer.animateFloat(
+        initialValue = 0.32f,
+        targetValue = 0.56f,
+        animationSpec = infiniteRepeatable(animation = tween(850), repeatMode = RepeatMode.Reverse),
+        label = "search_skeleton_alpha",
+    )
+    Column(
+        modifier = modifier.padding(top = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        repeat(4) { idx ->
+            Surface(
+                modifier = Modifier.fillMaxWidth().height(76.dp).padding(horizontal = 4.dp),
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = pulse - (idx * 0.03f)),
+                tonalElevation = 0.dp,
+            ) {}
         }
     }
 }
@@ -1056,6 +1522,7 @@ private fun SearchResultsContent(
     obsidianVaultName: String,
     context: Context,
     listState: LazyListState,
+    selectedResultUniqueId: String?,
     modifier: Modifier = Modifier,
 ) {
     val haptic = LocalHapticFeedback.current
@@ -1068,61 +1535,84 @@ private fun SearchResultsContent(
                 ResultGroup(key = key, presentation = presentation, items = items)
             }
     }
-
-    LazyColumn(
-        modifier = modifier,
-        state = listState,
-        contentPadding = PaddingValues(vertical = 8.dp),
-    ) {
-        groupedResults.forEach { group ->
-            stickyHeader(key = "header_${group.key}") {
-                SearchResultGroupHeader(
-                    presentation = group.presentation,
-                    count = group.items.size,
-                )
+    val listItemIndexByResultId =
+        remember(groupedResults) {
+            val map = mutableMapOf<String, Int>()
+            var lazyIndex = 0
+            groupedResults.forEach { group ->
+                lazyIndex += 1 // sticky header
+                group.items.forEach { item ->
+                    map[item.uniqueId] = lazyIndex
+                    lazyIndex += 1
+                }
             }
+            map
+        }
+    LaunchedEffect(selectedResultUniqueId, listItemIndexByResultId) {
+        val targetIndex = selectedResultUniqueId?.let { id -> listItemIndexByResultId[id] } ?: return@LaunchedEffect
+        if (targetIndex > 0) {
+            listState.animateScrollToItem(targetIndex)
+        }
+    }
 
-            itemsIndexed(
-                items = group.items,
-                key = { _, result -> result.uniqueId },
-            ) { index, result ->
-                AnimatedVisibility(
-                    visible = true,
-                    enter =
-                        slideInVertically(
-                            animationSpec =
-                                spring(
-                                    dampingRatio = 0.7f,
-                                    stiffness = 300f,
-                                ),
-                            initialOffsetY = { it / 2 },
-                        ) +
-                            fadeIn(
+    Box(modifier = modifier) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            state = listState,
+            contentPadding = PaddingValues(vertical = 8.dp),
+        ) {
+            groupedResults.forEach { group ->
+                stickyHeader(key = "header_${group.key}") {
+                    SearchResultGroupHeader(
+                        presentation = group.presentation,
+                        count = group.items.size,
+                    )
+                }
+
+                itemsIndexed(
+                    items = group.items,
+                    key = { _, result -> result.uniqueId },
+                ) { index, result ->
+                    AnimatedVisibility(
+                        visible = true,
+                        enter =
+                            slideInVertically(
                                 animationSpec =
-                                    tween(
-                                        durationMillis = 300,
-                                        delayMillis = index * 35,
+                                    spring(
+                                        dampingRatio = 0.7f,
+                                        stiffness = 300f,
                                     ),
-                            ),
-                ) {
-                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-                        val typePresentation = result.typePresentation()
-                        when (result) {
+                                initialOffsetY = { it / 2 },
+                            ) +
+                                fadeIn(
+                                    animationSpec =
+                                        tween(
+                                            durationMillis = 300,
+                                            delayMillis = index * 35,
+                                        ),
+                                ),
+                    ) {
+                        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                            val typePresentation = result.typePresentation()
+                            when (result) {
                         is GlobalSearchResultItem.GoalItem -> {
                             UnifiedSearchResultCard(
                                 presentation = typePresentation,
+                                isSelected = result.uniqueId == selectedResultUniqueId,
                                 query = query,
                                 title = result.goal.text,
                                 subtitle = result.goal.description,
                                 supporting = result.pathSegments.joinToString(" → ").ifBlank { result.projectName },
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.onDataResultOpened(result.uniqueId)
                                     viewModel.navigateToProjectForResult(result.backlogItem.contextId, result.projectName)
                                 },
                                 secondaryActionIcon = Icons.Default.Navigation,
                                 secondaryActionDescription = "Відкрити в навігації",
                                 onSecondaryAction = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.onDataResultOpened(result.uniqueId)
                                     viewModel.goBackToRevealProject(result.backlogItem.contextId)
                                 },
                             )
@@ -1135,6 +1625,7 @@ private fun SearchResultsContent(
                                     LinkType.CONTEXT -> {
                                         {
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            viewModel.onDataResultOpened(result.uniqueId)
                                             viewModel.navigateToProjectForResult(linkData.target, null)
                                         }
                                     }
@@ -1143,6 +1634,7 @@ private fun SearchResultsContent(
                                     -> {
                                         {
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            viewModel.onDataResultOpened(result.uniqueId)
                                             handleRelatedLinkClick(
                                                 link = linkData,
                                                 obsidianVaultName = obsidianVaultName,
@@ -1154,12 +1646,14 @@ private fun SearchResultsContent(
                                 }
                             UnifiedSearchResultCard(
                                 presentation = typePresentation,
+                                isSelected = result.uniqueId == selectedResultUniqueId,
                                 query = query,
                                 title = linkData.displayName ?: linkData.target,
                                 subtitle = linkData.target,
                                 supporting = "Контекст: ${searchResult.contextName}",
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.onDataResultOpened(result.uniqueId)
                                     viewModel.navigateToProjectForResult(searchResult.contextId, searchResult.contextName)
                                 },
                                 secondaryActionIcon = if (secondaryAction != null) Icons.AutoMirrored.Filled.OpenInNew else null,
@@ -1171,18 +1665,21 @@ private fun SearchResultsContent(
                             val subproject = result.searchResult.subcontext
                             UnifiedSearchResultCard(
                                 presentation = typePresentation,
+                                isSelected = result.uniqueId == selectedResultUniqueId,
                                 query = query,
                                 title = subproject.name,
                                 subtitle = "Батьківський контекст: ${result.searchResult.parentContextName}",
                                 supporting = result.searchResult.pathSegments.joinToString(" → "),
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.onDataResultOpened(result.uniqueId)
                                     viewModel.navigateToProjectForResult(subproject.id, subproject.name)
                                 },
                                 secondaryActionIcon = Icons.Default.Navigation,
                                 secondaryActionDescription = "Відкрити в навігації",
                                 onSecondaryAction = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.onDataResultOpened(result.uniqueId)
                                     viewModel.goBackToRevealProject(subproject.id)
                                 },
                             )
@@ -1191,18 +1688,21 @@ private fun SearchResultsContent(
                             val project = result.searchResult.context
                             UnifiedSearchResultCard(
                                 presentation = typePresentation,
+                                isSelected = result.uniqueId == selectedResultUniqueId,
                                 query = query,
                                 title = project.name,
                                 subtitle = project.description,
                                 supporting = result.searchResult.pathSegments.joinToString(" → "),
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.onDataResultOpened(result.uniqueId)
                                     viewModel.navigateToProjectForResult(project.id, project.name)
                                 },
                                 secondaryActionIcon = Icons.Default.Navigation,
                                 secondaryActionDescription = "Відкрити в навігації",
                                 onSecondaryAction = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.onDataResultOpened(result.uniqueId)
                                     viewModel.goBackToRevealProject(project.id)
                                 },
                             )
@@ -1211,6 +1711,7 @@ private fun SearchResultsContent(
                         is GlobalSearchResultItem.ActivityItem -> {
                             UnifiedSearchResultCard(
                                 presentation = typePresentation,
+                                isSelected = result.uniqueId == selectedResultUniqueId,
                                 query = query,
                                 title = result.record.text,
                                 subtitle = result.record.noteText,
@@ -1219,6 +1720,7 @@ private fun SearchResultsContent(
                                     val contextId = result.record.contextId
                                     if (!contextId.isNullOrBlank()) {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        viewModel.onDataResultOpened(result.uniqueId)
                                         viewModel.navigateToProjectForResult(contextId, null)
                                     }
                                 },
@@ -1230,18 +1732,21 @@ private fun SearchResultsContent(
                         is GlobalSearchResultItem.InboxItem -> {
                             UnifiedSearchResultCard(
                                 presentation = typePresentation,
+                                isSelected = result.uniqueId == selectedResultUniqueId,
                                 query = query,
                                 title = result.record.text,
                                 subtitle = null,
                                 supporting = "Inbox: ${formatter.format(Date(result.record.createdAt))}",
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.onDataResultOpened(result.uniqueId)
                                     viewModel.navigateToProjectForResult(result.record.contextId, null)
                                 },
                                 secondaryActionIcon = Icons.Default.ChevronRight,
                                 secondaryActionDescription = "Відкрити контекст",
                                 onSecondaryAction = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    viewModel.onDataResultOpened(result.uniqueId)
                                     viewModel.navigateToProjectForResult(result.record.contextId, null)
                                 },
                             )
@@ -1249,6 +1754,7 @@ private fun SearchResultsContent(
                         is GlobalSearchResultItem.AttachmentItem -> {
                             UnifiedSearchResultCard(
                                 presentation = typePresentation,
+                                isSelected = result.uniqueId == selectedResultUniqueId,
                                 query = query,
                                 title = result.searchResult.title,
                                 subtitle = result.searchResult.subtitle,
@@ -1257,6 +1763,7 @@ private fun SearchResultsContent(
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     val contextId = result.searchResult.ownerContextId
                                     if (!contextId.isNullOrBlank()) {
+                                        viewModel.onDataResultOpened(result.uniqueId)
                                         viewModel.navigateToProjectForResult(contextId, result.searchResult.contextName)
                                     }
                                 },
@@ -1266,24 +1773,40 @@ private fun SearchResultsContent(
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     val contextId = result.searchResult.ownerContextId
                                     if (!contextId.isNullOrBlank()) {
+                                        viewModel.onDataResultOpened(result.uniqueId)
                                         viewModel.navigateToProjectForResult(contextId, result.searchResult.contextName)
                                     }
                                 },
                             )
                         }
+                            }
+                            ResultTypeBadge(
+                                presentation = typePresentation,
+                                modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 8.dp, end = 8.dp),
+                            )
                         }
-                        ResultTypeBadge(
-                            presentation = typePresentation,
-                            modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 8.dp, end = 8.dp),
-                        )
                     }
                 }
             }
+
+            item {
+                Spacer(modifier = Modifier.height(80.dp))
+            }
         }
 
-        item {
-            Spacer(modifier = Modifier.height(80.dp))
-        }
+        Box(
+            modifier =
+                Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .height(18.dp)
+                    .background(
+                        brush =
+                            Brush.verticalGradient(
+                                colors = listOf(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f), Color.Transparent),
+                            ),
+                    ),
+        )
     }
 }
 
@@ -1331,6 +1854,7 @@ private fun SearchResultGroupHeader(
 @Composable
 private fun UnifiedSearchResultCard(
     presentation: ResultTypePresentation,
+    isSelected: Boolean,
     query: String,
     title: String,
     subtitle: String?,
@@ -1341,13 +1865,34 @@ private fun UnifiedSearchResultCard(
     onSecondaryAction: (() -> Unit)?,
 ) {
     val (badgeContainer, badgeContent) = resultBadgeColors(presentation.tone)
+    val selectedScale by animateFloatAsState(
+        targetValue = if (isSelected) 1.01f else 1f,
+        animationSpec = tween(durationMillis = 170),
+        label = "selected_result_scale",
+    )
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().graphicsLayer(scaleX = selectedScale, scaleY = selectedScale),
         onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    if (isSelected) {
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.22f)
+                    } else {
+                        MaterialTheme.colorScheme.surface
+                    },
+            ),
         shape = RoundedCornerShape(16.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        border =
+            androidx.compose.foundation.BorderStroke(
+                if (isSelected) 1.35.dp else 1.dp,
+                if (isSelected) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                } else {
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                },
+            ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Row(
