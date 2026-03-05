@@ -241,7 +241,7 @@ fun GlobalSearchScreen(
                                 startY = 0.1f,
                             ),
                     ).padding(paddingValues)
-                    .padding(horizontal = 16.dp, top = 4.dp, bottom = 12.dp),
+                    .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp),
         ) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
