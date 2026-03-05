@@ -16,12 +16,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.net.URLDecoder
+import java.util.Locale
 import javax.inject.Inject
 
 data class GlobalSearchUiState(
@@ -165,6 +167,7 @@ class GlobalSearchViewModel
         private val _uiState = MutableStateFlow(GlobalSearchUiState())
         val uiState: StateFlow<GlobalSearchUiState> = _uiState.asStateFlow()
         private var searchJob: Job? = null
+        private var allSearchCandidatesCache: List<GlobalSearchResultItem>? = null
 
         lateinit var enhancedNavigationManager: EnhancedNavigationManager
 
@@ -278,10 +281,33 @@ class GlobalSearchViewModel
 
             _uiState.update { it.copy(isLoading = true) }
             viewModelScope.launch {
-                val results = contextRepository.searchGlobal("%$query%")
-                val distinctResults = results.distinctBy { it.uniqueId }
+                val strictResults = contextRepository.searchGlobal("%$query%")
+                val strictDistinct = strictResults.distinctBy { it.uniqueId }
+                val rankedStrict =
+                    strictDistinct
+                        .mapNotNull { item ->
+                            val score = fuzzyScoreForData(query, item)
+                            if (score < 0) null else item to score
+                        }
+                        .sortedWith(compareByDescending<Pair<GlobalSearchResultItem, Int>> { it.second }.thenByDescending { it.first.timestamp })
+                        .map { it.first }
+
+                val finalResults =
+                    if (rankedStrict.isNotEmpty()) {
+                        rankedStrict
+                    } else {
+                        val allCandidates = getAllSearchCandidatesForFuzzy()
+                        allCandidates
+                            .mapNotNull { item ->
+                                val score = fuzzyScoreForData(query, item)
+                                if (score < 10) null else item to score
+                            }
+                            .sortedWith(compareByDescending<Pair<GlobalSearchResultItem, Int>> { it.second }.thenByDescending { it.first.timestamp })
+                            .map { it.first }
+                            .take(120)
+                    }
                 _uiState.update {
-                    it.copy(results = distinctResults, isLoading = false, commandResults = emptyList())
+                    it.copy(results = finalResults, isLoading = false, commandResults = emptyList())
                 }
             }
         }
@@ -290,12 +316,13 @@ class GlobalSearchViewModel
             val text = rawQuery.trim()
             if (text.isBlank()) return
             viewModelScope.launch {
-                inboxRepository.addInboxRecord(text = text, contextId = SystemContexts.INBOX.raw)
+                val inboxContextId = resolveInboxContextId() ?: return@launch
+                inboxRepository.addInboxRecord(text = text, contextId = inboxContextId)
                 _uiState.update { it.copy(query = "") }
                 enhancedNavigationManager.navigate(
                     target =
                         NavTarget.ContextDetail(
-                            contextId = SystemContexts.INBOX.raw,
+                            contextId = inboxContextId,
                             initialViewMode = "INBOX",
                         ),
                     recordInHistory = true,
@@ -318,15 +345,18 @@ class GlobalSearchViewModel
             when (commandId) {
                 OmniboxCommandId.OpenContexts -> enhancedNavigationManager.navigate(target = NavTarget.ContextHierarchy, recordInHistory = true)
                 OmniboxCommandId.OpenInbox ->
-                    enhancedNavigationManager.navigate(
-                        target =
-                            NavTarget.ContextDetail(
-                                contextId = SystemContexts.INBOX.raw,
-                                initialViewMode = "INBOX",
-                            ),
-                        recordInHistory = true,
-                        historyTitle = "Inbox",
-                    )
+                    viewModelScope.launch {
+                        val inboxContextId = resolveInboxContextId() ?: return@launch
+                        enhancedNavigationManager.navigate(
+                            target =
+                                NavTarget.ContextDetail(
+                                    contextId = inboxContextId,
+                                    initialViewMode = "INBOX",
+                                ),
+                            recordInHistory = true,
+                            historyTitle = "Inbox",
+                        )
+                    }
                 OmniboxCommandId.OpenTracker -> enhancedNavigationManager.navigate(target = NavTarget.Tracker)
                 OmniboxCommandId.OpenReminders -> enhancedNavigationManager.navigate(target = NavTarget.Reminders)
                 OmniboxCommandId.OpenSettings -> enhancedNavigationManager.navigate(target = NavTarget.Settings)
@@ -408,6 +438,79 @@ class GlobalSearchViewModel
                 }
             }
             return if (qIndex == query.length) score else -1
+        }
+
+        private suspend fun getAllSearchCandidatesForFuzzy(): List<GlobalSearchResultItem> {
+            allSearchCandidatesCache?.let { return it }
+            val allCandidates = contextRepository.searchGlobal("%%").distinctBy { it.uniqueId }
+            allSearchCandidatesCache = allCandidates
+            return allCandidates
+        }
+
+        private fun fuzzyScoreForData(
+            query: String,
+            item: GlobalSearchResultItem,
+        ): Int {
+            val fields = searchableFields(item)
+            val best = fields.maxOfOrNull { field -> fuzzyScore(query, field) } ?: -1
+            if (best < 0) return -1
+            val prefixBonus =
+                fields.maxOfOrNull { field ->
+                    val idx = field.lowercase(Locale.getDefault()).indexOf(query.lowercase(Locale.getDefault()))
+                    if (idx == 0) 180 else if (idx in 1..3) 120 else 0
+                } ?: 0
+            return best + prefixBonus
+        }
+
+        private fun searchableFields(item: GlobalSearchResultItem): List<String> =
+            when (item) {
+                is GlobalSearchResultItem.GoalItem ->
+                    listOf(
+                        item.goal.text,
+                        item.goal.description ?: "",
+                        item.projectName,
+                        item.pathSegments.joinToString(" "),
+                    )
+                is GlobalSearchResultItem.LinkItem ->
+                    listOf(
+                        item.searchResult.link.linkData.displayName ?: "",
+                        item.searchResult.link.linkData.target,
+                        item.searchResult.contextName,
+                        item.searchResult.pathSegments.joinToString(" "),
+                    )
+                is GlobalSearchResultItem.SubcontextItem ->
+                    listOf(
+                        item.searchResult.subcontext.name,
+                        item.searchResult.parentContextName,
+                        item.searchResult.pathSegments.joinToString(" "),
+                    )
+                is GlobalSearchResultItem.ContextItem ->
+                    listOf(
+                        item.searchResult.context.name,
+                        item.searchResult.context.description ?: "",
+                        item.searchResult.pathSegments.joinToString(" "),
+                    )
+                is GlobalSearchResultItem.ActivityItem ->
+                    listOf(
+                        item.record.text,
+                        item.record.noteText ?: "",
+                    )
+                is GlobalSearchResultItem.InboxItem ->
+                    listOf(item.record.text)
+                is GlobalSearchResultItem.AttachmentItem ->
+                    listOf(
+                        item.searchResult.title,
+                        item.searchResult.subtitle ?: "",
+                        item.searchResult.contextName ?: "",
+                    )
+            }
+
+        private suspend fun resolveInboxContextId(): String? {
+            val allContexts = contextRepository.getAllContextsFlow().first()
+            return allContexts.firstOrNull { it.id == SystemContexts.INBOX.raw }?.id
+                ?: allContexts.firstOrNull {
+                    it.name.equals("Inbox", ignoreCase = true) && it.id != SystemContexts.TODAY.raw
+                }?.id
         }
 
         private fun addSearchQueryToHistory(rawQuery: String) {
