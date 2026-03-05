@@ -13,6 +13,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
@@ -97,6 +99,7 @@ fun GlobalSearchScreen(
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     val configuration = LocalConfiguration.current
+    val isImeVisible = WindowInsets.isImeVisible
     val typeOptions = remember { GlobalSearchType.entries }
     var selectedTypes by remember { mutableStateOf(typeOptions.toSet()) }
     var selectedSort by remember { mutableStateOf(GlobalSearchSort.Relevance) }
@@ -439,6 +442,7 @@ fun GlobalSearchScreen(
                             onSubmit = viewModel::onSubmitSearch,
                             query = uiState.query,
                             icon = Icons.Outlined.MoveToInbox,
+                            isKeyboardVisible = isImeVisible,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
@@ -450,6 +454,7 @@ fun GlobalSearchScreen(
                             onSubmit = viewModel::onSubmitSearch,
                             query = uiState.query,
                             icon = Icons.Default.History,
+                            isKeyboardVisible = isImeVisible,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
@@ -473,6 +478,18 @@ fun GlobalSearchScreen(
                         palette = modePalette,
                         modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
                     )
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        modifier = Modifier.padding(start = 4.dp, bottom = 6.dp),
+                    ) {
+                        Text(
+                            text = inputHintForMode(currentMode),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        )
+                    }
 
                     TextField(
                         value = uiState.query,
@@ -675,8 +692,8 @@ fun GlobalSearchScreen(
                                 }
                                 IconButton(onClick = { viewModel.onSubmitSearch(submitCommandIndex) }) {
                                     Icon(
-                                        imageVector = Icons.Default.Search,
-                                        contentDescription = "Виконати",
+                                        imageVector = submitIconForMode(currentMode),
+                                        contentDescription = submitDescriptionForMode(currentMode),
                                     )
                                 }
                             }
@@ -686,9 +703,9 @@ fun GlobalSearchScreen(
                         shape = RoundedCornerShape(14.dp),
                         colors =
                             TextFieldDefaults.colors(
-                                focusedContainerColor = modePalette.inputFocusedContainer,
-                                unfocusedContainerColor = modePalette.inputContainer,
-                                disabledContainerColor = modePalette.inputContainer,
+                                focusedContainerColor = modePalette.inputFocusedContainer.copy(alpha = 1f),
+                                unfocusedContainerColor = modePalette.inputContainer.copy(alpha = 1f),
+                                disabledContainerColor = modePalette.inputContainer.copy(alpha = 1f),
                                 focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
                                 unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
                                 focusedLeadingIconColor = modePalette.iconTint,
@@ -696,13 +713,6 @@ fun GlobalSearchScreen(
                                 focusedTrailingIconColor = modePalette.iconTint,
                                 unfocusedTrailingIconColor = modePalette.iconTint,
                             ),
-                    )
-
-                    Text(
-                        text = keyboardHintForMode(currentMode),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 6.dp, top = 6.dp),
                     )
 
                     if (currentMode == OmniboxMode.DataSearch) {
@@ -947,11 +957,15 @@ private fun QuickActionModeContent(
     onSubmit: () -> Unit,
     query: String,
     icon: ImageVector,
+    isKeyboardVisible: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+    Box(
+        modifier = modifier,
+        contentAlignment = if (isKeyboardVisible) Alignment.TopCenter else Alignment.Center,
+    ) {
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(top = if (isKeyboardVisible) 12.dp else 0.dp),
             shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         ) {
@@ -1047,12 +1061,28 @@ private fun placeholderForMode(mode: OmniboxMode): String =
         OmniboxMode.StartActivity -> "Назва нової активності..."
     }
 
-private fun keyboardHintForMode(mode: OmniboxMode): String =
+private fun inputHintForMode(mode: OmniboxMode): String =
     when (mode) {
-        OmniboxMode.DataSearch -> "↑/↓ переміщення, Enter відкриває вибране"
-        OmniboxMode.Command -> "↑/↓ переміщення, Enter виконує команду"
-        OmniboxMode.QuickCatchInbox -> "Enter додає запис в inbox"
-        OmniboxMode.StartActivity -> "Enter стартує нову активність"
+        OmniboxMode.DataSearch -> "Введи текст для пошуку даних. ↑/↓ переміщення, Enter відкриває вибране"
+        OmniboxMode.Command -> "Введи команду. ↑/↓ переміщення, Enter виконує команду"
+        OmniboxMode.QuickCatchInbox -> "Введи текст і натисни пошук/Enter. Запис одразу додасться в inbox"
+        OmniboxMode.StartActivity -> "Введи назву активності і натисни пошук/Enter. Буде створено новий запис"
+    }
+
+private fun submitIconForMode(mode: OmniboxMode): ImageVector =
+    when (mode) {
+        OmniboxMode.DataSearch -> Icons.Default.Search
+        OmniboxMode.Command -> Icons.Default.Tune
+        OmniboxMode.QuickCatchInbox -> Icons.Outlined.MoveToInbox
+        OmniboxMode.StartActivity -> Icons.Default.History
+    }
+
+private fun submitDescriptionForMode(mode: OmniboxMode): String =
+    when (mode) {
+        OmniboxMode.DataSearch -> "Виконати пошук"
+        OmniboxMode.Command -> "Виконати команду"
+        OmniboxMode.QuickCatchInbox -> "Додати в inbox"
+        OmniboxMode.StartActivity -> "Почати активність"
     }
 
 private fun commandIcon(commandId: OmniboxCommandId): ImageVector =
