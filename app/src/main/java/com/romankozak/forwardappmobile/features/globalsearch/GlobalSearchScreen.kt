@@ -13,8 +13,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
@@ -101,7 +100,6 @@ fun GlobalSearchScreen(
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     val configuration = LocalConfiguration.current
-    val isImeVisible = WindowInsets.isImeVisible
     val typeOptions = remember { GlobalSearchType.entries }
     var selectedTypes by remember { mutableStateOf(typeOptions.toSet()) }
     var selectedSort by remember { mutableStateOf(GlobalSearchSort.Relevance) }
@@ -339,6 +337,7 @@ fun GlobalSearchScreen(
                 OmniboxMode.Command -> 116.dp
                 OmniboxMode.QuickCatchInbox, OmniboxMode.StartActivity -> 116.dp
             }
+        val contentTopPadding = if (currentMode == OmniboxMode.DataSearch) 56.dp else 0.dp
         Box(
             modifier =
                 Modifier
@@ -360,6 +359,7 @@ fun GlobalSearchScreen(
                 modifier =
                     Modifier
                         .fillMaxSize()
+                        .padding(top = contentTopPadding)
                         .padding(bottom = contentBottomPadding),
             ) {
                 when (currentMode) {
@@ -437,27 +437,41 @@ fun GlobalSearchScreen(
                         )
                     }
                     OmniboxMode.QuickCatchInbox -> {
-                        QuickActionModeContent(
-                            title = "Quick catch to Inbox",
-                            subtitle = "Введи текст і натисни пошук/Enter. Запис одразу додасться в inbox.",
-                            buttonLabel = "Додати в Inbox",
-                            onSubmit = viewModel::onSubmitSearch,
-                            query = uiState.query,
-                            icon = Icons.Outlined.MoveToInbox,
-                            isKeyboardVisible = isImeVisible,
-                            modifier = Modifier.fillMaxSize(),
-                        )
+                        Spacer(modifier = Modifier.fillMaxSize())
                     }
                     OmniboxMode.StartActivity -> {
-                        QuickActionModeContent(
-                            title = "Start record new activity",
-                            subtitle = "Введи назву активності. Буде створено новий запис і відкрито Tracker.",
-                            buttonLabel = "Почати активність",
-                            onSubmit = viewModel::onSubmitSearch,
-                            query = uiState.query,
-                            icon = Icons.Default.History,
-                            isKeyboardVisible = isImeVisible,
-                            modifier = Modifier.fillMaxSize(),
+                        Spacer(modifier = Modifier.fillMaxSize())
+                    }
+                }
+            }
+            if (currentMode == OmniboxMode.DataSearch) {
+                Surface(
+                    modifier =
+                        Modifier
+                            .align(Alignment.TopCenter)
+                            .fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.9f),
+                    tonalElevation = 1.dp,
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        FilterSelectorChip(
+                            icon = Icons.Default.Tune,
+                            label = formatTypeChipLabel(selectedTypes, typeOptions.toSet()),
+                            isActive = selectedTypes.size != typeOptions.size,
+                            onClick = { showTypeSheet = true },
+                            modifier = Modifier.weight(1f),
+                        )
+                        FilterSelectorChip(
+                            icon = Icons.Default.Sort,
+                            label = selectedSort.label,
+                            isActive = selectedSort != GlobalSearchSort.Relevance,
+                            onClick = { showSortSheet = true },
+                            modifier = Modifier.weight(1f),
                         )
                     }
                 }
@@ -480,17 +494,20 @@ fun GlobalSearchScreen(
                         palette = modePalette,
                         modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
                     )
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        modifier = Modifier.padding(start = 4.dp, bottom = 6.dp),
-                    ) {
-                        Text(
-                            text = inputHintForMode(currentMode),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        )
+                    val modeHint = inputHintForMode(currentMode)
+                    if (modeHint.isNotBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp),
+                        ) {
+                            Text(
+                                text = modeHint,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            )
+                        }
                     }
 
                     TextField(
@@ -694,7 +711,7 @@ fun GlobalSearchScreen(
                                 }
                                 IconButton(onClick = { viewModel.onSubmitSearch(submitCommandIndex) }) {
                                     Icon(
-                                        imageVector = submitIconForMode(currentMode),
+                                        imageVector = Icons.AutoMirrored.Filled.Send,
                                         contentDescription = submitDescriptionForMode(currentMode),
                                     )
                                 }
@@ -717,31 +734,6 @@ fun GlobalSearchScreen(
                             ),
                     )
 
-                    if (currentMode == OmniboxMode.DataSearch) {
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            FilterSelectorChip(
-                                icon = Icons.Default.Tune,
-                                label = formatTypeChipLabel(selectedTypes, typeOptions.toSet()),
-                                isActive = selectedTypes.size != typeOptions.size,
-                                onClick = { showTypeSheet = true },
-                                modifier = Modifier.weight(1f),
-                            )
-
-                            FilterSelectorChip(
-                                icon = Icons.Default.Sort,
-                                label = selectedSort.label,
-                                isActive = selectedSort != GlobalSearchSort.Relevance,
-                                onClick = { showSortSheet = true },
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                    }
                 }
             }
         }
@@ -951,57 +943,6 @@ private fun EmptyDataSearchContent(
     }
 }
 
-@Composable
-private fun QuickActionModeContent(
-    title: String,
-    subtitle: String,
-    buttonLabel: String,
-    onSubmit: () -> Unit,
-    query: String,
-    icon: ImageVector,
-    isKeyboardVisible: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier,
-        contentAlignment = if (isKeyboardVisible) Alignment.TopCenter else Alignment.Center,
-    ) {
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(top = if (isKeyboardVisible) 12.dp else 0.dp),
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        ) {
-            Column(
-                modifier = Modifier.padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                FilledTonalButton(
-                    onClick = onSubmit,
-                    enabled = query.isNotBlank(),
-                ) {
-                    Text(buttonLabel)
-                }
-            }
-        }
-    }
-}
-
 private fun modeIcon(mode: OmniboxMode): ImageVector =
     when (mode) {
         OmniboxMode.DataSearch -> Icons.Default.Search
@@ -1065,18 +1006,10 @@ private fun placeholderForMode(mode: OmniboxMode): String =
 
 private fun inputHintForMode(mode: OmniboxMode): String =
     when (mode) {
-        OmniboxMode.DataSearch -> "Введи текст для пошуку даних. ↑/↓ переміщення, Enter відкриває вибране"
+        OmniboxMode.DataSearch -> ""
         OmniboxMode.Command -> "Введи команду. ↑/↓ переміщення, Enter виконує команду"
         OmniboxMode.QuickCatchInbox -> "Введи текст і натисни пошук/Enter. Запис одразу додасться в inbox"
         OmniboxMode.StartActivity -> "Введи назву активності і натисни пошук/Enter. Буде створено новий запис"
-    }
-
-private fun submitIconForMode(mode: OmniboxMode): ImageVector =
-    when (mode) {
-        OmniboxMode.DataSearch -> Icons.Default.Search
-        OmniboxMode.Command -> Icons.Default.Tune
-        OmniboxMode.QuickCatchInbox -> Icons.Outlined.MoveToInbox
-        OmniboxMode.StartActivity -> Icons.Default.History
     }
 
 private fun submitDescriptionForMode(mode: OmniboxMode): String =
