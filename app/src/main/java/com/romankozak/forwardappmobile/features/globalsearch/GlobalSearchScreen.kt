@@ -1888,6 +1888,7 @@ private fun SearchResultsContent(
                     }
                 }
             }
+            }
 
             item {
                 Spacer(modifier = Modifier.height(80.dp))
