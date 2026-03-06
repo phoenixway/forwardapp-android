@@ -493,9 +493,15 @@ fun GlobalSearchScreen(
                     }
                     val modeHint = inputHintForMode(currentMode)
                     if (modeHint.isNotBlank()) {
+                        val hintContainerColor =
+                            if (currentMode == OmniboxMode.QuickCatchInbox) {
+                                modePalette.modeIconContainer
+                            } else {
+                                MaterialTheme.colorScheme.surfaceContainerHigh
+                            }
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            color = hintContainerColor,
                             modifier = Modifier.padding(start = 4.dp, bottom = 6.dp),
                         ) {
                             Text(
@@ -507,13 +513,21 @@ fun GlobalSearchScreen(
                         }
                     }
 
+                    val isQuickCatchMode = currentMode == OmniboxMode.QuickCatchInbox
+
                     TextField(
                         value = uiState.query,
                         onValueChange = viewModel::onQueryChange,
                         modifier =
                             Modifier
                                 .fillMaxWidth()
-                                .heightIn(min = 56.dp)
+                                .then(
+                                    if (isQuickCatchMode) {
+                                        Modifier.heightIn(min = 56.dp, max = 160.dp)
+                                    } else {
+                                        Modifier.heightIn(min = 56.dp)
+                                    },
+                                )
                                 .focusRequester(focusRequester)
                                 .onPreviewKeyEvent { keyEvent ->
                                     if (keyEvent.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
@@ -638,7 +652,8 @@ fun GlobalSearchScreen(
                                         else -> false
                                     }
                                 },
-                        singleLine = true,
+                        singleLine = !isQuickCatchMode,
+                        maxLines = if (isQuickCatchMode) 6 else 1,
                         placeholder = { Text(placeholderForMode(currentMode)) },
                         leadingIcon = {
                             Box {
