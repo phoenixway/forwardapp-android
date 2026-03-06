@@ -77,6 +77,7 @@ class ItemActionHandler
 
         private var pendingPasteTargetViewMode: ContextViewMode? = null
         private var pendingIncludeAttachmentsForPaste: Boolean = false
+        private var pendingAddSourceContextLinkForGoalLinks: Boolean = false
 
         init {
             scope.launch {
@@ -246,12 +247,14 @@ class ItemActionHandler
             _showPasteModeDialog.value = false
             pendingPasteTargetViewMode = null
             pendingIncludeAttachmentsForPaste = false
+            pendingAddSourceContextLinkForGoalLinks = false
         }
 
         fun onDismissAttachmentPasteDialog() {
             _showAttachmentPasteDialog.value = false
             pendingPasteTargetViewMode = null
             pendingIncludeAttachmentsForPaste = false
+            pendingAddSourceContextLinkForGoalLinks = false
         }
 
         fun onTransportCopyRequested() {
@@ -348,16 +351,26 @@ class ItemActionHandler
             }
         }
 
-        fun onPasteModeSelected(mode: BacklogPasteMode) {
+        fun onPasteModeSelected(
+            mode: BacklogPasteMode,
+            addSourceContextLink: Boolean,
+        ) {
             _showPasteModeDialog.value = false
-            pasteIntoCurrentBacklog(mode = mode, includeAttachments = pendingIncludeAttachmentsForPaste)
+            pendingAddSourceContextLinkForGoalLinks = addSourceContextLink
+            pasteIntoCurrentBacklog(
+                mode = mode,
+                includeAttachments = pendingIncludeAttachmentsForPaste,
+                addSourceContextLinkForGoalLinks = pendingAddSourceContextLinkForGoalLinks,
+            )
             pendingPasteTargetViewMode = null
             pendingIncludeAttachmentsForPaste = false
+            pendingAddSourceContextLinkForGoalLinks = false
         }
 
         private fun pasteIntoCurrentBacklog(
             mode: BacklogPasteMode,
             includeAttachments: Boolean,
+            addSourceContextLinkForGoalLinks: Boolean = false,
         ) {
             scope.launch {
                 val report =
@@ -365,6 +378,7 @@ class ItemActionHandler
                         targetContextId = projectIdFlow.value,
                         mode = mode,
                         includeAttachments = includeAttachments,
+                        addSourceContextLinkForGoalLinks = addSourceContextLinkForGoalLinks,
                     )
                 resultListener.showSnackbar(report.toUserMessage(), null)
                 resultListener.forceRefresh()

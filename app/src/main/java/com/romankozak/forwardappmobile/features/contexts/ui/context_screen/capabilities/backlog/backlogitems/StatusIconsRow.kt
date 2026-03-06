@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.EnhancedRelatedLinkChip
@@ -102,13 +103,21 @@ private fun InternalStatusIconsRow(
 @Composable
 fun StatusIconsRow(
     goal: Goal,
+    currentContextId: String? = null,
     parsedData: ParsedTextData,
     reminder: Reminder?,
     emojiToHide: String?,
     onRelatedLinkClick: (RelatedLink) -> Unit,
 ) {
+    val visibleLinks =
+        goal.relatedLinks
+            ?.filterNot { link ->
+                link.type == LinkType.CONTEXT &&
+                    currentContextId != null &&
+                    link.target == currentContextId
+            }
     InternalStatusIconsRow(
-        relatedLinks = goal.relatedLinks,
+        relatedLinks = visibleLinks,
         scoringStatus = goal.scoringStatus,
         displayScore = goal.displayScore,
         description = goal.description,

@@ -72,6 +72,7 @@ fun BacklogItem(
         is BacklogItemContent.GoalItem -> {
             InternalGoalItem(
                 goal = item.goal,
+                currentContextId = item.backlogItem.contextId,
                 reminders = item.reminders,
                 reorderableScope = reorderableScope,
                 modifier = modifier,
@@ -110,6 +111,7 @@ fun BacklogItem(
 @Composable
 private fun InternalGoalItem(
     goal: Goal,
+    currentContextId: String,
     reminders: List<Reminder>,
     reorderableScope: ReorderableCollectionItemScope,
     modifier: Modifier = Modifier,
@@ -223,6 +225,7 @@ private fun InternalGoalItem(
                             Box(modifier = if (goal.completed) Modifier.alpha(0.6f) else Modifier) {
                                 StatusIconsRow(
                                     goal = goal,
+                                    currentContextId = currentContextId,
                                     parsedData = parsedData,
                                     reminder = reminder,
                                     emojiToHide = null,

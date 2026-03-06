@@ -282,6 +282,7 @@ class BacklogClipboardUseCase
             targetContextId: String,
             mode: BacklogPasteMode,
             includeAttachments: Boolean = false,
+            addSourceContextLinkForGoalLinks: Boolean = false,
         ): BacklogPasteReport {
             val payload = clipboardService.payload.value ?: return BacklogPasteReport(totalRequested = 0, skippedInvalid = 1)
 
@@ -302,6 +303,8 @@ class BacklogClipboardUseCase
                             targetContextId = targetContextId,
                             mode = mode,
                             includeAttachments = includeAttachments,
+                            addSourceContextLinkForGoalLinks = addSourceContextLinkForGoalLinks,
+                            sourceContextId = payload.sourceContextId,
                         )
                     }
                 }
@@ -451,6 +454,8 @@ class BacklogClipboardUseCase
             targetContextId: String,
             mode: BacklogPasteMode,
             includeAttachments: Boolean,
+            addSourceContextLinkForGoalLinks: Boolean,
+            sourceContextId: String,
         ): BacklogPasteReport {
             val sourceGoalIds = goalRefs.map { it.goalId }.distinct()
             val sourceContextIds = contextRefs.map { it.contextId }.distinct()
@@ -479,6 +484,13 @@ class BacklogClipboardUseCase
                     goalRepository.createGoalLinks(nonDuplicates, targetContextId)
                     createdLinks += nonDuplicates.size
                     skippedDuplicates += sourceGoalIds.size - nonDuplicates.size
+                    if (addSourceContextLinkForGoalLinks) {
+                        addSourceContextLinkToGoals(
+                            goalIds = nonDuplicates,
+                            sourceContextId = sourceContextId,
+                            targetContextId = targetContextId,
+                        )
+                    }
                 }
             }
 
@@ -1126,6 +1138,32 @@ class BacklogClipboardUseCase
         }
 
         private fun normalizeText(text: String): String = text.trim().lowercase()
+
+        private suspend fun addSourceContextLinkToGoals(
+            goalIds: List<String>,
+            sourceContextId: String,
+            targetContextId: String,
+        ) {
+            if (sourceContextId.isBlank() || sourceContextId == targetContextId) return
+            val sourceContextName = contextRepository.getContextById(sourceContextId)?.name?.trim().orEmpty()
+            val sourceContextLink =
+                RelatedLink(
+                    type = LinkType.CONTEXT,
+                    target = sourceContextId,
+                    displayName = sourceContextName.ifBlank { "Контекст" },
+                )
+            goalIds.forEach { goalId ->
+                val goal = goalRepository.getGoalById(goalId) ?: return@forEach
+                val existingLinks = goal.relatedLinks.orEmpty()
+                if (existingLinks.any { it.type == LinkType.CONTEXT && it.target == sourceContextId }) return@forEach
+                goalRepository.updateGoal(
+                    goal.copy(
+                        relatedLinks = existingLinks + sourceContextLink,
+                        updatedAt = System.currentTimeMillis(),
+                    ),
+                )
+            }
+        }
 
         private fun isAttachmentType(itemType: String): Boolean =
             itemType == BacklogItemTypeValues.LINK_ITEM ||

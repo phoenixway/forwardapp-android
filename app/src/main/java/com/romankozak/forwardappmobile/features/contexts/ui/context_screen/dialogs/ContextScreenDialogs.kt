@@ -1,7 +1,12 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogPasteMode
@@ -75,24 +80,64 @@ fun GoalDetailDialogs(viewModel: ContextScreenViewModel) {
     )
 
     if (showPasteModeDialog) {
+        var selectedMode by remember { mutableStateOf(BacklogPasteMode.AS_LINK) }
+        var addSourceContextLink by remember { mutableStateOf(false) }
         AlertDialog(
             onDismissRequest = { viewModel.itemActionHandler.onDismissPasteModeDialog() },
             confirmButton = {
                 TextButton(
-                    onClick = { viewModel.itemActionHandler.onPasteModeSelected(BacklogPasteMode.AS_LINK) },
+                    onClick = {
+                        viewModel.itemActionHandler.onPasteModeSelected(
+                            mode = selectedMode,
+                            addSourceContextLink = selectedMode == BacklogPasteMode.AS_LINK && addSourceContextLink,
+                        )
+                    },
                 ) {
-                    Text("Як посилання")
+                    Text("Вставити")
                 }
             },
             dismissButton = {
                 TextButton(
-                    onClick = { viewModel.itemActionHandler.onPasteModeSelected(BacklogPasteMode.AS_CLONE) },
+                    onClick = { viewModel.itemActionHandler.onDismissPasteModeDialog() },
                 ) {
-                    Text("Клонувати")
+                    Text("Скасувати")
                 }
             },
             title = { Text("Режим вставки") },
-            text = { Text("Вставити цілі як посилання чи створити клон?") },
+            text = {
+                Column {
+                    Text("Вставити цілі як посилання чи створити клон?")
+                    Row(
+                        modifier = Modifier.padding(top = 8.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    ) {
+                        RadioButton(
+                            selected = selectedMode == BacklogPasteMode.AS_LINK,
+                            onClick = { selectedMode = BacklogPasteMode.AS_LINK },
+                        )
+                        Text("Як посилання")
+                    }
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        RadioButton(
+                            selected = selectedMode == BacklogPasteMode.AS_CLONE,
+                            onClick = {
+                                selectedMode = BacklogPasteMode.AS_CLONE
+                                addSourceContextLink = false
+                            },
+                        )
+                        Text("Клонувати")
+                    }
+                    if (selectedMode == BacklogPasteMode.AS_LINK) {
+                        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            Checkbox(
+                                checked = addSourceContextLink,
+                                onCheckedChange = { addSourceContextLink = it },
+                            )
+                            Text("Додати посилання на вихідний контекст")
+                        }
+                    }
+                }
+            },
         )
     }
 
