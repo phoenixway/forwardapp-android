@@ -472,6 +472,7 @@ private fun ProjectBottomBar(
                 )
             },
             indicatorState = indicatorState,
+            allowCollapse = false,
         )
         AnimatedVisibility(
             visible = !uiState.isSelectionModeActive,
@@ -508,7 +509,7 @@ private fun ProjectBottomBar(
                 canGoForward = canGoForward,
                 onBackClick = { viewModel.onBackPressed() },
                 onForwardClick = { viewModel.onForwardPressed() },
-                onShowProjectHierarchy = viewModel::onHomeClick,
+                onShowProjectHierarchy = { navigationManager.navigate(target = NavTarget.GlobalSearchHome) },
                 onNavigateHome = { navigationManager.navigate(target = NavTarget.CommandDeck) },
                 onEditList = {
                     Log.d("EDIT_PROJECT_DEBUG", "LIST EDITING")

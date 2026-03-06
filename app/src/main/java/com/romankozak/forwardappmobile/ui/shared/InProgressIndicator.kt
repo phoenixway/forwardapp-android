@@ -41,6 +41,7 @@ fun InProgressIndicator(
     onReminderClick: () -> Unit,
     onIndicatorClick: () -> Unit,
     indicatorState: InProgressIndicatorState = remember { InProgressIndicatorState() },
+    allowCollapse: Boolean = true,
 ) {
     AnimatedVisibility(
         visible = ongoingActivity != null,
@@ -58,7 +59,7 @@ fun InProgressIndicator(
             }
             val timeString = formatElapsedTime(elapsedTime)
 
-            if (indicatorState.isExpanded) {
+            if (indicatorState.isExpanded || !allowCollapse) {
                 Surface(
                     modifier = Modifier.fillMaxWidth().clickable(onClick = onIndicatorClick),
                     color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
@@ -82,8 +83,10 @@ fun InProgressIndicator(
                         IconButton(onClick = onStopClick) {
                             Icon(Icons.Default.StopCircle, contentDescription = "Зупинити")
                         }
-                        IconButton(onClick = { indicatorState.isExpanded = false }) {
-                            Icon(Icons.Default.ExpandLess, contentDescription = "Згорнути")
+                        if (allowCollapse) {
+                            IconButton(onClick = { indicatorState.isExpanded = false }) {
+                                Icon(Icons.Default.ExpandLess, contentDescription = "Згорнути")
+                            }
                         }
                     }
                 }

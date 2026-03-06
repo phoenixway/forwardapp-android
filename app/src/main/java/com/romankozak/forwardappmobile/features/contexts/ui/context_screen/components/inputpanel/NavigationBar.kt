@@ -46,6 +46,27 @@ internal fun NavigationBar(
 
         Spacer(Modifier.weight(1f))
 
+        IconButton(
+            onClick = actions.onNavigateHome,
+            modifier = Modifier.size(34.dp),
+        ) {
+            Icon(
+                Icons.Outlined.Home,
+                contentDescription = "Показати головний екран",
+                tint = contentColor.copy(alpha = 0.8f),
+            )
+        }
+        IconButton(
+            onClick = actions.onShowProjectHierarchy,
+            modifier = Modifier.size(34.dp),
+        ) {
+            Icon(
+                Icons.Outlined.TravelExplore,
+                contentDescription = "Search everywhere",
+                tint = contentColor.copy(alpha = 0.8f),
+            )
+        }
+
         ViewModeToggle(state, actions, contentColor, holdMenuController)
 
         OptionsMenu(state, actions, contentColor)

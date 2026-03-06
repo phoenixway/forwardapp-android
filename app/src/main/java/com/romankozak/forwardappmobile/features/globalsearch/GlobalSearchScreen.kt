@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
@@ -106,6 +107,7 @@ fun GlobalSearchScreen(
     var showTypeSheet by remember { mutableStateOf(false) }
     var showSortSheet by remember { mutableStateOf(false) }
     var showModeMenu by remember { mutableStateOf(false) }
+    var showDataActionsSheet by remember { mutableStateOf(false) }
     var selectedCommandIndex by remember { mutableStateOf<Int?>(null) }
     var selectedDataIndex by remember { mutableStateOf<Int?>(null) }
     var selectionArea by remember { mutableStateOf(OmniboxSelectionArea.None) }
@@ -258,6 +260,19 @@ fun GlobalSearchScreen(
             onDismiss = { showSortSheet = false },
         )
     }
+    if (showDataActionsSheet) {
+        DataActionsBottomSheet(
+            onSelectTypes = {
+                showDataActionsSheet = false
+                showTypeSheet = true
+            },
+            onSelectSorting = {
+                showDataActionsSheet = false
+                showSortSheet = true
+            },
+            onDismiss = { showDataActionsSheet = false },
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -337,7 +352,6 @@ fun GlobalSearchScreen(
                 OmniboxMode.Command -> 116.dp
                 OmniboxMode.QuickCatchInbox, OmniboxMode.StartActivity -> 116.dp
             }
-        val contentTopPadding = if (currentMode == OmniboxMode.DataSearch) 56.dp else 0.dp
         Box(
             modifier =
                 Modifier
@@ -359,7 +373,6 @@ fun GlobalSearchScreen(
                 modifier =
                     Modifier
                         .fillMaxSize()
-                        .padding(top = contentTopPadding)
                         .padding(bottom = contentBottomPadding),
             ) {
                 when (currentMode) {
@@ -444,39 +457,6 @@ fun GlobalSearchScreen(
                     }
                 }
             }
-            if (currentMode == OmniboxMode.DataSearch) {
-                Surface(
-                    modifier =
-                        Modifier
-                            .align(Alignment.TopCenter)
-                            .fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.9f),
-                    tonalElevation = 1.dp,
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        FilterSelectorChip(
-                            icon = Icons.Default.Tune,
-                            label = formatTypeChipLabel(selectedTypes, typeOptions.toSet()),
-                            isActive = selectedTypes.size != typeOptions.size,
-                            onClick = { showTypeSheet = true },
-                            modifier = Modifier.weight(1f),
-                        )
-                        FilterSelectorChip(
-                            icon = Icons.Default.Sort,
-                            label = selectedSort.label,
-                            isActive = selectedSort != GlobalSearchSort.Relevance,
-                            onClick = { showSortSheet = true },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-            }
-
             Surface(
                 modifier =
                     Modifier
@@ -489,11 +469,35 @@ fun GlobalSearchScreen(
                 tonalElevation = 1.dp,
             ) {
                 Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-                    ModePill(
-                        mode = currentMode,
-                        palette = modePalette,
+                    Row(
                         modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
-                    )
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        ModePill(
+                            mode = currentMode,
+                            palette = modePalette,
+                        )
+                        if (currentMode == OmniboxMode.DataSearch) {
+                            Surface(
+                                onClick = { showDataActionsSheet = true },
+                                shape = RoundedCornerShape(999.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.MoreHoriz,
+                                        contentDescription = "Додаткові дії пошуку",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(14.dp),
+                                    )
+                                }
+                            }
+                        }
+                    }
                     val modeHint = inputHintForMode(currentMode)
                     if (modeHint.isNotBlank()) {
                         Surface(
@@ -1231,28 +1235,6 @@ private fun SearchStartContent(
         modifier = modifier.padding(horizontal = 4.dp).padding(top = 8.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            tonalElevation = 1.dp,
-        ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = "Пошук по всьому застосунку",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = "Контексти, цілі, активності, inbox, вкладення та посилання.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-
         if (history.isNotEmpty()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1348,6 +1330,46 @@ private fun FilterSelectorChip(
                 contentDescription = null,
                 tint = contentColor,
                 modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DataActionsBottomSheet(
+    onSelectTypes: () -> Unit,
+    onSelectSorting: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(bottom = 16.dp),
+        ) {
+            Text(
+                text = "Додаткові дії пошуку",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            )
+            HorizontalDivider()
+            ListItem(
+                headlineContent = { Text("Типи результатів") },
+                supportingContent = { Text("Обрати, які типи даних показувати") },
+                leadingContent = { Icon(Icons.Default.Tune, contentDescription = null) },
+                modifier = Modifier.fillMaxWidth().clickable { onSelectTypes() },
+            )
+            ListItem(
+                headlineContent = { Text("Сортування") },
+                supportingContent = { Text("Змінити порядок відображення результатів") },
+                leadingContent = { Icon(Icons.Default.Sort, contentDescription = null) },
+                modifier = Modifier.fillMaxWidth().clickable { onSelectSorting() },
             )
         }
     }
