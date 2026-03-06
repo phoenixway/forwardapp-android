@@ -1,13 +1,11 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox
 
 import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -15,8 +13,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
@@ -159,7 +155,6 @@ fun InboxItemRow(
             .ofPattern("dd.MM.yyyy HH:mm")
             .withZone(ZoneId.systemDefault())
 
-    var isExpanded by remember { mutableStateOf(false) }
     var highlightActive by remember { mutableStateOf(isHighlighted) }
     val focusRequester = remember { FocusRequester() }
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
@@ -204,7 +199,6 @@ fun InboxItemRow(
                     .fillMaxWidth()
                     .focusRequester(focusRequester)
                     .bringIntoViewRequester(bringIntoViewRequester)
-                    .clickable { isExpanded = !isExpanded }
                     .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
             Text(
@@ -215,88 +209,67 @@ fun InboxItemRow(
                         lineHeight = 24.sp,
                     ),
                 color = MaterialTheme.colorScheme.onSurface,
-                maxLines = if (isExpanded) Int.MAX_VALUE else 3,
+                maxLines = 6,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth(),
             )
-
-            AnimatedVisibility(visible = isExpanded) {
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = formatter.format(Instant.ofEpochMilli(record.createdAt)),
-                        style =
-                            MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            ),
-                        maxLines = 1,
-                    )
-                }
-            }
-
-            AnimatedVisibility(visible = isExpanded) {
-                Column {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(top = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            SimpleIconButton(
-                                icon = Icons.Outlined.Edit,
-                                contentDescription = "Редагувати запис",
-                                onClick = onEdit,
-                                tint = MaterialTheme.colorScheme.secondary,
-                            )
-                            SimpleIconButton(
-                                icon = Icons.Outlined.MoveUp,
-                                contentDescription = "Перемістити до цілей",
-                                onClick = onPromoteToGoal,
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                        }
-
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            SimpleIconButton(
-                                icon = Icons.Outlined.ContentCopy,
-                                contentDescription = "Скопіювати текст",
-                                onClick = onCopy,
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                            SimpleIconButton(
-                                icon = Icons.Outlined.Delete,
-                                contentDescription = "Видалити запис",
-                                onClick = onDelete,
-                                tint = MaterialTheme.colorScheme.error,
-                            )
-                        }
-                    }
-                }
-            }
 
             Row(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.Center,
+                        .padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    contentDescription = if (isExpanded) "Згорнути" else "Розгорнути",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    modifier = Modifier.size(20.dp),
+                Text(
+                    text = formatter.format(Instant.ofEpochMilli(record.createdAt)),
+                    style =
+                        MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        ),
+                    maxLines = 1,
                 )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SimpleIconButton(
+                        icon = Icons.Outlined.Edit,
+                        contentDescription = "Редагувати запис",
+                        onClick = onEdit,
+                        tint = MaterialTheme.colorScheme.secondary,
+                    )
+                    SimpleIconButton(
+                        icon = Icons.Outlined.MoveUp,
+                        contentDescription = "Перемістити до цілей",
+                        onClick = onPromoteToGoal,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SimpleIconButton(
+                        icon = Icons.Outlined.ContentCopy,
+                        contentDescription = "Скопіювати текст",
+                        onClick = onCopy,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    SimpleIconButton(
+                        icon = Icons.Outlined.Delete,
+                        contentDescription = "Видалити запис",
+                        onClick = onDelete,
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
         }
     }
