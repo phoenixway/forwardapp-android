@@ -30,6 +30,8 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -409,32 +411,23 @@ fun GlobalSearchScreen(
                                 )
                             }
                             else -> {
-                                Column(modifier = Modifier.fillMaxSize()) {
-                                if (uiState.hybridCommandResults.isNotEmpty()) {
-                                    HybridCommandSection(
-                                        results = uiState.hybridCommandResults,
-                                        selectedCommandIndex = selectedCommandIndex.takeIf { selectionArea == OmniboxSelectionArea.Command },
-                                        accentColor = modePalette.iconTint,
-                                        onCommandClick = viewModel::onCommandClick,
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    }
-                                    SearchResultsContent(
-                                        results = filteredResults,
-                                        query = uiState.query,
-                                        viewModel = viewModel,
-                                        obsidianVaultName = obsidianVaultName,
-                                        context = context,
-                                        listState = listState,
-                                        selectedResultUniqueId = selectedDataResultUniqueId,
-                                        modifier =
-                                            Modifier
-                                                .fillMaxWidth()
-                                                .weight(1f)
-                                                .graphicsLayer(alpha = resultsAlpha),
-                                    )
-                                }
+                                SearchResultsContent(
+                                    commandResults = uiState.hybridCommandResults,
+                                    selectedCommandIndex = selectedCommandIndex.takeIf { selectionArea == OmniboxSelectionArea.Command },
+                                    onCommandClick = viewModel::onCommandClick,
+                                    accentColor = modePalette.iconTint,
+                                    results = filteredResults,
+                                    query = uiState.query,
+                                    viewModel = viewModel,
+                                    obsidianVaultName = obsidianVaultName,
+                                    context = context,
+                                    listState = listState,
+                                    selectedResultUniqueId = selectedDataResultUniqueId,
+                                    modifier =
+                                        Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer(alpha = resultsAlpha),
+                                )
                             }
                         }
                     }
@@ -886,6 +879,56 @@ private fun HybridCommandSection(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CommandSearchResultCard(
+    command: OmniboxCommandResult,
+    query: String,
+    isSelected: Boolean,
+    accentColor: Color,
+    onCommandClick: (OmniboxCommandId) -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = { onCommandClick(command.id) },
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border =
+            androidx.compose.foundation.BorderStroke(
+                if (isSelected) 1.35.dp else 1.dp,
+                if (isSelected) accentColor.copy(alpha = 0.45f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+            ),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Icon(
+                imageVector = commandIcon(command.id),
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(18.dp),
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                HighlightedText(
+                    text = command.title,
+                    query = query,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                )
+                Text(
+                    text = command.subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }
@@ -1503,6 +1546,10 @@ private fun SortBottomSheet(
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
 private fun SearchResultsContent(
+    commandResults: List<OmniboxCommandResult>,
+    selectedCommandIndex: Int?,
+    onCommandClick: (OmniboxCommandId) -> Unit,
+    accentColor: Color,
     results: List<GlobalSearchResultItem>,
     query: String,
     viewModel: GlobalSearchViewModel,
@@ -1522,19 +1569,49 @@ private fun SearchResultsContent(
                 ResultGroup(key = key, presentation = presentation, items = items)
             }
     }
-    val listItemIndexByResultId =
-        remember(groupedResults) {
-            val map = mutableMapOf<String, Int>()
-            var lazyIndex = 0
-            groupedResults.forEach { group ->
-                lazyIndex += 1 // sticky header
-                group.items.forEach { item ->
-                    map[item.uniqueId] = lazyIndex
-                    lazyIndex += 1
-                }
+    val groupExpandedState = remember { mutableStateMapOf<String, Boolean>() }
+    var commandsExpanded by remember(query) { mutableStateOf(true) }
+
+    LaunchedEffect(groupedResults) {
+        val activeKeys = groupedResults.map { it.key }.toSet()
+        groupedResults.forEach { group ->
+            if (groupExpandedState[group.key] == null) {
+                groupExpandedState[group.key] = true
             }
-            map
         }
+        groupExpandedState.keys.toList().forEach { key ->
+            if (key !in activeKeys) {
+                groupExpandedState.remove(key)
+            }
+        }
+    }
+    LaunchedEffect(selectedResultUniqueId, groupedResults) {
+        val selectedGroupKey =
+            selectedResultUniqueId?.let { id ->
+                groupedResults.firstOrNull { group -> group.items.any { it.uniqueId == id } }?.key
+            }
+        if (selectedGroupKey != null && groupExpandedState[selectedGroupKey] == false) {
+            groupExpandedState[selectedGroupKey] = true
+        }
+    }
+
+    val listItemIndexByResultId = mutableMapOf<String, Int>()
+    var lazyIndex = 0
+    if (commandResults.isNotEmpty()) {
+        lazyIndex += 1 // commands header
+        if (commandsExpanded) {
+            lazyIndex += commandResults.size
+        }
+    }
+    groupedResults.forEach { group ->
+        lazyIndex += 1 // group header
+        if (groupExpandedState[group.key] != false) {
+            group.items.forEach { item ->
+                listItemIndexByResultId[item.uniqueId] = lazyIndex
+                lazyIndex += 1
+            }
+        }
+    }
     LaunchedEffect(selectedResultUniqueId, listItemIndexByResultId) {
         val targetIndex = selectedResultUniqueId?.let { id -> listItemIndexByResultId[id] } ?: return@LaunchedEffect
         if (targetIndex > 0) {
@@ -1548,40 +1625,76 @@ private fun SearchResultsContent(
             state = listState,
             contentPadding = PaddingValues(vertical = 8.dp),
         ) {
+            if (commandResults.isNotEmpty()) {
+                stickyHeader(key = "header_commands") {
+                    SearchResultGroupHeader(
+                        presentation =
+                            ResultTypePresentation(
+                                label = "Дії",
+                                icon = Icons.Default.Tune,
+                                tone = ResultBadgeTone.Surface,
+                            ),
+                        count = commandResults.size,
+                        isExpanded = commandsExpanded,
+                        onToggle = { commandsExpanded = !commandsExpanded },
+                    )
+                }
+                if (commandsExpanded) {
+                    itemsIndexed(
+                        items = commandResults,
+                        key = { _, item -> "command_${item.id.name}" },
+                    ) { index, item ->
+                        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                            CommandSearchResultCard(
+                                command = item,
+                                query = query,
+                                isSelected = selectedCommandIndex == index,
+                                accentColor = accentColor,
+                                onCommandClick = onCommandClick,
+                            )
+                        }
+                    }
+                }
+            }
+
             groupedResults.forEach { group ->
+                val isExpanded = groupExpandedState[group.key] != false
                 stickyHeader(key = "header_${group.key}") {
                     SearchResultGroupHeader(
                         presentation = group.presentation,
                         count = group.items.size,
+                        isExpanded = isExpanded,
+                        onToggle = { groupExpandedState[group.key] = !isExpanded },
                     )
                 }
 
-                itemsIndexed(
-                    items = group.items,
-                    key = { _, result -> result.uniqueId },
-                ) { index, result ->
-                    AnimatedVisibility(
-                        visible = true,
-                        enter =
-                            slideInVertically(
-                                animationSpec =
-                                    spring(
-                                        dampingRatio = 0.7f,
-                                        stiffness = 300f,
-                                    ),
-                                initialOffsetY = { it / 2 },
-                            ) +
-                                fadeIn(
+                if (isExpanded) {
+                    itemsIndexed(
+                        items = group.items,
+                        key = { _, result -> result.uniqueId },
+                    ) { index, result ->
+                        AnimatedVisibility(
+                            visible = true,
+                            enter =
+                                slideInVertically(
                                     animationSpec =
-                                        tween(
-                                            durationMillis = 300,
-                                            delayMillis = index * 35,
+                                        spring(
+                                            dampingRatio = 0.7f,
+                                            stiffness = 300f,
                                         ),
-                                ),
-                    ) {
-                        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-                            val typePresentation = result.typePresentation()
-                            when (result) {
+                                    initialOffsetY = { it / 2 },
+                                ) +
+                                    fadeIn(
+                                        animationSpec =
+                                            tween(
+                                                durationMillis = 300,
+                                                delayMillis = index * 35,
+                                            ),
+                                    ),
+                        ) {
+                            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                                val typePresentation = result.typePresentation()
+                                when (result) {
                         is GlobalSearchResultItem.GoalItem -> {
                             UnifiedSearchResultCard(
                                 presentation = typePresentation,
@@ -1801,6 +1914,8 @@ private fun SearchResultsContent(
 private fun SearchResultGroupHeader(
     presentation: ResultTypePresentation,
     count: Int,
+    isExpanded: Boolean = true,
+    onToggle: (() -> Unit)? = null,
 ) {
     val (container, content) = resultBadgeColors(presentation.tone)
     Surface(
@@ -1808,7 +1923,11 @@ private fun SearchResultGroupHeader(
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = onToggle != null) { onToggle?.invoke() }
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -1832,6 +1951,15 @@ private fun SearchResultGroupHeader(
                     style = MaterialTheme.typography.labelSmall,
                     color = content,
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                )
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            if (onToggle != null) {
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (isExpanded) "Згорнути секцію" else "Розгорнути секцію",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp),
                 )
             }
         }
