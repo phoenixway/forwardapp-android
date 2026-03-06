@@ -15,6 +15,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
+import com.romankozak.forwardappmobile.core.navigation.capability.actions.CapabilityViewActionDescriptor
 import com.romankozak.forwardappmobile.core.theme.LocalInputPanelColors
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller
 import kotlin.math.abs
@@ -68,6 +69,8 @@ fun ModernInputPanel(
     onCloseSearch: () -> Unit,
     onAddMilestone: (String) -> Unit,
     onShowDisplayPropertiesClick: () -> Unit,
+    capabilityViewActions: List<CapabilityViewActionDescriptor>,
+    onCapabilityViewActionClick: (String) -> Unit,
     enabledCapabilitiesOverride: Set<CapabilityId>? = null,
 ) {
     // Об'єднуємо старі прапорці та нові ID в єдиний Set можливостей
@@ -117,6 +120,7 @@ fun ModernInputPanel(
             activeCapabilities = activeCapabilities,
             inputMode = inputMode,
             isCurrentContextFocused = isCurrentContextFocused,
+            viewActions = capabilityViewActions,
         )
 
     val actions =
@@ -133,6 +137,7 @@ fun ModernInputPanel(
             onInputModeSelected = onInputModeSelected,
             onMenuExpandedChange = onMenuExpandedChange,
             onAddProjectToDayPlan = onAddProjectToDayPlan,
+            onCapabilityViewActionClick = onCapabilityViewActionClick,
             menuActions =
                 OptionsMenuActions(
                     onEditList = onEditList,

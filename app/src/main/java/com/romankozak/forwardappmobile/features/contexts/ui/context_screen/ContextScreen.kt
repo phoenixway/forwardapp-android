@@ -450,6 +450,13 @@ private fun ProjectBottomBar(
 ) {
     val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = true) }
     var showContextPicker by remember { mutableStateOf(false) }
+    val capabilityViewActions =
+        remember(sessionState.currentView, sessionState.enabledCapabilities) {
+            viewModel.getAvailableCapabilityViewActions(
+                currentView = sessionState.currentView,
+                enabledCapabilities = sessionState.enabledCapabilities,
+            )
+        }
     val groupedContexts by viewModel.subprojectChildren.collectAsStateWithLifecycle()
     val contextOptions =
         remember(groupedContexts) {
@@ -554,6 +561,8 @@ private fun ProjectBottomBar(
                 onCloseSearch = viewModel::onCloseSearch,
                 onAddMilestone = viewModel::onAddMilestone,
                 onShowDisplayPropertiesClick = onShowDisplayPropertiesClick,
+                capabilityViewActions = capabilityViewActions,
+                onCapabilityViewActionClick = viewModel::onCapabilityViewActionClick,
             )
         }
     }

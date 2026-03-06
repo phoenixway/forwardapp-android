@@ -14,6 +14,9 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.core.context.ContextSessionStore
 import com.romankozak.forwardappmobile.core.navigation.*
+import com.romankozak.forwardappmobile.core.navigation.capability.actions.CapabilityViewActionDescriptor
+import com.romankozak.forwardappmobile.core.navigation.capability.actions.CapabilityViewActionIds
+import com.romankozak.forwardappmobile.core.navigation.capability.actions.CapabilityViewActionRegistry
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.*
 import com.romankozak.forwardappmobile.domain.ner.NerManager
@@ -116,6 +119,7 @@ class ContextScreenViewModel
         private val contextTimeTrackingRepository: ContextTimeTrackingRepository,
         private val contextSessionStore: ContextSessionStore,
         private val backlogClipboardUseCase: BacklogClipboardUseCase,
+        private val capabilityViewActionRegistry: CapabilityViewActionRegistry,
     ) : ViewModel(),
         ItemActionHandler.ResultListener,
         InputHandler.ResultListener,
@@ -539,6 +543,76 @@ class ContextScreenViewModel
         fun setReminderForOngoingActivity() = currentContextActions.setReminderForOngoingActivity(lastOngoingActivity.value)
         fun onStartTrackingCurrentProject() = currentContextActions.startTrackingCurrentProject(project.value?.id)
         fun hasCapability(capabilityId: CapabilityId) = uiControlActions.hasCapability(capabilityId)
+        fun getAvailableCapabilityViewActions(
+            currentView: ContextViewMode,
+            enabledCapabilities: Set<CapabilityId>,
+        ): List<CapabilityViewActionDescriptor> =
+            capabilityViewActionRegistry
+                .forView(currentView, enabledCapabilities + capabilityForView(currentView))
+                .map { it.descriptor }
+
+        fun onCapabilityViewActionClick(actionId: String) {
+            when (actionId) {
+                CapabilityViewActionIds.BACKLOG_IMPORT_MARKDOWN -> onShowImportBacklogFromMarkdownDialog()
+                CapabilityViewActionIds.BACKLOG_EXPORT_MARKDOWN -> onExportBacklogToMarkdown()
+                CapabilityViewActionIds.DIRECTION_COPY_LINKED_BACKLOGS_AS_LINKS -> copyDirectionLinkedBacklogsAsLinks()
+                else -> showSnackbar("Невідома дія: $actionId", null)
+            }
+        }
+
+        private fun copyDirectionLinkedBacklogsAsLinks() {
+            viewModelScope.launch(ioDispatcher) {
+                val currentContextId = contextIdFlow.value
+                if (currentContextId.isBlank()) return@launch
+
+                val linkedContextIds =
+                    uiState.value.directionItems
+                        .mapNotNull { item -> item.linkedContextId?.takeIf { it.isNotBlank() } }
+                        .distinct()
+                        .filter { it != currentContextId }
+
+                if (linkedContextIds.isEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        showSnackbar("У напрямку немає пов'язаних контекстів", null)
+                    }
+                    return@launch
+                }
+
+                var createdLinks = 0
+                var skippedDuplicates = 0
+                val alreadyLinkedGoalIds = listItemRepository.getGoalIdsForContext(currentContextId).toMutableSet()
+
+                linkedContextIds.forEach { linkedContextId ->
+                    val sourceGoalIds = listItemRepository.getGoalIdsForContext(linkedContextId).distinct()
+                    val goalIdsToLink =
+                        sourceGoalIds.filterNot { goalId ->
+                            goalId in alreadyLinkedGoalIds || listItemRepository.doesLinkExist(goalId, currentContextId)
+                        }
+                    skippedDuplicates += sourceGoalIds.size - goalIdsToLink.size
+                    if (goalIdsToLink.isEmpty()) return@forEach
+
+                    goalRepository.createGoalLinks(goalIdsToLink, currentContextId)
+                    createdLinks += goalIdsToLink.size
+                    alreadyLinkedGoalIds.addAll(goalIdsToLink)
+                }
+
+                withContext(Dispatchers.Main) {
+                    showSnackbar(
+                        "Додано посилань: $createdLinks, дублікати пропущено: $skippedDuplicates",
+                        null,
+                    )
+                    if (createdLinks > 0) {
+                        forceRefresh()
+                    }
+                }
+            }
+        }
+
+        private fun capabilityForView(viewMode: ContextViewMode): CapabilityId =
+            when (viewMode) {
+                ContextViewMode.ADVANCED, ContextViewMode.ARTIFACT -> CapabilityId("advanced")
+                else -> CapabilityId(viewMode.name.lowercase())
+            }
         fun onExportBacklogToMarkdown() = markdownActions.onExportBacklogToMarkdown(_listContent.value)
         fun onImportBacklogFromMarkdown(markdownText: String) =
             markdownActions.onImportBacklogFromMarkdown(markdownText, contextIdFlow.value)

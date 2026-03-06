@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.comp
 import androidx.compose.ui.graphics.Color
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
+import com.romankozak.forwardappmobile.core.navigation.capability.actions.CapabilityViewActionDescriptor
 
 data class NavPanelState(
     val canGoBack: Boolean,
@@ -13,6 +14,7 @@ data class NavPanelState(
     val activeCapabilities: Set<CapabilityId>,
     val inputMode: InputMode,
     val isCurrentContextFocused: Boolean,
+    val viewActions: List<CapabilityViewActionDescriptor>,
 )
 
 data class NavPanelActions(
@@ -28,6 +30,7 @@ data class NavPanelActions(
     val onInputModeSelected: (InputMode) -> Unit,
     val onMenuExpandedChange: (Boolean) -> Unit,
     val onAddProjectToDayPlan: () -> Unit,
+    val onCapabilityViewActionClick: (String) -> Unit,
     val menuActions: OptionsMenuActions,
 )
 
