@@ -423,15 +423,6 @@ class GlobalSearchViewModel
                 val inboxContextId = resolveInboxContextId() ?: return@launch
                 inboxRepository.addInboxRecord(text = text, contextId = inboxContextId)
                 _uiState.update { it.copy(query = "") }
-                enhancedNavigationManager.navigate(
-                    target =
-                        NavTarget.ContextDetail(
-                            contextId = inboxContextId,
-                            initialViewMode = "INBOX",
-                        ),
-                    recordInHistory = true,
-                    historyTitle = "Inbox",
-                )
             }
         }
 

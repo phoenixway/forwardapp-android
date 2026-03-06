@@ -448,7 +448,7 @@ private fun ProjectBottomBar(
     navigationManager: EnhancedNavigationManager,
     holdMenuController: com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller,
 ) {
-    val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = false) }
+    val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = true) }
     var showContextPicker by remember { mutableStateOf(false) }
     val groupedContexts by viewModel.subprojectChildren.collectAsStateWithLifecycle()
     val contextOptions =
