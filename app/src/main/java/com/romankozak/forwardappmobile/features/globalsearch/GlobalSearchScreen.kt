@@ -500,12 +500,7 @@ fun GlobalSearchScreen(
                             }
                         }
                     }
-                    val modeHint =
-                        if (currentMode == OmniboxMode.QuickCatchInbox) {
-                            ""
-                        } else {
-                            inputHintForMode(currentMode)
-                        }
+                    val modeHint = ""
                     if (modeHint.isNotBlank()) {
                         val hintContainerColor =
                             if (currentMode == OmniboxMode.QuickCatchInbox) {
