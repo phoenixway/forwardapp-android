@@ -7,6 +7,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -39,8 +40,10 @@ import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.CheckBoxOutlineBlank
+import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material3.CircularProgressIndicator
@@ -290,6 +293,33 @@ fun ChecklistScreen(
                 onSelectAll = viewModel::onSelectAllItems,
                 onMarkAllCompleted = viewModel::onMarkAllCompleted,
                 onMarkAllIncomplete = viewModel::onMarkAllIncomplete,
+                isSelectionMode = uiState.isSelectionMode,
+                selectedCount = uiState.selectedItemIds.size,
+                canPasteChecklistItems = viewModel.canPasteChecklistItemsFromEntityClipboard(),
+                onToggleSelectionMode = viewModel::toggleSelectionMode,
+                onClearSelection = viewModel::onClearSelection,
+                onSelectAllForSelection = viewModel::onSelectAllForSelectionMode,
+                onCopySelected = {
+                    val copied = viewModel.copySelectedToEntityClipboard()
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar(
+                            if (copied > 0) "Скопійовано елементів: $copied" else "Немає вибраних елементів",
+                        )
+                    }
+                },
+                onCutSelected = {
+                    val cut = viewModel.cutSelectedToEntityClipboard()
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar(
+                            if (cut > 0) "Вирізано елементів: $cut" else "Немає вибраних елементів",
+                        )
+                    }
+                },
+                onPasteChecklistItems = {
+                    viewModel.pasteChecklistItemsFromEntityClipboard { message ->
+                        coroutineScope.launch { snackbarHostState.showSnackbar(message) }
+                    }
+                },
             )
         },
         floatingActionButton = {
@@ -414,9 +444,17 @@ fun ChecklistScreen(
                         }
                     },
                     onShowItemActions = { item ->
-                        selectedItem = item
-                        showBottomSheet = true
+                        if (uiState.isSelectionMode) {
+                            viewModel.onToggleItemSelected(item.id)
+                        } else {
+                            selectedItem = item
+                            showBottomSheet = true
+                        }
                     },
+                    isSelectionMode = uiState.isSelectionMode,
+                    selectedItemIds = uiState.selectedItemIds,
+                    onToggleItemSelected = viewModel::onToggleItemSelected,
+                    onItemLongPressed = viewModel::onItemLongPressed,
                 )
             }
         }
@@ -438,6 +476,10 @@ private fun ChecklistContent(
     onWikiLinkClick: (String) -> Unit,
     onFocusConsumed: () -> Unit,
     onShowItemActions: (ChecklistItemUiModel) -> Unit,
+    isSelectionMode: Boolean,
+    selectedItemIds: Set<String>,
+    onToggleItemSelected: (String) -> Unit,
+    onItemLongPressed: (String) -> Unit,
 ) {
     AnimatedVisibility(
         visible = uiState.items.isEmpty(),
@@ -510,48 +552,56 @@ private fun ChecklistContent(
                             onRequestFocus = { onRequestFocus(item.id) },
                             onWikiLinkClick = onWikiLinkClick,
                             onShowItemActions = { onShowItemActions(item) },
+                            isSelectionMode = isSelectionMode,
+                            isSelected = item.id in selectedItemIds,
+                            onToggleSelected = { onToggleItemSelected(item.id) },
+                            onLongPress = { onItemLongPressed(item.id) },
                         )
                     }
 
-                    SwipeToDismissBox(
-                        state = dismissState,
-                        backgroundContent = {
-                            val color =
-                                when (dismissState.dismissDirection) {
-                                    SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
-                                    SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primaryContainer
-                                    else -> Color.Transparent
-                                }
-                            val icon =
-                                when (dismissState.dismissDirection) {
-                                    SwipeToDismissBoxValue.EndToStart -> Icons.Outlined.Delete
-                                    SwipeToDismissBoxValue.StartToEnd -> Icons.Default.ContentCopy
-                                    else -> null
-                                }
-                            val alignment =
-                                when (dismissState.dismissDirection) {
-                                    SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
-                                    SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
-                                    else -> Alignment.Center
-                                }
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .fillMaxSize()
-                                        .background(color)
-                                        .padding(horizontal = 16.dp),
-                                contentAlignment = alignment,
-                            ) {
-                                if (icon != null) {
-                                    Icon(
-                                        imageVector = icon,
-                                        contentDescription = null,
-                                    )
-                                }
-                            }
-                        },
-                    ) {
+                    if (isSelectionMode) {
                         content()
+                    } else {
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            backgroundContent = {
+                                val color =
+                                    when (dismissState.dismissDirection) {
+                                        SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                                        SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primaryContainer
+                                        else -> Color.Transparent
+                                    }
+                                val icon =
+                                    when (dismissState.dismissDirection) {
+                                        SwipeToDismissBoxValue.EndToStart -> Icons.Outlined.Delete
+                                        SwipeToDismissBoxValue.StartToEnd -> Icons.Default.ContentCopy
+                                        else -> null
+                                    }
+                                val alignment =
+                                    when (dismissState.dismissDirection) {
+                                        SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                                        SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                                        else -> Alignment.Center
+                                    }
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxSize()
+                                            .background(color)
+                                            .padding(horizontal = 16.dp),
+                                    contentAlignment = alignment,
+                                ) {
+                                    if (icon != null) {
+                                        Icon(
+                                            imageVector = icon,
+                                            contentDescription = null,
+                                        )
+                                    }
+                                }
+                            },
+                        ) {
+                            content()
+                        }
                     }
                 }
             }
@@ -576,6 +626,15 @@ private fun ChecklistTopBar(
     onSelectAll: () -> Unit,
     onMarkAllCompleted: () -> Unit,
     onMarkAllIncomplete: () -> Unit,
+    isSelectionMode: Boolean,
+    selectedCount: Int,
+    canPasteChecklistItems: Boolean,
+    onToggleSelectionMode: () -> Unit,
+    onClearSelection: () -> Unit,
+    onSelectAllForSelection: () -> Unit,
+    onCopySelected: () -> Unit,
+    onCutSelected: () -> Unit,
+    onPasteChecklistItems: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     TopAppBar(
@@ -688,6 +747,57 @@ private fun ChecklistTopBar(
                         onMarkAllIncomplete()
                     },
                 )
+                DropdownMenuItem(
+                    text = { Text(if (isSelectionMode) "Exit multi-select" else "Multi-select mode") },
+                    leadingIcon = { Icon(imageVector = Icons.Filled.CheckBox, contentDescription = null) },
+                    onClick = {
+                        menuExpanded = false
+                        onToggleSelectionMode()
+                    },
+                )
+                if (isSelectionMode) {
+                    DropdownMenuItem(
+                        text = { Text("Select all items") },
+                        leadingIcon = { Icon(imageVector = Icons.Filled.CheckBox, contentDescription = null) },
+                        onClick = {
+                            menuExpanded = false
+                            onSelectAllForSelection()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Copy selected ($selectedCount)") },
+                        leadingIcon = { Icon(imageVector = Icons.Filled.ContentCopy, contentDescription = null) },
+                        onClick = {
+                            menuExpanded = false
+                            onCopySelected()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Cut selected ($selectedCount)") },
+                        leadingIcon = { Icon(imageVector = Icons.Outlined.ContentCut, contentDescription = null) },
+                        onClick = {
+                            menuExpanded = false
+                            onCutSelected()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Clear selection") },
+                        leadingIcon = { Icon(imageVector = Icons.Outlined.DeleteSweep, contentDescription = null) },
+                        onClick = {
+                            menuExpanded = false
+                            onClearSelection()
+                        },
+                    )
+                }
+                DropdownMenuItem(
+                    text = { Text("Paste checklist items") },
+                    leadingIcon = { Icon(imageVector = Icons.Filled.ContentPaste, contentDescription = null) },
+                    onClick = {
+                        menuExpanded = false
+                        onPasteChecklistItems()
+                    },
+                    enabled = canPasteChecklistItems,
+                )
             }
         },
     )
@@ -708,6 +818,10 @@ private fun ChecklistItemRow(
     onRequestFocus: () -> Unit,
     onWikiLinkClick: (String) -> Unit,
     onShowItemActions: (ChecklistItemUiModel) -> Unit,
+    isSelectionMode: Boolean,
+    isSelected: Boolean,
+    onToggleSelected: () -> Unit,
+    onLongPress: () -> Unit,
 ) {
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
@@ -732,7 +846,15 @@ private fun ChecklistItemRow(
     }
 
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = {
+                        if (isSelectionMode) onToggleSelected()
+                    },
+                    onLongClick = onLongPress,
+                ),
         shape = MaterialTheme.shapes.large,
         tonalElevation = if (isDragging) 4.dp else 1.dp,
         color = MaterialTheme.colorScheme.surface,
@@ -741,10 +863,23 @@ private fun ChecklistItemRow(
             modifier = Modifier.padding(horizontal = 0.dp, vertical = 0.dp),
             verticalAlignment = Alignment.Top,
         ) {
+            if (isSelectionMode) {
+                IconToggleButton(
+                    checked = isSelected,
+                    onCheckedChange = { onToggleSelected() },
+                    modifier = Modifier.padding(top = 16.dp).size(32.dp),
+                ) {
+                    Icon(
+                        imageVector = if (isSelected) Icons.Filled.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
+                        contentDescription = "Select item",
+                    )
+                }
+            }
+
             if (showCheckbox) {
                 IconToggleButton(
                     checked = item.isChecked,
-                    onCheckedChange = onCheckedChange,
+                    onCheckedChange = { if (!isSelectionMode) onCheckedChange(it) },
                     modifier = Modifier.padding(top = 16.dp).size(32.dp),
                 ) {
                     Surface(
@@ -786,7 +921,14 @@ private fun ChecklistItemRow(
             }
 
             Column(modifier = Modifier.weight(1f)) {
-                if (hasInputFocus) {
+                if (isSelectionMode) {
+                    ChecklistReadOnlyText(
+                        text = item.content.ifBlank { stringResource(R.string.checklist_item_placeholder) },
+                        onWikiLinkClick = onWikiLinkClick,
+                        onPlainTextClick = { onToggleSelected() },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                    )
+                } else if (hasInputFocus) {
                     OutlinedTextField(
                         value = item.content,
                         onValueChange = onContentChange,

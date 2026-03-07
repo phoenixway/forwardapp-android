@@ -138,4 +138,21 @@ class ChecklistRepository
         suspend fun getItemsSnapshot(checklistId: String): List<ChecklistItemEntity> = checklistDao.getItemsForChecklistSync(checklistId)
 
         suspend fun getAllItems(): List<ChecklistItemEntity> = checklistDao.getAllChecklistItems()
+
+        suspend fun getItemsByIds(itemIds: List<String>): List<ChecklistItemEntity> {
+            if (itemIds.isEmpty()) return emptyList()
+            val byId = checklistDao.getItemsByIds(itemIds).associateBy { it.id }
+            return itemIds.mapNotNull(byId::get)
+        }
+
+        suspend fun deleteItems(itemIds: List<String>) {
+            if (itemIds.isEmpty()) return
+            val now = System.currentTimeMillis()
+            val existing = checklistDao.getItemsByIds(itemIds)
+            if (existing.isNotEmpty()) {
+                checklistDao.insertItems(existing.map { it.softDelete(now) })
+            } else {
+                checklistDao.deleteItemsByIds(itemIds)
+            }
+        }
     }

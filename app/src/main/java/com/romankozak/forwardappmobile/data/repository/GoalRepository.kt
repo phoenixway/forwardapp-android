@@ -3,6 +3,8 @@ package com.romankozak.forwardappmobile.data.repository
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
+import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
 import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
@@ -146,8 +148,20 @@ class GoalRepository
         suspend fun createGoalLinks(
             goalIds: List<String>,
             targetContextId: String,
+            sourceContextId: String? = null,
         ) {
             if (goalIds.isNotEmpty()) {
+                val sourceContextIdNormalized = sourceContextId?.takeIf { it.isNotBlank() && it != targetContextId }
+                val sourceContextLink =
+                    sourceContextIdNormalized?.let { sourceId ->
+                        val sourceName = contextDao.getContextById(sourceId)?.name?.trim().orEmpty()
+                        RelatedLink(
+                            type = LinkType.CONTEXT,
+                            target = sourceId,
+                            displayName = sourceName.ifBlank { "Контекст" },
+                        )
+                    }
+
                 val newItems =
                     goalIds.map {
                         BacklogItem(
@@ -159,6 +173,22 @@ class GoalRepository
                         )
                     }
                 listItemDao.insertItems(newItems)
+
+                if (sourceContextLink != null) {
+                    goalIds.forEach { goalId ->
+                        val goal = goalDao.getGoalById(goalId) ?: return@forEach
+                        val existingLinks = goal.relatedLinks.orEmpty()
+                        if (existingLinks.any { it.type == LinkType.CONTEXT && it.target == sourceContextLink.target }) {
+                            return@forEach
+                        }
+                        goalDao.updateGoal(
+                            goal.copy(
+                                relatedLinks = existingLinks + sourceContextLink,
+                                updatedAt = System.currentTimeMillis(),
+                            ).bumpSync(System.currentTimeMillis()),
+                        )
+                    }
+                }
             }
         }
 

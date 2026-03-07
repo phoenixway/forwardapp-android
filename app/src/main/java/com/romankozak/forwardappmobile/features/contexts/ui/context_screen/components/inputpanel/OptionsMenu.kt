@@ -75,7 +75,7 @@ internal fun OptionsMenu(
                     remember(state.currentView, state.isProjectManagementEnabled, state.activeCapabilities) {
                         listOf(
                             MenuItem(
-                                "Project Properties",
+                                "Properties",
                                 Icons.Default.Edit,
                                 {
                                     menu.onEditList()

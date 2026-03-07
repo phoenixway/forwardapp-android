@@ -591,7 +591,11 @@ class ContextScreenViewModel
                     skippedDuplicates += sourceGoalIds.size - goalIdsToLink.size
                     if (goalIdsToLink.isEmpty()) return@forEach
 
-                    goalRepository.createGoalLinks(goalIdsToLink, currentContextId)
+                    goalRepository.createGoalLinks(
+                        goalIds = goalIdsToLink,
+                        targetContextId = currentContextId,
+                        sourceContextId = linkedContextId,
+                    )
                     createdLinks += goalIdsToLink.size
                     alreadyLinkedGoalIds.addAll(goalIdsToLink)
                 }

@@ -18,6 +18,7 @@ enum class ClipboardEntityType {
     BACKLOG_ITEM,
     BACKLOG_ATTACHMENT,
     DIRECTION_ITEM,
+    CHECKLIST_ITEM,
 }
 
 sealed interface ClipboardEntityRef {
@@ -51,6 +52,12 @@ sealed interface ClipboardEntityRef {
         val directionItemId: String,
     ) : ClipboardEntityRef {
         override val type: ClipboardEntityType = ClipboardEntityType.DIRECTION_ITEM
+    }
+
+    data class ChecklistItem(
+        val checklistItemId: String,
+    ) : ClipboardEntityRef {
+        override val type: ClipboardEntityType = ClipboardEntityType.CHECKLIST_ITEM
     }
 }
 

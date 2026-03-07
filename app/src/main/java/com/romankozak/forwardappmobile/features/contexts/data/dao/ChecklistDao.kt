@@ -73,11 +73,17 @@ interface ChecklistDao {
     @Query("SELECT * FROM checklist_items WHERE id = :itemId LIMIT 1")
     suspend fun getItemById(itemId: String): ChecklistItemEntity?
 
+    @Query("SELECT * FROM checklist_items WHERE id IN (:itemIds)")
+    suspend fun getItemsByIds(itemIds: List<String>): List<ChecklistItemEntity>
+
     @Query("SELECT * FROM checklist_items WHERE checklistId = :checklistId ORDER BY itemOrder ASC, id ASC")
     fun getItemsForChecklist(checklistId: String): Flow<List<ChecklistItemEntity>>
 
     @Query("DELETE FROM checklist_items WHERE id = :itemId")
     suspend fun deleteItemById(itemId: String)
+
+    @Query("DELETE FROM checklist_items WHERE id IN (:itemIds)")
+    suspend fun deleteItemsByIds(itemIds: List<String>)
 
     @Query("DELETE FROM checklist_items WHERE checklistId = :checklistId")
     suspend fun deleteItemsByChecklistId(checklistId: String)

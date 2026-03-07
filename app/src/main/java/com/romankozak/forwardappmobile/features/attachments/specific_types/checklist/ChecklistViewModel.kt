@@ -3,13 +3,21 @@ package com.romankozak.forwardappmobile.features.attachments.specific_types.chec
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistItemEntity
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.repository.DirectionRepository
+import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.repository.ListItemRepository
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
+import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.ClipboardEntityRef
+import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.ClipboardOperation
+import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.EntityClipboardPayload
+import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.EntityClipboardService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -39,6 +47,8 @@ data class ChecklistUiState(
     val errorMessage: String? = null,
     val showUndoSnackbar: Boolean = false,
     val lastDeletedItem: ChecklistItemEntity? = null,
+    val isSelectionMode: Boolean = false,
+    val selectedItemIds: Set<String> = emptySet(),
 )
 
 @HiltViewModel
@@ -49,7 +59,11 @@ class ChecklistViewModel
         private val noteDocumentRepository: NoteDocumentRepository,
         private val musicNoteRepository: MusicNoteRepository,
         private val contextRepository: ContextRepository,
+        private val goalRepository: GoalRepository,
+        private val listItemRepository: ListItemRepository,
+        private val directionRepository: DirectionRepository,
         private val recentItemsRepository: RecentItemsRepository,
+        private val entityClipboardService: EntityClipboardService,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         companion object {
@@ -134,20 +148,25 @@ class ChecklistViewModel
                     itemsById.value = items.associateBy { it.id }
 
                     _uiState.update { state ->
+                        val uiItems =
+                            items.map { entity ->
+                                ChecklistItemUiModel(
+                                    id = entity.id,
+                                    content = entity.content,
+                                    isChecked = entity.isChecked,
+                                    order = entity.itemOrder,
+                                )
+                            }
+                        val validIds = uiItems.map { it.id }.toSet()
+                        val normalizedSelected = state.selectedItemIds.filterTo(mutableSetOf()) { it in validIds }
                         state.copy(
                             isLoading = false,
                             checklistId = checklistId,
                             title = checklist?.name ?: state.title,
-                            items =
-                                items.map { entity ->
-                                    ChecklistItemUiModel(
-                                        id = entity.id,
-                                        content = entity.content,
-                                        isChecked = entity.isChecked,
-                                        order = entity.itemOrder,
-                                    )
-                                },
+                            items = uiItems,
                             errorMessage = if (checklist == null) state.errorMessage else null,
+                            selectedItemIds = normalizedSelected,
+                            isSelectionMode = state.isSelectionMode && normalizedSelected.isNotEmpty(),
                         )
                     }
                 }
@@ -276,6 +295,298 @@ class ChecklistViewModel
             markAll(isChecked = true)
         }
 
+        fun setSelectionMode(enabled: Boolean) {
+            _uiState.update {
+                it.copy(
+                    isSelectionMode = enabled,
+                    selectedItemIds = if (enabled) it.selectedItemIds else emptySet(),
+                )
+            }
+        }
+
+        fun toggleSelectionMode() = setSelectionMode(!_uiState.value.isSelectionMode)
+
+        fun onToggleItemSelected(itemId: String) {
+            _uiState.update { state ->
+                val updated =
+                    state.selectedItemIds.toMutableSet().apply {
+                        if (!add(itemId)) remove(itemId)
+                    }
+                state.copy(
+                    isSelectionMode = updated.isNotEmpty() || state.isSelectionMode,
+                    selectedItemIds = updated,
+                )
+            }
+        }
+
+        fun onItemLongPressed(itemId: String) {
+            _uiState.update { state ->
+                state.copy(
+                    isSelectionMode = true,
+                    selectedItemIds = state.selectedItemIds + itemId,
+                )
+            }
+        }
+
+        fun onClearSelection() {
+            _uiState.update { it.copy(isSelectionMode = false, selectedItemIds = emptySet()) }
+        }
+
+        fun onSelectAllForSelectionMode() {
+            _uiState.update { state ->
+                state.copy(
+                    isSelectionMode = true,
+                    selectedItemIds = state.items.map { it.id }.toSet(),
+                )
+            }
+        }
+
+        fun copySelectedToEntityClipboard(): Int {
+            val selectedIds = selectedIdsInUiOrder()
+            if (selectedIds.isEmpty()) return 0
+            entityClipboardService.set(
+                EntityClipboardPayload(
+                    sourceContextId = currentChecklist.value?.contextId.orEmpty(),
+                    operation = ClipboardOperation.COPY,
+                    entities = selectedIds.map { ClipboardEntityRef.ChecklistItem(checklistItemId = it) },
+                ),
+            )
+            return selectedIds.size
+        }
+
+        fun cutSelectedToEntityClipboard(): Int {
+            val selectedIds = selectedIdsInUiOrder()
+            if (selectedIds.isEmpty()) return 0
+            entityClipboardService.set(
+                EntityClipboardPayload(
+                    sourceContextId = currentChecklist.value?.contextId.orEmpty(),
+                    operation = ClipboardOperation.CUT,
+                    entities = selectedIds.map { ClipboardEntityRef.ChecklistItem(checklistItemId = it) },
+                ),
+            )
+            return selectedIds.size
+        }
+
+        fun canPasteChecklistItemsFromEntityClipboard(): Boolean {
+            val payload = entityClipboardService.payload.value ?: return false
+            return payload.entities.any {
+                it is ClipboardEntityRef.ChecklistItem ||
+                    it is ClipboardEntityRef.BacklogGoal ||
+                    it is ClipboardEntityRef.BacklogItem ||
+                    it is ClipboardEntityRef.DirectionItem ||
+                    it is ClipboardEntityRef.BacklogContextLink
+            }
+        }
+
+        fun pasteChecklistItemsFromEntityClipboard(onResult: (String) -> Unit) {
+            val checklistId = checklistIdState.value
+            if (checklistId.isNullOrBlank()) {
+                onResult("Чекліст не відкрито")
+                return
+            }
+            val payload = entityClipboardService.payload.value
+            if (payload == null) {
+                onResult("Буфер порожній")
+                return
+            }
+            if (!canPasteChecklistItemsFromEntityClipboard()) {
+                onResult("У буфері немає підтримуваних елементів")
+                return
+            }
+            viewModelScope.launch {
+                val resolved = resolveChecklistPastePayload(payload, checklistId)
+                if (resolved.itemsToInsert.isEmpty() && resolved.sameChecklistItemsToMove.isEmpty()) {
+                    onResult("Немає валідних елементів для вставки")
+                    return@launch
+                }
+
+                val now = System.currentTimeMillis()
+                val maxOrder = _uiState.value.items.maxOfOrNull { it.order } ?: -1L
+                var nextOrder = maxOrder + 1L
+
+                when (payload.operation) {
+                    ClipboardOperation.COPY -> {
+                        val newItems = resolved.itemsToInsert.map { source ->
+                            ChecklistItemEntity(
+                                checklistId = checklistId,
+                                content = source.content,
+                                isChecked = false,
+                                itemOrder = nextOrder++,
+                                updatedAt = now,
+                                syncedAt = null,
+                                version = 1,
+                            )
+                        }
+                        checklistRepository.addItems(newItems)
+                        onResult("Скопійовано елементів: ${newItems.size}")
+                    }
+
+                    ClipboardOperation.CUT -> {
+                        var movedCount = 0
+
+                        if (resolved.sameChecklistItemsToMove.isNotEmpty()) {
+                            val movedItems =
+                                resolved.sameChecklistItemsToMove.map { item ->
+                                    item.copy(itemOrder = nextOrder++)
+                                }
+                            checklistRepository.updateItems(movedItems)
+                            movedCount += movedItems.size
+                        }
+
+                        if (resolved.itemsToInsert.isNotEmpty()) {
+                            val newItems = resolved.itemsToInsert.map { source ->
+                                ChecklistItemEntity(
+                                    checklistId = checklistId,
+                                    content = source.content,
+                                    isChecked = false,
+                                    itemOrder = nextOrder++,
+                                    updatedAt = now,
+                                    syncedAt = null,
+                                    version = 1,
+                                )
+                            }
+                            checklistRepository.addItems(newItems)
+                            movedCount += newItems.size
+                        }
+
+                        if (resolved.checklistItemIdsToDelete.isNotEmpty()) {
+                            checklistRepository.deleteItems(resolved.checklistItemIdsToDelete)
+                        }
+                        if (resolved.backlogItemIdsToDelete.isNotEmpty()) {
+                            listItemRepository.deleteListItems(resolved.backlogItemIdsToDelete)
+                        }
+                        if (resolved.directionItemIdsToDelete.isNotEmpty()) {
+                            directionRepository.deleteDirectionItems(resolved.directionItemIdsToDelete)
+                        }
+                        entityClipboardService.clear()
+                        onResult("Переміщено елементів: $movedCount")
+                    }
+                }
+            }
+        }
+
+        private data class ChecklistPasteSourceItem(
+            val content: String,
+            val checklistItemIdToDelete: String? = null,
+            val backlogItemIdToDelete: String? = null,
+            val directionItemIdToDelete: String? = null,
+        )
+
+        private data class ResolvedChecklistPastePayload(
+            val itemsToInsert: List<ChecklistPasteSourceItem>,
+            val sameChecklistItemsToMove: List<ChecklistItemEntity>,
+            val checklistItemIdsToDelete: List<String>,
+            val backlogItemIdsToDelete: List<String>,
+            val directionItemIdsToDelete: List<String>,
+        )
+
+        private suspend fun resolveChecklistPastePayload(
+            payload: EntityClipboardPayload,
+            targetChecklistId: String,
+        ): ResolvedChecklistPastePayload {
+            val checklistIds = payload.entities.filterIsInstance<ClipboardEntityRef.ChecklistItem>().map { it.checklistItemId }
+            val backlogGoalIds = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogGoal>().map { it.goalId }
+            val backlogItemIds = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogItem>().map { it.listItemId }
+            val directionIds = payload.entities.filterIsInstance<ClipboardEntityRef.DirectionItem>().map { it.directionItemId }
+            val contextIds = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogContextLink>().map { it.contextId }
+
+            val checklistById = checklistRepository.getItemsByIds(checklistIds).associateBy { it.id }
+            val backlogItemsById = listItemRepository.getItemsByIds(backlogItemIds).associateBy { it.id }
+            val directionById = directionRepository.getDirectionItemsByIds(directionIds).associateBy { it.id }
+
+            val goalsFromRefs = backlogGoalIds.associateWith { id -> goalRepository.getGoalById(id) }
+            val goalIdsFromBacklog = backlogItemsById.values.filter { it.itemType == BacklogItemTypeValues.GOAL }.map { it.entityId }.distinct()
+            val goalsFromBacklog = goalIdsFromBacklog.associateWith { id -> goalRepository.getGoalById(id) }
+            val contextNames = contextIds.distinct().associateWith { id -> contextRepository.getContextById(id)?.name?.trim().orEmpty() }
+            val contextNamesFromBacklog =
+                backlogItemsById.values
+                    .filter { it.itemType == BacklogItemTypeValues.SUBLIST }
+                    .map { it.entityId }
+                    .distinct()
+                    .associateWith { id -> contextRepository.getContextById(id)?.name?.trim().orEmpty() }
+
+            val sameChecklistItemsToMove = mutableListOf<ChecklistItemEntity>()
+            val itemsToInsert = mutableListOf<ChecklistPasteSourceItem>()
+
+            payload.entities.forEach { ref ->
+                when (ref) {
+                    is ClipboardEntityRef.ChecklistItem -> {
+                        val item = checklistById[ref.checklistItemId] ?: return@forEach
+                        if (payload.operation == ClipboardOperation.CUT && item.checklistId == targetChecklistId) {
+                            sameChecklistItemsToMove += item
+                        } else {
+                            itemsToInsert +=
+                                ChecklistPasteSourceItem(
+                                    content = item.content,
+                                    checklistItemIdToDelete = if (payload.operation == ClipboardOperation.CUT) item.id else null,
+                                )
+                        }
+                    }
+
+                    is ClipboardEntityRef.BacklogGoal -> {
+                        val goalText = goalsFromRefs[ref.goalId]?.text?.trim().orEmpty()
+                        if (goalText.isNotBlank()) {
+                            itemsToInsert += ChecklistPasteSourceItem(content = goalText)
+                        }
+                    }
+
+                    is ClipboardEntityRef.BacklogItem -> {
+                        val item = backlogItemsById[ref.listItemId] ?: return@forEach
+                        when (item.itemType) {
+                            BacklogItemTypeValues.GOAL -> {
+                                val goalText = goalsFromBacklog[item.entityId]?.text?.trim().orEmpty()
+                                if (goalText.isNotBlank()) {
+                                    itemsToInsert +=
+                                        ChecklistPasteSourceItem(
+                                            content = goalText,
+                                            backlogItemIdToDelete = if (payload.operation == ClipboardOperation.CUT) item.id else null,
+                                        )
+                                }
+                            }
+
+                            BacklogItemTypeValues.SUBLIST -> {
+                                val name = contextNamesFromBacklog[item.entityId].orEmpty().ifBlank { "Контекст" }
+                                itemsToInsert +=
+                                    ChecklistPasteSourceItem(
+                                        content = name,
+                                        backlogItemIdToDelete = if (payload.operation == ClipboardOperation.CUT) item.id else null,
+                                    )
+                            }
+
+                            else -> Unit
+                        }
+                    }
+
+                    is ClipboardEntityRef.DirectionItem -> {
+                        val directionItem = directionById[ref.directionItemId] ?: return@forEach
+                        val text = directionItem.text.trim()
+                        if (text.isNotBlank()) {
+                            itemsToInsert +=
+                                ChecklistPasteSourceItem(
+                                    content = text,
+                                    directionItemIdToDelete = if (payload.operation == ClipboardOperation.CUT) directionItem.id else null,
+                                )
+                        }
+                    }
+
+                    is ClipboardEntityRef.BacklogContextLink -> {
+                        val name = contextNames[ref.contextId].orEmpty().ifBlank { "Контекст" }
+                        itemsToInsert += ChecklistPasteSourceItem(content = name)
+                    }
+
+                    is ClipboardEntityRef.BacklogAttachment -> Unit
+                }
+            }
+
+            return ResolvedChecklistPastePayload(
+                itemsToInsert = itemsToInsert,
+                sameChecklistItemsToMove = sameChecklistItemsToMove,
+                checklistItemIdsToDelete = itemsToInsert.mapNotNull { it.checklistItemIdToDelete }.distinct(),
+                backlogItemIdsToDelete = itemsToInsert.mapNotNull { it.backlogItemIdToDelete }.distinct(),
+                directionItemIdsToDelete = itemsToInsert.mapNotNull { it.directionItemIdToDelete }.distinct(),
+            )
+        }
+
         fun onMarkAllCompleted() {
             markAll(isChecked = true)
         }
@@ -394,6 +705,12 @@ class ChecklistViewModel
                         }
                 }
             }
+        }
+
+        private fun selectedIdsInUiOrder(): List<String> {
+            val selected = _uiState.value.selectedItemIds
+            if (selected.isEmpty()) return emptyList()
+            return _uiState.value.items.map { it.id }.filter { it in selected }
         }
 
         fun buildMarkdownExport(): String {

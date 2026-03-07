@@ -315,7 +315,7 @@ private fun QuickCompletedActionDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Швидке додавання виконаної дії") },
+        title = { Text("Швидке додавання події") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
@@ -642,6 +642,8 @@ private fun ActivityInputBar(
     onQuickDoneClick: (String) -> Unit,
     holdMenuController: HoldMenu2Controller,
 ) {
+    var moreMenuExpanded by remember { mutableStateOf(false) }
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         tonalElevation = 3.dp,
@@ -669,7 +671,7 @@ private fun ActivityInputBar(
             val menuItems =
                 remember {
                     listOf(
-                        HoldMenuItem(label = "Завершена дія", icon = Icons.Default.CheckCircle),
+                        HoldMenuItem(label = "Події", icon = Icons.Default.CheckCircle),
                         HoldMenuItem(label = "Коментар", icon = Icons.Default.AddComment),
                     )
                 }
@@ -721,21 +723,33 @@ private fun ActivityInputBar(
                 }
             }
 
-            HoldMenu2Button(
-                items = menuItems,
-                controller = holdMenuController,
-                onSelect = onMenuSelect,
-                menuAlignment = MenuAlignment.END,
-                iconPosition = IconPosition.END,
-            ) {
-                Box(
-                    modifier = Modifier.size(40.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
+            Box {
+                IconButton(onClick = { moreMenuExpanded = true }) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
                         contentDescription = "Додаткові дії",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                DropdownMenu(
+                    expanded = moreMenuExpanded,
+                    onDismissRequest = { moreMenuExpanded = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Події") },
+                        leadingIcon = { Icon(Icons.Default.CheckCircle, contentDescription = null) },
+                        onClick = {
+                            moreMenuExpanded = false
+                            if (text.isNotBlank()) onQuickDoneClick(text)
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Коментар") },
+                        leadingIcon = { Icon(Icons.Default.AddComment, contentDescription = null) },
+                        onClick = {
+                            moreMenuExpanded = false
+                            onTimelessClick()
+                        },
                     )
                 }
             }
