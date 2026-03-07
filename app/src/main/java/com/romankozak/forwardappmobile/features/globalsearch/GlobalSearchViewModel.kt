@@ -42,6 +42,7 @@ enum class OmniboxMode {
     Command,
     QuickCatchInbox,
     StartActivity,
+    AddActivityEvent,
 }
 
 enum class OmniboxCommandId {
@@ -277,6 +278,7 @@ class GlobalSearchViewModel
                 }
                 OmniboxMode.QuickCatchInbox -> submitQuickCatch(query)
                 OmniboxMode.StartActivity -> submitStartActivity(query)
+                OmniboxMode.AddActivityEvent -> submitAddActivityEvent(query)
             }
         }
 
@@ -341,6 +343,10 @@ class GlobalSearchViewModel
 
         fun startActivityFromCurrentQuery() {
             submitStartActivity(_uiState.value.query)
+        }
+
+        fun addActivityEventFromCurrentQuery() {
+            submitAddActivityEvent(_uiState.value.query)
         }
 
         fun runBestCommandForCurrentQuery() {
@@ -434,6 +440,21 @@ class GlobalSearchViewModel
             if (text.isBlank()) return
             viewModelScope.launch {
                 activityRepository.startActivity(text, System.currentTimeMillis())
+                invalidateSearchCandidatesCache()
+                _uiState.update { it.copy(query = "") }
+                enhancedNavigationManager.navigate(target = NavTarget.Tracker)
+            }
+        }
+
+        private fun submitAddActivityEvent(rawQuery: String) {
+            val text = rawQuery.trim()
+            if (text.isBlank()) return
+            viewModelScope.launch {
+                activityRepository.addCompletedActivity(
+                    text = text,
+                    xpGained = null,
+                    antyXp = null,
+                )
                 invalidateSearchCandidatesCache()
                 _uiState.update { it.copy(query = "") }
                 enhancedNavigationManager.navigate(target = NavTarget.Tracker)
@@ -717,6 +738,7 @@ class GlobalSearchViewModel
                 '/' -> OmniboxMode.DataSearch to stripped
                 '+' -> OmniboxMode.QuickCatchInbox to stripped
                 '!' -> OmniboxMode.StartActivity to stripped
+                '=' -> OmniboxMode.AddActivityEvent to stripped
                 else -> null to rawValue
             }
         }

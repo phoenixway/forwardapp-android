@@ -116,6 +116,10 @@ fun GlobalSearchScreen(
     val currentMode = uiState.mode
     val modePalette = rememberModePalette(currentMode)
     val submitCommandIndex = selectedCommandIndex.takeIf { selectionArea == OmniboxSelectionArea.Command }
+    val submitWithKeyboardHide: () -> Unit = {
+        viewModel.onSubmitSearch(submitCommandIndex)
+        keyboardController?.hide()
+    }
     val filteredResults by remember(uiState.results, selectedTypes, selectedSort, uiState.query) {
         derivedStateOf {
             uiState.results
@@ -352,7 +356,7 @@ fun GlobalSearchScreen(
             when (currentMode) {
                 OmniboxMode.DataSearch -> 150.dp
                 OmniboxMode.Command -> 116.dp
-                OmniboxMode.QuickCatchInbox, OmniboxMode.StartActivity -> 116.dp
+                OmniboxMode.QuickCatchInbox, OmniboxMode.StartActivity, OmniboxMode.AddActivityEvent -> 116.dp
             }
         Box(
             modifier =
@@ -406,6 +410,7 @@ fun GlobalSearchScreen(
                                     onCommandClick = viewModel::onCommandClick,
                                     onQuickCatch = viewModel::quickCatchCurrentQuery,
                                     onStartActivity = viewModel::startActivityFromCurrentQuery,
+                                    onAddActivityEvent = viewModel::addActivityEventFromCurrentQuery,
                                     onRunBestCommand = viewModel::runBestCommandForCurrentQuery,
                                     modifier = Modifier.fillMaxSize(),
                                 )
@@ -446,6 +451,9 @@ fun GlobalSearchScreen(
                         Spacer(modifier = Modifier.fillMaxSize())
                     }
                     OmniboxMode.StartActivity -> {
+                        Spacer(modifier = Modifier.fillMaxSize())
+                    }
+                    OmniboxMode.AddActivityEvent -> {
                         Spacer(modifier = Modifier.fillMaxSize())
                     }
                 }
@@ -491,7 +499,12 @@ fun GlobalSearchScreen(
                             }
                         }
                     }
-                    val modeHint = inputHintForMode(currentMode)
+                    val modeHint =
+                        if (currentMode == OmniboxMode.QuickCatchInbox) {
+                            ""
+                        } else {
+                            inputHintForMode(currentMode)
+                        }
                     if (modeHint.isNotBlank()) {
                         val hintContainerColor =
                             if (currentMode == OmniboxMode.QuickCatchInbox) {
@@ -620,18 +633,21 @@ fun GlobalSearchScreen(
                                             when (currentMode) {
                                                 OmniboxMode.Command -> {
                                                     viewModel.onSubmitSearch(selectedCommandIndex)
+                                                    keyboardController?.hide()
                                                     true
                                                 }
                                                 OmniboxMode.DataSearch -> {
                                                     when (selectionArea) {
                                                         OmniboxSelectionArea.Command -> {
                                                             viewModel.onSubmitSearch(selectedCommandIndex)
+                                                            keyboardController?.hide()
                                                             true
                                                         }
                                                         OmniboxSelectionArea.Data -> {
                                                             val result = selectedDataIndex?.let { filteredResults.getOrNull(it) }
                                                             if (result != null) {
                                                                 openDataResultPrimary(result)
+                                                                keyboardController?.hide()
                                                                 true
                                                             } else {
                                                                 false
@@ -639,12 +655,14 @@ fun GlobalSearchScreen(
                                                         }
                                                         OmniboxSelectionArea.None -> {
                                                             viewModel.onSubmitSearch(selectedCommandIndex)
+                                                            keyboardController?.hide()
                                                             true
                                                         }
                                                     }
                                                 }
                                                 else -> {
                                                     viewModel.onSubmitSearch()
+                                                    keyboardController?.hide()
                                                     true
                                                 }
                                             }
@@ -721,7 +739,7 @@ fun GlobalSearchScreen(
                                         )
                                     }
                                 }
-                                IconButton(onClick = { viewModel.onSubmitSearch(submitCommandIndex) }) {
+                                IconButton(onClick = submitWithKeyboardHide) {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.Send,
                                         contentDescription = submitDescriptionForMode(currentMode),
@@ -730,7 +748,7 @@ fun GlobalSearchScreen(
                             }
                         },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(onSearch = { viewModel.onSubmitSearch(submitCommandIndex) }),
+                        keyboardActions = KeyboardActions(onSearch = { submitWithKeyboardHide() }),
                         shape = RoundedCornerShape(14.dp),
                         colors =
                             TextFieldDefaults.colors(
@@ -958,6 +976,7 @@ private fun EmptyDataSearchContent(
     onCommandClick: (OmniboxCommandId) -> Unit,
     onQuickCatch: () -> Unit,
     onStartActivity: () -> Unit,
+    onAddActivityEvent: () -> Unit,
     onRunBestCommand: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -996,6 +1015,9 @@ private fun EmptyDataSearchContent(
                     FilledTonalButton(onClick = onStartActivity, modifier = Modifier.weight(1f)) {
                         Text("В activity")
                     }
+                    FilledTonalButton(onClick = onAddActivityEvent, modifier = Modifier.weight(1f)) {
+                        Text("Подія")
+                    }
                 }
                 TextButton(onClick = onRunBestCommand, modifier = Modifier.fillMaxWidth()) {
                     Text("Виконати найкращу команду")
@@ -1011,6 +1033,7 @@ private fun modeIcon(mode: OmniboxMode): ImageVector =
         OmniboxMode.Command -> Icons.Default.Tune
         OmniboxMode.QuickCatchInbox -> Icons.Outlined.MoveToInbox
         OmniboxMode.StartActivity -> Icons.Default.History
+        OmniboxMode.AddActivityEvent -> Icons.Default.CheckCircle
     }
 
 private fun modeTitle(mode: OmniboxMode): String =
@@ -1019,6 +1042,7 @@ private fun modeTitle(mode: OmniboxMode): String =
         OmniboxMode.Command -> "Команди"
         OmniboxMode.QuickCatchInbox -> "Quick catch to inbox"
         OmniboxMode.StartActivity -> "Start record activity"
+        OmniboxMode.AddActivityEvent -> "Add tracker event"
     }
 
 @Composable
@@ -1064,6 +1088,7 @@ private fun placeholderForMode(mode: OmniboxMode): String =
         OmniboxMode.Command -> "Команда або екран (fuzzy), напр. ctx, rem, ai"
         OmniboxMode.QuickCatchInbox -> "Швидкий запис в inbox..."
         OmniboxMode.StartActivity -> "Назва нової активності..."
+        OmniboxMode.AddActivityEvent -> "Назва події трекера..."
     }
 
 private fun inputHintForMode(mode: OmniboxMode): String =
@@ -1072,6 +1097,7 @@ private fun inputHintForMode(mode: OmniboxMode): String =
         OmniboxMode.Command -> "Введи команду. ↑/↓ переміщення, Enter виконує команду"
         OmniboxMode.QuickCatchInbox -> "Введи текст і натисни пошук/Enter. Запис одразу додасться в inbox"
         OmniboxMode.StartActivity -> "Введи назву активності і натисни пошук/Enter. Буде створено новий запис"
+        OmniboxMode.AddActivityEvent -> "Введи текст події і натисни пошук/Enter. Подія додасться в трекер"
     }
 
 private fun submitDescriptionForMode(mode: OmniboxMode): String =
@@ -1080,6 +1106,7 @@ private fun submitDescriptionForMode(mode: OmniboxMode): String =
         OmniboxMode.Command -> "Виконати команду"
         OmniboxMode.QuickCatchInbox -> "Додати в inbox"
         OmniboxMode.StartActivity -> "Почати активність"
+        OmniboxMode.AddActivityEvent -> "Додати подію"
     }
 
 private fun commandIcon(commandId: OmniboxCommandId): ImageVector =
@@ -1163,6 +1190,15 @@ private fun rememberModePalette(mode: OmniboxMode): OmniboxModePalette {
                     inputFocusedContainer = scheme.primaryContainer.copy(alpha = 0.36f),
                     modeIconContainer = scheme.primaryContainer.copy(alpha = 0.54f),
                     iconTint = scheme.primary.copy(alpha = 0.9f),
+                )
+            OmniboxMode.AddActivityEvent ->
+                OmniboxModePalette(
+                    searchSurface = scheme.secondaryContainer.copy(alpha = 0.20f),
+                    screenBottomTint = scheme.secondaryContainer.copy(alpha = 0.10f),
+                    inputContainer = scheme.secondaryContainer.copy(alpha = 0.28f),
+                    inputFocusedContainer = scheme.secondaryContainer.copy(alpha = 0.36f),
+                    modeIconContainer = scheme.secondaryContainer.copy(alpha = 0.52f),
+                    iconTint = scheme.secondary.copy(alpha = 0.92f),
                 )
         }
     }

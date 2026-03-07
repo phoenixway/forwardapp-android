@@ -48,6 +48,13 @@ fun NewRecentListsSheet(
             val tabs = listOf("Недавні", "Закріплені")
             val pagerState = rememberPagerState { tabs.size }
             val coroutineScope = rememberCoroutineScope()
+            val stableRecentItems =
+                remember(recentItems) {
+                    recentItems.sortedWith(
+                        compareByDescending<RecentItem> { it.lastAccessed }
+                            .thenBy { it.id },
+                    )
+                }
 
             Column(Modifier.navigationBarsPadding()) {
                 TabRow(
@@ -68,7 +75,7 @@ fun NewRecentListsSheet(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                         page ->
-                    val items = if (page == 0) recentItems else recentItems.filter { it.isPinned }
+                    val items = if (page == 0) stableRecentItems else stableRecentItems.filter { it.isPinned }
                     RecentItemsGrid(items = items, onItemClick = onItemClick, onPinClick = onPinClick)
                 }
             }
