@@ -139,7 +139,3 @@ class ChecklistRepository
 
         suspend fun getAllItems(): List<ChecklistItemEntity> = checklistDao.getAllChecklistItems()
     }
-
-private fun ChecklistEntity.bumpSync() {
-    TODO("Not yet implemented")
-}

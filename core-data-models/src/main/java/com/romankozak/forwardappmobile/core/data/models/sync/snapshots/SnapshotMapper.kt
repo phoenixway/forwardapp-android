@@ -7,11 +7,14 @@ import com.romankozak.forwardappmobile.core.data.models.entities.BacklogOrder
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextInboxSortingEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextKeyProblemsEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfileItem
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
 import com.romankozak.forwardappmobile.core.data.models.entities.DirectionItemEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.FocusContextIntervalEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.LifeSystemStateEntity
@@ -24,6 +27,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.data.models.entities.ScriptEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.SystemAppEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.UserStateIntervalEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.AiEventEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.AiInsightEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.ChatMessageEntity
@@ -59,6 +63,8 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachmen
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.BacklogItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.BacklogOrderSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextConfigurationSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextInboxSortingSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextKeyProblemsSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextLogSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextRoleProfileItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextRoleProfileSnapshot
@@ -74,7 +80,9 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_manag
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.RecurrenceRuleSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.RecurringTaskSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.LifeSystemStateSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.FocusContextIntervalSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.RecentProjectEntrySnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.UserStateIntervalSnapshot
 import java.time.DayOfWeek
 
 // Context Related Mappings
@@ -119,6 +127,28 @@ fun DirectionItemSnapshot.toEntity(): DirectionItemEntity =
         isDeleted = isDeleted,
         version = version,
     )
+
+fun LegacyNoteEntity.toSnapshot(): LegacyNoteSnapshot = LegacyNoteSnapshot(
+    id = id,
+    contextId = contextId,
+    title = title,
+    content = content,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    isDeleted = isDeleted,
+    version = version,
+)
+
+fun LegacyNoteSnapshot.toEntity(): LegacyNoteEntity = LegacyNoteEntity(
+    id = id,
+    contextId = contextId,
+    title = title,
+    content = content,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    isDeleted = isDeleted,
+    version = version,
+)
 
 fun ContextArtifact.toSnapshot(): ContextArtifactSnapshot = ContextArtifactSnapshot(id, contextId, content, createdAt, updatedAt)
 fun ContextArtifactSnapshot.toEntity(): ContextArtifact =
@@ -377,4 +407,72 @@ fun ActivityRecordSnapshot.toEntity(): ActivityRecord = ActivityRecord(
     contextId = this.contextId,
     xpGained = this.xpGained,
     antyXp = this.antyXp
+)
+
+fun ContextInboxSortingEntity.toSnapshot(): ContextInboxSortingSnapshot = ContextInboxSortingSnapshot(
+    contextId = contextId,
+    rulesText = rulesText,
+    updatedAt = updatedAt,
+)
+
+fun ContextInboxSortingSnapshot.toEntity(): ContextInboxSortingEntity = ContextInboxSortingEntity(
+    contextId = contextId,
+    rulesText = rulesText,
+    updatedAt = updatedAt,
+)
+
+fun ContextKeyProblemsEntity.toSnapshot(): ContextKeyProblemsSnapshot = ContextKeyProblemsSnapshot(
+    contextId = contextId,
+    payloadJson = payloadJson,
+    updatedAt = updatedAt,
+)
+
+fun ContextKeyProblemsSnapshot.toEntity(): ContextKeyProblemsEntity = ContextKeyProblemsEntity(
+    contextId = contextId,
+    payloadJson = payloadJson,
+    updatedAt = updatedAt,
+)
+
+fun FocusContextIntervalEntity.toSnapshot(): FocusContextIntervalSnapshot = FocusContextIntervalSnapshot(
+    id = id,
+    contextId = contextId,
+    scope = scope,
+    priority = priority,
+    source = source,
+    createdFromActivityId = createdFromActivityId,
+    startedAt = startedAt,
+    endedAt = endedAt,
+)
+
+fun FocusContextIntervalSnapshot.toEntity(): FocusContextIntervalEntity = FocusContextIntervalEntity(
+    id = id,
+    contextId = contextId,
+    scope = scope,
+    priority = priority,
+    source = source,
+    createdFromActivityId = createdFromActivityId,
+    startedAt = startedAt,
+    endedAt = endedAt,
+)
+
+fun UserStateIntervalEntity.toSnapshot(): UserStateIntervalSnapshot = UserStateIntervalSnapshot(
+    id = id,
+    stateType = stateType,
+    crisisLevel = crisisLevel,
+    label = label,
+    source = source,
+    createdFromActivityId = createdFromActivityId,
+    startedAt = startedAt,
+    endedAt = endedAt,
+)
+
+fun UserStateIntervalSnapshot.toEntity(): UserStateIntervalEntity = UserStateIntervalEntity(
+    id = id,
+    stateType = stateType,
+    crisisLevel = crisisLevel,
+    label = label,
+    source = source,
+    createdFromActivityId = createdFromActivityId,
+    startedAt = startedAt,
+    endedAt = endedAt,
 )

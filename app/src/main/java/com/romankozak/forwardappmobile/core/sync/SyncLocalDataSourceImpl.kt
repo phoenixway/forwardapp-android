@@ -55,6 +55,10 @@ class SyncLocalDataSourceImpl
         private val structurePresetDao: StructurePresetDao,
         private val structurePresetItemDao: StructurePresetItemDao,
         private val contextStructureDao: ContextStructureDao,
+        private val contextInboxSortingDao: ContextInboxSortingDao,
+        private val contextKeyProblemsDao: ContextKeyProblemsDao,
+        private val focusContextIntervalDao: FocusContextIntervalDao,
+        private val userStateIntervalDao: UserStateIntervalDao,
     ) : SyncLocalDataSource {
         override suspend fun loadLocalDatabaseContent(): DatabaseContent {
             val recentProjectEntries =
@@ -84,6 +88,29 @@ class SyncLocalDataSourceImpl
                 scripts = scripts,
                 attachments = attachmentDao.getAll(),
                 contextAttachmentCrossRefs = attachmentDao.getAllContextAttachmentCrossRefs(),
+                dayPlans = dayPlanDao.getAllPlansSync(),
+                dayTasks = dayTaskDao.getAllTasksSync(),
+                dailyMetrics = dailyMetricDao.getAll(),
+                conversations = chatDao.getAllConversationsSync(),
+                chatMessages = chatDao.getAllMessagesSync(),
+                conversationFolders = conversationFolderDao.getAllSync(),
+                reminders = reminderDao.getAllRemindersSync(),
+                recurringTasks = recurringTaskDao.getAll(),
+                contextArtifacts = contextArtifactDao.getAllRaw(),
+                tacticalMissions = tacticalMissionDao.getAllMissionsSync(),
+                tacticalMissionAttachments = tacticalMissionDao.getAllMissionAttachmentCrossRefs(),
+                systemApps = systemAppDao.getAllRaw(),
+                aiEvents = aiEventDao.getAllSync(),
+                aiInsights = aiInsightDao.getAllSync(),
+                lifeSystemStates = lifeSystemStateDao.getAllSync(),
+                contextRoleProfiles = structurePresetDao.getAllSync(),
+                contextRoleProfileItems = structurePresetItemDao.getAllSync(),
+                contextConfigurations = contextStructureDao.getAllSync(),
+                projectStructureItems = contextStructureDao.getAllItemsSync(),
+                contextInboxSortingRules = contextInboxSortingDao.getAllRaw(),
+                contextKeyProblems = contextKeyProblemsDao.getAllRaw(),
+                focusContextIntervals = focusContextIntervalDao.getAllRaw(),
+                userStateIntervals = userStateIntervalDao.getAllRaw(),
             )
         }
 
@@ -223,6 +250,29 @@ class SyncLocalDataSourceImpl
                     local.contextAttachmentCrossRefs.filter {
                         logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted })
                     },
+                contextInboxSortingRules = local.contextInboxSortingRules,
+                contextKeyProblems = local.contextKeyProblems,
+                focusContextIntervals = local.focusContextIntervals,
+                userStateIntervals = local.userStateIntervals,
+                dayPlans = local.dayPlans,
+                dayTasks = local.dayTasks,
+                dailyMetrics = local.dailyMetrics,
+                conversations = local.conversations,
+                chatMessages = local.chatMessages,
+                conversationFolders = local.conversationFolders,
+                reminders = local.reminders,
+                recurringTasks = local.recurringTasks,
+                systemApps = local.systemApps,
+                contextArtifacts = local.contextArtifacts,
+                tacticalMissions = local.tacticalMissions,
+                tacticalMissionAttachments = local.tacticalMissionAttachments,
+                aiEvents = local.aiEvents,
+                aiInsights = local.aiInsights,
+                lifeSystemStates = local.lifeSystemStates,
+                contextRoleProfiles = local.contextRoleProfiles,
+                contextRoleProfileItems = local.contextRoleProfileItems,
+                contextConfigurations = local.contextConfigurations,
+                projectStructureItems = local.projectStructureItems,
             )
         }
 
@@ -238,6 +288,29 @@ class SyncLocalDataSourceImpl
                 contextAttachmentCrossRefs = local.contextAttachmentCrossRefs.filter { it.updatedTs() > since },
                 directionItems = local.directionItems.filter { it.updatedTs() > since },
                 scripts = local.scripts.filter { it.updatedTs() > since },
+                contextInboxSortingRules = local.contextInboxSortingRules.filter { it.updatedAt > since },
+                contextKeyProblems = local.contextKeyProblems.filter { it.updatedAt > since },
+                focusContextIntervals = local.focusContextIntervals.filter { it.startedAt > since || (it.endedAt ?: 0L) > since },
+                userStateIntervals = local.userStateIntervals.filter { it.startedAt > since || (it.endedAt ?: 0L) > since },
+                dayPlans = local.dayPlans.filter { (it.updatedAt ?: it.createdAt) > since },
+                dayTasks = local.dayTasks.filter { (it.updatedAt ?: it.createdAt) > since },
+                dailyMetrics = local.dailyMetrics.filter { (it.updatedAt ?: it.createdAt) > since },
+                conversations = local.conversations.filter { it.creationTimestamp > since },
+                chatMessages = local.chatMessages.filter { it.timestamp > since },
+                conversationFolders = local.conversationFolders,
+                reminders = local.reminders.filter { (it.updatedAt ?: it.creationTime) > since },
+                recurringTasks = local.recurringTasks.filter { it.startDate > since || (it.endDate ?: 0L) > since },
+                contextArtifacts = local.contextArtifacts.filter { (it.updatedAt ?: it.createdAt) > since },
+                tacticalMissions = local.tacticalMissions.filter { (it.startTime ?: 0L) > since || it.deadline > since },
+                tacticalMissionAttachments = local.tacticalMissionAttachments,
+                systemApps = local.systemApps.filter { (it.updatedAt ?: it.createdAt) > since },
+                aiEvents = local.aiEvents.filter { it.timestamp > since },
+                aiInsights = local.aiInsights.filter { it.timestamp > since },
+                lifeSystemStates = local.lifeSystemStates.filter { it.updatedAt > since },
+                contextRoleProfiles = local.contextRoleProfiles.filter { it.updatedAt > since },
+                contextRoleProfileItems = local.contextRoleProfileItems.filter { it.updatedAt > since },
+                contextConfigurations = local.contextConfigurations.filter { it.updatedAt > since },
+                projectStructureItems = local.projectStructureItems.filter { it.updatedAt > since },
             )
         }
 
@@ -302,6 +375,10 @@ class SyncLocalDataSourceImpl
                 structurePresetDao.deleteAll()
                 contextStructureDao.deleteAllItems()
                 contextStructureDao.deleteAllStructures()
+                contextInboxSortingDao.deleteAll()
+                contextKeyProblemsDao.deleteAll()
+                focusContextIntervalDao.deleteAll()
+                userStateIntervalDao.deleteAll()
                 systemAppDao.deleteAll()
                 recentItemDao.deleteAll()
                 scriptDao.deleteAll()

@@ -57,4 +57,13 @@ interface UserStateIntervalDao {
         """,
     )
     suspend fun getActiveAt(atMillis: Long): UserStateIntervalEntity?
+
+    @Query("SELECT * FROM user_state_intervals")
+    suspend fun getAllRaw(): List<UserStateIntervalEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(intervals: List<UserStateIntervalEntity>)
+
+    @Query("DELETE FROM user_state_intervals")
+    suspend fun deleteAll()
 }

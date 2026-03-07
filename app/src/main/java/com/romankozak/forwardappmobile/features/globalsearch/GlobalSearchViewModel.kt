@@ -91,6 +91,7 @@ class GlobalSearchViewModel
             private const val MAX_SEARCH_HISTORY = 12
             private const val MAX_COMMAND_HISTORY = 12
             private const val MAX_USAGE_ITEMS = 200
+            private const val SEARCH_CANDIDATES_CACHE_TTL_MS = 15_000L
         }
 
         private val commandDefinitions =
@@ -193,6 +194,7 @@ class GlobalSearchViewModel
         val uiState: StateFlow<GlobalSearchUiState> = _uiState.asStateFlow()
         private var searchJob: Job? = null
         private var allSearchCandidatesCache: List<GlobalSearchResultItem>? = null
+        private var allSearchCandidatesCacheUpdatedAt: Long = 0L
 
         lateinit var enhancedNavigationManager: EnhancedNavigationManager
 
@@ -422,6 +424,7 @@ class GlobalSearchViewModel
             viewModelScope.launch {
                 val inboxContextId = resolveInboxContextId() ?: return@launch
                 inboxRepository.addInboxRecord(text = text, contextId = inboxContextId)
+                invalidateSearchCandidatesCache()
                 _uiState.update { it.copy(query = "") }
             }
         }
@@ -431,6 +434,7 @@ class GlobalSearchViewModel
             if (text.isBlank()) return
             viewModelScope.launch {
                 activityRepository.startActivity(text, System.currentTimeMillis())
+                invalidateSearchCandidatesCache()
                 _uiState.update { it.copy(query = "") }
                 enhancedNavigationManager.navigate(target = NavTarget.Tracker)
             }
@@ -614,10 +618,21 @@ class GlobalSearchViewModel
         }
 
         private suspend fun getAllSearchCandidatesForFuzzy(): List<GlobalSearchResultItem> {
-            allSearchCandidatesCache?.let { return it }
+            val now = System.currentTimeMillis()
+            allSearchCandidatesCache?.let { cached ->
+                if (now - allSearchCandidatesCacheUpdatedAt <= SEARCH_CANDIDATES_CACHE_TTL_MS) {
+                    return cached
+                }
+            }
             val allCandidates = contextRepository.searchGlobal("%%").distinctBy { it.uniqueId }
             allSearchCandidatesCache = allCandidates
+            allSearchCandidatesCacheUpdatedAt = now
             return allCandidates
+        }
+
+        private fun invalidateSearchCandidatesCache() {
+            allSearchCandidatesCache = null
+            allSearchCandidatesCacheUpdatedAt = 0L
         }
 
         private fun fuzzyScoreForData(

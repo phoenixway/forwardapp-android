@@ -50,7 +50,11 @@ class LegacyMigrationMapper @Inject constructor() {
             contextRoleProfiles = databaseContent.contextRoleProfiles.map { it.toSnapshot() },
             contextRoleProfileItems = databaseContent.contextRoleProfileItems.map { it.toSnapshot() },
             contextConfigurations = databaseContent.contextConfigurations.map { it.toSnapshot() },
-            projectStructureItems = databaseContent.projectStructureItems.map { it.toSnapshot() }
+            projectStructureItems = databaseContent.projectStructureItems.map { it.toSnapshot() },
+            contextInboxSortingRules = databaseContent.contextInboxSortingRules.map { it.toSnapshot() },
+            contextKeyProblems = databaseContent.contextKeyProblems.map { it.toSnapshot() },
+            focusContextIntervals = databaseContent.focusContextIntervals.map { it.toSnapshot() },
+            userStateIntervals = databaseContent.userStateIntervals.map { it.toSnapshot() },
         )
     }
 }

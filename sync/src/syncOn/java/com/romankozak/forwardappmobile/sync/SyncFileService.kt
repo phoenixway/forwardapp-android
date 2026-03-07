@@ -204,12 +204,20 @@ class SyncFileService @Inject constructor(
         return bundle.contexts.isEmpty() &&
             bundle.goals.isEmpty() &&
             bundle.backlogItems.isEmpty() &&
+            bundle.notes.isEmpty() &&
             bundle.documents.isEmpty() &&
+            bundle.musicNotes.isEmpty() &&
             bundle.checklists.isEmpty() &&
             bundle.attachments.isEmpty() &&
+            bundle.crossRefs.isEmpty() &&
             bundle.inbox.isEmpty() &&
             bundle.logs.isEmpty() &&
-            bundle.directionItems.isEmpty()
+            bundle.directionItems.isEmpty() &&
+            bundle.activityRecords.isEmpty() &&
+            bundle.contextInboxSortingRules.isEmpty() &&
+            bundle.contextKeyProblems.isEmpty() &&
+            bundle.focusContextIntervals.isEmpty() &&
+            bundle.userStateIntervals.isEmpty()
     }
 
     private fun sanitizeIncomingBackupJson(rawJson: String): String {

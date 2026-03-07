@@ -23,6 +23,8 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.B
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.BacklogOrderSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextConfigurationSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextLogSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextInboxSortingSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextKeyProblemsSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextRoleProfileItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextRoleProfileSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextSnapshot
@@ -36,8 +38,10 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_manag
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayPlanSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayTaskSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.RecurringTaskSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.FocusContextIntervalSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.LifeSystemStateSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.RecentProjectEntrySnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.UserStateIntervalSnapshot
 
 
 /**
@@ -88,4 +92,8 @@ data class SnapshotBundle(
     @SerializedName("contextRoleProfileItems") val contextRoleProfileItems: List<ContextRoleProfileItemSnapshot> = emptyList(),
     @SerializedName("contextConfigurations") val contextConfigurations: List<ContextConfigurationSnapshot> = emptyList(),
     @SerializedName("projectStructureItems") val projectStructureItems: List<ContextStructureItemSnapshot> = emptyList(),
+    @SerializedName("contextInboxSortingRules") val contextInboxSortingRules: List<ContextInboxSortingSnapshot> = emptyList(),
+    @SerializedName("contextKeyProblems") val contextKeyProblems: List<ContextKeyProblemsSnapshot> = emptyList(),
+    @SerializedName("focusContextIntervals") val focusContextIntervals: List<FocusContextIntervalSnapshot> = emptyList(),
+    @SerializedName("userStateIntervals") val userStateIntervals: List<UserStateIntervalSnapshot> = emptyList(),
 )

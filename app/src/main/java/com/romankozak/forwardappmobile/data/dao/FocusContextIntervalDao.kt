@@ -62,4 +62,13 @@ interface FocusContextIntervalDao {
         contextId: String,
         scope: String = FocusContextIntervalEntity.SCOPE_GLOBAL,
     )
+
+    @Query("SELECT * FROM focus_context_intervals")
+    suspend fun getAllRaw(): List<FocusContextIntervalEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(intervals: List<FocusContextIntervalEntity>)
+
+    @Query("DELETE FROM focus_context_intervals")
+    suspend fun deleteAll()
 }

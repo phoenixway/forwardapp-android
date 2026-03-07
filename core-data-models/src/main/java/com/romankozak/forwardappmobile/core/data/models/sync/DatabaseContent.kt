@@ -11,11 +11,14 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextInboxSortingEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextKeyProblemsEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfileItem
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
 import com.romankozak.forwardappmobile.core.data.models.entities.DirectionItemEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.FocusContextIntervalEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
@@ -26,6 +29,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEnt
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.data.models.entities.ScriptEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.SystemAppEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.UserStateIntervalEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.AiEventEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.AiInsightEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.ChatMessageEntity
@@ -116,4 +120,12 @@ data class DatabaseContent(
     val contextConfigurations: List<ContextConfiguration> = emptyList(),
     @SerializedName("projectStructureItems")
     val projectStructureItems: List<ContextStructureItem> = emptyList(),
+    @SerializedName("contextInboxSortingRules")
+    val contextInboxSortingRules: List<ContextInboxSortingEntity> = emptyList(),
+    @SerializedName("contextKeyProblems")
+    val contextKeyProblems: List<ContextKeyProblemsEntity> = emptyList(),
+    @SerializedName("focusContextIntervals")
+    val focusContextIntervals: List<FocusContextIntervalEntity> = emptyList(),
+    @SerializedName("userStateIntervals")
+    val userStateIntervals: List<UserStateIntervalEntity> = emptyList(),
 )

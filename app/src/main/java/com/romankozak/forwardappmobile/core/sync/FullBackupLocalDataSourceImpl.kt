@@ -35,6 +35,7 @@ class FullBackupLocalDataSourceImpl
         private val listItemDao: ListItemDao,
         private val noteDocumentDao: NoteDocumentDao,
         private val musicNoteDao: MusicNoteDao,
+        private val legacyNoteDao: LegacyNoteDao,
         private val checklistDao: ChecklistDao,
         private val attachmentDao: AttachmentDao,
         private val recentItemDao: RecentItemDao,
@@ -64,6 +65,10 @@ class FullBackupLocalDataSourceImpl
         private val structurePresetItemDao: StructurePresetItemDao,
         private val contextStructureDao: ContextStructureDao,
         private val directionDao: DirectionDao,
+        private val contextInboxSortingDao: ContextInboxSortingDao,
+        private val contextKeyProblemsDao: ContextKeyProblemsDao,
+        private val focusContextIntervalDao: FocusContextIntervalDao,
+        private val userStateIntervalDao: UserStateIntervalDao,
     ) : FullBackupLocalDataSource {
         override suspend fun loadFullSnapshotBundle(): SnapshotBundle {
             Log.d("SyncV2", "Starting export to SnapshotBundle V2")
@@ -82,6 +87,7 @@ class FullBackupLocalDataSourceImpl
                 // Knowledge Base
                 documents = noteDocumentDao.getAllDocumentsRaw().map { it.toSnapshot() },
                 musicNotes = musicNoteDao.getAll().map { it.toSnapshot() },
+                notes = legacyNoteDao.getAllRaw().map { it.toSnapshot() },
                 checklists = checklistDao.getAllChecklistsRaw().map { it.toSnapshot() },
                 checklistItems = checklistDao.getAllChecklistItemsRaw().map { it.toSnapshot() },
                 scripts = scriptDao.getAllRaw().map { it.toSnapshot() },
@@ -114,6 +120,10 @@ class FullBackupLocalDataSourceImpl
                 contextConfigurations = contextStructureDao.getAllSync().map { it.toSnapshot() },
                 // В ContextStructureDao є метод для отримання айтемів
                 projectStructureItems = contextStructureDao.getAllItemsSync().map { it.toSnapshot() },
+                contextInboxSortingRules = contextInboxSortingDao.getAllRaw().map { it.toSnapshot() },
+                contextKeyProblems = contextKeyProblemsDao.getAllRaw().map { it.toSnapshot() },
+                focusContextIntervals = focusContextIntervalDao.getAllRaw().map { it.toSnapshot() },
+                userStateIntervals = userStateIntervalDao.getAllRaw().map { it.toSnapshot() },
             )
         }
 
@@ -161,6 +171,9 @@ class FullBackupLocalDataSourceImpl
 
             Log.d("SyncV2", "Inserting MusicNotes: ${bundle.musicNotes.size}")
             musicNoteDao.insertAll(bundle.musicNotes.map { it.toEntity() })
+
+            Log.d("SyncV2", "Inserting LegacyNotes: ${bundle.notes.size}")
+            legacyNoteDao.insertAll(bundle.notes.map { it.toEntity() })
 
             Log.d("SyncV2", "Inserting Scripts: ${bundle.scripts.size}")
             scriptDao.insertAll(bundle.scripts.map { it.toEntity() })
@@ -222,6 +235,18 @@ class FullBackupLocalDataSourceImpl
 
             Log.d("SyncV2", "Inserting ProjectStructureItems: ${bundle.projectStructureItems.size}")
             contextStructureDao.insertAllItems(bundle.projectStructureItems.map { it.toEntity() }) // Depends on ContextConfiguration
+
+            Log.d("SyncV2", "Inserting ContextInboxSorting: ${bundle.contextInboxSortingRules.size}")
+            contextInboxSortingDao.insertAll(bundle.contextInboxSortingRules.map { it.toEntity() }) // Depends on Context
+
+            Log.d("SyncV2", "Inserting ContextKeyProblems: ${bundle.contextKeyProblems.size}")
+            contextKeyProblemsDao.insertAll(bundle.contextKeyProblems.map { it.toEntity() }) // Depends on Context
+
+            Log.d("SyncV2", "Inserting FocusContextIntervals: ${bundle.focusContextIntervals.size}")
+            focusContextIntervalDao.insertAll(bundle.focusContextIntervals.map { it.toEntity() })
+
+            Log.d("SyncV2", "Inserting UserStateIntervals: ${bundle.userStateIntervals.size}")
+            userStateIntervalDao.insertAll(bundle.userStateIntervals.map { it.toEntity() })
 
             Log.d("SyncV2", "Inserting ActivityRecords: ${bundle.activityRecords.size}")
             activityRecordDao.insertAll(bundle.activityRecords.map { it.toEntity() }) // Depends on Context
@@ -317,14 +342,50 @@ class FullBackupLocalDataSourceImpl
             return DatabaseContent(
                 projects = contextDao.getAll(),
                 goals = goalDao.getAll(),
+                backlogItems = backlogItemDao.getAllRaw(),
+                backlogOrders = backlogOrderDao.getAllRaw(),
+                legacyNotes = legacyNoteDao.getAllRaw(),
                 documents = noteDocumentDao.getAllDocuments(),
                 musicNotes = musicNoteDao.getAll(),
                 checklists = checklistDao.getAllChecklistsRaw(),
                 checklistItems = checklistDao.getAllChecklistItemsRaw(),
+                scripts = scriptDao.getAllRaw(),
+                attachments = attachmentDao.getAllRaw(),
+                contextAttachmentCrossRefs = attachmentDao.getAllContextAttachmentCrossRefsRaw(),
                 directionItems = directionDao.getAllRaw(),
                 activityRecords = activityRecordDao.getAllRaw(),
                 inboxRecords = inboxRecordDao.getAllRaw(),
+                contextLogs = contextLogDao.getAllLogs(),
+                recentProjectEntries = recentItemDao.getAllSync().map {
+                    com.romankozak.forwardappmobile.core.data.models.sync.RecentProjectEntry(
+                        contextId = it.target,
+                        timestamp = it.lastAccessed,
+                    )
+                },
+                linkItemEntities = linkItemDao.getAllRaw(),
+                dayPlans = dayPlanDao.getAllPlansSync(),
+                dayTasks = dayTaskDao.getAllTasksSync(),
+                dailyMetrics = dailyMetricDao.getAll(),
+                conversations = chatDao.getAllConversationsSync(),
+                chatMessages = chatDao.getAllMessagesSync(),
+                conversationFolders = conversationFolderDao.getAllSync(),
+                reminders = reminderDao.getAllRemindersSync(),
+                recurringTasks = recurringTaskDao.getAll(),
+                systemApps = systemAppDao.getAllRaw(),
+                contextArtifacts = contextArtifactDao.getAllRaw(),
                 tacticalMissions = tacticalMissionDao.getAllMissionsSync(),
+                tacticalMissionAttachments = tacticalMissionDao.getAllMissionAttachmentCrossRefs(),
+                aiEvents = aiEventDao.getAllSync(),
+                aiInsights = aiInsightDao.getAllSync(),
+                lifeSystemStates = lifeSystemStateDao.getAllSync(),
+                contextRoleProfiles = structurePresetDao.getAllSync(),
+                contextRoleProfileItems = structurePresetItemDao.getAllSync(),
+                contextConfigurations = contextStructureDao.getAllSync(),
+                projectStructureItems = contextStructureDao.getAllItemsSync(),
+                contextInboxSortingRules = contextInboxSortingDao.getAllRaw(),
+                contextKeyProblems = contextKeyProblemsDao.getAllRaw(),
+                focusContextIntervals = focusContextIntervalDao.getAllRaw(),
+                userStateIntervals = userStateIntervalDao.getAllRaw(),
             )
         }
 

@@ -49,15 +49,40 @@ object SyncMapper {
             backlogItems = legacy.backlogItems.map { it.toSnapshot() },
             backlogOrders = legacy.backlogOrders.map { it.toSnapshot() },
             directionItems = legacy.directionItems.map { it.toSnapshot() },
+            notes = legacy.legacyNotes.map { it.toSnapshot() },
             documents = legacy.documents.map { it.toSnapshot() },
             musicNotes = legacy.musicNotes.map { it.toSnapshot() },
             checklists = legacy.checklists.map { it.toSnapshot() },
             checklistItems = legacy.checklistItems.map { it.toSnapshot() },
-            activityRecords = legacy.activityRecords.map { it.toSnapshot() },
+            artifacts = legacy.contextArtifacts.map { it.toSnapshot() },
+            scripts = legacy.scripts.map { it.toSnapshot() },
             inbox = legacy.inboxRecords.map { it.toSnapshot() },
-            tacticalMissions = legacy.tacticalMissions.map { it.toSnapshot() },
+            logs = legacy.contextLogs.map { it.toSnapshot() },
+            systemApps = legacy.systemApps.map { it.toSnapshot() },
+            activityRecords = legacy.activityRecords.map { it.toSnapshot() },
+            recentProjectEntries = legacy.recentProjectEntries.map { it.toSnapshot() },
+            linkItemEntities = legacy.linkItemEntities.map { it.toSnapshot() },
             dayPlans = legacy.dayPlans.map { it.toSnapshot() },
-            dayTasks = legacy.dayTasks.map { it.toSnapshot() }
+            dayTasks = legacy.dayTasks.map { it.toSnapshot() },
+            dailyMetrics = legacy.dailyMetrics.map { it.toSnapshot() },
+            conversations = legacy.conversations.map { it.toSnapshot() },
+            chatMessages = legacy.chatMessages.map { it.toSnapshot() },
+            conversationFolders = legacy.conversationFolders.map { it.toSnapshot() },
+            reminders = legacy.reminders.map { it.toSnapshot() },
+            recurringTasks = legacy.recurringTasks.map { it.toSnapshot() },
+            tacticalMissions = legacy.tacticalMissions.map { it.toSnapshot() },
+            tacticalMissionAttachments = legacy.tacticalMissionAttachments.map { it.toSnapshot() },
+            aiEvents = legacy.aiEvents.map { it.toSnapshot() },
+            aiInsights = legacy.aiInsights.map { it.toSnapshot() },
+            lifeSystemStates = legacy.lifeSystemStates.map { it.toSnapshot() },
+            contextRoleProfiles = legacy.contextRoleProfiles.map { it.toSnapshot() },
+            contextRoleProfileItems = legacy.contextRoleProfileItems.map { it.toSnapshot() },
+            contextConfigurations = legacy.contextConfigurations.map { it.toSnapshot() },
+            projectStructureItems = legacy.projectStructureItems.map { it.toSnapshot() },
+            contextInboxSortingRules = legacy.contextInboxSortingRules.map { it.toSnapshot() },
+            contextKeyProblems = legacy.contextKeyProblems.map { it.toSnapshot() },
+            focusContextIntervals = legacy.focusContextIntervals.map { it.toSnapshot() },
+            userStateIntervals = legacy.userStateIntervals.map { it.toSnapshot() },
         )
 
         val autoAttachments = mutableListOf<AttachmentSnapshot>()
@@ -148,9 +173,11 @@ object SyncMapper {
             }
         }
 
+        val migratedAttachments = legacy.attachments.map { it.toSnapshot() }
+        val migratedCrossRefs = legacy.contextAttachmentCrossRefs.map { it.toSnapshot() }
         return bundle.copy(
-            attachments = autoAttachments,
-            crossRefs = autoCrossRefs
+            attachments = (migratedAttachments + autoAttachments).distinctBy { it.id },
+            crossRefs = (migratedCrossRefs + autoCrossRefs).distinctBy { "${it.contextId}-${it.attachmentId}" },
         )
     }
 

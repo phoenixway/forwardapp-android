@@ -53,62 +53,7 @@ class MergeRepository @Inject constructor(
     }
 
     suspend fun applyServerChanges(changes: DatabaseContent): Result<Unit> {
-        val ts = System.currentTimeMillis()
-        return try {
-            val local = mergeLocalDataSource.getLocalDatabaseContent()
-            val allProjectIds = local.projects.map { it.id }.toSet()
-
-            // Мапінг для системних проектів (Inbox, Archive тощо), щоб не дублювати їх
-            val idRedirects = mutableMapOf<String, String>()
-
-            val mergedContexts = logicHelper.mergeAndMark(
-                incoming = changes.projects.map { SyncMapper.normalizeProject(it) },
-                localMap = local.projects.associateBy { it.id },
-                idSelector = { it.id },
-                versionSelector = { it.version },
-                updatedSelector = { it.updatedAt ?: it.createdAt },
-                markSynced = { p, s -> p.copy(syncedAt = s) },
-                syncedAt = ts,
-                isDeletedSelector = { it.isDeleted }
-            )
-            if (mergedContexts.isNotEmpty()) mergeLocalDataSource.insertContexts(mergedContexts)
-
-            val mergedGoals = logicHelper.mergeAndMark(
-                incoming = changes.goals.map { SyncMapper.normalizeGoal(it) },
-                localMap = local.goals.associateBy { it.id },
-                idSelector = { it.id },
-                versionSelector = { it.version },
-                updatedSelector = { it.updatedAt ?: it.createdAt },
-                markSynced = { g, s -> g.copy(syncedAt = s) },
-                syncedAt = ts,
-                isDeletedSelector = { it.isDeleted }
-            )
-            if (mergedGoals.isNotEmpty()) mergeLocalDataSource.insertGoals(mergedGoals)
-
-            // Обробка вкладень
-            val incomingAttachments = logicHelper.mergeAndMark(
-                incoming = changes.attachments,
-                localMap = local.attachments.associateBy { it.id },
-                idSelector = { it.id },
-                versionSelector = { it.version },
-                updatedSelector = { it.updatedAt },
-                markSynced = { at, s -> at.copy(syncedAt = s) },
-                syncedAt = ts
-            )
-            mergeLocalDataSource.insertAttachments(incomingAttachments)
-
-            // Обробка зв'язків
-            val synthesizedRefs = logicHelper.synthesizeMissingCrossRefs(changes.attachments, changes.contextAttachmentCrossRefs)
-            mergeLocalDataSource.insertContextAttachmentLinks(synthesizedRefs.map { it.copy(syncedAt = ts) })
-
-            // Обробка елементів списків (дедуплікація)
-            mergeLocalDataSource.insertListItems(logicHelper.dedupListItems(changes.backlogItems))
-
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to apply server changes", e)
-            Result.failure(e)
-        }
+        return applyServerChanges(LegacyMigrationMapper().toSnapshotBundle(changes))
     }
 
     suspend fun createBackupDiff(incoming: DatabaseContent): LegacyBackupDiff {

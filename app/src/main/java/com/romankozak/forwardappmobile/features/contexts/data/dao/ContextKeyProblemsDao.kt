@@ -17,4 +17,13 @@ interface ContextKeyProblemsDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: ContextKeyProblemsEntity)
+
+    @Query("SELECT * FROM context_key_problems")
+    suspend fun getAllRaw(): List<ContextKeyProblemsEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(entities: List<ContextKeyProblemsEntity>)
+
+    @Query("DELETE FROM context_key_problems")
+    suspend fun deleteAll()
 }

@@ -105,8 +105,41 @@ class SyncWifiService @Inject constructor(
         return content.projects.isEmpty() &&
                 content.goals.isEmpty() &&
                 content.backlogItems.isEmpty() &&
+                content.backlogOrders.isEmpty() &&
+                content.legacyNotes.isEmpty() &&
                 content.attachments.isEmpty() &&
                 content.documents.isEmpty() &&
-                content.directionItems.isEmpty()
+                content.musicNotes.isEmpty() &&
+                content.checklists.isEmpty() &&
+                content.checklistItems.isEmpty() &&
+                content.directionItems.isEmpty() &&
+                content.inboxRecords.isEmpty() &&
+                content.contextLogs.isEmpty() &&
+                content.recentProjectEntries.isEmpty() &&
+                content.scripts.isEmpty() &&
+                content.contextAttachmentCrossRefs.isEmpty() &&
+                content.dayPlans.isEmpty() &&
+                content.dayTasks.isEmpty() &&
+                content.dailyMetrics.isEmpty() &&
+                content.conversations.isEmpty() &&
+                content.chatMessages.isEmpty() &&
+                content.conversationFolders.isEmpty() &&
+                content.reminders.isEmpty() &&
+                content.recurringTasks.isEmpty() &&
+                content.systemApps.isEmpty() &&
+                content.contextArtifacts.isEmpty() &&
+                content.tacticalMissions.isEmpty() &&
+                content.tacticalMissionAttachments.isEmpty() &&
+                content.aiEvents.isEmpty() &&
+                content.aiInsights.isEmpty() &&
+                content.lifeSystemStates.isEmpty() &&
+                content.contextRoleProfiles.isEmpty() &&
+                content.contextRoleProfileItems.isEmpty() &&
+                content.contextConfigurations.isEmpty() &&
+                content.projectStructureItems.isEmpty() &&
+                content.contextInboxSortingRules.isEmpty() &&
+                content.contextKeyProblems.isEmpty() &&
+                content.focusContextIntervals.isEmpty() &&
+                content.userStateIntervals.isEmpty()
     }
 }

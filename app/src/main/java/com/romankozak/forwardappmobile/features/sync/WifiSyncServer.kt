@@ -6,6 +6,7 @@ import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.util.Log
+import com.romankozak.forwardappmobile.BuildConfig
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.romankozak.forwardappmobile.core.context.ContextId
@@ -86,10 +87,11 @@ class WifiSyncServer(
                         }
                     }
                     routing {
-                        fun dumpToFile(
+                        fun dumpToFileDebug(
                             prefix: String,
                             content: String,
                         ) {
+                            if (!BuildConfig.DEBUG) return
                             runCatching {
                                 // Використовуємо File для сумісності з API 29
                                 val dir = File(context.filesDir, "sync-dumps")
@@ -200,11 +202,13 @@ class WifiSyncServer(
                                     DEBUG_TAG,
                                     "[WifiSyncServer] DEBUG_MARK_EXPORT_READY len=${backupJson.length}",
                                 )
-                                dumpToFile("export", backupJson)
-                                Log.d(
-                                    DEBUG_TAG,
-                                    "[WifiSyncServer] /export dump head=${backupJson.take(400)}",
-                                )
+                                dumpToFileDebug("export", backupJson)
+                                if (BuildConfig.DEBUG) {
+                                    Log.d(
+                                        DEBUG_TAG,
+                                        "[WifiSyncServer] /export dump head=${backupJson.take(400)}",
+                                    )
+                                }
                                 Log.d(
                                     DEBUG_TAG,
                                     "[WifiSyncServer] /export COMPLETE, JSON size=${backupJson.length} bytes",
@@ -226,8 +230,10 @@ class WifiSyncServer(
                                     DEBUG_TAG,
                                     "[WifiSyncServer] DEBUG_MARK_RECEIVED_IMPORT len=${body.length}",
                                 )
-                                dumpToFile("import", body)
-                                Log.d(DEBUG_TAG, "[WifiSyncServer] /import dump head=${body.take(400)}")
+                                dumpToFileDebug("import", body)
+                                if (BuildConfig.DEBUG) {
+                                    Log.d(DEBUG_TAG, "[WifiSyncServer] /import dump head=${body.take(400)}")
+                                }
                                 val backup = gson.fromJson(body, FullAppBackup::class.java)
                                 val db =
                                     backup.database ?: return@post call.respond(

@@ -62,6 +62,10 @@ class MergeLocalDataSourceImpl
         private val structurePresetItemDao: StructurePresetItemDao,
         private val contextStructureDao: ContextStructureDao,
         private val directionDao: DirectionDao,
+        private val contextInboxSortingDao: ContextInboxSortingDao,
+        private val contextKeyProblemsDao: ContextKeyProblemsDao,
+        private val focusContextIntervalDao: FocusContextIntervalDao,
+        private val userStateIntervalDao: UserStateIntervalDao,
     ) : MergeLocalDataSource {
         override suspend fun getContexts(): List<Context> = contextDao.getAll()
 
@@ -85,6 +89,10 @@ class MergeLocalDataSourceImpl
                 reminders = reminderDao.getAllRemindersSync(),
                 tacticalMissions = tacticalMissionDao.getAllMissionsSync(),
                 aiInsights = aiInsightDao.getAllSync(),
+                contextInboxSortingRules = contextInboxSortingDao.getAllRaw(),
+                contextKeyProblems = contextKeyProblemsDao.getAllRaw(),
+                focusContextIntervals = focusContextIntervalDao.getAllRaw(),
+                userStateIntervals = userStateIntervalDao.getAllRaw(),
             )
         }
 
@@ -161,6 +169,7 @@ class MergeLocalDataSourceImpl
                 goalDao.insertAll(bundle.goals.map { it.toEntity() })
                 noteDocumentDao.insertAllDocuments(bundle.documents.map { it.toEntity() })
                 musicNoteDao.insertAll(bundle.musicNotes.map { it.toEntity() })
+                legacyNoteDao.insertAll(bundle.notes.map { it.toEntity() })
                 checklistDao.insertChecklists(bundle.checklists.map { it.toEntity() })
 
                 // --- Consolidate and auto-link attachments and cross-refs ---
@@ -227,6 +236,10 @@ class MergeLocalDataSourceImpl
                     },
                 )
                 contextStructureDao.insertAllItems(bundle.projectStructureItems.map { it.toEntity() })
+                contextInboxSortingDao.insertAll(bundle.contextInboxSortingRules.map { it.toEntity() })
+                contextKeyProblemsDao.insertAll(bundle.contextKeyProblems.map { it.toEntity() })
+                focusContextIntervalDao.insertAll(bundle.focusContextIntervals.map { it.toEntity() })
+                userStateIntervalDao.insertAll(bundle.userStateIntervals.map { it.toEntity() })
             }
         }
     }

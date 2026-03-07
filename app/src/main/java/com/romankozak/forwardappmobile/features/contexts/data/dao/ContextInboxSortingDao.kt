@@ -17,5 +17,13 @@ interface ContextInboxSortingDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: ContextInboxSortingEntity)
-}
 
+    @Query("SELECT * FROM context_inbox_sorting")
+    suspend fun getAllRaw(): List<ContextInboxSortingEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(entities: List<ContextInboxSortingEntity>)
+
+    @Query("DELETE FROM context_inbox_sorting")
+    suspend fun deleteAll()
+}
