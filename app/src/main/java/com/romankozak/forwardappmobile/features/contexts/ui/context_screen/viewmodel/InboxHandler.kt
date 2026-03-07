@@ -6,7 +6,9 @@ import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 
 interface InboxHandlerResultListener {
@@ -50,14 +52,18 @@ class InboxHandler(
     }
 
     fun addQuickRecord(text: String) {
-        scope.launch(Dispatchers.IO) {
+        listener.updateInputState(TextFieldValue(""))
+        scope.launch {
             val projectId = projectIdFlow.value
             if (projectId.isNotEmpty() && text.isNotBlank()) {
-                inboxRepository.addInboxRecord(text, projectId)
+                withContext(Dispatchers.IO) {
+                    inboxRepository.addInboxRecord(text, projectId)
+                }
+                listener.scrollToListEnd()
+                delay(120)
+                listener.scrollToListEnd()
             }
         }
-        listener.updateInputState(TextFieldValue(""))
-        listener.scrollToListEnd()
     }
 
     fun deleteInboxRecord(recordId: String) {
