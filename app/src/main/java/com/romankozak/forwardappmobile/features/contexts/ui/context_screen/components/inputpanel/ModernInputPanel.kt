@@ -169,6 +169,15 @@ fun ModernInputPanel(
                 InputMode.SearchGlobal,
             )
         }
+    val swipeInputModes =
+        remember(currentView) {
+            val baseMode = defaultInputModeForView(currentView)
+            if (supportsLocalSearchForView(currentView)) {
+                listOf(baseMode, InputMode.SearchInList)
+            } else {
+                listOf(baseMode)
+            }
+        }
 
     Surface(
         modifier = modifier.padding(horizontal = 12.dp, vertical = 8.dp).fillMaxWidth(),
@@ -185,20 +194,20 @@ fun ModernInputPanel(
                     Modifier
                         .defaultMinSize(minHeight = 64.dp)
                         .padding(horizontal = 8.dp, vertical = 10.dp)
-                        .pointerInput(inputMode, availableInputModes) {
+                        .pointerInput(inputMode, swipeInputModes) {
                             var dragOffsetX = 0f
                             detectHorizontalDragGestures(
                                 onHorizontalDrag = { _, dragAmount -> dragOffsetX += dragAmount },
                                 onDragEnd = {
                                     val threshold = 56f
-                                    if (abs(dragOffsetX) >= threshold && availableInputModes.isNotEmpty()) {
+                                    if (abs(dragOffsetX) >= threshold && swipeInputModes.size > 1) {
                                         val currentIndex =
-                                            availableInputModes.indexOf(inputMode).takeIf { it >= 0 } ?: 0
+                                            swipeInputModes.indexOf(inputMode).takeIf { it >= 0 } ?: 0
                                         val step = if (dragOffsetX < 0f) 1 else -1
                                         val nextIndex =
-                                            (currentIndex + step + availableInputModes.size) %
-                                                availableInputModes.size
-                                        onInputModeSelected(availableInputModes[nextIndex])
+                                            (currentIndex + step + swipeInputModes.size) %
+                                                swipeInputModes.size
+                                        onInputModeSelected(swipeInputModes[nextIndex])
                                     }
                                     dragOffsetX = 0f
                                 },
@@ -228,3 +237,19 @@ fun ModernInputPanel(
         }
     }
 }
+
+private fun defaultInputModeForView(view: ContextViewMode): InputMode =
+    when (view) {
+        ContextViewMode.INBOX, ContextViewMode.ADVANCED -> InputMode.AddQuickRecord
+        ContextViewMode.DIRECTION -> InputMode.AddDirection
+        else -> InputMode.AddGoal
+    }
+
+private fun supportsLocalSearchForView(view: ContextViewMode): Boolean =
+    when (view) {
+        ContextViewMode.BACKLOG,
+        ContextViewMode.INBOX,
+        ContextViewMode.DIRECTION,
+        -> true
+        else -> false
+    }

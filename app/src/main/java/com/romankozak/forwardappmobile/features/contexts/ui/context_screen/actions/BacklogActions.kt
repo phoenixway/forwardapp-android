@@ -27,11 +27,20 @@ class BacklogActions(
         from: Int,
         to: Int,
     ): List<BacklogItemContent> {
+        val currentList = moveInMemory(currentContent, from, to)
+        persistBacklogOrder(currentList)
+        return currentList
+    }
+
+    fun moveInMemory(
+        currentContent: List<BacklogItemContent>,
+        from: Int,
+        to: Int,
+    ): List<BacklogItemContent> {
         if (from !in currentContent.indices || to !in currentContent.indices) return currentContent
         val currentList = currentContent.toMutableList()
         val movedItem = currentList.removeAt(from)
         currentList.add(to, movedItem)
-        persistBacklogOrder(currentList)
         return currentList
     }
 
@@ -105,7 +114,7 @@ class BacklogActions(
         }
     }
 
-    private suspend fun persistBacklogOrder(content: List<BacklogItemContent>) {
+    suspend fun persistBacklogOrder(content: List<BacklogItemContent>) {
         val reorderedBacklogItems =
             content.mapIndexed { index, item ->
                 item.backlogItem.copy(order = index.toLong())

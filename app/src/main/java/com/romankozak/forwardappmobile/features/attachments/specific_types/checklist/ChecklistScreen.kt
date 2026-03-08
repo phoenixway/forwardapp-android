@@ -8,6 +8,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -90,6 +92,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -102,6 +105,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.input.pointer.isConsumed
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -481,13 +486,26 @@ private fun ChecklistContent(
     onToggleItemSelected: (String) -> Unit,
     onItemLongPressed: (String) -> Unit,
 ) {
+    val focusManager = LocalFocusManager.current
+
     AnimatedVisibility(
         visible = uiState.items.isEmpty(),
         enter = fadeIn(),
         exit = fadeOut(),
     ) {
         Column(
-            modifier = modifier.padding(horizontal = 24.dp).fillMaxSize(),
+            modifier = modifier
+                .padding(horizontal = 24.dp)
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        val up = waitForUpOrCancellation()
+                        if (up != null && !down.isConsumed && !up.isConsumed) {
+                            focusManager.clearFocus(force = true)
+                        }
+                    }
+                },
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -513,7 +531,17 @@ private fun ChecklistContent(
     ) {
         LazyColumn(
             state = listState,
-            modifier = modifier.imePadding(),
+            modifier = modifier
+                .imePadding()
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        val up = waitForUpOrCancellation()
+                        if (up != null && !down.isConsumed && !up.isConsumed) {
+                            focusManager.clearFocus(force = true)
+                        }
+                    }
+                },
             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
