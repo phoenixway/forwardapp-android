@@ -47,6 +47,7 @@ internal fun InputTextField(
     focusRequester: FocusRequester,
     onValueChange: (TextFieldValue) -> Unit,
     onSubmit: () -> Unit,
+    onClearSearch: () -> Unit,
     isNerActive: Boolean,
 ) {
     Surface(
@@ -77,7 +78,7 @@ internal fun InputTextField(
                                         InputMode.AddConnectionNote -> "add note.."
                                         InputMode.AddDirection -> stringResource(R.string.hint_add_direction)
                                         InputMode.AddQuickRecord -> stringResource(R.string.hint_add_quick_record)
-                                        InputMode.SearchInList -> stringResource(R.string.hint_search_in_list)
+                                        InputMode.SearchInList -> "Search in backlog.."
                                         else -> "Додати..."
                                     },
                                 color = panelColors.contentColor.copy(alpha = 0.6f),
@@ -85,7 +86,21 @@ internal fun InputTextField(
                         }
                         innerTextField()
                     }
-                    NerIndicator(isActive = isNerActive, hasText = inputValue.text.isNotBlank())
+                    if (inputMode == InputMode.SearchInList && inputValue.text.isNotBlank()) {
+                        IconButton(
+                            onClick = onClearSearch,
+                            modifier = Modifier.size(24.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Очистити пошук",
+                                tint = panelColors.contentColor.copy(alpha = 0.75f),
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    } else {
+                        NerIndicator(isActive = isNerActive, hasText = inputValue.text.isNotBlank())
+                    }
                 }
             },
         )

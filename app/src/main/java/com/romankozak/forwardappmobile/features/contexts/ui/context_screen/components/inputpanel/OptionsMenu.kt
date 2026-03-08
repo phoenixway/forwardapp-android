@@ -39,18 +39,13 @@ internal fun OptionsMenu(
     Box {
         IconButton(
             onClick = {
-                if (state.inputMode == InputMode.SearchInList || state.inputMode == InputMode.SearchGlobal) {
-                    actions.onCloseSearch()
-                } else {
-                    actions.onMenuExpandedChange(true)
-                }
+                actions.onMenuExpandedChange(true)
             },
             modifier = Modifier.size(40.dp),
         ) {
-            val isSearchMode = state.inputMode == InputMode.SearchInList || state.inputMode == InputMode.SearchGlobal
             Icon(
-                imageVector = if (isSearchMode) Icons.Default.Close else Icons.Default.MoreVert,
-                contentDescription = if (isSearchMode) "Закрити пошук" else stringResource(R.string.more_options),
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = stringResource(R.string.more_options),
                 tint = contentColor.copy(alpha = 0.7f),
                 modifier = Modifier.size(20.dp),
             )

@@ -223,6 +223,10 @@ fun ModernInputPanel(
                     focusRequester = focusRequester,
                     onValueChange = onValueChange,
                     onSubmit = onSubmit,
+                    onClearSearch = {
+                        onValueChange(TextFieldValue(""))
+                        onCloseSearch()
+                    },
                     isNerActive = isNerActive,
                 )
 

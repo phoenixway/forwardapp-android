@@ -51,7 +51,7 @@ class UiStateActions(
     }
 
     fun closeSearch() {
-        stateManager.updateState { it.copy(localSearchQuery = "") }
+        stateManager.updateState { it.copy(localSearchQuery = "", inputValue = TextFieldValue("")) }
     }
 
     fun showRecentProjectsSheet() {
