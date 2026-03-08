@@ -55,6 +55,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 import kotlin.math.absoluteValue
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 @Composable
@@ -89,10 +90,24 @@ fun SwipeableBacklogItem(
     val leftActionWidthPx = with(density) { leftActionWidth.toPx() }
 
     var offsetX by remember { mutableFloatStateOf(0f) }
+    var isSwipeActivated by remember { mutableStateOf(false) }
+    var pendingSwipeDelta by remember { mutableFloatStateOf(0f) }
     val lastResetCounter = remember { mutableStateOf(resetCounter) }
+    val swipeActivationThresholdPx = with(density) { 26.dp.toPx() }
 
     val draggableState =
         rememberDraggableState { delta ->
+            if (!isSwipeActivated) {
+                pendingSwipeDelta += delta
+                if (abs(pendingSwipeDelta) >= swipeActivationThresholdPx) {
+                    isSwipeActivated = true
+                    offsetX = (offsetX + pendingSwipeDelta).coerceIn(-rightActionWidthPx, leftActionWidthPx)
+                    pendingSwipeDelta = 0f
+                    if (offsetX != 0f) onRequestCloseOthers()
+                }
+                return@rememberDraggableState
+            }
+
             offsetX = (offsetX + delta).coerceIn(-rightActionWidthPx, leftActionWidthPx)
             if (offsetX != 0f) onRequestCloseOthers()
         }
@@ -141,6 +156,9 @@ fun SwipeableBacklogItem(
                     orientation = Orientation.Horizontal,
                     state = draggableState,
                     onDragStopped = { velocity ->
+                        isSwipeActivated = false
+                        pendingSwipeDelta = 0f
+
                         val velocityThreshold = 350f
                         val leftThreshold = leftActionWidthPx * 0.18f
                         val rightThreshold = rightActionWidthPx * 0.18f

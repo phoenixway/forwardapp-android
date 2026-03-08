@@ -145,6 +145,8 @@ class ContextScreenViewModel
         private val originContextId: String? = savedStateHandle.get<String>("originContextId")
         private val _listContent = MutableStateFlow<List<BacklogItemContent>>(emptyList())
         val listContent: StateFlow<List<BacklogItemContent>> = _listContent.asStateFlow()
+        private var isBacklogDragInProgress: Boolean = false
+        private var expectedBacklogOrderIds: List<String>? = null
         private val _attachmentItems = MutableStateFlow<List<BacklogItemContent>>(emptyList())
         val attachmentItems: StateFlow<List<BacklogItemContent>> = _attachmentItems.asStateFlow()
         val itemActionHandler =
@@ -454,6 +456,8 @@ class ContextScreenViewModel
                 contextIdFlow
                     .drop(1)
                     .collect {
+                        isBacklogDragInProgress = false
+                        expectedBacklogOrderIds = null
                         stateManager.updateState { it.copy(isContextSwitching = true) }
                         _listContent.value = emptyList()
                         _attachmentItems.value = emptyList()
@@ -488,17 +492,36 @@ class ContextScreenViewModel
                             is ContextData.Loaded ->
                                 contextDataApplyActions.applyLoaded(
                                     data = data,
-                                    setListContent = { _listContent.value = it },
+                                    setListContent = { applyObservedBacklogContent(it) },
                                     setAttachmentItems = { _attachmentItems.value = it },
                                 )
                             is ContextData.Empty ->
                                 contextDataApplyActions.applyEmpty(
-                                    clearListContent = { _listContent.value = emptyList() },
+                                    clearListContent = {
+                                        isBacklogDragInProgress = false
+                                        expectedBacklogOrderIds = null
+                                        _listContent.value = emptyList()
+                                    },
                                     clearAttachmentItems = { _attachmentItems.value = emptyList() },
                                 )
                         }
                     }
             }
+        }
+
+        private fun applyObservedBacklogContent(observed: List<BacklogItemContent>) {
+            if (isBacklogDragInProgress) return
+
+            val expectedOrder = expectedBacklogOrderIds
+            if (expectedOrder != null) {
+                val observedOrder = observed.map { it.backlogItem.id }
+                if (observedOrder != expectedOrder) {
+                    return
+                }
+                expectedBacklogOrderIds = null
+            }
+
+            _listContent.value = observed
         }
     override fun onBackPressed(): Boolean {
         val backResult =
@@ -1050,11 +1073,23 @@ class ContextScreenViewModel
             to: Int,
         ) {
             if (from == to) return
+            if (!isBacklogDragInProgress) {
+                isBacklogDragInProgress = true
+                expectedBacklogOrderIds = null
+            }
             _listContent.value = backlogActions.moveInMemory(_listContent.value, from, to)
         }
         fun onBacklogDragStopped() {
+            val localOrder = _listContent.value
+            expectedBacklogOrderIds = localOrder.map { it.backlogItem.id }
+            isBacklogDragInProgress = false
             viewModelScope.launch(ioDispatcher) {
-                backlogActions.persistBacklogOrder(_listContent.value)
+                runCatching {
+                    backlogActions.persistBacklogOrder(localOrder)
+                }.onFailure { error ->
+                    Log.w(TAG, "Failed to persist backlog order after drag", error)
+                    expectedBacklogOrderIds = null
+                }
             }
         }
         override fun addDirectionItem(text: String) {
