@@ -96,8 +96,17 @@ fun GoalDetailContent(
     when (currentViewMode) {
         ContextViewMode.BACKLOG -> {
             val listContent by viewModel.listContent.collectAsStateWithLifecycle()
+            val searchQuery = uiState.localSearchQuery.trim()
+            val filteredBacklogItems =
+                remember(listContent, searchQuery) {
+                    if (searchQuery.isBlank()) {
+                        listContent
+                    } else {
+                        listContent.filter { it.matchesLocalSearch(searchQuery) }
+                    }
+                }
             BacklogListScreen(
-                items = listContent,
+                items = filteredBacklogItems,
                 modifier = modifier,
                 listState = listState,
                 showCheckboxes = uiState.showCheckboxes,
@@ -555,6 +564,23 @@ private fun String?.toRoleBadgeText(): String? {
     val code = this?.trim()?.takeIf { it.isNotEmpty() } ?: return null
     return "role: $code"
 }
+
+private fun BacklogItemContent.matchesLocalSearch(query: String): Boolean {
+    if (query.isBlank()) return true
+    val normalizedQuery = query.lowercase(Locale.getDefault())
+    return searchableTexts().any { it.lowercase(Locale.getDefault()).contains(normalizedQuery) }
+}
+
+private fun BacklogItemContent.searchableTexts(): List<String> =
+    when (this) {
+        is BacklogItemContent.GoalItem -> listOfNotNull(goal.text, goal.description)
+        is BacklogItemContent.ContextLinkItem -> listOfNotNull(project.name, project.description, project.roleCode)
+        is BacklogItemContent.LinkItem -> listOfNotNull(link.linkData.displayName, link.linkData.target)
+        is BacklogItemContent.NoteItem -> listOfNotNull(note.title, note.content)
+        is BacklogItemContent.NoteDocumentItem -> listOfNotNull(document.name, document.content)
+        is BacklogItemContent.ChecklistItem -> listOfNotNull(checklist.name)
+        is BacklogItemContent.MusicNoteItem -> listOfNotNull(musicNote.name, musicNote.content)
+    }
 
 @Composable
 private fun AttachmentRowSummary(
