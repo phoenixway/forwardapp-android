@@ -105,7 +105,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.input.pointer.isConsumed
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -499,9 +498,9 @@ private fun ChecklistContent(
                 .fillMaxSize()
                 .pointerInput(Unit) {
                     awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false)
+                        awaitFirstDown(requireUnconsumed = true)
                         val up = waitForUpOrCancellation()
-                        if (up != null && !down.isConsumed && !up.isConsumed) {
+                        if (up != null) {
                             focusManager.clearFocus(force = true)
                         }
                     }
@@ -535,9 +534,9 @@ private fun ChecklistContent(
                 .imePadding()
                 .pointerInput(Unit) {
                     awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false)
+                        awaitFirstDown(requireUnconsumed = true)
                         val up = waitForUpOrCancellation()
-                        if (up != null && !down.isConsumed && !up.isConsumed) {
+                        if (up != null) {
                             focusManager.clearFocus(force = true)
                         }
                     }
