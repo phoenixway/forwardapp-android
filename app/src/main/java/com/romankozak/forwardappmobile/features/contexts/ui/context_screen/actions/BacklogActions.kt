@@ -37,7 +37,7 @@ class BacklogActions(
         from: Int,
         to: Int,
     ): List<BacklogItemContent> {
-        if (from !in currentContent.indices || to !in currentContent.indices) return currentContent
+        if (from !in currentContent.indices || to !in currentContent.indices || from == to) return currentContent
         val currentList = currentContent.toMutableList()
         val movedItem = currentList.removeAt(from)
         currentList.add(to, movedItem)

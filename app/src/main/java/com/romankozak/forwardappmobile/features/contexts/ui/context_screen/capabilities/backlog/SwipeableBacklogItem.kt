@@ -126,11 +126,18 @@ fun SwipeableBacklogItem(
         }
     }
 
+    LaunchedEffect(isDragging) {
+        if (isDragging && offsetX != 0f) {
+            offsetX = 0f
+        }
+    }
+
     Box(
         modifier =
             modifier
                 .fillMaxWidth()
                 .draggable(
+                    enabled = !isDragging,
                     orientation = Orientation.Horizontal,
                     state = draggableState,
                     onDragStopped = { velocity ->
@@ -250,7 +257,7 @@ fun SwipeableBacklogItem(
             onCheckedChange = { onCheckedChange(item, it) },
             onRelatedLinkClick = onRelatedLinkClick,
             showCheckbox = showCheckboxes,
-            isSelected = isSelected || isDragging,
+            isSelected = isSelected,
             contextMarkerToEmojiMap = contextMarkerToEmojiMap,
             onDragStopped = onDragStopped,
         )

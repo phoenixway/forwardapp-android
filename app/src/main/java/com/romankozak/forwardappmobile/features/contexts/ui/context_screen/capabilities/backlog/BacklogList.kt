@@ -62,11 +62,12 @@ fun BacklogListScreen(
             if (sortedItems.isEmpty()) return@rememberReorderableLazyListState
             val safeFromIndex = from.index.coerceIn(0, sortedItems.lastIndex)
             val safeToIndex = to.index.coerceIn(0, sortedItems.lastIndex)
+            if (safeFromIndex == safeToIndex) return@rememberReorderableLazyListState
             val fromItem = sortedItems[safeFromIndex]
             val toItem = sortedItems[safeToIndex]
             val originalFrom = items.indexOfFirst { it.backlogItem.id == fromItem.backlogItem.id }
             val originalTo = items.indexOfFirst { it.backlogItem.id == toItem.backlogItem.id }
-            if (originalFrom >= 0 && originalTo >= 0) {
+            if (originalFrom >= 0 && originalTo >= 0 && originalFrom != originalTo) {
                 onMove(originalFrom, originalTo)
             }
         }

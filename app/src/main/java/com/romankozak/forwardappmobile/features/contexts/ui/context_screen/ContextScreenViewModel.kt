@@ -1049,6 +1049,7 @@ class ContextScreenViewModel
             from: Int,
             to: Int,
         ) {
+            if (from == to) return
             _listContent.value = backlogActions.moveInMemory(_listContent.value, from, to)
         }
         fun onBacklogDragStopped() {
