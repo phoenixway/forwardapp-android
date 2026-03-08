@@ -472,6 +472,33 @@ class ContextRepository
             link: RelatedLink,
         ): String = attachmentRepository.createLinkAttachment(contextId, link)
 
+        suspend fun addConnectionNoteToContext(
+            contextId: String,
+            text: String,
+        ): String {
+            val trimmed = text.trim()
+            if (trimmed.isBlank()) return ""
+
+            val title =
+                trimmed
+                    .lineSequence()
+                    .firstOrNull()
+                    ?.trim()
+                    ?.take(64)
+                    ?.ifBlank { "Note" }
+                    ?: "Note"
+
+            val documentId =
+                noteDocumentRepository.createDocument(
+                    name = title,
+                    contextId = contextId,
+                    content = trimmed,
+                )
+
+            return attachmentRepository.findAttachmentByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)?.id
+                ?: documentId
+        }
+
         suspend fun linkAttachmentToContext(
             attachmentId: String,
             contextId: String,

@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Inbox
@@ -119,6 +120,7 @@ fun QuickActionsRow(
                         text =
                             when (mode) {
                                 InputMode.AddGoal -> "Ціль"
+                                InputMode.AddConnectionNote -> "add note.."
                                 InputMode.AddDirection -> "Напрям"
                                 InputMode.AddQuickRecord -> "Запис"
                                 InputMode.SearchInList -> "Пошук"
@@ -154,6 +156,7 @@ fun InputStatusIndicator(
                 hasText ->
                     when (mode) {
                         InputMode.AddGoal -> MaterialTheme.colorScheme.primary
+                        InputMode.AddConnectionNote -> MaterialTheme.colorScheme.primary
                         InputMode.AddDirection -> MaterialTheme.colorScheme.primary
                         InputMode.AddQuickRecord -> MaterialTheme.colorScheme.primary
                         InputMode.SearchInList -> MaterialTheme.colorScheme.secondary
@@ -192,6 +195,7 @@ object InputModeUtils {
                 InputMode.SearchInList,
                 InputMode.SearchGlobal,
                 InputMode.AddGoal,
+                InputMode.AddConnectionNote,
                 InputMode.AddDirection,
                 InputMode.AddQuickRecord,
             )
@@ -205,6 +209,7 @@ object InputModeUtils {
                 InputMode.SearchInList,
                 InputMode.SearchGlobal,
                 InputMode.AddGoal,
+                InputMode.AddConnectionNote,
                 InputMode.AddDirection,
                 InputMode.AddQuickRecord,
             )
@@ -215,6 +220,7 @@ object InputModeUtils {
     fun getModeIcon(mode: InputMode) =
         when (mode) {
             InputMode.AddGoal -> Icons.Outlined.Add
+            InputMode.AddConnectionNote -> Icons.Outlined.Description
             InputMode.AddDirection -> Icons.Outlined.Explore
             InputMode.AddQuickRecord -> Icons.Outlined.Inbox
             InputMode.SearchInList -> Icons.Outlined.Search
@@ -228,6 +234,7 @@ object InputModeUtils {
         colorScheme: ColorScheme,
     ) = when (mode) {
         InputMode.AddGoal -> colorScheme.primary
+        InputMode.AddConnectionNote -> colorScheme.primary
         InputMode.AddDirection -> colorScheme.primary
         InputMode.AddQuickRecord -> colorScheme.primary
         InputMode.SearchInList -> colorScheme.secondary

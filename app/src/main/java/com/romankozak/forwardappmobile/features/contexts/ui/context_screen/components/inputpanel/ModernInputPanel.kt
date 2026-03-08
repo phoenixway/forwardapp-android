@@ -162,7 +162,7 @@ fun ModernInputPanel(
     val availableInputModes =
         remember(isProjectManagementEnabled, currentView) {
             listOfNotNull(
-                InputMode.AddGoal,
+                if (currentView == ContextViewMode.CONNECTIONS) InputMode.AddConnectionNote else InputMode.AddGoal,
                 if (currentView == ContextViewMode.DIRECTION) InputMode.AddDirection else null,
                 InputMode.AddQuickRecord,
                 if (isProjectManagementEnabled) InputMode.AddProjectLog else null,
@@ -241,6 +241,7 @@ fun ModernInputPanel(
 private fun defaultInputModeForView(view: ContextViewMode): InputMode =
     when (view) {
         ContextViewMode.INBOX, ContextViewMode.ADVANCED -> InputMode.AddQuickRecord
+        ContextViewMode.CONNECTIONS -> InputMode.AddConnectionNote
         ContextViewMode.DIRECTION -> InputMode.AddDirection
         else -> InputMode.AddGoal
     }

@@ -67,6 +67,7 @@ fun BacklogItem(
     showCheckbox: Boolean,
     isSelected: Boolean,
     contextMarkerToEmojiMap: Map<String, String>,
+    onDragStopped: () -> Unit,
 ) {
     when (item) {
         is BacklogItemContent.GoalItem -> {
@@ -84,6 +85,7 @@ fun BacklogItem(
                 showCheckbox = showCheckbox,
                 isSelected = isSelected,
                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+                onDragStopped = onDragStopped,
             )
         }
         is BacklogItemContent.ContextLinkItem -> {
@@ -100,6 +102,7 @@ fun BacklogItem(
                 showCheckbox = showCheckbox,
                 isSelected = isSelected,
                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+                onDragStopped = onDragStopped,
             )
         }
         else -> {
@@ -123,6 +126,7 @@ private fun InternalGoalItem(
     showCheckbox: Boolean,
     isSelected: Boolean,
     contextMarkerToEmojiMap: Map<String, String>,
+    onDragStopped: () -> Unit,
 ) {
     val parsedData = rememberParsedText(goal.text, contextMarkerToEmojiMap)
     val hapticFeedback = LocalHapticFeedback.current
@@ -243,6 +247,7 @@ private fun InternalGoalItem(
                                 onDragStarted = {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                                 },
+                                onDragStopped = { onDragStopped() },
                             )
                         }.alpha(if (goal.completed) 0.5f else 1f),
                     onClick = onMoreClick,
@@ -285,6 +290,7 @@ private fun InternalSubprojectItem(
     showCheckbox: Boolean,
     isSelected: Boolean,
     contextMarkerToEmojiMap: Map<String, String>,
+    onDragStopped: () -> Unit,
 ) {
     val parsedData = rememberParsedText(subproject.name, contextMarkerToEmojiMap)
     val tagContextIcons =
@@ -438,6 +444,7 @@ private fun InternalSubprojectItem(
                                 onDragStarted = {
                                     hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                                 },
+                                onDragStopped = { onDragStopped() },
                             )
                         }.alpha(if (subproject.isCompleted) 0.5f else 1f),
                     onClick = onMoreClick,

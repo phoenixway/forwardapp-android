@@ -75,6 +75,7 @@ fun SwipeableBacklogItem(
     onStartTracking: (BacklogItemContent) -> Unit,
     onShowGoalTransportMenu: (BacklogItemContent) -> Unit,
     onRelatedLinkClick: (RelatedLink) -> Unit,
+    onDragStopped: () -> Unit,
     onRequestCloseOthers: () -> Unit,
     swipedItemId: String?,
     resetCounter: Int,
@@ -251,6 +252,7 @@ fun SwipeableBacklogItem(
             showCheckbox = showCheckboxes,
             isSelected = isSelected || isDragging,
             contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+            onDragStopped = onDragStopped,
         )
     }
 }

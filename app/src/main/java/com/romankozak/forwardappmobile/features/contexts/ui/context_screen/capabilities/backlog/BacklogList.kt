@@ -54,6 +54,7 @@ fun BacklogListScreen(
     onRemindersClick: (BacklogItemContent) -> Unit,
     onCopyContent: (BacklogItemContent) -> Unit,
     onResetSwipe: (String) -> Unit,
+    onDragStopped: () -> Unit,
 ) {
     val sortedItems = remember(items) { items.withCompletedAtEnd() }
     val reorderableState =
@@ -151,6 +152,7 @@ fun BacklogListScreen(
                         onStartTracking = { onStartTracking(item) },
                         onShowGoalTransportMenu = { onShowGoalTransportMenu(item) },
                         onRelatedLinkClick = onRelatedLinkClick,
+                        onDragStopped = onDragStopped,
                     )
                 }
             }

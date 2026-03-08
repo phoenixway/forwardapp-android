@@ -63,7 +63,16 @@ class ContextDataApplyActions(
             val isProjectManagementEnabled = session.enabledCapabilities.contains(CapabilityId("advanced"))
             val resolvedInputMode =
                 when {
+                    currentState.inputMode == InputMode.AddConnectionNote &&
+                        session.currentView != ContextViewMode.CONNECTIONS -> {
+                        when (session.currentView) {
+                            ContextViewMode.DIRECTION -> InputMode.AddDirection
+                            ContextViewMode.INBOX, ContextViewMode.ADVANCED -> InputMode.AddQuickRecord
+                            else -> InputMode.AddGoal
+                        }
+                    }
                     currentState.inputMode != InputMode.AddGoal -> currentState.inputMode
+                    session.currentView == ContextViewMode.CONNECTIONS -> InputMode.AddConnectionNote
                     session.currentView == ContextViewMode.DIRECTION -> InputMode.AddDirection
                     session.currentView == ContextViewMode.INBOX || session.currentView == ContextViewMode.ADVANCED ->
                         InputMode.AddQuickRecord

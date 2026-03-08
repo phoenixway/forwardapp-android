@@ -74,7 +74,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -356,7 +355,6 @@ class ContextScreenViewModel
                     initialValue = emptyList(),
                 )
         private var batchSaveJob: Job? = null
-        private var backlogOrderPersistJob: Job? = null
         private val contextScreenDataMapper = ContextScreenDataMapper()
         private val contextScreenDataObserver =
             ContextScreenDataObserver(
@@ -731,7 +729,6 @@ class ContextScreenViewModel
         override fun onCleared() {
             super.onCleared()
             batchSaveJob?.cancel()
-            backlogOrderPersistJob?.cancel()
         }
         override fun isSelectionModeActive(): Boolean = stateManager.uiState.value.isSelectionModeActive
         override fun toggleSelection(itemId: String) = stateManager.toggleItemSelection(itemId)
@@ -1053,12 +1050,11 @@ class ContextScreenViewModel
             to: Int,
         ) {
             _listContent.value = backlogActions.moveInMemory(_listContent.value, from, to)
-            backlogOrderPersistJob?.cancel()
-            backlogOrderPersistJob =
-                viewModelScope.launch(ioDispatcher) {
-                    delay(180)
-                    backlogActions.persistBacklogOrder(_listContent.value)
-                }
+        }
+        fun onBacklogDragStopped() {
+            viewModelScope.launch(ioDispatcher) {
+                backlogActions.persistBacklogOrder(_listContent.value)
+            }
         }
         override fun addDirectionItem(text: String) {
             viewModelScope.launch(ioDispatcher) {

@@ -74,6 +74,7 @@ internal fun InputTextField(
                                 text =
                                     when (inputMode) {
                                         InputMode.AddGoal -> stringResource(R.string.hint_add_goal)
+                                        InputMode.AddConnectionNote -> "add note.."
                                         InputMode.AddDirection -> stringResource(R.string.hint_add_direction)
                                         InputMode.AddQuickRecord -> stringResource(R.string.hint_add_quick_record)
                                         InputMode.SearchInList -> stringResource(R.string.hint_search_in_list)
@@ -103,7 +104,7 @@ internal fun ModeSelectorButton(
     val modes =
         remember(isProjectManagementEnabled, currentView) {
             listOfNotNull(
-                InputMode.AddGoal,
+                if (currentView == ContextViewMode.CONNECTIONS) InputMode.AddConnectionNote else InputMode.AddGoal,
                 if (currentView == ContextViewMode.DIRECTION) InputMode.AddDirection else null,
                 InputMode.AddQuickRecord,
                 if (isProjectManagementEnabled) InputMode.AddProjectLog else null,
@@ -132,6 +133,7 @@ internal fun ModeSelectorButton(
                 imageVector =
                     when (inputMode) {
                         InputMode.AddGoal -> Icons.Outlined.Add
+                        InputMode.AddConnectionNote -> Icons.Outlined.Description
                         InputMode.AddDirection -> Icons.Outlined.Explore
                         InputMode.AddQuickRecord -> Icons.Outlined.Inbox
                         InputMode.SearchGlobal -> Icons.Outlined.TravelExplore

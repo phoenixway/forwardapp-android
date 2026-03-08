@@ -222,11 +222,33 @@ class InputHandler(
                 resultListener.updateInputState(inputValue = TextFieldValue(""))
                 resultListener.addQuickRecord(originalText)
             }
+            InputMode.AddConnectionNote -> {
+                val currentProjectId = projectIdFlow.value
+                if (currentProjectId.isBlank()) return
+
+                resultListener.updateInputState(inputValue = TextFieldValue(""))
+
+                scope.launch(Dispatchers.IO) {
+                    val newItemId =
+                        contextRepository.addConnectionNoteToContext(
+                            contextId = currentProjectId,
+                            text = originalText,
+                        )
+                    if (newItemId.isNotBlank()) {
+                        resultListener.updateInputState(newlyAddedItemId = newItemId)
+                    }
+                }
+            }
             InputMode.SearchGlobal -> {
                 resultListener.requestNavigation("global_search_screen/${URLEncoder.encode(originalText, "UTF-8")}")
                 resultListener.updateInputState(inputValue = TextFieldValue(""))
             }
-            InputMode.SearchInList -> { }
+            InputMode.SearchInList -> {
+                resultListener.updateInputState(
+                    inputValue = TextFieldValue(originalText),
+                    localSearchQuery = originalText,
+                )
+            }
             InputMode.AddProjectLog -> {
                 resultListener.updateInputState(inputValue = TextFieldValue(""))
                 resultListener.addProjectComment(originalText)

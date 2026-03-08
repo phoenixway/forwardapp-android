@@ -136,6 +136,7 @@ fun GoalDetailContent(
                 onRemindersClick = onRemindersClick,
                 onCopyContent = viewModel.itemActionHandler::copyContentRequest,
                 onResetSwipe = viewModel::resetSwipeStatesExcept,
+                onDragStopped = viewModel::onBacklogDragStopped,
             )
         }
         ContextViewMode.INBOX -> {
