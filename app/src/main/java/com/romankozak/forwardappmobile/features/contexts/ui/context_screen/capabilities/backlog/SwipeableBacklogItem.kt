@@ -93,7 +93,7 @@ fun SwipeableBacklogItem(
     var isSwipeActivated by remember { mutableStateOf(false) }
     var pendingSwipeDelta by remember { mutableFloatStateOf(0f) }
     val lastResetCounter = remember { mutableStateOf(resetCounter) }
-    val swipeActivationThresholdPx = with(density) { 26.dp.toPx() }
+    val swipeActivationThresholdPx = with(density) { 40.dp.toPx() }
 
     val draggableState =
         rememberDraggableState { delta ->
@@ -159,9 +159,9 @@ fun SwipeableBacklogItem(
                         isSwipeActivated = false
                         pendingSwipeDelta = 0f
 
-                        val velocityThreshold = 350f
-                        val leftThreshold = leftActionWidthPx * 0.18f
-                        val rightThreshold = rightActionWidthPx * 0.18f
+                        val velocityThreshold = 650f
+                        val leftThreshold = leftActionWidthPx * 0.3f
+                        val rightThreshold = rightActionWidthPx * 0.3f
                         when {
                             offsetX > 0f && velocity < -velocityThreshold -> animateTo(0f)
                             offsetX < 0f && velocity > velocityThreshold -> animateTo(0f)
