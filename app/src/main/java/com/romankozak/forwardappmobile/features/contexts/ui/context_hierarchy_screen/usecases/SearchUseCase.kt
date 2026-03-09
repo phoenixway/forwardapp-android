@@ -210,13 +210,25 @@ class SearchUseCase
         fun navigateToProject(
             projectId: String,
             currentHierarchy: ContextHierarchyData,
+            forceFocus: Boolean = false,
         ) {
             scope.launch {
-                contextRepository.getContextById(projectId)?.let {
-                    recentItemsRepository.logProjectAccess(it)
-                }
+                val targetProject = contextRepository.getContextById(projectId)
+                targetProject?.let { recentItemsRepository.logProjectAccess(it) }
+
                 val path = buildPathToProject(projectId, currentHierarchy)
-                currentBreadcrumbs.value = path
+                val resolvedPath =
+                    if (forceFocus && path.isEmpty()) {
+                        val fallbackName =
+                            targetProject?.name
+                                ?: allProjectsFlat.value.firstOrNull { it.id == projectId }?.name
+                                ?: "Context"
+                        listOf(BreadcrumbItem(id = projectId, name = fallbackName, level = 0))
+                    } else {
+                        path
+                    }
+
+                currentBreadcrumbs.value = resolvedPath
                 focusedProjectId.value = projectId
             }
         }

@@ -275,6 +275,7 @@ class ContextHierarchyScreenViewModel
                         searchUseCase.navigateToProject(
                             result.projectId,
                             uiState.value.projectHierarchy,
+                            forceFocus = shouldFocusNow,
                         )
                     } else {
                         Log.d("ProjectRevealDebug", "Setting projectToRevealAndScroll to ${result.projectId}")
