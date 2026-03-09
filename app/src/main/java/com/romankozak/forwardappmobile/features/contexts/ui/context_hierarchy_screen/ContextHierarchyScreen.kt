@@ -134,9 +134,18 @@ fun ProjectHierarchyScreen(
                         ?.savedStateHandle
                         ?.remove<String>("projectIdToReveal")
                         ?.let { projectId ->
+                            val forceFocus =
+                                navController.currentBackStackEntry
+                                    ?.savedStateHandle
+                                    ?.remove<Boolean>("projectIdToRevealForceFocus") == true
                             android.util.Log.d("ProjectRevealDebug", "Retrieved and removed projectIdToReveal: $projectId")
                             android.util.Log.d("ProjectRevealDebug", "Calling RevealProjectInHierarchy event")
-                            viewModel.onEvent(ContextHierarchyScreenEvent.RevealContextInHierarchy(projectId))
+                            viewModel.onEvent(
+                                ContextHierarchyScreenEvent.RevealContextInHierarchy(
+                                    projectId = projectId,
+                                    forceFocus = forceFocus,
+                                ),
+                            )
                         }
                 }
             }

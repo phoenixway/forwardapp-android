@@ -178,7 +178,10 @@ sealed interface ContextHierarchyScreenEvent {
 
     data object GoToReminders : ContextHierarchyScreenEvent
 
-    data class RevealContextInHierarchy(val projectId: String) : ContextHierarchyScreenEvent
+    data class RevealContextInHierarchy(
+        val projectId: String,
+        val forceFocus: Boolean = false,
+    ) : ContextHierarchyScreenEvent
 
     object OpenInboxContext : ContextHierarchyScreenEvent
 
