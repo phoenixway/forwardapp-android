@@ -1,5 +1,6 @@
 {
   "🔥": ["@critical", "#critical", "!!", "! ", "!"],
+  "🛡️": ["#losses", "#loss", "#failures", "#risk", "#defense", "#safety"],
   "⭐": ["@day", "+"],
   "📌": ["@week", "++"],
   "🗓️": ["@month"],
