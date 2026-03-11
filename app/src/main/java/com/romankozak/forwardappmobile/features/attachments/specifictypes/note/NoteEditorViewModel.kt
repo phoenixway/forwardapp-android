@@ -1,7 +1,6 @@
 package com.romankozak.forwardappmobile.features.attachments.specifictypes.note
 
 import android.app.Application
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
@@ -16,7 +15,6 @@ class NoteEditorViewModel
     constructor(
         private val noteRepository: LegacyNoteRepository,
         private val application: Application,
-        private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         val universalEditorViewModel = UniversalEditorViewModel(application)
         private var noteId: String? = null
