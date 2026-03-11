@@ -144,6 +144,9 @@ fun GoalDetailContent(
                 onRemindersClick = onRemindersClick,
                 onCopyContent = viewModel.itemActionHandler::copyContentRequest,
                 onOpenGoalProperties = viewModel::openGoalProperties,
+                editingGoalId = uiState.goalToEditInline?.id,
+                onGoalInlineEditSave = viewModel::onSaveGoalInlineEditor,
+                onGoalInlineEditCancel = viewModel::onDismissGoalInlineEditor,
                 onResetSwipe = viewModel::resetSwipeStatesExcept,
                 onDragStopped = viewModel::onBacklogDragStopped,
             )

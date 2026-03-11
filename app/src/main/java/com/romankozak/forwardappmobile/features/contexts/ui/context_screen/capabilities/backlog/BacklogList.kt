@@ -54,6 +54,9 @@ fun BacklogListScreen(
     onRemindersClick: (BacklogItemContent) -> Unit,
     onCopyContent: (BacklogItemContent) -> Unit,
     onOpenGoalProperties: (BacklogItemContent) -> Unit,
+    editingGoalId: String?,
+    onGoalInlineEditSave: (String) -> Unit,
+    onGoalInlineEditCancel: () -> Unit,
     onResetSwipe: (String) -> Unit,
     onDragStopped: () -> Unit,
 ) {
@@ -144,6 +147,7 @@ fun BacklogListScreen(
                         isDragging = isDragging,
                         isSelected = isSelected,
                         contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+                        isInlineEditing = (item as? BacklogItemContent.GoalItem)?.goal?.id == editingGoalId,
                         onRequestCloseOthers = { onResetSwipe(item.backlogItem.id) },
                         swipedItemId = swipedItemId,
                         resetCounter = swipeResetCounter,
@@ -160,6 +164,8 @@ fun BacklogListScreen(
                         onStartTracking = { onStartTracking(item) },
                         onShowGoalTransportMenu = { onShowGoalTransportMenu(item) },
                         onRelatedLinkClick = onRelatedLinkClick,
+                        onInlineEditSave = onGoalInlineEditSave,
+                        onInlineEditCancel = onGoalInlineEditCancel,
                         onDragStopped = onDragStopped,
                     )
                 }

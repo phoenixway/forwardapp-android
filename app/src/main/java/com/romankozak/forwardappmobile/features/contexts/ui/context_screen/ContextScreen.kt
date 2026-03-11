@@ -49,7 +49,6 @@ import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOpt
 import com.romankozak.forwardappmobile.features.reminders.dialogs.RemindersDialog
 import com.romankozak.forwardappmobile.ui.common.components.ShareDialog
 import com.romankozak.forwardappmobile.ui.common.editor.UniversalEditorScreen
-import com.romankozak.forwardappmobile.ui.common.editor.components.FullScreenTextEditor
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
 import kotlinx.coroutines.delay
@@ -74,30 +73,17 @@ fun ProjectsScreen(
 
     // Router logic to decide which screen to show
     when {
-        uiState.goalToEditInline != null -> {
-            var textValue by remember(uiState.goalToEditInline?.id) {
-                mutableStateOf(TextFieldValue(uiState.goalToEditInline?.text.orEmpty()))
-            }
-
-            FullScreenTextEditor(
-                title = "Редагувати ціль",
-                value = textValue,
-                onValueChange = { textValue = it },
-                onSave = { viewModel.onSaveGoalInlineEditor(textValue.text) },
-                onCancel = viewModel::onDismissGoalInlineEditor,
-            )
-        }
         recordToEdit != null -> {
-            var textValue by remember { mutableStateOf(TextFieldValue()) }
+            var textValue by remember { mutableStateOf(androidx.compose.ui.text.input.TextFieldValue()) }
 
             LaunchedEffect(recordToEdit) {
                 val record = recordToEdit
                 if (record != null && record.text != textValue.text) {
-                    textValue = TextFieldValue(record.text)
+                    textValue = androidx.compose.ui.text.input.TextFieldValue(record.text)
                 }
             }
 
-            FullScreenTextEditor(
+            com.romankozak.forwardappmobile.ui.common.editor.components.FullScreenTextEditor(
                 title = "Редагувати запис",
                 value = textValue,
                 onValueChange = { textValue = it },
@@ -139,8 +125,8 @@ fun ProjectsScreen(
         uiState.showNoteDocumentEditor -> {
             val focusRequester = remember { FocusRequester() }
             LaunchedEffect(Unit) {
-                editorViewModel.onContentChange(TextFieldValue(""))
-            }
+                    editorViewModel.onContentChange(androidx.compose.ui.text.input.TextFieldValue(""))
+                }
             // File: ContextScreen.kt
 
             UniversalEditorScreen(

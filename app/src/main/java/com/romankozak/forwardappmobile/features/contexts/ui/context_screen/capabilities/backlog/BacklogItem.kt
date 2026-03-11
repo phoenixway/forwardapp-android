@@ -25,17 +25,31 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardOptions
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -65,6 +79,9 @@ fun BacklogItem(
     showCheckbox: Boolean,
     isSelected: Boolean,
     contextMarkerToEmojiMap: Map<String, String>,
+    isInlineEditing: Boolean,
+    onInlineEditSave: (String) -> Unit,
+    onInlineEditCancel: () -> Unit,
     onDragStopped: () -> Unit,
 ) {
     when (item) {
@@ -83,6 +100,9 @@ fun BacklogItem(
                 showCheckbox = showCheckbox,
                 isSelected = isSelected,
                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+                isInlineEditing = isInlineEditing,
+                onInlineEditSave = onInlineEditSave,
+                onInlineEditCancel = onInlineEditCancel,
                 onDragStopped = onDragStopped,
             )
         }
@@ -124,10 +144,24 @@ private fun InternalGoalItem(
     showCheckbox: Boolean,
     isSelected: Boolean,
     contextMarkerToEmojiMap: Map<String, String>,
+    isInlineEditing: Boolean,
+    onInlineEditSave: (String) -> Unit,
+    onInlineEditCancel: () -> Unit,
     onDragStopped: () -> Unit,
 ) {
     val parsedData = rememberParsedText(goal.text, contextMarkerToEmojiMap)
     val hapticFeedback = LocalHapticFeedback.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusRequester = remember { FocusRequester() }
+    var textValue by remember(goal.id, isInlineEditing, goal.text) {
+        mutableStateOf(TextFieldValue(goal.text, TextRange(goal.text.length)))
+    }
+
+    LaunchedEffect(isInlineEditing) {
+        if (isInlineEditing) {
+            focusRequester.requestFocus()
+        }
+    }
 
     val completedColors =
         BacklogCompletedColors(
@@ -149,8 +183,16 @@ private fun InternalGoalItem(
                     horizontal = UnifiedListItemTokens.OuterHorizontalSpacing,
                 )
                 .combinedClickable(
-                    onClick = onItemClick,
-                    onLongClick = onLongClick,
+                    onClick = {
+                        if (!isInlineEditing) {
+                            onItemClick()
+                        }
+                    },
+                    onLongClick = {
+                        if (!isInlineEditing) {
+                            onLongClick()
+                        }
+                    },
                 ),
         contentPadding = PaddingValues(0.dp),
     ) {
@@ -198,25 +240,73 @@ private fun InternalGoalItem(
                 Spacer(modifier = Modifier.width(16.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Box(modifier = if (goal.completed) Modifier.alpha(0.65f) else Modifier) {
-                        MarkdownText(
-                            text = parsedData.mainText,
-                            isCompleted = goal.completed,
-                            obsidianVaultName = "",
-                            onTagClick = {},
-                            onTextClick = onItemClick,
-                            onLongClick = onLongClick,
+                    if (isInlineEditing) {
+                        OutlinedTextField(
+                            value = textValue,
+                            onValueChange = { textValue = it },
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(focusRequester),
+                            minLines = 1,
                             maxLines = 4,
+                            singleLine = false,
+                            keyboardOptions =
+                                KeyboardOptions(
+                                    capitalization = KeyboardCapitalization.Sentences,
+                                    imeAction = ImeAction.Done,
+                                ),
+                            keyboardActions =
+                                androidx.compose.foundation.text.KeyboardActions(
+                                    onDone = {
+                                        keyboardController?.hide()
+                                        onInlineEditSave(textValue.text)
+                                    },
+                                ),
                         )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Spacer(modifier = Modifier.weight(1f))
+                            TextButton(
+                                onClick = {
+                                    keyboardController?.hide()
+                                    onInlineEditCancel()
+                                },
+                            ) {
+                                Text("Скасувати")
+                            }
+                            TextButton(
+                                onClick = {
+                                    keyboardController?.hide()
+                                    onInlineEditSave(textValue.text)
+                                },
+                            ) {
+                                Text("Зберегти")
+                            }
+                        }
+                    } else {
+                        Box(modifier = if (goal.completed) Modifier.alpha(0.65f) else Modifier) {
+                            MarkdownText(
+                                text = parsedData.mainText,
+                                isCompleted = goal.completed,
+                                obsidianVaultName = "",
+                                onTagClick = {},
+                                onTextClick = onItemClick,
+                                onLongClick = onLongClick,
+                                maxLines = 4,
+                            )
+                        }
                     }
 
                     val reminder = reminders.firstOrNull()
                     val shouldShowStatusIcons =
-                        (goal.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
+                        !isInlineEditing && ((goal.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
                             (reminder != null) ||
                             (parsedData.icons.isNotEmpty()) ||
                             (!goal.description.isNullOrBlank()) ||
-                            (!goal.relatedLinks.isNullOrEmpty())
+                            (!goal.relatedLinks.isNullOrEmpty()))
 
                     AnimatedVisibility(
                         visible = shouldShowStatusIcons,
@@ -240,15 +330,22 @@ private fun InternalGoalItem(
 
                 IconButton(
                     modifier =
-                        with(reorderableScope) {
-                            Modifier.draggableHandle(
-                                onDragStarted = {
-                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                },
-                                onDragStopped = { onDragStopped() },
-                            )
-                        }.alpha(if (goal.completed) 0.5f else 1f),
+                        (
+                            if (isInlineEditing) {
+                                Modifier
+                            } else {
+                                with(reorderableScope) {
+                                    Modifier.draggableHandle(
+                                        onDragStarted = {
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        },
+                                        onDragStopped = { onDragStopped() },
+                                    )
+                                }
+                            }
+                        ).alpha(if (goal.completed) 0.5f else 1f),
                     onClick = onMoreClick,
+                    enabled = !isInlineEditing,
                 ) {
                     Icon(imageVector = Icons.Default.MoreVert, contentDescription = "More actions")
                 }

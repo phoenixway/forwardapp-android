@@ -66,6 +66,7 @@ fun SwipeableBacklogItem(
     isDragging: Boolean,
     isSelected: Boolean,
     contextMarkerToEmojiMap: Map<String, String>,
+    isInlineEditing: Boolean,
     onItemClick: (BacklogItemContent) -> Unit,
     onLongClick: (BacklogItemContent) -> Unit,
     onMoreClick: (BacklogItemContent) -> Unit,
@@ -76,6 +77,8 @@ fun SwipeableBacklogItem(
     onStartTracking: (BacklogItemContent) -> Unit,
     onShowGoalTransportMenu: (BacklogItemContent) -> Unit,
     onRelatedLinkClick: (RelatedLink) -> Unit,
+    onInlineEditSave: (String) -> Unit,
+    onInlineEditCancel: () -> Unit,
     onDragStopped: () -> Unit,
     onRequestCloseOthers: () -> Unit,
     swipedItemId: String?,
@@ -152,7 +155,7 @@ fun SwipeableBacklogItem(
             modifier
                 .fillMaxWidth()
                 .draggable(
-                    enabled = !isDragging,
+                    enabled = !isDragging && !isInlineEditing,
                     orientation = Orientation.Horizontal,
                     state = draggableState,
                     onDragStopped = { velocity ->
@@ -277,6 +280,9 @@ fun SwipeableBacklogItem(
             showCheckbox = showCheckboxes,
             isSelected = isSelected,
             contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+            isInlineEditing = isInlineEditing,
+            onInlineEditSave = onInlineEditSave,
+            onInlineEditCancel = onInlineEditCancel,
             onDragStopped = onDragStopped,
         )
     }
