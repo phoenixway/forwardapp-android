@@ -26,13 +26,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
@@ -66,12 +66,12 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.res.stringResource
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import kotlinx.coroutines.launch
@@ -536,7 +536,10 @@ fun LinkedTargetsPickerDialog(
                 val request =
                     when (type) {
                         DocumentCreationType.NOTE -> NewDocumentDraft.Note(name = documentName.trim().ifBlank { "New note" })
-                        DocumentCreationType.MUSIC_NOTE -> NewDocumentDraft.MusicNote(name = documentName.trim().ifBlank { "New music note" })
+                        DocumentCreationType.MUSIC_NOTE ->
+                            NewDocumentDraft.MusicNote(
+                                name = documentName.trim().ifBlank { "New music note" },
+                            )
                         DocumentCreationType.CHECKLIST -> NewDocumentDraft.Checklist(name = documentName.trim().ifBlank { "New checklist" })
                         DocumentCreationType.WEB_LINK -> NewDocumentDraft.WebLink(url = documentTarget.trim(), name = documentName.trim())
                         DocumentCreationType.OBSIDIAN ->

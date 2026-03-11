@@ -8,8 +8,8 @@ import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
-import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
@@ -19,8 +19,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
-import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
+import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
@@ -177,7 +177,10 @@ class DayPlanViewModel
                     val scopeContextsExpandedFlow = settingsRepository.dayScopeContextsExpandedFlow
                     val scopeAttachmentsExpandedFlow = settingsRepository.dayScopeAttachmentsExpandedFlow
                     val scopeExpansionFlow =
-                        combine(scopeContextsExpandedFlow, scopeAttachmentsExpandedFlow) { scopeContextsExpanded, scopeAttachmentsExpanded ->
+                        combine(
+                            scopeContextsExpandedFlow,
+                            scopeAttachmentsExpandedFlow,
+                        ) { scopeContextsExpanded, scopeAttachmentsExpanded ->
                             scopeContextsExpanded to scopeAttachmentsExpanded
                         }
 
@@ -194,14 +197,18 @@ class DayPlanViewModel
                             "UI State combine: dayPlanId=${dayPlan?.id}, tasksCount=${tasks.size} (before creating DayPlanUiState)",
                         )
                         val linkedProjectIds =
-                            (tasks
-                                .flatMap { it.dayTask.linkedProjectIds.orEmpty() }
-                                + dayPlan?.linkedProjectIds.orEmpty())
+                            (
+                                tasks
+                                    .flatMap { it.dayTask.linkedProjectIds.orEmpty() } +
+                                    dayPlan?.linkedProjectIds.orEmpty()
+                            )
                                 .toSet()
                         val linkedAttachmentIds =
-                            (tasks
-                                .flatMap { it.dayTask.linkedAttachmentIds.orEmpty() }
-                                + dayPlan?.linkedAttachmentIds.orEmpty())
+                            (
+                                tasks
+                                    .flatMap { it.dayTask.linkedAttachmentIds.orEmpty() } +
+                                    dayPlan?.linkedAttachmentIds.orEmpty()
+                            )
                                 .toSet()
                         val linkedProjectTitles =
                             contexts

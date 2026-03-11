@@ -6,11 +6,11 @@ import com.romankozak.forwardappmobile.data.repository.UserAwarenessRepository
 import com.romankozak.forwardappmobile.domain.userawareness.UserAwarenessStateType
 import com.romankozak.forwardappmobile.domain.userawareness.UserStateInterval
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @HiltViewModel
 class UserAwarenessViewModel

@@ -87,10 +87,12 @@ class ChecklistViewModel
                 checklistRepository.getAllChecklistsAsFlow(),
                 contextRepository.getAllContextsFlow(),
             ) { docs, musicNotes, checklists, contexts ->
-                (docs.map { doc -> "doc:${doc.id}|${doc.name.ifBlank { "Untitled" }}" } +
-                    musicNotes.map { note -> "music:${note.id}|${note.name.ifBlank { "Untitled" }}" } +
-                    checklists.map { checklist -> "checklist:${checklist.id}|${checklist.name.ifBlank { "Untitled" }}" } +
-                    contexts.map { ctx -> "ctx:${ctx.id}|${ctx.name.ifBlank { "Untitled" }}" })
+                (
+                    docs.map { doc -> "doc:${doc.id}|${doc.name.ifBlank { "Untitled" }}" } +
+                        musicNotes.map { note -> "music:${note.id}|${note.name.ifBlank { "Untitled" }}" } +
+                        checklists.map { checklist -> "checklist:${checklist.id}|${checklist.name.ifBlank { "Untitled" }}" } +
+                        contexts.map { ctx -> "ctx:${ctx.id}|${ctx.name.ifBlank { "Untitled" }}" }
+                )
                     .filter { token -> token.substringAfter('|', "").isNotBlank() }
                     .distinct()
             }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
@@ -406,17 +408,18 @@ class ChecklistViewModel
 
                 when (payload.operation) {
                     ClipboardOperation.COPY -> {
-                        val newItems = resolved.itemsToInsert.map { source ->
-                            ChecklistItemEntity(
-                                checklistId = checklistId,
-                                content = source.content,
-                                isChecked = false,
-                                itemOrder = nextOrder++,
-                                updatedAt = now,
-                                syncedAt = null,
-                                version = 1,
-                            )
-                        }
+                        val newItems =
+                            resolved.itemsToInsert.map { source ->
+                                ChecklistItemEntity(
+                                    checklistId = checklistId,
+                                    content = source.content,
+                                    isChecked = false,
+                                    itemOrder = nextOrder++,
+                                    updatedAt = now,
+                                    syncedAt = null,
+                                    version = 1,
+                                )
+                            }
                         checklistRepository.addItems(newItems)
                         onResult("Скопійовано елементів: ${newItems.size}")
                     }
@@ -434,17 +437,18 @@ class ChecklistViewModel
                         }
 
                         if (resolved.itemsToInsert.isNotEmpty()) {
-                            val newItems = resolved.itemsToInsert.map { source ->
-                                ChecklistItemEntity(
-                                    checklistId = checklistId,
-                                    content = source.content,
-                                    isChecked = false,
-                                    itemOrder = nextOrder++,
-                                    updatedAt = now,
-                                    syncedAt = null,
-                                    version = 1,
-                                )
-                            }
+                            val newItems =
+                                resolved.itemsToInsert.map { source ->
+                                    ChecklistItemEntity(
+                                        checklistId = checklistId,
+                                        content = source.content,
+                                        isChecked = false,
+                                        itemOrder = nextOrder++,
+                                        updatedAt = now,
+                                        syncedAt = null,
+                                        version = 1,
+                                    )
+                                }
                             checklistRepository.addItems(newItems)
                             movedCount += newItems.size
                         }

@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
+import com.romankozak.forwardappmobile.core.storage.getDocumentsLogsDir
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.logging.CoroutineFileTree
 import dagger.hilt.android.HiltAndroidApp
@@ -12,9 +13,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import com.romankozak.forwardappmobile.core.storage.getDocumentsLogsDir
-import javax.inject.Inject
 import timber.log.Timber
+import javax.inject.Inject
 
 @HiltAndroidApp
 class ForwardAppMobileApplication : Application(), Configuration.Provider {

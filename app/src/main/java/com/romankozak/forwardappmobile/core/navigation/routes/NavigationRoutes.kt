@@ -84,33 +84,39 @@ object NavigationRoutes {
                 ),
             )
 
-    fun noteDocument(id: String, startEdit: Boolean): String =
-        "$NOTE_DOCUMENT/$id" + if (startEdit) "?startEdit=true" else ""
+    fun noteDocument(
+        id: String,
+        startEdit: Boolean,
+    ): String = "$NOTE_DOCUMENT/$id" + if (startEdit) "?startEdit=true" else ""
 
     fun noteDocumentEdit(
         projectId: String? = null,
         documentId: String? = null,
     ): String =
-        NOTE_DOCUMENT_EDIT + queryOf(
-            listOf(
-                "projectId" to projectId,
-                "documentId" to documentId,
-            ),
-        )
+        NOTE_DOCUMENT_EDIT +
+            queryOf(
+                listOf(
+                    "projectId" to projectId,
+                    "documentId" to documentId,
+                ),
+            )
 
     fun checklist(
         projectId: String? = null,
         checklistId: String? = null,
     ): String =
-        CHECKLIST + queryOf(
-            listOf(
-                "projectId" to projectId,
-                "checklistId" to checklistId,
-            ),
-        )
+        CHECKLIST +
+            queryOf(
+                listOf(
+                    "projectId" to projectId,
+                    "checklistId" to checklistId,
+                ),
+            )
 
-    fun musicNote(id: String, startEdit: Boolean): String =
-        "$MUSIC_NOTE/$id" + if (startEdit) "?startEdit=true" else ""
+    fun musicNote(
+        id: String,
+        startEdit: Boolean,
+    ): String = "$MUSIC_NOTE/$id" + if (startEdit) "?startEdit=true" else ""
 
     fun globalSearch(query: String): String = "$GLOBAL_SEARCH/$query"
 
@@ -131,12 +137,13 @@ object NavigationRoutes {
         goalId: String? = null,
         projectId: String? = null,
     ): String =
-        PROJECT_SETTINGS + queryOf(
-            listOf(
-                "goalId" to goalId,
-                "projectId" to projectId,
-            ),
-        )
+        PROJECT_SETTINGS +
+            queryOf(
+                listOf(
+                    "goalId" to goalId,
+                    "projectId" to projectId,
+                ),
+            )
 
     fun goalSettings(goalId: String): String = "$GOAL_SETTINGS/$goalId"
 
@@ -156,12 +163,13 @@ object NavigationRoutes {
         projectId: String? = null,
         scriptId: String? = null,
     ): String =
-        SCRIPT_EDITOR + queryOf(
-            listOf(
-                "projectId" to projectId,
-                "scriptId" to scriptId,
-            ),
-        )
+        SCRIPT_EDITOR +
+            queryOf(
+                listOf(
+                    "projectId" to projectId,
+                    "scriptId" to scriptId,
+                ),
+            )
 
     fun contextStructure(contextId: String): String = "$PROJECT_STRUCTURE/$contextId"
 
@@ -169,12 +177,13 @@ object NavigationRoutes {
         presetId: String? = null,
         copyFromPresetId: String? = null,
     ): String =
-        STRUCTURE_PRESET_EDITOR + queryOf(
-            listOf(
-                "presetId" to presetId,
-                "copyFromPresetId" to copyFromPresetId,
-            ),
-        )
+        STRUCTURE_PRESET_EDITOR +
+            queryOf(
+                listOf(
+                    "presetId" to presetId,
+                    "copyFromPresetId" to copyFromPresetId,
+                ),
+            )
 
     fun selectiveImport(fileUri: String? = null): String =
         if (fileUri == null) {

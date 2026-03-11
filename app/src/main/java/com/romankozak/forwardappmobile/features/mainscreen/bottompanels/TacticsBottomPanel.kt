@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.mainscreen.bottompanels
 
+import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -10,7 +11,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import android.net.Uri
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.features.mainscreen.DashboardBottomBar
@@ -49,12 +49,13 @@ fun TacticsBottomPanel(
 ) {
     CommonBottomPanelLayout {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .then(CommandDeckBackgroundModifier())
-                .padding(horizontal = 22.dp, vertical = 12.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .then(CommandDeckBackgroundModifier())
+                    .padding(horizontal = 22.dp, vertical = 12.dp),
         ) {
             DashboardBottomBar(
                 onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,

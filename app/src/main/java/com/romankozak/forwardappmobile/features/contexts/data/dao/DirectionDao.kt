@@ -36,7 +36,7 @@ interface DirectionDao {
 
     @Update
     suspend fun updateAll(items: List<DirectionItemEntity>)
-    
+
     @Query("UPDATE direction_items SET is_deleted = 1, updatedAt = :updatedAt, version = :version WHERE id = :itemId")
     suspend fun markDeleted(
         itemId: String,

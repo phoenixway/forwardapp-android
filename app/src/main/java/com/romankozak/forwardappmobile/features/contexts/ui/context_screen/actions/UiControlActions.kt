@@ -19,8 +19,7 @@ class UiControlActions(
 
     fun showDisplayPropertiesDialog() = stateManager.showDisplayPropertiesDialog()
 
-    fun hasCapability(capabilityId: CapabilityId): Boolean =
-        contextSessionStore.state.value.enabledCapabilities.contains(capabilityId)
+    fun hasCapability(capabilityId: CapabilityId): Boolean = contextSessionStore.state.value.enabledCapabilities.contains(capabilityId)
 
     fun forceRefresh() {
         stateManager.updateState {

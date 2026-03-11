@@ -10,6 +10,8 @@ import androidx.compose.runtime.Composable
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
+private const val MINUTES_PER_HOUR = 60
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 public fun TimePickerDialog(
@@ -51,7 +53,7 @@ public fun TimePickerDialog(
 
 public fun formatDuration(millis: Long): String {
     val hours = TimeUnit.MILLISECONDS.toHours(millis)
-    val minutes = TimeUnit.MILLISECONDS.toMinutes(millis) % 60
+    val minutes = TimeUnit.MILLISECONDS.toMinutes(millis) % MINUTES_PER_HOUR
 
     return when {
         hours > 0 && minutes > 0 -> "${hours}h ${minutes}m"

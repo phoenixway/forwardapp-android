@@ -230,7 +230,7 @@ class GoalRepository
 
         suspend fun getAllGoals(): List<Goal> = goalDao.getAll()
 
-    fun getGoalsByContextIdFlow(contextId: String): Flow<List<Goal>> {
-        return goalDao.getGoalsByContextIdFlow(contextId)
-    }
+        fun getGoalsByContextIdFlow(contextId: String): Flow<List<Goal>> {
+            return goalDao.getGoalsByContextIdFlow(contextId)
+        }
     }

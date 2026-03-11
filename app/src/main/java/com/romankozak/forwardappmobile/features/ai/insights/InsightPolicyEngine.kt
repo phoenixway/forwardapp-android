@@ -186,8 +186,7 @@ class InsightPolicyEngine
             return id in DAILY_SCALE_INSIGHT_IDS
         }
 
-        private fun durationMinutes(record: ActivityRecord): Long =
-            record.durationInMillis?.let { max(1L, it / 60_000) } ?: 1L
+        private fun durationMinutes(record: ActivityRecord): Long = record.durationInMillis?.let { max(1L, it / 60_000) } ?: 1L
 
         private fun startOfDay(timestamp: Long): Long {
             val cal = Calendar.getInstance()

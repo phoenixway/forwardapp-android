@@ -33,7 +33,8 @@ class CommandDeckViewModel
 
         val importChoiceUri: StateFlow<Uri?> = importExportHandler.importChoiceUri
         val exportChoiceVisible: StateFlow<Boolean> = importExportHandler.exportChoiceVisible
-        val syncUiState: StateFlow<com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SyncUseCase.SyncUiState> =
+        val syncUiState:
+            StateFlow<com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SyncUseCase.SyncUiState> =
             importExportHandler.syncUiState
         val showWifiImportDialog: StateFlow<Boolean> = importExportHandler.showWifiImportDialog
         val uiEvents = importExportHandler.uiEvents

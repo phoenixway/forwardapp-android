@@ -20,9 +20,9 @@ fun ContextConfiguration.has(id: CapabilityId): Boolean {
             false
         } else {
             basePresetCode?.let { preset ->
-            ContextRoleRegistry
-                .getCapabilitiesForRole(preset)
-                .contains(id)
+                ContextRoleRegistry
+                    .getCapabilitiesForRole(preset)
+                    .contains(id)
             } ?: false
         }
 

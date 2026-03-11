@@ -15,7 +15,15 @@ class ContextCapabilitiesResolver {
             // - explicit overrides in config still win.
             if (isEnabled(roleCapabilities, "inbox", config.enableInbox, defaultEnabled = false)) add(CapabilityId("inbox"))
             if (isEnabled(roleCapabilities, "log", config.enableLog, defaultEnabled = false)) add(CapabilityId("log"))
-            if (isEnabled(roleCapabilities, "dashboard", config.enableDashboard, defaultEnabled = useLegacyDefaults)) add(CapabilityId("dashboard"))
+            if (isEnabled(
+                    roleCapabilities,
+                    "dashboard",
+                    config.enableDashboard,
+                    defaultEnabled = useLegacyDefaults,
+                )
+            ) {
+                add(CapabilityId("dashboard"))
+            }
             if (isEnabled(roleCapabilities, "backlog", config.enableBacklog, defaultEnabled = false)) add(CapabilityId("backlog"))
             if (isEnabledAny(roleCapabilities, setOf("attachments", "connections"), config.enableAttachments, defaultEnabled = false)) {
                 add(CapabilityId("connections"))

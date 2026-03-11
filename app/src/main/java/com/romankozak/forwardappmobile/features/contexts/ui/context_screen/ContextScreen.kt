@@ -28,12 +28,12 @@ import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
-import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
+import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
@@ -55,7 +55,6 @@ import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
 import kotlinx.coroutines.delay
 
 private const val TAG = "BacklogVM_DEBUG"
-
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -516,8 +515,8 @@ private fun ProjectBottomBar(
                     navigationManager.navigate(
                         target = NavTarget.ContextHierarchy,
                         builder = {
-                        launchSingleTop = true
-                        restoreState = true
+                            launchSingleTop = true
+                            restoreState = true
                         },
                     )
                     runCatching {

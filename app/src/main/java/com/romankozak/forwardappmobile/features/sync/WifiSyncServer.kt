@@ -6,9 +6,9 @@ import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.util.Log
-import com.romankozak.forwardappmobile.BuildConfig
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.romankozak.forwardappmobile.BuildConfig
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup

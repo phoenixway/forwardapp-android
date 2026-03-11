@@ -8,10 +8,10 @@ import com.romankozak.forwardappmobile.core.data.models.sync.SyncReport
 import com.romankozak.forwardappmobile.sync.SyncRepository
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 
 @HiltViewModel

@@ -8,11 +8,12 @@ import androidx.compose.ui.Modifier
 @Composable
 fun CommonBottomPanelLayout(
     modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     Box(
-        modifier = modifier
-            .fillMaxWidth(),
+        modifier =
+            modifier
+                .fillMaxWidth(),
     ) {
         content()
     }

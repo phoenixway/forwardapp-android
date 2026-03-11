@@ -13,7 +13,10 @@ object MusicNoteToMusicXmlConverter {
     private val titleDirectiveRegex = Regex("^@?title\\s*=\\s*(.+)$", RegexOption.IGNORE_CASE)
     private val composerDirectiveRegex = Regex("^@?composer\\s*=\\s*(.+)$", RegexOption.IGNORE_CASE)
 
-    fun convert(content: String, title: String): String {
+    fun convert(
+        content: String,
+        title: String,
+    ): String {
         val measures = mutableListOf(ParsedMeasure())
 
         var durationInMeasure = 0
@@ -382,110 +385,111 @@ object MusicNoteToMusicXmlConverter {
                 )
         }
 
-        val part = buildString {
-            normalizedMeasures.forEachIndexed { index, measure ->
-                append("<measure number=\"")
-                append(index + 1)
-                append("\">")
-                if (index > 0 && measure.startsNewSystem) {
-                    append("<print new-system=\"yes\"/>")
-                }
+        val part =
+            buildString {
+                normalizedMeasures.forEachIndexed { index, measure ->
+                    append("<measure number=\"")
+                    append(index + 1)
+                    append("\">")
+                    if (index > 0 && measure.startsNewSystem) {
+                        append("<print new-system=\"yes\"/>")
+                    }
 
-                if (index == 0) {
-                    append("<attributes>")
-                    append("<divisions>")
-                    append(DIVISIONS_PER_QUARTER)
-                    append("</divisions>")
-                    append("<key><fifths>0</fifths></key>")
-                    append("<time><beats>")
-                    append(measure.beats)
-                    append("</beats><beat-type>")
-                    append(measure.beatType)
-                    append("</beat-type></time>")
-                    append("<clef><sign>G</sign><line>2</line></clef>")
-                    append("</attributes>")
-                } else {
-                    val previous = normalizedMeasures[index - 1]
-                    if (previous.beats != measure.beats || previous.beatType != measure.beatType) {
+                    if (index == 0) {
                         append("<attributes>")
+                        append("<divisions>")
+                        append(DIVISIONS_PER_QUARTER)
+                        append("</divisions>")
+                        append("<key><fifths>0</fifths></key>")
                         append("<time><beats>")
                         append(measure.beats)
                         append("</beats><beat-type>")
                         append(measure.beatType)
                         append("</beat-type></time>")
+                        append("<clef><sign>G</sign><line>2</line></clef>")
                         append("</attributes>")
+                    } else {
+                        val previous = normalizedMeasures[index - 1]
+                        if (previous.beats != measure.beats || previous.beatType != measure.beatType) {
+                            append("<attributes>")
+                            append("<time><beats>")
+                            append(measure.beats)
+                            append("</beats><beat-type>")
+                            append(measure.beatType)
+                            append("</beat-type></time>")
+                            append("</attributes>")
+                        }
                     }
-                }
 
-                measure.measureDirections.forEach { directionText ->
-                    appendDirectionText(directionText, this)
-                }
-
-                measure.notes.forEach { note ->
-                    note.noteDirections.forEach { directionText ->
+                    measure.measureDirections.forEach { directionText ->
                         appendDirectionText(directionText, this)
                     }
 
-                    val noteDuration = durationValueFromDenominator(note.durationDenominator)
-                    val noteType = typeFromDenominator(note.durationDenominator)
+                    measure.notes.forEach { note ->
+                        note.noteDirections.forEach { directionText ->
+                            appendDirectionText(directionText, this)
+                        }
 
-                    append("<note>")
-                    if (note.isChordTone && !note.isRest) {
-                        append("<chord/>")
+                        val noteDuration = durationValueFromDenominator(note.durationDenominator)
+                        val noteType = typeFromDenominator(note.durationDenominator)
+
+                        append("<note>")
+                        if (note.isChordTone && !note.isRest) {
+                            append("<chord/>")
+                        }
+                        if (note.isRest) {
+                            append("<rest/>")
+                        } else {
+                            append("<pitch><step>")
+                            append(note.step)
+                            append("</step>")
+                            if (note.alter != 0) {
+                                append("<alter>")
+                                append(note.alter)
+                                append("</alter>")
+                            }
+                            append("<octave>")
+                            append(note.octave)
+                            append("</octave></pitch>")
+                            accidentalNameFromAlter(note.alter)?.let { accidental ->
+                                append("<accidental>")
+                                append(accidental)
+                                append("</accidental>")
+                            }
+                        }
+                        append("<duration>")
+                        append(noteDuration)
+                        append("</duration>")
+                        append("<type>")
+                        append(noteType)
+                        append("</type>")
+                        if (!note.isRest && !note.lyricText.isNullOrBlank()) {
+                            append("<lyric><text>")
+                            append(xmlEscape(note.lyricText))
+                            append("</text></lyric>")
+                        }
+                        if (!note.isRest && (note.slurStart || note.slurStop || note.breathMark)) {
+                            append("<notations>")
+                            if (note.slurStart) {
+                                append("<slur type=\"start\"/>")
+                            }
+                            if (note.slurStop) {
+                                append("<slur type=\"stop\"/>")
+                            }
+                            if (note.breathMark) {
+                                append("<articulations><breath-mark/></articulations>")
+                            }
+                            append("</notations>")
+                        }
+                        append("</note>")
                     }
-                    if (note.isRest) {
-                        append("<rest/>")
-                    } else {
-                        append("<pitch><step>")
-                        append(note.step)
-                        append("</step>")
-                        if (note.alter != 0) {
-                            append("<alter>")
-                            append(note.alter)
-                            append("</alter>")
-                        }
-                        append("<octave>")
-                        append(note.octave)
-                        append("</octave></pitch>")
-                        accidentalNameFromAlter(note.alter)?.let { accidental ->
-                            append("<accidental>")
-                            append(accidental)
-                            append("</accidental>")
-                        }
+                    when (measure.rightBarStyle) {
+                        BarStyle.DOUBLE -> append("<barline location=\"right\"><bar-style>light-light</bar-style></barline>")
+                        BarStyle.SINGLE -> Unit
                     }
-                    append("<duration>")
-                    append(noteDuration)
-                    append("</duration>")
-                    append("<type>")
-                    append(noteType)
-                    append("</type>")
-                    if (!note.isRest && !note.lyricText.isNullOrBlank()) {
-                        append("<lyric><text>")
-                        append(xmlEscape(note.lyricText))
-                        append("</text></lyric>")
-                    }
-                    if (!note.isRest && (note.slurStart || note.slurStop || note.breathMark)) {
-                        append("<notations>")
-                        if (note.slurStart) {
-                            append("<slur type=\"start\"/>")
-                        }
-                        if (note.slurStop) {
-                            append("<slur type=\"stop\"/>")
-                        }
-                        if (note.breathMark) {
-                            append("<articulations><breath-mark/></articulations>")
-                        }
-                        append("</notations>")
-                    }
-                    append("</note>")
+                    append("</measure>")
                 }
-                when (measure.rightBarStyle) {
-                    BarStyle.DOUBLE -> append("<barline location=\"right\"><bar-style>light-light</bar-style></barline>")
-                    BarStyle.SINGLE -> Unit
-                }
-                append("</measure>")
             }
-        }
 
         val composerXml =
             composer
@@ -510,7 +514,7 @@ object MusicNoteToMusicXmlConverter {
               </part-list>
               <part id="P1">$part</part>
             </score-partwise>
-        """.trimIndent()
+            """.trimIndent()
     }
 
     private fun appendDirectionText(
@@ -537,8 +541,11 @@ object MusicNoteToMusicXmlConverter {
 
     private fun unquote(value: String): String {
         val trimmed = value.trim()
-        if (trimmed.length >= 2 && ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-                (trimmed.startsWith('\'') && trimmed.endsWith('\'')))) {
+        if (trimmed.length >= 2 && (
+                (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+                    (trimmed.startsWith('\'') && trimmed.endsWith('\''))
+            )
+        ) {
             return trimmed.substring(1, trimmed.length - 1).trim()
         }
         return trimmed

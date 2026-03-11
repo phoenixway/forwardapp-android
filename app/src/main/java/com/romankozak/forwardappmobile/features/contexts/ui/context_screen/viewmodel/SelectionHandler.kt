@@ -112,7 +112,8 @@ class SelectionHandler(
         when (actionType) {
             GoalActionType.CreateInstance,
             GoalActionType.CopyGoal,
-            GoalActionType.MoveInstance -> {
+            GoalActionType.MoveInstance,
+            -> {
                 val selectedTransportableItems =
                     listContentFlow.value
                         .filter { it.backlogItem.id in selectedIds }
@@ -140,7 +141,8 @@ class SelectionHandler(
 
                 when (actionType) {
                     GoalActionType.CreateInstance,
-                    GoalActionType.CopyGoal -> {
+                    GoalActionType.CopyGoal,
+                    -> {
                         backlogClipboardUseCase.copyBacklogEntities(
                             sourceContextId = sourceContextId,
                             goalIds = sourceGoalIds,

@@ -9,8 +9,8 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -73,14 +73,15 @@ internal fun SearchResultsContent(
 ) {
     val haptic = LocalHapticFeedback.current
     val formatter = remember { SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()) }
-    val groupedResults = remember(results) {
-        results
-            .groupBy { it.groupKey() }
-            .map { (key, items) ->
-                val presentation = items.first().typePresentation()
-                ResultGroup(key = key, presentation = presentation, items = items)
-            }
-    }
+    val groupedResults =
+        remember(results) {
+            results
+                .groupBy { it.groupKey() }
+                .map { (key, items) ->
+                    val presentation = items.first().typePresentation()
+                    ResultGroup(key = key, presentation = presentation, items = items)
+                }
+        }
     val groupExpandedState = remember { mutableStateMapOf<String, Boolean>() }
     var commandsExpanded by remember(query) { mutableStateOf(true) }
 
@@ -207,199 +208,199 @@ internal fun SearchResultsContent(
                             Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                                 val typePresentation = result.typePresentation()
                                 when (result) {
-                        is GlobalSearchResultItem.GoalItem -> {
-                            UnifiedSearchResultCard(
-                                presentation = typePresentation,
-                                isSelected = result.uniqueId == selectedResultUniqueId,
-                                query = query,
-                                title = result.goal.text,
-                                subtitle = result.goal.description,
-                                supporting = result.pathSegments.joinToString(" → ").ifBlank { result.projectName },
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    viewModel.onDataResultOpened(result.uniqueId)
-                                    viewModel.navigateToProjectForResult(result.backlogItem.contextId, result.projectName)
-                                },
-                                secondaryActionIcon = Icons.Default.Navigation,
-                                secondaryActionDescription = "Відкрити в навігації",
-                                onSecondaryAction = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    viewModel.onDataResultOpened(result.uniqueId)
-                                    viewModel.goBackToRevealProject(result.backlogItem.contextId)
-                                },
-                            )
-                        }
-                        is GlobalSearchResultItem.LinkItem -> {
-                            val searchResult = result.searchResult
-                            val linkData = searchResult.link.linkData
-                            val secondaryAction: (() -> Unit)? =
-                                when (linkData.type) {
-                                    LinkType.CONTEXT -> {
-                                        {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            viewModel.onDataResultOpened(result.uniqueId)
-                                            viewModel.navigateToProjectForResult(linkData.target, null)
-                                        }
+                                    is GlobalSearchResultItem.GoalItem -> {
+                                        UnifiedSearchResultCard(
+                                            presentation = typePresentation,
+                                            isSelected = result.uniqueId == selectedResultUniqueId,
+                                            query = query,
+                                            title = result.goal.text,
+                                            subtitle = result.goal.description,
+                                            supporting = result.pathSegments.joinToString(" → ").ifBlank { result.projectName },
+                                            onClick = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                viewModel.onDataResultOpened(result.uniqueId)
+                                                viewModel.navigateToProjectForResult(result.backlogItem.contextId, result.projectName)
+                                            },
+                                            secondaryActionIcon = Icons.Default.Navigation,
+                                            secondaryActionDescription = "Відкрити в навігації",
+                                            onSecondaryAction = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                viewModel.onDataResultOpened(result.uniqueId)
+                                                viewModel.goBackToRevealProject(result.backlogItem.contextId)
+                                            },
+                                        )
                                     }
-                                    LinkType.URL,
-                                    LinkType.OBSIDIAN,
-                                    -> {
-                                        {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            viewModel.onDataResultOpened(result.uniqueId)
-                                            handleRelatedLinkClick(
-                                                link = linkData,
-                                                obsidianVaultName = obsidianVaultName,
-                                                context = context,
-                                            )
-                                        }
+                                    is GlobalSearchResultItem.LinkItem -> {
+                                        val searchResult = result.searchResult
+                                        val linkData = searchResult.link.linkData
+                                        val secondaryAction: (() -> Unit)? =
+                                            when (linkData.type) {
+                                                LinkType.CONTEXT -> {
+                                                    {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                        viewModel.onDataResultOpened(result.uniqueId)
+                                                        viewModel.navigateToProjectForResult(linkData.target, null)
+                                                    }
+                                                }
+                                                LinkType.URL,
+                                                LinkType.OBSIDIAN,
+                                                -> {
+                                                    {
+                                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                        viewModel.onDataResultOpened(result.uniqueId)
+                                                        handleRelatedLinkClick(
+                                                            link = linkData,
+                                                            obsidianVaultName = obsidianVaultName,
+                                                            context = context,
+                                                        )
+                                                    }
+                                                }
+                                                null -> null
+                                            }
+                                        UnifiedSearchResultCard(
+                                            presentation = typePresentation,
+                                            isSelected = result.uniqueId == selectedResultUniqueId,
+                                            query = query,
+                                            title = linkData.displayName ?: linkData.target,
+                                            subtitle = linkData.target,
+                                            supporting = "Контекст: ${searchResult.contextName}",
+                                            onClick = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                viewModel.onDataResultOpened(result.uniqueId)
+                                                viewModel.navigateToProjectForResult(searchResult.contextId, searchResult.contextName)
+                                            },
+                                            secondaryActionIcon = if (secondaryAction != null) Icons.AutoMirrored.Filled.OpenInNew else null,
+                                            secondaryActionDescription = "Додаткова дія",
+                                            onSecondaryAction = secondaryAction,
+                                        )
                                     }
-                                    null -> null
-                                }
-                            UnifiedSearchResultCard(
-                                presentation = typePresentation,
-                                isSelected = result.uniqueId == selectedResultUniqueId,
-                                query = query,
-                                title = linkData.displayName ?: linkData.target,
-                                subtitle = linkData.target,
-                                supporting = "Контекст: ${searchResult.contextName}",
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    viewModel.onDataResultOpened(result.uniqueId)
-                                    viewModel.navigateToProjectForResult(searchResult.contextId, searchResult.contextName)
-                                },
-                                secondaryActionIcon = if (secondaryAction != null) Icons.AutoMirrored.Filled.OpenInNew else null,
-                                secondaryActionDescription = "Додаткова дія",
-                                onSecondaryAction = secondaryAction,
-                            )
-                        }
-                        is GlobalSearchResultItem.SubcontextItem -> {
-                            val subproject = result.searchResult.subcontext
-                            UnifiedSearchResultCard(
-                                presentation = typePresentation,
-                                isSelected = result.uniqueId == selectedResultUniqueId,
-                                query = query,
-                                title = subproject.name,
-                                subtitle = "Батьківський контекст: ${result.searchResult.parentContextName}",
-                                supporting = result.searchResult.pathSegments.joinToString(" → "),
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    viewModel.onDataResultOpened(result.uniqueId)
-                                    viewModel.navigateToProjectForResult(subproject.id, subproject.name)
-                                },
-                                secondaryActionIcon = Icons.Default.Navigation,
-                                secondaryActionDescription = "Відкрити в навігації",
-                                onSecondaryAction = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    viewModel.onDataResultOpened(result.uniqueId)
-                                    viewModel.goBackToRevealProject(subproject.id)
-                                },
-                            )
-                        }
-                        is GlobalSearchResultItem.ContextItem -> {
-                            val project = result.searchResult.context
-                            UnifiedSearchResultCard(
-                                presentation = typePresentation,
-                                isSelected = result.uniqueId == selectedResultUniqueId,
-                                query = query,
-                                title = project.name,
-                                subtitle = project.description,
-                                supporting = result.searchResult.pathSegments.joinToString(" → "),
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    viewModel.onDataResultOpened(result.uniqueId)
-                                    viewModel.navigateToProjectForResult(project.id, project.name)
-                                },
-                                secondaryActionIcon = Icons.Default.Navigation,
-                                secondaryActionDescription = "Відкрити в навігації",
-                                onSecondaryAction = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    viewModel.onDataResultOpened(result.uniqueId)
-                                    viewModel.goBackToRevealProject(project.id)
-                                },
-                            )
-                        }
+                                    is GlobalSearchResultItem.SubcontextItem -> {
+                                        val subproject = result.searchResult.subcontext
+                                        UnifiedSearchResultCard(
+                                            presentation = typePresentation,
+                                            isSelected = result.uniqueId == selectedResultUniqueId,
+                                            query = query,
+                                            title = subproject.name,
+                                            subtitle = "Батьківський контекст: ${result.searchResult.parentContextName}",
+                                            supporting = result.searchResult.pathSegments.joinToString(" → "),
+                                            onClick = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                viewModel.onDataResultOpened(result.uniqueId)
+                                                viewModel.navigateToProjectForResult(subproject.id, subproject.name)
+                                            },
+                                            secondaryActionIcon = Icons.Default.Navigation,
+                                            secondaryActionDescription = "Відкрити в навігації",
+                                            onSecondaryAction = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                viewModel.onDataResultOpened(result.uniqueId)
+                                                viewModel.goBackToRevealProject(subproject.id)
+                                            },
+                                        )
+                                    }
+                                    is GlobalSearchResultItem.ContextItem -> {
+                                        val project = result.searchResult.context
+                                        UnifiedSearchResultCard(
+                                            presentation = typePresentation,
+                                            isSelected = result.uniqueId == selectedResultUniqueId,
+                                            query = query,
+                                            title = project.name,
+                                            subtitle = project.description,
+                                            supporting = result.searchResult.pathSegments.joinToString(" → "),
+                                            onClick = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                viewModel.onDataResultOpened(result.uniqueId)
+                                                viewModel.navigateToProjectForResult(project.id, project.name)
+                                            },
+                                            secondaryActionIcon = Icons.Default.Navigation,
+                                            secondaryActionDescription = "Відкрити в навігації",
+                                            onSecondaryAction = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                viewModel.onDataResultOpened(result.uniqueId)
+                                                viewModel.goBackToRevealProject(project.id)
+                                            },
+                                        )
+                                    }
 
-                        is GlobalSearchResultItem.ActivityItem -> {
-                            UnifiedSearchResultCard(
-                                presentation = typePresentation,
-                                isSelected = result.uniqueId == selectedResultUniqueId,
-                                query = query,
-                                title = result.record.text,
-                                subtitle = result.record.noteText,
-                                supporting = "Трекер: ${formatter.format(Date(result.record.createdAt))}",
-                                onClick = {
-                                    val contextId = result.record.contextId
-                                    if (!contextId.isNullOrBlank()) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        viewModel.onDataResultOpened(result.uniqueId)
-                                        viewModel.navigateToProjectForResult(contextId, null)
+                                    is GlobalSearchResultItem.ActivityItem -> {
+                                        UnifiedSearchResultCard(
+                                            presentation = typePresentation,
+                                            isSelected = result.uniqueId == selectedResultUniqueId,
+                                            query = query,
+                                            title = result.record.text,
+                                            subtitle = result.record.noteText,
+                                            supporting = "Трекер: ${formatter.format(Date(result.record.createdAt))}",
+                                            onClick = {
+                                                val contextId = result.record.contextId
+                                                if (!contextId.isNullOrBlank()) {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    viewModel.onDataResultOpened(result.uniqueId)
+                                                    viewModel.navigateToProjectForResult(contextId, null)
+                                                }
+                                            },
+                                            secondaryActionIcon = null,
+                                            secondaryActionDescription = null,
+                                            onSecondaryAction = null,
+                                        )
                                     }
-                                },
-                                secondaryActionIcon = null,
-                                secondaryActionDescription = null,
-                                onSecondaryAction = null,
-                            )
-                        }
-                        is GlobalSearchResultItem.InboxItem -> {
-                            UnifiedSearchResultCard(
-                                presentation = typePresentation,
-                                isSelected = result.uniqueId == selectedResultUniqueId,
-                                query = query,
-                                title = result.record.text,
-                                subtitle = null,
-                                supporting = "Inbox: ${formatter.format(Date(result.record.createdAt))}",
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    viewModel.onDataResultOpened(result.uniqueId)
-                                    viewModel.navigateToProjectForResult(result.record.contextId, null)
-                                },
-                                secondaryActionIcon = Icons.Default.ChevronRight,
-                                secondaryActionDescription = "Відкрити контекст",
-                                onSecondaryAction = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    viewModel.onDataResultOpened(result.uniqueId)
-                                    viewModel.navigateToProjectForResult(result.record.contextId, null)
-                                },
-                            )
-                        }
-                        is GlobalSearchResultItem.AttachmentItem -> {
-                            UnifiedSearchResultCard(
-                                presentation = typePresentation,
-                                isSelected = result.uniqueId == selectedResultUniqueId,
-                                query = query,
-                                title = result.searchResult.title,
-                                subtitle = result.searchResult.subtitle,
-                                supporting = "Контекст: ${result.searchResult.contextName ?: "не вказано"}",
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    val contextId = result.searchResult.ownerContextId
-                                    if (!contextId.isNullOrBlank()) {
-                                        viewModel.onDataResultOpened(result.uniqueId)
-                                        viewModel.navigateToProjectForResult(contextId, result.searchResult.contextName)
+                                    is GlobalSearchResultItem.InboxItem -> {
+                                        UnifiedSearchResultCard(
+                                            presentation = typePresentation,
+                                            isSelected = result.uniqueId == selectedResultUniqueId,
+                                            query = query,
+                                            title = result.record.text,
+                                            subtitle = null,
+                                            supporting = "Inbox: ${formatter.format(Date(result.record.createdAt))}",
+                                            onClick = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                viewModel.onDataResultOpened(result.uniqueId)
+                                                viewModel.navigateToProjectForResult(result.record.contextId, null)
+                                            },
+                                            secondaryActionIcon = Icons.Default.ChevronRight,
+                                            secondaryActionDescription = "Відкрити контекст",
+                                            onSecondaryAction = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                viewModel.onDataResultOpened(result.uniqueId)
+                                                viewModel.navigateToProjectForResult(result.record.contextId, null)
+                                            },
+                                        )
                                     }
-                                },
-                                secondaryActionIcon = Icons.Default.ChevronRight,
-                                secondaryActionDescription = "Відкрити контекст",
-                                onSecondaryAction = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    val contextId = result.searchResult.ownerContextId
-                                    if (!contextId.isNullOrBlank()) {
-                                        viewModel.onDataResultOpened(result.uniqueId)
-                                        viewModel.navigateToProjectForResult(contextId, result.searchResult.contextName)
+                                    is GlobalSearchResultItem.AttachmentItem -> {
+                                        UnifiedSearchResultCard(
+                                            presentation = typePresentation,
+                                            isSelected = result.uniqueId == selectedResultUniqueId,
+                                            query = query,
+                                            title = result.searchResult.title,
+                                            subtitle = result.searchResult.subtitle,
+                                            supporting = "Контекст: ${result.searchResult.contextName ?: "не вказано"}",
+                                            onClick = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                val contextId = result.searchResult.ownerContextId
+                                                if (!contextId.isNullOrBlank()) {
+                                                    viewModel.onDataResultOpened(result.uniqueId)
+                                                    viewModel.navigateToProjectForResult(contextId, result.searchResult.contextName)
+                                                }
+                                            },
+                                            secondaryActionIcon = Icons.Default.ChevronRight,
+                                            secondaryActionDescription = "Відкрити контекст",
+                                            onSecondaryAction = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                val contextId = result.searchResult.ownerContextId
+                                                if (!contextId.isNullOrBlank()) {
+                                                    viewModel.onDataResultOpened(result.uniqueId)
+                                                    viewModel.navigateToProjectForResult(contextId, result.searchResult.contextName)
+                                                }
+                                            },
+                                        )
                                     }
-                                },
-                            )
-                        }
+                                }
+                                ResultTypeBadge(
+                                    presentation = typePresentation,
+                                    modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 8.dp, end = 8.dp),
+                                )
                             }
-                            ResultTypeBadge(
-                                presentation = typePresentation,
-                                modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 8.dp, end = 8.dp),
-                            )
                         }
                     }
                 }
-            }
             }
 
             item {

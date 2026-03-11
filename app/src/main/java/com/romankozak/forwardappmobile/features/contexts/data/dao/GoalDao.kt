@@ -88,12 +88,14 @@ WHERE (g.text LIKE :query OR g.description LIKE :query) AND g.is_deleted = 0
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(goals: List<Goal>)
 
-    @Query("""
+    @Query(
+        """
     SELECT g.* FROM goals g
     JOIN list_items li ON g.id = li.entityId
     WHERE li.context_id = :contextId 
       AND li.itemType = 'GOAL' 
       AND g.is_deleted = 0
-""")
+""",
+    )
     fun getGoalsByContextIdFlow(contextId: String): Flow<List<Goal>>
 }

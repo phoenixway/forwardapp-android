@@ -54,8 +54,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableCollectionItemScope
-import kotlin.math.absoluteValue
 import kotlin.math.abs
+import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
 @Composable

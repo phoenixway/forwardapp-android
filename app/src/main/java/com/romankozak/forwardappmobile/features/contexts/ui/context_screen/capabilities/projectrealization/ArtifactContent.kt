@@ -75,7 +75,8 @@ fun ArtifactContent(
                     if (artifact != null) {
                         onEditArtifact(artifact)
                     } else {
-                        onSaveArtifact(artifact?.content ?: "")                    }
+                        onSaveArtifact(artifact?.content ?: "")
+                    }
                 },
                 modifier = Modifier.align(Alignment.CenterEnd),
                 enabled = isManagementEnabled,

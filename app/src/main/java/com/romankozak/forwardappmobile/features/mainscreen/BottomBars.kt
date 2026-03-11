@@ -28,11 +28,9 @@ import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Wifi
-import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AccountTree
-import androidx.compose.material.icons.outlined.AlternateEmail
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.DashboardCustomize
 import androidx.compose.material.icons.outlined.History

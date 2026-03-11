@@ -1,17 +1,17 @@
 package com.romankozak.forwardappmobile.logging
 
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.launch
 
 private const val BYTES_IN_MEGABYTE = 1024L * 1024L
 private const val DEFAULT_MAX_FILE_SIZE_MB = 5L
@@ -23,7 +23,6 @@ class CoroutineFileTree(
     private val maxFileSizeBytes: Long = DEFAULT_MAX_FILE_SIZE_BYTES,
     private val maxLogFiles: Int = DEFAULT_MAX_LOG_FILES,
 ) : Timber.Tree() {
-
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val channel = Channel<String>(Channel.UNLIMITED)
 
@@ -50,21 +49,28 @@ class CoroutineFileTree(
         }
     }
 
-    override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
-        val time = SimpleDateFormat(
-            "yyyy-MM-dd HH:mm:ss.SSS",
-            Locale.US
-        ).format(Date())
+    override fun log(
+        priority: Int,
+        tag: String?,
+        message: String,
+        t: Throwable?,
+    ) {
+        val time =
+            SimpleDateFormat(
+                "yyyy-MM-dd HH:mm:ss.SSS",
+                Locale.US,
+            ).format(Date())
 
-        val level = when (priority) {
-            Log.VERBOSE -> "V"
-            Log.DEBUG -> "D"
-            Log.INFO -> "I"
-            Log.WARN -> "W"
-            Log.ERROR -> "E"
-            Log.ASSERT -> "A"
-            else -> "?"
-        }
+        val level =
+            when (priority) {
+                Log.VERBOSE -> "V"
+                Log.DEBUG -> "D"
+                Log.INFO -> "I"
+                Log.WARN -> "W"
+                Log.ERROR -> "E"
+                Log.ASSERT -> "A"
+                else -> "?"
+            }
 
         val sb = StringBuilder()
         sb.append(time)

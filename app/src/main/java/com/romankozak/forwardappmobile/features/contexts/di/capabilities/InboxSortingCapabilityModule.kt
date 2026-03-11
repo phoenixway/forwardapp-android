@@ -36,4 +36,3 @@ object InboxSortingCapability : Capability {
         // Capability only contributes settings UI and actions.
     }
 }
-

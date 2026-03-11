@@ -87,12 +87,12 @@ fun GoalDetailEffects(
                             target = event.target,
                             recordInHistory = shouldRecordHistory,
                             builder = {
-                            if (currentDestId != null) {
-                                popUpTo(currentDestId) { inclusive = true }
-                            }
-                            launchSingleTop = true
-                            restoreState = false
-                        },
+                                if (currentDestId != null) {
+                                    popUpTo(currentDestId) { inclusive = true }
+                                }
+                                launchSingleTop = true
+                                restoreState = false
+                            },
                         )
                         viewModel.consumeLinkedContextReplace()
                     } else if (viewModel.consumeLinkedContextReplace()) {
@@ -100,9 +100,9 @@ fun GoalDetailEffects(
                             target = event.target,
                             recordInHistory = shouldRecordHistory,
                             builder = {
-                            launchSingleTop = true
-                            restoreState = false
-                        },
+                                launchSingleTop = true
+                                restoreState = false
+                            },
                         )
                     } else {
                         navigationManager.navigate(

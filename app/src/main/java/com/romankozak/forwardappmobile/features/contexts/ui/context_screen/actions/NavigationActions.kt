@@ -6,8 +6,8 @@ import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.navigation.ContextRouteResolver
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -91,7 +91,10 @@ class NavigationActions(
                     is HandleLinkClickResult.OpenObsidianNote -> {
                         when (val noteResult = resolveObsidianNoteOpen(linkResult.noteTarget)) {
                             is OpenObsidianNoteResult.OpenUri -> RouteOutcome.OpenUri(noteResult.uri)
-                            is OpenObsidianNoteResult.VaultNotConfigured -> RouteOutcome.ShowMessage("Назву Obsidian сховища не встановлено.")
+                            is OpenObsidianNoteResult.VaultNotConfigured ->
+                                RouteOutcome.ShowMessage(
+                                    "Назву Obsidian сховища не встановлено.",
+                                )
                         }
                     }
 

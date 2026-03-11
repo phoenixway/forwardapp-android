@@ -13,10 +13,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Link
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -32,14 +32,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
-import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.features.attachments.ui.AddObsidianLinkDialog
 import com.romankozak.forwardappmobile.features.attachments.ui.AddWebLinkDialog
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentChooserScreen
@@ -55,9 +55,9 @@ import com.romankozak.forwardappmobile.ui.components.ConnectionsPanel
 import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
 import com.romankozak.forwardappmobile.ui.components.orderToken
 import com.romankozak.forwardappmobile.ui.components.sortConnectionsByOrder
-import java.net.URLEncoder
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.net.URLEncoder
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -360,7 +360,7 @@ fun CoreLevelScreen(
                                 LinkPickerTab.CONTEXTS
                             } else {
                                 LinkPickerTab.ATTACHMENTS
-                        }
+                            }
                     }
                 },
                 preferActionsBesideTitleWhenWide = true,
@@ -388,7 +388,17 @@ fun CoreLevelScreen(
         val availableAttachmentIds = attachmentOptions.map { it.id }.toSet()
         LinkedTargetsPickerDialog(
             contextOptions = uiState.allProjects.map { ProjectOption(id = it.id, name = it.name, parentId = it.parentId) },
-            attachmentOptions = attachmentOptions.map { AttachmentOption(id = it.id, name = it.name, linkType = it.linkType, attachmentType = it.attachmentType, entityId = it.entityId, target = it.target) },
+            attachmentOptions =
+                attachmentOptions.map {
+                    AttachmentOption(
+                        id = it.id,
+                        name = it.name,
+                        linkType = it.linkType,
+                        attachmentType = it.attachmentType,
+                        entityId = it.entityId,
+                        target = it.target,
+                    )
+                },
             preselectedContextIds = uiState.projects.map { it.id }.toSet(),
             preselectedAttachmentIds = linkedAttachmentIds.filter { it in availableAttachmentIds }.toSet(),
             initialTab = initialTab,

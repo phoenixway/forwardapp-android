@@ -70,7 +70,11 @@ class NavigationHistoryManager(
         if (previousCanGoBack != newCanGoBack) {
             Log.w(TAG, "[$caller] <<< ЗМІНА СТАНУ canGoBack: з $previousCanGoBack на $newCanGoBack >>>")
         }
-        Log.i(TAG, "[$caller] updateStates: index=$index, historySize=${history.size}. Розраховано canGoBack = $newCanGoBack")
+        Log.i(
+            TAG,
+            "[$caller] updateStates: index=$index, historySize=${history.size}. " +
+                "Розраховано canGoBack = $newCanGoBack",
+        )
 
         saveState()
     }

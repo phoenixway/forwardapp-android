@@ -34,7 +34,14 @@ class MusicNoteRepository
             isSystem: Boolean = false,
         ): String {
             val now = System.currentTimeMillis()
-            val musicNote = MusicNoteEntity(name = name, contextId = contextId, content = content, updatedAt = now, version = 1)
+            val musicNote =
+                MusicNoteEntity(
+                    name = name,
+                    contextId = contextId,
+                    content = content,
+                    updatedAt = now,
+                    version = 1,
+                )
             musicNoteDao.insert(musicNote)
             attachmentRepository.ensureAttachmentLinkedToContext(
                 attachmentType = BacklogItemTypeValues.MUSIC_NOTE,

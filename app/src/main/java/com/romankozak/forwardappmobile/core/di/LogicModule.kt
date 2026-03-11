@@ -9,10 +9,9 @@ import com.romankozak.forwardappmobile.core.context.ContextCapabilitiesResolver
 import com.romankozak.forwardappmobile.core.context.ContextController
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.ContextRole
-import com.romankozak.forwardappmobile.core.context.ContextState
 import com.romankozak.forwardappmobile.core.context.ContextSessionStore
-import com.romankozak.forwardappmobile.core.context.DefaultContextState
 import com.romankozak.forwardappmobile.core.context.DefaultContextController
+import com.romankozak.forwardappmobile.core.context.DefaultContextState
 import com.romankozak.forwardappmobile.core.context.ViewId
 import com.romankozak.forwardappmobile.core.context.ViewSet
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration

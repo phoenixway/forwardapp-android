@@ -194,5 +194,4 @@ sealed interface ContextHierarchyScreenEvent {
     object AddScriptRequest : ContextHierarchyScreenEvent
 
     object NavigateToTacticsScreen : ContextHierarchyScreenEvent
-
 }

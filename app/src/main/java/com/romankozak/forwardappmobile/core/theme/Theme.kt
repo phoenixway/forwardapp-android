@@ -286,9 +286,27 @@ object ThemeManager {
                 CyberpunkLightInputPanelColors,
                 CyberpunkDarkInputPanelColors,
             ),
-            AppTheme(ThemeName.SCI_FI, SciFiLightColorScheme, SciFiDarkColorScheme, SciFiLightInputPanelColors, SciFiDarkInputPanelColors),
-            AppTheme(ThemeName.DRACULA, DefaultLightColorScheme, DraculaColorScheme, DefaultLightInputPanelColors, DraculaInputPanelColors),
-            AppTheme(ThemeName.NORD, DefaultLightColorScheme, NordColorScheme, DefaultLightInputPanelColors, NordInputPanelColors),
+            AppTheme(
+                ThemeName.SCI_FI,
+                SciFiLightColorScheme,
+                SciFiDarkColorScheme,
+                SciFiLightInputPanelColors,
+                SciFiDarkInputPanelColors,
+            ),
+            AppTheme(
+                ThemeName.DRACULA,
+                DefaultLightColorScheme,
+                DraculaColorScheme,
+                DefaultLightInputPanelColors,
+                DraculaInputPanelColors,
+            ),
+            AppTheme(
+                ThemeName.NORD,
+                DefaultLightColorScheme,
+                NordColorScheme,
+                DefaultLightInputPanelColors,
+                NordInputPanelColors,
+            ),
             AppTheme(
                 ThemeName.SOLARIZED_DARK,
                 DefaultLightColorScheme,
@@ -331,7 +349,10 @@ fun ForwardAppMobileTheme(
             ThemeMode.SYSTEM -> isSystemInDarkTheme()
         }
 
-    val appTheme = ThemeManager.getTheme(if (useDarkTheme) themeSettings.darkThemeName else themeSettings.lightThemeName)
+    val appTheme =
+        ThemeManager.getTheme(
+            if (useDarkTheme) themeSettings.darkThemeName else themeSettings.lightThemeName,
+        )
     val colorScheme = if (useDarkTheme) appTheme.darkColors else appTheme.lightColors
     val inputPanelColors = if (useDarkTheme) appTheme.inputPanelDarkColors else appTheme.inputPanelLightColors
 

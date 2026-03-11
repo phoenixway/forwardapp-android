@@ -13,8 +13,8 @@ import com.romankozak.forwardappmobile.sync.SyncRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import javax.inject.Inject
 import timber.log.Timber
+import javax.inject.Inject
 
 class ContextActionsUseCase
     @Inject

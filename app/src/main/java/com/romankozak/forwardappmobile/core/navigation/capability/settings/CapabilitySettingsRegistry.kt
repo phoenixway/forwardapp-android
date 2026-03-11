@@ -17,11 +17,13 @@ class InMemoryCapabilitySettingsRegistry
         private val ordered =
             entries
                 .toList()
-                .sortedWith(compareBy<CapabilitySettingsEntry> { it.descriptor.order }.thenBy { it.descriptor.tabTitle })
+                .sortedWith(
+                    compareBy<CapabilitySettingsEntry> { it.descriptor.order }
+                        .thenBy { it.descriptor.tabTitle },
+                )
 
         override fun all(): List<CapabilitySettingsEntry> = ordered
 
         override fun forCapabilities(enabledCapabilities: Set<CapabilityId>): List<CapabilitySettingsEntry> =
             ordered.filter { enabledCapabilities.contains(it.descriptor.ownerCapability) }
     }
-

@@ -1,42 +1,31 @@
 package com.romankozak.forwardappmobile.features.globalsearch
 
 import android.content.res.Configuration
-import android.content.Context
-import android.content.Intent
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Search
@@ -46,16 +35,15 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.MoveToInbox
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -64,26 +52,16 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchResultItem
-import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
-import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import kotlinx.coroutines.launch
-import java.net.URLEncoder
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -306,11 +284,13 @@ fun GlobalSearchScreen(
                 },
                 actions = {
                     AnimatedVisibility(
-                        visible = !uiState.isLoading && when (currentMode) {
-                            OmniboxMode.DataSearch -> filteredResults.isNotEmpty()
-                            OmniboxMode.Command -> uiState.commandResults.isNotEmpty()
-                            else -> false
-                        },
+                        visible =
+                            !uiState.isLoading &&
+                                when (currentMode) {
+                                    OmniboxMode.DataSearch -> filteredResults.isNotEmpty()
+                                    OmniboxMode.Command -> uiState.commandResults.isNotEmpty()
+                                    else -> false
+                                },
                         enter = fadeIn(animationSpec = tween(delayMillis = 200)) + scaleIn(),
                         exit = fadeOut() + scaleOut(),
                     ) {
@@ -759,7 +739,6 @@ fun GlobalSearchScreen(
                                 unfocusedTrailingIconColor = modePalette.iconTint,
                             ),
                     )
-
                 }
             }
         }
@@ -888,7 +867,13 @@ private fun HybridCommandSection(
                 border =
                     androidx.compose.foundation.BorderStroke(
                         1.dp,
-                        if (selectedCommandIndex == index) accentColor.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f),
+                        if (selectedCommandIndex == index) {
+                            accentColor.copy(
+                                alpha = 0.4f,
+                            )
+                        } else {
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f)
+                        },
                     ),
             ) {
                 Row(
@@ -1298,11 +1283,12 @@ private fun EmptySearchContent(
             )
 
             Text(
-                text = if (query.isBlank()) {
-                    "Search everywhere шукає по контекстах, цілях, активностях, інбоксу та вкладеннях."
-                } else {
-                    "За запитом \"$query\" результатів не знайдено.\nСпробуйте змінити пошуковий запит."
-                },
+                text =
+                    if (query.isBlank()) {
+                        "Search everywhere шукає по контекстах, цілях, активностях, інбоксу та вкладеннях."
+                    } else {
+                        "За запитом \"$query\" результатів не знайдено.\nСпробуйте змінити пошуковий запит."
+                    },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
