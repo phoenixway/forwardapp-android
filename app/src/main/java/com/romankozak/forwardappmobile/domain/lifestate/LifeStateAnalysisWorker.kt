@@ -50,7 +50,12 @@ class LifeStateAnalysisWorker
                     },
                     onFailure = { error ->
                         showStatus("Life analysis failed: ${error.message ?: "error"}")
-                        Result.failure(workDataOf(KEY_STATUS to STATUS_FAILURE, KEY_ERROR to (error.message ?: "error")))
+                        Result.failure(
+                            workDataOf(
+                                KEY_STATUS to STATUS_FAILURE,
+                                KEY_ERROR to (error.message ?: "error"),
+                            ),
+                        )
                     },
                 )
             }

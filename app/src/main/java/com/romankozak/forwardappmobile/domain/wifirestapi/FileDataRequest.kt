@@ -1,5 +1,3 @@
-
-
 package com.romankozak.forwardappmobile.domain.wifirestapi
 
 import kotlinx.serialization.Serializable
