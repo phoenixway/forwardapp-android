@@ -142,7 +142,10 @@ private fun migrateSpecialProjectsLegacy(db: SupportSQLiteDatabase) {
             if (strategicBeaconsGroupId == null) {
                 strategicBeaconsGroupId = UUID.randomUUID().toString()
                 db.execSQL(
-                    "INSERT INTO projects (id, name, parentId, is_expanded, createdAt, scoring_status) VALUES (?, ?, ?, ?, ?, ?)",
+                    """
+                    INSERT INTO projects (id, name, parentId, is_expanded, createdAt, scoring_status)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """.trimIndent(),
                     arrayOf(
                         strategicBeaconsGroupId,
                         "strategic-beacons",
@@ -165,11 +168,18 @@ private fun migrateSpecialProjectsLegacy(db: SupportSQLiteDatabase) {
             )
 
             var strategicProgramsExists = false
-            val strategicProgramsCursor = db.query("SELECT id, parentId FROM projects WHERE name = 'strategic-programs' LIMIT 1")
+            val strategicProgramsCursor =
+                db.query("SELECT id, parentId FROM projects WHERE name = 'strategic-programs' LIMIT 1")
             if (strategicProgramsCursor.moveToFirst()) {
-                val existingStrategicProgramsId = strategicProgramsCursor.getString(strategicProgramsCursor.getColumnIndexOrThrow("id"))
+                val existingStrategicProgramsId =
+                    strategicProgramsCursor.getString(
+                        strategicProgramsCursor.getColumnIndexOrThrow("id"),
+                    )
                 strategicProgramsExists = true
-                val currentParentId = strategicProgramsCursor.getString(strategicProgramsCursor.getColumnIndexOrThrow("parentId"))
+                val currentParentId =
+                    strategicProgramsCursor.getString(
+                        strategicProgramsCursor.getColumnIndexOrThrow("parentId"),
+                    )
                 if (currentParentId != strategicBeaconsGroupId) {
                     db.execSQL(
                         "UPDATE projects SET parentId = ? WHERE id = ?",
@@ -182,7 +192,10 @@ private fun migrateSpecialProjectsLegacy(db: SupportSQLiteDatabase) {
             if (!strategicProgramsExists) {
                 val strategicProgramsId = UUID.randomUUID().toString()
                 db.execSQL(
-                    "INSERT INTO projects (id, name, parentId, is_expanded, createdAt, scoring_status) VALUES (?, ?, ?, ?, ?, ?)",
+                    """
+                    INSERT INTO projects (id, name, parentId, is_expanded, createdAt, scoring_status)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """.trimIndent(),
                     arrayOf(
                         strategicProgramsId,
                         "strategic-programs",
@@ -202,7 +215,10 @@ private fun migrateSpecialProjectsLegacy(db: SupportSQLiteDatabase) {
 
         var weekProjectId: String? = null
         val weekCursor =
-            db.query("SELECT id FROM projects WHERE parentId = ? AND name = 'week' LIMIT 1", arrayOf(personalManagementProjectId))
+            db.query(
+                "SELECT id FROM projects WHERE parentId = ? AND name = 'week' LIMIT 1",
+                arrayOf(personalManagementProjectId),
+            )
         if (weekCursor.moveToFirst()) {
             weekProjectId = weekCursor.getString(weekCursor.getColumnIndexOrThrow("id"))
         }
@@ -211,7 +227,10 @@ private fun migrateSpecialProjectsLegacy(db: SupportSQLiteDatabase) {
         if (weekProjectId == null) {
             weekProjectId = UUID.randomUUID().toString()
             db.execSQL(
-                "INSERT INTO projects (id, name, parentId, is_expanded, createdAt, scoring_status) VALUES (?, ?, ?, ?, ?, ?)",
+                """
+                INSERT INTO projects (id, name, parentId, is_expanded, createdAt, scoring_status)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """.trimIndent(),
                 arrayOf(
                     weekProjectId,
                     "week",
@@ -296,7 +315,13 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
             defaultName = "medium-term-strategy",
             parentId = personalManagementId,
             legacyParentIds = listOf(strategicId),
-            legacyNames = listOf("medium-term-strategy", "medium-term-program", "medium-term-programs", "Середньострокова програма"),
+            legacyNames =
+                listOf(
+                    "medium-term-strategy",
+                    "medium-term-program",
+                    "medium-term-programs",
+                    "Середньострокова програма",
+                ),
             legacyNamePatterns = listOf("%medium-term%", "%medium%strategy%", "%Середнь%"),
         )
 
