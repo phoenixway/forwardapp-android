@@ -148,6 +148,7 @@ class ItemActionHandler
                         resultListener.requestNavigation("music_note_screen/${item.musicNote.id}")
                     is BacklogItemContent.ChecklistItem ->
                         resultListener.requestNavigation("checklist_screen?checklistId=${item.checklist.id}")
+                    is BacklogItemContent.GoalItem -> Unit
                 }
             }
         }

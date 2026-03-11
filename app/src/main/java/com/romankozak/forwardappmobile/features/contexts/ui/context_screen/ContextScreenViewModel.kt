@@ -913,7 +913,6 @@ class ContextScreenViewModel
         fun onDismissArtifactEditor() = artifactHandler.onDismissArtifactEditor()
 
         fun onDismissNoteDocumentEditor() = noteDocumentHandler.onDismissNoteDocumentEditor()
-<<<<<<< HEAD
         fun onDismissGoalInlineEditor() = stateManager.setGoalToEditInline(null)
         fun onSaveGoalInlineEditor(text: String) {
             val goal = stateManager.uiState.value.goalToEditInline ?: return
@@ -928,9 +927,6 @@ class ContextScreenViewModel
             val goal = (item as? BacklogItemContent.GoalItem)?.goal ?: return
             requestNavigation("goal_settings_screen/${goal.id}")
         }
-=======
-
->>>>>>> 372a3e13420066cc66eaabccc5adccfffd2da8ac
         fun onToggleProjectManagement(isEnabled: Boolean) =
             viewModelScope.launch { currentContextActions.toggleProjectManagement(contextIdFlow.value, isEnabled) }
 
