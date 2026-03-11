@@ -7,6 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 
 @HiltViewModel
@@ -44,13 +45,17 @@ class SyncDataViewModel
                     val result = syncRepository.fetchBackupFromWifi(serverAddress, lastSyncTime)
                     result.onSuccess { json ->
                         lastFetchedJson = json
-                        val report = syncRepository.createSyncReport(json)
-                        _changesCount.value = report.changes.size
+                        runCatching { syncRepository.createSyncReport(json) }
+                            .onSuccess { report ->
+                                _changesCount.value = report.changes.size
+                            }
+                            .onFailure { error ->
+                                if (error is CancellationException) throw error
+                                _error.value = error.message ?: "Exception during check"
+                            }
                     }.onFailure { e ->
                         _error.value = e.message ?: "Unknown error"
                     }
-                } catch (e: Exception) {
-                    _error.value = e.message ?: "Exception during check"
                 } finally {
                     _isCheckingForChanges.value = false
                 }

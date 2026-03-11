@@ -11,6 +11,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 
 @HiltViewModel
@@ -39,18 +40,19 @@ class SyncViewModel
 
             viewModelScope.launch {
                 originalJsonString = jsonString
-                try {
-                    val syncReport = syncRepo.createSyncReport(jsonString)
-                    _report.value = syncReport
-                    _approvedChangeIds.value = syncReport.changes.map { it.id + it.type.name }.toSet()
-                    _error.value = null
-                } catch (e: Exception) {
-                    Log.e("SyncViewModel", "Error creating sync report", e)
-                    _error.value = e.message ?: "Сталася невідома помилка."
-                    _report.value = null
-                } finally {
-                    syncDataViewModel.jsonString = null
-                }
+                runCatching { syncRepo.createSyncReport(jsonString) }
+                    .onSuccess { syncReport ->
+                        _report.value = syncReport
+                        _approvedChangeIds.value = syncReport.changes.map { it.id + it.type.name }.toSet()
+                        _error.value = null
+                    }
+                    .onFailure { error ->
+                        if (error is CancellationException) throw error
+                        Log.e("SyncViewModel", "Error creating sync report", error)
+                        _error.value = error.message ?: "Сталася невідома помилка."
+                        _report.value = null
+                    }
+                syncDataViewModel.jsonString = null
             }
         }
 
