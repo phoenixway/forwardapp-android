@@ -24,6 +24,7 @@ import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SearchUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.BacklogActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.BacklogDndCoordinator
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.BacklogItemActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ClipboardActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.CurrentContextActions
@@ -133,9 +134,18 @@ class ContextScreenViewModel
             const val HANDLE_LINK_CLICK_ROUTE = "handle_link_click"
             private const val TAG = "BacklogVM_DEBUG"
         }
+        private var _enhancedNavigationManager: EnhancedNavigationManager =
+            EnhancedNavigationManager(
+                savedStateHandle = SavedStateHandle(),
+                scope = viewModelScope,
+            )
+        var enhancedNavigationManager: EnhancedNavigationManager
+            get() = _enhancedNavigationManager
+            set(value) {
+                _enhancedNavigationManager = value
+            }
         val canGoBack: StateFlow<Boolean> get() = enhancedNavigationManager.canGoBack
         val canGoForward: StateFlow<Boolean> get() = enhancedNavigationManager.canGoForward
-        lateinit var enhancedNavigationManager: EnhancedNavigationManager
         val contextSessionState: StateFlow<com.romankozak.forwardappmobile.core.context.ContextSessionState> =
             contextSessionStore.state
         internal val stateManager = ContextStateManager(viewModelScope)
@@ -145,8 +155,6 @@ class ContextScreenViewModel
         private val originContextId: String? = savedStateHandle.get<String>("originContextId")
         private val _listContent = MutableStateFlow<List<BacklogItemContent>>(emptyList())
         val listContent: StateFlow<List<BacklogItemContent>> = _listContent.asStateFlow()
-        private var isBacklogDragInProgress: Boolean = false
-        private var expectedBacklogOrderIds: List<String>? = null
         private val _attachmentItems = MutableStateFlow<List<BacklogItemContent>>(emptyList())
         val attachmentItems: StateFlow<List<BacklogItemContent>> = _attachmentItems.asStateFlow()
         val itemActionHandler =
@@ -199,6 +207,11 @@ class ContextScreenViewModel
         private val uiControlActions by lazy { UiControlActions(stateManager = stateManager, contextSessionStore = contextSessionStore) }
         private val clipboardActions by lazy { ClipboardActions(application) }
         private val backlogActions by lazy { BacklogActions(listItemRepository = listItemRepository, settingsRepository = settingsRepository, application = application) }
+        private val backlogDndCoordinator by lazy {
+            BacklogDndCoordinator(backlogActions) { message, error ->
+                Log.w(TAG, message, error)
+            }
+        }
         private val backlogItemActions by lazy {
             BacklogItemActions(
                 goalRepository = goalRepository,
@@ -456,8 +469,7 @@ class ContextScreenViewModel
                 contextIdFlow
                     .drop(1)
                     .collect {
-                        isBacklogDragInProgress = false
-                        expectedBacklogOrderIds = null
+                        backlogDndCoordinator.reset()
                         stateManager.updateState { it.copy(isContextSwitching = true) }
                         _listContent.value = emptyList()
                         _attachmentItems.value = emptyList()
@@ -492,14 +504,15 @@ class ContextScreenViewModel
                             is ContextData.Loaded ->
                                 contextDataApplyActions.applyLoaded(
                                     data = data,
-                                    setListContent = { applyObservedBacklogContent(it) },
+                                    setListContent = { observed ->
+                                        _listContent.value = backlogDndCoordinator.applyObserved(observed, _listContent.value)
+                                    },
                                     setAttachmentItems = { _attachmentItems.value = it },
                                 )
                             is ContextData.Empty ->
                                 contextDataApplyActions.applyEmpty(
                                     clearListContent = {
-                                        isBacklogDragInProgress = false
-                                        expectedBacklogOrderIds = null
+                                        backlogDndCoordinator.reset()
                                         _listContent.value = emptyList()
                                     },
                                     clearAttachmentItems = { _attachmentItems.value = emptyList() },
@@ -509,20 +522,6 @@ class ContextScreenViewModel
             }
         }
 
-        private fun applyObservedBacklogContent(observed: List<BacklogItemContent>) {
-            if (isBacklogDragInProgress) return
-
-            val expectedOrder = expectedBacklogOrderIds
-            if (expectedOrder != null) {
-                val observedOrder = observed.map { it.backlogItem.id }
-                if (observedOrder != expectedOrder) {
-                    return
-                }
-                expectedBacklogOrderIds = null
-            }
-
-            _listContent.value = observed
-        }
     override fun onBackPressed(): Boolean {
         val backResult =
             topNavigationActions.resolveBack(
@@ -536,7 +535,13 @@ class ContextScreenViewModel
         return true
     }
     fun onForwardPressed() = onForwardPressed(contextIdFlow.value)
-    override fun onForwardPressed(id: String) { viewModelScope.launch { enhancedNavigationManager.navigateToProject(id, "Context") } }
+    override fun onForwardPressed(id: String) {
+        viewModelScope.launch {
+            withNavigationManager { manager ->
+                manager.navigateToProject(id, "Context")
+            }
+        }
+    }
     override fun onHomeClick() { viewModelScope.launch { uiEventActions.tryEmit(topNavigationActions.homeEvent()) } }
     fun deleteCurrentProject() = deleteCurrentProject(contextIdFlow.value)
     override fun deleteCurrentProject(id: String) {
@@ -707,7 +712,9 @@ class ContextScreenViewModel
             navigationEffectDispatcherActions.dispatch(
                 effects = effects,
                 navigateToProject = { contextId, contextName ->
-                    enhancedNavigationManager.navigateToProject(contextId, contextName)
+                    withNavigationManager { manager ->
+                        manager.navigateToProject(contextId, contextName)
+                    }
                 },
                 emitUiEvent = { event ->
                     uiEventActions.tryEmit(event)
@@ -719,6 +726,11 @@ class ContextScreenViewModel
                     Log.w(TAG, "Unknown navigation route: $route")
                 },
             )
+        }
+
+        private inline fun withNavigationManager(block: (EnhancedNavigationManager) -> Unit) {
+            runCatching { block(enhancedNavigationManager) }
+                .onFailure { error -> Log.w(TAG, "Navigation manager call failed", error) }
         }
         override fun setPendingAction(
             actionType: GoalActionType,
@@ -1073,23 +1085,11 @@ class ContextScreenViewModel
             to: Int,
         ) {
             if (from == to) return
-            if (!isBacklogDragInProgress) {
-                isBacklogDragInProgress = true
-                expectedBacklogOrderIds = null
-            }
-            _listContent.value = backlogActions.moveInMemory(_listContent.value, from, to)
+            _listContent.value = backlogDndCoordinator.move(_listContent.value, from, to)
         }
         fun onBacklogDragStopped() {
-            val localOrder = _listContent.value
-            expectedBacklogOrderIds = localOrder.map { it.backlogItem.id }
-            isBacklogDragInProgress = false
             viewModelScope.launch(ioDispatcher) {
-                runCatching {
-                    backlogActions.persistBacklogOrder(localOrder)
-                }.onFailure { error ->
-                    Log.w(TAG, "Failed to persist backlog order after drag", error)
-                    expectedBacklogOrderIds = null
-                }
+                backlogDndCoordinator.onDragStopped(_listContent.value)
             }
         }
         override fun addDirectionItem(text: String) {

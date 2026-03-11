@@ -10,7 +10,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23"
     id("kotlin-parcelize")
 
-    alias(libs.plugins.google.services.plugin)
+    alias(libs.plugins.google.services.plugin) apply false
     alias(libs.plugins.firebase.crashlytics.plugin)
 
     id("io.gitlab.arturbosch.detekt")
@@ -19,9 +19,16 @@ plugins {
 
 val signingProps = Properties()
 val signingPropsFile = rootProject.file("signing.properties")
+val googleServicesFile = file("google-services.json")
 
 if (signingPropsFile.exists()) {
     signingPropsFile.inputStream().use { signingProps.load(it) }
+}
+
+if (googleServicesFile.exists()) {
+    apply(plugin = "com.google.gms.google-services")
+} else {
+    logger.warn("⚠ google-services.json is missing. Firebase services configuration is disabled for local build.")
 }
 
 android {

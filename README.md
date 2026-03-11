@@ -34,6 +34,13 @@ See `docs/FEATURES2.md` for a feature/file map.
 ./gradlew :app:syncContractTest   # або make sync-contract
 ```
 
+## Local Secrets Setup
+The repository does not keep production secrets.
+
+- Copy `app/google-services.json.example` to `app/google-services.json` and fill real Firebase values.
+- Keep signing data in `signing.properties` (already ignored by git).
+- Do not commit `.jks`, `.keystore`, `google-services.json`, logs, or local databases.
+
 ## Feature Toggles
 - Stored in DataStore (`SettingsRepository.featureTogglesFlow`).
 - UI controls: Settings → Experimental Features (Attachments library, Planning modes, Wi‑Fi sync, Strategic management, System project moves, etc.).

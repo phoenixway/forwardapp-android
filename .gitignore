@@ -30,7 +30,16 @@ backups/
 apps/android/build/
 forwardapp-devtools/context/.Context.md.kate-swp
 .aider*
+.angelica/
+.angelica_session.json
+.code-index/
+.idea/
 .env
 .tmp/
 sources.txt
 path.txt
+forward_app_full_backup_*.json
+*.jks
+*.keystore
+app/google-services.json
+*.db
