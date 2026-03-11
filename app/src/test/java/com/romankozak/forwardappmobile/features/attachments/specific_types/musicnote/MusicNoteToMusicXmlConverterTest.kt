@@ -1,7 +1,9 @@
+@file:Suppress("PackageNaming")
+
 package com.romankozak.forwardappmobile.features.attachments.specific_types.musicnote
 
-import org.junit.Assert.assertTrue
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MusicNoteToMusicXmlConverterTest {
