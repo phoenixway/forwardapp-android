@@ -11,7 +11,7 @@ plugins {
     id("kotlin-parcelize")
 
     alias(libs.plugins.google.services.plugin) apply false
-    alias(libs.plugins.firebase.crashlytics.plugin)
+    alias(libs.plugins.firebase.crashlytics.plugin) apply false
 
     id("io.gitlab.arturbosch.detekt")
     id("org.jlleitschuh.gradle.ktlint")
@@ -27,8 +27,10 @@ if (signingPropsFile.exists()) {
 
 if (googleServicesFile.exists()) {
     apply(plugin = "com.google.gms.google-services")
+    apply(plugin = "com.google.firebase.crashlytics")
 } else {
     logger.warn("⚠ google-services.json is missing. Firebase services configuration is disabled for local build.")
+    logger.warn("⚠ Crashlytics Gradle plugin is disabled because google-services.json is missing.")
 }
 
 if (!googleServicesFile.exists()) {
@@ -140,6 +142,10 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1,INDEX.LIST,io.netty.versions.properties}"
         }
     }
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 tasks.withType<Test> {
@@ -298,6 +304,4 @@ dependencies {
     implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
 
     implementation(project(":sync"))
-    implementation(project(":core-data-interfaces"))
-    implementation(project(":core-data-interfaces"))
 }

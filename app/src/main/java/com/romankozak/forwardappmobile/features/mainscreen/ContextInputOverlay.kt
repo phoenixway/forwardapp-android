@@ -21,10 +21,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -134,7 +134,7 @@ fun ContextInputOverlay(
                                 Icon(Icons.Outlined.PlayArrow, contentDescription = "Track activity")
                             }
                             IconButton(onClick = onSend) {
-                                Icon(Icons.Outlined.Send, contentDescription = "Send")
+                                Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = "Send")
                             }
                         }
                     }

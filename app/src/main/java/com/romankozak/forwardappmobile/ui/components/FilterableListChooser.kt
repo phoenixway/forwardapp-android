@@ -225,7 +225,7 @@ fun FilterableListChooser(
 
                                 if (topLevelLists.isNotEmpty()) {
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    Divider(
+                                    HorizontalDivider(
                                         modifier = Modifier.padding(vertical = 8.dp),
                                         thickness = 1.dp,
                                         color = MaterialTheme.colorScheme.outlineVariant,

@@ -18,6 +18,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
@@ -30,7 +31,6 @@ import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
-import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.MoveToInbox
 import androidx.compose.material3.*
@@ -1099,7 +1099,7 @@ private fun commandIcon(commandId: OmniboxCommandId): ImageVector =
         OmniboxCommandId.OpenSettings -> Icons.Default.Tune
         OmniboxCommandId.OpenSearch -> Icons.Default.Search
         OmniboxCommandId.OpenAttachments -> Icons.Default.Description
-        OmniboxCommandId.OpenScripts -> Icons.Default.Sort
+        OmniboxCommandId.OpenScripts -> Icons.AutoMirrored.Filled.Sort
         OmniboxCommandId.OpenAiChat -> Icons.Default.Navigation
         OmniboxCommandId.OpenAiInsights -> Icons.Default.Navigation
         OmniboxCommandId.OpenAiLife -> Icons.Default.Navigation
@@ -1444,7 +1444,7 @@ private fun DataActionsBottomSheet(
             ListItem(
                 headlineContent = { Text("Сортування") },
                 supportingContent = { Text("Змінити порядок відображення результатів") },
-                leadingContent = { Icon(Icons.Default.Sort, contentDescription = null) },
+                leadingContent = { Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = null) },
                 modifier = Modifier.fillMaxWidth().clickable { onSelectSorting() },
             )
         }
@@ -1563,7 +1563,7 @@ private fun SortBottomSheet(
             GlobalSearchSort.entries.forEach { sort ->
                 ListItem(
                     headlineContent = { Text(sort.label) },
-                    leadingContent = { Icon(Icons.Default.Sort, contentDescription = null) },
+                    leadingContent = { Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = null) },
                     trailingContent = {
                         if (selectedSort == sort) {
                             Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)

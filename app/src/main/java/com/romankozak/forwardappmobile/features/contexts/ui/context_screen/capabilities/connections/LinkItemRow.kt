@@ -78,7 +78,6 @@ fun LinkItemRow(
                         LinkType.URL -> Icons.Default.Language
                         LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Note
                         null -> Icons.Default.BrokenImage
-                        else -> Icons.Default.BrokenImage
                     }
                 Icon(
                     imageVector = iconImageVector,
@@ -101,7 +100,6 @@ fun LinkItemRow(
                                 LinkType.URL -> link.target
                                 LinkType.OBSIDIAN -> "Нотатка Obsidian"
                                 null -> "Broken"
-                                else -> "Broken"
                             },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

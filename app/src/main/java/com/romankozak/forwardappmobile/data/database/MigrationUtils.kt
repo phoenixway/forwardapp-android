@@ -502,7 +502,10 @@ private fun ensureProjectWithKey(
     if (targetId == null && createIfMissing) {
         targetId = UUID.randomUUID().toString()
         db.execSQL(
-            "INSERT INTO projects (id, name, parentId, is_expanded, createdAt, scoring_status, system_key) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            """
+            INSERT INTO projects (id, name, parentId, is_expanded, createdAt, scoring_status, system_key)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """.trimIndent(),
             arrayOf(targetId, defaultName, parentId, 0, System.currentTimeMillis(), "NOT_ASSESSED", key),
         )
         discoveryStrategy = "created"
@@ -641,7 +644,8 @@ private fun SupportSQLiteDatabase.findProjectByFuzzyName(
     if (bestId != null) {
         Log.d(
             MIGRATION_LOG_TAG,
-            "findProjectByFuzzyName targets=$normalizedTargets requireParentMatch=$requireParentMatch -> $bestId (score=$bestScore)",
+            "findProjectByFuzzyName targets=$normalizedTargets " +
+                "requireParentMatch=$requireParentMatch -> $bestId (score=$bestScore)",
         )
     } else {
         Log.d(

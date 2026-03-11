@@ -109,7 +109,7 @@ fun GoalTransportMenu(
                             },
                         )
 
-                        Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
                         TransportMenuItem(
                             icon = Icons.Default.ContentCut,

@@ -218,7 +218,12 @@ fun ScoringStatusSelector(
     onStatusSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val statuses = listOf(ScoringStatusValues.NOT_ASSESSED, ScoringStatusValues.ASSESSED, ScoringStatusValues.IMPOSSIBLE_TO_ASSESS)
+    val statuses =
+        listOf(
+            ScoringStatusValues.NOT_ASSESSED,
+            ScoringStatusValues.ASSESSED,
+            ScoringStatusValues.IMPOSSIBLE_TO_ASSESS,
+        )
     val labels =
         mapOf(
             ScoringStatusValues.NOT_ASSESSED to "Unset",

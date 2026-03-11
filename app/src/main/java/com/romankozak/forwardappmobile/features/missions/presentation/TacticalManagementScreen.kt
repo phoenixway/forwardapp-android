@@ -599,7 +599,7 @@ fun MissionDialog(
                     }
                 }
 
-                Divider()
+                HorizontalDivider()
 
                 Text("Attachments", style = MaterialTheme.typography.titleSmall)
                 if (attachmentLinks.isEmpty()) {
