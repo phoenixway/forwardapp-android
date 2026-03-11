@@ -39,7 +39,11 @@ private fun normalizeSpecialProjectNames(db: SupportSQLiteDatabase) {
     db.execSQL("UPDATE projects SET name = 'mission' WHERE name = 'Місія'")
     db.execSQL("UPDATE projects SET name = 'long-term-strategy' WHERE name = 'Довгострокова стратегія'")
     db.execSQL(
-        "UPDATE projects SET name = 'medium-term-strategy' WHERE name IN ('Середньострокова програма', 'medium-term-program', 'medium-term-programs')",
+        """
+        UPDATE projects
+        SET name = 'medium-term-strategy'
+        WHERE name IN ('Середньострокова програма', 'medium-term-program', 'medium-term-programs')
+        """.trimIndent(),
     )
     db.execSQL("UPDATE projects SET name = 'active-quests' WHERE name = 'Активні квести'")
     db.execSQL("UPDATE projects SET name = 'strategic-inbox' WHERE name IN ('Стратегічні цілі', 'strategic-goals')")
@@ -50,12 +54,26 @@ private fun normalizeSpecialProjectNames(db: SupportSQLiteDatabase) {
 
         """.trimIndent(),
     )
-    db.execSQL("UPDATE projects SET name = 'strategic-programs' WHERE name IN ('strategic-program', 'strategic-programs')")
-    db.execSQL("DELETE FROM projects WHERE name LIKE 'main-beacons-realization%' OR system_key = 'main-beacons-realization'")
+    db.execSQL(
+        """
+        UPDATE projects
+        SET name = 'strategic-programs'
+        WHERE name IN ('strategic-program', 'strategic-programs')
+        """.trimIndent(),
+    )
+    db.execSQL(
+        """
+        DELETE FROM projects
+        WHERE name LIKE 'main-beacons-realization%'
+           OR system_key = 'main-beacons-realization'
+        """.trimIndent(),
+    )
 
     Log.d(
         MIGRATION_LOG_TAG,
-        "normalizeSpecialProjectNames: personal-management, strategic, medium-term-strategy and reserved_group aliases normalized (main-beacons-realization removed)",
+        "normalizeSpecialProjectNames: personal-management, strategic, " +
+            "medium-term-strategy and reserved_group aliases normalized " +
+            "(main-beacons-realization removed)",
     )
 }
 
