@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.outlined.Analytics
-import androidx.compose.material.icons.outlined.Chat
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material3.Surface
@@ -57,7 +57,7 @@ fun StrategicManagementBottomNav(
                 )
                 ModernBottomNavButton(
                     text = "Ask AI",
-                    icon = Icons.Outlined.Chat,
+                    icon = Icons.AutoMirrored.Outlined.Chat,
                     isSelected = currentTab == StrategicManagementTab.AI_CHAT,
                     onClick = { onTabSelected(StrategicManagementTab.AI_CHAT) },
                 )

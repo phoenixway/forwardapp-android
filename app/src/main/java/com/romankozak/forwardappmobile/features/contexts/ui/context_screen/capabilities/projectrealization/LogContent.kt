@@ -23,6 +23,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Comment
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -306,9 +309,9 @@ private fun typeToColor(type: String?): Color =
 
 private fun typeToIcon(type: String?) =
     when (type) {
-        ContextLogEntryTypeValues.STATUS_CHANGE -> Icons.Default.TrendingUp
-        ContextLogEntryTypeValues.COMMENT -> Icons.Default.Comment
-        ContextLogEntryTypeValues.AUTOMATIC -> Icons.Default.ReceiptLong
+        ContextLogEntryTypeValues.STATUS_CHANGE -> Icons.AutoMirrored.Filled.TrendingUp
+        ContextLogEntryTypeValues.COMMENT -> Icons.AutoMirrored.Filled.Comment
+        ContextLogEntryTypeValues.AUTOMATIC -> Icons.AutoMirrored.Filled.ReceiptLong
         ContextLogEntryTypeValues.INSIGHT -> Icons.Default.Lightbulb
         ContextLogEntryTypeValues.MILESTONE -> Icons.Default.Flag
         else -> Icons.Default.Info

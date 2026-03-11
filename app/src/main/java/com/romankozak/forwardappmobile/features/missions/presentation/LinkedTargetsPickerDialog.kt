@@ -26,14 +26,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -897,9 +897,9 @@ private fun CompactDescendantsToggle(
 private fun attachmentIcon(type: LinkType?) =
     when (type) {
         LinkType.URL -> Icons.Default.Link
-        LinkType.OBSIDIAN -> Icons.Default.Notes
+        LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Notes
         LinkType.CONTEXT -> Icons.Default.Folder
-        null -> Icons.Default.InsertDriveFile
+        null -> Icons.AutoMirrored.Filled.InsertDriveFile
     }
 
 private enum class DocumentCreationType {

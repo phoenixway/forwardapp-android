@@ -17,13 +17,13 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.StickyNote2
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.DataObject
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Public
-import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -73,7 +73,7 @@ fun ConnectionsCreateActionsDialog(
             ),
             ConnectionCreateItem(
                 "Нотатка",
-                Icons.Outlined.StickyNote2,
+                Icons.AutoMirrored.Outlined.StickyNote2,
                 MaterialTheme.colorScheme.primary,
                 CreateConnectionType.NOTE_DOCUMENT,
             ),

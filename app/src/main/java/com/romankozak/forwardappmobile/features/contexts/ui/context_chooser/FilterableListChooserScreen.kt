@@ -16,6 +16,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -93,7 +95,7 @@ fun FilterableListChooserScreen(
                                 title
                             },
                         transitionSpec = {
-                            slideInVertically { -it } + fadeIn() with
+                            slideInVertically { -it } + fadeIn() togetherWith
                                 slideOutVertically { it } + fadeOut()
                         },
                     ) { titleText ->
@@ -111,7 +113,7 @@ fun FilterableListChooserScreen(
                             onNavigateBack()
                         },
                     ) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
                     }
                 },
                 colors =
@@ -174,7 +176,7 @@ fun FilterableListChooserScreen(
         AnimatedContent(
             targetState = isCreatingMode,
             transitionSpec = {
-                (slideInVertically { it } + fadeIn(tween(300)) + expandVertically()) with
+                (slideInVertically { it } + fadeIn(tween(300)) + expandVertically()) togetherWith
                     (slideOutVertically { -it } + fadeOut(tween(200)) + shrinkVertically())
             },
             modifier =
@@ -484,7 +486,7 @@ private fun CreateProjectForm(
                     ),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 leadingIcon = {
-                    Icon(Icons.Outlined.Label, contentDescription = null)
+                    Icon(Icons.AutoMirrored.Outlined.Label, contentDescription = null)
                 },
             )
 

@@ -15,11 +15,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.FormatListBulleted
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -217,7 +217,7 @@ fun ProjectHierarchyScreenScaffold(
                         add(
                             HoldMenuItem(
                                 label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_checklist),
-                                icon = Icons.Default.FormatListBulleted,
+                                icon = Icons.AutoMirrored.Filled.FormatListBulleted,
                             ),
                         )
                         if (scriptsEnabled) {
@@ -269,7 +269,7 @@ fun ProjectHierarchyScreenScaffold(
                                 },
                             )
                             DropdownMenuItem(
-                                leadingIcon = { Icon(Icons.Default.FormatListBulleted, contentDescription = null) },
+                                leadingIcon = { Icon(Icons.AutoMirrored.Filled.FormatListBulleted, contentDescription = null) },
                                 text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_checklist)) },
                                 onClick = {
                                     showAddMenu = false

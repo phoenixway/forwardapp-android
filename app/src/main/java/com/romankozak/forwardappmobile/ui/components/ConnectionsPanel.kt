@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.StickyNote2
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.AttachFile
@@ -33,7 +34,6 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalIconButton
@@ -479,7 +479,7 @@ private val ConnectionType.icon: ImageVector
             ConnectionType.MUSIC_NOTE -> Icons.Outlined.MusicNote
             ConnectionType.SCRIPT -> Icons.Outlined.Code
             ConnectionType.URL -> Icons.Outlined.Language
-            ConnectionType.OBSIDIAN_NOTE -> Icons.Outlined.StickyNote2
+            ConnectionType.OBSIDIAN_NOTE -> Icons.AutoMirrored.Outlined.StickyNote2
         }
 
 private val ConnectionType.tint: Color

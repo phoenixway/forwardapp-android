@@ -20,9 +20,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
@@ -278,7 +278,7 @@ fun SettingsScreen(
                         }
                         SettingsCard(
                             title = "Contexts",
-                            icon = Icons.Default.Label,
+                            icon = Icons.AutoMirrored.Filled.Label,
                         ) {
                             OutlinedButton(
                                 onClick = onManageContextsClick,

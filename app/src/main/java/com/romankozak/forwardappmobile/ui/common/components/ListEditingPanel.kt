@@ -11,13 +11,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FormatIndentDecrease
+import androidx.compose.material.icons.automirrored.filled.FormatIndentIncrease
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.FormatIndentDecrease
-import androidx.compose.material.icons.filled.FormatIndentIncrease
-import androidx.compose.material.icons.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.VerticalAlignBottom
@@ -65,13 +65,13 @@ private fun ListEditingClipboardRow(
         horizontalArrangement = Arrangement.SpaceAround,
     ) {
         StyledIconButton(onClick = { onValueChange(ListEditingLogic.toggleList(value)) }) {
-            Icon(Icons.Default.FormatListBulleted, contentDescription = "Toggle List")
+            Icon(Icons.AutoMirrored.Filled.FormatListBulleted, contentDescription = "Toggle List")
         }
         StyledIconButton(onClick = { onValueChange(ListEditingLogic.indent(value)) }) {
-            Icon(Icons.Default.FormatIndentIncrease, contentDescription = "Indent")
+            Icon(Icons.AutoMirrored.Filled.FormatIndentIncrease, contentDescription = "Indent")
         }
         StyledIconButton(onClick = { onValueChange(ListEditingLogic.outdent(value)) }) {
-            Icon(Icons.Default.FormatIndentDecrease, contentDescription = "Outdent")
+            Icon(Icons.AutoMirrored.Filled.FormatIndentDecrease, contentDescription = "Outdent")
         }
         StyledIconButton(onClick = {
             val line = extractCurrentLine(value)

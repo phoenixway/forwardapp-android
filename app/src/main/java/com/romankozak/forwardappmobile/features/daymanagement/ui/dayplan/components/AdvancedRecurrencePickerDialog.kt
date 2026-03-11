@@ -35,7 +35,7 @@ fun AdvancedRecurrencePickerDialog(
                         readOnly = true,
                         label = { Text("Частота") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
                     )
                     ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                         RecurrenceFrequency.values().filter { it != RecurrenceFrequency.MONTHLY && it != RecurrenceFrequency.YEARLY }.forEach {
