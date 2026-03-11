@@ -24,7 +24,7 @@ DEVICE_FLAG=-s $(DEVICE_ID)
 
 # --- Цілі (Targets) ---
 
-.PHONY: work-end work-start all debug-cycle release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test sync-contract get-android-dumps get-release-apk exp-cycle build-exp install-exp start-exp stop-exp logcat-exp backup
+.PHONY: work-end work-start all debug-cycle release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test sync-contract get-android-dumps get-release-apk exp-cycle build-exp install-exp start-exp stop-exp logcat-exp backup quality-report quality-strict quality-unit
 
 work-start:
 	@echo "▶ Starting agent workflow…"
@@ -173,6 +173,23 @@ detekt-check:
 	@echo "🔍  Виконую аналіз коду за допомогою Detekt..."
 	@./gradlew detekt
 	@echo "✅  Аналіз коду завершено."
+
+## Quality report mode (не блокує через strict прапорець)
+quality-report:
+	@echo "📊  Запускаю detekt + ktlintCheck (report mode)..."
+	@./gradlew detekt ktlintCheck --stacktrace
+	@echo "✅  Quality report mode завершено."
+
+## Quality strict mode (падає при порушеннях)
+quality-strict:
+	@echo "🚫  Запускаю detekt + ktlintCheck (strict mode)..."
+	@./gradlew detekt ktlintCheck -PstrictQuality=true --stacktrace
+
+## Unit quality matrix (exp + prod)
+quality-unit:
+	@echo "🧪  Запускаю exp/prod JVM unit tests..."
+	@./gradlew testExpDebugUnitTest testProdDebugUnitTest --stacktrace
+	@echo "✅  Unit quality matrix завершено."
 
 # Контрактні тести синку (офлайн)
 sync-contract:

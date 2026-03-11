@@ -8,9 +8,43 @@ on:
   workflow_dispatch: # Дозволяє запускати тести вручну через 'gh workflow run'
 
 jobs:
-  test:
-    name: Run JVM Unit Tests
+  quality:
+    name: Quality Gates
     runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run Detekt + Ktlint (report mode)
+        run: ./gradlew detekt ktlintCheck --stacktrace
+
+      - name: Enforce changed-files quality gate (PR only)
+        if: github.event_name == 'pull_request'
+        run: ./tools/quality_changed_files_gate.sh "${BASE_SHA}" "${HEAD_SHA}"
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+
+  test:
+    name: Run JVM Unit Tests (${{ matrix.flavor }})
+    needs: quality
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        flavor: [exp, prod]
 
     steps:
       - uses: actions/checkout@v4
@@ -27,15 +61,19 @@ jobs:
 
       - name: Run Unit Tests
         run: |
-          echo "Running local unit tests (JVM)..."
-          ./gradlew testExpDebugUnitTest --stacktrace
+          FLAVOR_CAP="$(tr '[:lower:]' '[:upper:]' <<< ${FLAVOR:0:1})${FLAVOR:1}"
+          TASK="test${FLAVOR_CAP}DebugUnitTest"
+          echo "Running JVM unit tests task: $TASK"
+          ./gradlew "$TASK" --stacktrace
+        env:
+          FLAVOR: ${{ matrix.flavor }}
 
       - name: Test Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: unit-test-report
-          path: app/build/reports/tests/testExpDebugUnitTest/
+          name: unit-test-report-${{ matrix.flavor }}
+          path: app/build/reports/tests/
           retention-days: 7
 
       - name: Hint for Failed Tests
