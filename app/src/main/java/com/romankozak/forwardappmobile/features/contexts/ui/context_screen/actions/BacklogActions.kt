@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions
 
-import android.app.Application
 import android.util.Log
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.data.repository.ListItemRepository
@@ -8,11 +7,12 @@ import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.wifirestapi.FileDataRequest
 import com.romankozak.forwardappmobile.domain.wifirestapi.RetrofitClient
 import kotlinx.coroutines.flow.first
+import retrofit2.HttpException
+import java.io.IOException
 
 class BacklogActions(
     private val listItemRepository: ListItemRepository,
     private val settingsRepository: SettingsRepository,
-    private val application: Application,
 ) {
     companion object {
         private const val TAG = "BacklogActions"
@@ -88,30 +88,33 @@ class BacklogActions(
         currentContent: List<BacklogItemContent>,
     ): TransferResult {
         val url = settingsRepository.getFastApiUrl().first()
-        if (url.isNullOrBlank()) {
-            return TransferResult.Message("Server address is not available. Check settings.")
-        }
-
-        return try {
-            val markdownContent = getBacklogAsMarkdown(currentContent)
-            if (markdownContent.isBlank()) {
-                return TransferResult.Message("Беклог порожній. Нічого передавати.")
-            }
-
-            val filename = projectName ?: "backlog_export"
-            val requestBody = FileDataRequest(filename = filename, content = markdownContent)
-            Log.d(TAG, "transferBacklogToServer: Uploading to $url")
-            val response = RetrofitClient.getInstance(application, url).uploadFileAsJson(requestBody)
-            if (response.isSuccessful) {
-                TransferResult.Message("Беклог успішно передано")
+        val markdownContent = getBacklogAsMarkdown(currentContent)
+        val message =
+            if (url.isNullOrBlank()) {
+                "Server address is not available. Check settings."
+            } else if (markdownContent.isBlank()) {
+                "Беклог порожній. Нічого передавати."
             } else {
-                val errorMsg = response.errorBody()?.string() ?: "Невідома помилка"
-                TransferResult.Message("Помилка: ${response.code()} - $errorMsg")
+                try {
+                    val filename = projectName ?: "backlog_export"
+                    val requestBody = FileDataRequest(filename = filename, content = markdownContent)
+                    Log.d(TAG, "transferBacklogToServer: Uploading to $url")
+                    val response = RetrofitClient.getInstance(url).uploadFileAsJson(requestBody)
+                    if (response.isSuccessful) {
+                        "Беклог успішно передано"
+                    } else {
+                        val errorMsg = response.errorBody()?.string() ?: "Невідома помилка"
+                        "Помилка: ${response.code()} - $errorMsg"
+                    }
+                } catch (e: IOException) {
+                    Log.e(TAG, "transferBacklogToServer: network error", e)
+                    "Помилка мережі: ${e.message}"
+                } catch (e: HttpException) {
+                    Log.e(TAG, "transferBacklogToServer: http error", e)
+                    "Помилка HTTP: ${e.message()}"
+                }
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "transferBacklogToServer: network error", e)
-            TransferResult.Message("Помилка мережі: ${e.message}")
-        }
+        return TransferResult.Message(message)
     }
 
     suspend fun persistBacklogOrder(content: List<BacklogItemContent>) {

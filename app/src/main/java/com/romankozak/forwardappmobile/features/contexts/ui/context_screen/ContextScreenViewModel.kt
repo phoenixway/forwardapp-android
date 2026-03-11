@@ -205,7 +205,7 @@ class ContextScreenViewModel
         private val uiEventActions by lazy { UiEventDispatcherActions(_uiEventFlow) }
         private val uiControlActions by lazy { UiControlActions(stateManager = stateManager, contextSessionStore = contextSessionStore) }
         private val clipboardActions by lazy { ClipboardActions(application) }
-        private val backlogActions by lazy { BacklogActions(listItemRepository = listItemRepository, settingsRepository = settingsRepository, application = application) }
+        private val backlogActions by lazy { BacklogActions(listItemRepository = listItemRepository, settingsRepository = settingsRepository) }
         private val backlogDndCoordinator by lazy {
             BacklogDndCoordinator(backlogActions) { message, error ->
                 Log.w(TAG, message, error)
