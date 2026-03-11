@@ -15,16 +15,38 @@ interface ActivityRecordDao {
     @Query("SELECT * FROM activity_records ORDER BY createdAt ASC")
     fun getAllRecordsStream(): Flow<List<ActivityRecord>>
 
-    @Query("SELECT * FROM activity_records WHERE endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1")
+    @Query(
+        """
+        SELECT * FROM activity_records
+        WHERE endTime IS NULL
+          AND startTime IS NOT NULL
+        ORDER BY startTime DESC
+        LIMIT 1
+        """,
+    )
     suspend fun findLastOngoingActivity(): ActivityRecord?
 
     @Query(
-        "SELECT * FROM activity_records WHERE goal_id = :goalId AND endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1",
+        """
+        SELECT * FROM activity_records
+        WHERE goal_id = :goalId
+          AND endTime IS NULL
+          AND startTime IS NOT NULL
+        ORDER BY startTime DESC
+        LIMIT 1
+        """,
     )
     suspend fun findLastOngoingActivityForGoal(goalId: String): ActivityRecord?
 
     @Query(
-        "SELECT * FROM activity_records WHERE context_id = :contextId AND endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1",
+        """
+        SELECT * FROM activity_records
+        WHERE context_id = :contextId
+          AND endTime IS NULL
+          AND startTime IS NOT NULL
+        ORDER BY startTime DESC
+        LIMIT 1
+        """,
     )
     suspend fun findLastOngoingActivityForContext(contextId: String): ActivityRecord?
 
@@ -101,7 +123,15 @@ interface ActivityRecordDao {
         toTimestamp: Long,
     ): List<ActivityRecord>
 
-    @Query("SELECT * FROM activity_records WHERE endTime IS NULL AND startTime IS NOT NULL ORDER BY startTime DESC LIMIT 1")
+    @Query(
+        """
+        SELECT * FROM activity_records
+        WHERE endTime IS NULL
+          AND startTime IS NOT NULL
+        ORDER BY startTime DESC
+        LIMIT 1
+        """,
+    )
     fun findLastOngoingActivityFlow(): Flow<ActivityRecord?>
 
     @Query("SELECT * FROM activity_records WHERE context_id = :contextId ORDER BY createdAt DESC")
