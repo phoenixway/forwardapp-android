@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.domain.lifestate
 
-val LIFE_STATE_SYSTEM_PROMPT: String =
+const val LIFE_STATE_SYSTEM_PROMPT: String =
     """
 🧠 SYSTEM PROMPT — AI Life-State Analyzer (ForwardApp, production)
 Copy exactly. This is the production system prompt.

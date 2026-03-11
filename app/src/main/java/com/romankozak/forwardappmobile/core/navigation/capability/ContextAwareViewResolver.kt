@@ -13,9 +13,8 @@ class ContextAwareViewResolver(
                 ?: error("View $viewId not registered")
 
         // ПЕРЕВІРКА: чи дозволена можливість, якій належить ця в'юха
-        if (!capabilityGate.isEnabled(descriptor.ownerCapability)) {
-            // Якщо доступу немає, повертаємо "заглушку" або кидаємо помилку
-            throw IllegalStateException("Access denied to view: ${viewId.raw}")
+        check(capabilityGate.isEnabled(descriptor.ownerCapability)) {
+            "Access denied to view: ${viewId.raw}"
         }
 
         return descriptor.screenId
