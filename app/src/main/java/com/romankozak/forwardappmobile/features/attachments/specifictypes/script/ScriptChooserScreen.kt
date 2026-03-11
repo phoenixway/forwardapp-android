@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.attachments.specific_types.script
+package com.romankozak.forwardappmobile.features.attachments.specifictypes.script
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement

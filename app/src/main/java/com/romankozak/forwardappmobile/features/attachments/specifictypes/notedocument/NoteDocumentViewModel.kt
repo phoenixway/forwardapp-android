@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.attachments.specific_types.notedocument
+package com.romankozak.forwardappmobile.features.attachments.specifictypes.notedocument
 
 import android.app.Application
 import android.content.ClipData

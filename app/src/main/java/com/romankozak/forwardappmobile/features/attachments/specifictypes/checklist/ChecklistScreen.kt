@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.attachments.specific_types.checklist
+package com.romankozak.forwardappmobile.features.attachments.specifictypes.checklist
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn

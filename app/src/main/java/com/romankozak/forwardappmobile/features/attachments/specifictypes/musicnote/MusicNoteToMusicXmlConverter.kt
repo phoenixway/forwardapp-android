@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.attachments.specific_types.musicnote
+package com.romankozak.forwardappmobile.features.attachments.specifictypes.musicnote
 
 import java.util.ArrayDeque
 

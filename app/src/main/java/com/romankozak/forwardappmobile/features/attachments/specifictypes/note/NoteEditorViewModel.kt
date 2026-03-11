@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.attachments.specific_types.note
+package com.romankozak.forwardappmobile.features.attachments.specifictypes.note
 
 import android.app.Application
 import androidx.lifecycle.SavedStateHandle

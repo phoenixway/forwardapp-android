@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.attachments.specific_types.script
+package com.romankozak.forwardappmobile.features.attachments.specifictypes.script
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

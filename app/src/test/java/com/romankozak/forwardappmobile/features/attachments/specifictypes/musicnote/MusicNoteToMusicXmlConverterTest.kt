@@ -1,6 +1,6 @@
 @file:Suppress("PackageNaming")
 
-package com.romankozak.forwardappmobile.features.attachments.specific_types.musicnote
+package com.romankozak.forwardappmobile.features.attachments.specifictypes.musicnote
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
