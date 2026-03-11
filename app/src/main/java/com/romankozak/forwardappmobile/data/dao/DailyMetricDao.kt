@@ -41,7 +41,11 @@ interface DailyMetricDao {
     ): Float?
 
     @Query(
-        "SELECT AVG(morningEnergyLevel) FROM daily_metrics WHERE date BETWEEN :startDate AND :endDate AND morningEnergyLevel IS NOT NULL",
+        """
+        SELECT AVG(morningEnergyLevel) FROM daily_metrics
+        WHERE date BETWEEN :startDate AND :endDate
+          AND morningEnergyLevel IS NOT NULL
+        """,
     )
     suspend fun getAverageEnergyLevel(
         startDate: Long,
