@@ -31,6 +31,14 @@ if (googleServicesFile.exists()) {
     logger.warn("⚠ google-services.json is missing. Firebase services configuration is disabled for local build.")
 }
 
+if (!googleServicesFile.exists()) {
+    tasks.configureEach {
+        if (name.startsWith("uploadCrashlyticsMappingFile")) {
+            enabled = false
+        }
+    }
+}
+
 android {
     namespace = "com.romankozak.forwardappmobile"
     compileSdk = 35
