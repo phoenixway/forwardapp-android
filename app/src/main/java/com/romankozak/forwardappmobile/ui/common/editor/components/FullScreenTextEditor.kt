@@ -80,7 +80,7 @@ fun FullScreenTextEditor(
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
                             disabledIndicatorColor = Color.Transparent,
-                    ),
+                        ),
                 )
             }
         }

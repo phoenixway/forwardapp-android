@@ -43,10 +43,12 @@ class NoteDocumentEditorViewModel
                 checklistRepository.getAllChecklistsAsFlow(),
                 contextRepository.getAllContextsFlow(),
             ) { docs, musicNotes, checklists, contexts ->
-                (docs.map { doc -> "doc:${doc.id}|${doc.name.ifBlank { "Untitled" }}" } +
-                    musicNotes.map { note -> "music:${note.id}|${note.name.ifBlank { "Untitled" }}" } +
-                    checklists.map { checklist -> "checklist:${checklist.id}|${checklist.name.ifBlank { "Untitled" }}" } +
-                    contexts.map { ctx -> "ctx:${ctx.id}|${ctx.name.ifBlank { "Untitled" }}" })
+                (
+                    docs.map { doc -> "doc:${doc.id}|${doc.name.ifBlank { "Untitled" }}" } +
+                        musicNotes.map { note -> "music:${note.id}|${note.name.ifBlank { "Untitled" }}" } +
+                        checklists.map { checklist -> "checklist:${checklist.id}|${checklist.name.ifBlank { "Untitled" }}" } +
+                        contexts.map { ctx -> "ctx:${ctx.id}|${ctx.name.ifBlank { "Untitled" }}" }
+                )
                     .filter { token -> token.substringAfter('|', "").isNotBlank() }
                     .distinct()
             }

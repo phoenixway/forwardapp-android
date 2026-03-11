@@ -12,6 +12,8 @@ import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.InboxRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,8 +21,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.net.URLDecoder
 import java.util.Locale
@@ -396,7 +396,9 @@ class GlobalSearchViewModel
                             val score = fuzzyScoreForData(query, item)
                             if (score < 0) null else item to score
                         }
-                        .sortedWith(compareByDescending<Pair<GlobalSearchResultItem, Int>> { it.second }.thenByDescending { it.first.timestamp })
+                        .sortedWith(
+                            compareByDescending<Pair<GlobalSearchResultItem, Int>> { it.second }.thenByDescending { it.first.timestamp },
+                        )
                         .map { it.first }
 
                 val finalResults =
@@ -409,7 +411,9 @@ class GlobalSearchViewModel
                                 val score = fuzzyScoreForData(query, item)
                                 if (score < 10) null else item to score
                             }
-                            .sortedWith(compareByDescending<Pair<GlobalSearchResultItem, Int>> { it.second }.thenByDescending { it.first.timestamp })
+                            .sortedWith(
+                                compareByDescending<Pair<GlobalSearchResultItem, Int>> { it.second }.thenByDescending { it.first.timestamp },
+                            )
                             .map { it.first }
                             .take(120)
                     }
@@ -464,7 +468,11 @@ class GlobalSearchViewModel
         private fun executeCommand(commandId: OmniboxCommandId) {
             rememberCommandExecuted(commandId)
             when (commandId) {
-                OmniboxCommandId.OpenContexts -> enhancedNavigationManager.navigate(target = NavTarget.ContextHierarchy, recordInHistory = true)
+                OmniboxCommandId.OpenContexts ->
+                    enhancedNavigationManager.navigate(
+                        target = NavTarget.ContextHierarchy,
+                        recordInHistory = true,
+                    )
                 OmniboxCommandId.OpenInbox ->
                     viewModelScope.launch {
                         val inboxContextId = resolveInboxContextId() ?: return@launch
@@ -528,11 +536,12 @@ class GlobalSearchViewModel
             query: String,
             command: OmniboxCommandDefinition,
         ): Int {
-            val candidates = buildList {
-                add(command.title)
-                add(command.subtitle)
-                addAll(command.keywords)
-            }
+            val candidates =
+                buildList {
+                    add(command.title)
+                    add(command.subtitle)
+                    addAll(command.keywords)
+                }
             val expandedQueries = expandQueryWithSynonyms(query)
             return candidates.maxOfOrNull { candidate ->
                 expandedQueries.maxOfOrNull { candidateQuery -> fuzzyScore(candidateQuery, candidate) } ?: -1
@@ -618,11 +627,12 @@ class GlobalSearchViewModel
                 var rowMin = Int.MAX_VALUE
                 for (j in 1 until cols) {
                     val cost = if (a[i - 1] == b[j - 1]) 0 else 1
-                    var value = minOf(
-                        d[i - 1][j] + 1,
-                        d[i][j - 1] + 1,
-                        d[i - 1][j - 1] + cost,
-                    )
+                    var value =
+                        minOf(
+                            d[i - 1][j] + 1,
+                            d[i][j - 1] + 1,
+                            d[i - 1][j - 1] + cost,
+                        )
                     if (
                         i > 1 && j > 1 &&
                         a[i - 1] == b[j - 2] &&
@@ -671,7 +681,13 @@ class GlobalSearchViewModel
                 fields.maxOfOrNull { field ->
                     expandedQueries.maxOfOrNull { variant ->
                         val idx = field.lowercase(Locale.getDefault()).indexOf(variant.lowercase(Locale.getDefault()))
-                        if (idx == 0) 180 else if (idx in 1..3) 120 else 0
+                        if (idx == 0) {
+                            180
+                        } else if (idx in 1..3) {
+                            120
+                        } else {
+                            0
+                        }
                     } ?: 0
                 } ?: 0
             val usageBoost = (dataUsage[item.uniqueId] ?: 0) * 14

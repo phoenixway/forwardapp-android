@@ -17,7 +17,10 @@ class MarkdownActions(
         backlogMarkdownHandler.exportToMarkdown(items)
     }
 
-    fun onImportBacklogFromMarkdown(markdownText: String, contextId: String) {
+    fun onImportBacklogFromMarkdown(
+        markdownText: String,
+        contextId: String,
+    ) {
         backlogMarkdownHandler.importFromMarkdown(markdownText, contextId)
     }
 
@@ -41,12 +44,18 @@ class MarkdownActions(
         stateManager.updateState { it.copy(showImportFromMarkdownDialog = false) }
     }
 
-    fun onImportBacklogFromMarkdownConfirm(markdownText: String, contextId: String) {
+    fun onImportBacklogFromMarkdownConfirm(
+        markdownText: String,
+        contextId: String,
+    ) {
         onImportBacklogFromMarkdown(markdownText, contextId)
         onDismissImportBacklogFromMarkdownDialog()
     }
 
-    fun onImportFromMarkdownConfirm(markdownText: String, contextId: String) {
+    fun onImportFromMarkdownConfirm(
+        markdownText: String,
+        contextId: String,
+    ) {
         inboxMarkdownHandler.importFromMarkdown(markdownText, contextId)
         onImportFromMarkdownDismiss()
     }

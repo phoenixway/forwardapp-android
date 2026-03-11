@@ -227,9 +227,7 @@ class ItemActionHandler
             }
         }
 
-        fun onGoalTransportInitiated(
-            item: BacklogItemContent,
-        ) {
+        fun onGoalTransportInitiated(item: BacklogItemContent) {
             if (item is BacklogItemContent.GoalItem || item is BacklogItemContent.ContextLinkItem) {
                 _itemForTransportMenu.value = item
                 _showGoalTransportMenu.value = true

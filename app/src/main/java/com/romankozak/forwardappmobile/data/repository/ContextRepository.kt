@@ -10,8 +10,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemType
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogOrder
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.core.data.models.entities.DirectionItemEntity
@@ -413,9 +413,7 @@ class ContextRepository
             contextsToDelete.forEach { contextDao.insert(it.softDelete(now)) }
         }
 
-        private suspend fun rebindSharedAttachmentEntitiesBeforeContextDeletion(
-            deletingContextIds: Set<String>,
-        ) {
+        private suspend fun rebindSharedAttachmentEntitiesBeforeContextDeletion(deletingContextIds: Set<String>) {
             if (deletingContextIds.isEmpty()) return
 
             val activeContextIds =
@@ -604,7 +602,7 @@ class ContextRepository
                     updatedAt = now,
                     version = 1,
                     roleCode = normalizedRoleCode,
-            )
+                )
             contextDao.insert(newContext)
             contextStructureDao.insertStructure(
                 ContextConfiguration(
@@ -825,9 +823,8 @@ class ContextRepository
             }
         }
 
-    // У файлі ContextRepository.kt додайте:
-    fun getSubprojectsByParentIdFlow(parentId: String): Flow<List<Context>> {
-        return contextDao.getSubprojectsByParentIdFlow(parentId)
-    }
-
+        // У файлі ContextRepository.kt додайте:
+        fun getSubprojectsByParentIdFlow(parentId: String): Flow<List<Context>> {
+            return contextDao.getSubprojectsByParentIdFlow(parentId)
+        }
     }

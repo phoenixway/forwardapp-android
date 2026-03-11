@@ -1,6 +1,5 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen
 
-import timber.log.Timber
 import android.app.Application
 import android.util.Log
 import androidx.compose.ui.text.input.TextFieldValue
@@ -57,6 +56,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.net.URLEncoder
 import java.util.UUID
 import javax.inject.Inject
@@ -268,7 +268,10 @@ class ContextHierarchyScreenViewModel
             when (val result = searchUseCase.revealProjectInHierarchy(projectId)) {
                 is RevealResult.Success -> {
                     val shouldFocusNow = forceFocus || result.shouldFocus
-                    Log.d("ProjectRevealDebug", "revealProjectInHierarchy result: Success, shouldFocus=${result.shouldFocus}, forceFocus=$forceFocus")
+                    Log.d(
+                        "ProjectRevealDebug",
+                        "revealProjectInHierarchy result: Success, shouldFocus=${result.shouldFocus}, forceFocus=$forceFocus",
+                    )
                     searchUseCase.pushSubState(ProjectHierarchyScreenSubState.ProjectFocused(result.projectId))
                     if (shouldFocusNow) {
                         Log.d("ProjectRevealDebug", "Calling navigateToProject for ${result.projectId}")
@@ -534,8 +537,8 @@ class ContextHierarchyScreenViewModel
                     enhancedNavigationManager?.navigate(
                         route = COMMAND_DECK_ROUTE,
                         builder = {
-                        popUpTo(COMMAND_DECK_ROUTE) { inclusive = true }
-                        launchSingleTop = true
+                            popUpTo(COMMAND_DECK_ROUTE) { inclusive = true }
+                            launchSingleTop = true
                         },
                     )
                 }
@@ -759,7 +762,6 @@ class ContextHierarchyScreenViewModel
                         _uiEventChannel.send(ProjectUiEvent.Navigate(NavTarget.TacticalManagement))
                     }
                 }
-
 
                 is ContextHierarchyScreenEvent.NavigateToStrategicManagement -> {
                     if (uiState.value.featureToggles[FeatureFlag.StrategicManagement] == true) {
@@ -1087,11 +1089,12 @@ class ContextHierarchyScreenViewModel
             return when (payload.operation) {
                 ContextClipboardOperation.COPY -> source.id != target.id
                 ContextClipboardOperation.CUT ->
-                    source.id != target.id && !isDescendantOrSelf(
-                        candidateDescendantId = target.id,
-                        ancestorId = source.id,
-                        allProjects = allProjects,
-                    )
+                    source.id != target.id &&
+                        !isDescendantOrSelf(
+                            candidateDescendantId = target.id,
+                            ancestorId = source.id,
+                            allProjects = allProjects,
+                        )
             }
         }
 

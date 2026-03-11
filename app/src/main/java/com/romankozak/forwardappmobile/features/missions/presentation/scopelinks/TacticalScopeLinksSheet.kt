@@ -12,8 +12,8 @@ import com.romankozak.forwardappmobile.features.missions.presentation.Attachment
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
 import com.romankozak.forwardappmobile.ui.components.AddConnectionType
 import com.romankozak.forwardappmobile.ui.components.ConnectionItemUi
-import com.romankozak.forwardappmobile.ui.components.ConnectionsPanel
 import com.romankozak.forwardappmobile.ui.components.ConnectionType
+import com.romankozak.forwardappmobile.ui.components.ConnectionsPanel
 import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
 import com.romankozak.forwardappmobile.ui.components.sortConnectionsByOrder
 

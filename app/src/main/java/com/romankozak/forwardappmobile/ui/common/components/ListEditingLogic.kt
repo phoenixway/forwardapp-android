@@ -166,9 +166,10 @@ object ListEditingLogic {
         val currentBlock = getBlockLines(text, currentLineNumber)
         val nextBlockStartLine = currentLineNumber + currentBlock.size
         val nextBlock = getBlockLines(text, nextBlockStartLine)
-        val canMove = currentBlock.isNotEmpty() &&
-            (currentLineNumber + currentBlock.size) < lines.size &&
-            nextBlock.isNotEmpty()
+        val canMove =
+            currentBlock.isNotEmpty() &&
+                (currentLineNumber + currentBlock.size) < lines.size &&
+                nextBlock.isNotEmpty()
 
         return if (!canMove) {
             value

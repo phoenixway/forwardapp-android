@@ -7,7 +7,6 @@ import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.domain.ai.events.AiEvent
 import com.romankozak.forwardappmobile.domain.userawareness.StateSlashCommandParser
 import com.romankozak.forwardappmobile.domain.userawareness.UserAwarenessStateType
-import java.time.Instant
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -15,6 +14,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.time.Instant
 
 @RunWith(AndroidJUnit4::class)
 class ActivityRepositoryUserAwarenessIntegrationTest {

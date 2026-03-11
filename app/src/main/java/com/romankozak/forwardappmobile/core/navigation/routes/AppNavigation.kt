@@ -29,9 +29,9 @@ import com.romankozak.forwardappmobile.core.navigation.ui.PlaceholderScreen
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerScreen
 import com.romankozak.forwardappmobile.features.ai.insights.AiInsightsScreen
 import com.romankozak.forwardappmobile.features.attachments.specifictypes.checklist.ChecklistScreen
+import com.romankozak.forwardappmobile.features.attachments.specifictypes.musicnote.MusicNoteScreen
 import com.romankozak.forwardappmobile.features.attachments.specifictypes.notedocument.NoteDocumentEditorScreen
 import com.romankozak.forwardappmobile.features.attachments.specifictypes.notedocument.NoteDocumentScreen
-import com.romankozak.forwardappmobile.features.attachments.specifictypes.musicnote.MusicNoteScreen
 import com.romankozak.forwardappmobile.features.attachments.specifictypes.script.ScriptChooserScreen
 import com.romankozak.forwardappmobile.features.attachments.specifictypes.script.ScriptEditorScreen
 import com.romankozak.forwardappmobile.features.attachments.specifictypes.script.ScriptsLibraryScreen
@@ -613,7 +613,6 @@ private fun NavGraphBuilder.mainGraph(
     strategicManagementScreen(navController, appNavigationViewModel.navigationManager)
 
     composable(NavigationRoutes.TACTICAL_MANAGEMENT) { TacticalManagementScreen() }
-
 
     composable(AI_INSIGHTS_ROUTE) { AiInsightsScreen(navController = navController) }
 

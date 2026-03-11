@@ -8,7 +8,10 @@ import android.content.Context
 class ClipboardActions(
     private val application: Application,
 ) {
-    fun copy(text: String, label: String) {
+    fun copy(
+        text: String,
+        label: String,
+    ) {
         val clipboard = application.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText(label, text)
         clipboard.setPrimaryClip(clip)

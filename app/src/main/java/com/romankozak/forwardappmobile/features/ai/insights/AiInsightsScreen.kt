@@ -135,9 +135,7 @@ class AiInsightsViewModel
                 }
             }
 
-        private suspend fun ensureTodayPlanBaseline(
-            todayStart: Long,
-        ): PlanBaseline {
+        private suspend fun ensureTodayPlanBaseline(todayStart: Long): PlanBaseline {
             val existingPlanId = dayManagementRepository.getPlanIdForDate(todayStart)
             val hadNoDayPlan = existingPlanId == null
             val existingTasks =

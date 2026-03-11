@@ -35,10 +35,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
-import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.features.attachments.ui.AddObsidianLinkDialog
 import com.romankozak.forwardappmobile.features.attachments.ui.AddWebLinkDialog
 import com.romankozak.forwardappmobile.features.lifestate.AnalysisContent
@@ -60,9 +60,9 @@ import com.romankozak.forwardappmobile.ui.components.ConnectionsPanel
 import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
 import com.romankozak.forwardappmobile.ui.components.orderToken
 import com.romankozak.forwardappmobile.ui.components.sortConnectionsByOrder
-import java.net.URLEncoder
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.net.URLEncoder
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -384,7 +384,7 @@ fun StrategicManagementScreen(
                                 LinkPickerTab.CONTEXTS
                             } else {
                                 LinkPickerTab.ATTACHMENTS
-                        }
+                            }
                     }
                 },
                 preferActionsBesideTitleWhenWide = true,
@@ -412,7 +412,17 @@ fun StrategicManagementScreen(
         val availableAttachmentIds = attachmentOptions.map { it.id }.toSet()
         LinkedTargetsPickerDialog(
             contextOptions = uiState.allProjects.map { ProjectOption(id = it.id, name = it.name, parentId = it.parentId) },
-            attachmentOptions = attachmentOptions.map { AttachmentOption(id = it.id, name = it.name, linkType = it.linkType, attachmentType = it.attachmentType, entityId = it.entityId, target = it.target) },
+            attachmentOptions =
+                attachmentOptions.map {
+                    AttachmentOption(
+                        id = it.id,
+                        name = it.name,
+                        linkType = it.linkType,
+                        attachmentType = it.attachmentType,
+                        entityId = it.entityId,
+                        target = it.target,
+                    )
+                },
             preselectedContextIds = uiState.dashboardProjects.map { it.id }.toSet(),
             preselectedAttachmentIds = linkedAttachmentIds.filter { it in availableAttachmentIds }.toSet(),
             initialTab = initialTab,

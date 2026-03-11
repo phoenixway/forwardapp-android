@@ -11,8 +11,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.ContextScreenViewModel
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
@@ -211,7 +211,9 @@ private fun CreateConnectionType.toPickerCreateAction(): PickerCreateAction =
     }
 
 private fun BacklogItemContent.connectionId(): String = "backlog:${backlogItem.id}"
+
 private fun connectionIdForAttachment(attachmentId: String): String = "backlog:$attachmentId"
+
 private fun attachmentIdFromConnectionId(connectionId: String): String? =
     connectionId.takeIf { it.startsWith("backlog:") }?.removePrefix("backlog:")
 

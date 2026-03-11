@@ -22,8 +22,7 @@ class LegacyNoteRepository
     ) {
         suspend fun getNoteById(noteId: String): LegacyNoteEntity? = legacyNoteDao.getNoteById(noteId)
 
-        fun getNotesForContext(contextId: String): Flow<List<LegacyNoteEntity>> =
-            legacyNoteDao.getNotesForContext(contextId)
+        fun getNotesForContext(contextId: String): Flow<List<LegacyNoteEntity>> = legacyNoteDao.getNotesForContext(contextId)
 
         fun getAllAsFlow(): Flow<List<LegacyNoteEntity>> = legacyNoteDao.getAllAsFlow()
 

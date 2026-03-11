@@ -8,9 +8,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,11 +26,11 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -157,7 +157,6 @@ private fun AnimatedCommandDeck(
                 }
             }
         }
-
     }
 }
 
@@ -282,20 +281,22 @@ private fun AiInsightCard(
     insight: AiMessage,
     onMarkRead: () -> Unit,
 ) {
-    val backgroundColor = when (insight.type) {
-        MessageType.MOTIVATION -> MaterialTheme.colorScheme.primaryContainer
-        MessageType.JOKE -> MaterialTheme.colorScheme.secondaryContainer
-        MessageType.INFO -> MaterialTheme.colorScheme.tertiaryContainer
-        MessageType.WARNING -> MaterialTheme.colorScheme.errorContainer
-        MessageType.ERROR -> MaterialTheme.colorScheme.errorContainer
-    }
-    val textColor = when (insight.type) {
-        MessageType.MOTIVATION -> MaterialTheme.colorScheme.onPrimaryContainer
-        MessageType.JOKE -> MaterialTheme.colorScheme.onSecondaryContainer
-        MessageType.INFO -> MaterialTheme.colorScheme.onTertiaryContainer
-        MessageType.WARNING -> MaterialTheme.colorScheme.onErrorContainer
-        MessageType.ERROR -> MaterialTheme.colorScheme.onErrorContainer
-    }
+    val backgroundColor =
+        when (insight.type) {
+            MessageType.MOTIVATION -> MaterialTheme.colorScheme.primaryContainer
+            MessageType.JOKE -> MaterialTheme.colorScheme.secondaryContainer
+            MessageType.INFO -> MaterialTheme.colorScheme.tertiaryContainer
+            MessageType.WARNING -> MaterialTheme.colorScheme.errorContainer
+            MessageType.ERROR -> MaterialTheme.colorScheme.errorContainer
+        }
+    val textColor =
+        when (insight.type) {
+            MessageType.MOTIVATION -> MaterialTheme.colorScheme.onPrimaryContainer
+            MessageType.JOKE -> MaterialTheme.colorScheme.onSecondaryContainer
+            MessageType.INFO -> MaterialTheme.colorScheme.onTertiaryContainer
+            MessageType.WARNING -> MaterialTheme.colorScheme.onErrorContainer
+            MessageType.ERROR -> MaterialTheme.colorScheme.onErrorContainer
+        }
     val timeFormatter = remember { java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()) }
     val dismissState =
         rememberSwipeToDismissBoxState(
@@ -347,7 +348,9 @@ private fun AiInsightCard(
                     fontWeight = if (insight.isRead) FontWeight.Normal else FontWeight.Bold,
                 )
                 Text(
-                    text = "${insight.type.name.lowercase().replaceFirstChar { it.uppercase() }} • ${timeFormatter.format(java.util.Date(insight.timestamp))}",
+                    text = "${insight.type.name.lowercase().replaceFirstChar { it.uppercase() }} • ${timeFormatter.format(
+                        java.util.Date(insight.timestamp),
+                    )}",
                     color = textColor.copy(alpha = 0.7f),
                     style = MaterialTheme.typography.labelSmall,
                 )

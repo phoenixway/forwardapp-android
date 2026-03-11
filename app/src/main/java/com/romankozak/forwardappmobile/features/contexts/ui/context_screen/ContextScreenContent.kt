@@ -2,14 +2,14 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.filled.Attachment
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Settings
@@ -41,16 +41,15 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.connections.ConnectionsView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.BacklogListScreen
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.connections.ConnectionsView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.direction.DirectionView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.keyproblems.KeyProblemsView
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ProjectDashboardView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ProjectDashboardView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextUiState
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
-
 import java.util.Locale
 
 private const val TAG = "BACKLOG_UI_DEBUG"
@@ -170,13 +169,16 @@ fun GoalDetailContent(
                 onRecalculateTime = viewModel::onRecalculateTime,
                 onEditLog = onEditLog,
                 onDeleteLog = onDeleteLog,
-                onSaveArtifact = { content -> viewModel.onSaveArtifact(content) }, // Явно вказуємо один параметр                onEditArtifact = onEditArtifact,
+                onSaveArtifact = {
+                        content ->
+                    viewModel.onSaveArtifact(content)
+                }, // Явно вказуємо один параметр                onEditArtifact = onEditArtifact,
                 selectedTab = uiState.currentTab,
                 onTabSelected = viewModel::onDashboardTabSelected,
                 enableDashboard = uiState.enableDashboard,
                 enableLog = uiState.enableLog,
                 enableArtifact = uiState.enableArtifact,
-                onEditArtifact = {/*TODO*/},
+                onEditArtifact = { /*TODO*/ },
             )
         }
         ContextViewMode.CONNECTIONS -> {
@@ -235,7 +237,7 @@ fun GoalDetailContent(
                 onEditLog = onEditLog,
                 onDeleteLog = onDeleteLog,
                 onSaveArtifact = { content -> viewModel.onSaveArtifact(content) },
-                onEditArtifact = {/* TODO */},
+                onEditArtifact = { /* TODO */ },
                 selectedTab = ContextManagementTab.Log,
                 onTabSelected = viewModel::onDashboardTabSelected,
                 enableDashboard = uiState.enableDashboard,
@@ -256,7 +258,7 @@ fun GoalDetailContent(
                 onEditLog = onEditLog,
                 onDeleteLog = onDeleteLog,
                 onSaveArtifact = { content -> viewModel.onSaveArtifact(content) },
-                onEditArtifact = {/* TODO */},
+                onEditArtifact = { /* TODO */ },
                 selectedTab = ContextManagementTab.Artifact,
                 onTabSelected = viewModel::onDashboardTabSelected,
                 enableDashboard = uiState.enableDashboard,
@@ -302,7 +304,6 @@ fun GoalDetailContent(
                 )
             }
         }
-
     }
 }
 

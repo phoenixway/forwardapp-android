@@ -8,9 +8,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 
 object RetrofitClient {
-    fun getInstance(
-        baseUrl: String,
-    ): ApiService {
+    fun getInstance(baseUrl: String): ApiService {
         val logging =
             HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BODY

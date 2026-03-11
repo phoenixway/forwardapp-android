@@ -6,11 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.data.repository.ActivityInputOutcome
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
-import com.romankozak.forwardappmobile.domain.userawareness.StateSlashCommandParser
-import com.romankozak.forwardappmobile.domain.userawareness.UserAwarenessStateType
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.domain.reminders.cancelForActivityRecord
 import com.romankozak.forwardappmobile.domain.reminders.scheduleForActivityRecord
+import com.romankozak.forwardappmobile.domain.userawareness.StateSlashCommandParser
+import com.romankozak.forwardappmobile.domain.userawareness.UserAwarenessStateType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch

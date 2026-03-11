@@ -8,9 +8,9 @@ import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
 import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.capability.settings.CapabilitySettingsEntry
 import com.romankozak.forwardappmobile.core.navigation.capability.settings.CapabilitySettingsRegistry
-import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
@@ -88,11 +88,13 @@ class ContextSettingsViewModel
 
                 // 3. Формуємо мапу фіч, використовуючи CapabilityGate для перевірки реального стану
                 val allKnownCapabilities = ContextRoleRegistry.getAllKnownCapabilities()
-                val structureFeatures = allKnownCapabilities.associate { capId ->
-                    val key = capId.raw.replace("_", " ")
-                        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
-                    key to isEnabledForConfig(capId, structure)
-                }
+                val structureFeatures =
+                    allKnownCapabilities.associate { capId ->
+                        val key =
+                            capId.raw.replace("_", " ")
+                                .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
+                        key to isEnabledForConfig(capId, structure)
+                    }
 
                 // 4. Оновлюємо стан UI одним атомарним блоком
                 _uiState.update { state ->
@@ -281,7 +283,13 @@ class ContextSettingsViewModel
                 // 3. Розділяємо можливості на legacy та експериментальні
                 val allKnownLegacyCaps =
                     setOf(
-                        "inbox", "log", "advanced", "dashboard", "backlog", "attachments", "connections",
+                        "inbox",
+                        "log",
+                        "advanced",
+                        "dashboard",
+                        "backlog",
+                        "attachments",
+                        "connections",
                     )
                 val experimentalIdsFromPreset = presetCapabilities.filter { it.raw !in allKnownLegacyCaps }
 

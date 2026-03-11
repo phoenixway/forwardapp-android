@@ -49,12 +49,13 @@ fun CoreBottomPanel(
 ) {
     CommonBottomPanelLayout {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .then(CommandDeckBackgroundModifier())
-                .padding(horizontal = 22.dp, vertical = 12.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .then(CommandDeckBackgroundModifier())
+                    .padding(horizontal = 22.dp, vertical = 12.dp),
         ) {
             DashboardBottomBar(
                 onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,

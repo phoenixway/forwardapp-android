@@ -218,10 +218,16 @@ private fun fallbackRecentItemTitle(item: RecentItem): String =
         RecentItemType.OBSIDIAN_LINK -> item.target.ifBlank { "Посилання" }
     }
 
-private fun contrastRatio(foreground: Color, background: Color): Float {
+private fun contrastRatio(
+    foreground: Color,
+    background: Color,
+): Float {
     val lighter = maxOf(foreground.luminance(), background.luminance())
     val darker = minOf(foreground.luminance(), background.luminance())
     return (lighter + 0.05f) / (darker + 0.05f)
 }
 
-private fun softenAgainstBackground(color: Color, background: Color): Color = lerp(color, background, 0.30f)
+private fun softenAgainstBackground(
+    color: Color,
+    background: Color,
+): Color = lerp(color, background, 0.30f)

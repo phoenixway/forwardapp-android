@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.mainscreen.bottompanels
 
+import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -8,15 +9,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
-import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
-import android.net.Uri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
-import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.features.mainscreen.DashboardBottomBar
+import com.romankozak.forwardappmobile.features.recent.RecentViewModel
+import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
+import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
 
 @Composable
 fun TodayBottomPanel(
@@ -49,12 +49,13 @@ fun TodayBottomPanel(
 ) {
     CommonBottomPanelLayout {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .then(CommandDeckBackgroundModifier())
-                .padding(horizontal = 22.dp, vertical = 12.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .then(CommandDeckBackgroundModifier())
+                    .padding(horizontal = 22.dp, vertical = 12.dp),
         ) {
             DashboardBottomBar(
                 onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,

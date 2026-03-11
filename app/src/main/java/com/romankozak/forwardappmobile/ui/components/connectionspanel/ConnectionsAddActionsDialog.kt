@@ -64,8 +64,18 @@ fun ConnectionsAddActionsDialog(
         listOf(
             ConnectionActionItem("Контекст", Icons.Outlined.AccountTree, MaterialTheme.colorScheme.tertiary, AddConnectionType.CONTEXT),
             ConnectionActionItem("Вкладення", Icons.Outlined.AttachFile, MaterialTheme.colorScheme.secondary, AddConnectionType.ATTACHMENT),
-            ConnectionActionItem("Web посилання", Icons.Outlined.Public, MaterialTheme.colorScheme.secondary, AddConnectionType.EXTERNAL_LINK),
-            ConnectionActionItem("Obsidian note", Icons.Outlined.DataObject, MaterialTheme.colorScheme.secondary, AddConnectionType.OBSIDIAN_NOTE),
+            ConnectionActionItem(
+                "Web посилання",
+                Icons.Outlined.Public,
+                MaterialTheme.colorScheme.secondary,
+                AddConnectionType.EXTERNAL_LINK,
+            ),
+            ConnectionActionItem(
+                "Obsidian note",
+                Icons.Outlined.DataObject,
+                MaterialTheme.colorScheme.secondary,
+                AddConnectionType.OBSIDIAN_NOTE,
+            ),
         )
 
     Dialog(

@@ -133,10 +133,12 @@ interface ContextDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(contexts: List<Context>)
 
-    @Query("""
+    @Query(
+        """
     SELECT c.* FROM contexts c
     JOIN list_items li ON c.id = li.entityId
     WHERE li.context_id = :parentId AND li.itemType = 'PROJECT'
-""")
+""",
+    )
     fun getSubprojectsByParentIdFlow(parentId: String): Flow<List<Context>>
 }

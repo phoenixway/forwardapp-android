@@ -16,4 +16,3 @@ interface CapabilitySettingsEntry {
     @Composable
     fun Content(contextId: String)
 }
-

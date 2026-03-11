@@ -2,9 +2,9 @@ package com.romankozak.forwardappmobile.data.repository
 
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalAttachmentSearchResult
-import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
+import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
@@ -77,14 +77,15 @@ class SearchRepository
                     .getAttachmentLibraryItems()
                     .first()
                     .mapNotNull { result ->
-                        val title = when {
-                            !result.noteName.isNullOrBlank() -> result.noteName
-                            !result.musicNoteName.isNullOrBlank() -> result.musicNoteName
-                            !result.checklistName.isNullOrBlank() -> result.checklistName
-                            !result.scriptName.isNullOrBlank() -> result.scriptName
-                            !result.contextName.isNullOrBlank() -> result.contextName
-                            else -> extractLinkTitle(result.linkDisplayName)
-                        } ?: return@mapNotNull null
+                        val title =
+                            when {
+                                !result.noteName.isNullOrBlank() -> result.noteName
+                                !result.musicNoteName.isNullOrBlank() -> result.musicNoteName
+                                !result.checklistName.isNullOrBlank() -> result.checklistName
+                                !result.scriptName.isNullOrBlank() -> result.scriptName
+                                !result.contextName.isNullOrBlank() -> result.contextName
+                                else -> extractLinkTitle(result.linkDisplayName)
+                            } ?: return@mapNotNull null
 
                         val subtitle =
                             when {

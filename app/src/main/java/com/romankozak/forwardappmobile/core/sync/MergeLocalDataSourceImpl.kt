@@ -5,8 +5,8 @@ import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.sync.ChangeType
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent

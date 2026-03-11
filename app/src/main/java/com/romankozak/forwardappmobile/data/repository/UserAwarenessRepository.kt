@@ -25,10 +25,12 @@ class UserAwarenessRepository
     ) {
         fun observeActiveState(): Flow<UserStateInterval> =
             userStateIntervalDao.observeActive().map { entity ->
-                (entity ?: UserStateIntervalEntity(
-                    stateType = UserAwarenessStateType.NORMAL.name,
-                    startedAt = System.currentTimeMillis(),
-                )).toUserStateInterval()
+                (
+                    entity ?: UserStateIntervalEntity(
+                        stateType = UserAwarenessStateType.NORMAL.name,
+                        startedAt = System.currentTimeMillis(),
+                    )
+                ).toUserStateInterval()
             }
 
         suspend fun getActiveState(now: Long = System.currentTimeMillis()): UserStateInterval {
@@ -55,7 +57,11 @@ class UserAwarenessRepository
         suspend fun getStateTimeline(
             from: Long,
             to: Long,
-        ): List<UserStateInterval> = userStateIntervalDao.getTimeline(fromInclusive = from, toInclusive = to).map { it.toUserStateInterval() }
+        ): List<UserStateInterval> =
+            userStateIntervalDao.getTimeline(
+                fromInclusive = from,
+                toInclusive = to,
+            ).map { it.toUserStateInterval() }
 
         suspend fun applyStateChangeFromActivity(
             change: UserStateChange,

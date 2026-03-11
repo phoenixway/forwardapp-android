@@ -36,8 +36,8 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResultFilter
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResult
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResultFilter
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResultSort
 import java.util.Locale
 
@@ -66,7 +66,13 @@ fun SearchResultsView(
                     }
                 }.sortedWith(
                     when (selectedSort) {
-                        SearchResultSort.Relevance -> compareByDescending<SearchResult> { relevanceScore(it.projectName, query) }.thenBy { it.projectName }
+                        SearchResultSort.Relevance ->
+                            compareByDescending<SearchResult> {
+                                relevanceScore(
+                                    it.projectName,
+                                    query,
+                                )
+                            }.thenBy { it.projectName }
                         SearchResultSort.Alphabetical -> compareBy<SearchResult> { it.projectName.lowercase(Locale.getDefault()) }
                         SearchResultSort.HierarchyDepth -> compareByDescending<SearchResult> { it.parentPath.size }.thenBy { it.projectName }
                     },
@@ -261,33 +267,32 @@ private fun SearchNoResultsState(
 private fun highlightedText(
     text: String,
     query: String,
-) =
-    remember(text, query) {
-        if (query.isBlank()) return@remember buildAnnotatedString { append(text) }
+) = remember(text, query) {
+    if (query.isBlank()) return@remember buildAnnotatedString { append(text) }
 
-        val lowerText = text.lowercase(Locale.getDefault())
-        val lowerQuery = query.lowercase(Locale.getDefault())
-        val matchStart = lowerText.indexOf(lowerQuery)
+    val lowerText = text.lowercase(Locale.getDefault())
+    val lowerQuery = query.lowercase(Locale.getDefault())
+    val matchStart = lowerText.indexOf(lowerQuery)
 
-        if (matchStart < 0) {
-            buildAnnotatedString { append(text) }
-        } else {
-            val matchEnd = matchStart + query.length
-            buildAnnotatedString {
-                append(text.substring(0, matchStart))
-                withStyle(
-                    style =
-                        SpanStyle(
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Unspecified,
-                        ),
-                ) {
-                    append(text.substring(matchStart, matchEnd))
-                }
-                append(text.substring(matchEnd))
+    if (matchStart < 0) {
+        buildAnnotatedString { append(text) }
+    } else {
+        val matchEnd = matchStart + query.length
+        buildAnnotatedString {
+            append(text.substring(0, matchStart))
+            withStyle(
+                style =
+                    SpanStyle(
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Unspecified,
+                    ),
+            ) {
+                append(text.substring(matchStart, matchEnd))
             }
+            append(text.substring(matchEnd))
         }
     }
+}
 
 private fun relevanceScore(
     value: String,

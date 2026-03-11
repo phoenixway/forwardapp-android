@@ -61,10 +61,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
-import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
-import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
+import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.capability.settings.CapabilitySettingsEntry
+import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
 import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreen
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.DisplayTabContent
@@ -83,7 +83,8 @@ fun ProjectSettingsScreen(
     val context = LocalContext.current
     var showPresetDialog by remember { mutableStateOf(false) }
     var showPresetPicker by remember { mutableStateOf(false) }
-    val capabilitySettingsTabs = remember(uiState.enabledCapabilityIds) { viewModel.getAvailableCapabilitySettingsTabs(uiState.enabledCapabilityIds) }
+    val capabilitySettingsTabs =
+        remember(uiState.enabledCapabilityIds) { viewModel.getAvailableCapabilitySettingsTabs(uiState.enabledCapabilityIds) }
 
     LaunchedEffect(key1 = true) {
         viewModel.events.collect { event ->

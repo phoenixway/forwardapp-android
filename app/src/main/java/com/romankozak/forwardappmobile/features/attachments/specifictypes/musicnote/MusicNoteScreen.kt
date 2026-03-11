@@ -130,7 +130,10 @@ private fun MusicXmlViewer(
     musicXml: String,
     modifier: Modifier = Modifier,
 ) {
-    fun renderXml(webView: WebView, xml: String) {
+    fun renderXml(
+        webView: WebView,
+        xml: String,
+    ) {
         val escaped = JSONObject.quote(xml)
         webView.evaluateJavascript("window.renderMusicXml($escaped);", null)
     }

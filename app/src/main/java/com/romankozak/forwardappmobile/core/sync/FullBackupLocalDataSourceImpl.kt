@@ -149,14 +149,18 @@ class FullBackupLocalDataSourceImpl
             directionDao.insertAll(bundle.directionItems.map { it.toEntity() })
 
             val validContextIds = bundle.contexts.map { it.id }.toSet()
-            val missionsToInsert = bundle.tacticalMissions.map { missionSnapshot ->
-                if (missionSnapshot.projectId != null && missionSnapshot.projectId !in validContextIds) {
-                    Log.w("SyncData", "TacticalMission ${missionSnapshot.id} references non-existent Context ${missionSnapshot.projectId}. Setting projectId to null.")
-                    missionSnapshot.copy(projectId = null)
-                } else {
-                    missionSnapshot
-                }
-            }.map { it.toEntity() }
+            val missionsToInsert =
+                bundle.tacticalMissions.map { missionSnapshot ->
+                    if (missionSnapshot.projectId != null && missionSnapshot.projectId !in validContextIds) {
+                        Log.w(
+                            "SyncData",
+                            "TacticalMission ${missionSnapshot.id} references non-existent Context ${missionSnapshot.projectId}. Setting projectId to null.",
+                        )
+                        missionSnapshot.copy(projectId = null)
+                    } else {
+                        missionSnapshot
+                    }
+                }.map { it.toEntity() }
             Log.d("SyncV2", "Inserting TacticalMissions: ${missionsToInsert.size}")
             tacticalMissionDao.insertMissions(missionsToInsert)
 
@@ -256,38 +260,54 @@ class FullBackupLocalDataSourceImpl
             val validActivityRecordIds = bundle.activityRecords.map { it.id }.toSet()
             val validRecurringTaskIds = bundle.recurringTasks.map { it.id }.toSet()
 
-            val dayTasksToInsert = bundle.dayTasks.mapNotNull { taskSnapshot ->
-                // Перевірка наявності батьківського DayPlan
-                if (taskSnapshot.dayPlanId !in validDayPlanIds) {
-                    Log.w("SyncData", "DayTask ${taskSnapshot.id} references non-existent DayPlan ${taskSnapshot.dayPlanId}. Skipping this task.")
-                    return@mapNotNull null
-                }
+            val dayTasksToInsert =
+                bundle.dayTasks.mapNotNull { taskSnapshot ->
+                    // Перевірка наявності батьківського DayPlan
+                    if (taskSnapshot.dayPlanId !in validDayPlanIds) {
+                        Log.w(
+                            "SyncData",
+                            "DayTask ${taskSnapshot.id} references non-existent DayPlan ${taskSnapshot.dayPlanId}. Skipping this task.",
+                        )
+                        return@mapNotNull null
+                    }
 
-                var sanitizedTask = taskSnapshot
-                // Перевірка та очищення Goal ID
-                if (sanitizedTask.goalId != null && sanitizedTask.goalId !in validGoalIds) {
-                    Log.w("SyncData", "DayTask ${sanitizedTask.id} references non-existent Goal ${sanitizedTask.goalId}. Setting goalId to null.")
-                    sanitizedTask = sanitizedTask.copy(goalId = null)
-                }
+                    var sanitizedTask = taskSnapshot
+                    // Перевірка та очищення Goal ID
+                    if (sanitizedTask.goalId != null && sanitizedTask.goalId !in validGoalIds) {
+                        Log.w(
+                            "SyncData",
+                            "DayTask ${sanitizedTask.id} references non-existent Goal ${sanitizedTask.goalId}. Setting goalId to null.",
+                        )
+                        sanitizedTask = sanitizedTask.copy(goalId = null)
+                    }
 
-                // Перевірка та очищення Project ID
-                if (sanitizedTask.projectId != null && sanitizedTask.projectId !in validContextIds) {
-                    Log.w("SyncData", "DayTask ${sanitizedTask.id} references non-existent Context ${sanitizedTask.projectId}. Setting projectId to null.")
-                    sanitizedTask = sanitizedTask.copy(projectId = null)
-                }
+                    // Перевірка та очищення Project ID
+                    if (sanitizedTask.projectId != null && sanitizedTask.projectId !in validContextIds) {
+                        Log.w(
+                            "SyncData",
+                            "DayTask ${sanitizedTask.id} references non-existent Context ${sanitizedTask.projectId}. Setting projectId to null.",
+                        )
+                        sanitizedTask = sanitizedTask.copy(projectId = null)
+                    }
 
-                if (sanitizedTask.activityRecordId != null && sanitizedTask.activityRecordId !in validActivityRecordIds) {
-                    Log.w("SyncData", "DayTask ${sanitizedTask.id} references non-existent ActivityRecord ${sanitizedTask.activityRecordId}. Setting activityRecordId to null.")
-                    sanitizedTask = sanitizedTask.copy(activityRecordId = null)
-                }
+                    if (sanitizedTask.activityRecordId != null && sanitizedTask.activityRecordId !in validActivityRecordIds) {
+                        Log.w(
+                            "SyncData",
+                            "DayTask ${sanitizedTask.id} references non-existent ActivityRecord ${sanitizedTask.activityRecordId}. Setting activityRecordId to null.",
+                        )
+                        sanitizedTask = sanitizedTask.copy(activityRecordId = null)
+                    }
 
-                if (sanitizedTask.recurringTaskId != null && sanitizedTask.recurringTaskId !in validRecurringTaskIds) {
-                    Log.w("SyncData", "DayTask ${sanitizedTask.id} references non-existent RecurringTask ${sanitizedTask.recurringTaskId}. Setting recurringTaskId to null.")
-                    sanitizedTask = sanitizedTask.copy(recurringTaskId = null)
-                }
+                    if (sanitizedTask.recurringTaskId != null && sanitizedTask.recurringTaskId !in validRecurringTaskIds) {
+                        Log.w(
+                            "SyncData",
+                            "DayTask ${sanitizedTask.id} references non-existent RecurringTask ${sanitizedTask.recurringTaskId}. Setting recurringTaskId to null.",
+                        )
+                        sanitizedTask = sanitizedTask.copy(recurringTaskId = null)
+                    }
 
-                sanitizedTask
-            }
+                    sanitizedTask
+                }
 
             Log.d("SyncV2", "Inserting DayTasks: ${dayTasksToInsert.size} (after filtering)")
             dayTaskDao.insertTasks(dayTasksToInsert.map { it.toEntity() }) // Depends on DayPlan
@@ -314,11 +334,14 @@ class FullBackupLocalDataSourceImpl
             attachmentDao.insertContextAttachmentCrossRefs(bundle.crossRefs.map { it.toEntity() }) // Depends on Context and Attachment
 
             Log.d("SyncV2", "Inserting TacticalMissionAttachments: ${bundle.tacticalMissionAttachments.size}")
-            tacticalMissionDao.insertMissionAttachments(bundle.tacticalMissionAttachments.map { it.toEntity() }) // Depends on TacticalMission and Attachment
+            tacticalMissionDao.insertMissionAttachments(
+                bundle.tacticalMissionAttachments.map {
+                    it.toEntity()
+                },
+            ) // Depends on TacticalMission and Attachment
 
             Log.d("SyncV2", "Inserting Reminders: ${bundle.reminders.size}")
             reminderDao.insertAll(bundle.reminders.map { it.toEntity() }) // Depends on Context
-
 
             Log.d("SyncV2", "Inserting BacklogOrders: ${bundle.backlogOrders.size}")
             backlogOrderDao.insertAll(bundle.backlogOrders.map { it.toEntity() }) // Depends on BacklogItem
@@ -356,12 +379,13 @@ class FullBackupLocalDataSourceImpl
                 activityRecords = activityRecordDao.getAllRaw(),
                 inboxRecords = inboxRecordDao.getAllRaw(),
                 contextLogs = contextLogDao.getAllLogs(),
-                recentProjectEntries = recentItemDao.getAllSync().map {
-                    com.romankozak.forwardappmobile.core.data.models.sync.RecentProjectEntry(
-                        contextId = it.target,
-                        timestamp = it.lastAccessed,
-                    )
-                },
+                recentProjectEntries =
+                    recentItemDao.getAllSync().map {
+                        com.romankozak.forwardappmobile.core.data.models.sync.RecentProjectEntry(
+                            contextId = it.target,
+                            timestamp = it.lastAccessed,
+                        )
+                    },
                 linkItemEntities = linkItemDao.getAllRaw(),
                 dayPlans = dayPlanDao.getAllPlansSync(),
                 dayTasks = dayTaskDao.getAllTasksSync(),

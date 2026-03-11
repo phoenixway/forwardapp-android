@@ -9,8 +9,8 @@ import com.romankozak.forwardappmobile.domain.ai.events.ActivityFinishedEvent
 import com.romankozak.forwardappmobile.domain.ai.events.ActivityLoggedEvent
 import com.romankozak.forwardappmobile.domain.userawareness.ContextStateMinutes
 import com.romankozak.forwardappmobile.domain.userawareness.StateSlashCommandParser
-import com.romankozak.forwardappmobile.domain.userawareness.UserStateChange
 import com.romankozak.forwardappmobile.domain.userawareness.UserAwarenessStateType
+import com.romankozak.forwardappmobile.domain.userawareness.UserStateChange
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import kotlinx.coroutines.flow.Flow

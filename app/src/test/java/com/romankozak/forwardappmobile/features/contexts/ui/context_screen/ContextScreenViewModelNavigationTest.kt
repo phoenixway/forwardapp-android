@@ -39,7 +39,6 @@ import com.romankozak.forwardappmobile.domain.ner.NerManager
 import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.ContextScreenViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.ContextMarkdownExporter
 import io.mockk.coVerify
 import io.mockk.every
@@ -48,8 +47,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
 import org.junit.Test

@@ -12,7 +12,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogPasteMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.ContextScreenViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionDialogState
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionType
 import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
 import com.romankozak.forwardappmobile.features.reminders.dialogs.RemindersDialog
 import com.romankozak.forwardappmobile.features.reminders.viewmodel.ReminderViewModel

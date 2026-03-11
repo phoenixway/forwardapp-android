@@ -158,10 +158,11 @@ fun UniversalEditorScreen(
                     val projectId = it.projectId
                     android.util.Log.d("ProjectRevealDebug", "Navigating to project screen for projectId: $projectId in CONNECTIONS mode")
                     navigationManager?.navigate(
-                        target = NavTarget.ContextDetail(
-                            contextId = projectId,
-                            initialViewMode = ContextViewMode.CONNECTIONS.name,
-                        ),
+                        target =
+                            NavTarget.ContextDetail(
+                                contextId = projectId,
+                                initialViewMode = ContextViewMode.CONNECTIONS.name,
+                            ),
                         recordInHistory = true,
                     ) ?: navController.navigate("goal_detail_screen/$projectId?initialViewMode=${ContextViewMode.CONNECTIONS.name}")
                 }
@@ -287,7 +288,12 @@ fun UniversalEditorScreen(
                                     onInsertAttachmentLink = { showAttachmentPicker = true },
                                     onInsertContextLink = { showContextPicker = true },
                                     canInsertAttachmentLink = uiState.isEditing && linkSuggestions.any { !it.startsWith("ctx:", ignoreCase = true) },
-                                    canInsertContextLink = uiState.isEditing && (linkSuggestions.any { it.startsWith("ctx:", ignoreCase = true) } || contextSuggestions.isNotEmpty()),
+                                    canInsertContextLink =
+                                        uiState.isEditing && (
+                                            linkSuggestions.any {
+                                                it.startsWith("ctx:", ignoreCase = true)
+                                            } || contextSuggestions.isNotEmpty()
+                                        ),
                                     onH1 = viewModel::onH1,
                                     onH2 = viewModel::onH2,
                                     onH3 = viewModel::onH3,
