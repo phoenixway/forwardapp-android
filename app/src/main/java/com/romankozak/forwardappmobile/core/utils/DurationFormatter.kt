@@ -3,13 +3,15 @@ package com.romankozak.forwardappmobile.core.utils
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
-fun formatDurationForUi(millis: Long): String {
-    if (millis < 0) return "0 с"
-    val hours = TimeUnit.MILLISECONDS.toHours(millis)
-    val minutes = TimeUnit.MILLISECONDS.toMinutes(millis) % 60
+private const val MINUTES_PER_HOUR = 60L
 
-    if (hours > 0) {
-        return String.format(Locale.ROOT, "%d год %d хв", hours, minutes)
+fun formatDurationForUi(millis: Long): String {
+    val safeMillis = millis.coerceAtLeast(0)
+    val hours = TimeUnit.MILLISECONDS.toHours(safeMillis)
+    val minutes = TimeUnit.MILLISECONDS.toMinutes(safeMillis) % MINUTES_PER_HOUR
+    return if (hours > 0) {
+        String.format(Locale.ROOT, "%d год %d хв", hours, minutes)
+    } else {
+        String.format(Locale.ROOT, "%d хв", minutes)
     }
-    return String.format(Locale.ROOT, "%d хв", minutes)
 }
