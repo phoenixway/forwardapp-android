@@ -66,6 +66,7 @@ android {
             listOf(
                 "-Xjsr305=strict",
                 "-Xcontext-receivers",
+                "-Xannotation-default-target=param-property",
                 "-Xskip-prerelease-check",
             )
     }
