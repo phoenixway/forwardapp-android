@@ -48,59 +48,76 @@ fun ListEditingPanel(
         tonalElevation = 4.dp,
     ) {
         Column(modifier = Modifier.padding(vertical = 4.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround,
-            ) {
-                StyledIconButton(onClick = { onValueChange(ListEditingLogic.toggleList(value)) }) {
-                    Icon(Icons.Default.FormatListBulleted, contentDescription = "Toggle List")
-                }
-                StyledIconButton(onClick = { onValueChange(ListEditingLogic.indent(value)) }) {
-                    Icon(Icons.Default.FormatIndentIncrease, contentDescription = "Indent")
-                }
-                StyledIconButton(onClick = { onValueChange(ListEditingLogic.outdent(value)) }) {
-                    Icon(Icons.Default.FormatIndentDecrease, contentDescription = "Outdent")
-                }
-                StyledIconButton(onClick = {
-                    val line = ListEditingLogic.getLineForClipboard(value)
-                    clipboardManager.setPrimaryClip(ClipData.newPlainText("list item", line))
-                    onValueChange(ListEditingLogic.deleteLine(value))
-                }) {
-                    Icon(Icons.Default.ContentCut, contentDescription = "Cut Line")
-                }
-                StyledIconButton(onClick = {
-                    val line = ListEditingLogic.getLineForClipboard(value)
-                    clipboardManager.setPrimaryClip(ClipData.newPlainText("list item", line))
-                }) {
-                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy Line")
-                }
-                StyledIconButton(onClick = {
-                    val clipboardText = clipboardManager.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
-                    onValueChange(ListEditingLogic.pasteLine(value, clipboardText))
-                }) {
-                    Icon(Icons.Default.ContentPaste, contentDescription = "Paste Line")
-                }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround,
-            ) {
-                StyledIconButton(onClick = { onValueChange(ListEditingLogic.moveLineUp(value)) }) {
-                    Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Move Line Up")
-                }
-                StyledIconButton(onClick = { onValueChange(ListEditingLogic.moveLineDown(value)) }) {
-                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Move Line Down")
-                }
-                StyledIconButton(onClick = { onValueChange(ListEditingLogic.moveBlockUp(value)) }) {
-                    Icon(Icons.Default.VerticalAlignTop, contentDescription = "Move Block Up")
-                }
-                StyledIconButton(onClick = { onValueChange(ListEditingLogic.moveBlockDown(value)) }) {
-                    Icon(Icons.Default.VerticalAlignBottom, contentDescription = "Move Block Down")
-                }
-                StyledIconButton(onClick = { onValueChange(ListEditingLogic.deleteLine(value)) }) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete Line")
-                }
-            }
+            ListEditingClipboardRow(value = value, onValueChange = onValueChange, clipboardManager = clipboardManager)
+            ListEditingMoveRow(value = value, onValueChange = onValueChange)
+        }
+    }
+}
+
+@Composable
+private fun ListEditingClipboardRow(
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+    clipboardManager: ClipboardManager,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceAround,
+    ) {
+        StyledIconButton(onClick = { onValueChange(ListEditingLogic.toggleList(value)) }) {
+            Icon(Icons.Default.FormatListBulleted, contentDescription = "Toggle List")
+        }
+        StyledIconButton(onClick = { onValueChange(ListEditingLogic.indent(value)) }) {
+            Icon(Icons.Default.FormatIndentIncrease, contentDescription = "Indent")
+        }
+        StyledIconButton(onClick = { onValueChange(ListEditingLogic.outdent(value)) }) {
+            Icon(Icons.Default.FormatIndentDecrease, contentDescription = "Outdent")
+        }
+        StyledIconButton(onClick = {
+            val line = ListEditingLogic.getLineForClipboard(value)
+            clipboardManager.setPrimaryClip(ClipData.newPlainText("list item", line))
+            onValueChange(ListEditingLogic.deleteLine(value))
+        }) {
+            Icon(Icons.Default.ContentCut, contentDescription = "Cut Line")
+        }
+        StyledIconButton(onClick = {
+            val line = ListEditingLogic.getLineForClipboard(value)
+            clipboardManager.setPrimaryClip(ClipData.newPlainText("list item", line))
+        }) {
+            Icon(Icons.Default.ContentCopy, contentDescription = "Copy Line")
+        }
+        StyledIconButton(onClick = {
+            val clipboardText = clipboardManager.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
+            onValueChange(ListEditingLogic.pasteLine(value, clipboardText))
+        }) {
+            Icon(Icons.Default.ContentPaste, contentDescription = "Paste Line")
+        }
+    }
+}
+
+@Composable
+private fun ListEditingMoveRow(
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceAround,
+    ) {
+        StyledIconButton(onClick = { onValueChange(ListEditingLogic.moveLineUp(value)) }) {
+            Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Move Line Up")
+        }
+        StyledIconButton(onClick = { onValueChange(ListEditingLogic.moveLineDown(value)) }) {
+            Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Move Line Down")
+        }
+        StyledIconButton(onClick = { onValueChange(ListEditingLogic.moveBlockUp(value)) }) {
+            Icon(Icons.Default.VerticalAlignTop, contentDescription = "Move Block Up")
+        }
+        StyledIconButton(onClick = { onValueChange(ListEditingLogic.moveBlockDown(value)) }) {
+            Icon(Icons.Default.VerticalAlignBottom, contentDescription = "Move Block Down")
+        }
+        StyledIconButton(onClick = { onValueChange(ListEditingLogic.deleteLine(value)) }) {
+            Icon(Icons.Default.Delete, contentDescription = "Delete Line")
         }
     }
 }
