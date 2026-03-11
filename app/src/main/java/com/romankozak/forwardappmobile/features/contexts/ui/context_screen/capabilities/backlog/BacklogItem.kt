@@ -29,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -228,18 +229,6 @@ private fun InternalGoalItem(
                     Spacer(modifier = Modifier.width(8.dp))
                 }
 
-                Icon(
-                    imageVector = Icons.Default.Flag,
-                    contentDescription = "Goal",
-                    tint = if (goal.completed) completedColors.iconTint else MaterialTheme.colorScheme.primary,
-                    modifier =
-                        Modifier
-                            .size(24.dp)
-                            .alpha(if (goal.completed) 0.6f else 1f),
-                )
-
-                Spacer(modifier = Modifier.width(16.dp))
-
                 Column(modifier = Modifier.weight(1f)) {
                     if (isInlineEditing) {
                         OutlinedTextField(
@@ -307,6 +296,14 @@ private fun InternalGoalItem(
                         }
                     }
 
+                    Spacer(modifier = Modifier.height(8.dp))
+                    BacklogTypeBadge(
+                        icon = Icons.Default.Flag,
+                        label = "Ціль",
+                        tint = if (goal.completed) completedColors.iconTint else MaterialTheme.colorScheme.primary,
+                        modifier = if (goal.completed) Modifier.alpha(0.7f) else Modifier,
+                    )
+
                     val reminder = reminders.firstOrNull()
                     val shouldShowStatusIcons =
                         !isInlineEditing && ((goal.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
@@ -369,6 +366,39 @@ private data class BacklogCompletedColors(
     val badgeBackground: Color,
     val badgeText: Color,
 )
+
+@Composable
+private fun BacklogTypeBadge(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(10.dp),
+        color = tint.copy(alpha = 0.12f),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(12.dp),
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = tint,
+                maxLines = 1,
+            )
+        }
+    }
+}
 
 @Composable
 private fun CompletedBadge(
@@ -472,18 +502,6 @@ private fun InternalSubprojectItem(
                     Spacer(modifier = Modifier.width(8.dp))
                 }
 
-                Icon(
-                    imageVector = Icons.Default.AccountTree,
-                    contentDescription = "Subproject",
-                    tint = if (subproject.isCompleted) completedColors.iconTint else MaterialTheme.colorScheme.secondary,
-                    modifier =
-                        Modifier
-                            .size(24.dp)
-                            .alpha(if (subproject.isCompleted) 0.6f else 1f),
-                )
-
-                Spacer(modifier = Modifier.width(16.dp))
-
                 Column(
                     modifier =
                         Modifier
@@ -510,6 +528,14 @@ private fun InternalSubprojectItem(
                         overflow = TextOverflow.Ellipsis,
                         textDecoration = if (subproject.isCompleted) TextDecoration.LineThrough else null,
                         modifier = if (subproject.isCompleted) Modifier.alpha(0.65f) else Modifier,
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    BacklogTypeBadge(
+                        icon = Icons.Default.AccountTree,
+                        label = "Підконтекст",
+                        tint = if (subproject.isCompleted) completedColors.iconTint else MaterialTheme.colorScheme.secondary,
+                        modifier = if (subproject.isCompleted) Modifier.alpha(0.7f) else Modifier,
                     )
 
                     val reminder = reminders.firstOrNull()
