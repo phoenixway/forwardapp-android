@@ -712,6 +712,9 @@ class ContextScreenViewModel
                 dispatchNavigationEffects(navigationEventActions.fromRouteOutcome(outcome))
             }
         }
+        override fun openGoalInlineEditor(goal: Goal) {
+            stateManager.setGoalToEditInline(goal)
+        }
         fun onLinkItemClick(link: RelatedLink) {
             Log.d(TAG, "onLinkItemClick: Clicked link with type=${link.type}, target=${link.target}")
             viewModelScope.launch {
@@ -794,6 +797,20 @@ class ContextScreenViewModel
         fun onAutoSaveArtifact(content: String) = artifactHandler.onAutoSaveArtifact(content)
         fun onDismissArtifactEditor() = artifactHandler.onDismissArtifactEditor()
         fun onDismissNoteDocumentEditor() = noteDocumentHandler.onDismissNoteDocumentEditor()
+        fun onDismissGoalInlineEditor() = stateManager.setGoalToEditInline(null)
+        fun onSaveGoalInlineEditor(text: String) {
+            val goal = stateManager.uiState.value.goalToEditInline ?: return
+            val trimmed = text.trim()
+            if (trimmed.isBlank()) return
+            viewModelScope.launch {
+                goalRepository.updateGoal(goal.copy(text = trimmed))
+                stateManager.setGoalToEditInline(null)
+            }
+        }
+        fun openGoalProperties(item: BacklogItemContent) {
+            val goal = (item as? BacklogItemContent.GoalItem)?.goal ?: return
+            requestNavigation("goal_settings_screen/${goal.id}")
+        }
         fun onToggleProjectManagement(isEnabled: Boolean) =
             viewModelScope.launch { currentContextActions.toggleProjectManagement(contextIdFlow.value, isEnabled) }
         fun onDismissEditLogEntryDialog() = logHandler.onDismissEditLogEntryDialog()

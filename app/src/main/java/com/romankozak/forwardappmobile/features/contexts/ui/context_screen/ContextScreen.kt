@@ -75,6 +75,19 @@ fun ProjectsScreen(
 
     // Router logic to decide which screen to show
     when {
+        uiState.goalToEditInline != null -> {
+            var textValue by remember(uiState.goalToEditInline?.id) {
+                mutableStateOf(TextFieldValue(uiState.goalToEditInline?.text.orEmpty()))
+            }
+
+            FullScreenTextEditor(
+                title = "Редагувати ціль",
+                value = textValue,
+                onValueChange = { textValue = it },
+                onSave = { viewModel.onSaveGoalInlineEditor(textValue.text) },
+                onCancel = viewModel::onDismissGoalInlineEditor,
+            )
+        }
         recordToEdit != null -> {
             var textValue by remember { mutableStateOf(TextFieldValue()) }
 

@@ -144,6 +144,7 @@ fun GoalDetailContent(
                 onRelatedLinkClick = viewModel.itemActionHandler::onRelatedLinkClick,
                 onRemindersClick = onRemindersClick,
                 onCopyContent = viewModel.itemActionHandler::copyContentRequest,
+                onOpenGoalProperties = viewModel::openGoalProperties,
                 onResetSwipe = viewModel::resetSwipeStatesExcept,
                 onDragStopped = viewModel::onBacklogDragStopped,
             )

@@ -42,6 +42,8 @@ class ItemActionHandler
 
             fun requestNavigation(route: String)
 
+            fun openGoalInlineEditor(goal: Goal)
+
             fun setPendingAction(
                 actionType: GoalActionType,
                 itemIds: Set<String>,
@@ -104,15 +106,14 @@ class ItemActionHandler
         }
 
         fun onItemClick(item: BacklogItemContent) {
-            if (item is BacklogItemContent.GoalItem) {
-                // Одразу відкриваємо редагування цілі по тапу
-                resultListener.requestNavigation("goal_settings_screen/${item.goal.id}")
-                return
-            }
-
             if (resultListener.isSelectionModeActive()) {
                 resultListener.toggleSelection(item.backlogItem.id)
             } else {
+                if (item is BacklogItemContent.GoalItem) {
+                    resultListener.openGoalInlineEditor(item.goal)
+                    return
+                }
+
                 scope.launch {
                     when (item) {
                         is BacklogItemContent.NoteItem -> recentItemsRepository.logNoteAccess(item.note)
@@ -135,10 +136,6 @@ class ItemActionHandler
 
                 val currentProjectId = projectIdFlow.value
                 when (item) {
-                    is BacklogItemContent.GoalItem ->
-                        resultListener.requestNavigation(
-                            "goal_settings_screen/${item.goal.id}",
-                        )
                     is BacklogItemContent.ContextLinkItem ->
                         resultListener.requestNavigation("goal_detail_screen/${item.project.id}")
                     is BacklogItemContent.LinkItem ->

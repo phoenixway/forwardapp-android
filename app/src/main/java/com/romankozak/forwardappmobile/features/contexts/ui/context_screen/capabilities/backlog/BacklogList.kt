@@ -53,6 +53,7 @@ fun BacklogListScreen(
     onRelatedLinkClick: (RelatedLink) -> Unit,
     onRemindersClick: (BacklogItemContent) -> Unit,
     onCopyContent: (BacklogItemContent) -> Unit,
+    onOpenGoalProperties: (BacklogItemContent) -> Unit,
     onResetSwipe: (String) -> Unit,
     onDragStopped: () -> Unit,
 ) {
@@ -85,6 +86,12 @@ fun BacklogListScreen(
             onCopyContent = { onCopyContent(selectedItemForActions!!) },
             onRemindersClick = { onRemindersClick(selectedItemForActions!!) },
             onDeleteEverywhere = { onDeleteEverywhere(selectedItemForActions!!) },
+            onOpenGoalProperties =
+                if (selectedItemForActions is BacklogItemContent.GoalItem) {
+                    { onOpenGoalProperties(selectedItemForActions!!) }
+                } else {
+                    null
+                },
         )
     }
 

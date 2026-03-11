@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -22,6 +23,7 @@ fun BacklogItemActionsBottomSheet(
     onCopyContent: () -> Unit,
     onRemindersClick: () -> Unit,
     onDeleteEverywhere: () -> Unit,
+    onOpenGoalProperties: (() -> Unit)? = null,
 ) {
     val modalBottomSheetState = rememberModalBottomSheetState()
 
@@ -30,6 +32,17 @@ fun BacklogItemActionsBottomSheet(
         sheetState = modalBottomSheetState,
     ) {
         Column {
+            if (onOpenGoalProperties != null) {
+                ListItem(
+                    headlineContent = { Text("Goal properties") },
+                    leadingContent = { Icon(Icons.Default.Tune, contentDescription = "Goal properties") },
+                    modifier =
+                        Modifier.clickable {
+                            onOpenGoalProperties()
+                            onDismiss()
+                        },
+                )
+            }
             ListItem(
                 headlineContent = { Text("Copy content") },
                 leadingContent = { Icon(Icons.Default.ContentCopy, contentDescription = "Copy content") },

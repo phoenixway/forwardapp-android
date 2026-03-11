@@ -91,6 +91,10 @@ class ContextStateManager(
         _uiState.update { it.copy(logEntryToEdit = log) }
     }
 
+    fun setGoalToEditInline(goal: Goal?) {
+        _uiState.update { it.copy(goalToEditInline = goal) }
+    }
+
     fun setArtifactToEdit(artifact: ContextArtifact?) {
         _uiState.update { it.copy(artifactToEdit = artifact) }
     }
@@ -181,6 +185,7 @@ data class ContextUiState(
     val showShareDialog: Boolean = false,
     val showRemindersDialog: Boolean = false,
     // UI State - Edit Modes
+    val goalToEditInline: Goal? = null,
     val logEntryToEdit: ContextLog? = null,
     val artifactToEdit: ContextArtifact? = null,
     val itemForRemindersDialog: BacklogItemContent? = null,
