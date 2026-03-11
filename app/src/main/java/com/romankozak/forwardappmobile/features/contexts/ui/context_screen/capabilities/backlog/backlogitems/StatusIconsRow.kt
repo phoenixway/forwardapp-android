@@ -24,6 +24,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.EnhancedRelatedLinkChip
 import com.romankozak.forwardappmobile.ui.common.ParsedTextData
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedMetaChip
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusRow
 import kotlinx.coroutines.delay
 
@@ -76,11 +77,29 @@ private fun InternalStatusIconsRow(
             NoteIndicatorBadge(modifier = Modifier.align(Alignment.CenterVertically))
         }
 
+        parsedData.contextMarkers.forEachIndexed { index, marker ->
+            key(marker) {
+                var delayedVisible by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    delay((parsedData.icons.size + index) * 50L)
+                    delayedVisible = true
+                }
+                AnimatedVisibility(
+                    visible = delayedVisible,
+                    enter = slideInHorizontally(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) { fullWidth -> fullWidth } + fadeIn(),
+                ) {
+                    UnifiedMetaChip(
+                        text = marker,
+                    )
+                }
+            }
+        }
+
         relatedLinks?.filter { it.type != null }?.forEachIndexed { index, link ->
             key(link.target + link.type?.name) {
                 var delayedVisible by remember { mutableStateOf(false) }
                 LaunchedEffect(Unit) {
-                    delay((parsedData.icons.size + index) * 50L)
+                    delay((parsedData.icons.size + parsedData.contextMarkers.size + index) * 50L)
                     delayedVisible = true
                 }
                 AnimatedVisibility(

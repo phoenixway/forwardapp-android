@@ -6,6 +6,7 @@ import javax.inject.Singleton
 data class ParsedTextData(
     val icons: List<String>,
     val mainText: String,
+    val contextMarkers: List<String> = emptyList(),
 )
 
 @Singleton
@@ -28,6 +29,7 @@ class ContextUtils
             allMarkersToIcons.putAll(contextMarkerToEmojiMap)
 
             val foundIcons = mutableSetOf<String>()
+            val foundContextMarkers = linkedSetOf<String>()
             var currentText = text
 
             val pattern =
@@ -44,12 +46,19 @@ class ContextUtils
                 if (icon != null) {
                     foundIcons.add(icon)
                 }
+                if (marker.startsWith("@")) {
+                    foundContextMarkers.add(marker)
+                }
             }
 
             currentText = currentText.replace(regex, " ")
             currentText = currentText.replace(Regex("\\[icon::\\s*([^]]+?)\\s*]"), "")
             val cleanedText = currentText.replace(Regex("\\s+"), " ").trim()
 
-            return ParsedTextData(icons = foundIcons.toList(), mainText = cleanedText)
+            return ParsedTextData(
+                icons = foundIcons.toList(),
+                mainText = cleanedText,
+                contextMarkers = foundContextMarkers.toList(),
+            )
         }
     }
