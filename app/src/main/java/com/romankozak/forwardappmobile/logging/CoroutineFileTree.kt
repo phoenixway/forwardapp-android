@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.logging
 import android.util.Log
 import timber.log.Timber
 import java.io.File
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -12,10 +13,15 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 
+private const val BYTES_IN_MEGABYTE = 1024L * 1024L
+private const val DEFAULT_MAX_FILE_SIZE_MB = 5L
+private const val DEFAULT_MAX_LOG_FILES = 6
+private const val DEFAULT_MAX_FILE_SIZE_BYTES = DEFAULT_MAX_FILE_SIZE_MB * BYTES_IN_MEGABYTE
+
 class CoroutineFileTree(
     private val logsDir: File,
-    private val maxFileSizeBytes: Long = 5 * 1024 * 1024, // 5 MB
-    private val maxLogFiles: Int = 6,
+    private val maxFileSizeBytes: Long = DEFAULT_MAX_FILE_SIZE_BYTES,
+    private val maxLogFiles: Int = DEFAULT_MAX_LOG_FILES,
 ) : Timber.Tree() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -35,8 +41,10 @@ class CoroutineFileTree(
                 try {
                     rotateIfNeeded()
                     currentFile.appendText(line)
-                } catch (t: Throwable) {
-                    Log.e("CoroutineFileTree", "File logging failed", t)
+                } catch (io: IOException) {
+                    Log.e("CoroutineFileTree", "File logging failed", io)
+                } catch (sec: SecurityException) {
+                    Log.e("CoroutineFileTree", "File logging failed", sec)
                 }
             }
         }

@@ -1,3 +1,5 @@
+@file:Suppress("FunctionNaming", "MagicNumber")
+
 package com.romankozak.forwardappmobile.ui.components
 
 import androidx.compose.foundation.background
@@ -102,7 +104,22 @@ data class ConnectionItemUi(
     val type: ConnectionType,
 )
 
+private const val NORMAL_TITLE_MAX_LINES = 4
+private const val COMPACT_TITLE_MAX_LINES = 2
+private const val CONNECTION_DIVIDER_ALPHA = 0.08f
+private const val TYPE_ICON_BG_ALPHA = 0.18f
+
+private val ContextTypeTint = Color(0xFF2E7D32)
+private val AttachmentTypeTint = Color(0xFF1565C0)
+private val NoteDocumentTypeTint = Color(0xFF00897B)
+private val ChecklistTypeTint = Color(0xFF5E35B1)
+private val MusicNoteTypeTint = Color(0xFFE65100)
+private val ScriptTypeTint = Color(0xFF00695C)
+private val UrlTypeTint = Color(0xFF3949AB)
+private val ObsidianTypeTint = Color(0xFF455A64)
+
 @Composable
+@Suppress("LongParameterList", "LongMethod")
 fun ConnectionsPanel(
     items: List<ConnectionItemUi>,
     onConnectionClick: (ConnectionItemUi) -> Unit,
@@ -257,6 +274,7 @@ fun ConnectionsPanel(
 }
 
 @Composable
+@Suppress("LongParameterList", "LongMethod")
 private fun ConnectionRow(
     item: ConnectionItemUi,
     onOpen: () -> Unit,
@@ -276,8 +294,8 @@ private fun ConnectionRow(
                 }
             val titleMaxLines =
                 when (mode) {
-                    ConnectionPanelMode.NORMAL -> 4
-                    ConnectionPanelMode.COMPACT -> 2
+                    ConnectionPanelMode.NORMAL -> NORMAL_TITLE_MAX_LINES
+                    ConnectionPanelMode.COMPACT -> COMPACT_TITLE_MAX_LINES
                 }
 
             Row(
@@ -325,7 +343,7 @@ private fun ConnectionRow(
         }
         HorizontalDivider(
             modifier = Modifier.padding(horizontal = 12.dp),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = CONNECTION_DIVIDER_ALPHA),
         )
     }
 }
@@ -439,7 +457,7 @@ private fun TypeIcon(
             modifier
                 .size(28.dp)
                 .clip(CircleShape)
-                .background(type.tint.copy(alpha = 0.18f)),
+                .background(type.tint.copy(alpha = TYPE_ICON_BG_ALPHA)),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -467,14 +485,14 @@ private val ConnectionType.icon: ImageVector
 private val ConnectionType.tint: Color
     get() =
         when (this) {
-            ConnectionType.CONTEXT -> Color(0xFF2E7D32)
-            ConnectionType.ATTACHMENT -> Color(0xFF1565C0)
-            ConnectionType.NOTE_DOCUMENT -> Color(0xFF00897B)
-            ConnectionType.CHECKLIST -> Color(0xFF5E35B1)
-            ConnectionType.MUSIC_NOTE -> Color(0xFFE65100)
-            ConnectionType.SCRIPT -> Color(0xFF00695C)
-            ConnectionType.URL -> Color(0xFF3949AB)
-            ConnectionType.OBSIDIAN_NOTE -> Color(0xFF455A64)
+            ConnectionType.CONTEXT -> ContextTypeTint
+            ConnectionType.ATTACHMENT -> AttachmentTypeTint
+            ConnectionType.NOTE_DOCUMENT -> NoteDocumentTypeTint
+            ConnectionType.CHECKLIST -> ChecklistTypeTint
+            ConnectionType.MUSIC_NOTE -> MusicNoteTypeTint
+            ConnectionType.SCRIPT -> ScriptTypeTint
+            ConnectionType.URL -> UrlTypeTint
+            ConnectionType.OBSIDIAN_NOTE -> ObsidianTypeTint
         }
 
 private val ConnectionType.label: String

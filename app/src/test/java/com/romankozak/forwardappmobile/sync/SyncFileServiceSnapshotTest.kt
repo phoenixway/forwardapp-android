@@ -10,7 +10,11 @@ import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextSnapshot
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
-import io.mockk.*
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Test
@@ -207,7 +211,10 @@ class SyncFileServiceSnapshotTest {
                                 isExpanded = false, isDeleted = false, version = 0, contextStatus = "NO_PLAN",
                                 contextLogLevel = null, isContextManagementEnabled = false,
                                 parentId = null, description = null, contextStatusText = null,
-                                tags = emptyList(), relatedLinks = emptyList(), order = 0, isAttachmentsExpanded = false,
+                                tags = emptyList(),
+                                relatedLinks = emptyList(),
+                                order = 0,
+                                isAttachmentsExpanded = false,
                                 defaultViewModeName = null, isCompleted = false, totalTimeSpentMinutes = 0L,
                                 valueImportance = 0, valueImpact = 0, effort = 0, cost = 0, risk = 0,
                                 weightEffort = 1f, weightCost = 1f, weightRisk = 1f, rawScore = 0.0, displayScore = 0.0,
@@ -244,7 +251,10 @@ class SyncFileServiceSnapshotTest {
                                 isExpanded = false, isDeleted = false, version = 0, contextStatus = "NO_PLAN",
                                 contextLogLevel = null, isContextManagementEnabled = false,
                                 parentId = null, description = null, contextStatusText = null,
-                                tags = emptyList(), relatedLinks = emptyList(), order = 0, isAttachmentsExpanded = false,
+                                tags = emptyList(),
+                                relatedLinks = emptyList(),
+                                order = 0,
+                                isAttachmentsExpanded = false,
                                 defaultViewModeName = null, isCompleted = false, totalTimeSpentMinutes = 0L,
                                 valueImportance = 0, valueImpact = 0, effort = 0, cost = 0, risk = 0,
                                 weightEffort = 1f, weightCost = 1f, weightRisk = 1f, rawScore = 0.0, displayScore = 0.0,

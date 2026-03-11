@@ -1,5 +1,5 @@
-import java.util.Properties
 import org.gradle.api.tasks.testing.Test
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -53,11 +53,11 @@ android {
         jvmTarget = "11"
         allWarningsAsErrors = false
         freeCompilerArgs +=
-                listOf(
-                        "-Xjsr305=strict",
-                        "-Xcontext-receivers",
-                        "-Xskip-prerelease-check",
-                )
+            listOf(
+                "-Xjsr305=strict",
+                "-Xcontext-receivers",
+                "-Xskip-prerelease-check",
+            )
     }
 
     buildFeatures {
@@ -92,8 +92,8 @@ android {
             buildConfigField("boolean", "SYNC_ENABLED", "false")
             isShrinkResources = true
             proguardFiles(
-                    getDefaultProguardFile("proguard-android-optimize.txt"),
-                    "proguard-rules.pro",
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
             )
 
             if (signingProps.isNotEmpty()) {
@@ -145,15 +145,17 @@ tasks.register("syncContractTest") {
     dependsOn("testProdDebugUnitTest")
 }
 
+val strictQuality = providers.gradleProperty("strictQuality").map(String::toBoolean).orElse(false)
+
 detekt {
     buildUponDefaultConfig = true
     allRules = false
-    ignoreFailures = false
+    ignoreFailures = !strictQuality.get()
 }
 
 ktlint {
     android.set(true)
-    ignoreFailures.set(false)
+    ignoreFailures.set(!strictQuality.get())
 }
 
 dependencies {
@@ -253,9 +255,7 @@ dependencies {
     implementation(libs.reorderable)
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.compose.material3:material3-window-size-class:1.1.1")
-
-
-implementation(libs.timber)
+    implementation(libs.timber)
 
     // OkHttp
     //

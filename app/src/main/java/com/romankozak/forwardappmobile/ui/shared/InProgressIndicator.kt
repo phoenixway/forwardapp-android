@@ -1,3 +1,5 @@
+@file:Suppress("FunctionNaming", "LongParameterList", "LongMethod", "MaxLineLength", "MagicNumber")
+
 package com.romankozak.forwardappmobile.ui.shared
 
 import androidx.compose.animation.AnimatedVisibility
