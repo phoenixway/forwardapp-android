@@ -20,7 +20,7 @@ class StateSlashCommandParser
         Regex("""(?<!:)(?<!\S)/(normal|exhaustion|unproductive)\b""", RegexOption.IGNORE_CASE)
     private val crisisPattern =
         Regex(
-            """(?<!:)(?<!\S)/crisis\b([^\n]*?)(?=(?<!:)(?<!\S)/(?:normal|exhaustion|unproductive|crisis)\b|$)""",
+            """(?<!:)(?<!\S)/crisis\b([^\n]*?)(?=(?<!:)(?<!\S)/(?:normal|exhaustion|unproductive|crisis)\b|\n|$)""",
             RegexOption.IGNORE_CASE,
         )
     private val leadingWhitespacePattern = Regex("""^\s+""")

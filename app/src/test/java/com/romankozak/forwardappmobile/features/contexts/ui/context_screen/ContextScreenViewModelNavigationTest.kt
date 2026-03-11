@@ -11,13 +11,16 @@ import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.ViewId
 import com.romankozak.forwardappmobile.core.context.ViewSet
 import com.romankozak.forwardappmobile.core.capability.CapabilitySet
+import com.romankozak.forwardappmobile.core.navigation.ClearAndNavigateHomeUseCase
+import com.romankozak.forwardappmobile.core.navigation.capability.actions.CapabilityViewActionRegistry
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.data.logic.ContextHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
+import com.romankozak.forwardappmobile.data.repository.ContextKeyProblemsRepository
 import com.romankozak.forwardappmobile.data.repository.ContextArtifactRepository
 import com.romankozak.forwardappmobile.data.repository.ContextLogRepository
-import com.romankozak.forwardappmobile.data.repository.ContextMarkdownExporter
+import com.romankozak.forwardappmobile.data.repository.FocusContextRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.data.repository.ContextTimeTrackingRepository
@@ -30,10 +33,13 @@ import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.domain.ner.NerManager
 import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
+import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SearchUseCase
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.ContextMarkdownExporter
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -75,6 +81,7 @@ class ContextScreenViewModelNavigationTest {
         val goalRepository = mockk<GoalRepository>(relaxed = true)
         val listItemRepository = mockk<ListItemRepository>(relaxed = true)
         val noteDocumentRepository = mockk<NoteDocumentRepository>(relaxed = true)
+        val musicNoteRepository = mockk<MusicNoteRepository>(relaxed = true)
         val checklistRepository = mockk<com.romankozak.forwardappmobile.data.repository.ChecklistRepository>(relaxed = true)
         val reminderRepository = mockk<ReminderRepository>(relaxed = true)
         val recentItemsRepository = mockk<RecentItemsRepository>(relaxed = true)
@@ -84,9 +91,13 @@ class ContextScreenViewModelNavigationTest {
         val inboxRepository = mockk<InboxRepository>(relaxed = true)
         val contextStructureRepository = mockk<ContextStructureRepository>(relaxed = true)
         val contextArtifactRepository = mockk<ContextArtifactRepository>(relaxed = true)
+        val contextKeyProblemsRepository = mockk<ContextKeyProblemsRepository>(relaxed = true)
+        val focusContextRepository = mockk<FocusContextRepository>(relaxed = true)
         val contextTimeTrackingRepository = mockk<ContextTimeTrackingRepository>(relaxed = true)
+        val backlogClipboardUseCase = mockk<BacklogClipboardUseCase>(relaxed = true)
+        val capabilityViewActionRegistry = mockk<CapabilityViewActionRegistry>(relaxed = true)
         val searchUseCase = mockk<SearchUseCase>(relaxed = true)
-        val clearAndNavigateHomeUseCase = mockk<com.romankozak.forwardappmobile.features.contexts.ui.context_screen.usecases.ClearAndNavigateHomeUseCase>(relaxed = true)
+        val clearAndNavigateHomeUseCase = mockk<ClearAndNavigateHomeUseCase>(relaxed = true)
         val application = mockk<Application>(relaxed = true)
 
         val savedStateHandle = SavedStateHandle(mapOf("listId" to "c1"))
@@ -128,6 +139,9 @@ class ContextScreenViewModelNavigationTest {
         every { noteRepository.getNotesForContext("c1") } returns flowOf(emptyList())
         every { goalRepository.getGoalsByContextIdFlow("c1") } returns flowOf(emptyList())
         every { contextRepository.getSubprojectsByParentIdFlow("c1") } returns flowOf(emptyList())
+        every { contextRepository.getAttachmentLibraryItemsFlow() } returns flowOf(emptyList())
+        every { contextKeyProblemsRepository.observe("c1") } returns flowOf(ContextKeyProblemsRepository.KeyProblemsData())
+        every { focusContextRepository.observeActiveFocusContextIds(any()) } returns flowOf(emptySet())
 
         val initialState =
             DefaultContextState(
@@ -161,6 +175,7 @@ class ContextScreenViewModelNavigationTest {
                 goalRepository = goalRepository,
                 listItemRepository = listItemRepository,
                 noteDocumentRepository = noteDocumentRepository,
+                musicNoteRepository = musicNoteRepository,
                 checklistRepository = checklistRepository,
                 reminderRepository = reminderRepository,
                 recentItemsRepository = recentItemsRepository,
@@ -170,17 +185,21 @@ class ContextScreenViewModelNavigationTest {
                 inboxRepository = inboxRepository,
                 contextStructureRepository = contextStructureRepository,
                 contextArtifactRepository = contextArtifactRepository,
+                contextKeyProblemsRepository = contextKeyProblemsRepository,
+                focusContextRepository = focusContextRepository,
                 contextTimeTrackingRepository = contextTimeTrackingRepository,
                 contextSessionStore = contextSessionStore,
+                backlogClipboardUseCase = backlogClipboardUseCase,
+                capabilityViewActionRegistry = capabilityViewActionRegistry,
             )
 
         val resolved = contextSessionStore.selectView(ContextViewMode.INBOX)
-        assertThat(resolved).isEqualTo(ContextViewMode.BACKLOG)
+        assertThat(resolved).isEqualTo(ContextViewMode.DASHBOARD)
 
         viewModel.onProjectViewChange(ContextViewMode.INBOX)
 
         coVerify {
-            contextRepository.updateContextViewMode("c1", ContextViewMode.BACKLOG)
+            contextRepository.updateContextViewMode("c1", ContextViewMode.DASHBOARD)
         }
     }
 }

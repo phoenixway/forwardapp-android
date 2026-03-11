@@ -1,19 +1,35 @@
 package android.util
 
 object Log {
-    @JvmStatic fun d(
+    @JvmStatic
+    fun d(
         tag: String?,
         msg: String?,
     ): Int = 0
 
-    @JvmStatic fun e(
+    @JvmStatic
+    fun e(
         tag: String?,
         msg: String?,
         tr: Throwable? = null,
     ): Int = 0
 
-    @JvmStatic fun i(
+    @JvmStatic
+    fun i(
         tag: String?,
         msg: String?,
+    ): Int = 0
+
+    @JvmStatic
+    fun w(
+        tag: String?,
+        msg: String?,
+    ): Int = 0
+
+    @JvmStatic
+    fun w(
+        tag: String?,
+        msg: String?,
+        tr: Throwable?,
     ): Int = 0
 }
