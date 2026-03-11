@@ -1,10 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -26,7 +23,6 @@ import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -64,8 +60,8 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.compo
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.StatusIconsRow
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedMetaChip
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTokens
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 
 @Composable
@@ -296,14 +292,6 @@ private fun InternalGoalItem(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
-                    BacklogTypeBadge(
-                        icon = Icons.Default.Flag,
-                        label = "Ціль",
-                        tint = if (goal.completed) completedColors.iconTint else MaterialTheme.colorScheme.primary,
-                        modifier = if (goal.completed) Modifier.alpha(0.7f) else Modifier,
-                    )
-
                     val reminder = reminders.firstOrNull()
                     val shouldShowStatusIcons =
                         !isInlineEditing && ((goal.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
@@ -312,10 +300,7 @@ private fun InternalGoalItem(
                             (!goal.description.isNullOrBlank()) ||
                             (!goal.relatedLinks.isNullOrEmpty()))
 
-                    AnimatedVisibility(
-                        visible = shouldShowStatusIcons,
-                        enter = slideInVertically(animationSpec = spring()) { -it } + fadeIn(),
-                    ) {
+                    if (!isInlineEditing) {
                         Column {
                             Spacer(modifier = Modifier.height(6.dp))
                             Box(modifier = if (goal.completed) Modifier.alpha(0.6f) else Modifier) {
@@ -325,6 +310,15 @@ private fun InternalGoalItem(
                                     parsedData = parsedData,
                                     reminder = reminder,
                                     emojiToHide = null,
+                                    leadingChips =
+                                        listOf(
+                                            UnifiedStatusChipSpec(
+                                                text = "Ціль",
+                                                icon = Icons.Default.Flag,
+                                                contentColor =
+                                                    if (goal.completed) completedColors.iconTint else MaterialTheme.colorScheme.primary,
+                                            ),
+                                        ),
                                     onRelatedLinkClick = onRelatedLinkClick,
                                 )
                             }
@@ -333,20 +327,22 @@ private fun InternalGoalItem(
                 }
 
                 if (!isInlineEditing) {
-                    IconButton(
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More actions",
                         modifier =
                             with(reorderableScope) {
                                 Modifier.draggableHandle(
                                     onDragStarted = {
                                         hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                                     },
-                                    onDragStopped = { onDragStopped() },
-                                )
-                            }.alpha(if (goal.completed) 0.5f else 1f),
-                        onClick = onMoreClick,
-                    ) {
-                        Icon(imageVector = Icons.Default.MoreVert, contentDescription = "More actions")
-                    }
+                                        onDragStopped = { onDragStopped() },
+                                    )
+                            }
+                                .size(20.dp)
+                                .alpha(if (goal.completed) 0.5f else 1f)
+                                .clickable(onClick = onMoreClick),
+                    )
                 }
             }
         }
@@ -361,22 +357,6 @@ private data class BacklogCompletedColors(
     val badgeBackground: Color,
     val badgeText: Color,
 )
-
-@Composable
-private fun BacklogTypeBadge(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    tint: Color,
-    modifier: Modifier = Modifier,
-) {
-    androidx.compose.foundation.layout.Box(modifier = modifier) {
-        UnifiedMetaChip(
-            text = label,
-            icon = icon,
-            contentColor = tint,
-        )
-    }
-}
 
 @Composable
 private fun CompletedBadge(
@@ -508,26 +488,8 @@ private fun InternalSubprojectItem(
                         modifier = if (subproject.isCompleted) Modifier.alpha(0.65f) else Modifier,
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
-                    BacklogTypeBadge(
-                        icon = Icons.Default.AccountTree,
-                        label = "Підконтекст",
-                        tint = if (subproject.isCompleted) completedColors.iconTint else MaterialTheme.colorScheme.secondary,
-                        modifier = if (subproject.isCompleted) Modifier.alpha(0.7f) else Modifier,
-                    )
-
                     val reminder = reminders.firstOrNull()
-                    val shouldShowStatusIcons =
-                        (subproject.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
-                            (reminder != null) ||
-                            (enrichedParsedData.icons.isNotEmpty()) ||
-                            (!subproject.description.isNullOrBlank()) ||
-                            (!subproject.relatedLinks.isNullOrEmpty())
-
-                    AnimatedVisibility(
-                        visible = shouldShowStatusIcons,
-                        enter = slideInVertically(animationSpec = spring()) { -it } + fadeIn(),
-                    ) {
+                    Column {
                         Column {
                             Spacer(modifier = Modifier.height(6.dp))
                             Box(modifier = if (subproject.isCompleted) Modifier.alpha(0.6f) else Modifier) {
@@ -536,6 +498,15 @@ private fun InternalSubprojectItem(
                                     parsedData = enrichedParsedData,
                                     reminder = reminder,
                                     emojiToHide = null,
+                                    leadingChips =
+                                        listOf(
+                                            UnifiedStatusChipSpec(
+                                                text = "Підконтекст",
+                                                icon = Icons.Default.AccountTree,
+                                                contentColor =
+                                                    if (subproject.isCompleted) completedColors.iconTint else MaterialTheme.colorScheme.secondary,
+                                            ),
+                                        ),
                                     onRelatedLinkClick = onRelatedLinkClick,
                                 )
                             }
@@ -543,7 +514,9 @@ private fun InternalSubprojectItem(
                     }
                 }
 
-                IconButton(
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More actions",
                     modifier =
                         with(reorderableScope) {
                             Modifier.draggableHandle(
@@ -552,11 +525,11 @@ private fun InternalSubprojectItem(
                                 },
                                 onDragStopped = { onDragStopped() },
                             )
-                        }.alpha(if (subproject.isCompleted) 0.5f else 1f),
-                    onClick = onMoreClick,
-                ) {
-                    Icon(imageVector = Icons.Default.MoreVert, contentDescription = "More actions")
-                }
+                        }
+                            .size(20.dp)
+                            .alpha(if (subproject.isCompleted) 0.5f else 1f)
+                            .clickable(onClick = onMoreClick),
+                )
             }
         }
     }

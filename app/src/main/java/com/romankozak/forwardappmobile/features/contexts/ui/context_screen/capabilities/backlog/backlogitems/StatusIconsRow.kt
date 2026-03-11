@@ -25,6 +25,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.EnhancedRelatedLinkChip
 import com.romankozak.forwardappmobile.ui.common.ParsedTextData
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedMetaChip
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusRow
 import kotlinx.coroutines.delay
 
@@ -38,9 +39,19 @@ private fun InternalStatusIconsRow(
     parsedData: ParsedTextData,
     reminder: Reminder?,
     emojiToHide: String?,
+    leadingChips: List<UnifiedStatusChipSpec>,
     onRelatedLinkClick: (RelatedLink) -> Unit,
 ) {
     UnifiedStatusRow(modifier = Modifier.fillMaxWidth()) {
+        leadingChips.forEach { chip ->
+            UnifiedMetaChip(
+                text = chip.text,
+                icon = chip.icon,
+                contentColor = chip.contentColor ?: androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                onClick = chip.onClick,
+            )
+        }
+
         if (reminder != null) {
             EnhancedReminderBadge(
                 reminder = reminder,
@@ -123,6 +134,7 @@ fun StatusIconsRow(
     parsedData: ParsedTextData,
     reminder: Reminder?,
     emojiToHide: String?,
+    leadingChips: List<UnifiedStatusChipSpec> = emptyList(),
     onRelatedLinkClick: (RelatedLink) -> Unit,
 ) {
     val visibleLinks =
@@ -140,6 +152,7 @@ fun StatusIconsRow(
         parsedData = parsedData,
         reminder = reminder,
         emojiToHide = emojiToHide,
+        leadingChips = leadingChips,
         onRelatedLinkClick = onRelatedLinkClick,
     )
 }
@@ -150,6 +163,7 @@ fun StatusIconsRow(
     parsedData: ParsedTextData,
     reminder: Reminder?,
     emojiToHide: String?,
+    leadingChips: List<UnifiedStatusChipSpec> = emptyList(),
     onRelatedLinkClick: (RelatedLink) -> Unit,
 ) {
     InternalStatusIconsRow(
@@ -160,6 +174,7 @@ fun StatusIconsRow(
         parsedData = parsedData,
         reminder = reminder,
         emojiToHide = emojiToHide,
+        leadingChips = leadingChips,
         onRelatedLinkClick = onRelatedLinkClick,
     )
 }
