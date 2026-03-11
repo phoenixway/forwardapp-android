@@ -62,8 +62,18 @@ fun ConnectionsAddActionsDialog(
     val haptic = LocalHapticFeedback.current
     val items =
         listOf(
-            ConnectionActionItem("Контекст", Icons.Outlined.AccountTree, MaterialTheme.colorScheme.tertiary, AddConnectionType.CONTEXT),
-            ConnectionActionItem("Вкладення", Icons.Outlined.AttachFile, MaterialTheme.colorScheme.secondary, AddConnectionType.ATTACHMENT),
+            ConnectionActionItem(
+                "Контекст",
+                Icons.Outlined.AccountTree,
+                MaterialTheme.colorScheme.tertiary,
+                AddConnectionType.CONTEXT,
+            ),
+            ConnectionActionItem(
+                "Вкладення",
+                Icons.Outlined.AttachFile,
+                MaterialTheme.colorScheme.secondary,
+                AddConnectionType.ATTACHMENT,
+            ),
             ConnectionActionItem(
                 "Web посилання",
                 Icons.Outlined.Public,

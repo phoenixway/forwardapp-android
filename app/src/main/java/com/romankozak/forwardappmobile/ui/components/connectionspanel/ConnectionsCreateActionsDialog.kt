@@ -65,16 +65,36 @@ fun ConnectionsCreateActionsDialog(
     val haptic = LocalHapticFeedback.current
     val items =
         listOf(
-            ConnectionCreateItem("Контекст", Icons.Outlined.AccountTree, MaterialTheme.colorScheme.tertiary, CreateConnectionType.CONTEXT),
+            ConnectionCreateItem(
+                "Контекст",
+                Icons.Outlined.AccountTree,
+                MaterialTheme.colorScheme.tertiary,
+                CreateConnectionType.CONTEXT,
+            ),
             ConnectionCreateItem(
                 "Нотатка",
                 Icons.Outlined.StickyNote2,
                 MaterialTheme.colorScheme.primary,
                 CreateConnectionType.NOTE_DOCUMENT,
             ),
-            ConnectionCreateItem("Ноти", Icons.Outlined.MusicNote, MaterialTheme.colorScheme.primary, CreateConnectionType.MUSIC_NOTE),
-            ConnectionCreateItem("Чекліст", Icons.Outlined.Checklist, MaterialTheme.colorScheme.secondary, CreateConnectionType.CHECKLIST),
-            ConnectionCreateItem("Скрипт", Icons.Outlined.Code, MaterialTheme.colorScheme.secondary, CreateConnectionType.SCRIPT),
+            ConnectionCreateItem(
+                "Ноти",
+                Icons.Outlined.MusicNote,
+                MaterialTheme.colorScheme.primary,
+                CreateConnectionType.MUSIC_NOTE,
+            ),
+            ConnectionCreateItem(
+                "Чекліст",
+                Icons.Outlined.Checklist,
+                MaterialTheme.colorScheme.secondary,
+                CreateConnectionType.CHECKLIST,
+            ),
+            ConnectionCreateItem(
+                "Скрипт",
+                Icons.Outlined.Code,
+                MaterialTheme.colorScheme.secondary,
+                CreateConnectionType.SCRIPT,
+            ),
             ConnectionCreateItem(
                 "Web посилання",
                 Icons.Outlined.Public,

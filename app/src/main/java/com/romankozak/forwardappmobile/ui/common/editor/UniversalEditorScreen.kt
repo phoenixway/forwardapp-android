@@ -156,7 +156,10 @@ fun UniversalEditorScreen(
             when (it) {
                 is UniversalEditorEvent.ShowLocation -> {
                     val projectId = it.projectId
-                    android.util.Log.d("ProjectRevealDebug", "Navigating to project screen for projectId: $projectId in CONNECTIONS mode")
+                    android.util.Log.d(
+                        "ProjectRevealDebug",
+                        "Navigating to project screen for projectId: $projectId in CONNECTIONS mode",
+                    )
                     navigationManager?.navigate(
                         target =
                             NavTarget.ContextDetail(
@@ -164,7 +167,9 @@ fun UniversalEditorScreen(
                                 initialViewMode = ContextViewMode.CONNECTIONS.name,
                             ),
                         recordInHistory = true,
-                    ) ?: navController.navigate("goal_detail_screen/$projectId?initialViewMode=${ContextViewMode.CONNECTIONS.name}")
+                    ) ?: navController.navigate(
+                        "goal_detail_screen/$projectId?initialViewMode=${ContextViewMode.CONNECTIONS.name}",
+                    )
                 }
 
                 is UniversalEditorEvent.ShowError -> {
@@ -287,7 +292,11 @@ fun UniversalEditorScreen(
                                     onInsertTime = viewModel::onInsertTime,
                                     onInsertAttachmentLink = { showAttachmentPicker = true },
                                     onInsertContextLink = { showContextPicker = true },
-                                    canInsertAttachmentLink = uiState.isEditing && linkSuggestions.any { !it.startsWith("ctx:", ignoreCase = true) },
+                                    canInsertAttachmentLink =
+                                        uiState.isEditing &&
+                                            linkSuggestions.any {
+                                                !it.startsWith("ctx:", ignoreCase = true)
+                                            },
                                     canInsertContextLink =
                                         uiState.isEditing && (
                                             linkSuggestions.any {
@@ -514,7 +523,8 @@ private fun Editor(
                             linkSuggestions
                                 .filter { suggestion ->
                                     val display = extractWikiLinkDisplay(suggestion)
-                                    display.contains(q.query, ignoreCase = true) || suggestion.contains(q.query, ignoreCase = true)
+                                    display.contains(q.query, ignoreCase = true) ||
+                                        suggestion.contains(q.query, ignoreCase = true)
                                 }.take(6)
                         "@" -> contextSuggestions.filter { it.contains(q.query, ignoreCase = true) }.take(6)
                         else -> emptyList()
@@ -585,7 +595,12 @@ private fun Editor(
                     .verticalScroll(scrollState)
                     .padding(start = 16.dp, end = 16.dp, top = 16.dp),
         ) {
-            val readModeTransformation = ListVisualTransformation(sanitizedCollapsedHeadingLines, textColor, accentColor)
+            val readModeTransformation =
+                ListVisualTransformation(
+                    sanitizedCollapsedHeadingLines,
+                    textColor,
+                    accentColor,
+                )
 
             val baseModifier =
                 Modifier.padding(start = 16.dp)
@@ -617,7 +632,9 @@ private fun Editor(
                                 style = TextStyle(fontSize = 16.sp, lineHeight = 24.sp, color = textColor),
                                 onClick = { clickOffset: Int ->
                                     val headingToggle =
-                                        transformed.text.getStringAnnotations("fold_heading", clickOffset, clickOffset).firstOrNull()
+                                        transformed.text
+                                            .getStringAnnotations("fold_heading", clickOffset, clickOffset)
+                                            .firstOrNull()
                                     val headingLineIndex = headingToggle?.item?.toIntOrNull()
                                     if (headingLineIndex != null) {
                                         collapsedHeadingLines =
@@ -633,9 +650,15 @@ private fun Editor(
                                         return@ClickableText
                                     }
                                     val annotation =
-                                        transformed.text.getStringAnnotations("wikilink", clickOffset, clickOffset).firstOrNull()
-                                            ?: transformed.text.getStringAnnotations("tag", clickOffset, clickOffset).firstOrNull()
-                                            ?: transformed.text.getStringAnnotations("context", clickOffset, clickOffset).firstOrNull()
+                                        transformed.text
+                                            .getStringAnnotations("wikilink", clickOffset, clickOffset)
+                                            .firstOrNull()
+                                            ?: transformed.text
+                                                .getStringAnnotations("tag", clickOffset, clickOffset)
+                                                .firstOrNull()
+                                            ?: transformed.text
+                                                .getStringAnnotations("context", clickOffset, clickOffset)
+                                                .firstOrNull()
                                     when (annotation?.tag) {
                                         "wikilink" -> onWikiLinkClick(annotation.item)
                                         "tag" -> onWikiLinkClick("#${annotation.item}")

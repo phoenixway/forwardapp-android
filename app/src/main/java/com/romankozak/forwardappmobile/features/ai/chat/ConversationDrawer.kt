@@ -11,10 +11,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -38,7 +38,7 @@ fun ConversationDrawer(
             modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp),
             style = MaterialTheme.typography.titleMedium,
         )
-        Divider()
+        HorizontalDivider()
         val expandedFolders = remember { mutableStateMapOf<Long, Boolean>() }
 
         LazyColumn {
@@ -67,7 +67,7 @@ fun ConversationDrawer(
                                     overflow = TextOverflow.Ellipsis,
                                 )
                                 Icon(
-                                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowRight,
+                                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                     contentDescription = if (isExpanded) "Collapse" else "Expand",
                                 )
                             }

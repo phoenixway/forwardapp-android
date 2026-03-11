@@ -47,7 +47,12 @@ fun ProjectRow(
     displayName: AnnotatedString? = null,
 ) {
     val backgroundColor by animateColorAsState(
-        targetValue = if (isHighlighted) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f) else Color.Transparent,
+        targetValue =
+            if (isHighlighted) {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+            } else {
+                Color.Transparent
+            },
         animationSpec = tween(durationMillis = 500),
         label = "Highlight Animation",
     )
@@ -62,7 +67,11 @@ fun ProjectRow(
                 .background(backgroundColor),
     ) {
         if (isHovered && !isDraggingDown && !isCurrentlyDragging) {
-            HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = indentation))
+            HorizontalDivider(
+                thickness = 2.dp,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(start = indentation),
+            )
         }
 
         Row(
@@ -126,7 +135,11 @@ fun ProjectRow(
         }
 
         if (isHovered && isDraggingDown && !isCurrentlyDragging) {
-            HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = indentation))
+            HorizontalDivider(
+                thickness = 2.dp,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(start = indentation),
+            )
         }
     }
 }
