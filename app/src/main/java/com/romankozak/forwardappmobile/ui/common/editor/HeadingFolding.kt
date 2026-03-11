@@ -37,22 +37,31 @@ internal object HeadingFolding {
 
         while (index < lines.size) {
             visible.add(index)
-            val headingLevel = headingLevels[index]
-
-            if (headingLevel != null && collapsedHeadingLines.contains(index)) {
-                index++
-                while (index < lines.size) {
-                    val nextLevel = headingLevels[index]
-                    if (nextLevel != null && nextLevel <= headingLevel) {
-                        break
-                    }
-                    index++
-                }
-            } else {
-                index++
-            }
+            index = nextVisibleIndex(lines.size, headingLevels, collapsedHeadingLines, index)
         }
 
         return visible
+    }
+
+    private fun nextVisibleIndex(
+        lineCount: Int,
+        headingLevels: List<Int?>,
+        collapsedHeadingLines: Set<Int>,
+        index: Int,
+    ): Int {
+        val headingLevel = headingLevels[index]
+        if (headingLevel == null || index !in collapsedHeadingLines) {
+            return index + 1
+        }
+
+        var nextIndex = index + 1
+        while (nextIndex < lineCount) {
+            val nextLevel = headingLevels[nextIndex]
+            if (nextLevel != null && nextLevel <= headingLevel) {
+                break
+            }
+            nextIndex++
+        }
+        return nextIndex
     }
 }
