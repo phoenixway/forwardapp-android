@@ -1,3 +1,5 @@
+@file:Suppress("FunctionNaming", "LongParameterList", "LongMethod")
+
 package com.romankozak.forwardappmobile.ui.components
 
 import androidx.compose.foundation.background
