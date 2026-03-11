@@ -113,11 +113,15 @@ class InboxSortingService
             default: String,
         ): String {
             if (rulesText.isBlank()) return default
+
+            var resolved: String? = null
             keys.forEach { key ->
                 val pattern = Regex("""(?im)^\s*${Regex.escape(key)}\s*:\s*([a-z_]+)\s*$""")
                 val found = pattern.find(rulesText)?.groupValues?.getOrNull(1)?.trim()?.lowercase()
-                if (!found.isNullOrBlank()) return found
+                if (!found.isNullOrBlank() && resolved == null) {
+                    resolved = found
+                }
             }
-            return default
+            return resolved ?: default
         }
     }
