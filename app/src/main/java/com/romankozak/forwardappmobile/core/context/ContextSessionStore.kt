@@ -73,7 +73,11 @@ class ContextSessionStore(
             DefaultContextState(
                 id = ContextId(contextId),
                 features = CapabilitySet(active = enabled),
-                views = ViewSet(availableViews.map { ViewId(it.name.lowercase()) }.toSet(), ViewId(resolved.name.lowercase())),
+                views =
+                    ViewSet(
+                        available = availableViews.map { ViewId(it.name.lowercase()) }.toSet(),
+                        start = ViewId(resolved.name.lowercase()),
+                    ),
                 config = config,
             ),
         )

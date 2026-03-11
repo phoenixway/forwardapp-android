@@ -53,6 +53,7 @@ fun FullScreenTextEditor(
             )
         },
     ) { paddingValues ->
+        val imeBottom = WindowInsets.ime.getBottom(LocalDensity.current)
         Box(
             modifier =
                 Modifier
@@ -65,7 +66,7 @@ fun FullScreenTextEditor(
                     Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(bottom = if (WindowInsets.ime.getBottom(LocalDensity.current) > 0) 90.dp else 0.dp),
+                        .padding(bottom = if (imeBottom > 0) 90.dp else 0.dp),
             ) {
                 TextField(
                     value = value,
@@ -79,11 +80,8 @@ fun FullScreenTextEditor(
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
                             disabledIndicatorColor = Color.Transparent,
-                        ),
+                    ),
                 )
-            }
-
-            if (WindowInsets.ime.getBottom(LocalDensity.current) > 0) {
             }
         }
     }
