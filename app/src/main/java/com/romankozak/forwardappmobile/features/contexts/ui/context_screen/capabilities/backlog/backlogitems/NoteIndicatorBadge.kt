@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -28,6 +29,7 @@ internal fun NoteIndicatorBadge(modifier: Modifier = Modifier) {
         Box(
             modifier =
                 Modifier
+                    .heightIn(min = 24.dp)
                     .padding(6.dp)
                     .semantics {
                         contentDescription = "Містить нотатку"
@@ -38,7 +40,7 @@ internal fun NoteIndicatorBadge(modifier: Modifier = Modifier) {
                 imageVector = Icons.AutoMirrored.Outlined.StickyNote2,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(12.dp),
             )
         }
     }

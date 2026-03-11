@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -80,7 +81,8 @@ internal fun EnhancedRelatedLinkChip(
                 .semantics {
                     contentDescription = "${link.type?.name ?: "LINK"}: ${link.displayName ?: link.target}"
                     role = Role.Button
-                },
+                }
+                .heightIn(min = 24.dp),
         shape = RoundedCornerShape(10.dp),
         color = backgroundColor,
         shadowElevation = 0.dp,

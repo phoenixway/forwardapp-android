@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
@@ -58,6 +59,7 @@ fun AnimatedContextEmoji(
         Box(
             modifier =
                 Modifier
+                    .heightIn(min = 24.dp)
                     .graphicsLayer {
                         scaleX = scale
                         scaleY = scale

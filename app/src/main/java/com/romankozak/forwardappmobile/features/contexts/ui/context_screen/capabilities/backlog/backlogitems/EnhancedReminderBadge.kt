@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.comp
 import android.text.format.DateUtils
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -134,6 +135,7 @@ internal fun EnhancedReminderBadge(reminder: Reminder) {
         color = backgroundColor,
         shadowElevation = 1.dp,
         tonalElevation = 2.dp,
+        modifier = Modifier.heightIn(min = 24.dp),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -149,14 +151,13 @@ internal fun EnhancedReminderBadge(reminder: Reminder) {
                     },
                 contentDescription = "Нагадування",
                 tint = contentColor,
-                modifier = Modifier.size(14.dp),
+                modifier = Modifier.size(12.dp),
             )
             Text(
                 text = reminderText,
                 style =
                     MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Medium,
-                        fontSize = 10.sp,
                     ),
                 color = contentColor,
                 maxLines = 1,

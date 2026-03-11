@@ -7,6 +7,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -76,7 +77,7 @@ fun EnhancedScoreStatusBadge(
                         modifier =
                             Modifier.semantics {
                                 contentDescription = "Оцінка: $displayScore з 100"
-                            },
+                            }.heightIn(min = 24.dp),
                         ) {
                             Row(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),

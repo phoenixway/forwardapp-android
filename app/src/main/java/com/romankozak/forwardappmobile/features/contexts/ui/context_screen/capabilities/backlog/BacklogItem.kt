@@ -3,6 +3,8 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capa
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -63,6 +65,7 @@ import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTokens
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
+import kotlinx.coroutines.delay
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 
 @Composable
@@ -152,6 +155,7 @@ private fun InternalGoalItem(
     val hapticFeedback = LocalHapticFeedback.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
     var textValue by remember(goal.id, isInlineEditing, goal.text) {
         mutableStateOf(TextFieldValue(goal.text, TextRange(goal.text.length)))
     }
@@ -159,6 +163,8 @@ private fun InternalGoalItem(
     LaunchedEffect(isInlineEditing) {
         if (isInlineEditing) {
             focusRequester.requestFocus()
+            delay(250)
+            bringIntoViewRequester.bringIntoView()
         }
     }
 
@@ -234,6 +240,7 @@ private fun InternalGoalItem(
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
+                                    .bringIntoViewRequester(bringIntoViewRequester)
                                     .focusRequester(focusRequester),
                             minLines = 1,
                             maxLines = 4,
