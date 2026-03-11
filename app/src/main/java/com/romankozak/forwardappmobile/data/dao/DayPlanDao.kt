@@ -44,7 +44,16 @@ interface DayPlanDao {
     @Query("SELECT * FROM day_plans ORDER BY date ASC")
     fun getAllPlans(): Flow<List<DayPlan>>
 
-    @Query("UPDATE day_plans SET status = :status, updatedAt = :updatedAt, version = version + 1, syncedAt = NULL WHERE id = :planId")
+    @Query(
+        """
+        UPDATE day_plans
+        SET status = :status,
+            updatedAt = :updatedAt,
+            version = version + 1,
+            syncedAt = NULL
+        WHERE id = :planId
+        """,
+    )
     suspend fun updatePlanStatus(
         planId: String,
         status: DayStatus,

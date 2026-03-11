@@ -58,7 +58,12 @@ interface DayTaskDao {
     fun getPendingTasks(dayPlanId: String): Flow<List<DayTask>>
 
     @Query(
-        "SELECT * FROM day_tasks WHERE scheduledTime IS NOT NULL AND scheduledTime BETWEEN :startTime AND :endTime ORDER BY scheduledTime ASC",
+        """
+        SELECT * FROM day_tasks
+        WHERE scheduledTime IS NOT NULL
+          AND scheduledTime BETWEEN :startTime AND :endTime
+        ORDER BY scheduledTime ASC
+        """,
     )
     fun getScheduledTasksInRange(
         startTime: Long,
@@ -88,7 +93,16 @@ interface DayTaskDao {
     @Query("SELECT MAX(`order`) FROM day_tasks WHERE dayPlanId = :dayPlanId")
     suspend fun getMaxOrderForDayPlan(dayPlanId: String): Long?
 
-    @Query("UPDATE day_tasks SET `order` = :newOrder, updatedAt = :updatedAt, version = version + 1, syncedAt = NULL WHERE id = :taskId")
+    @Query(
+        """
+        UPDATE day_tasks
+        SET `order` = :newOrder,
+            updatedAt = :updatedAt,
+            version = version + 1,
+            syncedAt = NULL
+        WHERE id = :taskId
+        """,
+    )
     suspend fun updateTaskOrder(
         taskId: String,
         newOrder: Long,
@@ -102,7 +116,14 @@ interface DayTaskDao {
     fun getTasksForDay(dayPlanId: String): Flow<List<DayTask>>
 
     @Query(
-        "UPDATE day_tasks SET activityRecordId = :activityRecordId, updatedAt = :updatedAt, version = version + 1, syncedAt = NULL WHERE id = :taskId",
+        """
+        UPDATE day_tasks
+        SET activityRecordId = :activityRecordId,
+            updatedAt = :updatedAt,
+            version = version + 1,
+            syncedAt = NULL
+        WHERE id = :taskId
+        """,
     )
     suspend fun linkTaskWithActivity(
         taskId: String,
@@ -111,7 +132,14 @@ interface DayTaskDao {
     )
 
     @Query(
-        "UPDATE day_tasks SET actualDurationMinutes = :durationMinutes, updatedAt = :updatedAt, version = version + 1, syncedAt = NULL WHERE id = :taskId",
+        """
+        UPDATE day_tasks
+        SET actualDurationMinutes = :durationMinutes,
+            updatedAt = :updatedAt,
+            version = version + 1,
+            syncedAt = NULL
+        WHERE id = :taskId
+        """,
     )
     suspend fun updateTaskDuration(
         taskId: String,
