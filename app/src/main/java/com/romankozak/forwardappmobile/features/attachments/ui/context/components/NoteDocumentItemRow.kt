@@ -25,7 +25,6 @@ import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedTrailingAct
 @Composable
 fun NoteDocumentItemRow(
     noteDocumentItem: BacklogItemContent.NoteDocumentItem,
-    onClick: () -> Unit,
     onDelete: () -> Unit,
     trailingContent: (@Composable () -> Unit)? = null,
 ) {

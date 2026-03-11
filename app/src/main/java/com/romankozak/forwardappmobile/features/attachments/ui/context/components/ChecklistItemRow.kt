@@ -26,7 +26,6 @@ import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedTrailingAct
 @Composable
 fun ChecklistItemRow(
     checklistItem: BacklogItemContent.ChecklistItem,
-    onClick: () -> Unit,
     onDelete: () -> Unit,
     trailingContent: (@Composable () -> Unit)? = null,
 ) {

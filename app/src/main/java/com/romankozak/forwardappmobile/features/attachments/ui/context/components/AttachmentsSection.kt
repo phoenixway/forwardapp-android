@@ -208,21 +208,18 @@ private fun AttachmentItemCard(
             is BacklogItemContent.NoteDocumentItem -> {
                 NoteDocumentItemRow(
                     noteDocumentItem = item,
-                    onClick = { onItemClick(item) },
                     onDelete = { onDeleteItem(item) },
                 )
             }
             is BacklogItemContent.ChecklistItem -> {
                 ChecklistItemRow(
                     checklistItem = item,
-                    onClick = { onItemClick(item) },
                     onDelete = { onDeleteItem(item) },
                 )
             }
             is BacklogItemContent.MusicNoteItem -> {
                 NoteDocumentItemRow(
                     noteDocumentItem = BacklogItemContent.NoteDocumentItem(item.musicNote.toNoteDocumentEntity(), item.backlogItem),
-                    onClick = { onItemClick(item) },
                     onDelete = { onDeleteItem(item) },
                 )
             }
