@@ -10,7 +10,7 @@ ForwardAppMobile is an Android app for managing projects, goals, and personal pr
 - Wi‑Fi sync/import (experimental) with feature toggles to disable in production.
 - Feature flags: `FeatureFlag`/`FeatureToggles` persisted via DataStore and controlled from Settings.
 
-See `docs/FEATURES2.md` for a feature/file map.
+See `docs/achitecture/FEATURES2.md` for a feature/file map.
 
 ## Architecture at a Glance
 - **UI/Compose**: `ui/screens/*`, `ui/features/*`, shared components in `features/common`.
@@ -54,6 +54,6 @@ The repository does not keep production secrets.
 - Sync: `ui/screens/mainscreen/usecases/SyncUseCase.kt`, `WifiSyncServer.kt`.
 
 ## Documentation
-- Architecture notes: `docs/ARCHITECTURE_NOTES.md`.
-- Feature/file overview: `docs/FEATURES2.md`.
-- HoldMenu2 component: `docs/HoldMenu2-manual.md`.
+- Architecture notes: `docs/achitecture/mechanisms/ARCHITECTURE_NOTES.md`.
+- Feature/file overview: `docs/achitecture/FEATURES2.md`.
+- HoldMenu2 component: `docs/ui/HoldMenu2-manual.md`.
