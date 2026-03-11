@@ -29,6 +29,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actio
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ClipboardActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.CurrentContextActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ContextDataApplyActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ContextPickerActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ContextSettingsActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ContextViewActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.CreationActions
@@ -79,9 +80,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
-import java.net.URLEncoder
 import java.util.Calendar
-import java.util.UUID
 import javax.inject.Inject
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -448,6 +447,18 @@ class ContextScreenViewModel
                 stateManager = stateManager,
                 copyToClipboard = ::copyToClipboard,
                 showSnackbar = ::showSnackbar,
+            )
+        }
+        private val contextPickerActions by lazy {
+            ContextPickerActions(
+                contextRepository = contextRepository,
+                contextKeyProblemsRepository = contextKeyProblemsRepository,
+                focusContextRepository = focusContextRepository,
+                listChooserFlowActions = listChooserFlowActions,
+                noteDocumentRepository = noteDocumentRepository,
+                musicNoteRepository = musicNoteRepository,
+                checklistRepository = checklistRepository,
+                loggerTag = TAG,
             )
         }
         val obsidianVaultName: StateFlow<String> =
@@ -842,114 +853,71 @@ class ContextScreenViewModel
 
         fun onPickerContextSelected(targetContextId: String) =
             viewModelScope.launch {
-                val currentContextId = contextIdFlow.value
-                if (targetContextId.isBlank() || currentContextId.isBlank()) return@launch
-                if (targetContextId == currentContextId) {
-                    showSnackbar("Цей контекст вже відкритий", null)
-                    return@launch
-                }
-
-                val targetName = contextRepository.getContextById(targetContextId)?.name?.ifBlank { null } ?: targetContextId
-                contextRepository.addLinkItemToContextFromLink(
-                    contextId = currentContextId,
-                    link =
-                        RelatedLink(
-                            type = LinkType.CONTEXT,
-                            target = targetContextId,
-                            displayName = targetName,
-                        ),
+                contextPickerActions.onPickerContextSelected(
+                    currentContextId = contextIdFlow.value,
+                    targetContextId = targetContextId,
+                    showSnackbar = { message -> showSnackbar(message, null) },
                 )
             }
 
         fun onBacklogContextLinkSelected(targetContextId: String) =
             viewModelScope.launch {
-                val currentContextId = contextIdFlow.value
-                if (targetContextId.isBlank() || currentContextId.isBlank()) return@launch
-                if (targetContextId == currentContextId) {
-                    showSnackbar("Цей контекст вже відкритий", null)
-                    return@launch
-                }
-                if (contextRepository.doesLinkToContextExist(targetContextId, currentContextId)) {
-                    showSnackbar("Посилання на цей контекст вже є в беклозі", null)
-                    return@launch
-                }
-
-                contextRepository.addContextLinkToContext(targetContextId, currentContextId)
-                forceRefresh()
+                contextPickerActions.onBacklogContextLinkSelected(
+                    currentContextId = contextIdFlow.value,
+                    targetContextId = targetContextId,
+                    showSnackbar = { message -> showSnackbar(message, null) },
+                    forceRefresh = ::forceRefresh,
+                )
             }
 
         fun onDirectionContextLinkSelected(targetContextId: String) =
             viewModelScope.launch {
-                val currentContextId = contextIdFlow.value
-                if (targetContextId.isBlank() || currentContextId.isBlank()) return@launch
-                if (targetContextId == currentContextId) {
-                    showSnackbar("Цей контекст вже відкритий", null)
-                    return@launch
-                }
-                if (uiState.value.directionItems.any { it.linkedContextId == targetContextId }) {
-                    showSnackbar("Посилання на цей контекст вже є в напрямку", null)
-                    return@launch
-                }
-
-                val result =
-                    listChooserFlowActions.addDirectionLinkedToContext(
-                        targetContextId = targetContextId,
-                        currentContextId = currentContextId,
-                    )
-                result.errorMessage?.let { message ->
-                    showSnackbar(message, null)
-                }
+                contextPickerActions.onDirectionContextLinkSelected(
+                    currentContextId = contextIdFlow.value,
+                    targetContextId = targetContextId,
+                    directionItems = uiState.value.directionItems,
+                    showSnackbar = { message -> showSnackbar(message, null) },
+                )
             }
 
         fun onKeyProblemsDescriptionChanged(description: String) =
             viewModelScope.launch(ioDispatcher) {
-                val currentContextId = contextIdFlow.value
-                if (currentContextId.isBlank()) return@launch
-                contextKeyProblemsRepository.updateDescription(
-                    contextId = currentContextId,
+                contextPickerActions.onKeyProblemsDescriptionChanged(
+                    currentContextId = contextIdFlow.value,
                     description = description,
                 )
             }
 
         fun addKeyProblemsFocusContext(targetContextId: String) =
             viewModelScope.launch(ioDispatcher) {
-                val currentContextId = contextIdFlow.value
-                if (currentContextId.isBlank() || targetContextId.isBlank()) return@launch
-                contextKeyProblemsRepository.addFocusContext(currentContextId, targetContextId)
+                contextPickerActions.addKeyProblemsFocusContext(
+                    currentContextId = contextIdFlow.value,
+                    targetContextId = targetContextId,
+                )
             }
 
         fun removeKeyProblemsFocusContext(targetContextId: String) =
             viewModelScope.launch(ioDispatcher) {
-                val currentContextId = contextIdFlow.value
-                if (currentContextId.isBlank() || targetContextId.isBlank()) return@launch
-                contextKeyProblemsRepository.removeFocusContext(currentContextId, targetContextId)
+                contextPickerActions.removeKeyProblemsFocusContext(
+                    currentContextId = contextIdFlow.value,
+                    targetContextId = targetContextId,
+                )
             }
 
         fun toggleCurrentContextFocus() =
             viewModelScope.launch(ioDispatcher) {
-                val contextId = contextIdFlow.value
-                if (contextId.isBlank()) return@launch
-                val focused = focusContextRepository.toggleFocusContext(contextId)
-                showSnackbar(
-                    if (focused) {
-                        "Контекст додано у фокус"
-                    } else {
-                        "Контекст прибрано з фокусу"
-                    },
-                    null,
+                contextPickerActions.toggleCurrentContextFocus(
+                    contextId = contextIdFlow.value,
+                    showSnackbar = { message -> showSnackbar(message, null) },
                 )
             }
 
         fun onPickerAttachmentSelected(attachmentId: String) =
             viewModelScope.launch {
-                if (attachmentId.isBlank()) return@launch
-                val currentContextId = contextIdFlow.value
-                if (currentContextId.isBlank()) return@launch
-                runCatching {
-                    contextRepository.linkAttachmentToContext(attachmentId, currentContextId)
-                }.onFailure {
-                    Log.e(TAG, "Failed to link attachment to current context", it)
-                }
+                contextPickerActions.onPickerAttachmentSelected(
+                    currentContextId = contextIdFlow.value,
+                    attachmentId = attachmentId,
+                )
             }
 
         fun openScriptEditorForCurrentContext() {
@@ -985,73 +953,14 @@ class ContextScreenViewModel
             }
 
         suspend fun createRootContextForPicker(name: String): String? {
-            val trimmed = name.trim()
-            if (trimmed.isBlank()) return null
-            val id = UUID.randomUUID().toString()
-            contextRepository.createContextWithId(
-                id = id,
-                name = trimmed,
-                parentId = null,
-            )
-            return id
+            return contextPickerActions.createRootContextForPicker(name)
         }
 
         suspend fun createAttachmentForPicker(request: NewDocumentDraft): String? {
-            val currentContextId = contextIdFlow.value
-            if (currentContextId.isBlank()) return null
-
-            return when (request) {
-                is NewDocumentDraft.Note -> {
-                    val documentId =
-                        noteDocumentRepository.createDocument(
-                            name = request.name.ifBlank { "New note" },
-                            contextId = currentContextId,
-                        )
-                    contextRepository.findAttachmentIdByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)
-                }
-                is NewDocumentDraft.MusicNote -> {
-                    val musicNoteId =
-                        musicNoteRepository.create(
-                            name = request.name.ifBlank { "New music note" },
-                            contextId = currentContextId,
-                        )
-                    contextRepository.findAttachmentIdByEntity(BacklogItemTypeValues.MUSIC_NOTE, musicNoteId)
-                }
-                is NewDocumentDraft.Checklist -> {
-                    val checklistId =
-                        checklistRepository.createChecklist(
-                            name = request.name.ifBlank { "New checklist" },
-                            contextId = currentContextId,
-                        )
-                    contextRepository.findAttachmentIdByEntity(BacklogItemTypeValues.CHECKLIST, checklistId)
-                }
-                is NewDocumentDraft.WebLink -> {
-                    val target = request.url.trim()
-                    if (target.isBlank()) return null
-                    contextRepository.addLinkItemToContextFromLink(
-                        contextId = currentContextId,
-                        link =
-                            RelatedLink(
-                                type = LinkType.URL,
-                                target = target,
-                                displayName = request.name.trim().ifBlank { target },
-                            ),
-                    )
-                }
-                is NewDocumentDraft.Obsidian -> {
-                    val target = request.noteName.trim()
-                    if (target.isBlank()) return null
-                    contextRepository.addLinkItemToContextFromLink(
-                        contextId = currentContextId,
-                        link =
-                            RelatedLink(
-                                type = LinkType.OBSIDIAN,
-                                target = target,
-                                displayName = request.displayName.trim().ifBlank { target },
-                            ),
-                    )
-                }
-            }
+            return contextPickerActions.createAttachmentForPicker(
+                currentContextId = contextIdFlow.value,
+                request = request,
+            )
         }
         private suspend fun dispatchCreationOutcome(outcome: CreationResultActions.Outcome) {
             when (outcome) {

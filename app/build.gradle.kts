@@ -148,12 +148,12 @@ tasks.register("syncContractTest") {
 detekt {
     buildUponDefaultConfig = true
     allRules = false
-    ignoreFailures = true
+    ignoreFailures = false
 }
 
 ktlint {
     android.set(true)
-    ignoreFailures.set(true)
+    ignoreFailures.set(false)
 }
 
 dependencies {
