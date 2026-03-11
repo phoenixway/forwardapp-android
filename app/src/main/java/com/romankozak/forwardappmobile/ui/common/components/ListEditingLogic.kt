@@ -3,49 +3,49 @@ package com.romankozak.forwardappmobile.ui.common.components
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 
+// Returns Pair<start, end> where end is exclusive
+private fun getCurrentLineBounds(
+    text: String,
+    cursorPosition: Int,
+): Pair<Int, Int> {
+    val start =
+        text.lastIndexOf('\n', startIndex = (cursorPosition - 1).coerceAtLeast(0))
+            .let { if (it == -1) 0 else it + 1 }
+    val end = text.indexOf('\n', startIndex = cursorPosition).let { if (it == -1) text.length else it }
+    return start to end
+}
+
+private fun getLineIndentation(line: String): Int {
+    return line.takeWhile { it.isWhitespace() }.length
+}
+
+private fun getBlockLines(
+    text: String,
+    startLineIndex: Int,
+): List<String> {
+    val lines = text.lines()
+    if (startLineIndex >= lines.size) return emptyList()
+
+    val block = mutableListOf<String>()
+    val startLine = lines[startLineIndex]
+    val startIndent = getLineIndentation(startLine)
+    block.add(startLine)
+
+    for (i in startLineIndex + 1 until lines.size) {
+        val nextLine = lines[i]
+        if (nextLine.isBlank() || getLineIndentation(nextLine) > startIndent) {
+            block.add(nextLine)
+        } else {
+            break
+        }
+    }
+    return block
+}
+
 object ListEditingLogic {
     private const val INDENT_SIZE = 4
     private const val INDENT = "    "
     private const val LIST_MARKER = "- "
-
-    // Returns Pair<start, end> where end is exclusive
-    private fun getCurrentLineBounds(
-        text: String,
-        cursorPosition: Int,
-    ): Pair<Int, Int> {
-        val start =
-            text.lastIndexOf('\n', startIndex = (cursorPosition - 1).coerceAtLeast(0))
-                .let { if (it == -1) 0 else it + 1 }
-        val end = text.indexOf('\n', startIndex = cursorPosition).let { if (it == -1) text.length else it }
-        return start to end
-    }
-
-    private fun getLineIndentation(line: String): Int {
-        return line.takeWhile { it.isWhitespace() }.length
-    }
-
-    private fun getBlockLines(
-        text: String,
-        startLineIndex: Int,
-    ): List<String> {
-        val lines = text.lines()
-        if (startLineIndex >= lines.size) return emptyList()
-
-        val block = mutableListOf<String>()
-        val startLine = lines[startLineIndex]
-        val startIndent = getLineIndentation(startLine)
-        block.add(startLine)
-
-        for (i in startLineIndex + 1 until lines.size) {
-            val nextLine = lines[i]
-            if (nextLine.isBlank() || getLineIndentation(nextLine) > startIndent) {
-                block.add(nextLine)
-            } else {
-                break
-            }
-        }
-        return block
-    }
 
     fun toggleList(value: TextFieldValue): TextFieldValue {
         val text = value.text
@@ -132,45 +132,6 @@ object ListEditingLogic {
         return value
     }
 
-    // Block-level operations
-
-    fun indentBlock(value: TextFieldValue): TextFieldValue {
-        return applyToBlock(value) { line -> INDENT + line }
-    }
-
-    fun outdentBlock(value: TextFieldValue): TextFieldValue {
-        return applyToBlock(value) { line ->
-            if (line.startsWith(INDENT)) line.substring(INDENT_SIZE) else line
-        }
-    }
-
-    private fun applyToBlock(
-        value: TextFieldValue,
-        transform: (String) -> String,
-    ): TextFieldValue {
-        val text = value.text
-        val cursorPosition = value.selection.start
-        val lines = text.lines().toMutableList()
-        val currentLineNumber = text.substring(0, cursorPosition).count { it == '\n' }
-
-        val blockLines = getBlockLines(text, currentLineNumber)
-        if (blockLines.isEmpty()) return value
-
-        val transformedBlock = blockLines.map(transform)
-
-        val blockStartLine = currentLineNumber
-
-        for (i in 0 until blockLines.size) {
-            lines[blockStartLine + i] = transformedBlock[i]
-        }
-
-        val newText = lines.joinToString("\n")
-        // This is a simplification; cursor position might not be perfectly preserved
-        val newCursorPosition = cursorPosition + (transformedBlock.first().length - blockLines.first().length)
-
-        return value.copy(text = newText, selection = TextRange(newCursorPosition.coerceIn(0, newText.length)))
-    }
-
     fun moveBlockUp(value: TextFieldValue): TextFieldValue {
         val text = value.text
         val cursorPosition = value.selection.start
@@ -232,11 +193,6 @@ object ListEditingLogic {
         val newText = text.removeRange(lineStart, if (lineEnd < text.length) lineEnd + 1 else lineEnd)
         val newCursorPosition = lineStart.coerceAtMost(newText.length)
         return value.copy(text = newText, selection = TextRange(newCursorPosition))
-    }
-
-    fun getLineForClipboard(value: TextFieldValue): String {
-        val (lineStart, lineEnd) = getCurrentLineBounds(value.text, value.selection.start)
-        return value.text.substring(lineStart, lineEnd)
     }
 
     fun pasteLine(

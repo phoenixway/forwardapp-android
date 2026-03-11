@@ -74,14 +74,14 @@ private fun ListEditingClipboardRow(
             Icon(Icons.Default.FormatIndentDecrease, contentDescription = "Outdent")
         }
         StyledIconButton(onClick = {
-            val line = ListEditingLogic.getLineForClipboard(value)
+            val line = extractCurrentLine(value)
             clipboardManager.setPrimaryClip(ClipData.newPlainText("list item", line))
             onValueChange(ListEditingLogic.deleteLine(value))
         }) {
             Icon(Icons.Default.ContentCut, contentDescription = "Cut Line")
         }
         StyledIconButton(onClick = {
-            val line = ListEditingLogic.getLineForClipboard(value)
+            val line = extractCurrentLine(value)
             clipboardManager.setPrimaryClip(ClipData.newPlainText("list item", line))
         }) {
             Icon(Icons.Default.ContentCopy, contentDescription = "Copy Line")
@@ -93,6 +93,16 @@ private fun ListEditingClipboardRow(
             Icon(Icons.Default.ContentPaste, contentDescription = "Paste Line")
         }
     }
+}
+
+private fun extractCurrentLine(value: TextFieldValue): String {
+    val text = value.text
+    val cursor = value.selection.start.coerceIn(0, text.length)
+    val lineStart =
+        text.lastIndexOf('\n', startIndex = (cursor - 1).coerceAtLeast(0))
+            .let { if (it == -1) 0 else it + 1 }
+    val lineEnd = text.indexOf('\n', startIndex = cursor).let { if (it == -1) text.length else it }
+    return text.substring(lineStart, lineEnd)
 }
 
 @Composable
