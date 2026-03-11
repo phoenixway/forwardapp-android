@@ -81,7 +81,10 @@ private fun migrateSpecialProjectsLegacy(db: SupportSQLiteDatabase) {
     val personalManagementProjectIdCursor = db.query("SELECT id FROM projects WHERE project_type = 'SYSTEM' LIMIT 1")
     var personalManagementProjectId: String? = null
     if (personalManagementProjectIdCursor.moveToFirst()) {
-        personalManagementProjectId = personalManagementProjectIdCursor.getString(personalManagementProjectIdCursor.getColumnIndexOrThrow("id"))
+        personalManagementProjectId =
+            personalManagementProjectIdCursor.getString(
+                personalManagementProjectIdCursor.getColumnIndexOrThrow("id"),
+            )
     }
     personalManagementProjectIdCursor.close()
     Log.d(MIGRATION_LOG_TAG, "legacy personalManagementProjectId: $personalManagementProjectId")
@@ -93,19 +96,31 @@ private fun migrateSpecialProjectsLegacy(db: SupportSQLiteDatabase) {
         )
 
         val strategicGroupIdCursor =
-            db.query("SELECT id FROM projects WHERE parentId = ? AND name = 'strategic' LIMIT 1", arrayOf(personalManagementProjectId))
+            db.query(
+                "SELECT id FROM projects WHERE parentId = ? AND name = 'strategic' LIMIT 1",
+                arrayOf(personalManagementProjectId),
+            )
         var strategicGroupId: String? = null
         if (strategicGroupIdCursor.moveToFirst()) {
-            strategicGroupId = strategicGroupIdCursor.getString(strategicGroupIdCursor.getColumnIndexOrThrow("id"))
+            strategicGroupId =
+                strategicGroupIdCursor.getString(
+                    strategicGroupIdCursor.getColumnIndexOrThrow("id"),
+                )
         }
         strategicGroupIdCursor.close()
 
         var strategicBeaconsGroupId: String? = null
         if (strategicGroupId != null) {
             val beaconsUnderStrategicCursor =
-                db.query("SELECT id FROM projects WHERE parentId = ? AND name = 'strategic-beacons' LIMIT 1", arrayOf(strategicGroupId))
+                db.query(
+                    "SELECT id FROM projects WHERE parentId = ? AND name = 'strategic-beacons' LIMIT 1",
+                    arrayOf(strategicGroupId),
+                )
             if (beaconsUnderStrategicCursor.moveToFirst()) {
-                strategicBeaconsGroupId = beaconsUnderStrategicCursor.getString(beaconsUnderStrategicCursor.getColumnIndexOrThrow("id"))
+                strategicBeaconsGroupId =
+                    beaconsUnderStrategicCursor.getString(
+                        beaconsUnderStrategicCursor.getColumnIndexOrThrow("id"),
+                    )
             }
             beaconsUnderStrategicCursor.close()
 
@@ -116,7 +131,10 @@ private fun migrateSpecialProjectsLegacy(db: SupportSQLiteDatabase) {
                         arrayOf(personalManagementProjectId),
                     )
                 if (beaconsUnderRootCursor.moveToFirst()) {
-                    strategicBeaconsGroupId = beaconsUnderRootCursor.getString(beaconsUnderRootCursor.getColumnIndexOrThrow("id"))
+                    strategicBeaconsGroupId =
+                        beaconsUnderRootCursor.getString(
+                            beaconsUnderRootCursor.getColumnIndexOrThrow("id"),
+                        )
                 }
                 beaconsUnderRootCursor.close()
             }
