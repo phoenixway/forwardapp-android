@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.FlowRowScope
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -79,9 +80,13 @@ fun UnifiedMetaChip(
         Row(
             modifier =
                 if (text.isBlank()) {
-                    Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    Modifier
+                        .heightIn(min = 24.dp)
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
                 } else {
-                    Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    Modifier
+                        .heightIn(min = 24.dp)
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
                 },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -90,7 +95,7 @@ fun UnifiedMetaChip(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    modifier = Modifier.size(14.dp),
+                    modifier = Modifier.size(12.dp),
                     tint = contentColor,
                 )
             }

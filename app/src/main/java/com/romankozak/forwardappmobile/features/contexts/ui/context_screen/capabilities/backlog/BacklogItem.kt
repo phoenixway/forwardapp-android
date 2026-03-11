@@ -314,7 +314,7 @@ private fun InternalGoalItem(
                                     leadingChips =
                                         listOf(
                                             UnifiedStatusChipSpec(
-                                                text = "Ціль",
+                                                text = "",
                                                 icon = Icons.Default.Flag,
                                                 contentColor =
                                                     if (goal.completed) completedColors.iconTint else MaterialTheme.colorScheme.primary,
@@ -502,7 +502,7 @@ private fun InternalSubprojectItem(
                                     leadingChips =
                                         listOf(
                                             UnifiedStatusChipSpec(
-                                                text = "Підконтекст",
+                                                text = "",
                                                 icon = Icons.Default.AccountTree,
                                                 contentColor =
                                                     if (subproject.isCompleted) completedColors.iconTint else MaterialTheme.colorScheme.secondary,
