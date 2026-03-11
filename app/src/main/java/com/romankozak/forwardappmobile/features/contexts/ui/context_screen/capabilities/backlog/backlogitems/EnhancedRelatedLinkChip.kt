@@ -81,15 +81,15 @@ internal fun EnhancedRelatedLinkChip(
                     contentDescription = "${link.type?.name ?: "LINK"}: ${link.displayName ?: link.target}"
                     role = Role.Button
                 },
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(10.dp),
         color = backgroundColor,
-        shadowElevation = 1.dp,
-        tonalElevation = 1.dp,
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Icon(
                 imageVector =
@@ -101,15 +101,14 @@ internal fun EnhancedRelatedLinkChip(
                     },
                 contentDescription = null,
                 tint = contentColor,
-                modifier = Modifier.size(14.dp),
+                modifier = Modifier.size(12.dp),
             )
             Text(
                 text = link.displayName ?: link.target,
                 style =
                     MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Medium,
-                        letterSpacing = 0.15.sp,
-                        fontSize = 10.sp,
+                        letterSpacing = 0.1.sp,
                     ),
                 color = contentColor,
                 maxLines = 1,

@@ -77,25 +77,24 @@ fun EnhancedScoreStatusBadge(
                             Modifier.semantics {
                                 contentDescription = "Оцінка: $displayScore з 100"
                             },
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                        ) {
+                            Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ElectricBolt,
                                 contentDescription = null,
                                 tint = animatedColor,
-                                modifier = Modifier.size(10.dp),
+                                modifier = Modifier.size(12.dp),
                             )
                             Text(
                                 text = "$displayScore/100",
                                 style =
                                     MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Bold,
-                                        letterSpacing = 0.2.sp,
-                                        fontSize = 10.sp,
+                                        letterSpacing = 0.1.sp,
                                     ),
                                 color = animatedColor,
                             )

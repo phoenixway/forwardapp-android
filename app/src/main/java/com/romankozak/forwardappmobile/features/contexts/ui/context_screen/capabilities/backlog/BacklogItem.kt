@@ -29,7 +29,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,7 +45,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -66,6 +64,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.compo
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.StatusIconsRow
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedMetaChip
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTokens
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 
@@ -333,26 +332,21 @@ private fun InternalGoalItem(
                     }
                 }
 
-                IconButton(
-                    modifier =
-                        (
-                            if (isInlineEditing) {
-                                Modifier
-                            } else {
-                                with(reorderableScope) {
-                                    Modifier.draggableHandle(
-                                        onDragStarted = {
-                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        },
-                                        onDragStopped = { onDragStopped() },
-                                    )
-                                }
-                            }
-                        ).alpha(if (goal.completed) 0.5f else 1f),
-                    onClick = onMoreClick,
-                    enabled = !isInlineEditing,
-                ) {
-                    Icon(imageVector = Icons.Default.MoreVert, contentDescription = "More actions")
+                if (!isInlineEditing) {
+                    IconButton(
+                        modifier =
+                            with(reorderableScope) {
+                                Modifier.draggableHandle(
+                                    onDragStarted = {
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    },
+                                    onDragStopped = { onDragStopped() },
+                                )
+                            }.alpha(if (goal.completed) 0.5f else 1f),
+                        onClick = onMoreClick,
+                    ) {
+                        Icon(imageVector = Icons.Default.MoreVert, contentDescription = "More actions")
+                    }
                 }
             }
         }
@@ -375,29 +369,12 @@ private fun BacklogTypeBadge(
     tint: Color,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(10.dp),
-        color = tint.copy(alpha = 0.12f),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(12.dp),
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = tint,
-                maxLines = 1,
-            )
-        }
+    androidx.compose.foundation.layout.Box(modifier = modifier) {
+        UnifiedMetaChip(
+            text = label,
+            icon = icon,
+            contentColor = tint,
+        )
     }
 }
 
