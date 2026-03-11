@@ -914,7 +914,7 @@ private fun HybridCommandSection(
 }
 
 @Composable
-private fun CommandSearchResultCard(
+internal fun CommandSearchResultCard(
     command: OmniboxCommandResult,
     query: String,
     isSelected: Boolean,
@@ -1589,4 +1589,3 @@ private fun SortBottomSheet(
         }
     }
 }
-

@@ -9,6 +9,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -593,7 +594,7 @@ private fun UnifiedSearchResultCard(
 }
 
 @Composable
-private fun HighlightedText(
+internal fun HighlightedText(
     text: String,
     query: String,
     style: androidx.compose.ui.text.TextStyle,
@@ -684,7 +685,7 @@ private data class ResultGroup(
     val items: List<GlobalSearchResultItem>,
 )
 
-private fun GlobalSearchResultItem.groupKey(): String =
+internal fun GlobalSearchResultItem.groupKey(): String =
     when (this) {
         is GlobalSearchResultItem.AttachmentItem -> "attachments"
         is GlobalSearchResultItem.ContextItem -> "contexts"
@@ -798,7 +799,7 @@ private enum class ResultBadgeTone {
 }
 
 @Composable
-private fun ResultsCountBadge(
+internal fun ResultsCountBadge(
     count: Int,
     modifier: Modifier = Modifier,
 ) {
