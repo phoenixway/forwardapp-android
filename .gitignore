@@ -8,6 +8,7 @@ debug.log
 build.log
 error.log
 communication.log
+bb.log
 
 app/schemas/
 tools/.node/
@@ -34,6 +35,7 @@ forwardapp-devtools/context/.Context.md.kate-swp
 .angelica_session.json
 .code-index/
 .idea/
+**/.idea/
 .env
 .tmp/
 sources.txt
