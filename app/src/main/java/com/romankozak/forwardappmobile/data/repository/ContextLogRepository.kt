@@ -16,7 +16,8 @@ class ContextLogRepository
     constructor(
         private val contextManagementDao: ContextManagementDao,
     ) {
-        fun getContextLogsStream(contextId: String): Flow<List<ContextLog>> = contextManagementDao.getLogsForContextStream(contextId)
+        fun getContextLogsStream(contextId: String): Flow<List<ContextLog>> =
+            contextManagementDao.getLogsForContextStream(contextId)
 
         suspend fun addToggleContextManagementLog(
             contextId: String,
