@@ -508,7 +508,6 @@ private fun ProjectBottomBar(
                     runCatching {
                         navController.getBackStackEntry("goal_lists_screen").savedStateHandle.apply {
                             this["projectIdToReveal"] = contextIdToReveal
-                            this["projectIdToRevealForceFocus"] = true
                         }
                     }
                 },

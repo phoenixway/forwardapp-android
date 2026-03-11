@@ -57,7 +57,8 @@ class SearchUseCase
 
         companion object {
             private const val TAG = "SearchUseCase_DEBUG"
-            private const val FOCUS_DEPTH_THRESHOLD = 2
+            private const val FOCUS_SEGMENT_THRESHOLD = 3
+            private const val FOCUS_BREADCRUMB_CHAR_THRESHOLD = 30
             private const val SEARCH_HISTORY_KEY = "search_history"
             private const val MAX_SEARCH_HISTORY = 10
             private const val ACTIVE_SEARCH_QUERY_TEXT_KEY = "active_search_query_text"
@@ -177,8 +178,18 @@ class SearchUseCase
                     val ancestorIds = mutableSetOf<String>()
                     findAncestorsRecursive(projectId, projectLookup, ancestorIds, mutableSetOf())
 
-                    val shouldFocus = ancestorIds.size >= FOCUS_DEPTH_THRESHOLD
-                    Log.d(TAG, "Глибина проекту: ${ancestorIds.size}. Потрібен фокус-режим: $shouldFocus")
+                    val breadcrumbNames = buildBreadcrumbNames(projectId, projectLookup)
+                    val estimatedBreadcrumbChars =
+                        breadcrumbNames.sumOf { it.length } +
+                            (breadcrumbNames.size * 4) + // chips + separators
+                            3 // "All"
+                    val shouldFocus =
+                        breadcrumbNames.size >= FOCUS_SEGMENT_THRESHOLD ||
+                            estimatedBreadcrumbChars >= FOCUS_BREADCRUMB_CHAR_THRESHOLD
+                    Log.d(
+                        TAG,
+                        "Reveal heuristic: segments=${breadcrumbNames.size}, estimatedChars=$estimatedBreadcrumbChars, shouldFocus=$shouldFocus",
+                    )
 
                     val projectsToExpand =
                         ancestorIds
@@ -207,28 +218,33 @@ class SearchUseCase
             }
         }
 
+        private fun buildBreadcrumbNames(
+            projectId: String,
+            projectLookup: Map<String, Context>,
+        ): List<String> {
+            val names = mutableListOf<String>()
+            val visited = mutableSetOf<String>()
+            var currentId: String? = projectId
+
+            while (currentId != null && visited.add(currentId)) {
+                val project = projectLookup[currentId] ?: break
+                names.add(project.name)
+                currentId = project.parentId
+            }
+
+            return names.asReversed()
+        }
+
         fun navigateToProject(
             projectId: String,
             currentHierarchy: ContextHierarchyData,
-            forceFocus: Boolean = false,
         ) {
             scope.launch {
                 val targetProject = contextRepository.getContextById(projectId)
                 targetProject?.let { recentItemsRepository.logProjectAccess(it) }
 
                 val path = buildPathToProject(projectId, currentHierarchy)
-                val resolvedPath =
-                    if (forceFocus && path.isEmpty()) {
-                        val fallbackName =
-                            targetProject?.name
-                                ?: allProjectsFlat.value.firstOrNull { it.id == projectId }?.name
-                                ?: "Context"
-                        listOf(BreadcrumbItem(id = projectId, name = fallbackName, level = 0))
-                    } else {
-                        path
-                    }
-
-                currentBreadcrumbs.value = resolvedPath
+                currentBreadcrumbs.value = path
                 focusedProjectId.value = projectId
             }
         }
@@ -273,14 +289,14 @@ class SearchUseCase
             currentHierarchy: ContextHierarchyData,
         ) {
             scope.launch {
-                when (val result = revealProjectInHierarchy(projectId)) {
-                    is RevealResult.Success -> {
-                        navigateToProject(
-                            result.projectId,
-                            currentHierarchy,
-                        )
-                        onSearchQueryChanged(TextFieldValue(""))
-                    }
+                    when (val result = revealProjectInHierarchy(projectId)) {
+                        is RevealResult.Success -> {
+                            navigateToProject(
+                                result.projectId,
+                                currentHierarchy,
+                            )
+                            onSearchQueryChanged(TextFieldValue(""))
+                        }
                     is RevealResult.Failure -> {
                         uiEventChannel.send(ProjectUiEvent.ShowToast("Не вдалося показати локацію"))
                     }
@@ -375,17 +391,10 @@ class SearchUseCase
                         when (val result = revealProjectInHierarchy(value)) {
                             is RevealResult.Success -> {
                                 pushSubState(ProjectHierarchyScreenSubState.ProjectFocused(value))
-                                if (result.shouldFocus) {
-                                    navigateToProject(
-                                        result.projectId,
-                                        projectHierarchy,
-                                    )
-                                } else {
-                                    onProjectToReveal(result.projectId)
-                                    if (isSearchActive()) {
-                                        popToSubState(ProjectHierarchyScreenSubState.Hierarchy)
-                                    }
-                                }
+                                navigateToProject(
+                                    result.projectId,
+                                    projectHierarchy,
+                                )
                             }
                             is RevealResult.Failure -> {
                                 uiEventChannel.send(ProjectUiEvent.ShowToast("Не удалось показать локацию"))

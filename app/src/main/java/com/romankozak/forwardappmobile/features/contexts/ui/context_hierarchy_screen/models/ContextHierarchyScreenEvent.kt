@@ -180,7 +180,6 @@ sealed interface ContextHierarchyScreenEvent {
 
     data class RevealContextInHierarchy(
         val projectId: String,
-        val forceFocus: Boolean = false,
     ) : ContextHierarchyScreenEvent
 
     object OpenInboxContext : ContextHierarchyScreenEvent

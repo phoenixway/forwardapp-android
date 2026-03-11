@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.ExpandingProjectHierarchyBottomNav
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.ModernBottomNavButton
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.SearchResultsView
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.rememberHierarchyFocusMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.hierarchy.BreadcrumbNavigation
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.hierarchy.ProjectHierarchyView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
@@ -73,10 +74,7 @@ fun ProjectHierarchyScreenContent(
             uiState.searchQuery.text
         }
 
-    val isFocusMode =
-        remember(uiState.currentBreadcrumbs) {
-            uiState.currentBreadcrumbs.isNotEmpty()
-        }
+    val isFocusMode = rememberHierarchyFocusMode(uiState.currentBreadcrumbs)
 
     Column(
         modifier =
@@ -195,9 +193,13 @@ fun ProjectHierarchyScreenContent(
                     flattenedHierarchy = uiState.flattenedHierarchy,
                     breadcrumbs = uiState.currentBreadcrumbs,
                     focusedProjectId =
-                        when (currentSubState) {
-                            is ProjectHierarchyScreenSubState.ProjectFocused -> currentSubState.projectId
-                            else -> null
+                        if (isFocusMode) {
+                            when (currentSubState) {
+                                is ProjectHierarchyScreenSubState.ProjectFocused -> currentSubState.projectId
+                                else -> null
+                            }
+                        } else {
+                            null
                         },
                     highlightedProjectId = null,
                     searchQuery = searchQuery,

@@ -258,35 +258,22 @@ class ContextHierarchyScreenViewModel
             }
         }
 
-        private suspend fun revealProject(
-            projectId: String,
-            forceFocus: Boolean = false,
-        ) {
+        private suspend fun revealProject(projectId: String) {
             Log.d("ProjectRevealDebug", "Attempting to reveal projectId: $projectId")
             planningUseCase.onPlanningModeChange(PlanningMode.All)
 
             when (val result = searchUseCase.revealProjectInHierarchy(projectId)) {
                 is RevealResult.Success -> {
-                    val shouldFocusNow = forceFocus || result.shouldFocus
                     Log.d(
                         "ProjectRevealDebug",
-                        "revealProjectInHierarchy result: Success, shouldFocus=${result.shouldFocus}, forceFocus=$forceFocus",
+                        "revealProjectInHierarchy result: Success, shouldFocus=${result.shouldFocus}",
                     )
                     searchUseCase.pushSubState(ProjectHierarchyScreenSubState.ProjectFocused(result.projectId))
-                    if (shouldFocusNow) {
-                        Log.d("ProjectRevealDebug", "Calling navigateToProject for ${result.projectId}")
-                        searchUseCase.navigateToProject(
-                            result.projectId,
-                            uiState.value.projectHierarchy,
-                            forceFocus = shouldFocusNow,
-                        )
-                    } else {
-                        Log.d("ProjectRevealDebug", "Setting projectToRevealAndScroll to ${result.projectId}")
-                        projectToRevealAndScroll = result.projectId
-                        if (searchUseCase.isSearchActive()) {
-                            searchUseCase.popToSubState(ProjectHierarchyScreenSubState.Hierarchy)
-                        }
-                    }
+                    Log.d("ProjectRevealDebug", "Calling navigateToProject for ${result.projectId}")
+                    searchUseCase.navigateToProject(
+                        result.projectId,
+                        uiState.value.projectHierarchy,
+                    )
                 }
                 is RevealResult.Failure -> {
                     Log.d("ProjectRevealDebug", "revealProjectInHierarchy result: Failure")
@@ -831,10 +818,7 @@ class ContextHierarchyScreenViewModel
                 }
                 is ContextHierarchyScreenEvent.RevealContextInHierarchy -> {
                     viewModelScope.launch {
-                        revealProject(
-                            projectId = event.projectId,
-                            forceFocus = event.forceFocus,
-                        )
+                        revealProject(projectId = event.projectId)
                     }
                 }
                 is ContextHierarchyScreenEvent.OpenInboxContext -> {
