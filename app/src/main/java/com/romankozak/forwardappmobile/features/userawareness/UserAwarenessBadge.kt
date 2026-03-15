@@ -26,6 +26,9 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.domain.userawareness.UserAwarenessStateType
 import com.romankozak.forwardappmobile.domain.userawareness.UserStateInterval
 
+private const val DEFAULT_CRISIS_LEVEL = 1
+private const val MAX_CRISIS_LEVEL = 3
+
 @Composable
 fun UserAwarenessBadge(
     activeState: UserStateInterval?,
@@ -36,7 +39,7 @@ fun UserAwarenessBadge(
     val label =
         when (state.type) {
             UserAwarenessStateType.NORMAL -> "NORMAL"
-            UserAwarenessStateType.CRISIS -> "CRISIS L${state.crisisLevel ?: 1}"
+            UserAwarenessStateType.CRISIS -> "CRISIS L${state.crisisLevel ?: DEFAULT_CRISIS_LEVEL}"
             UserAwarenessStateType.EXHAUSTION -> "EXHAUSTION"
             UserAwarenessStateType.UNPRODUCTIVE -> "LOW DRIVE"
         }
@@ -60,7 +63,7 @@ fun UserAwarenessHeaderBadge(
         when (state.type) {
             UserAwarenessStateType.CRISIS ->
                 Triple(
-                    "C${state.crisisLevel ?: 1}",
+                    "C${state.crisisLevel ?: DEFAULT_CRISIS_LEVEL}",
                     MaterialTheme.colorScheme.errorContainer,
                     MaterialTheme.colorScheme.onErrorContainer,
                 )
@@ -103,7 +106,7 @@ fun UserAwarenessQuickSwitchDialog(
     onUnproductive: () -> Unit,
     onCrisis: (level: Int, label: String?) -> Unit,
 ) {
-    var crisisLevel by remember { mutableIntStateOf(1) }
+    var crisisLevel by remember { mutableIntStateOf(DEFAULT_CRISIS_LEVEL) }
     var crisisLabel by remember { mutableStateOf("") }
 
     AlertDialog(
@@ -139,15 +142,10 @@ fun UserAwarenessQuickSwitchDialog(
                 }
 
                 Text("Crisis level", style = MaterialTheme.typography.labelMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    (1..3).forEach { level ->
-                        FilterChip(
-                            selected = crisisLevel == level,
-                            onClick = { crisisLevel = level },
-                            label = { Text("L$level") },
-                        )
-                    }
-                }
+                CrisisLevelSelector(
+                    crisisLevel = crisisLevel,
+                    onLevelSelected = { crisisLevel = it },
+                )
                 OutlinedTextField(
                     value = crisisLabel,
                     onValueChange = { crisisLabel = it },
@@ -173,4 +171,20 @@ fun UserAwarenessQuickSwitchDialog(
             }
         },
     )
+}
+
+@Composable
+private fun CrisisLevelSelector(
+    crisisLevel: Int,
+    onLevelSelected: (Int) -> Unit,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        for (level in DEFAULT_CRISIS_LEVEL..MAX_CRISIS_LEVEL) {
+            FilterChip(
+                selected = crisisLevel == level,
+                onClick = { onLevelSelected(level) },
+                label = { Text("L$level") },
+            )
+        }
+    }
 }

@@ -1,23 +1,50 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.*
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.outlined.PostAdd
+import androidx.compose.material.icons.outlined.TravelExplore
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,6 +65,10 @@ import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import kotlinx.coroutines.delay
 
+private const val MAX_INPUT_HEIGHT_DIVISOR = 3
+private const val MODE_SWITCH_DRAG_THRESHOLD = 50f
+private const val ICON_RESTORE_DELAY_MS = 400L
+
 @Composable
 internal fun InputTextField(
     modifier: Modifier = Modifier,
@@ -50,25 +81,37 @@ internal fun InputTextField(
     onClearSearch: () -> Unit,
     isNerActive: Boolean,
 ) {
+    val unusedOnSubmit = onSubmit
     Surface(
         modifier =
             modifier
-                .heightIn(max = LocalConfiguration.current.screenHeightDp.dp / 3)
+                .heightIn(max = LocalConfiguration.current.screenHeightDp.dp / MAX_INPUT_HEIGHT_DIVISOR)
                 .defaultMinSize(minHeight = 44.dp),
         shape = RoundedCornerShape(20.dp),
         color = panelColors.inputFieldColor,
-        border = androidx.compose.foundation.BorderStroke(1.dp, panelColors.accentColor.copy(alpha = 0.3f)),
+        border =
+            androidx.compose.foundation.BorderStroke(
+                1.dp,
+                panelColors.accentColor.copy(alpha = 0.3f),
+            ),
     ) {
         BasicTextField(
             value = inputValue,
             onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp).focusRequester(focusRequester),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp)
+                    .focusRequester(focusRequester),
             textStyle = MaterialTheme.typography.bodyLarge.copy(color = panelColors.contentColor),
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Default),
             keyboardActions = KeyboardActions(),
             cursorBrush = SolidColor(panelColors.accentColor),
             decorationBox = { innerTextField ->
-                Row(modifier = Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Box(modifier = Modifier.weight(1f)) {
                         if (inputValue.text.isEmpty()) {
                             Text(
@@ -105,6 +148,8 @@ internal fun InputTextField(
             },
         )
     }
+    @Suppress("UNUSED_VARIABLE")
+    unusedOnSubmit
 }
 
 @Composable
@@ -137,7 +182,9 @@ internal fun ModeSelectorButton(
             Modifier.size(48.dp).pointerInput(inputMode) {
                 detectHorizontalDragGestures(
                     onDragEnd = {
-                        if (dragOffset > 50f) onModeChange(modes[(modes.indexOf(inputMode) + 1) % modes.size])
+                        if (dragOffset > MODE_SWITCH_DRAG_THRESHOLD) {
+                            onModeChange(modes[(modes.indexOf(inputMode) + 1) % modes.size])
+                        }
                         dragOffset = 0f
                     },
                 ) { _, amount -> dragOffset += amount }
@@ -186,7 +233,12 @@ internal fun BackForwardButton(
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = if (showForwardIcon) Icons.AutoMirrored.Filled.ArrowForward else Icons.AutoMirrored.Filled.ArrowBack,
+            imageVector =
+                if (showForwardIcon) {
+                    Icons.AutoMirrored.Filled.ArrowForward
+                } else {
+                    Icons.AutoMirrored.Filled.ArrowBack
+                },
             contentDescription = null,
             tint = if (state.canGoBack) contentColor else contentColor.copy(alpha = 0.3f),
         )
@@ -194,7 +246,7 @@ internal fun BackForwardButton(
 
     if (showForwardIcon) {
         LaunchedEffect(Unit) {
-            delay(400)
+            delay(ICON_RESTORE_DELAY_MS)
             showForwardIcon = false
         }
     }
@@ -206,10 +258,17 @@ internal fun AnimatedSendButton(
     panelColors: PanelColors,
     onClick: () -> Unit,
 ) {
-    AnimatedVisibility(visible = isVisible, enter = fadeIn() + scaleIn(), exit = fadeOut() + scaleOut()) {
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = fadeIn() + scaleIn(),
+        exit = fadeOut() + scaleOut(),
+    ) {
         IconButton(
             onClick = onClick,
-            modifier = Modifier.size(44.dp).background(panelColors.accentColor, CircleShape),
+            modifier =
+                Modifier
+                    .size(44.dp)
+                    .background(panelColors.accentColor, CircleShape),
             colors =
                 IconButtonDefaults.iconButtonColors(
                     contentColor = if (panelColors.accentColor.luminance() > 0.5f) Color.Black else Color.White,

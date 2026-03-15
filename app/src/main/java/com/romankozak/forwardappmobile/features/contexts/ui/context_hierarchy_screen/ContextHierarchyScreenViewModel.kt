@@ -46,6 +46,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SettingsUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SyncUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ThemingUseCase
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.UtilityDialogRequest
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.flattenHierarchy
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -412,12 +413,12 @@ class ContextHierarchyScreenViewModel
                     if (focusedState != null) {
                         val parentProject = _allProjectsFlat.value.find { it.id == focusedState.projectId }
                         if (parentProject != null) {
-                            dialogUseCase.onAddSubprojectRequest(parentProject)
+                            dialogUseCase.onAddProjectRequest(parentProject)
                         } else {
-                            dialogUseCase.onAddNewProjectRequest()
+                            dialogUseCase.onAddProjectRequest()
                         }
                     } else {
-                        dialogUseCase.onAddNewProjectRequest()
+                        dialogUseCase.onAddProjectRequest()
                     }
                 }
                 is ContextHierarchyScreenEvent.AddNoteDocumentRequest -> createNoteInInbox()
@@ -443,7 +444,7 @@ class ContextHierarchyScreenViewModel
                     pendingChooserAction.value = null
                 }
                 is ContextHierarchyScreenEvent.AddSubprojectRequest ->
-                    dialogUseCase.onAddSubprojectRequest(event.parentProject)
+                    dialogUseCase.onAddProjectRequest(event.parentProject)
                 is ContextHierarchyScreenEvent.DeleteRequest -> dialogUseCase.onDeleteRequest(event.project)
                 is ContextHierarchyScreenEvent.MoveRequest -> {
                     viewModelScope.launch {
@@ -493,9 +494,10 @@ class ContextHierarchyScreenViewModel
                         )
                     }
                 }
-                is ContextHierarchyScreenEvent.ShowAboutDialog -> dialogUseCase.onShowAboutDialog()
+                is ContextHierarchyScreenEvent.ShowAboutDialog ->
+                    dialogUseCase.onUtilityDialogRequest(UtilityDialogRequest.About)
                 is ContextHierarchyScreenEvent.ImportFromFileRequest ->
-                    dialogUseCase.onImportFromFileRequested(event.uri)
+                    dialogUseCase.onUtilityDialogRequest(UtilityDialogRequest.Import(event.uri))
 
                 is ContextHierarchyScreenEvent.SelectiveImportFromFileRequest -> {
                     viewModelScope.launch {
@@ -672,7 +674,7 @@ class ContextHierarchyScreenViewModel
                     }
                 }
                 is ContextHierarchyScreenEvent.ExportToFile ->
-                    dialogUseCase.onExportToFileRequested()
+                    dialogUseCase.onUtilityDialogRequest(UtilityDialogRequest.Export)
                 is ContextHierarchyScreenEvent.ExportToFileV2 ->
                     viewModelScope.launch {
                         val result = contextActionsUseCase.exportToFileV2()

@@ -36,16 +36,22 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.domain.reminders.RingtoneType
 
+private const val DEFAULT_RINGTONE_VOLUME = 1f
+
+data class RingtoneSettingsCallbacks(
+    val onTypeSelected: (RingtoneType) -> Unit,
+    val onRingtonePicked: (RingtoneType, String) -> Unit,
+    val onVolumeChanged: (RingtoneType, Float) -> Unit,
+    val onVibrationToggle: (Boolean) -> Unit,
+)
+
 @Composable
 fun RingtoneSettingsCard(
     currentType: RingtoneType,
     ringtoneUris: Map<RingtoneType, String>,
     ringtoneVolumes: Map<RingtoneType, Float>,
     vibrationEnabled: Boolean,
-    onTypeSelected: (RingtoneType) -> Unit,
-    onRingtonePicked: (RingtoneType, String) -> Unit,
-    onVolumeChanged: (RingtoneType, Float) -> Unit,
-    onVibrationToggle: (Boolean) -> Unit,
+    callbacks: RingtoneSettingsCallbacks,
 ) {
     val context = LocalContext.current
     var previewPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
@@ -62,44 +68,16 @@ fun RingtoneSettingsCard(
         icon = Icons.Default.NotificationsActive,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Вібрація нагадувань", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        text = "Застосовується до всіх типів нагадувань",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(checked = vibrationEnabled, onCheckedChange = onVibrationToggle)
-            }
+            VibrationSection(vibrationEnabled = vibrationEnabled, onToggle = callbacks.onVibrationToggle)
 
             Text("Тип гучності", style = MaterialTheme.typography.titleMedium)
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 RingtoneType.values().forEach { type ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(
-                            selected = currentType == type,
-                            onClick = { onTypeSelected(type) },
-                        )
-                        Column(modifier = Modifier.padding(start = 4.dp)) {
-                            Text(type.title, style = MaterialTheme.typography.bodyLarge)
-                            Text(
-                                text =
-                                    when (type) {
-                                        RingtoneType.Energetic -> "Гучний, енергійний сигнал"
-                                        RingtoneType.Moderate -> "Збалансований сигнал"
-                                        RingtoneType.Quiet -> "М’який, стриманий сигнал"
-                                    },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+                    RingtoneTypeOption(
+                        type = type,
+                        isSelected = currentType == type,
+                        onTypeSelected = callbacks.onTypeSelected,
+                    )
                 }
             }
 
@@ -107,97 +85,152 @@ fun RingtoneSettingsCard(
             Text("Налаштування рінгтонів", style = MaterialTheme.typography.titleMedium)
 
             RingtoneType.values().forEach { type ->
-                val currentUri = ringtoneUris[type].orEmpty()
-                var lastPicked by remember(type, currentUri) { mutableStateOf(currentUri) }
-                var volume by remember(type, ringtoneVolumes[type]) { mutableStateOf(ringtoneVolumes[type] ?: 1f) }
-
-                val launcher =
-                    rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-                        val uri: Uri? = result.data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
-                        uri?.let {
-                            try {
-                                context.contentResolver.takePersistableUriPermission(
-                                    it,
-                                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                                )
-                            } catch (_: SecurityException) {
-                                // Some providers do not support persistable permissions; ignore.
-                            }
-                            lastPicked = it.toString()
-                            onRingtonePicked(type, it.toString())
+                RingtoneOptionRow(
+                    context = context,
+                    type = type,
+                    currentUri = ringtoneUris[type].orEmpty(),
+                    initialVolume = ringtoneVolumes[type] ?: DEFAULT_RINGTONE_VOLUME,
+                    onRingtonePicked = callbacks.onRingtonePicked,
+                    onVolumeChanged = callbacks.onVolumeChanged,
+                    onPreview = { uriString, volume ->
+                        previewPlayer?.let {
+                            it.stop()
+                            it.release()
                         }
-                    }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(type.title, style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            text = ringtoneLabel(context, type, lastPicked),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Slider(
-                            value = volume,
-                            onValueChange = {
-                                volume = it
-                                onVolumeChanged(type, it)
-                            },
-                            valueRange = 0f..1f,
-                            steps = 0,
-                            colors = SliderDefaults.colors(activeTrackColor = MaterialTheme.colorScheme.primary),
-                        )
-                        Text(
-                            text = "Гучність: ${(volume * 100).toInt()}%",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = {
-                            val intent =
-                                Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
-                                    putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, type.toSystemType())
-                                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
-                                    putExtra(
-                                        RingtoneManager.EXTRA_RINGTONE_EXISTING_URI,
-                                        lastPicked.takeIf { it.isNotBlank() }?.let(Uri::parse),
-                                    )
-                                }
-                            launcher.launch(intent)
-                        }) {
-                            Text(if (lastPicked.isBlank()) "Обрати" else "Змінити")
-                        }
-                        Button(onClick = {
-                            previewPlayer?.let {
-                                it.stop()
-                                it.release()
-                            }
-                            previewPlayer =
-                                playPreview(
-                                    context = context,
-                                    uriString = lastPicked,
-                                    type = type,
-                                    volume = volume,
-                                )
-                        }) {
-                            Text("Тест")
-                        }
-                    }
-                }
+                        previewPlayer =
+                            playPreview(
+                                context = context,
+                                uriString = uriString,
+                                ringtoneType = type,
+                                volume = volume,
+                            )
+                    },
+                )
             }
         }
     }
 }
 
-private fun ringtoneLabel(
+@Composable
+private fun VibrationSection(
+    vibrationEnabled: Boolean,
+    onToggle: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text("Вібрація нагадувань", style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = "Застосовується до всіх типів нагадувань",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(checked = vibrationEnabled, onCheckedChange = onToggle)
+    }
+}
+
+@Composable
+private fun RingtoneOptionRow(
     context: Context,
     type: RingtoneType,
+    currentUri: String,
+    initialVolume: Float,
+    onRingtonePicked: (RingtoneType, String) -> Unit,
+    onVolumeChanged: (RingtoneType, Float) -> Unit,
+    onPreview: (String, Float) -> Unit,
+) {
+    var lastPicked by remember(type, currentUri) { mutableStateOf(currentUri) }
+    var volume by remember(type, initialVolume) { mutableStateOf(initialVolume) }
+    val launcher = rememberRingtonePickerLauncher(context, type, onRingtonePicked) { picked ->
+        lastPicked = picked
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(type.title, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = ringtoneLabel(context, lastPicked),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Slider(
+                value = volume,
+                onValueChange = {
+                    volume = it
+                    onVolumeChanged(type, it)
+                },
+                valueRange = 0f..1f,
+                steps = 0,
+                colors = SliderDefaults.colors(activeTrackColor = MaterialTheme.colorScheme.primary),
+            )
+            Text(
+                text = "Гучність: ${(volume * 100).toInt()}%",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = { launcher.launch(createRingtonePickerIntent(type, lastPicked)) }) {
+                Text(if (lastPicked.isBlank()) "Обрати" else "Змінити")
+            }
+            Button(onClick = { onPreview(lastPicked, volume) }) {
+                Text("Тест")
+            }
+        }
+    }
+}
+
+@Composable
+private fun rememberRingtonePickerLauncher(
+    context: Context,
+    type: RingtoneType,
+    onRingtonePicked: (RingtoneType, String) -> Unit,
+    onPickedStateUpdated: (String) -> Unit,
+) = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+    val uri: Uri? =
+        result.data?.getParcelableExtra(
+            RingtoneManager.EXTRA_RINGTONE_PICKED_URI,
+            Uri::class.java,
+        )
+    uri?.let {
+        try {
+            context.contentResolver.takePersistableUriPermission(
+                it,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION,
+            )
+        } catch (_: SecurityException) {
+            // Some providers do not support persistable permissions; ignore.
+        }
+        val picked = it.toString()
+        onPickedStateUpdated(picked)
+        onRingtonePicked(type, picked)
+    }
+}
+
+private fun createRingtonePickerIntent(
+    type: RingtoneType,
+    currentUri: String,
+) = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+    putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, type.toSystemType())
+    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+    putExtra(
+        RingtoneManager.EXTRA_RINGTONE_EXISTING_URI,
+        currentUri.takeIf { it.isNotBlank() }?.let(Uri::parse),
+    )
+}
+
+private fun ringtoneLabel(
+    context: Context,
     uriString: String,
 ): String {
     if (uriString.isBlank()) return "Системний за замовчуванням"
@@ -221,12 +254,12 @@ private fun RingtoneType.toSystemType(): Int =
 private fun playPreview(
     context: Context,
     uriString: String,
-    type: RingtoneType,
+    ringtoneType: RingtoneType,
     volume: Float,
 ): MediaPlayer? {
     val uri =
         uriString.takeIf { it.isNotBlank() }?.let(Uri::parse)
-            ?: defaultUriFor(type)
+            ?: defaultUriFor(ringtoneType)
             ?: return null
 
     return try {
@@ -246,8 +279,37 @@ private fun playPreview(
             prepare()
             start()
         }
-    } catch (_: Exception) {
+    } catch (_: IllegalArgumentException) {
         null
+    } catch (_: IllegalStateException) {
+        null
+    }
+}
+
+@Composable
+private fun RingtoneTypeOption(
+    type: RingtoneType,
+    isSelected: Boolean,
+    onTypeSelected: (RingtoneType) -> Unit,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        RadioButton(
+            selected = isSelected,
+            onClick = { onTypeSelected(type) },
+        )
+        Column(modifier = Modifier.padding(start = 4.dp)) {
+            Text(type.title, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text =
+                    when (type) {
+                        RingtoneType.Energetic -> "Гучний, енергійний сигнал"
+                        RingtoneType.Moderate -> "Збалансований сигнал"
+                        RingtoneType.Quiet -> "М’який, стриманий сигнал"
+                    },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

@@ -25,6 +25,20 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStatusValues
 
+private data class UpdateStatusDialogContentState(
+    val selectedStatus: String,
+    val statusText: String,
+    val isDropdownExpanded: Boolean,
+    val statuses: List<String>,
+)
+
+private data class UpdateStatusDialogActions(
+    val onExpandedChange: (Boolean) -> Unit,
+    val onDismissDropdown: () -> Unit,
+    val onStatusSelected: (String) -> Unit,
+    val onStatusTextChange: (String) -> Unit,
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UpdateStatusDialog(
@@ -50,58 +64,25 @@ fun UpdateStatusDialog(
         onDismissRequest = onDismissRequest,
         title = { Text("Оновити статус проекту") },
         text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                ExposedDropdownMenuBox(
-                    expanded = isDropdownExpanded,
-                    onExpandedChange = { isDropdownExpanded = !isDropdownExpanded },
-                ) {
-                    OutlinedTextField(
-                        value = ContextStatusValues.getDisplayName(selectedStatus),
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Статус") },
-                        trailingIcon = {
-                            val rotation by animateFloatAsState(
-                                targetValue = if (isDropdownExpanded) 180f else 0f,
-                                label = "dropdownIconRotation",
-                            )
-                            Icon(
-                                Icons.Default.ArrowDropDown,
-                                contentDescription = "Вибрати статус",
-                                Modifier.rotate(rotation),
-                            )
+            UpdateStatusDialogContent(
+                state =
+                    UpdateStatusDialogContentState(
+                        selectedStatus = selectedStatus,
+                        statusText = statusText,
+                        isDropdownExpanded = isDropdownExpanded,
+                        statuses = statuses,
+                    ),
+                actions =
+                    UpdateStatusDialogActions(
+                        onExpandedChange = { isDropdownExpanded = !isDropdownExpanded },
+                        onDismissDropdown = { isDropdownExpanded = false },
+                        onStatusSelected = { status ->
+                            selectedStatus = status
+                            isDropdownExpanded = false
                         },
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                    )
-                    ExposedDropdownMenu(
-                        expanded = isDropdownExpanded,
-                        onDismissRequest = { isDropdownExpanded = false },
-                    ) {
-                        statuses.forEach { status ->
-                            DropdownMenuItem(
-                                text = { Text(ContextStatusValues.getDisplayName(status)) },
-                                onClick = {
-                                    selectedStatus = status
-                                    isDropdownExpanded = false
-                                },
-                            )
-                        }
-                    }
-                }
-
-                OutlinedTextField(
-                    value = statusText,
-                    onValueChange = { statusText = it },
-                    label = { Text("Якісний опис (опційно)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 5,
-                )
-            }
+                        onStatusTextChange = { statusText = it },
+                    ),
+            )
         },
         confirmButton = {
             TextButton(
@@ -117,5 +98,84 @@ fun UpdateStatusDialog(
                 Text("Скасувати")
             }
         },
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun UpdateStatusDialogContent(
+    state: UpdateStatusDialogContentState,
+    actions: UpdateStatusDialogActions,
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        StatusDropdownField(
+            state = state,
+            actions = actions,
+        )
+        StatusTextField(
+            statusText = state.statusText,
+            onStatusTextChange = actions.onStatusTextChange,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun StatusDropdownField(
+    state: UpdateStatusDialogContentState,
+    actions: UpdateStatusDialogActions,
+) {
+    ExposedDropdownMenuBox(
+        expanded = state.isDropdownExpanded,
+        onExpandedChange = actions.onExpandedChange,
+    ) {
+        OutlinedTextField(
+            value = ContextStatusValues.getDisplayName(state.selectedStatus),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Статус") },
+            trailingIcon = {
+                val rotation by animateFloatAsState(
+                    targetValue = if (state.isDropdownExpanded) 180f else 0f,
+                    label = "dropdownIconRotation",
+                )
+                Icon(
+                    Icons.Default.ArrowDropDown,
+                    contentDescription = "Вибрати статус",
+                    Modifier.rotate(rotation),
+                )
+            },
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+        )
+        ExposedDropdownMenu(
+            expanded = state.isDropdownExpanded,
+            onDismissRequest = actions.onDismissDropdown,
+        ) {
+            state.statuses.forEach { status ->
+                DropdownMenuItem(
+                    text = { Text(ContextStatusValues.getDisplayName(status)) },
+                    onClick = { actions.onStatusSelected(status) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatusTextField(
+    statusText: String,
+    onStatusTextChange: (String) -> Unit,
+) {
+    OutlinedTextField(
+        value = statusText,
+        onValueChange = onStatusTextChange,
+        label = { Text("Якісний опис (опційно)") },
+        modifier = Modifier.fillMaxWidth(),
+        maxLines = 5,
     )
 }

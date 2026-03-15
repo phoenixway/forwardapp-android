@@ -49,7 +49,10 @@ class DirectionSettingsViewModel
                             if (state.isSaving) {
                                 state
                             } else {
-                                state.copy(autoAddChildContextToDirectionFront = structure.enableAutoLinkSubprojects ?: true)
+                                state.copy(
+                                    autoAddChildContextToDirectionFront =
+                                        structure.enableAutoLinkSubprojects ?: true,
+                                )
                             }
                         }
                     }

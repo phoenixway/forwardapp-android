@@ -50,6 +50,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
 
+private const val DIALOG_WIDTH_FRACTION = 0.92f
+private const val ACTION_GRID_COLUMNS = 3
+
 private data class ConnectionCreateItem(
     val title: String,
     val icon: ImageVector,
@@ -63,58 +66,14 @@ fun ConnectionsCreateActionsDialog(
     onActionSelected: (CreateConnectionType) -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
-    val items =
-        listOf(
-            ConnectionCreateItem(
-                "Контекст",
-                Icons.Outlined.AccountTree,
-                MaterialTheme.colorScheme.tertiary,
-                CreateConnectionType.CONTEXT,
-            ),
-            ConnectionCreateItem(
-                "Нотатка",
-                Icons.AutoMirrored.Outlined.StickyNote2,
-                MaterialTheme.colorScheme.primary,
-                CreateConnectionType.NOTE_DOCUMENT,
-            ),
-            ConnectionCreateItem(
-                "Ноти",
-                Icons.Outlined.MusicNote,
-                MaterialTheme.colorScheme.primary,
-                CreateConnectionType.MUSIC_NOTE,
-            ),
-            ConnectionCreateItem(
-                "Чекліст",
-                Icons.Outlined.Checklist,
-                MaterialTheme.colorScheme.secondary,
-                CreateConnectionType.CHECKLIST,
-            ),
-            ConnectionCreateItem(
-                "Скрипт",
-                Icons.Outlined.Code,
-                MaterialTheme.colorScheme.secondary,
-                CreateConnectionType.SCRIPT,
-            ),
-            ConnectionCreateItem(
-                "Web посилання",
-                Icons.Outlined.Public,
-                MaterialTheme.colorScheme.secondary,
-                CreateConnectionType.EXTERNAL_LINK,
-            ),
-            ConnectionCreateItem(
-                "Obsidian note",
-                Icons.Outlined.DataObject,
-                MaterialTheme.colorScheme.secondary,
-                CreateConnectionType.OBSIDIAN_NOTE,
-            ),
-        )
+    val items = createConnectionItems()
 
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = true),
     ) {
         Card(
-            modifier = Modifier.fillMaxWidth(0.92f),
+            modifier = Modifier.fillMaxWidth(DIALOG_WIDTH_FRACTION),
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
             elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
@@ -131,7 +90,7 @@ fun ConnectionsCreateActionsDialog(
                     modifier = Modifier.padding(horizontal = 4.dp),
                 )
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
+                    columns = GridCells.Fixed(ACTION_GRID_COLUMNS),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(bottom = 2.dp),
@@ -205,3 +164,50 @@ private fun ConnectionCreateGridItem(
         )
     }
 }
+
+@Composable
+private fun createConnectionItems(): List<ConnectionCreateItem> =
+    listOf(
+        ConnectionCreateItem(
+            "Контекст",
+            Icons.Outlined.AccountTree,
+            MaterialTheme.colorScheme.tertiary,
+            CreateConnectionType.CONTEXT,
+        ),
+        ConnectionCreateItem(
+            "Нотатка",
+            Icons.AutoMirrored.Outlined.StickyNote2,
+            MaterialTheme.colorScheme.primary,
+            CreateConnectionType.NOTE_DOCUMENT,
+        ),
+        ConnectionCreateItem(
+            "Ноти",
+            Icons.Outlined.MusicNote,
+            MaterialTheme.colorScheme.primary,
+            CreateConnectionType.MUSIC_NOTE,
+        ),
+        ConnectionCreateItem(
+            "Чекліст",
+            Icons.Outlined.Checklist,
+            MaterialTheme.colorScheme.secondary,
+            CreateConnectionType.CHECKLIST,
+        ),
+        ConnectionCreateItem(
+            "Скрипт",
+            Icons.Outlined.Code,
+            MaterialTheme.colorScheme.secondary,
+            CreateConnectionType.SCRIPT,
+        ),
+        ConnectionCreateItem(
+            "Web посилання",
+            Icons.Outlined.Public,
+            MaterialTheme.colorScheme.secondary,
+            CreateConnectionType.EXTERNAL_LINK,
+        ),
+        ConnectionCreateItem(
+            "Obsidian note",
+            Icons.Outlined.DataObject,
+            MaterialTheme.colorScheme.secondary,
+            CreateConnectionType.OBSIDIAN_NOTE,
+        ),
+    )

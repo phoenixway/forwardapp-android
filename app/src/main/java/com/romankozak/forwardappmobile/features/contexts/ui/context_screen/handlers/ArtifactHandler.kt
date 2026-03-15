@@ -46,7 +46,12 @@ class ArtifactHandler
         fun onAutoSaveArtifact(content: String) {
             val current = stateManager.uiState.value.artifactToEdit ?: return
             scope.launch {
-                contextRepository.updateContextArtifact(current.copy(content = content, updatedAt = System.currentTimeMillis()))
+                contextRepository.updateContextArtifact(
+                    current.copy(
+                        content = content,
+                        updatedAt = System.currentTimeMillis(),
+                    ),
+                )
             }
         }
     }

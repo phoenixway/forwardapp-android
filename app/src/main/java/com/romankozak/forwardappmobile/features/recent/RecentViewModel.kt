@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+private const val FLOW_STOP_TIMEOUT_MILLIS = 5000L
+private const val RECENT_ITEMS_LIMIT = 100
+
 @HiltViewModel
 class RecentViewModel
     @Inject
@@ -17,8 +20,12 @@ class RecentViewModel
         private val recentItemsRepository: RecentItemsRepository,
     ) : ViewModel() {
         val recentItems =
-            recentItemsRepository.getRecentItems(100)
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+            recentItemsRepository.getRecentItems(RECENT_ITEMS_LIMIT)
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS),
+                    emptyList(),
+                )
 
         fun onPinClick(item: RecentItem) {
             viewModelScope.launch {

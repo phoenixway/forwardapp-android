@@ -37,8 +37,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
 import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.components.ParameterSlider
+import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.components.ParameterSliderConfig
 import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.components.Scales
 import kotlinx.coroutines.launch
+
+private const val BALANCE_POSITIVE_THRESHOLD = 0.2
+private const val BALANCE_NEUTRAL_THRESHOLD = -0.2
+private const val DISABLED_CONTENT_ALPHA = 0.5f
 
 @Composable
 fun EvaluationTabContent(
@@ -83,9 +88,9 @@ fun EvaluationTabContent(
                             val balanceText = "Balance: ${if (rawScore >= 0) "+" else ""}" + "%.2f".format(rawScore)
                             val balanceColor =
                                 when {
-                                    rawScore > 0.2 -> Color(0xFF2E7D32)
-                                    rawScore > -0.2 -> LocalContentColor.current
-                                    else -> Color(0xFFC62828)
+                                    rawScore > BALANCE_POSITIVE_THRESHOLD -> MaterialTheme.colorScheme.tertiary
+                                    rawScore > BALANCE_NEUTRAL_THRESHOLD -> LocalContentColor.current
+                                    else -> MaterialTheme.colorScheme.error
                                 }
                             Text(
                                 text = balanceText,
@@ -118,7 +123,7 @@ fun EvaluationTabs(
     val pagerState = rememberPagerState { tabTitles.size }
     val scope = rememberCoroutineScope()
 
-    Column(modifier = Modifier.alpha(if (isEnabled) 1.0f else 0.5f)) {
+    Column(modifier = Modifier.alpha(if (isEnabled) 1.0f else DISABLED_CONTENT_ALPHA)) {
         TabRow(selectedTabIndex = pagerState.currentPage) {
             tabTitles.forEachIndexed { index, title ->
                 Tab(
@@ -142,74 +147,134 @@ fun EvaluationTabs(
                 modifier = Modifier.padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                when (page) {
-                    0 -> {
-                        ParameterSlider(
-                            label = "Value importance",
-                            value = uiState.valueImportance,
-                            onValueChange = onViewModelAction::onValueImportanceChange,
-                            scale = Scales.importance,
-                            enabled = isEnabled,
-                        )
-                        ParameterSlider(
-                            label = "Value gain impact",
-                            value = uiState.valueImpact,
-                            onValueChange = onViewModelAction::onValueImpactChange,
-                            scale = Scales.impact,
-                            enabled = isEnabled,
-                        )
-                    }
-                    1 -> {
-                        ParameterSlider(
-                            label = "Efforts",
-                            value = uiState.effort,
-                            onValueChange = onViewModelAction::onEffortChange,
-                            scale = Scales.effort,
-                            enabled = isEnabled,
-                        )
-                        ParameterSlider(
-                            label = "Costs",
-                            value = uiState.cost,
-                            onValueChange = onViewModelAction::onCostChange,
-                            scale = Scales.cost,
-                            valueLabels = Scales.costLabels,
-                            enabled = isEnabled,
-                        )
-                        ParameterSlider(
-                            label = "Risk",
-                            value = uiState.risk,
-                            onValueChange = onViewModelAction::onRiskChange,
-                            scale = Scales.risk,
-                            enabled = isEnabled,
-                        )
-                    }
-                    2 -> {
-                        ParameterSlider(
-                            label = "Efforts weight",
-                            value = uiState.weightEffort,
-                            onValueChange = onViewModelAction::onWeightEffortChange,
-                            scale = Scales.weights,
-                            enabled = isEnabled,
-                        )
-                        ParameterSlider(
-                            label = "Costs weight",
-                            value = uiState.weightCost,
-                            onValueChange = onViewModelAction::onWeightCostChange,
-                            scale = Scales.weights,
-                            enabled = isEnabled,
-                        )
-                        ParameterSlider(
-                            label = "Risk weight",
-                            value = uiState.weightRisk,
-                            onValueChange = onViewModelAction::onWeightRiskChange,
-                            scale = Scales.weights,
-                            enabled = isEnabled,
-                        )
-                    }
-                }
+                EvaluationTabPage(
+                    page = page,
+                    uiState = uiState,
+                    onViewModelAction = onViewModelAction,
+                    isEnabled = isEnabled,
+                )
             }
         }
     }
+}
+
+@Composable
+private fun EvaluationTabPage(
+    page: Int,
+    uiState: EvaluationTabUiState,
+    onViewModelAction: EvaluationTabActions,
+    isEnabled: Boolean,
+) {
+    when (page) {
+        0 -> GainTab(uiState = uiState, onViewModelAction = onViewModelAction, isEnabled = isEnabled)
+        1 -> LossTab(uiState = uiState, onViewModelAction = onViewModelAction, isEnabled = isEnabled)
+        2 -> WeightsTab(uiState = uiState, onViewModelAction = onViewModelAction, isEnabled = isEnabled)
+    }
+}
+
+@Composable
+private fun GainTab(
+    uiState: EvaluationTabUiState,
+    onViewModelAction: EvaluationTabActions,
+    isEnabled: Boolean,
+) {
+    ParameterSlider(
+        state =
+            ParameterSliderConfig(
+                label = "Value importance",
+                value = uiState.valueImportance,
+                scale = Scales.importance,
+            ),
+        onValueChange = onViewModelAction::onValueImportanceChange,
+        enabled = isEnabled,
+    )
+    ParameterSlider(
+        state =
+            ParameterSliderConfig(
+                label = "Value gain impact",
+                value = uiState.valueImpact,
+                scale = Scales.impact,
+            ),
+        onValueChange = onViewModelAction::onValueImpactChange,
+        enabled = isEnabled,
+    )
+}
+
+@Composable
+private fun LossTab(
+    uiState: EvaluationTabUiState,
+    onViewModelAction: EvaluationTabActions,
+    isEnabled: Boolean,
+) {
+    ParameterSlider(
+        state =
+            ParameterSliderConfig(
+                label = "Efforts",
+                value = uiState.effort,
+                scale = Scales.effort,
+            ),
+        onValueChange = onViewModelAction::onEffortChange,
+        enabled = isEnabled,
+    )
+    ParameterSlider(
+        state =
+            ParameterSliderConfig(
+                label = "Costs",
+                value = uiState.cost,
+                scale = Scales.cost,
+                valueLabels = Scales.costLabels,
+            ),
+        onValueChange = onViewModelAction::onCostChange,
+        enabled = isEnabled,
+    )
+    ParameterSlider(
+        state =
+            ParameterSliderConfig(
+                label = "Risk",
+                value = uiState.risk,
+                scale = Scales.risk,
+            ),
+        onValueChange = onViewModelAction::onRiskChange,
+        enabled = isEnabled,
+    )
+}
+
+@Composable
+private fun WeightsTab(
+    uiState: EvaluationTabUiState,
+    onViewModelAction: EvaluationTabActions,
+    isEnabled: Boolean,
+) {
+    ParameterSlider(
+        state =
+            ParameterSliderConfig(
+                label = "Efforts weight",
+                value = uiState.weightEffort,
+                scale = Scales.weights,
+            ),
+        onValueChange = onViewModelAction::onWeightEffortChange,
+        enabled = isEnabled,
+    )
+    ParameterSlider(
+        state =
+            ParameterSliderConfig(
+                label = "Costs weight",
+                value = uiState.weightCost,
+                scale = Scales.weights,
+            ),
+        onValueChange = onViewModelAction::onWeightCostChange,
+        enabled = isEnabled,
+    )
+    ParameterSlider(
+        state =
+            ParameterSliderConfig(
+                label = "Risk weight",
+                value = uiState.weightRisk,
+                scale = Scales.weights,
+            ),
+        onValueChange = onViewModelAction::onWeightRiskChange,
+        enabled = isEnabled,
+    )
 }
 
 @Composable

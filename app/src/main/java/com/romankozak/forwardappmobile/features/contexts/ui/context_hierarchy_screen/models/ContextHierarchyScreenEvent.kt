@@ -33,7 +33,11 @@ sealed interface ContextHierarchyScreenEvent {
 
     data class ToggleContextExpanded(val project: Context) : ContextHierarchyScreenEvent
 
-    data class ContextReorder(val fromId: String, val toId: String, val position: DropPosition) : ContextHierarchyScreenEvent
+    data class ContextReorder(
+        val fromId: String,
+        val toId: String,
+        val position: DropPosition,
+    ) : ContextHierarchyScreenEvent
 
     data class BreadcrumbNavigation(val breadcrumb: BreadcrumbItem) : ContextHierarchyScreenEvent
 
@@ -160,7 +164,11 @@ sealed interface ContextHierarchyScreenEvent {
 
     data class PerformWifiImport(val address: String) : ContextHierarchyScreenEvent
 
-    data class AddContextConfirm(val name: String, val parentId: String?, val roleCode: String? = null) : ContextHierarchyScreenEvent
+    data class AddContextConfirm(
+        val name: String,
+        val parentId: String?,
+        val roleCode: String? = null,
+    ) : ContextHierarchyScreenEvent
 
     data class AddSubprojectRequest(val parentProject: Context) : ContextHierarchyScreenEvent
 

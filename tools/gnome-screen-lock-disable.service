@@ -1,0 +1,12 @@
+[Unit]
+Description=Disable GNOME screen lock on login
+After=graphical-session.target
+Wants=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/studio/public/forwardapp-suit/forwardapp-android/tools/gnome_screen_lock.sh disable
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target

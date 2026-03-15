@@ -2,8 +2,6 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.stat
 
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
-import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -22,14 +20,12 @@ private val ActivityRecord.isOngoing: Boolean
  */
 class ActivityManager(
     private val activityRepository: ActivityRepository,
-    private val contextRepository: ContextRepository,
-    private val settingsRepository: SettingsRepository,
     private val scope: CoroutineScope,
 ) {
     val currentActivity: StateFlow<ActivityRecord?> =
         activityRepository
             .findLastOngoingActivityFlow()
-            .stateIn(scope, SharingStarted.WhileSubscribed(5000), null)
+            .stateIn(scope, SharingStarted.WhileSubscribed(ACTIVITY_SUBSCRIPTION_TIMEOUT_MS), null)
 
     /**
      * Спостерігає за поточною активністю
@@ -89,3 +85,5 @@ class ActivityManager(
         return activityRepository.getActivitiesForContextStream(contextId).first()
     }
 }
+
+private const val ACTIVITY_SUBSCRIPTION_TIMEOUT_MS = 5000L

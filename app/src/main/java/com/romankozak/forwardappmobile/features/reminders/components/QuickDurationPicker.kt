@@ -19,6 +19,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.features.reminders.model.ReminderDuration
 
+private const val DURATION_CHIPS_PER_ROW = 3
+private val DurationChipIconSize = 16.dp
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuickDurationPicker(
@@ -33,7 +36,7 @@ fun QuickDurationPicker(
             fontWeight = FontWeight.Medium,
         )
 
-        val chunkedDurations = durations.chunked(3)
+        val chunkedDurations = durations.chunked(DURATION_CHIPS_PER_ROW)
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             chunkedDurations.forEach { rowDurations ->
@@ -49,7 +52,7 @@ fun QuickDurationPicker(
                             modifier = Modifier.weight(1f),
                         )
                     }
-                    repeat(3 - rowDurations.size) {
+                    repeat(DURATION_CHIPS_PER_ROW - rowDurations.size) {
                         Spacer(modifier = Modifier.weight(1f))
                     }
                 }
@@ -72,7 +75,13 @@ private fun DurationChip(
         selected = isSelected,
         leadingIcon =
             if (isSelected) {
-                { Icon(Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                {
+                    Icon(
+                        Icons.Default.AccessTime,
+                        contentDescription = null,
+                        modifier = Modifier.size(DurationChipIconSize),
+                    )
+                }
             } else {
                 null
             },

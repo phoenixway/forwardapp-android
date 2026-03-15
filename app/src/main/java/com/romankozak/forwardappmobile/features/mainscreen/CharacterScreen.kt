@@ -23,6 +23,13 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
+private const val MILLIS_PER_SECOND = 1000L
+private const val SECONDS_PER_MINUTE = 60L
+private const val MINUTES_PER_HOUR = 60L
+private const val HOURS_PER_DAY = 24L
+private const val MILLIS_PER_DAY =
+    HOURS_PER_DAY * MINUTES_PER_HOUR * SECONDS_PER_MINUTE * MILLIS_PER_SECOND
+
 @Composable
 fun CharacterScreen(activityTrackerViewModel: ActivityTrackerViewModel = hiltViewModel()) {
     val activityLog by activityTrackerViewModel.activityLog.collectAsStateWithLifecycle()
@@ -50,28 +57,10 @@ fun CharacterScreen(activityTrackerViewModel: ActivityTrackerViewModel = hiltVie
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            Card(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(top = 24.dp),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        text = "Today stats",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = "XP: +$xpToday / -$antiXpToday",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-            }
+            TodayStatsCard(
+                xpToday = xpToday,
+                antiXpToday = antiXpToday,
+            )
 
             Card(
                 modifier =
@@ -83,37 +72,12 @@ fun CharacterScreen(activityTrackerViewModel: ActivityTrackerViewModel = hiltVie
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Text(
-                        text = "Daily highlights",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = "Максимально позитивний день: ${
-                            maxPositiveDay?.let {
-                                    (day, stats) ->
-                                "${dateFormatter.format(day)} (+${stats.first} / -${stats.second}, нетто ${stats.first - stats.second})"
-                            }
-                                ?: "—"
-                        }",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = "Максимально негативний день: ${
-                            maxNegativeDay?.let {
-                                    (day, stats) ->
-                                "${dateFormatter.format(day)} (+${stats.first} / -${stats.second}, нетто ${stats.first - stats.second})"
-                            }
-                                ?: "—"
-                        }",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = "Середні показники за день: +$avgXp / -$avgAntiXp",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
+                    DailyHighlightsCardContent(
+                        maxPositiveDay = maxPositiveDay,
+                        maxNegativeDay = maxNegativeDay,
+                        avgXp = avgXp,
+                        avgAntiXp = avgAntiXp,
+                        dateFormatter = dateFormatter,
                     )
                 }
             }
@@ -122,13 +86,84 @@ fun CharacterScreen(activityTrackerViewModel: ActivityTrackerViewModel = hiltVie
 }
 
 @Composable
+private fun TodayStatsCard(
+    xpToday: Int,
+    antiXpToday: Int,
+) {
+    Card(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 24.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = "Today stats",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = "XP: +$xpToday / -$antiXpToday",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+    }
+}
+
+@Composable
 private fun calculateTodayStats(entries: List<Triple<Long, Int, Int>>): Pair<Int, Int> {
     val todayStart = startOfDay(System.currentTimeMillis())
-    val todayEnd = todayStart + 24 * 60 * 60 * 1000 - 1
+    val todayEnd = todayStart + MILLIS_PER_DAY - 1
     val filtered = entries.filter { (timestamp, _, _) -> timestamp in todayStart..todayEnd }
     val xp = filtered.sumOf { it.second }
     val anti = filtered.sumOf { it.third }
     return xp to anti
+}
+
+@Composable
+private fun DailyHighlightsCardContent(
+    maxPositiveDay: Map.Entry<Long, Pair<Int, Int>>?,
+    maxNegativeDay: Map.Entry<Long, Pair<Int, Int>>?,
+    avgXp: Int,
+    avgAntiXp: Int,
+    dateFormatter: SimpleDateFormat,
+) {
+    Text(
+        text = "Daily highlights",
+        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+        color = MaterialTheme.colorScheme.onSurface,
+    )
+    Text(
+        text = buildHighlightText("Максимально позитивний день", maxPositiveDay, dateFormatter),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurface,
+    )
+    Text(
+        text = buildHighlightText("Максимально негативний день", maxNegativeDay, dateFormatter),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurface,
+    )
+    Text(
+        text = "Середні показники за день: +$avgXp / -$avgAntiXp",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurface,
+    )
+}
+
+private fun buildHighlightText(
+    label: String,
+    entry: Map.Entry<Long, Pair<Int, Int>>?,
+    dateFormatter: SimpleDateFormat,
+): String {
+    val value =
+        entry?.let { (day, stats) ->
+            "${dateFormatter.format(day)} (+${stats.first} / -${stats.second}, нетто ${stats.first - stats.second})"
+        } ?: "—"
+    return "$label: $value"
 }
 
 private fun calculateDailyStats(entries: List<Triple<Long, Int, Int>>): Map<Long, Pair<Int, Int>> {

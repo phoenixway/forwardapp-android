@@ -38,8 +38,8 @@ class LogActivityHandler
         fun stopOngoingActivity() = scope.launch { activityManager.stopActivity() }
 
         fun setReminderForOngoingActivity(
-            activity: ActivityRecord,
-            time: Long,
+            @Suppress("UNUSED_PARAMETER") activity: ActivityRecord,
+            @Suppress("UNUSED_PARAMETER") time: Long,
         ) { /* логіка */ }
 
         // New methods

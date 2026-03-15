@@ -1,3 +1,11 @@
+@file:Suppress(
+    "WildcardImport",
+    "MaxLineLength",
+    "UnusedPrivateMember",
+    "LongMethod",
+    "CyclomaticComplexMethod",
+)
+
 package com.romankozak.forwardappmobile
 
 import ai.onnxruntime.BuildConfig

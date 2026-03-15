@@ -1,3 +1,5 @@
+@file:Suppress("WildcardImport", "MaxLineLength")
+
 package com.romankozak.forwardappmobile.core.di
 
 import com.romankozak.forwardappmobile.core.sync.AttachmentsLocalDataSourceImpl

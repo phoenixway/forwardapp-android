@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+private const val FLOW_STOP_TIMEOUT_MILLIS = 5_000L
+
 @HiltViewModel
 class UserAwarenessViewModel
     @Inject
@@ -27,7 +29,7 @@ class UserAwarenessViewModel
         val activeState: StateFlow<UserStateInterval?> =
             repository
                 .observeActiveState()
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS), null)
 
         fun setNormal() {
             viewModelScope.launch {

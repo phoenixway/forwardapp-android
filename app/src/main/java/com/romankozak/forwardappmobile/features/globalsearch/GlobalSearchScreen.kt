@@ -2,8 +2,19 @@ package com.romankozak.forwardappmobile.features.globalsearch
 
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -33,8 +44,41 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.MoveToInbox
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FabPosition
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.InputChip
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -64,6 +108,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchRes
 import kotlinx.coroutines.launch
 import java.util.Locale
 
+private const val SCROLL_TO_TOP_VISIBILITY_INDEX = 5
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun GlobalSearchScreen(
@@ -77,7 +123,7 @@ fun GlobalSearchScreen(
     val coroutineScope = rememberCoroutineScope()
 
     val showScrollToTopButton by remember {
-        derivedStateOf { listState.firstVisibleItemIndex > 5 }
+        derivedStateOf { listState.firstVisibleItemIndex > SCROLL_TO_TOP_VISIBILITY_INDEX }
     }
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -176,11 +222,17 @@ fun GlobalSearchScreen(
             }
             is GlobalSearchResultItem.LinkItem -> {
                 viewModel.onDataResultOpened(result.uniqueId)
-                viewModel.navigateToProjectForResult(result.searchResult.contextId, result.searchResult.contextName)
+                viewModel.navigateToProjectForResult(
+                    result.searchResult.contextId,
+                    result.searchResult.contextName,
+                )
             }
             is GlobalSearchResultItem.SubcontextItem -> {
                 viewModel.onDataResultOpened(result.uniqueId)
-                viewModel.navigateToProjectForResult(result.searchResult.subcontext.id, result.searchResult.subcontext.name)
+                viewModel.navigateToProjectForResult(
+                    result.searchResult.subcontext.id,
+                    result.searchResult.subcontext.name,
+                )
             }
             is GlobalSearchResultItem.ContextItem -> {
                 viewModel.onDataResultOpened(result.uniqueId)
@@ -384,31 +436,43 @@ fun GlobalSearchScreen(
                             }
                             filteredResults.isEmpty() -> {
                                 EmptyDataSearchContent(
-                                    query = uiState.query,
-                                    commandResults = uiState.hybridCommandResults,
-                                    selectedCommandIndex = selectedCommandIndex,
-                                    accentColor = modePalette.iconTint,
-                                    onCommandClick = viewModel::onCommandClick,
-                                    onQuickCatch = viewModel::quickCatchCurrentQuery,
-                                    onStartActivity = viewModel::startActivityFromCurrentQuery,
-                                    onAddActivityEvent = viewModel::addActivityEventFromCurrentQuery,
-                                    onRunBestCommand = viewModel::runBestCommandForCurrentQuery,
+                                    args =
+                                        EmptyDataSearchArgs(
+                                            query = uiState.query,
+                                            commandResults = uiState.hybridCommandResults,
+                                            selectedCommandIndex = selectedCommandIndex,
+                                            accentColor = modePalette.iconTint,
+                                            onCommandClick = viewModel::onCommandClick,
+                                            actions =
+                                                EmptyDataSearchActions(
+                                                    onQuickCatch = viewModel::quickCatchCurrentQuery,
+                                                    onStartActivity = viewModel::startActivityFromCurrentQuery,
+                                                    onAddActivityEvent = viewModel::addActivityEventFromCurrentQuery,
+                                                    onRunBestCommand = viewModel::runBestCommandForCurrentQuery,
+                                                ),
+                                        ),
                                     modifier = Modifier.fillMaxSize(),
                                 )
                             }
                             else -> {
                                 SearchResultsContent(
-                                    commandResults = uiState.hybridCommandResults,
-                                    selectedCommandIndex = selectedCommandIndex.takeIf { selectionArea == OmniboxSelectionArea.Command },
-                                    onCommandClick = viewModel::onCommandClick,
-                                    accentColor = modePalette.iconTint,
-                                    results = filteredResults,
-                                    query = uiState.query,
-                                    viewModel = viewModel,
-                                    obsidianVaultName = obsidianVaultName,
-                                    context = context,
-                                    listState = listState,
-                                    selectedResultUniqueId = selectedDataResultUniqueId,
+                                    args =
+                                        SearchResultsContentArgs(
+                                            commandResults = uiState.hybridCommandResults,
+                                            selectedCommandIndex =
+                                                selectedCommandIndex.takeIf {
+                                                    selectionArea == OmniboxSelectionArea.Command
+                                                },
+                                            onCommandClick = viewModel::onCommandClick,
+                                            accentColor = modePalette.iconTint,
+                                            results = filteredResults,
+                                            query = uiState.query,
+                                            viewModel = viewModel,
+                                            obsidianVaultName = obsidianVaultName,
+                                            context = context,
+                                            listState = listState,
+                                            selectedResultUniqueId = selectedDataResultUniqueId,
+                                        ),
                                     modifier =
                                         Modifier
                                             .fillMaxSize()
@@ -419,12 +483,15 @@ fun GlobalSearchScreen(
                     }
                     OmniboxMode.Command -> {
                         CommandResultsContent(
-                            results = uiState.commandResults,
-                            query = uiState.query,
-                            recentCommands = uiState.recentCommands,
-                            selectedCommandIndex = selectedCommandIndex,
-                            onCommandClick = viewModel::onCommandClick,
-                            accentColor = modePalette.iconTint,
+                            args =
+                                CommandResultsArgs(
+                                    results = uiState.commandResults,
+                                    query = uiState.query,
+                                    recentCommands = uiState.recentCommands,
+                                    selectedCommandIndex = selectedCommandIndex,
+                                    onCommandClick = viewModel::onCommandClick,
+                                    accentColor = modePalette.iconTint,
+                                ),
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
@@ -527,13 +594,16 @@ fun GlobalSearchScreen(
                                                     val commands = uiState.commandResults
                                                     if (commands.isEmpty()) return@onPreviewKeyEvent false
                                                     val current = selectedCommandIndex ?: -1
-                                                    selectedCommandIndex = (current + 1).coerceAtMost(commands.lastIndex)
+                                                    selectedCommandIndex =
+                                                        (current + 1).coerceAtMost(commands.lastIndex)
                                                     true
                                                 }
                                                 OmniboxMode.DataSearch -> {
                                                     val commandSize = uiState.hybridCommandResults.size
                                                     val dataSize = filteredResults.size
-                                                    if (commandSize == 0 && dataSize == 0) return@onPreviewKeyEvent false
+                                                    if (commandSize == 0 && dataSize == 0) {
+                                                        return@onPreviewKeyEvent false
+                                                    }
                                                     when (selectionArea) {
                                                         OmniboxSelectionArea.Command -> {
                                                             val current = selectedCommandIndex ?: 0
@@ -575,7 +645,9 @@ fun GlobalSearchScreen(
                                                 OmniboxMode.DataSearch -> {
                                                     val commandSize = uiState.hybridCommandResults.size
                                                     val dataSize = filteredResults.size
-                                                    if (commandSize == 0 && dataSize == 0) return@onPreviewKeyEvent false
+                                                    if (commandSize == 0 && dataSize == 0) {
+                                                        return@onPreviewKeyEvent false
+                                                    }
                                                     when (selectionArea) {
                                                         OmniboxSelectionArea.Command -> {
                                                             val current = selectedCommandIndex ?: commandSize
@@ -620,7 +692,10 @@ fun GlobalSearchScreen(
                                                             true
                                                         }
                                                         OmniboxSelectionArea.Data -> {
-                                                            val result = selectedDataIndex?.let { filteredResults.getOrNull(it) }
+                                                            val result =
+                                                                selectedDataIndex?.let {
+                                                                    filteredResults.getOrNull(it)
+                                                                }
                                                             if (result != null) {
                                                                 openDataResultPrimary(result)
                                                                 keyboardController?.hide()
@@ -745,268 +820,6 @@ fun GlobalSearchScreen(
     }
 }
 
-@Composable
-private fun CommandResultsContent(
-    results: List<OmniboxCommandResult>,
-    query: String,
-    recentCommands: List<OmniboxCommandId>,
-    selectedCommandIndex: Int?,
-    onCommandClick: (OmniboxCommandId) -> Unit,
-    accentColor: Color,
-    modifier: Modifier = Modifier,
-) {
-    if (results.isEmpty()) {
-        EmptySearchContent(query = query, modifier = modifier)
-        return
-    }
-    LazyColumn(
-        modifier = modifier,
-        contentPadding = PaddingValues(vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        if (query.isBlank() && recentCommands.isNotEmpty()) {
-            item("recent_commands_label") {
-                Text(
-                    text = "Нещодавні команди",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            item("recent_commands_chips") {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    recentCommands.take(6).forEach { commandId ->
-                        AssistChip(
-                            onClick = { onCommandClick(commandId) },
-                            label = { Text(commandTitle(commandId)) },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = commandIcon(commandId),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                            },
-                        )
-                    }
-                }
-            }
-        }
-        itemsIndexed(
-            items = results,
-            key = { _, item -> item.id.name },
-        ) { index, item ->
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { onCommandClick(item.id) },
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border =
-                    androidx.compose.foundation.BorderStroke(
-                        if (selectedCommandIndex == index) 1.4.dp else 1.dp,
-                        if (selectedCommandIndex == index) {
-                            accentColor.copy(alpha = 0.45f)
-                        } else {
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-                        },
-                    ),
-            ) {
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Icon(
-                        imageVector = commandIcon(item.id),
-                        contentDescription = null,
-                        tint = accentColor,
-                    )
-                    Column(modifier = Modifier.weight(1f)) {
-                        HighlightedText(
-                            text = item.title,
-                            query = query,
-                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 2,
-                        )
-                        Text(
-                            text = item.subtitle,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-            }
-        }
-        item { Spacer(modifier = Modifier.height(72.dp)) }
-    }
-}
-
-@Composable
-private fun HybridCommandSection(
-    results: List<OmniboxCommandResult>,
-    selectedCommandIndex: Int?,
-    accentColor: Color,
-    onCommandClick: (OmniboxCommandId) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(
-            text = "Команди",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        results.forEachIndexed { index, command ->
-            Surface(
-                onClick = { onCommandClick(command.id) },
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                border =
-                    androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        if (selectedCommandIndex == index) {
-                            accentColor.copy(
-                                alpha = 0.4f,
-                            )
-                        } else {
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f)
-                        },
-                    ),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(commandIcon(command.id), contentDescription = null, tint = accentColor, modifier = Modifier.size(16.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(command.title, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(
-                            command.subtitle,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-internal fun CommandSearchResultCard(
-    command: OmniboxCommandResult,
-    query: String,
-    isSelected: Boolean,
-    accentColor: Color,
-    onCommandClick: (OmniboxCommandId) -> Unit,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = { onCommandClick(command.id) },
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border =
-            androidx.compose.foundation.BorderStroke(
-                if (isSelected) 1.35.dp else 1.dp,
-                if (isSelected) accentColor.copy(alpha = 0.45f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
-            ),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Icon(
-                imageVector = commandIcon(command.id),
-                contentDescription = null,
-                tint = accentColor,
-                modifier = Modifier.size(18.dp),
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                HighlightedText(
-                    text = command.title,
-                    query = query,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                )
-                Text(
-                    text = command.subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun EmptyDataSearchContent(
-    query: String,
-    commandResults: List<OmniboxCommandResult>,
-    selectedCommandIndex: Int?,
-    accentColor: Color,
-    onCommandClick: (OmniboxCommandId) -> Unit,
-    onQuickCatch: () -> Unit,
-    onStartActivity: () -> Unit,
-    onAddActivityEvent: () -> Unit,
-    onRunBestCommand: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        if (commandResults.isNotEmpty()) {
-            HybridCommandSection(
-                results = commandResults,
-                selectedCommandIndex = selectedCommandIndex,
-                accentColor = accentColor,
-                onCommandClick = onCommandClick,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        EmptySearchContent(query = query, modifier = Modifier.weight(1f).fillMaxWidth())
-        Surface(
-            shape = RoundedCornerShape(14.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(
-                modifier = Modifier.padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = "Швидкі дії для \"$query\"",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilledTonalButton(onClick = onQuickCatch, modifier = Modifier.weight(1f)) {
-                        Text("В inbox")
-                    }
-                    FilledTonalButton(onClick = onStartActivity, modifier = Modifier.weight(1f)) {
-                        Text("В activity")
-                    }
-                    FilledTonalButton(onClick = onAddActivityEvent, modifier = Modifier.weight(1f)) {
-                        Text("Подія")
-                    }
-                }
-                TextButton(onClick = onRunBestCommand, modifier = Modifier.fillMaxWidth()) {
-                    Text("Виконати найкращу команду")
-                }
-            }
-        }
-    }
-}
 
 private fun modeIcon(mode: OmniboxMode): ImageVector =
     when (mode) {
@@ -1072,14 +885,6 @@ private fun placeholderForMode(mode: OmniboxMode): String =
         OmniboxMode.AddActivityEvent -> "Назва події трекера..."
     }
 
-private fun inputHintForMode(mode: OmniboxMode): String =
-    when (mode) {
-        OmniboxMode.DataSearch -> ""
-        OmniboxMode.Command -> "Введи команду. ↑/↓ переміщення, Enter виконує команду"
-        OmniboxMode.QuickCatchInbox -> "Введи текст і натисни пошук/Enter. Запис одразу додасться в inbox"
-        OmniboxMode.StartActivity -> "Введи назву активності і натисни пошук/Enter. Буде створено новий запис"
-        OmniboxMode.AddActivityEvent -> "Введи текст події і натисни пошук/Enter. Подія додасться в трекер"
-    }
 
 private fun submitDescriptionForMode(mode: OmniboxMode): String =
     when (mode) {
@@ -1090,7 +895,7 @@ private fun submitDescriptionForMode(mode: OmniboxMode): String =
         OmniboxMode.AddActivityEvent -> "Додати подію"
     }
 
-private fun commandIcon(commandId: OmniboxCommandId): ImageVector =
+internal fun commandIcon(commandId: OmniboxCommandId): ImageVector =
     when (commandId) {
         OmniboxCommandId.OpenContexts -> Icons.Default.AccountTree
         OmniboxCommandId.OpenInbox -> Icons.Outlined.MoveToInbox
@@ -1106,7 +911,7 @@ private fun commandIcon(commandId: OmniboxCommandId): ImageVector =
         OmniboxCommandId.OpenStructurePresets -> Icons.Default.Tune
     }
 
-private fun commandTitle(commandId: OmniboxCommandId): String =
+internal fun commandTitle(commandId: OmniboxCommandId): String =
     when (commandId) {
         OmniboxCommandId.OpenContexts -> "Контексти"
         OmniboxCommandId.OpenInbox -> "Inbox"
@@ -1181,397 +986,6 @@ private fun rememberModePalette(mode: OmniboxMode): OmniboxModePalette {
                     modeIconContainer = scheme.secondaryContainer.copy(alpha = 0.52f),
                     iconTint = scheme.secondary.copy(alpha = 0.92f),
                 )
-        }
-    }
-}
-
-@Composable
-private fun LoadingContent(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(48.dp),
-                strokeWidth = 4.dp,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                text = "Пошук...",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Composable
-private fun DataSearchLoadingContent(modifier: Modifier = Modifier) {
-    val shimmer = rememberInfiniteTransition(label = "search_skeleton")
-    val pulse by shimmer.animateFloat(
-        initialValue = 0.32f,
-        targetValue = 0.56f,
-        animationSpec = infiniteRepeatable(animation = tween(850), repeatMode = RepeatMode.Reverse),
-        label = "search_skeleton_alpha",
-    )
-    Column(
-        modifier = modifier.padding(top = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        repeat(4) { idx ->
-            Surface(
-                modifier = Modifier.fillMaxWidth().height(76.dp).padding(horizontal = 4.dp),
-                shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = pulse - (idx * 0.03f)),
-                tonalElevation = 0.dp,
-            ) {}
-        }
-    }
-}
-
-@Composable
-private fun EmptySearchContent(
-    query: String,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(32.dp),
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .size(80.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(
-                            brush =
-                                Brush.verticalGradient(
-                                    colors =
-                                        listOf(
-                                            MaterialTheme.colorScheme.surfaceVariant,
-                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                        ),
-                                ),
-                        ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.SearchOff,
-                    contentDescription = "Нічого не знайдено",
-                    modifier = Modifier.size(40.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            Text(
-                text = if (query.isBlank()) "Введіть запит" else "Нічого не знайдено",
-                style =
-                    MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                    ),
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
-            )
-
-            Text(
-                text =
-                    if (query.isBlank()) {
-                        "Search everywhere шукає по контекстах, цілях, активностях, інбоксу та вкладеннях."
-                    } else {
-                        "За запитом \"$query\" результатів не знайдено.\nСпробуйте змінити пошуковий запит."
-                    },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.2,
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun SearchStartContent(
-    history: List<String>,
-    onHistoryClick: (String) -> Unit,
-    onRemoveHistoryEntry: (String) -> Unit,
-    onClearHistory: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier.padding(horizontal = 4.dp).padding(top = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        if (history.isNotEmpty()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "Історія пошуку",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                TextButton(onClick = onClearHistory) {
-                    Text("Очистити все")
-                }
-            }
-
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                history.forEach { query ->
-                    InputChip(
-                        selected = false,
-                        onClick = { onHistoryClick(query) },
-                        label = { Text(query) },
-                        trailingIcon = {
-                            IconButton(
-                                onClick = { onRemoveHistoryEntry(query) },
-                                modifier = Modifier.size(20.dp),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Clear,
-                                    contentDescription = "Видалити з історії",
-                                    modifier = Modifier.size(12.dp),
-                                )
-                            }
-                        },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun FilterSelectorChip(
-    icon: ImageVector,
-    label: String,
-    isActive: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val containerColor =
-        if (isActive) {
-            MaterialTheme.colorScheme.primaryContainer
-        } else {
-            MaterialTheme.colorScheme.surfaceVariant
-        }
-    val contentColor =
-        if (isActive) {
-            MaterialTheme.colorScheme.onPrimaryContainer
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        }
-
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(999.dp),
-        color = containerColor,
-        modifier = modifier.height(38.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = contentColor,
-                modifier = Modifier.size(16.dp),
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelLarge,
-                color = contentColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            Icon(
-                imageVector = Icons.Default.ArrowDropDown,
-                contentDescription = null,
-                tint = contentColor,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun DataActionsBottomSheet(
-    onSelectTypes: () -> Unit,
-    onSelectSorting: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(bottom = 16.dp),
-        ) {
-            Text(
-                text = "Додаткові дії пошуку",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-            )
-            HorizontalDivider()
-            ListItem(
-                headlineContent = { Text("Типи результатів") },
-                supportingContent = { Text("Обрати, які типи даних показувати") },
-                leadingContent = { Icon(Icons.Default.Tune, contentDescription = null) },
-                modifier = Modifier.fillMaxWidth().clickable { onSelectTypes() },
-            )
-            ListItem(
-                headlineContent = { Text("Сортування") },
-                supportingContent = { Text("Змінити порядок відображення результатів") },
-                leadingContent = { Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = null) },
-                modifier = Modifier.fillMaxWidth().clickable { onSelectSorting() },
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TypeBottomSheet(
-    options: List<GlobalSearchType>,
-    selected: Set<GlobalSearchType>,
-    onApply: (Set<GlobalSearchType>) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var draft by remember(selected) { mutableStateOf(selected) }
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(bottom = 16.dp),
-        ) {
-            Text(
-                text = "Типи результатів",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-            )
-            HorizontalDivider()
-
-            ListItem(
-                headlineContent = { Text("Усі типи") },
-                leadingContent = {
-                    Icon(Icons.Default.Search, contentDescription = null)
-                },
-                trailingContent = {
-                    if (draft.size == options.size) {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    }
-                },
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable { draft = options.toSet() },
-            )
-            options.forEach { type ->
-                ListItem(
-                    headlineContent = { Text(type.label) },
-                    leadingContent = { Icon(type.icon, contentDescription = null) },
-                    trailingContent = {
-                        if (type in draft) {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        }
-                    },
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 4.dp)
-                            .clickable {
-                                draft =
-                                    if (type in draft) {
-                                        draft - type
-                                    } else {
-                                        draft + type
-                                    }
-                            },
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.weight(1f),
-                ) { Text("Скасувати") }
-                Button(
-                    onClick = { onApply(draft) },
-                    modifier = Modifier.weight(1f),
-                ) { Text("Застосувати") }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SortBottomSheet(
-    selectedSort: GlobalSearchSort,
-    onSortSelected: (GlobalSearchSort) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(bottom = 16.dp),
-        ) {
-            Text(
-                text = "Сортування",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-            )
-            HorizontalDivider()
-
-            GlobalSearchSort.entries.forEach { sort ->
-                ListItem(
-                    headlineContent = { Text(sort.label) },
-                    leadingContent = { Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = null) },
-                    trailingContent = {
-                        if (selectedSort == sort) {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth().clickable { onSortSelected(sort) },
-                )
-            }
         }
     }
 }

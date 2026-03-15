@@ -41,10 +41,13 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.BacklogListActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.BacklogListScreen
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.BacklogListState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.connections.ConnectionsView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.direction.DirectionView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxView
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxViewState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.keyproblems.KeyProblemsView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ProjectDashboardView
@@ -105,59 +108,68 @@ fun GoalDetailContent(
                     }
                 }
             BacklogListScreen(
-                items = filteredBacklogItems,
                 modifier = modifier,
-                listState = listState,
-                showCheckboxes = uiState.showCheckboxes,
-                selectedItemIds = uiState.selectedItemIds,
-                contextMarkerToEmojiMap = contextMarkerToEmojiMap,
-                swipedItemId = uiState.swipedItemId,
-                swipeResetCounter = uiState.swipeResetCounter,
-                onMove = { from, to -> viewModel.onMove(from, to) },
-                onItemClick = { item -> viewModel.itemActionHandler.onItemClick(item) },
-                onLongClick = { item -> viewModel.toggleSelection(item.backlogItem.id) },
-                onCheckedChange = { item, isChecked ->
-                    when (item) {
-                        is BacklogItemContent.GoalItem ->
-                            viewModel.itemActionHandler.toggleGoalCompletedWithState(
-                                item.goal,
-                                isChecked,
-                            )
+                state =
+                    BacklogListState(
+                        items = filteredBacklogItems,
+                        listState = listState,
+                        showCheckboxes = uiState.showCheckboxes,
+                        selectedItemIds = uiState.selectedItemIds,
+                        contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+                        swipedItemId = uiState.swipedItemId,
+                        swipeResetCounter = uiState.swipeResetCounter,
+                        editingGoalId = uiState.goalToEditInline?.id,
+                    ),
+                actions =
+                    BacklogListActions(
+                        onMove = { from, to -> viewModel.onMove(from, to) },
+                        onItemClick = { item -> viewModel.itemActionHandler.onItemClick(item) },
+                        onLongClick = { item -> viewModel.toggleSelection(item.backlogItem.id) },
+                        onCheckedChange = { item, isChecked ->
+                            when (item) {
+                                is BacklogItemContent.GoalItem ->
+                                    viewModel.itemActionHandler.toggleGoalCompletedWithState(
+                                        item.goal,
+                                        isChecked,
+                                    )
 
-                        is BacklogItemContent.ContextLinkItem ->
-                            viewModel.onSubprojectCompletedChanged(
-                                item.project,
-                                isChecked,
-                            )
+                                is BacklogItemContent.ContextLinkItem ->
+                                    viewModel.onSubprojectCompletedChanged(
+                                        item.project,
+                                        isChecked,
+                                    )
 
-                        else -> {}
-                    }
-                },
-                onDelete = { item -> viewModel.itemActionHandler.deleteItem(item) },
-                onDeleteEverywhere = { item -> viewModel.onDeleteEverywhere(item) },
-                onAddToDayPlan = { item -> viewModel.addItemToDailyPlan(item) },
-                onStartTracking = { item -> viewModel.onStartTrackingRequest(item) },
-                onShowGoalTransportMenu = { item ->
-                    viewModel.itemActionHandler.onGoalTransportInitiated(item)
-                },
-                onRelatedLinkClick = viewModel.itemActionHandler::onRelatedLinkClick,
-                onRemindersClick = onRemindersClick,
-                onCopyContent = viewModel.itemActionHandler::copyContentRequest,
-                onOpenGoalProperties = viewModel::openGoalProperties,
-                editingGoalId = uiState.goalToEditInline?.id,
-                onGoalInlineEditSave = viewModel::onSaveGoalInlineEditor,
-                onGoalInlineEditCancel = viewModel::onDismissGoalInlineEditor,
-                onResetSwipe = viewModel::resetSwipeStatesExcept,
-                onDragStopped = viewModel::onBacklogDragStopped,
+                                else -> {}
+                            }
+                        },
+                        onDelete = { item -> viewModel.itemActionHandler.deleteItem(item) },
+                        onDeleteEverywhere = { item -> viewModel.onDeleteEverywhere(item) },
+                        onAddToDayPlan = { item -> viewModel.addItemToDailyPlan(item) },
+                        onStartTracking = { item -> viewModel.onStartTrackingRequest(item) },
+                        onShowGoalTransportMenu = { item ->
+                            viewModel.itemActionHandler.onGoalTransportInitiated(item)
+                        },
+                        onRelatedLinkClick = viewModel.itemActionHandler::onRelatedLinkClick,
+                        onRemindersClick = onRemindersClick,
+                        onCopyContent = viewModel.itemActionHandler::copyContentRequest,
+                        onOpenGoalProperties = viewModel::openGoalProperties,
+                        onGoalInlineEditSave = viewModel::onSaveGoalInlineEditor,
+                        onGoalInlineEditCancel = viewModel::onDismissGoalInlineEditor,
+                        onResetSwipe = viewModel::resetSwipeStatesExcept,
+                        onDragStopped = viewModel::onBacklogDragStopped,
+                    ),
             )
         }
         ContextViewMode.INBOX -> {
             InboxView(
                 modifier = modifier,
                 viewModel = viewModel,
-                inboxRecords = inboxRecords,
-                listState = inboxListState,
-                highlightedRecordId = uiState.inboxRecordToHighlight,
+                state =
+                    InboxViewState(
+                        inboxRecords = inboxRecords,
+                        listState = inboxListState,
+                        highlightedRecordId = uiState.inboxRecordToHighlight,
+                    ),
                 navigationManager = viewModel.enhancedNavigationManager,
             )
         }
@@ -182,7 +194,7 @@ fun GoalDetailContent(
                 enableDashboard = uiState.enableDashboard,
                 enableLog = uiState.enableLog,
                 enableArtifact = uiState.enableArtifact,
-                onEditArtifact = { /*TODO*/ },
+                onEditArtifact = onEditArtifact,
             )
         }
         ContextViewMode.CONNECTIONS -> {
@@ -241,7 +253,7 @@ fun GoalDetailContent(
                 onEditLog = onEditLog,
                 onDeleteLog = onDeleteLog,
                 onSaveArtifact = { content -> viewModel.onSaveArtifact(content) },
-                onEditArtifact = { /* TODO */ },
+                onEditArtifact = onEditArtifact,
                 selectedTab = ContextManagementTab.Log,
                 onTabSelected = viewModel::onDashboardTabSelected,
                 enableDashboard = uiState.enableDashboard,
@@ -262,7 +274,7 @@ fun GoalDetailContent(
                 onEditLog = onEditLog,
                 onDeleteLog = onDeleteLog,
                 onSaveArtifact = { content -> viewModel.onSaveArtifact(content) },
-                onEditArtifact = { /* TODO */ },
+                onEditArtifact = onEditArtifact,
                 selectedTab = ContextManagementTab.Artifact,
                 onTabSelected = viewModel::onDashboardTabSelected,
                 enableDashboard = uiState.enableDashboard,

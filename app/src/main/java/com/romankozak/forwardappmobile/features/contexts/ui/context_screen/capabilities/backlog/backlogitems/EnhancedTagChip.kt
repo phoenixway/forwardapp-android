@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems
+package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -43,13 +43,10 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun EnhancedTagChip(
-    text: String,
+    state: EnhancedTagChipState,
     onDismiss: (() -> Unit)? = null,
     onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
-    isDismissible: Boolean = true,
-    isSelected: Boolean = false,
-    tagType: TagType = TagType.HASHTAG,
 ) {
     var isPressed by remember { mutableStateOf(false) }
     val interactionSource = remember { MutableInteractionSource() }
@@ -70,26 +67,11 @@ fun EnhancedTagChip(
         label = "tag_elevation",
     )
 
-    val colors = getTagColors(tagType, isSelected)
+    val colors = getTagColors(state.tagType, state.isSelected)
+    val chipModifier = modifier.enhancedTagChipModifier(scale, elevation, onClick, state.text)
 
     Surface(
-        modifier =
-            modifier
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                }
-                .shadow(
-                    elevation = elevation,
-                    shape = RoundedCornerShape(16.dp),
-                    clip = false,
-                )
-                .semantics {
-                    if (onClick != null) {
-                        role = Role.Button
-                        contentDescription = "Тег: $text"
-                    }
-                },
+        modifier = chipModifier,
         shape = RoundedCornerShape(16.dp),
         color = Color.Transparent,
         border =
@@ -108,56 +90,99 @@ fun EnhancedTagChip(
         interactionSource = interactionSource,
         enabled = onClick != null,
     ) {
-        Box(
-            modifier =
-                Modifier
-                    .background(
-                        brush =
-                            Brush.linearGradient(
-                                colors =
-                                    listOf(
-                                        colors.backgroundStart,
-                                        colors.backgroundEnd,
-                                    ),
-                                start = Offset(0f, 0f),
-                                end = Offset.Infinite,
-                            ),
-                    ),
-        ) {
-            Row(
-                modifier =
-                    Modifier.padding(
-                        horizontal = 12.dp,
-                        vertical = 6.dp,
-                    ),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    text = text,
-                    style =
-                        MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 0.2.sp,
-                            fontSize = 12.sp,
-                        ),
-                    color = colors.content,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+        EnhancedTagChipContent(
+            text = state.text,
+            colors = colors,
+            isDismissible = state.isDismissible,
+            onDismiss = onDismiss,
+        )
+    }
+}
 
-                if (isDismissible && onDismiss != null) {
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.size(16.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Видалити тег",
-                            tint = colors.content.copy(alpha = 0.7f),
-                            modifier = Modifier.size(10.dp),
-                        )
-                    }
+private fun Modifier.enhancedTagChipModifier(
+    scale: Float,
+    elevation: androidx.compose.ui.unit.Dp,
+    onClick: (() -> Unit)?,
+    text: String,
+): Modifier =
+    graphicsLayer {
+        scaleX = scale
+        scaleY = scale
+    }
+        .shadow(
+            elevation = elevation,
+            shape = RoundedCornerShape(16.dp),
+            clip = false,
+        )
+        .semantics {
+            if (onClick != null) {
+                role = Role.Button
+                contentDescription = "Тег: $text"
+            }
+        }
+
+data class EnhancedTagChipState(
+    val text: String,
+    val isDismissible: Boolean = true,
+    val isSelected: Boolean = false,
+    val tagType: TagType = TagType.HASHTAG,
+)
+
+@Composable
+private fun EnhancedTagChipContent(
+    text: String,
+    colors: TagColors,
+    isDismissible: Boolean,
+    onDismiss: (() -> Unit)?,
+) {
+    Box(
+        modifier =
+            Modifier.background(
+                brush =
+                    Brush.linearGradient(
+                        colors =
+                            listOf(
+                                colors.backgroundStart,
+                                colors.backgroundEnd,
+                            ),
+                        start = Offset(0f, 0f),
+                        end = Offset.Infinite,
+                    ),
+            ),
+    ) {
+        Row(
+            modifier =
+                Modifier.padding(
+                    horizontal = 12.dp,
+                    vertical = 6.dp,
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = text,
+                style =
+                    MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.2.sp,
+                        fontSize = 12.sp,
+                    ),
+                color = colors.content,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+
+            if (isDismissible && onDismiss != null) {
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(16.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Видалити тег",
+                        tint = colors.content.copy(alpha = 0.7f),
+                        modifier = Modifier.size(10.dp),
+                    )
                 }
             }
         }

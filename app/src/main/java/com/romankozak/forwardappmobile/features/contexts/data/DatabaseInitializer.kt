@@ -22,88 +22,120 @@ class DatabaseInitializer
         private suspend fun prePopulateProjects(contextDao: ContextDao) {
             val personalManagementProjectId =
                 ensureProjectExists(
-                    contextDao,
-                    SystemContexts.PERSONAL_MANAGEMENT.raw,
-                    "personal-management",
-                    null,
+                    contextDao = contextDao,
+                    id = SystemContexts.PERSONAL_MANAGEMENT.raw,
+                    name = "personal-management",
+                    parentId = null,
                 )
             val strategicGroupId =
                 ensureProjectExists(
-                    contextDao,
-                    SystemContexts.STRATEGIC.raw,
-                    "strategic",
-                    personalManagementProjectId,
+                    contextDao = contextDao,
+                    id = SystemContexts.STRATEGIC.raw,
+                    name = "strategic",
+                    parentId = personalManagementProjectId,
                 )
             val strategicBeaconsGroupId =
                 ensureProjectExists(
-                    contextDao,
-                    SystemContexts.STRATEGIC_BEACONS.raw,
-                    "strategic-beacons",
-                    strategicGroupId,
+                    contextDao = contextDao,
+                    id = SystemContexts.STRATEGIC_BEACONS.raw,
+                    name = "strategic-beacons",
+                    parentId = strategicGroupId,
                 )
             val weekProjectId =
                 ensureProjectExists(
-                    contextDao,
-                    SystemContexts.WEEK.raw,
-                    "week",
-                    personalManagementProjectId,
+                    contextDao = contextDao,
+                    id = SystemContexts.WEEK.raw,
+                    name = "week",
+                    parentId = personalManagementProjectId,
                 )
             val todayProjectId =
                 ensureProjectExists(
-                    contextDao,
-                    SystemContexts.TODAY.raw,
-                    "today",
-                    personalManagementProjectId,
+                    contextDao = contextDao,
+                    id = SystemContexts.TODAY.raw,
+                    name = "today",
+                    parentId = personalManagementProjectId,
                 )
-            ensureProjectExists(
-                contextDao,
-                SystemContexts.MAIN_BEACONS.raw,
-                "main-beacons",
-                personalManagementProjectId,
+
+            createSystemProjects(
+                contextDao = contextDao,
+                projectDefinitions =
+                    buildSystemProjectDefinitions(
+                        personalManagementProjectId = personalManagementProjectId,
+                        strategicGroupId = strategicGroupId,
+                        strategicBeaconsGroupId = strategicBeaconsGroupId,
+                        weekProjectId = weekProjectId,
+                        todayProjectId = todayProjectId,
+                    ),
             )
-            ensureProjectExists(
-                contextDao,
-                SystemContexts.MISSION.raw,
-                "mission",
-                strategicBeaconsGroupId,
+        }
+
+        private fun buildSystemProjectDefinitions(
+            personalManagementProjectId: String,
+            strategicGroupId: String,
+            strategicBeaconsGroupId: String,
+            weekProjectId: String,
+            todayProjectId: String,
+        ): List<SystemProjectDefinition> =
+            listOf(
+                SystemProjectDefinition(
+                    id = SystemContexts.MAIN_BEACONS.raw,
+                    name = "main-beacons",
+                    parentId = personalManagementProjectId,
+                ),
+                SystemProjectDefinition(
+                    id = SystemContexts.MISSION.raw,
+                    name = "mission",
+                    parentId = strategicBeaconsGroupId,
+                ),
+                SystemProjectDefinition(
+                    id = SystemContexts.LONG_TERM_STRATEGY.raw,
+                    name = "long-term-strategy",
+                    parentId = strategicBeaconsGroupId,
+                ),
+                SystemProjectDefinition(
+                    id = SystemContexts.STRATEGIC_PROGRAMS.raw,
+                    name = "strategic-programs",
+                    parentId = strategicBeaconsGroupId,
+                ),
+                SystemProjectDefinition(
+                    id = SystemContexts.MEDIUM_TERM_STRATEGY.raw,
+                    name = "medium-term-strategy",
+                    parentId = personalManagementProjectId,
+                ),
+                SystemProjectDefinition(
+                    id = SystemContexts.ACTIVE_QUESTS.raw,
+                    name = "active-quests",
+                    parentId = weekProjectId,
+                ),
+                SystemProjectDefinition(
+                    id = SystemContexts.STRATEGIC_INBOX.raw,
+                    name = "strategic-inbox",
+                    parentId = strategicGroupId,
+                ),
+                SystemProjectDefinition(
+                    id = SystemContexts.STRATEGIC_REVIEW.raw,
+                    name = "strategic-review",
+                    parentId = strategicGroupId,
+                ),
+                SystemProjectDefinition(
+                    id = SystemContexts.INBOX.raw,
+                    name = "inbox",
+                    parentId = todayProjectId,
+                ),
             )
-            ensureProjectExists(
-                contextDao,
-                SystemContexts.LONG_TERM_STRATEGY.raw,
-                "long-term-strategy",
-                strategicBeaconsGroupId,
-            )
-            ensureProjectExists(
-                contextDao,
-                SystemContexts.STRATEGIC_PROGRAMS.raw,
-                "strategic-programs",
-                strategicBeaconsGroupId,
-            )
-            ensureProjectExists(
-                contextDao,
-                SystemContexts.MEDIUM_TERM_STRATEGY.raw,
-                "medium-term-strategy",
-                personalManagementProjectId,
-            )
-            ensureProjectExists(
-                contextDao,
-                SystemContexts.ACTIVE_QUESTS.raw,
-                "active-quests",
-                weekProjectId,
-            )
-            ensureProjectExists(
-                contextDao,
-                SystemContexts.STRATEGIC_INBOX.raw,
-                "strategic-inbox",
-                strategicGroupId,
-            )
-            ensureProjectExists(
-                contextDao,
-                SystemContexts.STRATEGIC_REVIEW.raw,
-                "strategic-review",
-                strategicGroupId,
-            )
-            ensureProjectExists(contextDao, SystemContexts.INBOX.raw, "inbox", todayProjectId)
+
+        private suspend fun createSystemProjects(
+            contextDao: ContextDao,
+            projectDefinitions: List<SystemProjectDefinition>,
+        ) {
+            projectDefinitions.forEach { projectDefinition ->
+                ensureProjectExists(
+                    contextDao = contextDao,
+                    id = projectDefinition.id,
+                    name = projectDefinition.name,
+                    parentId = projectDefinition.parentId,
+                )
+            }
         }
 
         private suspend fun ensureProjectExists(
@@ -132,3 +164,9 @@ class DatabaseInitializer
             return newProject.id
         }
     }
+
+private data class SystemProjectDefinition(
+    val id: String,
+    val name: String,
+    val parentId: String?,
+)

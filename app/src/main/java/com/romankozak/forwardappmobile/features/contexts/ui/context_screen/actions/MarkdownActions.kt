@@ -17,13 +17,6 @@ class MarkdownActions(
         backlogMarkdownHandler.exportToMarkdown(items)
     }
 
-    fun onImportBacklogFromMarkdown(
-        markdownText: String,
-        contextId: String,
-    ) {
-        backlogMarkdownHandler.importFromMarkdown(markdownText, contextId)
-    }
-
     fun onShowImportBacklogFromMarkdownDialog() {
         stateManager.updateState { it.copy(showImportBacklogFromMarkdownDialog = true) }
     }
@@ -48,7 +41,7 @@ class MarkdownActions(
         markdownText: String,
         contextId: String,
     ) {
-        onImportBacklogFromMarkdown(markdownText, contextId)
+        backlogMarkdownHandler.importFromMarkdown(markdownText, contextId)
         onDismissImportBacklogFromMarkdownDialog()
     }
 

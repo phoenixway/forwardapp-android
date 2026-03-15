@@ -112,19 +112,10 @@ class StructurePresetEditorViewModel
 
         fun onDescriptionChange(value: String) = _uiState.update { it.copy(description = value) }
 
-        fun onEnableInboxChange(value: Boolean) = _uiState.update { it.copy(enableInbox = value) }
-
-        fun onEnableLogChange(value: Boolean) = _uiState.update { it.copy(enableLog = value) }
-
-        fun onEnableAdvancedChange(value: Boolean) = _uiState.update { it.copy(enableAdvanced = value) }
-
-        fun onEnableDashboardChange(value: Boolean) = _uiState.update { it.copy(enableDashboard = value) }
-
-        fun onEnableBacklogChange(value: Boolean) = _uiState.update { it.copy(enableBacklog = value) }
-
-        fun onEnableAttachmentsChange(value: Boolean) = _uiState.update { it.copy(enableAttachments = value) }
-
-        fun onEnableAutoLinkSubprojectsChange(value: Boolean) = _uiState.update { it.copy(enableAutoLinkSubprojects = value) }
+        fun updateToggle(
+            toggle: PresetToggle,
+            value: Boolean,
+        ) = _uiState.update { state -> toggle.apply(state, value) }
 
         fun addItem(item: PresetEditorItem) {
             _uiState.update { it.copy(items = it.items + item) }
@@ -178,3 +169,29 @@ class StructurePresetEditorViewModel
             }
         }
     }
+
+enum class PresetToggle {
+    INBOX,
+    LOG,
+    ADVANCED,
+    DASHBOARD,
+    BACKLOG,
+    ATTACHMENTS,
+    AUTO_LINK_SUBPROJECTS,
+    ;
+
+    fun apply(
+        state: StructurePresetEditorUiState,
+        value: Boolean,
+    ): StructurePresetEditorUiState {
+        return when (this) {
+            INBOX -> state.copy(enableInbox = value)
+            LOG -> state.copy(enableLog = value)
+            ADVANCED -> state.copy(enableAdvanced = value)
+            DASHBOARD -> state.copy(enableDashboard = value)
+            BACKLOG -> state.copy(enableBacklog = value)
+            ATTACHMENTS -> state.copy(enableAttachments = value)
+            AUTO_LINK_SUBPROJECTS -> state.copy(enableAutoLinkSubprojects = value)
+        }
+    }
+}

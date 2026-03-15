@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -47,11 +48,11 @@ class LifeStateViewModel
 
         companion object {
             private var cachedAnalysis: AiAnalysis? = null
-            private const val LIFE_CHAT_TITLE = "Life Management"
             private const val LIFE_ANALYSIS_TAG = "life_analysis_unique"
         }
 
         private val cacheFile = File(appContext.filesDir, "life_state_analysis.json")
+        @OptIn(ExperimentalSerializationApi::class)
         private val json =
             Json {
                 ignoreUnknownKeys = true
@@ -109,7 +110,7 @@ class LifeStateViewModel
                             }
                         },
                     )
-                } catch (e: Exception) {
+                } catch (e: RuntimeException) {
                     Log.e(tag, "LifeState loadAnalysis failed", e)
                     _uiState.update {
                         it.copy(

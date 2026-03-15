@@ -28,9 +28,18 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
 
-data class RoleOption(
-    val code: String?,
-    val label: String,
+private data class AddProjectDialogFieldsState(
+    val text: String,
+    val focusRequester: FocusRequester,
+    val roleExpanded: Boolean,
+    val selectedRole: RoleOption,
+    val availableRoles: List<RoleOption>,
+)
+
+private data class AddProjectDialogFieldsActions(
+    val onTextChange: (String) -> Unit,
+    val onRoleExpandedChange: (Boolean) -> Unit,
+    val onRoleSelected: (RoleOption) -> Unit,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,35 +53,11 @@ fun AddProjectDialog(
 ) {
     var text by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
-    val availableRoles =
-        remember(roleOptions) {
-            val source =
-                if (roleOptions.isNotEmpty()) {
-                    roleOptions
-                } else {
-                    ContextRoleRegistry
-                        .getReservedBaseRoleDefinitions()
-                        .map { RoleOption(code = it.code, label = it.label) }
-                }
-            listOf(RoleOption(code = null, label = "No role")) + source
-        }
+    val availableRoles = remember(roleOptions) { resolveAvailableRoles(roleOptions) }
     var roleExpanded by remember { mutableStateOf(false) }
     val initialRole =
         remember(availableRoles, preferredRoleCode) {
-            val preferred = preferredRoleCode?.trim()?.takeIf { it.isNotEmpty() }
-            if (preferred == null) {
-                availableRoles.first()
-            } else {
-                availableRoles.firstOrNull { it.code?.equals(preferred, ignoreCase = true) == true }
-                    ?: availableRoles.firstOrNull {
-                        preferred.equals("others", ignoreCase = true) &&
-                            (
-                                it.code?.equals("other", ignoreCase = true) == true ||
-                                    it.code?.equals("others", ignoreCase = true) == true
-                            )
-                    }
-                    ?: availableRoles.first()
-            }
+            resolveInitialRole(availableRoles, preferredRoleCode)
         }
     var selectedRole by remember(availableRoles, preferredRoleCode) { mutableStateOf(initialRole) }
 
@@ -89,52 +74,22 @@ fun AddProjectDialog(
             }
         },
         text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                OutlinedTextField(
-                    value = text,
-                    onValueChange = { text = it },
-                    label = { Text("Context name") },
-                    singleLine = true,
-                    modifier =
-                        Modifier
-                            .focusRequester(focusRequester)
-                            .fillMaxWidth(),
-                )
-
-                ExposedDropdownMenuBox(
-                    expanded = roleExpanded,
-                    onExpandedChange = { roleExpanded = !roleExpanded },
-                ) {
-                    OutlinedTextField(
-                        value = selectedRole.label,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Role") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = roleExpanded) },
-                        modifier =
-                            Modifier
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                                .fillMaxWidth(),
-                    )
-                    DropdownMenu(
-                        expanded = roleExpanded,
-                        onDismissRequest = { roleExpanded = false },
-                    ) {
-                        availableRoles.forEach { role ->
-                            DropdownMenuItem(
-                                text = { Text(role.label) },
-                                onClick = {
-                                    selectedRole = role
-                                    roleExpanded = false
-                                },
-                            )
-                        }
-                    }
-                }
-            }
+            AddProjectDialogFields(
+                state =
+                    AddProjectDialogFieldsState(
+                        text = text,
+                        focusRequester = focusRequester,
+                        roleExpanded = roleExpanded,
+                        selectedRole = selectedRole,
+                        availableRoles = availableRoles,
+                    ),
+                actions =
+                    AddProjectDialogFieldsActions(
+                        onTextChange = { text = it },
+                        onRoleExpandedChange = { roleExpanded = it },
+                        onRoleSelected = { selectedRole = it },
+                    ),
+            )
         },
         confirmButton = {
             Button(
@@ -151,5 +106,106 @@ fun AddProjectDialog(
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
+    }
+}
+
+private fun resolveAvailableRoles(roleOptions: List<RoleOption>): List<RoleOption> {
+    val source =
+        if (roleOptions.isNotEmpty()) {
+            roleOptions
+        } else {
+            ContextRoleRegistry
+                .getReservedBaseRoleDefinitions()
+                .map { RoleOption(code = it.code, label = it.label) }
+        }
+    return listOf(RoleOption(code = null, label = "No role")) + source
+}
+
+private fun resolveInitialRole(
+    availableRoles: List<RoleOption>,
+    preferredRoleCode: String?,
+): RoleOption {
+    val preferred = preferredRoleCode?.trim()?.takeIf { it.isNotEmpty() } ?: return availableRoles.first()
+
+    return availableRoles.firstOrNull { it.code?.equals(preferred, ignoreCase = true) == true }
+        ?: availableRoles.firstOrNull {
+            preferred.equals("others", ignoreCase = true) &&
+                (
+                    it.code?.equals("other", ignoreCase = true) == true ||
+                        it.code?.equals("others", ignoreCase = true) == true
+                )
+        }
+        ?: availableRoles.first()
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddProjectDialogFields(
+    state: AddProjectDialogFieldsState,
+    actions: AddProjectDialogFieldsActions,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        OutlinedTextField(
+            value = state.text,
+            onValueChange = actions.onTextChange,
+            label = { Text("Context name") },
+            singleLine = true,
+            modifier =
+                Modifier
+                    .focusRequester(state.focusRequester)
+                    .fillMaxWidth(),
+        )
+
+        RoleSelector(
+            expanded = state.roleExpanded,
+            onExpandedChange = actions.onRoleExpandedChange,
+            selectedRole = state.selectedRole,
+            availableRoles = state.availableRoles,
+            onRoleSelected = actions.onRoleSelected,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RoleSelector(
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    selectedRole: RoleOption,
+    availableRoles: List<RoleOption>,
+    onRoleSelected: (RoleOption) -> Unit,
+) {
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { onExpandedChange(!expanded) },
+    ) {
+        OutlinedTextField(
+            value = selectedRole.label,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Role") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier =
+                Modifier
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                    .fillMaxWidth(),
+        )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { onExpandedChange(false) },
+        ) {
+            availableRoles.forEach { role ->
+                DropdownMenuItem(
+                    text = { Text(role.label) },
+                    onClick = {
+                        onRoleSelected(role)
+                        onExpandedChange(false)
+                    },
+                )
+            }
+        }
     }
 }

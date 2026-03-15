@@ -48,34 +48,34 @@ class ListChooserFlowActions(
                 attachment is BacklogItemContent.NoteDocumentItem ||
                 attachment is BacklogItemContent.MusicNoteItem ||
                 attachment is BacklogItemContent.ChecklistItem
-        if (!isAttachmentSupported) {
-            return AttachmentShareResult(message = "This attachment type does not support copying")
-        }
-
         val itemType = attachment.backlogItem.itemType
         val entityId = attachment.backlogItem.entityId
-        if (itemType == null || entityId == null) {
-            return AttachmentShareResult(message = "Cannot share corrupt attachment")
-        }
+        return when {
+            !isAttachmentSupported ->
+                AttachmentShareResult(message = "This attachment type does not support copying")
+            itemType == null || entityId == null ->
+                AttachmentShareResult(message = "Cannot share corrupt attachment")
+            else -> {
+                val attachmentId =
+                    runCatching {
+                        contextRepository.ensureAttachmentLinkedToContext(
+                            attachmentType = itemType,
+                            entityId = entityId,
+                            targetContextId = targetContextId,
+                            ownerContextId =
+                                attachment.backlogItem.contextId.takeIf { it.isNotBlank() } ?: currentContextId,
+                        )
+                        attachment.backlogItem.entityId
+                    }.onFailure { error ->
+                        Log.e("ListChooserFlowActions", "Failed to link attachment", error)
+                    }.getOrNull()
 
-        val attachmentId =
-            try {
-                contextRepository.ensureAttachmentLinkedToContext(
-                    attachmentType = itemType,
-                    entityId = entityId,
-                    targetContextId = targetContextId,
-                    ownerContextId = attachment.backlogItem.contextId.takeIf { it.isNotBlank() } ?: currentContextId,
+                AttachmentShareResult(
+                    message = "Attachment added to selected context",
+                    newlyAddedItemId = attachmentId,
+                    shouldRefreshCurrentContext = targetContextId == currentContextId && attachmentId != null,
                 )
-                attachment.backlogItem.entityId
-            } catch (e: Exception) {
-                Log.e("ListChooserFlowActions", "Failed to link attachment", e)
-                null
             }
-
-        return AttachmentShareResult(
-            message = "Attachment added to selected context",
-            newlyAddedItemId = attachmentId,
-            shouldRefreshCurrentContext = targetContextId == currentContextId && attachmentId != null,
-        )
+        }
     }
 }

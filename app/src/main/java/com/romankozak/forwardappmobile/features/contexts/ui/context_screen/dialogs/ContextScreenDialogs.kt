@@ -51,9 +51,6 @@ fun GoalDetailDialogs(viewModel: ContextScreenViewModel) {
             onActionSelected = { actionType ->
                 viewModel.itemActionHandler.onGoalActionSelected(actionType, itemContent)
             },
-            onSetReminder = {
-                viewModel.onSetReminderForItem(itemContent)
-            },
             onOpenRemindersDialog = {
                 viewModel.onOpenRemindersDialog(itemContent)
             },

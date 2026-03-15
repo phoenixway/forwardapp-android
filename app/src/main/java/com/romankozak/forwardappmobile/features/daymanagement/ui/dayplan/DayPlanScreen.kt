@@ -1,758 +1,96 @@
 package com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan
 
-import android.content.Intent
-import android.net.Uri
-import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.outlined.ListAlt
-import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.Today
-import androidx.compose.material.icons.outlined.VerticalAlignTop
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
-import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
-import com.romankozak.forwardappmobile.core.navigation.NavTarget
-import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
-import com.romankozak.forwardappmobile.features.attachments.ui.AddObsidianLinkDialog
-import com.romankozak.forwardappmobile.features.attachments.ui.AddWebLinkDialog
-import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.scopelinks.DayScopeLinksSheet
-import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.AddTaskDialog
-import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.TaskList
-import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
-import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
-import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTargetsPickerDialog
-import com.romankozak.forwardappmobile.features.missions.presentation.PickerCreateAction
-import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
-import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
 import com.romankozak.forwardappmobile.ui.common.MatrixRainView
-import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
-import com.romankozak.forwardappmobile.ui.components.orderToken
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import java.net.URLEncoder
 
 const val TAG = "NAV_DEBUG"
+internal const val PRELOAD_CONTENT_DELAY_MILLIS = 100L
+internal const val MATRIX_SPLASH_VISIBLE_DELAY_MILLIS = 600L
+internal const val MATRIX_SPLASH_FADE_OUT_DELAY_MILLIS = 500L
+internal const val LINK_PICKER_OPEN_DELAY_MILLIS = 160L
+internal const val CONTENT_FADE_IN_DURATION_MILLIS = 300
+internal const val CONTENT_FADE_IN_DELAY_MILLIS = 400
 
-@OptIn(
-    ExperimentalMaterial3Api::class,
-    ExperimentalFoundationApi::class,
-    ExperimentalAnimationApi::class,
+data class DayPlanScreenNavigator(
+    val navController: NavController,
+    val navigationManager: EnhancedNavigationManager?,
+    val onNavigateToBacklog: (DayTask) -> Unit,
 )
-@Composable
-private fun ErrorState(
-    error: String,
-    onRetry: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Icon(
-            Icons.Outlined.CloudOff,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.error,
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Помилка завантаження",
-            style = MaterialTheme.typography.titleMedium,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = error,
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onRetry) { Text("Спробувати ще раз") }
-    }
-}
 
-private fun buildExternalTarget(
-    linkType: LinkType?,
-    target: String,
-): String {
-    val trimmed = target.trim()
-    if (linkType == LinkType.OBSIDIAN && !trimmed.startsWith("obsidian://", ignoreCase = true)) {
-        return "obsidian://open?file=${URLEncoder.encode(trimmed, "UTF-8")}"
-    }
-    return trimmed
-}
-
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
 fun DayPlanScreen(
     initialDayPlanId: String,
-    modifier: Modifier = Modifier,
-    viewModel: DayPlanViewModel, // Modified line
-    onNavigateToProject: (projectId: String) -> Unit,
-    onNavigateToBacklog: (task: DayTask) -> Unit,
-    onNavigateToSettings: () -> Unit,
+    navigator: DayPlanScreenNavigator,
     addTaskTrigger: Int,
-    navController: NavController,
-    navigationManager: EnhancedNavigationManager? = null,
+    viewModel: DayPlanViewModel,
+    modifier: Modifier = Modifier,
 ) {
     val systemUiController = rememberSystemUiController()
     val isLight = !isSystemInDarkTheme()
-
-    LaunchedEffect(isLight) {
-        systemUiController.setSystemBarsColor(
-            color = Color.Transparent,
-            darkIcons = isLight,
-            isNavigationBarContrastEnforced = false,
-        )
-    }
-
-    val uiState by viewModel.uiState.collectAsState()
-    val isAddTaskDialogOpen by viewModel.isAddTaskDialogOpen.collectAsState()
-    val selectedTask by viewModel.selectedTask.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val hapticFeedback = LocalHapticFeedback.current
     val context = LocalContext.current
-    val isEditTaskDialogOpen by viewModel.isEditTaskDialogOpen.collectAsState()
-    val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsState()
-    val connectionsOrder by viewModel.connectionsOrder.collectAsState()
+    val hapticFeedback = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
-    var showReminderDialog by remember { mutableStateOf(false) }
-    var activeLinkPickerTab by remember { mutableStateOf<LinkPickerTab?>(null) }
-    var pendingCreateAction by remember { mutableStateOf<PickerCreateAction?>(null) }
-    var showAddUrlDialog by remember { mutableStateOf(false) }
-    var showAddObsidianDialog by remember { mutableStateOf(false) }
-    val taskToDelete by viewModel.showDeleteConfirmationDialog.collectAsState()
-    val taskToEdit by viewModel.showEditConfirmationDialog.collectAsState()
-
-    DisposableEffect(Unit) { onDispose { viewModel.clearSelectedTask() } }
-
-    LaunchedEffect(Unit) {
-        viewModel.uiEvent.collect {
-            when (it) {
-                is DayPlanUiEvent.NavigateToEditTask -> {
-                    navigationManager.navigateOrFallback(
-                        navController = navController,
-                        target = NavTarget.EditTask(taskId = it.taskId),
-                    )
-                }
-            }
-        }
-    }
-
-    var showMatrixSplash by remember { mutableStateOf(true) }
-    var matrixView by remember { mutableStateOf<MatrixRainView?>(null) }
-    var isContentReady by remember { mutableStateOf(false) }
-
-    // Enhanced timing with content preparation
-    LaunchedEffect(Unit) {
-        // Pre-load content
-        delay(100)
-        isContentReady = true
-
-        // Show matrix longer, then smooth fade
-        delay(600)
-        matrixView?.startFadeOut()
-
-        // Wait for fade to complete
-        delay(500)
-        showMatrixSplash = false
-    }
-
-    if (taskToEdit != null) {
-        EditRecurringTaskDialog(
-            taskWithReminder = taskToEdit!!,
-            onDismiss = { viewModel.dismissEditConfirmationDialog() },
-            onConfirmEditSingle = { viewModel.editSingleInstanceOfRecurringTask(taskToEdit!!) },
-            onConfirmEditAll = { viewModel.editAllFutureInstancesOfRecurringTask(taskToEdit!!) },
+    val presentationState = rememberDayPlanPresentationState(viewModel)
+    val contentState =
+        DayPlanContentState(
+            initialDayPlanId = initialDayPlanId,
+            uiState = presentationState.uiState,
+            navigator = navigator,
+            snackbarHostState = presentationState.snackbarHostState,
         )
-    }
 
-    if (taskToDelete != null) {
-        DeleteRecurringTaskDialog(
-            taskWithReminder = taskToDelete!!,
-            onDismiss = { viewModel.dismissDeleteConfirmationDialog() },
-            onConfirmDeleteSingle = { viewModel.deleteSingleInstanceOfRecurringTask(taskToDelete!!) },
-            onConfirmDeleteAll = { viewModel.deleteAllFutureInstancesOfRecurringTask(taskToDelete!!) },
-        )
-    }
-
-    LaunchedEffect(addTaskTrigger) {
-        if (addTaskTrigger > 0) {
-            viewModel.openAddTaskDialog()
-        }
-    }
-
-    LaunchedEffect(uiState.error) {
-        uiState.error?.let { error ->
-            snackbarHostState.showSnackbar(message = error, duration = SnackbarDuration.Short)
-            viewModel.dismissError()
-        }
-    }
-    LaunchedEffect(Unit) { viewModel.loadDataForPlan(initialDayPlanId) }
-
-    Box(modifier = modifier.fillMaxSize()) {
-        // Main content with conditional visibility for smoother transition
-        AnimatedVisibility(
-            visible = isContentReady,
-            enter = fadeIn(animationSpec = tween(300, delayMillis = 400)),
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                when {
-                    uiState.isLoading -> LoadingState()
-                    uiState.error != null && uiState.tasks.isEmpty() -> {
-                        ErrorState(
-                            error = uiState.error!!,
-                            onRetry = { viewModel.loadDataForPlan(initialDayPlanId) },
-                        )
-                    }
-                    else -> {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            val tasks = uiState.tasks
-                            val totalPointsEarned =
-                                tasks.filter { it.dayTask.completed }.sumOf { it.dayTask.points.coerceAtLeast(0) }
-                            val totalPointsAvailable = tasks.sumOf { it.dayTask.points.coerceAtLeast(0) }
-                            val completedTasksCount = tasks.count { it.dayTask.completed }
-                            val totalTasksCount = tasks.size
-
-                            TaskList(
-                                tasks = tasks,
-                                onTaskClick = { taskWithReminder ->
-                                    viewModel.onEditTaskClicked(taskWithReminder)
-                                },
-                                onTaskLongPress = { taskWithReminder ->
-                                    viewModel.onTaskLongPressed(taskWithReminder)
-                                },
-                                onTasksReordered = { reorderedList ->
-                                    uiState.dayPlan?.let { dayPlan ->
-                                        viewModel.updateTasksOrder(dayPlan.id, reorderedList)
-                                    }
-                                },
-                                onToggleTask = { taskId -> viewModel.toggleTaskCompletion(taskId) },
-                                modifier = Modifier.weight(1f),
-                                onParentInfoClick = { parentInfo ->
-                                    when (parentInfo.type) {
-                                        ParentType.PROJECT -> {
-                                            navigationManager.navigateOrFallback(
-                                                navController = navController,
-                                                target = NavTarget.ContextDetail(contextId = parentInfo.id),
-                                                recordInHistory = true,
-                                            )
-                                        }
-
-                                        ParentType.GOAL -> {
-                                            parentInfo.projectId?.let { listId ->
-                                                navigationManager.navigateOrFallback(
-                                                    navController = navController,
-                                                    target =
-                                                        NavTarget.ContextDetail(
-                                                            contextId = listId,
-                                                            goalId = parentInfo.id,
-                                                        ),
-                                                    recordInHistory = true,
-                                                )
-                                            }
-                                                ?: run {
-                                                    Log.e(
-                                                        TAG,
-                                                        "Goal parentInfo has null projectId for goalId: ${parentInfo.id}",
-                                                    )
-                                                }
-                                        }
-                                    }
-                                },
-                            )
-                        }
-                    }
-                }
-
-                SnackbarHost(
-                    hostState = snackbarHostState,
-                    snackbar = { snackbarData ->
-                        Snackbar(
-                            snackbarData = snackbarData,
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                        )
-                    },
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                )
-            }
-        }
-
-        // Enhanced Matrix splash screen with better integration
-        AnimatedVisibility(visible = showMatrixSplash, exit = fadeOut(animationSpec = tween(300))) {
-            AndroidView(
-                factory = { context -> MatrixRainView(context).also { view -> matrixView = view } },
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
-    }
-
-    val availableProjectIds = uiState.availableProjects.map { it.id }.toSet()
-    val availableAttachmentIds = uiState.availableAttachments.map { it.id }.toSet()
-
-    DayScopeLinksSheet(
-        isVisible = isScopeLinksSheetVisible,
-        uiState = uiState,
-        onDismiss = viewModel::dismissScopeLinksSheet,
-        onAddContextClick = {
-            viewModel.dismissScopeLinksSheet()
-            pendingCreateAction = null
-            scope.launch {
-                delay(160)
-                activeLinkPickerTab = LinkPickerTab.CONTEXTS
-            }
-        },
-        onAddAttachmentClick = {
-            viewModel.dismissScopeLinksSheet()
-            pendingCreateAction = null
-            scope.launch {
-                delay(160)
-                activeLinkPickerTab = LinkPickerTab.ATTACHMENTS
-            }
-        },
-        onAddExternalClick = { showAddUrlDialog = true },
-        onAddObsidianClick = { showAddObsidianDialog = true },
-        onCreateConnectionClick = { type ->
-            viewModel.dismissScopeLinksSheet()
-            pendingCreateAction = type.toPickerCreateAction()
-            scope.launch {
-                delay(160)
-                activeLinkPickerTab =
-                    if (type == CreateConnectionType.CONTEXT) {
-                        LinkPickerTab.CONTEXTS
-                    } else {
-                        LinkPickerTab.ATTACHMENTS
-                    }
-            }
-        },
-        onContextClick = { contextId ->
-            navigationManager.navigateOrFallback(
-                navController = navController,
-                target = NavTarget.ContextDetail(contextId = contextId),
-                recordInHistory = true,
-            )
-        },
-        onAttachmentClick = { attachmentId ->
-            val option = uiState.availableAttachments.firstOrNull { it.id == attachmentId }
-            when {
-                option?.attachmentType == "NOTE_DOCUMENT" && !option.entityId.isNullOrBlank() ->
-                    navigationManager.navigateOrFallback(
-                        navController = navController,
-                        target = NavTarget.NoteDocument(id = option.entityId),
-                    )
-                option?.attachmentType == "MUSIC_NOTE" && !option.entityId.isNullOrBlank() ->
-                    navigationManager.navigateOrFallback(
-                        navController = navController,
-                        target = NavTarget.MusicNote(id = option.entityId),
-                    )
-                option?.attachmentType == "CHECKLIST" && !option.entityId.isNullOrBlank() ->
-                    navigationManager.navigateOrFallback(
-                        navController = navController,
-                        target = NavTarget.Checklist(id = option.entityId),
-                    )
-                option?.linkType == LinkType.CONTEXT && !option.target.isNullOrBlank() ->
-                    navigationManager.navigateOrFallback(
-                        navController = navController,
-                        target = NavTarget.ContextDetail(contextId = option.target),
-                        recordInHistory = true,
-                    )
-                (option?.linkType == LinkType.URL || option?.linkType == LinkType.OBSIDIAN) && !option.target.isNullOrBlank() -> {
-                    val resolvedTarget = buildExternalTarget(option.linkType, option.target)
-                    runCatching {
-                        context.startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse(resolvedTarget)).apply {
-                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            },
-                        )
-                    }.onFailure {
-                        Log.e(TAG, "Cannot open link: ${option.target}", it)
-                        navigationManager.navigateOrFallback(
-                            navController = navController,
-                            target = NavTarget.AttachmentsLibrary,
-                        ) {
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                        runCatching {
-                            navController.getBackStackEntry("attachments_library_screen")
-                                .savedStateHandle["attachment_library_query"] = attachmentId
-                        }
-                    }
-                }
-                else -> {
-                    navigationManager.navigateOrFallback(
-                        navController = navController,
-                        target = NavTarget.AttachmentsLibrary,
-                    ) {
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                    runCatching {
-                        navController.getBackStackEntry("attachments_library_screen")
-                            .savedStateHandle["attachment_library_query"] = attachmentId
-                    }
-                }
-            }
-        },
-        onContextRemove = viewModel::removePlanProjectLink,
-        onAttachmentRemove = viewModel::removePlanAttachmentLink,
-        connectionOrder = connectionsOrder,
-        onConnectionsReordered = { reordered ->
-            viewModel.updateConnectionsOrder(reordered.map { it.orderToken() })
-        },
+    HandleDayPlanScreenEffects(
+        presentationState = presentationState,
+        viewModel = viewModel,
+        config =
+            DayPlanEffectsConfig(
+                navigator = navigator,
+                initialDayPlanId = initialDayPlanId,
+                addTaskTrigger = addTaskTrigger,
+                isLight = isLight,
+                systemUiController = systemUiController,
+            ),
     )
-
-    if (isAddTaskDialogOpen) {
-        AddTaskDialog(
-            onDismissRequest = viewModel::dismissAddTaskDialog,
-            onConfirm = { title, description, duration, priority, recurrenceRule, points ->
-                viewModel.addTask(
-                    initialDayPlanId,
-                    title,
-                    description,
-                    duration,
-                    priority,
-                    recurrenceRule,
-                    points,
-                )
-            },
-            initialPriority = TaskPriority.MEDIUM,
-        )
-    }
-
-    activeLinkPickerTab?.let { initialTab ->
-        LinkedTargetsPickerDialog(
-            contextOptions = uiState.availableProjects.map { ProjectOption(id = it.id, name = it.name) },
-            attachmentOptions = uiState.availableAttachments.map { AttachmentOption(id = it.id, name = it.name, linkType = it.linkType) },
-            preselectedContextIds = uiState.dayPlan?.linkedProjectIds.orEmpty().filter { it in availableProjectIds }.toSet(),
-            preselectedAttachmentIds = uiState.dayPlan?.linkedAttachmentIds.orEmpty().filter { it in availableAttachmentIds }.toSet(),
-            initialTab = initialTab,
-            initialCreateAction = pendingCreateAction,
-            onDismiss = {
-                activeLinkPickerTab = null
-                pendingCreateAction = null
-            },
-            onContextSelected = { id ->
-                viewModel.addPlanProjectLink(id)
-                activeLinkPickerTab = null
-                pendingCreateAction = null
-            },
-            onAttachmentSelected = { id ->
-                viewModel.addPlanAttachmentLink(id)
-                activeLinkPickerTab = null
-                pendingCreateAction = null
-            },
-            onCreateRootContext = { name -> viewModel.createRootContextForPicker(name) },
-            onCreateDocument = { draft -> viewModel.createPlanDocumentForPicker(draft) },
-        )
-    }
-
-    if (showAddUrlDialog) {
-        AddWebLinkDialog(
-            onDismiss = { showAddUrlDialog = false },
-            onConfirm = { url, name ->
-                viewModel.addPlanExternalLink(url, name)
-                showAddUrlDialog = false
-            },
-        )
-    }
-
-    if (showAddObsidianDialog) {
-        AddObsidianLinkDialog(
-            onDismiss = { showAddObsidianDialog = false },
-            onConfirm = { noteName, displayName ->
-                viewModel.addPlanObsidianLink(noteName, displayName)
-                showAddObsidianDialog = false
-            },
-        )
-    }
-
-    selectedTask?.let { selectedTaskWithReminder ->
-        TaskOptionsBottomSheet(
-            taskWithReminder = selectedTaskWithReminder,
-            onDismiss = viewModel::clearSelectedTask,
-            onEdit = { viewModel.onEditTaskClicked(selectedTaskWithReminder) },
-            onDelete = {
-                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                viewModel.onDeleteTaskClicked(it)
-            },
-            onSetReminder = { showReminderDialog = true },
-            showAddToTodayOption = !uiState.isToday,
-            onAddToToday = { viewModel.copyTaskToTodaysPlan(selectedTaskWithReminder) },
-            onShowInBacklog = { onNavigateToBacklog(selectedTaskWithReminder.dayTask) },
-            onMoveToTop = { viewModel.moveTaskToTop(selectedTaskWithReminder) },
-            onMoveToTomorrow = { viewModel.moveTaskToTomorrow(selectedTaskWithReminder) },
-        )
-    }
-
-    if (showReminderDialog && selectedTask != null) {
-        ReminderPropertiesDialog(
-            onDismiss = {
-                showReminderDialog = false
-                viewModel.clearSelectedTask()
-            },
-            onSetReminder = { reminderTime ->
-                selectedTask?.let { viewModel.setTaskReminder(it.dayTask.id, reminderTime) }
-                showReminderDialog = false
-                viewModel.clearSelectedTask()
-            },
-            onRemoveReminder = { _: String ->
-                selectedTask?.let { viewModel.clearTaskReminder(it.dayTask.id) }
-                showReminderDialog = false
-                viewModel.clearSelectedTask()
-            },
-            currentReminders = listOfNotNull(selectedTask?.reminder).map { it },
-        )
-    }
-}
-
-private fun CreateConnectionType.toPickerCreateAction(): PickerCreateAction =
-    when (this) {
-        CreateConnectionType.CONTEXT -> PickerCreateAction.CONTEXT
-        CreateConnectionType.NOTE_DOCUMENT -> PickerCreateAction.NOTE
-        CreateConnectionType.MUSIC_NOTE -> PickerCreateAction.MUSIC_NOTE
-        CreateConnectionType.CHECKLIST -> PickerCreateAction.CHECKLIST
-        CreateConnectionType.SCRIPT -> PickerCreateAction.NOTE
-        CreateConnectionType.EXTERNAL_LINK -> PickerCreateAction.WEB_LINK
-        CreateConnectionType.OBSIDIAN_NOTE -> PickerCreateAction.OBSIDIAN
-    }
-
-@Composable
-fun EditRecurringTaskDialog(
-    taskWithReminder: DayTaskWithReminder,
-    onDismiss: () -> Unit,
-    onConfirmEditSingle: (DayTaskWithReminder) -> Unit,
-    onConfirmEditAll: (DayTaskWithReminder) -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Редагувати повторюване завдання") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Це завдання є частиною серії. Виберіть, що саме потрібно змінити.")
-
-                Row(
-                    modifier =
-                        Modifier.fillMaxWidth()
-                            .clip(MaterialTheme.shapes.medium)
-                            .clickable { onConfirmEditSingle(taskWithReminder) }
-                            .padding(vertical = 12.dp, horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Тільки це завдання")
-                }
-
-                Row(
-                    modifier =
-                        Modifier.fillMaxWidth()
-                            .clip(MaterialTheme.shapes.medium)
-                            .clickable { onConfirmEditAll(taskWithReminder) }
-                            .padding(vertical = 12.dp, horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("Це та всі наступні завдання")
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Скасувати") } },
-    )
-}
-
-@Composable
-fun DeleteRecurringTaskDialog(
-    taskWithReminder: DayTaskWithReminder,
-    onDismiss: () -> Unit,
-    onConfirmDeleteSingle: (DayTaskWithReminder) -> Unit,
-    onConfirmDeleteAll: (DayTaskWithReminder) -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Видалити повторюване завдання?") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Це завдання є частиною серії. Виберіть, що саме потрібно видалити.")
-
-                Button(
-                    onClick = { onConfirmDeleteSingle(taskWithReminder) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                        ),
-                ) {
-                    Text("Тільки це завдання")
-                }
-
-                Button(
-                    onClick = { onConfirmDeleteAll(taskWithReminder) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                        ),
-                ) {
-                    Text("Це та всі наступні")
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Скасувати") } },
-    )
-}
-
-@Composable
-private fun LoadingState(modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(48.dp),
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Завантаження плану...",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TaskOptionsBottomSheet(
-    taskWithReminder: DayTaskWithReminder,
-    onDismiss: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: (DayTaskWithReminder) -> Unit,
-    onSetReminder: () -> Unit,
-    showAddToTodayOption: Boolean,
-    onAddToToday: () -> Unit,
-    onShowInBacklog: (DayTask) -> Unit,
-    onMoveToTop: () -> Unit,
-    onMoveToTomorrow: () -> Unit,
-) {
-    val task = taskWithReminder.dayTask
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.padding(vertical = 8.dp)) {
-            ListItem(
-                headlineContent = { Text("Редагувати") },
-                leadingContent = { Icon(Icons.Outlined.Edit, contentDescription = null) },
-                modifier = Modifier.clickable { onEdit() },
-            )
-            ListItem(
-                headlineContent = { Text("Підняти на вершину списку") },
-                leadingContent = { Icon(Icons.Outlined.VerticalAlignTop, contentDescription = null) },
-                modifier = Modifier.clickable { onMoveToTop() },
-            )
-            ListItem(
-                headlineContent = { Text("Перенести на завтра") },
-                leadingContent = {
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+    DayPlanContent(
+        state = contentState,
+        viewModel = viewModel,
+        visualState =
+            DayPlanVisualState(
+                isContentReady = presentationState.isContentReady.value,
+                showMatrixSplash = presentationState.showMatrixSplash.value,
+                onMatrixViewCreated = { view: MatrixRainView ->
+                    presentationState.matrixView.value = view
                 },
-                modifier =
-                    Modifier.clickable {
-                        onMoveToTomorrow()
-                        onDismiss()
-                    },
-            )
-
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-
-            ListItem(
-                headlineContent = { Text("Встановити нагадування") },
-                leadingContent = { Icon(Icons.Outlined.Notifications, contentDescription = null) },
-                modifier = Modifier.clickable { onSetReminder() },
-            )
-            if (showAddToTodayOption) {
-                ListItem(
-                    headlineContent = { Text("Додати в план на сьогодні") },
-                    leadingContent = { Icon(Icons.Outlined.Today, contentDescription = null) },
-                    modifier =
-                        Modifier.clickable {
-                            onAddToToday()
-                            onDismiss()
-                        },
-                )
-            }
-            if (task.projectId != null || task.goalId != null) {
-                ListItem(
-                    headlineContent = { Text("Показати в беклозі проекту") },
-                    leadingContent = { Icon(Icons.AutoMirrored.Outlined.ListAlt, contentDescription = null) },
-                    modifier =
-                        Modifier.clickable {
-                            Log.d(TAG, "1. КЛІК: 'Показати в беклозі'.")
-                            Log.d(TAG, "   - Task Title: ${task.title}")
-                            Log.d(TAG, "   - Task ProjectID: ${task.projectId}") // ДУЖЕ ВАЖЛИВИЙ ЛОГ
-                            Log.d(TAG, "   - Task GoalID: ${task.goalId}")
-                            Log.d(TAG, "   - Task ID: ${task.id}")
-
-                            onShowInBacklog(task)
-                            onDismiss()
-                        },
-                )
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-
-            ListItem(
-                headlineContent = { Text("Видалити", color = MaterialTheme.colorScheme.error) },
-                leadingContent = {
-                    Icon(
-                        Icons.Outlined.Delete,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                    )
-                },
-                modifier =
-                    Modifier.clickable {
-                        onDelete(taskWithReminder)
-                        onDismiss()
-                    },
-            )
-            Spacer(modifier = Modifier.navigationBarsPadding())
-        }
-    }
+            ),
+        modifier = modifier,
+    )
+    DayPlanConnectionsHost(
+        state = contentState,
+        dialogState = presentationState.dialogState,
+        overlayState = presentationState.overlayState,
+        deps =
+            DayPlanConnectionDeps(
+                viewModel = viewModel,
+                scope = scope,
+                context = context,
+            ),
+    )
+    DayPlanDialogsHost(
+        state = contentState,
+        dialogState = presentationState.dialogState,
+        overlayState = presentationState.overlayState,
+        viewModel = viewModel,
+        hapticFeedback = hapticFeedback,
+    )
 }

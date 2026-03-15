@@ -34,7 +34,8 @@ class ListChooserPendingStateActions {
             pendingAddDirectionFromContextChooser = request.pendingAddDirectionFromContextChooser,
             pendingAttachmentShare = currentState.pendingAttachmentShare,
         ).also {
-            savedStateHandle[KEY_PENDING_ADD_DIRECTION_FROM_CHOOSER] = request.savedPendingAddDirectionFromContextChooser
+            savedStateHandle[KEY_PENDING_ADD_DIRECTION_FROM_CHOOSER] =
+                request.savedPendingAddDirectionFromContextChooser
         }
 
     fun saveDirectionLinkRequest(
@@ -58,13 +59,17 @@ class ListChooserPendingStateActions {
     ): ListChooserResultActions.PendingSnapshot =
         ListChooserResultActions.PendingSnapshot(
             pendingDirectionLinkItemId = state.pendingDirectionLinkItemId,
-            pendingAddDirectionFromContextChooser = state.pendingAddDirectionFromContextChooser,
-            savedPendingAddDirectionFromContextChooser = savedStateHandle.get<Boolean>(KEY_PENDING_ADD_DIRECTION_FROM_CHOOSER) == true,
+            pendingAddDirectionFromContextChooser =
+                state.pendingAddDirectionFromContextChooser,
+            savedPendingAddDirectionFromContextChooser =
+                savedStateHandle.get<Boolean>(KEY_PENDING_ADD_DIRECTION_FROM_CHOOSER) == true,
             pendingAttachmentShare = state.pendingAttachmentShare,
             hasInboxPromotionRecord = hasInboxPromotionRecord,
             pendingActionTypeName = savedStateHandle.get<String>(KEY_PENDING_ACTION),
-            pendingSourceItemIds = savedStateHandle.get<List<String>>(KEY_PENDING_SOURCE_ITEM_IDS) ?: emptyList(),
-            pendingSourceGoalIds = savedStateHandle.get<List<String>>(KEY_PENDING_SOURCE_GOAL_IDS) ?: emptyList(),
+            pendingSourceItemIds =
+                savedStateHandle.get<List<String>>(KEY_PENDING_SOURCE_ITEM_IDS) ?: emptyList(),
+            pendingSourceGoalIds =
+                savedStateHandle.get<List<String>>(KEY_PENDING_SOURCE_GOAL_IDS) ?: emptyList(),
         )
 
     fun applyCleanup(

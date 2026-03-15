@@ -3,8 +3,17 @@ package com.romankozak.forwardappmobile.features.daymanagement.ui
 import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,8 +25,29 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Link
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,6 +66,7 @@ import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerS
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayanalitics.DayAnalyticsScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.daydashboard.DayDashboardScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanScreen
+import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanScreenNavigator
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckFabDefaults
 
@@ -48,14 +79,13 @@ fun DayManagementScreen(
     modifier: Modifier = Modifier,
     startTab: String? = null,
 ) {
-    val TAG = "NAV_DEBUG" // Тег для логування
+    val screenLogTag = "NAV_DEBUG"
 
     val uiState by viewModel.uiState.collectAsState()
     val tabs = DayManagementTab.entries.toTypedArray()
     val initialPage =
         remember(startTab) { tabs.indexOfFirst { it.name == startTab }.coerceAtLeast(0) }
     val pagerState = rememberPagerState(initialPage = initialPage) { tabs.size }
-    val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var addTaskTrigger by remember { mutableStateOf(0) }
 
@@ -63,6 +93,55 @@ fun DayManagementScreen(
     val dayPlanViewModel: DayPlanViewModel = hiltViewModel()
     var isFabMenuExpanded by remember { mutableStateOf(false) }
 
+    DayManagementNavigationEffects(
+        viewModel = viewModel,
+        uiState = uiState,
+        navigationManager = navigationManager,
+        mainNavController = mainNavController,
+        snackbarHostState = snackbarHostState,
+    )
+
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        containerColor = Color.Transparent,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        floatingActionButton = {
+            DayManagementFabMenu(
+                isFabMenuExpanded = isFabMenuExpanded,
+                onToggleExpanded = { isFabMenuExpanded = !isFabMenuExpanded },
+                onDismiss = { isFabMenuExpanded = false },
+                dayPlanViewModel = dayPlanViewModel,
+            )
+        },
+    ) { innerPadding ->
+        val contentArgs =
+            DayManagementScreenContentArgs(
+                uiState = uiState,
+                pagerState = pagerState,
+                tabs = tabs,
+                mainNavController = mainNavController,
+                navigationManager = navigationManager,
+                dayPlanViewModel = dayPlanViewModel,
+                addTaskTrigger = addTaskTrigger,
+                screenLogTag = screenLogTag,
+            )
+        DayManagementScreenContent(
+            modifier = Modifier.fillMaxSize().padding(innerPadding),
+            args = contentArgs,
+            onRetry = viewModel::retryLoading,
+        )
+    }
+}
+
+@Composable
+private fun DayManagementNavigationEffects(
+    viewModel: DayManagementViewModel,
+    uiState: DayManagementState,
+    navigationManager: EnhancedNavigationManager?,
+    mainNavController: NavController,
+    snackbarHostState: SnackbarHostState,
+) {
     LaunchedEffect(key1 = Unit) {
         viewModel.uiEvent.collect { event ->
             when (event) {
@@ -79,160 +158,206 @@ fun DayManagementScreen(
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let { error ->
-            snackbarHostState
-                .showSnackbar(
+            val result =
+                snackbarHostState.showSnackbar(
                     message = error,
                     actionLabel = "Спробувати знову",
                     duration = SnackbarDuration.Long,
                 )
-                .let { result ->
-                    if (result == SnackbarResult.ActionPerformed) {
-                        viewModel.retryLoading()
-                    }
-                }
-        }
-    }
-
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        containerColor = Color.Transparent,
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        floatingActionButton = {
-            Box(modifier = Modifier.padding(bottom = CommandDeckFabDefaults.BottomPadding)) {
-                FloatingActionButton(onClick = { isFabMenuExpanded = !isFabMenuExpanded }) {
-                    Icon(Icons.Default.Menu, contentDescription = "Меню дій дня")
-                }
-                DropdownMenu(
-                    expanded = isFabMenuExpanded,
-                    onDismissRequest = { isFabMenuExpanded = false },
-                    modifier =
-                        Modifier
-                            .background(
-                                color = MaterialTheme.colorScheme.surface,
-                                shape = RoundedCornerShape(16.dp),
-                            ),
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Додати задачу") },
-                        leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
-                        onClick = {
-                            isFabMenuExpanded = false
-                            dayPlanViewModel.openAddTaskDialog()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Показати зв'язки") },
-                        leadingIcon = { Icon(Icons.Outlined.Link, contentDescription = null) },
-                        onClick = {
-                            isFabMenuExpanded = false
-                            dayPlanViewModel.toggleScopeLinksSheet()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Назад") },
-                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) },
-                        onClick = {
-                            isFabMenuExpanded = false
-                            dayPlanViewModel.navigateToPreviousDay()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Вперед") },
-                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null) },
-                        onClick = {
-                            isFabMenuExpanded = false
-                            dayPlanViewModel.navigateToNextDay()
-                        },
-                    )
-                }
-            }
-        },
-    ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                when {
-                    uiState.isLoading -> {
-                        LoadingContent()
-                    }
-
-                    uiState.error != null && uiState.dayPlanId == null -> {
-                        ErrorContent(error = uiState.error!!, onRetry = { viewModel.retryLoading() })
-                    }
-
-                    else -> {
-                        val planId = uiState.dayPlanId!!
-                        HorizontalPager(
-                            state = pagerState,
-                            modifier = Modifier.fillMaxSize(),
-                            userScrollEnabled = false,
-                        ) { page ->
-                            when (tabs[page]) {
-                                DayManagementTab.TRACK -> ActivityTrackerScreen(navController = mainNavController)
-                                DayManagementTab.PLAN ->
-                                    DayPlanScreen(
-                                        initialDayPlanId = planId,
-                                        onNavigateToProject = { projectId: String ->
-                                            navigationManager.navigateOrFallback(
-                                                navController = mainNavController,
-                                                target = NavTarget.ContextDetail(contextId = projectId),
-                                                recordInHistory = true,
-                                            )
-                                        },
-                                        onNavigateToBacklog = { task: DayTask ->
-                                            // <-- ПОСТАВТЕ ЛОГИ ТУТ
-                                            Log.d(TAG, "2. НАВІГАЦІЯ: Отримано task для переходу в беклог.")
-                                            task.projectId?.let { projectId ->
-                                                Log.d(TAG, "3. УМОВА ВИКОНАНА: projectId не є null. Значення: $projectId")
-                                                val goalIdToHighlight = task.goalId ?: task.id
-                                                Log.d(TAG, "   - Формую маршрут з goalId: $goalIdToHighlight")
-                                                navigationManager.navigateOrFallback(
-                                                    navController = mainNavController,
-                                                    target =
-                                                        NavTarget.ContextDetail(
-                                                            contextId = projectId,
-                                                            goalId = goalIdToHighlight,
-                                                        ),
-                                                    recordInHistory = true,
-                                                )
-                                            }
-                                                ?: run {
-                                                    // Цей блок виконається, якщо task.projectId є null
-                                                    Log.e(
-                                                        TAG,
-                                                        "3. УМОВА НЕ ВИКОНАНА: task.projectId є null! Навігація неможлива.",
-                                                    )
-                                                }
-                                        },
-                                        onNavigateToSettings = {
-                                            navigationManager.navigateOrFallback(
-                                                navController = mainNavController,
-                                                target = NavTarget.Settings,
-                                            )
-                                        },
-                                        addTaskTrigger = addTaskTrigger,
-                                        navController = mainNavController,
-                                        navigationManager = navigationManager,
-                                        viewModel = dayPlanViewModel, // Pass the shared instance
-                                    )
-                                DayManagementTab.DASHBOARD -> DayDashboardScreen(dayPlanId = planId)
-                                DayManagementTab.ANALYTICS -> DayAnalyticsScreen()
-                            }
-                        }
-                    }
-                }
-
-                if (uiState.isLoading && uiState.dayPlanId != null) {
-                    LinearProgressIndicator(
-                        modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    )
-                }
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.retryLoading()
             }
         }
     }
 }
+
+@Composable
+private fun DayManagementFabMenu(
+    isFabMenuExpanded: Boolean,
+    onToggleExpanded: () -> Unit,
+    onDismiss: () -> Unit,
+    dayPlanViewModel: DayPlanViewModel,
+) {
+    Box(modifier = Modifier.padding(bottom = CommandDeckFabDefaults.BottomPadding)) {
+        FloatingActionButton(onClick = onToggleExpanded) {
+            Icon(Icons.Default.Menu, contentDescription = "Меню дій дня")
+        }
+        DropdownMenu(
+            expanded = isFabMenuExpanded,
+            onDismissRequest = onDismiss,
+            modifier =
+                Modifier.background(
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(16.dp),
+                ),
+        ) {
+            DropdownMenuItem(
+                text = { Text("Додати задачу") },
+                leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                onClick = {
+                    onDismiss()
+                    dayPlanViewModel.openAddTaskDialog()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Показати зв'язки") },
+                leadingIcon = { Icon(Icons.Outlined.Link, contentDescription = null) },
+                onClick = {
+                    onDismiss()
+                    dayPlanViewModel.toggleScopeLinksSheet()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Назад") },
+                leadingIcon = {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                },
+                onClick = {
+                    onDismiss()
+                    dayPlanViewModel.navigateToPreviousDay()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Вперед") },
+                leadingIcon = {
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                },
+                onClick = {
+                    onDismiss()
+                    dayPlanViewModel.navigateToNextDay()
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun DayManagementScreenContent(
+    args: DayManagementScreenContentArgs,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier) {
+        when {
+            args.uiState.isLoading -> LoadingContent()
+            args.uiState.error != null && args.uiState.dayPlanId == null -> {
+                ErrorContent(
+                    error = requireNotNull(args.uiState.error),
+                    onRetry = onRetry,
+                )
+            }
+            else -> {
+                val pagerArgs =
+                    DayManagementPagerArgs(
+                        planId = requireNotNull(args.uiState.dayPlanId),
+                        pagerState = args.pagerState,
+                        tabs = args.tabs,
+                        mainNavController = args.mainNavController,
+                        navigationManager = args.navigationManager,
+                        dayPlanViewModel = args.dayPlanViewModel,
+                        addTaskTrigger = args.addTaskTrigger,
+                        screenLogTag = args.screenLogTag,
+                    )
+                DayManagementPagerContent(
+                    args = pagerArgs,
+                )
+            }
+        }
+
+        if (args.uiState.isLoading && args.uiState.dayPlanId != null) {
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            )
+        }
+    }
+}
+
+private data class DayManagementScreenContentArgs(
+    val uiState: DayManagementState,
+    val pagerState: androidx.compose.foundation.pager.PagerState,
+    val tabs: Array<DayManagementTab>,
+    val mainNavController: NavController,
+    val navigationManager: EnhancedNavigationManager?,
+    val dayPlanViewModel: DayPlanViewModel,
+    val addTaskTrigger: Int,
+    val screenLogTag: String,
+)
+
+private data class DayManagementPagerArgs(
+    val planId: String,
+    val pagerState: androidx.compose.foundation.pager.PagerState,
+    val tabs: Array<DayManagementTab>,
+    val mainNavController: NavController,
+    val navigationManager: EnhancedNavigationManager?,
+    val dayPlanViewModel: DayPlanViewModel,
+    val addTaskTrigger: Int,
+    val screenLogTag: String,
+)
+
+@Composable
+private fun DayManagementPagerContent(
+    args: DayManagementPagerArgs,
+) {
+    HorizontalPager(
+        state = args.pagerState,
+        modifier = Modifier.fillMaxSize(),
+        userScrollEnabled = false,
+    ) { page ->
+        when (args.tabs[page]) {
+            DayManagementTab.TRACK -> ActivityTrackerScreen(navController = args.mainNavController)
+            DayManagementTab.PLAN ->
+                DayPlanScreen(
+                    initialDayPlanId = args.planId,
+                    navigator =
+                        DayPlanScreenNavigator(
+                            navController = args.mainNavController,
+                            navigationManager = args.navigationManager,
+                            onNavigateToBacklog =
+                                createBacklogNavigator(
+                                    screenLogTag = args.screenLogTag,
+                                    mainNavController = args.mainNavController,
+                                    navigationManager = args.navigationManager,
+                                ),
+                        ),
+                    addTaskTrigger = args.addTaskTrigger,
+                    viewModel = args.dayPlanViewModel,
+                )
+            DayManagementTab.DASHBOARD -> DayDashboardScreen(dayPlanId = args.planId)
+            DayManagementTab.ANALYTICS -> DayAnalyticsScreen()
+        }
+    }
+}
+
+private fun createBacklogNavigator(
+    screenLogTag: String,
+    mainNavController: NavController,
+    navigationManager: EnhancedNavigationManager?,
+): (DayTask) -> Unit =
+    { task ->
+        Log.d(screenLogTag, "2. НАВІГАЦІЯ: Отримано task для переходу в беклог.")
+        task.projectId?.let { projectId ->
+            Log.d(
+                screenLogTag,
+                "3. УМОВА ВИКОНАНА: projectId не є null. Значення: $projectId",
+            )
+            val goalIdToHighlight = task.goalId ?: task.id
+            Log.d(screenLogTag, "   - Формую маршрут з goalId: $goalIdToHighlight")
+            navigationManager.navigateOrFallback(
+                navController = mainNavController,
+                target =
+                    NavTarget.ContextDetail(
+                        contextId = projectId,
+                        goalId = goalIdToHighlight,
+                    ),
+                recordInHistory = true,
+            )
+        } ?: Log.e(
+            screenLogTag,
+            "3. УМОВА НЕ ВИКОНАНА: task.projectId є null! Навігація неможлива.",
+        )
+    }
 
 @Composable
 fun NeonTitle(
@@ -322,9 +447,16 @@ fun ErrorContent(
 
         Button(
             onClick = onRetry,
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                ),
         ) {
-            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+            Icon(
+                Icons.Default.Refresh,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
             Spacer(modifier = Modifier.width(8.dp))
             Text("Спробувати знову")
         }

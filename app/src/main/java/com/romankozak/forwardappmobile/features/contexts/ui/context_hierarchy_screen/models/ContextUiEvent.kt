@@ -30,4 +30,5 @@ sealed interface ProjectUiEvent {
     data object NavigateToStrategicManagement : ProjectUiEvent
 }
 
+typealias ContextUiEvent = ProjectUiEvent
 typealias ProjectHierarchyScreenProjectUiEvent = ProjectUiEvent

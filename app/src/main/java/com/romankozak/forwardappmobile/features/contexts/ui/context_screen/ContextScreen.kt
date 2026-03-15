@@ -39,6 +39,8 @@ import com.romankozak.forwardappmobile.features.common.components.holdmenu2.Hold
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.ModernInputPanel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.topbar.AdaptiveTopBar
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.topbar.AdaptiveTopBarActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.topbar.AdaptiveTopBarState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs.EditLogEntryDialog
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs.GoalDetailDialogs
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs.ProjectDisplayPropertiesDialog
@@ -241,12 +243,15 @@ private fun ProjectScaffold(
         }
 
     GoalDetailEffects(
-        navController = navController,
         viewModel = viewModel,
-        snackbarHostState = snackbarHostState,
-        listState = listState,
-        inboxListState = inboxListState,
-        coroutineScope = coroutineScope,
+        dependencies =
+            ContextScreenEffectDependencies(
+                navController = navController,
+                snackbarHostState = snackbarHostState,
+                listState = listState,
+                inboxListState = inboxListState,
+                coroutineScope = coroutineScope,
+            ),
     )
 
     GoalDetailDialogs(viewModel = viewModel)
@@ -299,35 +304,56 @@ private fun ProjectScaffold(
                     ) {
                         Column {
                             AdaptiveTopBar(
-                                isSelectionModeActive = uiState.isSelectionModeActive,
-                                project = project,
-                                selectedCount = uiState.selectedItemIds.size,
-                                areAllSelected = draggableItems.isNotEmpty() && (uiState.selectedItemIds.size == draggableItems.size),
-                                onClearSelection = { viewModel.selectionHandler.clearSelection() },
-                                onSelectAll = { viewModel.selectionHandler.selectAllItems() },
-                                onDelete = { viewModel.selectionHandler.deleteSelectedItems(uiState.selectedItemIds) },
-                                onMoreActions = { actionType ->
-                                    viewModel.selectionHandler.onBulkActionRequest(
-                                        actionType,
-                                        uiState.selectedItemIds,
-                                    )
-                                },
-                                onPaste =
-                                    if (canPasteIntoCurrentList) {
-                                        { viewModel.itemActionHandler.onTransportPasteRequested(uiState.currentViewMode) }
-                                    } else {
-                                        null
-                                    },
-                                onInboxClick = {
-                                    val today = System.currentTimeMillis()
-                                    navigationManager.navigate(
-                                        target = NavTarget.DayPlan(dayPlanId = today.toString(), startTab = "INBOX"),
-                                    )
-                                },
-                                onMarkAsComplete = { viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds) },
-                                onMarkAsIncomplete = { viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds) },
-                                currentViewMode = uiState.currentViewMode,
-                                enabledCapabilities = sessionState.enabledCapabilities,
+                                state =
+                                    AdaptiveTopBarState(
+                                        isSelectionModeActive = uiState.isSelectionModeActive,
+                                        project = project,
+                                        selectedCount = uiState.selectedItemIds.size,
+                                        areAllSelected =
+                                            draggableItems.isNotEmpty() &&
+                                                (uiState.selectedItemIds.size == draggableItems.size),
+                                        currentViewMode = uiState.currentViewMode,
+                                        enabledCapabilities = sessionState.enabledCapabilities,
+                                    ),
+                                actions =
+                                    AdaptiveTopBarActions(
+                                        onClearSelection = { viewModel.selectionHandler.clearSelection() },
+                                        onSelectAll = { viewModel.selectionHandler.selectAllItems() },
+                                        onDelete = {
+                                            viewModel.selectionHandler.deleteSelectedItems(uiState.selectedItemIds)
+                                        },
+                                        onMarkAsComplete = {
+                                            viewModel.selectionHandler.markSelectedAsComplete(uiState.selectedItemIds)
+                                        },
+                                        onMarkAsIncomplete = {
+                                            viewModel.selectionHandler.markSelectedAsIncomplete(uiState.selectedItemIds)
+                                        },
+                                        onMoreActions = { actionType ->
+                                            viewModel.selectionHandler.onBulkActionRequest(
+                                                actionType,
+                                                uiState.selectedItemIds,
+                                            )
+                                        },
+                                        onPaste =
+                                            if (canPasteIntoCurrentList) {
+                                                {
+                                                    viewModel.itemActionHandler.onTransportPasteRequested(
+                                                        uiState.currentViewMode,
+                                                    )
+                                                }
+                                            } else {
+                                                null
+                                            },
+                                        onInboxClick = {
+                                            val today = System.currentTimeMillis()
+                                            navigationManager.navigate(
+                                                target = NavTarget.DayPlan(
+                                                    dayPlanId = today.toString(),
+                                                    startTab = "INBOX",
+                                                ),
+                                            )
+                                        },
+                                    ),
                                 windowInsets = WindowInsets.statusBars,
                             )
 

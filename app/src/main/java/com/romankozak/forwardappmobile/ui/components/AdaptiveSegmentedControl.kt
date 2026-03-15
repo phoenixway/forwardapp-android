@@ -19,15 +19,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.layout.SubcomposeMeasureScope
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 
-data class SegmentedTab(
-    val title: String,
-    val icon: ImageVector,
+private data class TabWidths(
+    val active: Int,
+    val inactive: Int,
 )
 
 @Composable
@@ -41,19 +43,13 @@ fun AdaptiveSegmentedControl(
     SubcomposeLayout(modifier = modifier.clip(RoundedCornerShape(12.dp))) { constraints ->
         val maxWidth = constraints.maxWidth
 
-        // Measure the width of the active tab with text
-        val activeTabWithTextPlaceable =
-            subcompose("activeTabWithText") {
-                TabContent(tab = tabs[selectedTabIndex], isSelected = true, onSelected = {}, showText = true)
-            }.firstOrNull()?.measure(constraints)
-        val activeTabWithTextWidth = activeTabWithTextPlaceable?.width ?: 0
-
-        // Measure the width of an inactive tab with icon only
-        val inactiveTabIconOnlyPlaceable =
-            subcompose("inactiveTabIconOnly") {
-                TabContent(tab = tabs.first(), isSelected = false, onSelected = {}, showText = false)
-            }.firstOrNull()?.measure(constraints)
-        val inactiveTabIconOnlyWidth = inactiveTabIconOnlyPlaceable?.width ?: 0
+        val activeTabWithTextWidth =
+            measureActiveTabWithTextWidth(
+                tabs = tabs,
+                selectedTabIndex = selectedTabIndex,
+                constraints = constraints,
+            )
+        val inactiveTabIconOnlyWidth = measureInactiveTabIconWidth(tabs = tabs, constraints = constraints)
 
         val totalInactiveTabsWidth = inactiveTabIconOnlyWidth * (tabs.size - 1)
 
@@ -61,55 +57,108 @@ fun AdaptiveSegmentedControl(
 
         layout(width = maxWidth, height = 60.dp.roundToPx()) {
             if (expandedLayoutFits) {
-                // Expanded layout: active tab with text, inactive tabs with icons, filling space
                 val remainingWidth = maxWidth - activeTabWithTextWidth
                 val inactiveTabCalculatedWidth = if (tabs.size > 1) remainingWidth / (tabs.size - 1) else 0
+                val expandedPlaceables =
+                    measureExpandedLayout(
+                        tabs = tabs,
+                        selectedTabIndex = selectedTabIndex,
+                        onTabSelected = onTabSelected,
+                        constraints = constraints,
+                        tabWidths =
+                            TabWidths(
+                                active = activeTabWithTextWidth,
+                                inactive = inactiveTabCalculatedWidth,
+                            ),
+                    )
 
                 var x = 0
-                tabs.forEachIndexed { index, tab ->
-                    val isSelected = selectedTabIndex == index
-                    val currentTabWidth = if (isSelected) activeTabWithTextWidth else inactiveTabCalculatedWidth
-
-                    val placeable =
-                        subcompose(index) {
-                            TabContent(
-                                tab = tab,
-                                isSelected = isSelected,
-                                onSelected = { onTabSelected(index) },
-                                showText = isSelected,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }.firstOrNull()?.measure(
-                            constraints.copy(
-                                minWidth = currentTabWidth,
-                                maxWidth = currentTabWidth,
-                            ),
-                        )
-
-                    placeable?.place(x, 0)
-                    x += placeable?.width ?: 0
+                expandedPlaceables.forEach { placeable ->
+                    placeable.place(x, 0)
+                    x += placeable.width
                 }
             } else {
-                // Scrollable layout: all tabs as icons only
-                subcompose("scrollableContent") {
-                    Row(
-                        modifier = Modifier.horizontalScroll(scrollState),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        tabs.forEachIndexed { index, tab ->
-                            TabContent(
-                                tab = tab,
-                                isSelected = selectedTabIndex == index,
-                                onSelected = { onTabSelected(index) },
-                                showText = selectedTabIndex == index,
-                            )
-                        }
-                    }
-                }.firstOrNull()?.measure(constraints)?.place(0, 0)
+                val scrollablePlaceable =
+                    measureScrollableLayout(
+                        tabs = tabs,
+                        selectedTabIndex = selectedTabIndex,
+                        onTabSelected = onTabSelected,
+                        constraints = constraints,
+                        scrollState = scrollState,
+                    )
+                scrollablePlaceable?.place(0, 0)
             }
         }
     }
 }
+
+private fun SubcomposeMeasureScope.measureActiveTabWithTextWidth(
+    tabs: List<SegmentedTab>,
+    selectedTabIndex: Int,
+    constraints: Constraints,
+): Int =
+    subcompose("activeTabWithText") {
+        TabContent(tab = tabs[selectedTabIndex], isSelected = true, onSelected = {}, showText = true)
+    }.firstOrNull()?.measure(constraints)?.width ?: 0
+
+private fun SubcomposeMeasureScope.measureInactiveTabIconWidth(
+    tabs: List<SegmentedTab>,
+    constraints: Constraints,
+): Int =
+    subcompose("inactiveTabIconOnly") {
+        TabContent(tab = tabs.first(), isSelected = false, onSelected = {}, showText = false)
+    }.firstOrNull()?.measure(constraints)?.width ?: 0
+
+private fun SubcomposeMeasureScope.measureExpandedLayout(
+    tabs: List<SegmentedTab>,
+    selectedTabIndex: Int,
+    onTabSelected: (Int) -> Unit,
+    constraints: Constraints,
+    tabWidths: TabWidths,
+): List<Placeable> {
+    return tabs.mapIndexedNotNull { index, tab ->
+        val isSelected = selectedTabIndex == index
+        val currentTabWidth = if (isSelected) tabWidths.active else tabWidths.inactive
+
+        subcompose(index) {
+            TabContent(
+                tab = tab,
+                isSelected = isSelected,
+                onSelected = { onTabSelected(index) },
+                showText = isSelected,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }.firstOrNull()?.measure(
+            constraints.copy(
+                minWidth = currentTabWidth,
+                maxWidth = currentTabWidth,
+            ),
+        )
+    }
+}
+
+private fun SubcomposeMeasureScope.measureScrollableLayout(
+    tabs: List<SegmentedTab>,
+    selectedTabIndex: Int,
+    onTabSelected: (Int) -> Unit,
+    constraints: Constraints,
+    scrollState: androidx.compose.foundation.ScrollState,
+): Placeable? =
+    subcompose("scrollableContent") {
+        Row(
+            modifier = Modifier.horizontalScroll(scrollState),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            tabs.forEachIndexed { index, tab ->
+                TabContent(
+                    tab = tab,
+                    isSelected = selectedTabIndex == index,
+                    onSelected = { onTabSelected(index) },
+                    showText = selectedTabIndex == index,
+                )
+            }
+        }
+    }.firstOrNull()?.measure(constraints)
 
 @Composable
 private fun TabContent(

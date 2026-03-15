@@ -49,11 +49,10 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusVa
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.AnimatedContextEmoji
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.EnhancedReminderBadge
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.EnhancedScoreStatusBadge
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.ModernTagChip
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.NoteIndicatorBadge
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.TagType
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.NoteIndicatorBadge
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurfaceLayout
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTokens
 import kotlinx.coroutines.delay
 
@@ -82,14 +81,17 @@ fun ProjectItem(
 
     UnifiedListItemSurface(
         isSelected = isSelected,
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .padding(
-                    vertical = UnifiedListItemTokens.OuterVerticalSpacing,
-                    horizontal = UnifiedListItemTokens.OuterHorizontalSpacing,
-                ),
-        contentPadding = PaddingValues(0.dp),
+        layout =
+            UnifiedListItemSurfaceLayout(
+                modifier =
+                    modifier
+                        .fillMaxWidth()
+                        .padding(
+                            vertical = UnifiedListItemTokens.OuterVerticalSpacing,
+                            horizontal = UnifiedListItemTokens.OuterHorizontalSpacing,
+                        ),
+                contentPadding = PaddingValues(0.dp),
+            ),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),

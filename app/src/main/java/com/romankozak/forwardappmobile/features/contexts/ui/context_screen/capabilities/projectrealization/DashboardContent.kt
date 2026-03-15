@@ -65,9 +65,11 @@ fun DashboardContent(
                 if (!isManagementEnabled) {
                     EnableSupportCard(onEnable = { onToggleProjectManagement(true) })
                 } else {
-                    StatusDisplayCard(status = project.contextStatus ?: ContextStatusValues.NO_PLAN, statusText = project.contextStatusText, onClick = {
-                        showStatusDialog = true
-                    })
+                    StatusDisplayCard(
+                        status = project.contextStatus ?: ContextStatusValues.NO_PLAN,
+                        statusText = project.contextStatusText,
+                        onClick = { showStatusDialog = true },
+                    )
 
                     contextTimeMetrics?.let { metrics ->
                         Spacer(modifier = Modifier.height(8.dp))
@@ -120,9 +122,17 @@ private fun StatusDisplayCard(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Поточний статус", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Поточний статус",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(ContextStatusValues.getDisplayName(status), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    ContextStatusValues.getDisplayName(status),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
                 if (!statusText.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -192,7 +202,11 @@ private fun MetricItem(
     value: String,
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Spacer(modifier = Modifier.height(4.dp))
         Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
     }

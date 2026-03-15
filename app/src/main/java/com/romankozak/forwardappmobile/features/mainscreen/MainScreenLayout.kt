@@ -125,7 +125,12 @@ fun MainScreenLayout(
             CommandDeckTab.Strategy,
             CommandDeckTab.Core,
         )
-    val pagerState = rememberPagerState(initialPage = Int.MAX_VALUE / 2 - (Int.MAX_VALUE / 2 % tabs.size)) { Int.MAX_VALUE }
+    val pagerState =
+        rememberPagerState(
+            initialPage = Int.MAX_VALUE / 2 - (Int.MAX_VALUE / 2 % tabs.size),
+        ) {
+            Int.MAX_VALUE
+        }
     val scope = rememberCoroutineScope()
 
     val currentRoute =
@@ -185,7 +190,9 @@ fun MainScreenLayout(
             topBar = {
                 when (currentRoute) {
                     MAIN_SCREEN_DASHBOARD_ROUTE -> {
-                        val showBadge = com.romankozak.forwardappmobile.BuildConfig.DEBUG || com.romankozak.forwardappmobile.BuildConfig.IS_EXPERIMENTAL_BUILD
+                        val showBadge =
+                            com.romankozak.forwardappmobile.BuildConfig.DEBUG ||
+                                com.romankozak.forwardappmobile.BuildConfig.IS_EXPERIMENTAL_BUILD
                         FAHeader(
                             layout =
                                 CommandDeckHeaderPreset(
@@ -199,7 +206,12 @@ fun MainScreenLayout(
                                                 contentColor = MaterialTheme.colorScheme.onErrorContainer,
                                             ) {
                                                 Text(
-                                                    text = if (com.romankozak.forwardappmobile.BuildConfig.DEBUG) "Debug" else "Experimental",
+                                                    text =
+                                                        if (com.romankozak.forwardappmobile.BuildConfig.DEBUG) {
+                                                            "Debug"
+                                                        } else {
+                                                            "Experimental"
+                                                        },
                                                     style = MaterialTheme.typography.labelSmall,
                                                 )
                                             }
@@ -279,10 +291,8 @@ fun MainScreenLayout(
                     when (currentRoute) {
                         MAIN_SCREEN_DASHBOARD_ROUTE ->
                             DashboardBottomPanel(
-                                navController = navController,
                                 onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
                                 onNavigateToPresets = onNavigateToPresets,
-                                onNavigateToCharacter = onNavigateToCharacter,
                                 onNavigateToGlobalSearch = onNavigateToGlobalSearch,
                                 onNavigateToSettings = onNavigateToSettings,
                                 onNavigateToInbox = onNavigateToInbox,
@@ -308,10 +318,8 @@ fun MainScreenLayout(
                             )
                         MAIN_SCREEN_TODAY_ROUTE ->
                             TodayBottomPanel(
-                                navController = navController,
                                 onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
                                 onNavigateToPresets = onNavigateToPresets,
-                                onNavigateToCharacter = onNavigateToCharacter,
                                 onNavigateToGlobalSearch = onNavigateToGlobalSearch,
                                 onNavigateToSettings = onNavigateToSettings,
                                 onNavigateToInbox = onNavigateToInbox,
@@ -337,10 +345,8 @@ fun MainScreenLayout(
                             )
                         MAIN_SCREEN_TACTICS_ROUTE ->
                             TacticsBottomPanel(
-                                navController = navController,
                                 onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
                                 onNavigateToPresets = onNavigateToPresets,
-                                onNavigateToCharacter = onNavigateToCharacter,
                                 onNavigateToGlobalSearch = onNavigateToGlobalSearch,
                                 onNavigateToSettings = onNavigateToSettings,
                                 onNavigateToInbox = onNavigateToInbox,
@@ -366,10 +372,8 @@ fun MainScreenLayout(
                             )
                         MAIN_SCREEN_STRATEGIC_ARC_ROUTE ->
                             StrategicArcBottomPanel(
-                                navController = navController,
                                 onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
                                 onNavigateToPresets = onNavigateToPresets,
-                                onNavigateToCharacter = onNavigateToCharacter,
                                 onNavigateToGlobalSearch = onNavigateToGlobalSearch,
                                 onNavigateToSettings = onNavigateToSettings,
                                 onNavigateToInbox = onNavigateToInbox,
@@ -395,10 +399,8 @@ fun MainScreenLayout(
                             )
                         STRATEGIC_MANAGEMENT_ROUTE -> // Strategy
                             StrategyBottomPanel(
-                                navController = navController,
                                 onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
                                 onNavigateToPresets = onNavigateToPresets,
-                                onNavigateToCharacter = onNavigateToCharacter,
                                 onNavigateToGlobalSearch = onNavigateToGlobalSearch,
                                 onNavigateToSettings = onNavigateToSettings,
                                 onNavigateToInbox = onNavigateToInbox,
@@ -424,10 +426,8 @@ fun MainScreenLayout(
                             )
                         MAIN_SCREEN_CORE_ROUTE ->
                             CoreBottomPanel(
-                                navController = navController,
                                 onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
                                 onNavigateToPresets = onNavigateToPresets,
-                                onNavigateToCharacter = onNavigateToCharacter,
                                 onNavigateToGlobalSearch = onNavigateToGlobalSearch,
                                 onNavigateToSettings = onNavigateToSettings,
                                 onNavigateToInbox = onNavigateToInbox,
@@ -453,10 +453,8 @@ fun MainScreenLayout(
                             )
                         else ->
                             DashboardBottomPanel( // Fallback to Dashboard for unknown routes
-                                navController = navController,
                                 onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
                                 onNavigateToPresets = onNavigateToPresets,
-                                onNavigateToCharacter = onNavigateToCharacter,
                                 onNavigateToGlobalSearch = onNavigateToGlobalSearch,
                                 onNavigateToSettings = onNavigateToSettings,
                                 onNavigateToInbox = onNavigateToInbox,
@@ -562,30 +560,40 @@ fun MainScreenLayout(
                                 },
                                 onLinkedAttachmentClick = { attachment ->
                                     when {
-                                        attachment.attachmentType == "NOTE_DOCUMENT" && !attachment.entityId.isNullOrBlank() ->
+                                        attachment.attachmentType == "NOTE_DOCUMENT" &&
+                                            !attachment.entityId.isNullOrBlank() ->
                                             navigationManager.navigateOrFallback(
                                                 navController = navController,
                                                 target = NavTarget.NoteDocument(id = attachment.entityId),
                                             )
-                                        attachment.attachmentType == "MUSIC_NOTE" && !attachment.entityId.isNullOrBlank() ->
+                                        attachment.attachmentType == "MUSIC_NOTE" &&
+                                            !attachment.entityId.isNullOrBlank() ->
                                             navigationManager.navigateOrFallback(
                                                 navController = navController,
                                                 target = NavTarget.MusicNote(id = attachment.entityId),
                                             )
-                                        attachment.attachmentType == "CHECKLIST" && !attachment.entityId.isNullOrBlank() ->
+                                        attachment.attachmentType == "CHECKLIST" &&
+                                            !attachment.entityId.isNullOrBlank() ->
                                             navigationManager.navigateOrFallback(
                                                 navController = navController,
                                                 target = NavTarget.Checklist(id = attachment.entityId),
                                             )
-                                        attachment.linkType == LinkType.CONTEXT && !attachment.target.isNullOrBlank() ->
+                                        attachment.linkType == LinkType.CONTEXT &&
+                                            !attachment.target.isNullOrBlank() ->
                                             navigationManager.navigateOrFallback(
                                                 navController = navController,
                                                 target = NavTarget.ContextDetail(contextId = attachment.target),
                                                 recordInHistory = true,
                                             )
-                                        (attachment.linkType == LinkType.URL || attachment.linkType == LinkType.OBSIDIAN) &&
-                                            !attachment.target.isNullOrBlank() -> {
-                                            val resolvedTarget = buildExternalTarget(attachment.linkType, attachment.target)
+                                        (
+                                            attachment.linkType == LinkType.URL ||
+                                                attachment.linkType == LinkType.OBSIDIAN
+                                        ) && !attachment.target.isNullOrBlank() -> {
+                                            val resolvedTarget =
+                                                buildExternalTarget(
+                                                    attachment.linkType,
+                                                    attachment.target,
+                                                )
                                             runCatching {
                                                 context.startActivity(
                                                     Intent(Intent.ACTION_VIEW, Uri.parse(resolvedTarget)).apply {

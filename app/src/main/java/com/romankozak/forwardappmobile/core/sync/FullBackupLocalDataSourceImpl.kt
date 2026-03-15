@@ -1,5 +1,7 @@
 // File: FullBackupLocalDataSourceImpl.kt
 
+@file:Suppress("WildcardImport", "MaxLineLength", "UnusedPrivateProperty")
+
 package com.romankozak.forwardappmobile.core.sync
 
 import android.util.Log

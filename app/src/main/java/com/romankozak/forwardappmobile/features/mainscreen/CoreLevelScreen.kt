@@ -59,6 +59,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
 
+private const val ATTACHMENT_ID_PREVIEW_LENGTH = 8
+private const val PICKER_OPEN_DELAY_MILLIS = 160L
+private const val SHEET_BOTTOM_SPACER_DP = 12
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CoreLevelScreen(
@@ -127,7 +131,7 @@ fun CoreLevelScreen(
                     val option = availableAttachmentById[id]
                     ConnectionItemUi(
                         id = id,
-                        title = option?.name ?: "Вкладення ${id.take(8)}",
+                        title = option?.name ?: "Вкладення ${id.take(ATTACHMENT_ID_PREVIEW_LENGTH)}",
                         type =
                             when (option?.attachmentType) {
                                 "NOTE_DOCUMENT" -> ConnectionType.NOTE_DOCUMENT
@@ -143,7 +147,9 @@ fun CoreLevelScreen(
                 urlIds.map { id ->
                     ConnectionItemUi(
                         id = id,
-                        title = availableAttachmentById[id]?.name ?: "URL ${id.take(8)}",
+                        title =
+                            availableAttachmentById[id]?.name
+                                ?: "URL ${id.take(ATTACHMENT_ID_PREVIEW_LENGTH)}",
                         type = ConnectionType.URL,
                     )
                 },
@@ -152,7 +158,9 @@ fun CoreLevelScreen(
                 obsidianIds.map { id ->
                     ConnectionItemUi(
                         id = id,
-                        title = availableAttachmentById[id]?.name ?: "Obsidian ${id.take(8)}",
+                        title =
+                            availableAttachmentById[id]?.name
+                                ?: "Obsidian ${id.take(ATTACHMENT_ID_PREVIEW_LENGTH)}",
                         type = ConnectionType.OBSIDIAN_NOTE,
                     )
                 },
@@ -328,7 +336,7 @@ fun CoreLevelScreen(
                     viewModel.dismissScopeLinksSheet()
                     pendingCreateAction = null
                     scope.launch {
-                        delay(160)
+                        delay(PICKER_OPEN_DELAY_MILLIS)
                         activeLinkPickerTab = LinkPickerTab.CONTEXTS
                     }
                 },
@@ -342,7 +350,7 @@ fun CoreLevelScreen(
                             viewModel.dismissScopeLinksSheet()
                             pendingCreateAction = null
                             scope.launch {
-                                delay(160)
+                                delay(PICKER_OPEN_DELAY_MILLIS)
                                 showAttachmentChooser = true
                             }
                         }
@@ -354,7 +362,7 @@ fun CoreLevelScreen(
                     viewModel.dismissScopeLinksSheet()
                     pendingCreateAction = type.toPickerCreateAction()
                     scope.launch {
-                        delay(160)
+                        delay(PICKER_OPEN_DELAY_MILLIS)
                         activeLinkPickerTab =
                             if (type == CreateConnectionType.CONTEXT) {
                                 LinkPickerTab.CONTEXTS
@@ -368,7 +376,7 @@ fun CoreLevelScreen(
                     viewModel.updateConnectionsOrder(reordered.map { it.orderToken() })
                 },
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(SHEET_BOTTOM_SPACER_DP.dp))
         }
     }
 
@@ -387,7 +395,10 @@ fun CoreLevelScreen(
     activeLinkPickerTab?.let { initialTab ->
         val availableAttachmentIds = attachmentOptions.map { it.id }.toSet()
         LinkedTargetsPickerDialog(
-            contextOptions = uiState.allProjects.map { ProjectOption(id = it.id, name = it.name, parentId = it.parentId) },
+            contextOptions =
+                uiState.allProjects.map {
+                    ProjectOption(id = it.id, name = it.name, parentId = it.parentId)
+                },
             attachmentOptions =
                 attachmentOptions.map {
                     AttachmentOption(

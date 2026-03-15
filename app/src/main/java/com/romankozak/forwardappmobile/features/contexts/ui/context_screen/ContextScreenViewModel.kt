@@ -27,9 +27,11 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.BacklogActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.BacklogDndCoordinator
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.BacklogItemActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.BacklogItemRepositories
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ClipboardActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ContextDataApplyActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ContextPickerActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ContextPickerRepositories
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ContextSettingsActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ContextViewActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.CreationActions
@@ -38,6 +40,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actio
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.DirectionActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.DirectionChooserActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.InputSuggestionActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.InputStateUpdate
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ListChooserActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ListChooserFlowActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.ListChooserOrchestrationActions
@@ -68,6 +71,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionType
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.usecases.ContextScreenDataMapper
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.usecases.ContextScreenDataObserver
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.usecases.ContextScreenDataObserverDependencies
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.*
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
 import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
@@ -151,7 +155,7 @@ class ContextScreenViewModel
             contextSessionStore.state
         internal val stateManager = ContextStateManager(viewModelScope)
         private val tagManager = TagManager(contextRepository, viewModelScope)
-        private val activityManager = ActivityManager(activityRepository, contextRepository, settingsRepository, viewModelScope)
+        private val activityManager = ActivityManager(activityRepository, viewModelScope)
         private val contextIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
         private val originContextId: String? = savedStateHandle.get<String>("originContextId")
         private val _listContent = MutableStateFlow<List<BacklogItemContent>>(emptyList())
@@ -193,7 +197,6 @@ class ContextScreenViewModel
         val inboxHandler = InboxHandler(contextRepository, inboxRepository, viewModelScope, contextIdFlow, this)
         private val inboxMarkdownHandler by lazy {
             InboxMarkdownHandler(
-                contextRepository = contextRepository,
                 scope = viewModelScope, // Тепер Hilt не свариться, ми передаємо scope самі
                 listener = this,
                 goalRepository = goalRepository, // ViewModel виступає слухачем
@@ -231,16 +234,19 @@ class ContextScreenViewModel
         }
         private val backlogItemActions by lazy {
             BacklogItemActions(
-                goalRepository = goalRepository,
-                contextRepository = contextRepository,
-                noteDocumentRepository = noteDocumentRepository,
-                musicNoteRepository = musicNoteRepository,
-                checklistRepository = checklistRepository,
-                noteRepository = noteRepository,
-                listItemRepository = listItemRepository,
-                dayManagementRepository = dayManagementRepository,
-                activityRepository = activityRepository,
-                contextTimeTrackingRepository = contextTimeTrackingRepository,
+                repositories =
+                    BacklogItemRepositories(
+                        goalRepository = goalRepository,
+                        contextRepository = contextRepository,
+                        noteDocumentRepository = noteDocumentRepository,
+                        musicNoteRepository = musicNoteRepository,
+                        checklistRepository = checklistRepository,
+                        noteRepository = noteRepository,
+                        listItemRepository = listItemRepository,
+                        dayManagementRepository = dayManagementRepository,
+                        activityRepository = activityRepository,
+                        contextTimeTrackingRepository = contextTimeTrackingRepository,
+                    ),
             )
         }
         private val listChooserActions by lazy {
@@ -408,18 +414,21 @@ class ContextScreenViewModel
         private val contextScreenDataMapper = ContextScreenDataMapper()
         private val contextScreenDataObserver =
             ContextScreenDataObserver(
-                contextRepository = contextRepository,
-                listItemRepository = listItemRepository,
-                contextStructureRepository = contextStructureRepository,
-                contextLogRepository = contextLogRepository,
-                checklistRepository = checklistRepository,
-                noteDocumentRepository = noteDocumentRepository,
-                musicNoteRepository = musicNoteRepository,
-                directionRepository = directionRepository,
-                reminderRepository = reminderRepository,
-                recentItemsRepository = recentItemsRepository,
-                noteRepository = noteRepository,
-                goalRepository = goalRepository,
+                dependencies =
+                    ContextScreenDataObserverDependencies(
+                        contextRepository = contextRepository,
+                        listItemRepository = listItemRepository,
+                        contextStructureRepository = contextStructureRepository,
+                        contextLogRepository = contextLogRepository,
+                        checklistRepository = checklistRepository,
+                        noteDocumentRepository = noteDocumentRepository,
+                        musicNoteRepository = musicNoteRepository,
+                        directionRepository = directionRepository,
+                        reminderRepository = reminderRepository,
+                        recentItemsRepository = recentItemsRepository,
+                        noteRepository = noteRepository,
+                        goalRepository = goalRepository,
+                    ),
                 mapper = contextScreenDataMapper,
             )
         val project =
@@ -487,13 +496,16 @@ class ContextScreenViewModel
         }
         private val contextPickerActions by lazy {
             ContextPickerActions(
-                contextRepository = contextRepository,
-                contextKeyProblemsRepository = contextKeyProblemsRepository,
-                focusContextRepository = focusContextRepository,
+                repositories =
+                    ContextPickerRepositories(
+                        contextRepository = contextRepository,
+                        contextKeyProblemsRepository = contextKeyProblemsRepository,
+                        focusContextRepository = focusContextRepository,
+                        noteDocumentRepository = noteDocumentRepository,
+                        musicNoteRepository = musicNoteRepository,
+                        checklistRepository = checklistRepository,
+                    ),
                 listChooserFlowActions = listChooserFlowActions,
-                noteDocumentRepository = noteDocumentRepository,
-                musicNoteRepository = musicNoteRepository,
-                checklistRepository = checklistRepository,
                 loggerTag = TAG,
             )
         }
@@ -729,7 +741,7 @@ class ContextScreenViewModel
         fun onExportBacklogToMarkdown() = markdownActions.onExportBacklogToMarkdown(_listContent.value)
 
         fun onImportBacklogFromMarkdown(markdownText: String) =
-            markdownActions.onImportBacklogFromMarkdown(markdownText, contextIdFlow.value)
+            markdownActions.onImportBacklogFromMarkdownConfirm(markdownText, contextIdFlow.value)
 
         fun onShowImportBacklogFromMarkdownDialog() = markdownActions.onShowImportBacklogFromMarkdownDialog()
 
@@ -754,13 +766,15 @@ class ContextScreenViewModel
             clearDetectedReminder: Boolean,
         ) {
             uiStateActions.updateInputState(
-                inputValue = inputValue,
-                inputMode = inputMode,
-                localSearchQuery = localSearchQuery,
-                newlyAddedItemId = newlyAddedItemId,
-                detectedReminderSuggestion = detectedReminderSuggestion,
-                detectedReminderCalendar = detectedReminderCalendar,
-                clearDetectedReminder = clearDetectedReminder,
+                InputStateUpdate(
+                    inputValue = inputValue,
+                    inputMode = inputMode,
+                    localSearchQuery = localSearchQuery,
+                    newlyAddedItemId = newlyAddedItemId,
+                    detectedReminderSuggestion = detectedReminderSuggestion,
+                    detectedReminderCalendar = detectedReminderCalendar,
+                    clearDetectedReminder = clearDetectedReminder,
+                ),
             )
         }
 

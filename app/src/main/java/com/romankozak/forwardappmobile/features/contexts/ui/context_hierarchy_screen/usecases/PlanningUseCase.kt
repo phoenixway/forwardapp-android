@@ -30,6 +30,10 @@ class PlanningUseCase
         private val searchAdapter: PlanningSearchAdapter,
         private val settingsProvider: PlanningSettingsProvider,
     ) {
+        private companion object {
+            private const val HIERARCHY_DEBUG_TAG = "HierarchyDebug"
+        }
+
         private var isInitialized = false
 
         private val _isReadyForFiltering = MutableStateFlow(false)
@@ -53,6 +57,17 @@ class PlanningUseCase
 
         val planningMode = planningModeManager.planningMode
         private val lastNonEmptyProjects = MutableStateFlow<List<Context>>(emptyList())
+
+        private fun shouldUseCachedProjects(
+            state: FilterState,
+            ready: Boolean,
+            cachedProjects: List<Context>,
+        ): Boolean =
+            state.flatList.isEmpty() &&
+                cachedProjects.isNotEmpty() &&
+                !state.searchActive &&
+                state.mode == PlanningMode.All &&
+                ready
 
         @OptIn(FlowPreview::class)
         fun initialize(
@@ -94,7 +109,7 @@ class PlanningUseCase
                     planningSettingsState,
                 ) { flatList, query, searchActive, mode, settings ->
                     Log.d(
-                        "HierarchyDebug",
+                        HIERARCHY_DEBUG_TAG,
                         "baseFilterState combine flat=${flatList.size} query='$query' searchActive=$searchActive mode=$mode",
                     )
                     FilterState(
@@ -111,32 +126,27 @@ class PlanningUseCase
                 .onEach { state ->
                     var ready = _isReadyForFiltering.value
                     if (!ready) {
-                        Log.d("HierarchyDebug", "PlanningUseCase marking ready on first emission.")
+                        Log.d(HIERARCHY_DEBUG_TAG, "PlanningUseCase marking ready on first emission.")
                         _isReadyForFiltering.value = true
                         ready = true
                     }
 
                     if (state.flatList.isNotEmpty()) {
                         Log.d(
-                            "HierarchyDebug",
+                            HIERARCHY_DEBUG_TAG,
                             "PlanningUseCase storing lastNonEmptyProjects size=${state.flatList.size}",
                         )
                         lastNonEmptyProjects.value = state.flatList
                     }
 
+                    val cachedProjects = lastNonEmptyProjects.value
                     val effectiveFlatList =
-                        if (
-                            state.flatList.isEmpty() &&
-                            lastNonEmptyProjects.value.isNotEmpty() &&
-                            !state.searchActive &&
-                            state.mode == PlanningMode.All &&
-                            ready
-                        ) {
+                        if (shouldUseCachedProjects(state = state, ready = ready, cachedProjects = cachedProjects)) {
                             Log.d(
-                                "HierarchyDebug",
-                                "PlanningUseCase applying fallback with cached projects size=${lastNonEmptyProjects.value.size}",
+                                HIERARCHY_DEBUG_TAG,
+                                "PlanningUseCase applying fallback with cached projects size=${cachedProjects.size}",
                             )
-                            lastNonEmptyProjects.value
+                            cachedProjects
                         } else {
                             state.flatList
                         }
@@ -147,7 +157,7 @@ class PlanningUseCase
                             isReady = ready,
                         )
                     Log.d(
-                        "HierarchyDebug",
+                        HIERARCHY_DEBUG_TAG,
                         "PlanningUseCase emitting ready=${emitted.isReady} flat=${emitted.flatList.size}",
                     )
                     _filterStateFlow.value = emitted

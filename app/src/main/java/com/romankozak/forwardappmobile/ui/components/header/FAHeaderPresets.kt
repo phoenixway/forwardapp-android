@@ -22,6 +22,75 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+@Composable
+private fun HeaderTitleBlock(
+    title: String,
+    subtitle: String,
+    titleTrailingContent: (@Composable () -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    Column(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = title,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.8.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            if (titleTrailingContent != null) {
+                Spacer(modifier = Modifier.width(8.dp))
+                titleTrailingContent()
+            }
+        }
+        Text(
+            text = subtitle,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Medium,
+            letterSpacing = 0.3.sp,
+            color = primaryColor.copy(alpha = 0.7f),
+        )
+    }
+}
+
+@Composable
+private fun HeaderGlyphBadge(
+    glyph: String,
+    modifier: Modifier = Modifier,
+    glyphSize: androidx.compose.ui.unit.TextUnit = 22.sp,
+) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    Box(
+        modifier =
+            modifier
+                .size(34.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        colors =
+                            listOf(
+                                primaryColor.copy(alpha = 0.25f),
+                                primaryColor.copy(alpha = 0.08f),
+                            ),
+                    ),
+                )
+                .border(
+                    width = 1.2.dp,
+                    color = primaryColor.copy(alpha = 0.4f),
+                    shape = CircleShape,
+                ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = glyph,
+            fontSize = glyphSize,
+            color = primaryColor,
+            fontWeight = FontWeight.Bold,
+        )
+    }
+}
+
 /**
  * TodayHeader:
  *  - верх: ліворуч "Today", по центру DayPlanHeaderContent
@@ -33,6 +102,9 @@ fun TodayHeader(
     statsText: String? = null,
     titleTrailingContent: @Composable (() -> Unit)? = null,
 ): HeaderLayout {
+    if (date != null) {
+        // Keep parameter wired for future date-specific UI without changing current layout.
+    }
     val primaryColor = MaterialTheme.colorScheme.primary
 
     return FreeFormHeaderLayout(
@@ -41,28 +113,12 @@ fun TodayHeader(
         // ----------------------
         topLeft = {
             Column(horizontalAlignment = Alignment.Start) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "Today",
-                        style =
-                            MaterialTheme.typography.titleLarge.copy(
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Bold,
-                            ),
-                    )
-                    if (titleTrailingContent != null) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        titleTrailingContent()
-                    }
-                }
+                HeaderTitleBlock(
+                    title = "Today",
+                    subtitle = "The Alpha and Omega of everything",
+                    titleTrailingContent = titleTrailingContent,
+                )
                 Column {
-                    Text(
-                        text = "The Alpha and Omega of everything",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 0.3.sp,
-                        color = primaryColor.copy(alpha = 0.7f),
-                    )
                     if (!statsText.isNullOrBlank()) {
                         Text(
                             text = statsText,
@@ -79,35 +135,7 @@ fun TodayHeader(
         // 💛 TOP RIGHT: ENERGY ICON + Day Navigation
         // ----------------------
         topRight = {
-            Column(horizontalAlignment = Alignment.End) {
-                Box(
-                    modifier =
-                        Modifier
-                            .size(34.dp)
-                            .clip(CircleShape)
-                            .background(
-                                Brush.radialGradient(
-                                    listOf(
-                                        primaryColor.copy(alpha = 0.25f),
-                                        primaryColor.copy(alpha = 0.08f),
-                                    ),
-                                ),
-                            )
-                            .border(
-                                width = 1.2.dp,
-                                color = primaryColor.copy(alpha = 0.4f),
-                                shape = CircleShape,
-                            ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        "⌁",
-                        fontSize = 22.sp,
-                        color = primaryColor,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-            }
+            Column(horizontalAlignment = Alignment.End) { HeaderGlyphBadge(glyph = "⌁") }
         },
         // ----------------------
         // 💙 BOTTOM CENTER: Day Navigation
@@ -126,64 +154,16 @@ fun StrategyHeader(
     onModeClick: () -> Unit,
     titleTrailingContent: @Composable (() -> Unit)? = null,
 ): HeaderLayout {
-    val primaryColor = MaterialTheme.colorScheme.primary
-
     return LeftCenterCombinedHeaderLayout(
         left = {
-            Column(horizontalAlignment = Alignment.Start) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "Strategy",
-                        style =
-                            MaterialTheme.typography.titleLarge.copy(
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Bold,
-                            ),
-                    )
-                    if (titleTrailingContent != null) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        titleTrailingContent()
-                    }
-                }
-                Text(
-                    text = "Long-term planning mode",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 0.3.sp,
-                    color = primaryColor.copy(alpha = 0.7f),
-                )
-            }
+            HeaderTitleBlock(
+                title = "Strategy",
+                subtitle = "Long-term planning mode",
+                titleTrailingContent = titleTrailingContent,
+                modifier = Modifier.clickable(onClick = onModeClick),
+            )
         },
-        right = {
-            Box(
-                modifier =
-                    Modifier
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.radialGradient(
-                                colors =
-                                    listOf(
-                                        primaryColor.copy(alpha = 0.25f),
-                                        primaryColor.copy(alpha = 0.08f),
-                                    ),
-                            ),
-                        )
-                        .border(
-                            width = 1.2.dp,
-                            color = primaryColor.copy(alpha = 0.4f),
-                            shape = CircleShape,
-                        ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "❂",
-                    fontSize = 22.sp,
-                    color = primaryColor,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-        },
+        right = { HeaderGlyphBadge(glyph = "❂") },
     )
 }
 
@@ -195,64 +175,16 @@ fun StrategicArcHeader(
     onModeClick: () -> Unit,
     titleTrailingContent: @Composable (() -> Unit)? = null,
 ): HeaderLayout {
-    val primaryColor = MaterialTheme.colorScheme.primary
-
     return LeftCenterCombinedHeaderLayout(
         left = {
-            Column(horizontalAlignment = Alignment.Start) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "Strategic Arc",
-                        style =
-                            MaterialTheme.typography.titleLarge.copy(
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Bold,
-                            ),
-                    )
-                    if (titleTrailingContent != null) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        titleTrailingContent()
-                    }
-                }
-                Text(
-                    text = "The current Arc of your story",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 0.3.sp,
-                    color = primaryColor.copy(alpha = 0.7f),
-                )
-            }
+            HeaderTitleBlock(
+                title = "Strategic Arc",
+                subtitle = "The current Arc of your story",
+                titleTrailingContent = titleTrailingContent,
+                modifier = Modifier.clickable(onClick = onModeClick),
+            )
         },
-        right = {
-            Box(
-                modifier =
-                    Modifier
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.radialGradient(
-                                colors =
-                                    listOf(
-                                        primaryColor.copy(alpha = 0.25f),
-                                        primaryColor.copy(alpha = 0.08f),
-                                    ),
-                            ),
-                        )
-                        .border(
-                            width = 1.2.dp,
-                            color = primaryColor.copy(alpha = 0.4f),
-                            shape = CircleShape,
-                        ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "⟲",
-                    fontSize = 22.sp,
-                    color = primaryColor,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-        },
+        right = { HeaderGlyphBadge(glyph = "⟲") },
     )
 }
 
@@ -271,28 +203,11 @@ fun CommandDeckHeaderPreset(
     return LeftCenterCombinedHeaderLayout(
         onClick = onClick,
         left = {
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Forward",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.8.sp,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    if (titleTrailingContent != null) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        titleTrailingContent()
-                    }
-                }
-                Text(
-                    text = "Score your goals!",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 0.3.sp,
-                    color = primaryColor.copy(alpha = 0.7f),
-                )
-            }
+            HeaderTitleBlock(
+                title = "Forward",
+                subtitle = "Score your goals!",
+                titleTrailingContent = titleTrailingContent,
+            )
         },
         right = {
             Row(
@@ -302,41 +217,15 @@ fun CommandDeckHeaderPreset(
                     rightContent()
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                Box(
+                HeaderGlyphBadge(
+                    glyph = "⌬",
                     modifier =
-                        Modifier
-                            .size(34.dp)
-                            .clip(CircleShape)
-                            .background(
-                                Brush.radialGradient(
-                                    colors =
-                                        listOf(
-                                            primaryColor.copy(alpha = 0.25f),
-                                            primaryColor.copy(alpha = 0.08f),
-                                        ),
-                                ),
-                            )
-                            .border(
-                                width = 1.2.dp,
-                                color = primaryColor.copy(alpha = 0.4f),
-                                shape = CircleShape,
-                            )
-                            .let { base ->
-                                if (onRightClick != null) {
-                                    base.clickable { onRightClick() }
-                                } else {
-                                    base
-                                }
-                            },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = "⌬",
-                        fontSize = 22.sp,
-                        color = primaryColor,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
+                        if (onRightClick != null) {
+                            Modifier.clickable { onRightClick() }
+                        } else {
+                            Modifier
+                        },
+                )
             }
         },
     )

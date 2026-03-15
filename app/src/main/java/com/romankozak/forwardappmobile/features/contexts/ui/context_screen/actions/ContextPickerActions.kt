@@ -14,14 +14,18 @@ import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
 import java.util.UUID
 
+data class ContextPickerRepositories(
+    val contextRepository: ContextRepository,
+    val contextKeyProblemsRepository: ContextKeyProblemsRepository,
+    val focusContextRepository: FocusContextRepository,
+    val noteDocumentRepository: NoteDocumentRepository,
+    val musicNoteRepository: MusicNoteRepository,
+    val checklistRepository: ChecklistRepository,
+)
+
 class ContextPickerActions(
-    private val contextRepository: ContextRepository,
-    private val contextKeyProblemsRepository: ContextKeyProblemsRepository,
-    private val focusContextRepository: FocusContextRepository,
+    private val repositories: ContextPickerRepositories,
     private val listChooserFlowActions: ListChooserFlowActions,
-    private val noteDocumentRepository: NoteDocumentRepository,
-    private val musicNoteRepository: MusicNoteRepository,
-    private val checklistRepository: ChecklistRepository,
     private val loggerTag: String,
 ) {
     suspend fun onPickerContextSelected(
@@ -53,18 +57,17 @@ class ContextPickerActions(
         showSnackbar: (String) -> Unit,
         forceRefresh: () -> Unit,
     ) {
-        if (targetContextId.isBlank() || currentContextId.isBlank()) return
-        if (targetContextId == currentContextId) {
-            showSnackbar("Цей контекст вже відкритий")
-            return
-        }
-        if (contextRepository.doesLinkToContextExist(targetContextId, currentContextId)) {
-            showSnackbar("Посилання на цей контекст вже є в беклозі")
-            return
-        }
+        when {
+            targetContextId.isBlank() || currentContextId.isBlank() -> Unit
+            targetContextId == currentContextId -> showSnackbar("Цей контекст вже відкритий")
+            contextRepository.doesLinkToContextExist(targetContextId, currentContextId) ->
+                showSnackbar("Посилання на цей контекст вже є в беклозі")
 
-        contextRepository.addContextLinkToContext(targetContextId, currentContextId)
-        forceRefresh()
+            else -> {
+                contextRepository.addContextLinkToContext(targetContextId, currentContextId)
+                forceRefresh()
+            }
+        }
     }
 
     suspend fun onDirectionContextLinkSelected(
@@ -73,22 +76,21 @@ class ContextPickerActions(
         directionItems: List<DirectionItemEntity>,
         showSnackbar: (String) -> Unit,
     ) {
-        if (targetContextId.isBlank() || currentContextId.isBlank()) return
-        if (targetContextId == currentContextId) {
-            showSnackbar("Цей контекст вже відкритий")
-            return
-        }
-        if (directionItems.any { it.linkedContextId == targetContextId }) {
-            showSnackbar("Посилання на цей контекст вже є в напрямку")
-            return
-        }
+        when {
+            targetContextId.isBlank() || currentContextId.isBlank() -> Unit
+            targetContextId == currentContextId -> showSnackbar("Цей контекст вже відкритий")
+            directionItems.any { it.linkedContextId == targetContextId } ->
+                showSnackbar("Посилання на цей контекст вже є в напрямку")
 
-        val result =
-            listChooserFlowActions.addDirectionLinkedToContext(
-                targetContextId = targetContextId,
-                currentContextId = currentContextId,
-            )
-        result.errorMessage?.let(showSnackbar)
+            else -> {
+                val result =
+                    listChooserFlowActions.addDirectionLinkedToContext(
+                        targetContextId = targetContextId,
+                        currentContextId = currentContextId,
+                    )
+                result.errorMessage?.let(showSnackbar)
+            }
+        }
     }
 
     suspend fun onKeyProblemsDescriptionChanged(
@@ -191,30 +193,50 @@ class ContextPickerActions(
             }
             is NewDocumentDraft.WebLink -> {
                 val target = request.url.trim()
-                if (target.isBlank()) return null
-                contextRepository.addLinkItemToContextFromLink(
-                    contextId = currentContextId,
-                    link =
-                        RelatedLink(
-                            type = LinkType.URL,
-                            target = target,
-                            displayName = request.name.trim().ifBlank { target },
-                        ),
-                )
+                target.takeIf { it.isNotBlank() }?.let {
+                    contextRepository.addLinkItemToContextFromLink(
+                        contextId = currentContextId,
+                        link =
+                            RelatedLink(
+                                type = LinkType.URL,
+                                target = it,
+                                displayName = request.name.trim().ifBlank { it },
+                            ),
+                    )
+                }
             }
             is NewDocumentDraft.Obsidian -> {
                 val target = request.noteName.trim()
-                if (target.isBlank()) return null
-                contextRepository.addLinkItemToContextFromLink(
-                    contextId = currentContextId,
-                    link =
-                        RelatedLink(
-                            type = LinkType.OBSIDIAN,
-                            target = target,
-                            displayName = request.displayName.trim().ifBlank { target },
-                        ),
-                )
+                target.takeIf { it.isNotBlank() }?.let {
+                    contextRepository.addLinkItemToContextFromLink(
+                        contextId = currentContextId,
+                        link =
+                            RelatedLink(
+                                type = LinkType.OBSIDIAN,
+                                target = it,
+                                displayName = request.displayName.trim().ifBlank { it },
+                            ),
+                    )
+                }
             }
         }
     }
+
+    private val contextRepository: ContextRepository
+        get() = repositories.contextRepository
+
+    private val contextKeyProblemsRepository: ContextKeyProblemsRepository
+        get() = repositories.contextKeyProblemsRepository
+
+    private val focusContextRepository: FocusContextRepository
+        get() = repositories.focusContextRepository
+
+    private val noteDocumentRepository: NoteDocumentRepository
+        get() = repositories.noteDocumentRepository
+
+    private val musicNoteRepository: MusicNoteRepository
+        get() = repositories.musicNoteRepository
+
+    private val checklistRepository: ChecklistRepository
+        get() = repositories.checklistRepository
 }

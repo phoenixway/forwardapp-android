@@ -1,21 +1,32 @@
-package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems
+package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.*
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -71,17 +82,7 @@ fun InlineTagChip(
     modifier: Modifier = Modifier,
     isInCompletedText: Boolean = false,
 ) {
-    val colors = getTagColors(tagType, false)
-    val finalColors =
-        if (isInCompletedText) {
-            colors.copy(
-                content = colors.content.copy(alpha = 0.6f),
-                backgroundStart = colors.backgroundStart.copy(alpha = 0.3f),
-                backgroundEnd = colors.backgroundEnd.copy(alpha = 0.3f),
-            )
-        } else {
-            colors
-        }
+    val finalColors = resolveInlineTagColors(tagType, isInCompletedText)
 
     Surface(
         modifier =
@@ -101,38 +102,62 @@ fun InlineTagChip(
             ),
         onClick = onClick ?: {},
     ) {
-        Box(
-            modifier =
-                Modifier
-                    .background(
-                        brush =
-                            Brush.linearGradient(
-                                colors =
-                                    listOf(
-                                        finalColors.backgroundStart,
-                                        finalColors.backgroundEnd,
-                                    ),
+        InlineTagChipContent(text = text, colors = finalColors)
+    }
+}
+
+@Composable
+private fun InlineTagChipContent(
+    text: String,
+    colors: TagColors,
+) {
+    Box(
+        modifier =
+            Modifier.background(
+                brush =
+                    Brush.linearGradient(
+                        colors =
+                            listOf(
+                                colors.backgroundStart,
+                                colors.backgroundEnd,
                             ),
                     ),
-        ) {
-            Text(
-                text = text,
-                style =
-                    MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 0.15.sp,
-                        fontSize = 10.sp,
-                    ),
-                color = finalColors.content,
-                modifier =
-                    Modifier.padding(
-                        horizontal = 6.dp,
-                        vertical = 3.dp,
-                    ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+            ),
+    ) {
+        Text(
+            text = text,
+            style =
+                MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.15.sp,
+                    fontSize = 10.sp,
+                ),
+            color = colors.content,
+            modifier =
+                Modifier.padding(
+                    horizontal = 6.dp,
+                    vertical = 3.dp,
+                ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun resolveInlineTagColors(
+    tagType: TagType,
+    isInCompletedText: Boolean,
+): TagColors {
+    val colors = getTagColors(tagType, false)
+    return if (isInCompletedText) {
+        colors.copy(
+            content = colors.content.copy(alpha = 0.6f),
+            backgroundStart = colors.backgroundStart.copy(alpha = 0.3f),
+            backgroundEnd = colors.backgroundEnd.copy(alpha = 0.3f),
+        )
+    } else {
+        colors
     }
 }
 

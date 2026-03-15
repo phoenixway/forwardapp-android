@@ -12,21 +12,25 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.ContextSettingsEvent
 import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
+import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreenActions
 import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreen
+import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreenState
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabContent
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabUiState
+import com.romankozak.forwardappmobile.ui.screens.common.tabs.GeneralTabActions
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.GeneralTabContent
+import com.romankozak.forwardappmobile.ui.screens.common.tabs.GeneralTabState
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabContent
 
 @Composable
@@ -36,10 +40,34 @@ fun GoalSettingsScreen(
     viewModel: GoalSettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
 
+    GoalSettingsNavigationEffect(
+        navController = navController,
+        navigationManager = navigationManager,
+        viewModel = viewModel,
+    )
+    GoalSettingsListChooserEffect(
+        savedStateHandle = savedStateHandle,
+        viewModel = viewModel,
+    )
+    GoalSettingsContent(
+        navController = navController,
+        uiState = uiState,
+        viewModel = viewModel,
+    )
+    GoalSettingsDescriptionEditor(
+        uiState = uiState,
+        viewModel = viewModel,
+    )
+}
+
+@Composable
+private fun GoalSettingsNavigationEffect(
+    navController: NavController,
+    navigationManager: EnhancedNavigationManager?,
+    viewModel: GoalSettingsViewModel,
+) {
     LaunchedEffect(Unit) {
         viewModel.events.collect {
             when (it) {
@@ -52,7 +80,14 @@ fun GoalSettingsScreen(
             }
         }
     }
+}
 
+@Composable
+private fun GoalSettingsListChooserEffect(
+    savedStateHandle: SavedStateHandle?,
+    viewModel: GoalSettingsViewModel,
+) {
+    val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, savedStateHandle) {
         val observer =
             LifecycleEventObserver { _, event ->
@@ -67,65 +102,44 @@ fun GoalSettingsScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
+}
 
-    val tabs = listOf("General", "Evaluation", "Reminders", "Links")
-    val tabIcons = listOf(Icons.Default.Settings, Icons.Default.BarChart, Icons.Default.Notifications, Icons.Default.Link)
-    val titleText = if (uiState.isNewGoal) "New Goal" else "Edit Goal"
-
+@Composable
+private fun GoalSettingsContent(
+    navController: NavController,
+    uiState: GoalSettingsUiState,
+    viewModel: GoalSettingsViewModel,
+) {
+    val tabs = goalSettingsTabs()
     SettingsScreen(
-        title = titleText,
+        state =
+            SettingsScreenState(
+                title = if (uiState.isNewGoal) "New Goal" else "Edit Goal",
+                tabs = tabs,
+                tabIcons = goalSettingsTabIcons(),
+                selectedTabIndex = uiState.selectedTabIndex,
+                isSaveEnabled = uiState.title.text.isNotBlank(),
+            ),
+        actions =
+            SettingsScreenActions(
+                onTabSelected = viewModel::onTabSelected,
+                onSave = viewModel::onSave,
+            ),
         navController = navController,
-        tabs = tabs,
-        tabIcons = tabIcons,
-        selectedTabIndex = uiState.selectedTabIndex,
-        onTabSelected = viewModel::onTabSelected,
-        onSave = viewModel::onSave,
-        isSaveEnabled = uiState.title.text.isNotBlank(),
     ) {
-        when (tabs[it]) {
-            "General" ->
-                GeneralTabContent(
-                    title = uiState.title,
-                    onTitleChange = viewModel::onTextChange,
-                    titleLabel = "Назва цілі",
-                    description = uiState.description,
-                    onDescriptionChange = viewModel::onDescriptionChange,
-                    onExpandDescriptionClick = viewModel::openDescriptionEditor,
-                )
-            "Evaluation" ->
-                EvaluationTabContent(
-                    uiState =
-                        EvaluationTabUiState(
-                            valueImportance = uiState.valueImportance,
-                            valueImpact = uiState.valueImpact,
-                            effort = uiState.effort,
-                            cost = uiState.cost,
-                            risk = uiState.risk,
-                            weightEffort = uiState.weightEffort,
-                            weightCost = uiState.weightCost,
-                            weightRisk = uiState.weightRisk,
-                            rawScore = uiState.rawScore,
-                            scoringStatus = uiState.scoringStatus,
-                            isScoringEnabled = uiState.isScoringEnabled,
-                        ),
-                    onViewModelAction = viewModel,
-                )
-            "Reminders" ->
-                RemindersTabContent(
-                    reminderTime = uiState.reminderTime,
-                    onViewModelAction = viewModel,
-                )
-            "Links" ->
-                LinksTabContent(
-                    links = uiState.relatedLinks,
-                    onAddProjectLink = viewModel::onAddLinkRequest,
-                    onAddWebLink = viewModel::onAddWebLinkRequest,
-                    onAddObsidianLink = viewModel::onAddObsidianLinkRequest,
-                    onRemoveLink = viewModel::onRemoveLinkAssociation,
-                )
-        }
+        GoalSettingsTabContent(
+            selectedTab = tabs[it],
+            uiState = uiState,
+            viewModel = viewModel,
+        )
     }
+}
 
+@Composable
+private fun GoalSettingsDescriptionEditor(
+    uiState: GoalSettingsUiState,
+    viewModel: GoalSettingsViewModel,
+) {
     if (uiState.isDescriptionEditorOpen) {
         FullScreenMarkdownEditor(
             initialValue = uiState.description,
@@ -134,3 +148,69 @@ fun GoalSettingsScreen(
         )
     }
 }
+
+@Composable
+private fun GoalSettingsTabContent(
+    selectedTab: String,
+    uiState: GoalSettingsUiState,
+    viewModel: GoalSettingsViewModel,
+) {
+    when (selectedTab) {
+        "General" ->
+            GeneralTabContent(
+                state =
+                    GeneralTabState(
+                        title = uiState.title,
+                        description = uiState.description,
+                    ),
+                actions =
+                    GeneralTabActions(
+                        onTitleChange = viewModel::onTextChange,
+                        onDescriptionChange = viewModel::onDescriptionChange,
+                        onExpandDescriptionClick = viewModel::openDescriptionEditor,
+                    ),
+                titleLabel = "Назва цілі",
+            )
+        "Evaluation" ->
+            EvaluationTabContent(
+                uiState =
+                    EvaluationTabUiState(
+                        valueImportance = uiState.valueImportance,
+                        valueImpact = uiState.valueImpact,
+                        effort = uiState.effort,
+                        cost = uiState.cost,
+                        risk = uiState.risk,
+                        weightEffort = uiState.weightEffort,
+                        weightCost = uiState.weightCost,
+                        weightRisk = uiState.weightRisk,
+                        rawScore = uiState.rawScore,
+                        scoringStatus = uiState.scoringStatus,
+                        isScoringEnabled = uiState.isScoringEnabled,
+                    ),
+                onViewModelAction = viewModel,
+            )
+        "Reminders" ->
+            RemindersTabContent(
+                reminderTime = uiState.reminderTime,
+                onViewModelAction = viewModel,
+            )
+        "Links" ->
+            LinksTabContent(
+                links = uiState.relatedLinks,
+                onAddProjectLink = viewModel::onAddLinkRequest,
+                onAddWebLink = viewModel::onAddWebLinkRequest,
+                onAddObsidianLink = viewModel::onAddObsidianLinkRequest,
+                onRemoveLink = viewModel::onRemoveLinkAssociation,
+            )
+    }
+}
+
+private fun goalSettingsTabs(): List<String> = listOf("General", "Evaluation", "Reminders", "Links")
+
+private fun goalSettingsTabIcons() =
+    listOf(
+        Icons.Default.Settings,
+        Icons.Default.BarChart,
+        Icons.Default.Notifications,
+        Icons.Default.Link,
+    )

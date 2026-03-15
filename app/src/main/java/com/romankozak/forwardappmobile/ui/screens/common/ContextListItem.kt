@@ -54,30 +54,9 @@ fun ProjectListItem(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // --- Compact Icon Bubble
-            Box(
-                modifier =
-                    Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))
-                        .border(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
-                            shape = CircleShape,
-                        ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = project.name.firstOrNull()?.uppercase() ?: "P",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-
+            ProjectInitialBadge(project.name)
             Spacer(modifier = Modifier.width(14.dp))
 
-            // --- Title + optional subtitle
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center,
@@ -98,17 +77,45 @@ fun ProjectListItem(
                 }
             }
 
-            IconButton(
-                modifier = Modifier.size(36.dp),
-                onClick = onRevealClick,
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Outlined.OpenInNew,
-                    contentDescription = "Reveal Project",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
+            RevealProjectButton(onRevealClick)
         }
+    }
+}
+
+@Composable
+private fun ProjectInitialBadge(projectName: String) {
+    Box(
+        modifier =
+            Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                    shape = CircleShape,
+                ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = projectName.firstOrNull()?.uppercase() ?: "P",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+        )
+    }
+}
+
+@Composable
+private fun RevealProjectButton(onRevealClick: () -> Unit) {
+    IconButton(
+        modifier = Modifier.size(36.dp),
+        onClick = onRevealClick,
+    ) {
+        Icon(
+            Icons.AutoMirrored.Outlined.OpenInNew,
+            contentDescription = "Reveal Project",
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(18.dp),
+        )
     }
 }

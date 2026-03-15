@@ -38,19 +38,30 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.ui.components.notesEditors.LimitedMarkdownEditorActions
 import com.romankozak.forwardappmobile.ui.components.notesEditors.LimitedMarkdownEditor
+import com.romankozak.forwardappmobile.ui.components.notesEditors.LimitedMarkdownEditorState
+
+data class GeneralTabState(
+    val title: TextFieldValue,
+    val description: TextFieldValue,
+    val tags: List<String>? = null,
+)
+
+data class GeneralTabActions(
+    val onTitleChange: (TextFieldValue) -> Unit,
+    val onDescriptionChange: (TextFieldValue) -> Unit,
+    val onExpandDescriptionClick: () -> Unit,
+    val onAddTag: ((String) -> Unit)? = null,
+    val onRemoveTag: ((String) -> Unit)? = null,
+    val onCopyDescription: (() -> Unit)? = null,
+)
 
 @Composable
 fun GeneralTabContent(
-    title: TextFieldValue,
-    onTitleChange: (TextFieldValue) -> Unit,
+    state: GeneralTabState,
+    actions: GeneralTabActions,
     titleLabel: String,
-    description: TextFieldValue,
-    onDescriptionChange: (TextFieldValue) -> Unit,
-    onExpandDescriptionClick: () -> Unit,
-    tags: List<String>? = null,
-    onAddTag: ((String) -> Unit)? = null,
-    onRemoveTag: ((String) -> Unit)? = null,
 ) {
     LazyColumn(
         modifier =
@@ -62,8 +73,8 @@ fun GeneralTabContent(
     ) {
         item {
             OutlinedTextField(
-                value = title,
-                onValueChange = onTitleChange,
+                value = state.title,
+                onValueChange = actions.onTitleChange,
                 label = { Text(titleLabel) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -78,21 +89,27 @@ fun GeneralTabContent(
 
         item {
             LimitedMarkdownEditor(
-                value = description,
-                onValueChange = onDescriptionChange,
-                maxHeight = 200.dp,
-                onExpandClick = onExpandDescriptionClick,
+                state =
+                    LimitedMarkdownEditorState(
+                        value = state.description,
+                        maxHeight = 200.dp,
+                    ),
+                actions =
+                    LimitedMarkdownEditorActions(
+                        onValueChange = actions.onDescriptionChange,
+                        onExpandClick = actions.onExpandDescriptionClick,
+                        onCopy = actions.onCopyDescription ?: {},
+                    ),
                 modifier = Modifier.fillMaxWidth(),
-                onCopy = { /* TODO */ },
             )
         }
 
-        if (tags != null && onAddTag != null && onRemoveTag != null) {
+        if (state.tags != null && actions.onAddTag != null && actions.onRemoveTag != null) {
             item {
                 TagsSection(
-                    tags = tags,
-                    onAddTag = onAddTag,
-                    onRemoveTag = onRemoveTag,
+                    tags = state.tags,
+                    onAddTag = actions.onAddTag,
+                    onRemoveTag = actions.onRemoveTag,
                 )
             }
         }
@@ -120,71 +137,95 @@ fun TagsSection(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.LocalOffer,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    text = "Теги",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+            TagsSectionHeader()
+            TagsSectionContent(tags = tags, onRemoveTag = onRemoveTag)
+            AddTagRow(
+                newTag = newTag,
+                onNewTagChange = { newTag = it },
+                onAddTag = {
+                    onAddTag(newTag.trim())
+                    newTag = ""
+                },
+            )
+        }
+    }
+}
 
-            if (tags.isNotEmpty()) {
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    tags.forEach { tag ->
-                        TagItem(tag = tag, onRemove = { onRemoveTag(tag) })
-                    }
-                }
-            } else {
-                Text(
-                    text = "Теги відсутні",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 4.dp),
-                )
-            }
+@Composable
+private fun TagsSectionHeader() {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.LocalOffer,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        Text(
+            text = "Теги",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedTextField(
-                    value = newTag,
-                    onValueChange = { newTag = it },
-                    label = { Text("Новий тег") },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true,
-                )
-                FilledTonalIconButton(
-                    onClick = {
-                        if (newTag.isNotBlank()) {
-                            onAddTag(newTag.trim())
-                            newTag = ""
-                        }
-                    },
-                    enabled = newTag.isNotBlank(),
-                    modifier = Modifier.size(56.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Додати тег",
-                    )
-                }
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TagsSectionContent(
+    tags: List<String>,
+    onRemoveTag: (String) -> Unit,
+) {
+    if (tags.isNotEmpty()) {
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            tags.forEach { tag ->
+                TagItem(tag = tag, onRemove = { onRemoveTag(tag) })
             }
+        }
+        return
+    }
+
+    Text(
+        text = "Теги відсутні",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(vertical = 4.dp),
+    )
+}
+
+@Composable
+private fun AddTagRow(
+    newTag: String,
+    onNewTagChange: (String) -> Unit,
+    onAddTag: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        OutlinedTextField(
+            value = newTag,
+            onValueChange = onNewTagChange,
+            label = { Text("Новий тег") },
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(12.dp),
+            singleLine = true,
+        )
+        FilledTonalIconButton(
+            onClick = onAddTag,
+            enabled = newTag.isNotBlank(),
+            modifier = Modifier.size(56.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Додати тег",
+            )
         }
     }
 }

@@ -10,7 +10,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.features.mainscreen.DashboardBottomBar
@@ -20,10 +19,8 @@ import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroun
 
 @Composable
 fun StrategyBottomPanel(
-    navController: NavController,
     onNavigateToProjectHierarchy: () -> Unit,
     onNavigateToPresets: () -> Unit,
-    onNavigateToCharacter: () -> Unit,
     onNavigateToGlobalSearch: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToInbox: () -> Unit,

@@ -5,25 +5,24 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarch
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyItem
 
-private const val TAG = "SendDebug"
-
 fun fuzzyMatch(
     query: String,
     text: String,
 ): Boolean {
-    if (query.isBlank()) return true
-    if (text.isBlank()) return false
     val lowerQuery = query.lowercase()
     val lowerText = text.lowercase()
     var queryIndex = 0
     var textIndex = 0
-    while (queryIndex < lowerQuery.length && textIndex < lowerText.length) {
-        if (lowerQuery[queryIndex] == lowerText[textIndex]) {
-            queryIndex++
+    val canMatch = query.isBlank() || text.isNotBlank()
+    if (canMatch && query.isNotBlank()) {
+        while (queryIndex < lowerQuery.length && textIndex < lowerText.length) {
+            if (lowerQuery[queryIndex] == lowerText[textIndex]) {
+                queryIndex++
+            }
+            textIndex++
         }
-        textIndex++
     }
-    return queryIndex == lowerQuery.length
+    return query.isBlank() || (text.isNotBlank() && queryIndex == lowerQuery.length)
 }
 
 fun findAncestorsRecursive(
@@ -77,14 +76,17 @@ fun buildPathToProject(
         level: Int,
     ): Boolean {
         val sortedProjects = projects.sortedBy { it.order }
+        var found = false
         for (project in sortedProjects) {
             path.add(BreadcrumbItem(project.id, project.name, level))
-            if (project.id == targetId) return true
             val children = hierarchy.childMap[project.id] ?: emptyList()
-            if (findPath(children, level + 1)) return true
+            found = project.id == targetId || findPath(children, level + 1)
+            if (found) {
+                break
+            }
             path.removeLastOrNull()
         }
-        return false
+        return found
     }
 
     findPath(hierarchy.topLevelProjects, 0)

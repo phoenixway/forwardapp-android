@@ -4,16 +4,39 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.List
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Attachment
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Inbox
-import androidx.compose.material3.*
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -26,6 +49,8 @@ import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.context.ContextViewPolicy
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
+
+private const val DISABLED_ICON_ALPHA = 0.38f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,7 +104,7 @@ fun BrowserNavigationBar(
                             if (canGoBack) {
                                 MaterialTheme.colorScheme.onSurface
                             } else {
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_ICON_ALPHA)
                             },
                     )
                 }
@@ -87,12 +112,12 @@ fun BrowserNavigationBar(
                 IconButton(
                     onClick = onForwardClick,
                     enabled = false,
-                    modifier = Modifier.alpha(0.38f),
+                    modifier = Modifier.alpha(DISABLED_ICON_ALPHA),
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = stringResource(R.string.forward),
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_ICON_ALPHA),
                     )
                 }
 
@@ -163,7 +188,12 @@ private fun RightButtons(
                             Modifier
                                 .size(36.dp)
                                 .background(
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent,
+                                    color =
+                                        if (isSelected) {
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                        } else {
+                                            Color.Transparent
+                                        },
                                     shape = RoundedCornerShape(18.dp),
                                 )
                                 .clickable { onViewChange(viewMode) },
@@ -178,12 +208,22 @@ private fun RightButtons(
                                 },
                             contentDescription = viewMode.name,
                             modifier = Modifier.size(18.dp),
-                            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            tint =
+                                if (isSelected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
                         )
                     }
                 }
-                // Separator
-                Box(modifier = Modifier.width(1.dp).height(24.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)))
+                Box(
+                    modifier =
+                        Modifier
+                            .width(1.dp)
+                            .height(24.dp)
+                            .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+                )
 
                 Box(
                     modifier =
@@ -196,7 +236,12 @@ private fun RightButtons(
                         imageVector = Icons.Default.Attachment,
                         contentDescription = stringResource(R.string.toggle_attachments),
                         modifier = Modifier.size(18.dp),
-                        tint = if (isAttachmentsExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        tint =
+                            if (isAttachmentsExpanded) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
                     )
                 }
             }
@@ -264,23 +309,41 @@ private fun RightButtons(
                         color = MaterialTheme.colorScheme.outlineVariant,
                     )
                     DropdownMenuItem(
-                        text = { Text("Імпортувати з Markdown", style = MaterialTheme.typography.bodyMedium) },
+                        text = {
+                            Text(
+                                "Імпортувати з Markdown",
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        },
                         onClick = {
                             onImportFromMarkdown()
                             onMenuExpandedChange(false)
                         },
                         leadingIcon = {
-                            Icon(Icons.Default.Upload, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                            Icon(
+                                Icons.Default.Upload,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary,
+                            )
                         },
                     )
                     DropdownMenuItem(
-                        text = { Text("Експортувати в Markdown", style = MaterialTheme.typography.bodyMedium) },
+                        text = {
+                            Text(
+                                "Експортувати в Markdown",
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        },
                         onClick = {
                             onExportToMarkdown()
                             onMenuExpandedChange(false)
                         },
                         leadingIcon = {
-                            Icon(Icons.Default.Download, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                            Icon(
+                                Icons.Default.Download,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary,
+                            )
                         },
                     )
                 }

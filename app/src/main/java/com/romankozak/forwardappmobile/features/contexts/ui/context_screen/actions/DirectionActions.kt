@@ -34,15 +34,18 @@ class DirectionActions(
         text: String,
     ): String? {
         val trimmed = text.trim()
-        if (trimmed.isBlank()) return "Напрямок не може бути порожнім."
-        if (parentContextId.isBlank()) return null
-
-        directionRepository.addDirectionItem(
-            contextId = parentContextId,
-            text = trimmed,
-            linkedContextId = null,
-        )
-        return null
+        return when {
+            trimmed.isBlank() -> "Напрямок не може бути порожнім."
+            parentContextId.isBlank() -> null
+            else -> {
+                directionRepository.addDirectionItem(
+                    contextId = parentContextId,
+                    text = trimmed,
+                    linkedContextId = null,
+                )
+                null
+            }
+        }
     }
 
     suspend fun deleteDirectionItem(itemId: String) {
@@ -82,17 +85,18 @@ class DirectionActions(
         targetContextId: String,
         currentContextId: String,
     ): OpenLinkedContextResult {
-        if (targetContextId.isBlank() || targetContextId == currentContextId) {
-            return OpenLinkedContextResult.Error("Це поточний контекст.")
+        return when {
+            targetContextId.isBlank() || targetContextId == currentContextId ->
+                OpenLinkedContextResult.Error("Це поточний контекст.")
+            isLinkedNavigationInProgress -> OpenLinkedContextResult.InProgress
+            else -> {
+                isLinkedNavigationInProgress = true
+                OpenLinkedContextResult.Navigate(
+                    targetContextId = targetContextId,
+                    originContextId = currentContextId,
+                )
+            }
         }
-        if (isLinkedNavigationInProgress) {
-            return OpenLinkedContextResult.InProgress
-        }
-        isLinkedNavigationInProgress = true
-        return OpenLinkedContextResult.Navigate(
-            targetContextId = targetContextId,
-            originContextId = currentContextId,
-        )
     }
 
     suspend fun releaseLinkedNavigationLock(delayMs: Long = 500L) {

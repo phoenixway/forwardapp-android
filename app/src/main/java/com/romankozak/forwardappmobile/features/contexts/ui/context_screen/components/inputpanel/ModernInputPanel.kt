@@ -1,12 +1,19 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel
 
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -100,7 +107,11 @@ fun ModernInputPanel(
 
                 // 2. Додаємо всі динамічні фічі (Ветеринар, Нотатки і т.д.), ігноруючи пошкоджені значення
                 experimentalCapabilityIds.forEach { id ->
-                    val normalized = runCatching { id.raw.trim() }.getOrNull()?.takeIf { it.isNotEmpty() } ?: return@forEach
+                    val normalized =
+                        runCatching { id.raw.trim() }
+                            .getOrNull()
+                            ?.takeIf { it.isNotEmpty() }
+                            ?: return@forEach
                     add(CapabilityId(normalized))
                 }
 
@@ -159,16 +170,6 @@ fun ModernInputPanel(
 
     val focusRequester = remember { FocusRequester() }
     val panelColors = getPanelColors(inputMode, LocalInputPanelColors.current)
-    val availableInputModes =
-        remember(isProjectManagementEnabled, currentView) {
-            listOfNotNull(
-                if (currentView == ContextViewMode.CONNECTIONS) InputMode.AddConnectionNote else InputMode.AddGoal,
-                if (currentView == ContextViewMode.DIRECTION) InputMode.AddDirection else null,
-                InputMode.AddQuickRecord,
-                if (isProjectManagementEnabled) InputMode.AddProjectLog else null,
-                InputMode.SearchGlobal,
-            )
-        }
     val swipeInputModes =
         remember(currentView) {
             val baseMode = defaultInputModeForView(currentView)

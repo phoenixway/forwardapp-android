@@ -31,6 +31,25 @@ enum class UnifiedItemState {
     DISABLED,
 }
 
+data class UnifiedListItemColors(
+    val container: Color? = null,
+    val border: Color? = null,
+)
+
+private data class ResolvedUnifiedListItemColors(
+    val container: Color,
+    val border: Color,
+)
+
+data class UnifiedListItemSurfaceLayout(
+    val modifier: Modifier = Modifier,
+    val contentPadding: PaddingValues =
+        PaddingValues(
+            horizontal = UnifiedListItemTokens.HorizontalPadding,
+            vertical = UnifiedListItemTokens.VerticalPadding,
+        ),
+)
+
 object UnifiedListItemTokens {
     val CornerRadius = 16.dp
     val HorizontalPadding = 16.dp
@@ -46,50 +65,64 @@ object UnifiedListItemTokens {
 fun UnifiedListItemSurface(
     isSelected: Boolean,
     state: UnifiedItemState = UnifiedItemState.DEFAULT,
-    modifier: Modifier = Modifier,
-    containerColorOverride: Color? = null,
-    borderColorOverride: Color? = null,
-    contentPadding: PaddingValues =
-        PaddingValues(
-            horizontal = UnifiedListItemTokens.HorizontalPadding,
-            vertical = UnifiedListItemTokens.VerticalPadding,
-        ),
+    layout: UnifiedListItemSurfaceLayout = UnifiedListItemSurfaceLayout(),
+    colors: UnifiedListItemColors = UnifiedListItemColors(),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val resolvedState = if (isSelected) UnifiedItemState.SELECTED else state
-    val containerColor =
-        when (resolvedState) {
-            UnifiedItemState.SELECTED -> MaterialTheme.colorScheme.surfaceContainerHighest
-            UnifiedItemState.COMPLETED -> MaterialTheme.colorScheme.surfaceContainer
-            UnifiedItemState.OVERDUE -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.28f)
-            UnifiedItemState.DISABLED -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-            UnifiedItemState.DEFAULT -> MaterialTheme.colorScheme.surfaceContainerHigh
-        }
-    val borderColor =
-        when (resolvedState) {
-            UnifiedItemState.SELECTED -> MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-            UnifiedItemState.COMPLETED -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
-            UnifiedItemState.OVERDUE -> MaterialTheme.colorScheme.error.copy(alpha = 0.45f)
-            UnifiedItemState.DISABLED -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-            UnifiedItemState.DEFAULT -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-        }
-    val finalContainerColor = containerColorOverride ?: containerColor
-    val finalBorderColor = borderColorOverride ?: borderColor
+    val resolvedColors = resolvedState.resolveColors(colors)
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = layout.modifier.fillMaxWidth(),
         shape = RoundedCornerShape(UnifiedListItemTokens.CornerRadius),
-        color = finalContainerColor,
+        color = resolvedColors.container,
         shadowElevation = 0.dp,
         tonalElevation = 0.dp,
         border =
             if (resolvedState == UnifiedItemState.SELECTED) {
-                BorderStroke(2.dp, finalBorderColor)
+                BorderStroke(2.dp, resolvedColors.border)
             } else {
-                BorderStroke(1.dp, finalBorderColor)
+                BorderStroke(1.dp, resolvedColors.border)
             },
     ) {
-        Column(modifier = Modifier.padding(contentPadding), content = content)
+        Column(modifier = Modifier.padding(layout.contentPadding), content = content)
     }
+}
+
+@Composable
+private fun UnifiedItemState.resolveColors(overrides: UnifiedListItemColors): ResolvedUnifiedListItemColors {
+    val defaultColors =
+        when (this) {
+            UnifiedItemState.SELECTED ->
+                ResolvedUnifiedListItemColors(
+                    container = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    border = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                )
+            UnifiedItemState.COMPLETED ->
+                ResolvedUnifiedListItemColors(
+                    container = MaterialTheme.colorScheme.surfaceContainer,
+                    border = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                )
+            UnifiedItemState.OVERDUE ->
+                ResolvedUnifiedListItemColors(
+                    container = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.28f),
+                    border = MaterialTheme.colorScheme.error.copy(alpha = 0.45f),
+                )
+            UnifiedItemState.DISABLED ->
+                ResolvedUnifiedListItemColors(
+                    container = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                    border = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                )
+            UnifiedItemState.DEFAULT ->
+                ResolvedUnifiedListItemColors(
+                    container = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    border = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                )
+        }
+
+    return ResolvedUnifiedListItemColors(
+        container = overrides.container ?: defaultColors.container,
+        border = overrides.border ?: defaultColors.border,
+    )
 }
 
 @Composable

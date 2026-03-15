@@ -20,18 +20,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 
 class ContextScreenDataObserver(
-    private val contextRepository: ContextRepository,
-    private val listItemRepository: ListItemRepository,
-    private val contextStructureRepository: ContextStructureRepository,
-    private val contextLogRepository: ContextLogRepository,
-    private val checklistRepository: ChecklistRepository,
-    private val noteDocumentRepository: NoteDocumentRepository,
-    private val musicNoteRepository: MusicNoteRepository,
-    private val directionRepository: DirectionRepository,
-    private val reminderRepository: ReminderRepository,
-    private val recentItemsRepository: RecentItemsRepository,
-    private val noteRepository: LegacyNoteRepository,
-    private val goalRepository: GoalRepository,
+    private val dependencies: ContextScreenDataObserverDependencies,
     private val mapper: ContextScreenDataMapper,
 ) {
     fun observe(
@@ -45,26 +34,46 @@ class ContextScreenDataObserver(
                 flowOf(ContextData.Empty)
             } else {
                 combine(
-                    contextRepository.getContextByIdFlow(contextId),
-                    listItemRepository.getItemsForContextStream(contextId),
-                    contextStructureRepository.observeStructureOnly(contextId),
-                    contextLogRepository.getContextLogsStream(contextId),
-                    checklistRepository.getChecklistsForContext(contextId),
-                    noteDocumentRepository.getDocumentsForContext(contextId),
-                    musicNoteRepository.getMusicNotesForContext(contextId),
-                    directionRepository.getDirectionItemsForContext(contextId),
-                    contextRepository.getAllContextsFlow(),
-                    contextRepository.getAttachmentsForContextStream(contextId),
-                    listItemRepository.getAllEntitiesAsFlow(),
-                    reminderRepository.getRemindersForEntityFlow(contextId),
-                    recentItemsRepository.getRecentItems(100),
-                    noteRepository.getNotesForContext(contextId),
-                    goalRepository.getGoalsByContextIdFlow(contextId),
-                    contextRepository.getSubprojectsByParentIdFlow(contextId),
+                    dependencies.contextRepository.getContextByIdFlow(contextId),
+                    dependencies.listItemRepository.getItemsForContextStream(contextId),
+                    dependencies.contextStructureRepository.observeStructureOnly(contextId),
+                    dependencies.contextLogRepository.getContextLogsStream(contextId),
+                    dependencies.checklistRepository.getChecklistsForContext(contextId),
+                    dependencies.noteDocumentRepository.getDocumentsForContext(contextId),
+                    dependencies.musicNoteRepository.getMusicNotesForContext(contextId),
+                    dependencies.directionRepository.getDirectionItemsForContext(contextId),
+                    dependencies.contextRepository.getAllContextsFlow(),
+                    dependencies.contextRepository.getAttachmentsForContextStream(contextId),
+                    dependencies.listItemRepository.getAllEntitiesAsFlow(),
+                    dependencies.reminderRepository.getRemindersForEntityFlow(contextId),
+                    dependencies.recentItemsRepository.getRecentItems(RECENT_ITEMS_LIMIT),
+                    dependencies.noteRepository.getNotesForContext(contextId),
+                    dependencies.goalRepository.getGoalsByContextIdFlow(contextId),
+                    dependencies.contextRepository.getSubprojectsByParentIdFlow(contextId),
                 ) { args: Array<Any?> ->
-                    mapper.map(contextId = contextId, args = args)
+                    mapper.map(
+                        contextId = contextId,
+                        snapshot = ContextScreenDataSnapshot.fromArgs(args),
+                    )
                 }
             }
         }
     }
 }
+
+private const val RECENT_ITEMS_LIMIT = 100
+
+data class ContextScreenDataObserverDependencies(
+    val contextRepository: ContextRepository,
+    val listItemRepository: ListItemRepository,
+    val contextStructureRepository: ContextStructureRepository,
+    val contextLogRepository: ContextLogRepository,
+    val checklistRepository: ChecklistRepository,
+    val noteDocumentRepository: NoteDocumentRepository,
+    val musicNoteRepository: MusicNoteRepository,
+    val directionRepository: DirectionRepository,
+    val reminderRepository: ReminderRepository,
+    val recentItemsRepository: RecentItemsRepository,
+    val noteRepository: LegacyNoteRepository,
+    val goalRepository: GoalRepository,
+)

@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanUiState
+import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.LinkOption
 import com.romankozak.forwardappmobile.ui.components.AddConnectionType
 import com.romankozak.forwardappmobile.ui.components.ConnectionItemUi
 import com.romankozak.forwardappmobile.ui.components.ConnectionType
@@ -16,124 +17,122 @@ import com.romankozak.forwardappmobile.ui.components.ConnectionsPanel
 import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
 import com.romankozak.forwardappmobile.ui.components.sortConnectionsByOrder
 
+private const val ID_PREVIEW_LENGTH = 8
+
+data class DayScopeLinksActions(
+    val onDismiss: () -> Unit,
+    val onAddContextClick: () -> Unit,
+    val onAddAttachmentClick: () -> Unit,
+    val onAddExternalClick: () -> Unit,
+    val onAddObsidianClick: () -> Unit,
+    val onCreateConnectionClick: (CreateConnectionType) -> Unit,
+    val onContextClick: (String) -> Unit,
+    val onAttachmentClick: (String) -> Unit,
+    val onContextRemove: (String) -> Unit,
+    val onAttachmentRemove: (String) -> Unit,
+    val onConnectionsReordered: (List<ConnectionItemUi>) -> Unit,
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DayScopeLinksSheet(
     isVisible: Boolean,
     uiState: DayPlanUiState,
-    onDismiss: () -> Unit,
-    onAddContextClick: () -> Unit,
-    onAddAttachmentClick: () -> Unit,
-    onAddExternalClick: () -> Unit,
-    onAddObsidianClick: () -> Unit,
-    onCreateConnectionClick: (CreateConnectionType) -> Unit,
-    onContextClick: (String) -> Unit,
-    onAttachmentClick: (String) -> Unit,
-    onContextRemove: (String) -> Unit,
-    onAttachmentRemove: (String) -> Unit,
+    actions: DayScopeLinksActions,
     connectionOrder: List<String>,
-    onConnectionsReordered: (List<ConnectionItemUi>) -> Unit,
 ) {
     if (!isVisible) return
 
-    val availableProjectIds = uiState.availableProjects.map { it.id }.toSet()
-    val availableAttachmentById = uiState.availableAttachments.associateBy { it.id }
-    val availableAttachmentIds = availableAttachmentById.keys
-    val planLinkedProjectIds = uiState.dayPlan?.linkedProjectIds.orEmpty().filter { it in availableProjectIds }
-    val planLinkedAttachmentIds = uiState.dayPlan?.linkedAttachmentIds.orEmpty().filter { it in availableAttachmentIds }
-    val planLinkedUrlIds =
-        planLinkedAttachmentIds.filter { id ->
-            availableAttachmentById[id]?.linkType == LinkType.URL
-        }
-    val planLinkedObsidianIds =
-        planLinkedAttachmentIds.filter { id ->
-            availableAttachmentById[id]?.linkType == LinkType.OBSIDIAN
-        }
-    val planLinkedGeneralAttachmentIds =
-        planLinkedAttachmentIds.filter { id ->
-            availableAttachmentById[id]?.linkType !in setOf(LinkType.URL, LinkType.OBSIDIAN)
-        }
-    val items =
-        buildList {
-            addAll(
-                planLinkedProjectIds.map { id ->
-                    ConnectionItemUi(
-                        id = id,
-                        title = uiState.availableProjects.firstOrNull { it.id == id }?.name ?: "Контекст ${id.take(8)}",
-                        type = ConnectionType.CONTEXT,
-                    )
-                },
-            )
-            addAll(
-                planLinkedGeneralAttachmentIds.map { id ->
-                    val option = uiState.availableAttachments.firstOrNull { it.id == id }
-                    ConnectionItemUi(
-                        id = id,
-                        title = option?.name ?: "Вкладення ${id.take(8)}",
-                        type =
-                            when (option?.attachmentType) {
-                                "NOTE_DOCUMENT" -> ConnectionType.NOTE_DOCUMENT
-                                "MUSIC_NOTE" -> ConnectionType.MUSIC_NOTE
-                                "CHECKLIST" -> ConnectionType.CHECKLIST
-                                "SCRIPT" -> ConnectionType.SCRIPT
-                                else -> ConnectionType.ATTACHMENT
-                            },
-                    )
-                },
-            )
-            addAll(
-                planLinkedUrlIds.map { id ->
-                    ConnectionItemUi(
-                        id = id,
-                        title = uiState.availableAttachments.firstOrNull { it.id == id }?.name ?: "URL ${id.take(8)}",
-                        type = ConnectionType.URL,
-                    )
-                },
-            )
-            addAll(
-                planLinkedObsidianIds.map { id ->
-                    ConnectionItemUi(
-                        id = id,
-                        title = uiState.availableAttachments.firstOrNull { it.id == id }?.name ?: "Obsidian ${id.take(8)}",
-                        type = ConnectionType.OBSIDIAN_NOTE,
-                    )
-                },
-            )
-        }
+    val items = buildConnectionItems(uiState)
     val sortedItems = sortConnectionsByOrder(items, connectionOrder)
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(onDismissRequest = actions.onDismiss) {
         ConnectionsPanel(
             items = sortedItems,
             onConnectionClick = { item ->
                 if (item.type == ConnectionType.CONTEXT) {
-                    onContextClick(item.id)
+                    actions.onContextClick(item.id)
                 } else {
-                    onAttachmentClick(item.id)
+                    actions.onAttachmentClick(item.id)
                 }
             },
             onConnectionRemove = { item ->
                 if (item.type == ConnectionType.CONTEXT) {
-                    onContextRemove(item.id)
+                    actions.onContextRemove(item.id)
                 } else {
-                    onAttachmentRemove(item.id)
+                    actions.onAttachmentRemove(item.id)
                 }
             },
             onAddConnection = { type ->
                 when (type) {
-                    AddConnectionType.CONTEXT -> onAddContextClick()
-                    AddConnectionType.ATTACHMENT -> onAddAttachmentClick()
-                    AddConnectionType.EXTERNAL_LINK -> onAddExternalClick()
-                    AddConnectionType.OBSIDIAN_NOTE -> onAddObsidianClick()
+                    AddConnectionType.CONTEXT -> actions.onAddContextClick()
+                    AddConnectionType.ATTACHMENT -> actions.onAddAttachmentClick()
+                    AddConnectionType.EXTERNAL_LINK -> actions.onAddExternalClick()
+                    AddConnectionType.OBSIDIAN_NOTE -> actions.onAddObsidianClick()
                 }
             },
-            onAddButtonClick = onAddContextClick,
-            onCreateConnection = { type ->
-                onCreateConnectionClick(type)
-            },
+            onAddButtonClick = actions.onAddContextClick,
+            onCreateConnection = actions.onCreateConnectionClick,
             preferActionsBesideTitleWhenWide = true,
-            onConnectionsReordered = onConnectionsReordered,
+            onConnectionsReordered = actions.onConnectionsReordered,
         )
         Spacer(modifier = Modifier.height(12.dp))
     }
 }
+
+private fun buildConnectionItems(uiState: DayPlanUiState): List<ConnectionItemUi> {
+    val availableProjectById = uiState.availableProjects.associateBy { it.id }
+    val availableAttachmentById = uiState.availableAttachments.associateBy { it.id }
+    val availableProjectIds = availableProjectById.keys
+    val availableAttachmentIds = availableAttachmentById.keys
+    val planLinkedProjectIds = uiState.dayPlan?.linkedProjectIds.orEmpty().filter { it in availableProjectIds }
+    val planLinkedAttachmentIds =
+        uiState.dayPlan?.linkedAttachmentIds.orEmpty().filter { it in availableAttachmentIds }
+
+    return buildList {
+        addAll(planLinkedProjectIds.map { id -> createContextItem(id, availableProjectById[id]?.name) })
+        addAll(
+            planLinkedAttachmentIds.mapNotNull { id ->
+                createAttachmentItem(id, availableAttachmentById[id])
+            },
+        )
+    }
+}
+
+private fun createContextItem(id: String, title: String?): ConnectionItemUi =
+    ConnectionItemUi(
+        id = id,
+        title = title ?: "Контекст ${id.take(ID_PREVIEW_LENGTH)}",
+        type = ConnectionType.CONTEXT,
+    )
+
+private fun createAttachmentItem(
+    id: String,
+    option: LinkOption?,
+): ConnectionItemUi? {
+    val type = option.toConnectionType() ?: return null
+    val defaultTitle =
+        when (type) {
+            ConnectionType.URL -> "URL ${id.take(ID_PREVIEW_LENGTH)}"
+            ConnectionType.OBSIDIAN_NOTE -> "Obsidian ${id.take(ID_PREVIEW_LENGTH)}"
+            else -> "Вкладення ${id.take(ID_PREVIEW_LENGTH)}"
+        }
+
+    return ConnectionItemUi(
+        id = id,
+        title = option?.name ?: defaultTitle,
+        type = type,
+    )
+}
+
+private fun LinkOption?.toConnectionType(): ConnectionType? =
+    when {
+        this == null -> null
+        linkType == LinkType.URL -> ConnectionType.URL
+        linkType == LinkType.OBSIDIAN -> ConnectionType.OBSIDIAN_NOTE
+        attachmentType == "NOTE_DOCUMENT" -> ConnectionType.NOTE_DOCUMENT
+        attachmentType == "MUSIC_NOTE" -> ConnectionType.MUSIC_NOTE
+        attachmentType == "CHECKLIST" -> ConnectionType.CHECKLIST
+        attachmentType == "SCRIPT" -> ConnectionType.SCRIPT
+        else -> ConnectionType.ATTACHMENT
+    }

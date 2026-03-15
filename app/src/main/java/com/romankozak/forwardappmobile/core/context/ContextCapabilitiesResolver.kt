@@ -7,28 +7,15 @@ import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
 class ContextCapabilitiesResolver {
     fun resolve(config: ContextConfiguration): Set<CapabilityId> {
         val useRoleDefaults = !config.applyMode.equals(APPLY_MODE_OVERRIDE, ignoreCase = true)
-        val roleCapabilities = if (useRoleDefaults) ContextRoleRegistry.getCapabilitiesForRole(config.basePresetCode) else emptySet()
+        val roleCapabilities =
+            if (useRoleDefaults) {
+                ContextRoleRegistry.getCapabilitiesForRole(config.basePresetCode)
+            } else {
+                emptySet()
+            }
         val useLegacyDefaults = shouldUseLegacyDefaults(config)
         return buildSet {
-            // Legacy capabilities:
-            // - for contexts without role/preset we keep only dashboard as the safe default;
-            // - explicit overrides in config still win.
-            if (isEnabled(roleCapabilities, "inbox", config.enableInbox, defaultEnabled = false)) add(CapabilityId("inbox"))
-            if (isEnabled(roleCapabilities, "log", config.enableLog, defaultEnabled = false)) add(CapabilityId("log"))
-            if (isEnabled(
-                    roleCapabilities,
-                    "dashboard",
-                    config.enableDashboard,
-                    defaultEnabled = useLegacyDefaults,
-                )
-            ) {
-                add(CapabilityId("dashboard"))
-            }
-            if (isEnabled(roleCapabilities, "backlog", config.enableBacklog, defaultEnabled = false)) add(CapabilityId("backlog"))
-            if (isEnabledAny(roleCapabilities, setOf("attachments", "connections"), config.enableAttachments, defaultEnabled = false)) {
-                add(CapabilityId("connections"))
-            }
-            if (isEnabled(roleCapabilities, "advanced", config.enableAdvanced, defaultEnabled = false)) add(CapabilityId("advanced"))
+            addLegacyCapabilities(roleCapabilities, config, useLegacyDefaults)
 
             // Non-legacy role capabilities are provided only in ADDITIVE mode.
             if (useRoleDefaults) {
@@ -40,13 +27,58 @@ class ContextCapabilitiesResolver {
             }
 
             config.experimentalCapabilityIds.forEach { id ->
-                val normalized = runCatching { id.raw.trim() }.getOrNull()?.takeIf { it.isNotEmpty() } ?: return@forEach
+                val normalized =
+                    runCatching { id.raw.trim() }
+                        .getOrNull()
+                        ?.takeIf { it.isNotEmpty() }
+                        ?: return@forEach
                 if (normalized == "artifact") {
                     add(CapabilityId("advanced"))
                 } else {
                     add(CapabilityId(normalized))
                 }
             }
+        }
+    }
+
+    private fun MutableSet<CapabilityId>.addLegacyCapabilities(
+        roleCapabilities: Set<CapabilityId>,
+        config: ContextConfiguration,
+        useLegacyDefaults: Boolean,
+    ) {
+        // Legacy capabilities:
+        // - for contexts without role/preset we keep only dashboard as the safe default;
+        // - explicit overrides in config still win.
+        addIfEnabled(roleCapabilities, "inbox", config.enableInbox)
+        addIfEnabled(roleCapabilities, "log", config.enableLog)
+        addIfEnabled(
+            roleCapabilities = roleCapabilities,
+            capabilityRaw = "dashboard",
+            override = config.enableDashboard,
+            defaultEnabled = useLegacyDefaults,
+        )
+        addIfEnabled(roleCapabilities, "backlog", config.enableBacklog)
+        if (
+            isEnabledAny(
+                roleCapabilities,
+                setOf("attachments", "connections"),
+                config.enableAttachments,
+                defaultEnabled = false,
+            )
+        ) {
+            add(CapabilityId("connections"))
+        }
+        addIfEnabled(roleCapabilities, "advanced", config.enableAdvanced)
+    }
+
+    private fun MutableSet<CapabilityId>.addIfEnabled(
+        roleCapabilities: Set<CapabilityId>,
+        capabilityRaw: String,
+        override: Boolean?,
+        defaultEnabled: Boolean = false,
+    ) {
+        if (isEnabled(roleCapabilities, capabilityRaw, override, defaultEnabled)) {
+            add(CapabilityId(capabilityRaw))
         }
     }
 

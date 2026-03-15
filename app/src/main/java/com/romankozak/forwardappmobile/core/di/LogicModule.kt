@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package com.romankozak.forwardappmobile.core.di
 
 import com.romankozak.forwardappmobile.core.capability.CapabilityDescriptor
@@ -51,7 +53,9 @@ object LogicModule {
 
     @Provides
     @Singleton
-    fun provideCapabilityRegistry(availableCapabilities: @JvmSuppressWildcards Set<CapabilityDescriptor>): CapabilityRegistry =
+    fun provideCapabilityRegistry(
+        availableCapabilities: @JvmSuppressWildcards Set<CapabilityDescriptor>,
+    ): CapabilityRegistry =
         InMemoryCapabilityRegistry(availableCapabilities)
 
     @Provides

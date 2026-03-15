@@ -17,20 +17,20 @@ class BacklogDndCoordinator(
     fun applyObserved(
         observed: List<BacklogItemContent>,
         current: List<BacklogItemContent>,
-    ): List<BacklogItemContent> {
-        if (isDragInProgress) return current
-
-        val expectedOrder = expectedOrderIds
-        if (expectedOrder != null) {
-            val observedOrder = observed.map { it.backlogItem.id }
-            if (observedOrder != expectedOrder) {
-                return current
+    ): List<BacklogItemContent> =
+        when {
+            isDragInProgress -> current
+            expectedOrderIds != null -> {
+                val observedOrder = observed.map { it.backlogItem.id }
+                if (observedOrder != expectedOrderIds) {
+                    current
+                } else {
+                    expectedOrderIds = null
+                    observed
+                }
             }
-            expectedOrderIds = null
+            else -> observed
         }
-
-        return observed
-    }
 
     fun move(
         current: List<BacklogItemContent>,

@@ -41,6 +41,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.romankozak.forwardappmobile.R
 
+private val PermissionGrantedColor = Color.Green
+
 @Composable
 fun PermissionsSettingsCard() {
     val context = LocalContext.current
@@ -49,7 +51,10 @@ fun PermissionsSettingsCard() {
     val hasNotificationPermission =
         remember(permissionUpdateTrigger) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS,
+                ) == PackageManager.PERMISSION_GRANTED
             } else {
                 true
             }
@@ -81,7 +86,10 @@ fun PermissionsSettingsCard() {
             onResult = { permissionUpdateTrigger++ },
         )
 
-    SettingsCard(title = stringResource(id = R.string.settings_permissions_title), icon = Icons.Default.Security) {
+    SettingsCard(
+        title = stringResource(id = R.string.settings_permissions_title),
+        icon = Icons.Default.Security,
+    ) {
         PermissionRow(
             icon = Icons.Default.Notifications,
             name = stringResource(id = R.string.settings_permission_notifications_title),
@@ -153,7 +161,7 @@ private fun PermissionRow(
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = stringResource(id = R.string.settings_permission_granted),
-                    tint = Color(0xFF388E3C),
+                    tint = PermissionGrantedColor,
                 )
             } else {
                 Button(onClick = onGrantClick, contentPadding = PaddingValues(horizontal = 16.dp)) {

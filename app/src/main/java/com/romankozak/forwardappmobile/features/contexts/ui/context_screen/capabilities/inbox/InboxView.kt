@@ -12,22 +12,20 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.Conte
 fun InboxView(
     modifier: Modifier = Modifier,
     viewModel: ContextScreenViewModel,
-    inboxRecords: List<InboxRecord>,
-    listState: LazyListState,
-    highlightedRecordId: String?,
+    state: InboxViewState,
     navigationManager: EnhancedNavigationManager,
 ) {
     Box(modifier = modifier) {
         InboxScreen(
-            records = inboxRecords,
+            records = state.inboxRecords,
             onDelete = viewModel.inboxHandler::deleteInboxRecord,
             onPromoteToGoal = viewModel.inboxHandler::promoteInboxRecordToGoal,
             onRecordClick = { record ->
                 navigationManager.navigate("inbox_editor_screen/${record.id}")
             },
             onCopy = { text -> viewModel.copyInboxRecordText(text) },
-            listState = listState,
-            highlightedRecordId = highlightedRecordId,
+            listState = state.listState,
+            highlightedRecordId = state.highlightedRecordId,
         )
     }
 }

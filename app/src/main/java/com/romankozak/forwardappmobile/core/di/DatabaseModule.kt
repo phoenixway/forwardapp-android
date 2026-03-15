@@ -1,3 +1,5 @@
+@file:Suppress("MaxLineLength", "UnusedParameter", "TooManyFunctions", "SpreadOperator")
+
 package com.romankozak.forwardappmobile.core.di
 
 import android.content.Context

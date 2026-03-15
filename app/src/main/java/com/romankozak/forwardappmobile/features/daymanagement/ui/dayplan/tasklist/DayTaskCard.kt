@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -31,23 +32,30 @@ import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentI
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentType
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedCheckboxStyle
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemCheckbox
+import com.romankozak.forwardappmobile.ui.components.listitem.unifiedCheckboxColors
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusRow
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedTrailingActionButton
+
+private const val COMPLETED_TASK_CONTENT_ALPHA = 0.6f
+
+data class DayTaskCardActions(
+    val onClick: () -> Unit,
+    val onToggle: () -> Unit,
+    val onLongPress: () -> Unit,
+    val onParentInfoClick: (ParentInfo) -> Unit,
+)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DayTaskCard(
     taskWithReminder: DayTaskWithReminder,
-    onClick: () -> Unit,
-    onToggle: () -> Unit,
-    onLongPress: () -> Unit,
+    actions: DayTaskCardActions,
     modifier: Modifier = Modifier,
     dragHandleModifier: Modifier = Modifier,
-    onParentInfoClick: (ParentInfo) -> Unit,
 ) {
     val task = taskWithReminder.dayTask
-    val contentAlpha = if (task.completed) 0.6f else 1f
+    val contentAlpha = if (task.completed) COMPLETED_TASK_CONTENT_ALPHA else 1f
 
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -55,60 +63,92 @@ fun DayTaskCard(
     ) {
         UnifiedItemCheckbox(
             checked = task.completed,
-            onCheckedChange = { onToggle() },
+            onCheckedChange = { actions.onToggle() },
             style = UnifiedCheckboxStyle.Square,
-            checkedColor = MaterialTheme.colorScheme.primary,
-            uncheckedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+            colors =
+                unifiedCheckboxColors(
+                    checked = MaterialTheme.colorScheme.primary,
+                    uncheckedBorder = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                ),
         )
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        Column(
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .clickable(onClick = onClick),
-        ) {
-            DayPlanMarkdownText(
-                text = task.title,
-                style =
-                    MaterialTheme.typography.titleMedium.copy(
-                        fontSize = MaterialTheme.typography.titleSmall.fontSize,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha),
-                    ),
-                isCompleted = task.completed,
-                maxLines = 1,
-            )
-
-            task.description?.takeIf { it.isNotBlank() }?.let { description ->
-                DayPlanMarkdownText(
-                    text = description,
-                    style =
-                        MaterialTheme.typography.bodyMedium.copy(
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
-                        ),
-                    isCompleted = task.completed,
-                    maxLines = 2,
-                )
-            }
-
-            DayTaskMetaRow(
-                taskWithReminder = taskWithReminder,
-                modifier = Modifier.padding(top = 2.dp),
-                onParentInfoClick = onParentInfoClick,
-            )
-        }
+        DayTaskCardContent(
+            taskWithReminder = taskWithReminder,
+            contentAlpha = contentAlpha,
+            onClick = actions.onClick,
+            onParentInfoClick = actions.onParentInfoClick,
+        )
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        Box(modifier = dragHandleModifier) {
-            UnifiedTrailingActionButton(
-                icon = Icons.Filled.MoreVert,
-                contentDescription = "Більше опцій",
-                onClick = onLongPress,
+        DayTaskCardMoreButton(
+            onClick = actions.onLongPress,
+            modifier = dragHandleModifier,
+        )
+    }
+}
+
+@Composable
+private fun RowScope.DayTaskCardContent(
+    taskWithReminder: DayTaskWithReminder,
+    contentAlpha: Float,
+    onClick: () -> Unit,
+    onParentInfoClick: (ParentInfo) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val task = taskWithReminder.dayTask
+
+    Column(
+        modifier =
+            modifier
+                .weight(1f)
+                .clickable(onClick = onClick),
+    ) {
+        DayPlanMarkdownText(
+            text = task.title,
+            style =
+                MaterialTheme.typography.titleMedium.copy(
+                    fontSize = MaterialTheme.typography.titleSmall.fontSize,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha),
+                ),
+            isCompleted = task.completed,
+            maxLines = 1,
+        )
+
+        task.description?.takeIf { it.isNotBlank() }?.let { description ->
+            DayPlanMarkdownText(
+                text = description,
+                style =
+                    MaterialTheme.typography.bodyMedium.copy(
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
+                    ),
+                isCompleted = task.completed,
+                maxLines = 2,
             )
         }
+
+        DayTaskMetaRow(
+            taskWithReminder = taskWithReminder,
+            modifier = Modifier.padding(top = 2.dp),
+            onParentInfoClick = onParentInfoClick,
+        )
+    }
+}
+
+@Composable
+private fun DayTaskCardMoreButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier) {
+        UnifiedTrailingActionButton(
+            icon = Icons.Filled.MoreVert,
+            contentDescription = "Більше опцій",
+            onClick = onClick,
+        )
     }
 }
 
@@ -153,12 +193,7 @@ private fun DayTaskMetaRow(
             }
             taskWithReminder.parentInfo?.let { parentInfo ->
                 add(
-                    UnifiedStatusChipSpec(
-                        icon = if (parentInfo.type == ParentType.GOAL) Icons.Default.TrackChanges else Icons.Default.Topic,
-                        text = parentInfo.title,
-                        contentColor = if (parentInfo.type == ParentType.GOAL) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
-                        onClick = { onParentInfoClick(parentInfo) },
-                    ),
+                    parentInfo.toStatusChipSpec(onParentInfoClick),
                 )
             }
             task.estimatedDurationMinutes?.takeIf { it > 0 }?.let { minutes ->
@@ -172,6 +207,27 @@ private fun DayTaskMetaRow(
     if (metaItems.isEmpty()) return
     UnifiedStatusRow(items = metaItems, modifier = modifier)
 }
+
+@Composable
+private fun ParentInfo.toStatusChipSpec(
+    onParentInfoClick: (ParentInfo) -> Unit,
+): UnifiedStatusChipSpec =
+    UnifiedStatusChipSpec(
+        icon =
+            if (type == ParentType.GOAL) {
+                Icons.Default.TrackChanges
+            } else {
+                Icons.Default.Topic
+            },
+        text = title,
+        contentColor =
+            if (type == ParentType.GOAL) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.tertiary
+            },
+        onClick = { onParentInfoClick(this) },
+    )
 
 @Composable
 private fun TaskPriority.priorityIndicatorColor(): Color {

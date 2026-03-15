@@ -11,7 +11,6 @@ import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.core.theme.ThemeMode
 import com.romankozak.forwardappmobile.core.theme.ThemeName
 import com.romankozak.forwardappmobile.core.theme.ThemeSettings
-import com.romankozak.forwardappmobile.data.repository.RolesRepository
 import com.romankozak.forwardappmobile.data.repository.ServerDiscoveryState
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.aichat.OllamaService
@@ -22,10 +21,30 @@ import com.romankozak.forwardappmobile.ui.ModelsState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
+
+private const val DEFAULT_WIFI_SYNC_PORT = 8080
+private const val DEFAULT_OLLAMA_PORT = 11434
+private const val DEFAULT_FAST_API_PORT = 8000
+private const val MODEL_DISCOVERY_TIMEOUT_MILLIS = 3_000L
+private const val FEATURE_TOGGLES_INDEX = 12
+private const val RINGTONE_TYPE_INDEX = 13
+private const val RINGTONE_URIS_INDEX = 14
+private const val RINGTONE_VOLUMES_INDEX = 15
+private const val REMINDER_VIBRATION_INDEX = 16
+private const val WIFI_SYNC_SERVER_ENABLED_INDEX = 17
+private const val DESKTOP_SYNC_ADDRESS_INDEX = 18
+private const val FULL_VOLUME = 1f
+private const val MODERATE_VOLUME = 0.8f
+private const val QUIET_VOLUME = 0.5f
 
 data class SettingsUiState(
     val fastModel: String = "",
@@ -38,9 +57,9 @@ data class SettingsUiState(
     val rolesFolderUri: String = "",
     val serverIpConfigurationMode: String = "auto",
     val manualServerIp: String = "",
-    val wifiSyncPort: Int = 8080,
-    val ollamaPort: Int = 11434,
-    val fastApiPort: Int = 8000,
+    val wifiSyncPort: Int = DEFAULT_WIFI_SYNC_PORT,
+    val ollamaPort: Int = DEFAULT_OLLAMA_PORT,
+    val fastApiPort: Int = DEFAULT_FAST_API_PORT,
     val serverDiscoveryState: ServerDiscoveryState = ServerDiscoveryState.Loading,
     val themeSettings: ThemeSettings = ThemeSettings(),
     val featureToggles: Map<FeatureFlag, Boolean> = FeatureFlag.values().associateWith { FeatureToggles.isEnabled(it) },
@@ -62,9 +81,9 @@ data class SettingsUiState(
         ),
     val ringtoneVolumes: Map<RingtoneType, Float> =
         mapOf(
-            RingtoneType.Energetic to 1f,
-            RingtoneType.Moderate to 0.8f,
-            RingtoneType.Quiet to 0.5f,
+            RingtoneType.Energetic to FULL_VOLUME,
+            RingtoneType.Moderate to MODERATE_VOLUME,
+            RingtoneType.Quiet to QUIET_VOLUME,
         ),
     val reminderVibrationEnabled: Boolean = true,
     val wifiSyncServerEnabled: Boolean = false,
@@ -77,7 +96,6 @@ class SettingsViewModel
     constructor(
         private val settingsRepo: SettingsRepository,
         private val nerManager: NerManager,
-        private val rolesRepo: RolesRepository,
         private val ollamaService: OllamaService,
     ) : ViewModel() {
         private val logTag = "AI_CHAT_OLLAMA"
@@ -117,22 +135,40 @@ class SettingsViewModel
                         settingsRepo.desktopSyncAddressFlow,
                     )
                 combine(settingsFlows) { values ->
-                    val featureToggles = values[12] as Map<FeatureFlag, Boolean>
-                    val ringtoneType = values[13] as RingtoneType
-                    val ringtoneUris = values[14] as Map<RingtoneType, String>
-                    val ringtoneVolumes = values[15] as Map<RingtoneType, Float>
-                    val reminderVibrationEnabled = values[16] as Boolean
-                    val wifiSyncServerEnabled = values[17] as Boolean
-                    val desktopSyncAddress = values[18] as String
-                    val attachmentsEnabled = featureToggles[FeatureFlag.AttachmentsLibrary] ?: FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)
-                    val scriptsEnabled = featureToggles[FeatureFlag.ScriptsLibrary] ?: FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)
-                    val allowSystemMoves = featureToggles[FeatureFlag.AllowSystemProjectMoves] ?: FeatureToggles.isEnabled(FeatureFlag.AllowSystemProjectMoves)
-                    val planningModesEnabled = featureToggles[FeatureFlag.PlanningModes] ?: FeatureToggles.isEnabled(FeatureFlag.PlanningModes)
-                    val wifiSyncEnabled = featureToggles[FeatureFlag.WifiSync] ?: FeatureToggles.isEnabled(FeatureFlag.WifiSync)
-                    val strategicEnabled = featureToggles[FeatureFlag.StrategicManagement] ?: FeatureToggles.isEnabled(FeatureFlag.StrategicManagement)
-                    val aiChatEnabled = featureToggles[FeatureFlag.AiChat] ?: FeatureToggles.isEnabled(FeatureFlag.AiChat)
-                    val aiInsightsEnabled = featureToggles[FeatureFlag.AiInsights] ?: FeatureToggles.isEnabled(FeatureFlag.AiInsights)
-                    val aiLifeEnabled = featureToggles[FeatureFlag.AiLifeManagement] ?: FeatureToggles.isEnabled(FeatureFlag.AiLifeManagement)
+                    val featureToggles = values[FEATURE_TOGGLES_INDEX] as Map<FeatureFlag, Boolean>
+                    val ringtoneType = values[RINGTONE_TYPE_INDEX] as RingtoneType
+                    val ringtoneUris = values[RINGTONE_URIS_INDEX] as Map<RingtoneType, String>
+                    val ringtoneVolumes = values[RINGTONE_VOLUMES_INDEX] as Map<RingtoneType, Float>
+                    val reminderVibrationEnabled = values[REMINDER_VIBRATION_INDEX] as Boolean
+                    val wifiSyncServerEnabled = values[WIFI_SYNC_SERVER_ENABLED_INDEX] as Boolean
+                    val desktopSyncAddress = values[DESKTOP_SYNC_ADDRESS_INDEX] as String
+                    val attachmentsEnabled =
+                        featureToggles[FeatureFlag.AttachmentsLibrary]
+                            ?: FeatureToggles.isEnabled(FeatureFlag.AttachmentsLibrary)
+                    val scriptsEnabled =
+                        featureToggles[FeatureFlag.ScriptsLibrary]
+                            ?: FeatureToggles.isEnabled(FeatureFlag.ScriptsLibrary)
+                    val allowSystemMoves =
+                        featureToggles[FeatureFlag.AllowSystemProjectMoves]
+                            ?: FeatureToggles.isEnabled(FeatureFlag.AllowSystemProjectMoves)
+                    val planningModesEnabled =
+                        featureToggles[FeatureFlag.PlanningModes]
+                            ?: FeatureToggles.isEnabled(FeatureFlag.PlanningModes)
+                    val wifiSyncEnabled =
+                        featureToggles[FeatureFlag.WifiSync]
+                            ?: FeatureToggles.isEnabled(FeatureFlag.WifiSync)
+                    val strategicEnabled =
+                        featureToggles[FeatureFlag.StrategicManagement]
+                            ?: FeatureToggles.isEnabled(FeatureFlag.StrategicManagement)
+                    val aiChatEnabled =
+                        featureToggles[FeatureFlag.AiChat]
+                            ?: FeatureToggles.isEnabled(FeatureFlag.AiChat)
+                    val aiInsightsEnabled =
+                        featureToggles[FeatureFlag.AiInsights]
+                            ?: FeatureToggles.isEnabled(FeatureFlag.AiInsights)
+                    val aiLifeEnabled =
+                        featureToggles[FeatureFlag.AiLifeManagement]
+                            ?: FeatureToggles.isEnabled(FeatureFlag.AiLifeManagement)
                     FeatureToggles.updateAll(featureToggles)
                     _uiState.update {
                         it.copy(
@@ -197,10 +233,15 @@ class SettingsViewModel
                     _uiState.update { it.copy(modelsState = ModelsState.Loading) }
                     try {
                         val manualBase = _uiState.value.manualServerIp.takeIf { ip -> ip.isNotBlank() }
-                        val resolvedDiscovery = withTimeoutOrNull(3_000) { settingsRepo.getOllamaUrl().firstOrNull { !it.isNullOrBlank() } }
+                        val resolvedDiscovery =
+                            withTimeoutOrNull(MODEL_DISCOVERY_TIMEOUT_MILLIS) {
+                                settingsRepo.getOllamaUrl().firstOrNull { !it.isNullOrBlank() }
+                            }
                         val baseUrl = manualBase ?: resolvedDiscovery
                         if (baseUrl.isNullOrBlank()) {
-                            _uiState.update { it.copy(modelsState = ModelsState.Error("Не знайдено адресу Ollama")) }
+                            _uiState.update {
+                                it.copy(modelsState = ModelsState.Error("Не знайдено адресу Ollama"))
+                            }
                             return@launch
                         }
                         Log.d(logTag, "[Settings] Fetch models from $baseUrl")
@@ -210,12 +251,31 @@ class SettingsViewModel
                             _uiState.update { it.copy(modelsState = ModelsState.Success(models)) }
                         }.onFailure { e ->
                             Log.e(logTag, "[Settings] Model fetch failed: ${e.message}", e)
-                            _uiState.update { it.copy(modelsState = ModelsState.Error(e.message ?: "Помилка завантаження моделей")) }
+                            _uiState.update {
+                                it.copy(
+                                    modelsState =
+                                        ModelsState.Error(e.message ?: "Помилка завантаження моделей"),
+                                )
+                            }
                         }
-                    } catch (e: Exception) {
-                        if (e is CancellationException) return@launch
+                    } catch (e: CancellationException) {
+                        return@launch
+                    } catch (e: IllegalStateException) {
                         Log.e(logTag, "[Settings] Model fetch unexpected error: ${e.message}", e)
-                        _uiState.update { it.copy(modelsState = ModelsState.Error(e.message ?: "Помилка завантаження моделей")) }
+                        _uiState.update {
+                            it.copy(
+                                modelsState =
+                                    ModelsState.Error(e.message ?: "Помилка завантаження моделей"),
+                            )
+                        }
+                    } catch (e: RuntimeException) {
+                        Log.e(logTag, "[Settings] Model fetch unexpected error: ${e.message}", e)
+                        _uiState.update {
+                            it.copy(
+                                modelsState =
+                                    ModelsState.Error(e.message ?: "Помилка завантаження моделей"),
+                            )
+                        }
                     }
                 }
         }
@@ -274,15 +334,15 @@ class SettingsViewModel
         }
 
         fun onWifiSyncPortChanged(port: String) {
-            _uiState.update { it.copy(wifiSyncPort = port.toIntOrNull() ?: 8080) }
+            _uiState.update { it.copy(wifiSyncPort = port.toIntOrNull() ?: DEFAULT_WIFI_SYNC_PORT) }
         }
 
         fun onOllamaPortChanged(port: String) {
-            _uiState.update { it.copy(ollamaPort = port.toIntOrNull() ?: 11434) }
+            _uiState.update { it.copy(ollamaPort = port.toIntOrNull() ?: DEFAULT_OLLAMA_PORT) }
         }
 
         fun onFastApiPortChanged(port: String) {
-            _uiState.update { it.copy(fastApiPort = port.toIntOrNull() ?: 8000) }
+            _uiState.update { it.copy(fastApiPort = port.toIntOrNull() ?: DEFAULT_FAST_API_PORT) }
         }
 
         private fun updateFeatureToggle(
@@ -293,15 +353,21 @@ class SettingsViewModel
                 val updated = state.featureToggles + (flag to enabled)
                 state.copy(
                     featureToggles = updated,
-                    attachmentsLibraryEnabled = updated[FeatureFlag.AttachmentsLibrary] ?: state.attachmentsLibraryEnabled,
-                    scriptsLibraryEnabled = updated[FeatureFlag.ScriptsLibrary] ?: state.scriptsLibraryEnabled,
-                    allowSystemProjectMoves = updated[FeatureFlag.AllowSystemProjectMoves] ?: state.allowSystemProjectMoves,
-                    planningModesEnabled = updated[FeatureFlag.PlanningModes] ?: state.planningModesEnabled,
+                    attachmentsLibraryEnabled =
+                        updated[FeatureFlag.AttachmentsLibrary] ?: state.attachmentsLibraryEnabled,
+                    scriptsLibraryEnabled =
+                        updated[FeatureFlag.ScriptsLibrary] ?: state.scriptsLibraryEnabled,
+                    allowSystemProjectMoves =
+                        updated[FeatureFlag.AllowSystemProjectMoves] ?: state.allowSystemProjectMoves,
+                    planningModesEnabled =
+                        updated[FeatureFlag.PlanningModes] ?: state.planningModesEnabled,
                     wifiSyncEnabled = updated[FeatureFlag.WifiSync] ?: state.wifiSyncEnabled,
-                    strategicManagementEnabled = updated[FeatureFlag.StrategicManagement] ?: state.strategicManagementEnabled,
+                    strategicManagementEnabled =
+                        updated[FeatureFlag.StrategicManagement] ?: state.strategicManagementEnabled,
                     aiChatEnabled = updated[FeatureFlag.AiChat] ?: state.aiChatEnabled,
                     aiInsightsEnabled = updated[FeatureFlag.AiInsights] ?: state.aiInsightsEnabled,
-                    aiLifeManagementEnabled = updated[FeatureFlag.AiLifeManagement] ?: state.aiLifeManagementEnabled,
+                    aiLifeManagementEnabled =
+                        updated[FeatureFlag.AiLifeManagement] ?: state.aiLifeManagementEnabled,
                 )
             }
             FeatureToggles.update(flag, enabled)
@@ -369,7 +435,9 @@ class SettingsViewModel
             type: RingtoneType,
             volume: Float,
         ) {
-            _uiState.update { it.copy(ringtoneVolumes = it.ringtoneVolumes + (type to volume.coerceIn(0f, 1f))) }
+            _uiState.update {
+                it.copy(ringtoneVolumes = it.ringtoneVolumes + (type to volume.coerceIn(0f, 1f)))
+            }
         }
 
         fun onReminderVibrationToggle(enabled: Boolean) {
@@ -381,7 +449,10 @@ class SettingsViewModel
                 val currentState = _uiState.value
                 Log.e(
                     "SettingsViewModel",
-                    "Saving server settings: mode=${currentState.serverIpConfigurationMode}, ip=${currentState.manualServerIp}, wifiPort=${currentState.wifiSyncPort}, ollamaPort=${currentState.ollamaPort}, fastApiPort=${currentState.fastApiPort}",
+                    "Saving server settings: mode=${currentState.serverIpConfigurationMode}, " +
+                        "ip=${currentState.manualServerIp}, wifiPort=${currentState.wifiSyncPort}, " +
+                        "ollamaPort=${currentState.ollamaPort}, " +
+                        "fastApiPort=${currentState.fastApiPort}",
                 )
                 settingsRepo.saveOllamaModels(currentState.fastModel, currentState.smartModel)
                 settingsRepo.saveNerUris(

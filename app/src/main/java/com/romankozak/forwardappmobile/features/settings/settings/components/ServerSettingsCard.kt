@@ -28,15 +28,10 @@ import com.romankozak.forwardappmobile.ui.ModelsState
 @Composable
 fun ServerSettingsCard(
     state: SettingsUiState,
-    onIpConfigModeChange: (Boolean) -> Unit,
     onIpChange: (String) -> Unit,
-    onOllamaPortChange: (String) -> Unit,
-    onWifiSyncPortChange: (String) -> Unit,
-    onFastApiPortChange: (String) -> Unit,
     onFetchClick: () -> Unit,
     onFastModelSelect: (String) -> Unit,
     onSmartModelSelect: (String) -> Unit,
-    onRefreshDiscovery: () -> Unit,
 ) {
     SettingsCard(
         title = "Ollama AI Integration",

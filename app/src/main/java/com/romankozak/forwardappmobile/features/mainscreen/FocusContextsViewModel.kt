@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+private const val FLOW_STOP_TIMEOUT_MILLIS = 5000L
+
 @HiltViewModel
 class FocusContextsViewModel
     @Inject
@@ -43,7 +45,7 @@ class FocusContextsViewModel
                 }
             }.stateIn(
                 scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
+                started = SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS),
                 initialValue = emptyList(),
             )
 

@@ -49,53 +49,75 @@ fun MarkdownEditorViewer(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
             if (isEditing) {
-                BasicTextField(
+                MarkdownEditMode(
                     value = value,
                     onValueChange = onValueChange,
-                    textStyle =
-                        TextStyle(
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = MaterialTheme.typography.bodyLarge.fontSize,
-                        ),
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    decorationBox = { innerTextField ->
-                        if (value.text.isEmpty()) {
-                            Text(
-                                text = stringResource(R.string.description_placeholder_with_markdown_hint),
-                                style =
-                                    TextStyle(
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontFamily = FontFamily.Monospace,
-                                        fontSize = MaterialTheme.typography.bodyLarge.fontSize,
-                                    ),
-                            )
-                        }
-                        innerTextField()
-                    },
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .verticalScroll(scrollState),
+                    scrollState = scrollState,
                 )
             } else {
-                val isDark = isSystemInDarkTheme()
-                AndroidView(
-                    factory = { ctx ->
-                        WebViewMarkdownViewer(ctx).apply {
-                            layoutParams =
-                                ViewGroup.LayoutParams(
-                                    ViewGroup.LayoutParams.MATCH_PARENT,
-                                    ViewGroup.LayoutParams.MATCH_PARENT,
-                                )
-                        }
-                    },
-                    update = { viewer ->
-                        viewer.renderMarkdown(value.text, isDark)
-                    },
-                    modifier = Modifier.fillMaxSize(),
+                MarkdownPreviewMode(
+                    value = value,
                 )
             }
         }
     }
+}
+
+@Composable
+private fun MarkdownEditMode(
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+    scrollState: androidx.compose.foundation.ScrollState,
+) {
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        textStyle =
+            TextStyle(
+                color = MaterialTheme.colorScheme.onSurface,
+                fontFamily = FontFamily.Monospace,
+                fontSize = MaterialTheme.typography.bodyLarge.fontSize,
+            ),
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+        decorationBox = { innerTextField ->
+            if (value.text.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.description_placeholder_with_markdown_hint),
+                    style =
+                        TextStyle(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = MaterialTheme.typography.bodyLarge.fontSize,
+                        ),
+                )
+            }
+            innerTextField()
+        },
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState),
+    )
+}
+
+@Composable
+private fun MarkdownPreviewMode(
+    value: TextFieldValue,
+) {
+    val isDark = isSystemInDarkTheme()
+    AndroidView(
+        factory = { ctx ->
+            WebViewMarkdownViewer(ctx).apply {
+                layoutParams =
+                    ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                    )
+            }
+        },
+        update = { viewer ->
+            viewer.renderMarkdown(value.text, isDark)
+        },
+        modifier = Modifier.fillMaxSize(),
+    )
 }

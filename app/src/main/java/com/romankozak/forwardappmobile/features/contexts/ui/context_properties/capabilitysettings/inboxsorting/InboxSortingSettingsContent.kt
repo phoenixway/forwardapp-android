@@ -33,59 +33,19 @@ fun InboxSortingSettingsContent(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(
-            text = "Правила сортування",
-            style = MaterialTheme.typography.titleMedium,
+        InboxSortingHeader()
+        RulesEditor(
+            rulesText = uiState.rulesText,
+            onRulesTextChanged = viewModel::onRulesTextChanged,
         )
-        Text(
-            text = "Формат: backlog:newest|oldest, inbox:newest|oldest|alpha, connections:newest|oldest|type|alpha",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        SaveRulesAction(
+            enabled = !uiState.isSaving && !uiState.isApplying,
+            onSave = viewModel::saveRules,
         )
-
-        OutlinedTextField(
-            value = uiState.rulesText,
-            onValueChange = viewModel::onRulesTextChanged,
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 6,
-            label = { Text("Rules") },
+        SortActions(
+            enabled = !uiState.isSaving && !uiState.isApplying,
+            onApplySort = viewModel::applySort,
         )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Button(
-                onClick = viewModel::saveRules,
-                enabled = !uiState.isSaving && !uiState.isApplying,
-            ) {
-                Text("Зберегти")
-            }
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Button(
-                onClick = { viewModel.applySort(InboxSortingService.SortTarget.BACKLOG) },
-                enabled = !uiState.isSaving && !uiState.isApplying,
-            ) {
-                Text("Sort Backlog")
-            }
-            Button(
-                onClick = { viewModel.applySort(InboxSortingService.SortTarget.INBOX_RECORDS) },
-                enabled = !uiState.isSaving && !uiState.isApplying,
-            ) {
-                Text("Sort Inbox")
-            }
-            Button(
-                onClick = { viewModel.applySort(InboxSortingService.SortTarget.ATTACHMENTS) },
-                enabled = !uiState.isSaving && !uiState.isApplying,
-            ) {
-                Text("Sort Connections")
-            }
-        }
 
         uiState.lastMessage?.let { message ->
             Text(
@@ -95,5 +55,92 @@ fun InboxSortingSettingsContent(
                 modifier = Modifier.padding(top = 4.dp),
             )
         }
+    }
+}
+
+@Composable
+private fun InboxSortingHeader() {
+    Text(
+        text = "Правила сортування",
+        style = MaterialTheme.typography.titleMedium,
+    )
+    Text(
+        text = "Формат: backlog:newest|oldest, inbox:newest|oldest|alpha, connections:newest|oldest|type|alpha",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+@Composable
+private fun RulesEditor(
+    rulesText: String,
+    onRulesTextChanged: (String) -> Unit,
+) {
+    OutlinedTextField(
+        value = rulesText,
+        onValueChange = onRulesTextChanged,
+        modifier = Modifier.fillMaxWidth(),
+        minLines = 6,
+        label = { Text("Rules") },
+    )
+}
+
+@Composable
+private fun SaveRulesAction(
+    enabled: Boolean,
+    onSave: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Button(onClick = onSave, enabled = enabled) {
+            Text("Зберегти")
+        }
+    }
+}
+
+@Composable
+private fun SortActions(
+    enabled: Boolean,
+    onApplySort: (InboxSortingService.SortTarget) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        SortActionButton(
+            label = "Sort Backlog",
+            target = InboxSortingService.SortTarget.BACKLOG,
+            enabled = enabled,
+            onApplySort = onApplySort,
+        )
+        SortActionButton(
+            label = "Sort Inbox",
+            target = InboxSortingService.SortTarget.INBOX_RECORDS,
+            enabled = enabled,
+            onApplySort = onApplySort,
+        )
+        SortActionButton(
+            label = "Sort Connections",
+            target = InboxSortingService.SortTarget.ATTACHMENTS,
+            enabled = enabled,
+            onApplySort = onApplySort,
+        )
+    }
+}
+
+@Composable
+private fun SortActionButton(
+    label: String,
+    target: InboxSortingService.SortTarget,
+    enabled: Boolean,
+    onApplySort: (InboxSortingService.SortTarget) -> Unit,
+) {
+    Button(
+        onClick = { onApplySort(target) },
+        enabled = enabled,
+    ) {
+        Text(label)
     }
 }

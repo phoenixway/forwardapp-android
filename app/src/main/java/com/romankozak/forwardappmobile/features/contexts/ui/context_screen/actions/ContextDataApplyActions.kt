@@ -8,8 +8,27 @@ import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextData
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextStateManager
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextUiState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+
+private typealias BacklogItemSetter =
+    (List<com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent>) -> Unit
+
+private fun fallbackInputMode(currentViewMode: ContextViewMode): InputMode =
+    when (currentViewMode) {
+        ContextViewMode.DIRECTION -> InputMode.AddDirection
+        ContextViewMode.INBOX, ContextViewMode.ADVANCED -> InputMode.AddQuickRecord
+        else -> InputMode.AddGoal
+    }
+
+private fun defaultInputMode(currentViewMode: ContextViewMode): InputMode =
+    when (currentViewMode) {
+        ContextViewMode.CONNECTIONS -> InputMode.AddConnectionNote
+        ContextViewMode.DIRECTION -> InputMode.AddDirection
+        ContextViewMode.INBOX, ContextViewMode.ADVANCED -> InputMode.AddQuickRecord
+        else -> InputMode.AddGoal
+    }
 
 class ContextDataApplyActions(
     private val stateManager: ContextStateManager,
@@ -19,95 +38,31 @@ class ContextDataApplyActions(
 ) {
     private var lastSyncKey: Triple<String, String?, String>? = null
 
+    private data class CapabilityState(
+        val enableInbox: Boolean,
+        val enableLog: Boolean,
+        val enableArtifact: Boolean,
+        val enableBacklog: Boolean,
+        val enableDashboard: Boolean,
+        val enableAttachments: Boolean,
+        val isProjectManagementEnabled: Boolean,
+    )
+
     fun applyLoaded(
         data: ContextData.Loaded,
-        setListContent: (List<com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent>) -> Unit,
-        setAttachmentItems: (List<com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent>) -> Unit,
+        setListContent: BacklogItemSetter,
+        setAttachmentItems: BacklogItemSetter,
     ) {
         setListContent(data.items)
         setAttachmentItems(data.attachmentItems)
         stateManager.updateContext(data)
-
-        data.context?.let { project ->
-            scope.launch {
-                recentItemsRepository.logProjectAccess(project)
-            }
-        }
+        logProjectAccess(data)
 
         stateManager.updateState { currentState ->
-            val contextId = data.context?.id ?: currentState.context?.id.orEmpty()
-            val preferredViewName = data.context?.defaultViewModeName
-            val configFingerprint = buildStableConfigFingerprint(data.config)
-            val syncKey = Triple(contextId, preferredViewName, configFingerprint)
-            val session =
-                if (lastSyncKey == syncKey) {
-                    contextSessionStore.state.value
-                } else {
-                    lastSyncKey = syncKey
-                    contextSessionStore.dispatch(
-                        ContextCommand.SyncFromConfig(
-                            contextId = contextId,
-                            config = data.config,
-                            preferredViewName = preferredViewName,
-                            currentView = currentState.currentViewMode,
-                        ),
-                    )
-                }
-
-            val enableInbox = session.enabledCapabilities.contains(CapabilityId("inbox"))
-            val enableLog = session.enabledCapabilities.contains(CapabilityId("log"))
-            val enableArtifact = session.enabledCapabilities.contains(CapabilityId("advanced"))
-            val enableBacklog = session.enabledCapabilities.contains(CapabilityId("backlog"))
-            val enableDashboard = session.enabledCapabilities.contains(CapabilityId("dashboard"))
-            val enableAttachments = session.enabledCapabilities.contains(CapabilityId("connections"))
-            val isProjectManagementEnabled = session.enabledCapabilities.contains(CapabilityId("advanced"))
-            val resolvedInputMode =
-                when {
-                    currentState.inputMode == InputMode.AddConnectionNote &&
-                        session.currentView != ContextViewMode.CONNECTIONS -> {
-                        when (session.currentView) {
-                            ContextViewMode.DIRECTION -> InputMode.AddDirection
-                            ContextViewMode.INBOX, ContextViewMode.ADVANCED -> InputMode.AddQuickRecord
-                            else -> InputMode.AddGoal
-                        }
-                    }
-                    currentState.inputMode != InputMode.AddGoal -> currentState.inputMode
-                    session.currentView == ContextViewMode.CONNECTIONS -> InputMode.AddConnectionNote
-                    session.currentView == ContextViewMode.DIRECTION -> InputMode.AddDirection
-                    session.currentView == ContextViewMode.INBOX || session.currentView == ContextViewMode.ADVANCED ->
-                        InputMode.AddQuickRecord
-                    else -> InputMode.AddGoal
-                }
-
-            if (
-                currentState.enableInbox == enableInbox &&
-                currentState.enableLog == enableLog &&
-                currentState.enableArtifact == enableArtifact &&
-                currentState.enableBacklog == enableBacklog &&
-                currentState.enableDashboard == enableDashboard &&
-                currentState.enableAttachments == enableAttachments &&
-                currentState.isProjectManagementEnabled == isProjectManagementEnabled &&
-                currentState.experimentalCapabilityIds == data.config.experimentalCapabilityIds &&
-                currentState.currentViewMode == session.currentView &&
-                currentState.inputMode == resolvedInputMode &&
-                !currentState.isContextSwitching
-            ) {
-                currentState
-            } else {
-                currentState.copy(
-                    enableInbox = enableInbox,
-                    enableLog = enableLog,
-                    enableArtifact = enableArtifact,
-                    enableBacklog = enableBacklog,
-                    enableDashboard = enableDashboard,
-                    enableAttachments = enableAttachments,
-                    isProjectManagementEnabled = isProjectManagementEnabled,
-                    experimentalCapabilityIds = data.config.experimentalCapabilityIds,
-                    currentViewMode = session.currentView,
-                    inputMode = resolvedInputMode,
-                    isContextSwitching = false,
-                )
-            }
+            val session = syncSession(data, currentState)
+            val capabilityState = session.toCapabilityState()
+            val resolvedInputMode = resolveInputMode(currentState, session.currentView)
+            currentState.updatedFrom(data, session.currentView, resolvedInputMode, capabilityState)
         }
     }
 
@@ -146,4 +101,108 @@ class ContextDataApplyActions(
             experimentalIds,
         ).joinToString("|")
     }
+
+    private fun logProjectAccess(data: ContextData.Loaded) {
+        data.context?.let { project ->
+            scope.launch {
+                recentItemsRepository.logProjectAccess(project)
+            }
+        }
+    }
+
+    private fun syncSession(
+        data: ContextData.Loaded,
+        currentState: ContextUiState,
+    ) = with(data) {
+        val contextId = context?.id ?: currentState.context?.id.orEmpty()
+        val preferredViewName = context?.defaultViewModeName
+        val configFingerprint = buildStableConfigFingerprint(config)
+        val syncKey = Triple(contextId, preferredViewName, configFingerprint)
+        if (lastSyncKey == syncKey) {
+            contextSessionStore.state.value
+        } else {
+            lastSyncKey = syncKey
+            contextSessionStore.dispatch(
+                ContextCommand.SyncFromConfig(
+                    contextId = contextId,
+                    config = config,
+                    preferredViewName = preferredViewName,
+                    currentView = currentState.currentViewMode,
+                ),
+            )
+        }
+    }
+
+    private fun com.romankozak.forwardappmobile.core.context.ContextSessionState.toCapabilityState(): CapabilityState =
+        CapabilityState(
+            enableInbox = enabledCapabilities.contains(CapabilityId("inbox")),
+            enableLog = enabledCapabilities.contains(CapabilityId("log")),
+            enableArtifact = enabledCapabilities.contains(CapabilityId("advanced")),
+            enableBacklog = enabledCapabilities.contains(CapabilityId("backlog")),
+            enableDashboard = enabledCapabilities.contains(CapabilityId("dashboard")),
+            enableAttachments = enabledCapabilities.contains(CapabilityId("connections")),
+            isProjectManagementEnabled = enabledCapabilities.contains(CapabilityId("advanced")),
+        )
+
+    private fun resolveInputMode(
+        currentState: ContextUiState,
+        currentViewMode: ContextViewMode,
+    ): InputMode =
+        when {
+            currentState.inputMode == InputMode.AddConnectionNote &&
+                currentViewMode != ContextViewMode.CONNECTIONS -> {
+                fallbackInputMode(currentViewMode)
+            }
+            currentState.inputMode != InputMode.AddGoal -> currentState.inputMode
+            else -> defaultInputMode(currentViewMode)
+        }
+
+    private fun ContextUiState.updatedFrom(
+        data: ContextData.Loaded,
+        currentViewMode: ContextViewMode,
+        inputMode: InputMode,
+        capabilityState: CapabilityState,
+    ): ContextUiState =
+        if (
+            matches(
+                capabilityState = capabilityState,
+                experimentalCapabilityIds = data.config.experimentalCapabilityIds,
+                currentViewMode = currentViewMode,
+                inputMode = inputMode,
+            )
+        ) {
+            this
+        } else {
+            copy(
+                enableInbox = capabilityState.enableInbox,
+                enableLog = capabilityState.enableLog,
+                enableArtifact = capabilityState.enableArtifact,
+                enableBacklog = capabilityState.enableBacklog,
+                enableDashboard = capabilityState.enableDashboard,
+                enableAttachments = capabilityState.enableAttachments,
+                isProjectManagementEnabled = capabilityState.isProjectManagementEnabled,
+                experimentalCapabilityIds = data.config.experimentalCapabilityIds,
+                currentViewMode = currentViewMode,
+                inputMode = inputMode,
+                isContextSwitching = false,
+            )
+        }
+
+    private fun ContextUiState.matches(
+        capabilityState: CapabilityState,
+        experimentalCapabilityIds: List<CapabilityId>,
+        currentViewMode: ContextViewMode,
+        inputMode: InputMode,
+    ): Boolean =
+        enableInbox == capabilityState.enableInbox &&
+            enableLog == capabilityState.enableLog &&
+            enableArtifact == capabilityState.enableArtifact &&
+            enableBacklog == capabilityState.enableBacklog &&
+            enableDashboard == capabilityState.enableDashboard &&
+            enableAttachments == capabilityState.enableAttachments &&
+            isProjectManagementEnabled == capabilityState.isProjectManagementEnabled &&
+            this.experimentalCapabilityIds == experimentalCapabilityIds &&
+            this.currentViewMode == currentViewMode &&
+            this.inputMode == inputMode &&
+            !isContextSwitching
 }

@@ -12,8 +12,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-data class SubTask(val id: Int, val title: String, val isCompleted: Boolean)
-
 @Composable
 fun TaskSublist(
     subTasks: List<SubTask>,

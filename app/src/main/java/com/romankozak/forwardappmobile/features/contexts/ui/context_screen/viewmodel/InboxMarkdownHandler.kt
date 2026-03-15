@@ -2,14 +2,12 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.view
 
 import android.util.Log
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class InboxMarkdownHandler(
-    private val contextRepository: ContextRepository,
     private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
     private val scope: CoroutineScope,
     private val listener: ResultListener,
@@ -40,7 +38,7 @@ class InboxMarkdownHandler(
             val lines = markdownText.lines().filter { it.isNotBlank() }
             var importedCount = 0
             for (line in lines) {
-                try {
+                runCatching {
                     val trimmedLine = line.trim()
                     when {
                         trimmedLine.startsWith("- [x]") -> {
@@ -79,8 +77,8 @@ class InboxMarkdownHandler(
                             }
                         }
                     }
-                } catch (e: Exception) {
-                    Log.e("BacklogMarkdownHandler", "Failed to import line: $line", e)
+                }.onFailure { error ->
+                    Log.e("BacklogMarkdownHandler", "Failed to import line: $line", error)
                 }
             }
             withContext(Dispatchers.Main) {

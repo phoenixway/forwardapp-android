@@ -10,7 +10,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconToggleButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,20 +18,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 
-enum class UnifiedCheckboxStyle {
-    Round,
-    Square,
-}
-
 @Composable
 fun UnifiedItemCheckbox(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     style: UnifiedCheckboxStyle,
     modifier: Modifier = Modifier,
-    checkedColor: Color = MaterialTheme.colorScheme.primary,
-    uncheckedBorderColor: Color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-    checkmarkColor: Color = MaterialTheme.colorScheme.onPrimary,
+    colors: UnifiedCheckboxColors = unifiedCheckboxColors(),
 ) {
     val shape: Shape =
         when (style) {
@@ -47,8 +39,8 @@ fun UnifiedItemCheckbox(
     ) {
         Surface(
             shape = shape,
-            color = if (checked) checkedColor else Color.Transparent,
-            border = if (checked) null else BorderStroke(2.dp, uncheckedBorderColor),
+            color = if (checked) colors.checked else Color.Transparent,
+            border = if (checked) null else BorderStroke(2.dp, colors.uncheckedBorder),
             modifier = Modifier.size(18.dp),
         ) {
             Box(
@@ -59,7 +51,7 @@ fun UnifiedItemCheckbox(
                     Icon(
                         imageVector = Icons.Filled.Check,
                         contentDescription = null,
-                        tint = checkmarkColor,
+                        tint = colors.checkmark,
                         modifier = Modifier.size(12.dp),
                     )
                 }

@@ -12,12 +12,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Checklist
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayTaskWithReminder
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentInfo
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemState
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemColors
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurfaceLayout
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTokens
 import sh.calvin.reorderable.ReorderableItem
@@ -41,12 +46,8 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 @Composable
 fun TaskList(
     tasks: List<DayTaskWithReminder>,
-    onTaskClick: (DayTaskWithReminder) -> Unit,
-    onTaskLongPress: (DayTaskWithReminder) -> Unit,
-    onTasksReordered: (List<DayTaskWithReminder>) -> Unit,
-    onToggleTask: (String) -> Unit,
+    actions: TaskListActions,
     modifier: Modifier = Modifier,
-    onParentInfoClick: (ParentInfo) -> Unit,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
     var internalTasks by remember(tasks) { mutableStateOf(tasks) }
@@ -58,78 +59,120 @@ fun TaskList(
                 internalTasks.toMutableList().apply {
                     add(to.index, removeAt(from.index))
                 }
-            onTasksReordered(internalTasks)
+            actions.onTasksReordered(internalTasks)
             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
         }
 
     Column(modifier = modifier.fillMaxSize()) {
         if (internalTasks.isEmpty()) {
             EmptyTasksState(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxSize(),
             )
         } else {
-            LazyColumn(
-                state = lazyListState,
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(UnifiedListItemTokens.OuterVerticalSpacing * 2),
-            ) {
-                items(internalTasks, key = { it.dayTask.id }) { taskWithReminder ->
-                    ReorderableItem(reorderableState, key = taskWithReminder.dayTask.id) { isDragging ->
-                        val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
-                        Box(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = elevation / 8),
-                        ) {
-                            val colorScheme = MaterialTheme.colorScheme
-                            val itemState =
-                                if (taskWithReminder.dayTask.completed) {
-                                    UnifiedItemState.COMPLETED
-                                } else {
-                                    UnifiedItemState.DEFAULT
-                                }
-                            val dayTaskContainerColor =
-                                when (itemState) {
-                                    UnifiedItemState.COMPLETED -> colorScheme.secondaryContainer.copy(alpha = 0.28f)
-                                    UnifiedItemState.DEFAULT -> colorScheme.primaryContainer.copy(alpha = 0.34f)
-                                    UnifiedItemState.SELECTED -> colorScheme.surfaceContainerHighest
-                                    UnifiedItemState.OVERDUE -> colorScheme.errorContainer.copy(alpha = 0.50f)
-                                    UnifiedItemState.DISABLED -> colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                                }
-                            val dayTaskBorderColor =
-                                when (itemState) {
-                                    UnifiedItemState.COMPLETED -> colorScheme.outlineVariant.copy(alpha = 0.55f)
-                                    UnifiedItemState.DEFAULT -> colorScheme.primary.copy(alpha = 0.30f)
-                                    UnifiedItemState.SELECTED -> colorScheme.primary.copy(alpha = 0.4f)
-                                    UnifiedItemState.OVERDUE -> colorScheme.error.copy(alpha = 0.45f)
-                                    UnifiedItemState.DISABLED -> colorScheme.outlineVariant.copy(alpha = 0.35f)
-                                }
-                            UnifiedListItemSurface(
-                                isSelected = isDragging,
-                                state = itemState,
-                                containerColorOverride = dayTaskContainerColor,
-                                borderColorOverride = dayTaskBorderColor,
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                DayTaskCard(
-                                    taskWithReminder = taskWithReminder,
-                                    onClick = { onTaskClick(taskWithReminder) },
-                                    onToggle = { onToggleTask(taskWithReminder.dayTask.id) },
-                                    onLongPress = { onTaskLongPress(taskWithReminder) },
-                                    dragHandleModifier = Modifier.draggableHandle(),
-                                    onParentInfoClick = onParentInfoClick,
-                                )
-                            }
-                        }
-                    }
+            TaskListContent(
+                tasks = internalTasks,
+                lazyListState = lazyListState,
+                reorderableState = reorderableState,
+                actions = actions,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun TaskListContent(
+    tasks: List<DayTaskWithReminder>,
+    lazyListState: androidx.compose.foundation.lazy.LazyListState,
+    reorderableState: sh.calvin.reorderable.ReorderableLazyListState,
+    actions: TaskListActions,
+) {
+    LazyColumn(
+        state = lazyListState,
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(UnifiedListItemTokens.OuterVerticalSpacing * 2),
+    ) {
+        items(tasks, key = { it.dayTask.id }) { taskWithReminder ->
+            TaskListItem(
+                taskWithReminder = taskWithReminder,
+                reorderableState = reorderableState,
+                actions = actions,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun LazyItemScope.TaskListItem(
+    taskWithReminder: DayTaskWithReminder,
+    reorderableState: sh.calvin.reorderable.ReorderableLazyListState,
+    actions: TaskListActions,
+) {
+    ReorderableItem(reorderableState, key = taskWithReminder.dayTask.id) { isDragging ->
+        val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = elevation / 8),
+        ) {
+            val itemState =
+                if (taskWithReminder.dayTask.completed) {
+                    UnifiedItemState.COMPLETED
+                } else {
+                    UnifiedItemState.DEFAULT
                 }
+            UnifiedListItemSurface(
+                isSelected = isDragging,
+                state = itemState,
+                layout =
+                    UnifiedListItemSurfaceLayout(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                    ),
+                colors =
+                    UnifiedListItemColors(
+                        container = itemState.containerColor(),
+                        border = itemState.borderColor(),
+                    ),
+            ) {
+                DayTaskCard(
+                    taskWithReminder = taskWithReminder,
+                    actions =
+                        DayTaskCardActions(
+                            onClick = { actions.onTaskClick(taskWithReminder) },
+                            onToggle = { actions.onToggleTask(taskWithReminder.dayTask.id) },
+                            onLongPress = { actions.onTaskLongPress(taskWithReminder) },
+                            onParentInfoClick = actions.onParentInfoClick,
+                        ),
+                    dragHandleModifier = Modifier.draggableHandle(),
+                )
             }
         }
     }
 }
+
+@Composable
+private fun UnifiedItemState.containerColor() =
+    when (this) {
+        UnifiedItemState.COMPLETED -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.28f)
+        UnifiedItemState.DEFAULT -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.34f)
+        UnifiedItemState.SELECTED -> MaterialTheme.colorScheme.surfaceContainerHighest
+        UnifiedItemState.OVERDUE -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.50f)
+        UnifiedItemState.DISABLED -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+    }
+
+@Composable
+private fun UnifiedItemState.borderColor() =
+    when (this) {
+        UnifiedItemState.COMPLETED -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
+        UnifiedItemState.DEFAULT -> MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)
+        UnifiedItemState.SELECTED -> MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+        UnifiedItemState.OVERDUE -> MaterialTheme.colorScheme.error.copy(alpha = 0.45f)
+        UnifiedItemState.DISABLED -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+    }
 
 @Composable
 private fun EmptyTasksState(modifier: Modifier = Modifier) {

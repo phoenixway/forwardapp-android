@@ -40,16 +40,24 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+data class LimitedMarkdownEditorState(
+    val value: TextFieldValue,
+    val maxHeight: Dp,
+)
+
+data class LimitedMarkdownEditorActions(
+    val onValueChange: (TextFieldValue) -> Unit,
+    val onExpandClick: () -> Unit,
+    val onCopy: () -> Unit,
+)
+
 @Composable
 fun LimitedMarkdownEditor(
-    value: TextFieldValue,
-    onValueChange: (TextFieldValue) -> Unit,
-    maxHeight: Dp,
-    onExpandClick: () -> Unit,
+    state: LimitedMarkdownEditorState,
+    actions: LimitedMarkdownEditorActions,
     modifier: Modifier = Modifier,
-    onCopy: () -> Unit,
 ) {
-    var isOverflowing by remember(value.text) { mutableStateOf(false) }
+    var isOverflowing by remember(state.value.text) { mutableStateOf(false) }
     val textStyle =
         LocalTextStyle.current.copy(
             color = MaterialTheme.colorScheme.onSurface,
@@ -67,95 +75,128 @@ fun LimitedMarkdownEditor(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Description,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    text = "Опис",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            DescriptionHeader()
+            EditorInputArea(
+                state = state,
+                textStyle = textStyle,
+                density = density,
+                onValueChange = actions.onValueChange,
+                onOverflowChanged = { isOverflowing = it },
+            )
+            EditorFooter(
+                isOverflowing = isOverflowing,
+                onCopy = actions.onCopy,
+                onExpandClick = actions.onExpandClick,
+            )
+        }
+    }
+}
 
-            Box(
-                modifier =
-                    Modifier
-                        .heightIn(max = maxHeight)
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState()),
-            ) {
-                BasicTextField(
-                    value = value,
-                    onValueChange = onValueChange,
-                    textStyle = textStyle,
-                    modifier = Modifier.fillMaxWidth(),
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    decorationBox = { innerTextField ->
-                        Box {
-                            if (value.text.isEmpty()) {
-                                Text(
-                                    text = "Додайте опис і нотатки...",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                )
-                            }
-                            innerTextField()
-                        }
-                    },
-                    onTextLayout = {
-                        val maxHeightPx = with(density) { maxHeight.toPx() }
-                        isOverflowing = it.size.height > maxHeightPx
-                    },
-                )
-            }
+@Composable
+private fun DescriptionHeader() {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Description,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        Text(
+            text = "Опис",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(
-                    onClick = onCopy,
-                    modifier = Modifier.size(40.dp),
-                    colors =
-                        IconButtonDefaults.iconButtonColors(
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        ),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ContentCopy,
-                        contentDescription = "Копіювати опис",
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-
-                AnimatedVisibility(
-                    visible = isOverflowing,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
-                ) {
-                    TextButton(
-                        onClick = onExpandClick,
-                        shape = RoundedCornerShape(8.dp),
-                    ) {
-                        Text("Більше")
-                        Icon(
-                            imageVector = Icons.Outlined.ExpandMore,
-                            contentDescription = null,
-                            modifier =
-                                Modifier
-                                    .padding(start = 4.dp)
-                                    .size(18.dp),
+@Composable
+private fun EditorInputArea(
+    state: LimitedMarkdownEditorState,
+    textStyle: androidx.compose.ui.text.TextStyle,
+    density: androidx.compose.ui.unit.Density,
+    onValueChange: (TextFieldValue) -> Unit,
+    onOverflowChanged: (Boolean) -> Unit,
+) {
+    Box(
+        modifier =
+            Modifier
+                .heightIn(max = state.maxHeight)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState()),
+    ) {
+        BasicTextField(
+            value = state.value,
+            onValueChange = onValueChange,
+            textStyle = textStyle,
+            modifier = Modifier.fillMaxWidth(),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            decorationBox = { innerTextField ->
+                Box {
+                    if (state.value.text.isEmpty()) {
+                        Text(
+                            text = "Додайте опис і нотатки...",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyLarge,
                         )
                     }
+                    innerTextField()
                 }
+            },
+            onTextLayout = {
+                val maxHeightPx = with(density) { state.maxHeight.toPx() }
+                onOverflowChanged(it.size.height > maxHeightPx)
+            },
+        )
+    }
+}
+
+@Composable
+private fun EditorFooter(
+    isOverflowing: Boolean,
+    onCopy: () -> Unit,
+    onExpandClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(
+            onClick = onCopy,
+            modifier = Modifier.size(40.dp),
+            colors =
+                IconButtonDefaults.iconButtonColors(
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
+        ) {
+            Icon(
+                imageVector = Icons.Default.ContentCopy,
+                contentDescription = "Копіювати опис",
+                modifier = Modifier.size(20.dp),
+            )
+        }
+
+        AnimatedVisibility(
+            visible = isOverflowing,
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
+            TextButton(
+                onClick = onExpandClick,
+                shape = RoundedCornerShape(8.dp),
+            ) {
+                Text("Більше")
+                Icon(
+                    imageVector = Icons.Outlined.ExpandMore,
+                    contentDescription = null,
+                    modifier =
+                        Modifier
+                            .padding(start = 4.dp)
+                            .size(18.dp),
+                )
             }
         }
     }

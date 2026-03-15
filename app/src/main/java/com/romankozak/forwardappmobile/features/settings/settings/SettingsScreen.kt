@@ -63,6 +63,7 @@ import com.romankozak.forwardappmobile.features.settings.settings.components.Ani
 import com.romankozak.forwardappmobile.features.settings.settings.components.NerSettingsCard
 import com.romankozak.forwardappmobile.features.settings.settings.components.PermissionsSettingsCard
 import com.romankozak.forwardappmobile.features.settings.settings.components.RingtoneSettingsCard
+import com.romankozak.forwardappmobile.features.settings.settings.components.RingtoneSettingsCallbacks
 import com.romankozak.forwardappmobile.features.settings.settings.components.RolesSettingsCard
 import com.romankozak.forwardappmobile.features.settings.settings.components.ServerSettingsCard
 import com.romankozak.forwardappmobile.features.settings.settings.components.SettingsCard
@@ -111,7 +112,15 @@ fun SettingsScreen(
     var selectedTabName by rememberSaveable { mutableStateOf(SettingsTab.General.name) }
     val selectedTab = tabs.firstOrNull { it.name == selectedTabName } ?: SettingsTab.General
 
-    val isDirty by remember(uiState, tempShowModes, tempDailyTag, tempMediumTag, tempLongTag, tempVaultName, initialViewModelState.value) {
+    val isDirty by remember(
+        uiState,
+        tempShowModes,
+        tempDailyTag,
+        tempMediumTag,
+        tempLongTag,
+        tempVaultName,
+        initialViewModelState.value,
+    ) {
         derivedStateOf {
             val planningIsDirty =
                 tempShowModes != planningSettings.showModes ||
@@ -240,10 +249,13 @@ fun SettingsScreen(
                             ringtoneUris = uiState.ringtoneUris,
                             ringtoneVolumes = uiState.ringtoneVolumes,
                             vibrationEnabled = uiState.reminderVibrationEnabled,
-                            onTypeSelected = viewModel::onRingtoneTypeSelected,
-                            onRingtonePicked = viewModel::onRingtoneUriSelected,
-                            onVolumeChanged = viewModel::onRingtoneVolumeChanged,
-                            onVibrationToggle = viewModel::onReminderVibrationToggle,
+                            callbacks =
+                                RingtoneSettingsCallbacks(
+                                    onTypeSelected = viewModel::onRingtoneTypeSelected,
+                                    onRingtonePicked = viewModel::onRingtoneUriSelected,
+                                    onVolumeChanged = viewModel::onRingtoneVolumeChanged,
+                                    onVibrationToggle = viewModel::onReminderVibrationToggle,
+                                ),
                         )
                     }
                     SettingsTab.Management -> {
@@ -252,8 +264,14 @@ fun SettingsScreen(
                                 title = "Planning Modes",
                                 icon = Icons.Default.Tune,
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                                    Text(stringResource(id = R.string.settings_planning_modes_label), modifier = Modifier.weight(1f))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(
+                                        stringResource(id = R.string.settings_planning_modes_label),
+                                        modifier = Modifier.weight(1f),
+                                    )
                                     Switch(checked = tempShowModes, onCheckedChange = { tempShowModes = it })
                                 }
                                 AnimatedTextField(
@@ -324,15 +342,10 @@ fun SettingsScreen(
                         if (aiEnabled) {
                             ServerSettingsCard(
                                 state = uiState,
-                                onIpConfigModeChange = viewModel::onServerIpConfigurationModeChanged,
                                 onIpChange = viewModel::onManualServerIpChanged,
-                                onOllamaPortChange = viewModel::onOllamaPortChanged,
-                                onWifiSyncPortChange = viewModel::onWifiSyncPortChanged,
-                                onFastApiPortChange = viewModel::onFastApiPortChanged,
                                 onFetchClick = viewModel::fetchAvailableModels,
                                 onFastModelSelect = viewModel::onFastModelSelected,
                                 onSmartModelSelect = viewModel::onSmartModelSelected,
-                                onRefreshDiscovery = viewModel::refreshServerDiscovery,
                             )
                             RolesSettingsCard(
                                 state = uiState,
@@ -346,7 +359,10 @@ fun SettingsScreen(
                                 onReloadClick = viewModel::reloadNerModel,
                             )
                         } else {
-                            Text(stringResource(id = R.string.settings_ai_disabled_msg), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                stringResource(id = R.string.settings_ai_disabled_msg),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
                     SettingsTab.Experiments -> {
@@ -354,7 +370,10 @@ fun SettingsScreen(
                             title = "Experimental Features",
                             icon = Icons.Default.Build,
                         ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.fillMaxWidth(),

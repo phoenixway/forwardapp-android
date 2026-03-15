@@ -18,18 +18,22 @@ class ContextRouteResolver(
         data class Unknown(val route: String) : ResolveResult()
     }
 
-    fun resolve(route: String): ResolveResult {
-        if (route == "back") return ResolveResult.Back
-        if (route.startsWith("goal_detail_screen/")) {
-            return ResolveResult.GoalDetail(route.substringAfter("goal_detail_screen/"))
+    fun resolve(route: String): ResolveResult =
+        when {
+            route == "back" -> ResolveResult.Back
+            route.startsWith("goal_detail_screen/") ->
+                ResolveResult.GoalDetail(route.substringAfter("goal_detail_screen/"))
+
+            route.startsWith(handleLinkClickRoute) -> {
+                val rawTarget = route.substringAfter("$handleLinkClickRoute/")
+                ResolveResult.HandleLinkClick(rawTarget)
+            }
+
+            else ->
+                parseRouteToNavTarget(route)
+                    ?.let(ResolveResult::Navigate)
+                    ?: ResolveResult.Unknown(route)
         }
-        if (route.startsWith(handleLinkClickRoute)) {
-            val rawTarget = route.substringAfter("$handleLinkClickRoute/")
-            return ResolveResult.HandleLinkClick(rawTarget)
-        }
-        val navTarget = parseRouteToNavTarget(route) ?: return ResolveResult.Unknown(route)
-        return ResolveResult.Navigate(navTarget)
-    }
 
     private fun parseRouteToNavTarget(route: String): NavTarget? {
         return when {

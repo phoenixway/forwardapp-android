@@ -11,11 +11,6 @@ fun AnnotatedString.Builder.styleLine(
     textColor: Color,
     accentColor: Color,
 ) {
-    val headingRegex = Regex("""^(\s*)(#+\s)(.*)""")
-    val bulletRegex = Regex("""^(\s*)\*\s(.*)""")
-    val numberedRegex = Regex("""^(\s*)(\d+)\.\s(.*)""")
-    val checkedRegex = Regex("""^(\s*)\[x\]\s(.*)""", RegexOption.IGNORE_CASE)
-    val uncheckedRegex = Regex("""^(\s*)\[\s\]\s(.*)""")
     val boldRegex = Regex("""\*\*(.*?)\*\*""")
 
     fun applyBold(
@@ -39,56 +34,59 @@ fun AnnotatedString.Builder.styleLine(
         }
     }
 
-    var matched = false
-
-    if (!matched) {
-        headingRegex.find(line)?.let {
-            val (indent, hashes, content) = it.destructured
-            append(indent)
-            withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append(hashes) }
-            applyBold(content, SpanStyle(color = textColor, fontWeight = FontWeight.Bold))
-            matched = true
+    val matched =
+        lineStyleRules(accentColor, textColor).any { rule ->
+            rule.regex.find(line)?.let { match ->
+                rule.renderer(this, match.destructured.toList(), ::applyBold)
+            } != null
         }
-    }
-
-    if (!matched) {
-        bulletRegex.find(line)?.let {
-            val (indent, content) = it.destructured
-            append(indent)
-            withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("• ") }
-            applyBold(content, SpanStyle(color = textColor))
-            matched = true
-        }
-    }
-    if (!matched) {
-        numberedRegex.find(line)?.let {
-            val (indent, number, content) = it.destructured
-            append(indent)
-            withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("$number. ") }
-            applyBold(content, SpanStyle(color = textColor))
-            matched = true
-        }
-    }
-    if (!matched) {
-        uncheckedRegex.find(line)?.let {
-            val (indent, content) = it.destructured
-            append(indent)
-            withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("☐ ") }
-            applyBold(content, SpanStyle(color = textColor))
-            matched = true
-        }
-    }
-    if (!matched) {
-        checkedRegex.find(line)?.let {
-            val (indent, content) = it.destructured
-            append(indent)
-            withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("☑ ") }
-            applyBold(content, SpanStyle(color = textColor))
-            matched = true
-        }
-    }
 
     if (!matched) {
         applyBold(line, SpanStyle(color = textColor))
     }
 }
+
+private data class LineStyleRule(
+    val regex: Regex,
+    val renderer: (AnnotatedString.Builder, List<String>, (String, SpanStyle) -> Unit) -> Unit,
+)
+
+private fun lineStyleRules(accentColor: Color, textColor: Color): List<LineStyleRule> =
+    listOf(
+        lineStyleRule(Regex("""^(\s*)(#+\s)(.*)""")) { indent, marker, content, applyBoldText ->
+            append(indent)
+            withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append(marker) }
+            applyBoldText(content, SpanStyle(color = textColor, fontWeight = FontWeight.Bold))
+        },
+        lineStyleRule(Regex("""^(\s*)\*\s(.*)""")) { indent, _, content, applyBoldText ->
+            append(indent)
+            withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("• ") }
+            applyBoldText(content, SpanStyle(color = textColor))
+        },
+        lineStyleRule(Regex("""^(\s*)(\d+)\.\s(.*)""")) { indent, marker, content, applyBoldText ->
+            append(indent)
+            withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("$marker. ") }
+            applyBoldText(content, SpanStyle(color = textColor))
+        },
+        lineStyleRule(Regex("""^(\s*)\[\s\]\s(.*)""")) { indent, _, content, applyBoldText ->
+            append(indent)
+            withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("☐ ") }
+            applyBoldText(content, SpanStyle(color = textColor))
+        },
+        lineStyleRule(Regex("""^(\s*)\[x\]\s(.*)""", RegexOption.IGNORE_CASE)) { indent, _, content, applyBoldText ->
+            append(indent)
+            withStyle(SpanStyle(color = accentColor, fontWeight = FontWeight.Bold)) { append("☑ ") }
+            applyBoldText(content, SpanStyle(color = textColor))
+        },
+    )
+
+private fun lineStyleRule(
+    regex: Regex,
+    renderer: AnnotatedString.Builder.(String, String, String, (String, SpanStyle) -> Unit) -> Unit,
+): LineStyleRule =
+    LineStyleRule(regex = regex) { builder, parts, applyBoldText ->
+        val indent = parts.getOrElse(0) { "" }
+        val marker = parts.getOrElse(1) { "" }
+        val content = parts.getOrElse(2) { "" }
+        builder.renderer(indent, marker, content, applyBoldText)
+    }

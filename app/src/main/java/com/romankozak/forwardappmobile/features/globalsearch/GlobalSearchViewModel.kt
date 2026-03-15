@@ -89,10 +89,39 @@ class GlobalSearchViewModel
             private const val COMMAND_HISTORY_KEY = "global_command_history"
             private const val COMMAND_USAGE_KEY = "global_command_usage"
             private const val DATA_USAGE_KEY = "global_data_usage"
+            private const val FLOW_STOP_TIMEOUT_MILLIS = 5000L
             private const val MAX_SEARCH_HISTORY = 12
             private const val MAX_COMMAND_HISTORY = 12
             private const val MAX_USAGE_ITEMS = 200
             private const val SEARCH_CANDIDATES_CACHE_TTL_MS = 15_000L
+            private const val SEARCH_DEBOUNCE_MILLIS = 280L
+            private const val HYBRID_COMMANDS_LIMIT = 4
+            private const val MIN_FUZZY_DATA_SCORE = 10
+            private const val MAX_FUZZY_RESULTS = 120
+            private const val EMPTY_QUERY_SCORE = 0
+            private const val INITIAL_LAST_MATCH_INDEX = -2
+            private const val COMMAND_USAGE_BOOST_MULTIPLIER = 12
+            private const val COMMAND_RECENCY_BASE_BOOST = 140
+            private const val COMMAND_RECENCY_STEP = 20
+            private const val COMMAND_MATCH_USAGE_BOOST_MULTIPLIER = 10
+            private const val MAX_COMMAND_RESULTS = 30
+            private const val DIRECT_MATCH_BASE_SCORE = 1000
+            private const val CHARACTER_MATCH_SCORE = 3
+            private const val CONSECUTIVE_CHARACTER_BONUS = 2
+            private const val NO_MATCH_SCORE = -1
+            private const val MIN_TYPO_TOLERANCE_QUERY_LENGTH = 3
+            private const val SHORT_QUERY_MAX_LENGTH = 4
+            private const val MEDIUM_QUERY_MAX_LENGTH = 8
+            private const val SHORT_QUERY_MAX_DISTANCE = 1
+            private const val MEDIUM_QUERY_MAX_DISTANCE = 2
+            private const val LONG_QUERY_MAX_DISTANCE = 3
+            private const val TYPO_MATCH_BASE_SCORE = 220
+            private const val TYPO_DISTANCE_PENALTY = 60
+            private const val PREFIX_MATCH_BONUS = 180
+            private const val NEAR_PREFIX_START_INDEX = 1
+            private const val NEAR_PREFIX_END_INDEX = 3
+            private const val NEAR_PREFIX_BONUS = 120
+            private const val DATA_USAGE_BOOST_MULTIPLIER = 14
         }
 
         private val commandDefinitions =
@@ -190,7 +219,8 @@ class GlobalSearchViewModel
             savedStateHandle.get<Map<String, Int>>(DATA_USAGE_KEY)?.toMutableMap() ?: mutableMapOf()
 
         private val initialQueryRaw: String = savedStateHandle["query"] ?: ""
-        private val initialQuery: String = runCatching { URLDecoder.decode(initialQueryRaw, "UTF-8") }.getOrDefault(initialQueryRaw)
+        private val initialQuery: String =
+            runCatching { URLDecoder.decode(initialQueryRaw, "UTF-8") }.getOrDefault(initialQueryRaw)
         private val _uiState = MutableStateFlow(GlobalSearchUiState())
         val uiState: StateFlow<GlobalSearchUiState> = _uiState.asStateFlow()
         private var searchJob: Job? = null
@@ -201,7 +231,11 @@ class GlobalSearchViewModel
 
         val obsidianVaultName: StateFlow<String> =
             settingsRepository.obsidianVaultNameFlow
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS),
+                    initialValue = "",
+                )
 
         init {
             val history = savedStateHandle.get<List<String>>(SEARCH_HISTORY_KEY) ?: emptyList()
@@ -254,11 +288,11 @@ class GlobalSearchViewModel
                 }
                 return
             }
-            val hybridCommands = findCommandResults(strippedQuery).take(4)
+            val hybridCommands = findCommandResults(strippedQuery).take(HYBRID_COMMANDS_LIMIT)
             _uiState.update { it.copy(hybridCommandResults = hybridCommands, commandResults = emptyList()) }
             searchJob =
                 viewModelScope.launch {
-                    delay(280)
+                    delay(SEARCH_DEBOUNCE_MILLIS)
                     performSearch(strippedQuery)
                 }
         }
@@ -306,8 +340,18 @@ class GlobalSearchViewModel
                     mode = mode,
                     isLoading = false,
                     results = if (mode == OmniboxMode.DataSearch) current.results else emptyList(),
-                    commandResults = if (mode == OmniboxMode.Command) findCommandResults(current.query) else emptyList(),
-                    hybridCommandResults = if (mode == OmniboxMode.DataSearch) findCommandResults(current.query).take(4) else emptyList(),
+                    commandResults =
+                        if (mode == OmniboxMode.Command) {
+                            findCommandResults(current.query)
+                        } else {
+                            emptyList()
+                        },
+                    hybridCommandResults =
+                        if (mode == OmniboxMode.DataSearch) {
+                            findCommandResults(current.query).take(HYBRID_COMMANDS_LIMIT)
+                        } else {
+                            emptyList()
+                        },
                 )
             }
             if (mode == OmniboxMode.DataSearch && _uiState.value.query.isNotBlank()) {
@@ -397,7 +441,8 @@ class GlobalSearchViewModel
                             if (score < 0) null else item to score
                         }
                         .sortedWith(
-                            compareByDescending<Pair<GlobalSearchResultItem, Int>> { it.second }.thenByDescending { it.first.timestamp },
+                            compareByDescending<Pair<GlobalSearchResultItem, Int>> { it.second }
+                                .thenByDescending { it.first.timestamp },
                         )
                         .map { it.first }
 
@@ -409,20 +454,21 @@ class GlobalSearchViewModel
                         allCandidates
                             .mapNotNull { item ->
                                 val score = fuzzyScoreForData(query, item)
-                                if (score < 10) null else item to score
+                                if (score < MIN_FUZZY_DATA_SCORE) null else item to score
                             }
                             .sortedWith(
-                                compareByDescending<Pair<GlobalSearchResultItem, Int>> { it.second }.thenByDescending { it.first.timestamp },
+                                compareByDescending<Pair<GlobalSearchResultItem, Int>> { it.second }
+                                    .thenByDescending { it.first.timestamp },
                             )
                             .map { it.first }
-                            .take(120)
+                            .take(MAX_FUZZY_RESULTS)
                     }
                 _uiState.update {
                     it.copy(
                         results = finalResults,
                         isLoading = false,
                         commandResults = emptyList(),
-                        hybridCommandResults = findCommandResults(query).take(4),
+                        hybridCommandResults = findCommandResults(query).take(HYBRID_COMMANDS_LIMIT),
                     )
                 }
             }
@@ -490,12 +536,14 @@ class GlobalSearchViewModel
                 OmniboxCommandId.OpenReminders -> enhancedNavigationManager.navigate(target = NavTarget.Reminders)
                 OmniboxCommandId.OpenSettings -> enhancedNavigationManager.navigate(target = NavTarget.Settings)
                 OmniboxCommandId.OpenSearch -> enhancedNavigationManager.navigate(target = NavTarget.GlobalSearchHome)
-                OmniboxCommandId.OpenAttachments -> enhancedNavigationManager.navigate(target = NavTarget.AttachmentsLibrary)
+                OmniboxCommandId.OpenAttachments ->
+                    enhancedNavigationManager.navigate(target = NavTarget.AttachmentsLibrary)
                 OmniboxCommandId.OpenScripts -> enhancedNavigationManager.navigate(target = NavTarget.ScriptsLibrary)
                 OmniboxCommandId.OpenAiChat -> enhancedNavigationManager.navigate(target = NavTarget.Chat)
                 OmniboxCommandId.OpenAiInsights -> enhancedNavigationManager.navigate(target = NavTarget.AiInsights)
                 OmniboxCommandId.OpenAiLife -> enhancedNavigationManager.navigate(target = NavTarget.LifeState)
-                OmniboxCommandId.OpenStructurePresets -> enhancedNavigationManager.navigate(target = NavTarget.StructurePresets)
+                OmniboxCommandId.OpenStructurePresets ->
+                    enhancedNavigationManager.navigate(target = NavTarget.StructurePresets)
             }
         }
 
@@ -504,8 +552,11 @@ class GlobalSearchViewModel
             if (query.isBlank()) {
                 val recentOrder = _uiState.value.recentCommands.withIndex().associate { it.value to it.index }
                 return commandDefinitions.map {
-                    val usageBoost = (commandUsage[it.id.name] ?: 0) * 12
-                    val recencyBoost = recentOrder[it.id]?.let { idx -> 140 - idx * 20 } ?: 0
+                    val usageBoost = (commandUsage[it.id.name] ?: 0) * COMMAND_USAGE_BOOST_MULTIPLIER
+                    val recencyBoost =
+                        recentOrder[it.id]?.let { idx ->
+                            COMMAND_RECENCY_BASE_BOOST - idx * COMMAND_RECENCY_STEP
+                        } ?: 0
                     OmniboxCommandResult(
                         id = it.id,
                         title = it.title,
@@ -524,12 +575,15 @@ class GlobalSearchViewModel
                             id = definition.id,
                             title = definition.title,
                             subtitle = definition.subtitle,
-                            score = score + (commandUsage[definition.id.name] ?: 0) * 10,
+                            score =
+                                score +
+                                    (commandUsage[definition.id.name] ?: 0) *
+                                    COMMAND_MATCH_USAGE_BOOST_MULTIPLIER,
                         )
                     }
                 }
                 .sortedByDescending { it.score }
-                .take(30)
+                .take(MAX_COMMAND_RESULTS)
         }
 
         private fun commandScore(
@@ -544,8 +598,10 @@ class GlobalSearchViewModel
                 }
             val expandedQueries = expandQueryWithSynonyms(query)
             return candidates.maxOfOrNull { candidate ->
-                expandedQueries.maxOfOrNull { candidateQuery -> fuzzyScore(candidateQuery, candidate) } ?: -1
-            } ?: -1
+                expandedQueries.maxOfOrNull { candidateQuery ->
+                    fuzzyScore(candidateQuery, candidate)
+                } ?: NO_MATCH_SCORE
+            } ?: NO_MATCH_SCORE
         }
 
         private fun fuzzyScore(
@@ -554,59 +610,51 @@ class GlobalSearchViewModel
         ): Int {
             val query = rawQuery.lowercase().trim()
             val text = rawText.lowercase()
-            if (query.isBlank()) return 0
-
-            val directIndex = text.indexOf(query)
-            if (directIndex >= 0) {
-                return 1000 - directIndex
-            }
-
-            var qIndex = 0
-            var score = 0
-            var lastMatchIndex = -2
-            for (i in text.indices) {
-                if (qIndex >= query.length) break
-                if (text[i] == query[qIndex]) {
-                    score += 3
-                    if (i == lastMatchIndex + 1) score += 2
-                    lastMatchIndex = i
-                    qIndex++
+            val directMatchScore = directMatchScore(query, text)
+            val subsequenceScore = subsequenceMatchScore(query, text)
+            val typoScore =
+                if (subsequenceScore == NO_MATCH_SCORE) {
+                    // Typo-tolerant fallback: allow small edit distance against tokens (e.g. "нотм" -> "ноти").
+                    typoToleranceScore(query, text)
+                } else {
+                    NO_MATCH_SCORE
                 }
-            }
-            if (qIndex == query.length) return score
-
-            // Typo-tolerant fallback: allow small edit distance against tokens (e.g. "нотм" -> "ноти").
-            val typoScore = typoToleranceScore(query, text)
-            return if (typoScore >= 0) typoScore else -1
+            return maxOf(directMatchScore, subsequenceScore, typoScore)
         }
 
         private fun typoToleranceScore(
             query: String,
             text: String,
         ): Int {
-            if (query.length < 3) return -1
             val tokens = text.split(Regex("[^\\p{L}\\p{N}]+")).filter { it.isNotBlank() }
-            if (tokens.isEmpty()) return -1
-
             val maxDistance =
                 when {
-                    query.length <= 4 -> 1
-                    query.length <= 8 -> 2
-                    else -> 3
+                    query.length <= SHORT_QUERY_MAX_LENGTH -> SHORT_QUERY_MAX_DISTANCE
+                    query.length <= MEDIUM_QUERY_MAX_LENGTH -> MEDIUM_QUERY_MAX_DISTANCE
+                    else -> LONG_QUERY_MAX_DISTANCE
                 }
 
             var bestDistance = Int.MAX_VALUE
             for (token in tokens) {
-                if (kotlin.math.abs(token.length - query.length) > maxDistance) continue
-                val distance = damerauLevenshteinDistanceBounded(query, token, maxDistance)
-                if (distance < bestDistance) {
-                    bestDistance = distance
-                    if (bestDistance == 0) break
+                val lengthDelta = kotlin.math.abs(token.length - query.length)
+                if (lengthDelta <= maxDistance) {
+                    val distance = damerauLevenshteinDistanceBounded(query, token, maxDistance)
+                    if (distance < bestDistance) {
+                        bestDistance = distance
+                    }
                 }
             }
 
-            if (bestDistance == Int.MAX_VALUE || bestDistance > maxDistance) return -1
-            return 220 - bestDistance * 60
+            val canScoreTypoMatch =
+                query.length >= MIN_TYPO_TOLERANCE_QUERY_LENGTH &&
+                    tokens.isNotEmpty() &&
+                    bestDistance != Int.MAX_VALUE &&
+                    bestDistance <= maxDistance
+            return if (canScoreTypoMatch) {
+                TYPO_MATCH_BASE_SCORE - bestDistance * TYPO_DISTANCE_PENALTY
+            } else {
+                NO_MATCH_SCORE
+            }
         }
 
         private fun damerauLevenshteinDistanceBounded(
@@ -614,38 +662,86 @@ class GlobalSearchViewModel
             b: String,
             maxDistance: Int,
         ): Int {
-            if (a == b) return 0
-            if (kotlin.math.abs(a.length - b.length) > maxDistance) return maxDistance + 1
-
             val rows = a.length + 1
             val cols = b.length + 1
             val d = Array(rows) { IntArray(cols) }
             for (i in 0 until rows) d[i][0] = i
             for (j in 0 until cols) d[0][j] = j
 
-            for (i in 1 until rows) {
-                var rowMin = Int.MAX_VALUE
-                for (j in 1 until cols) {
-                    val cost = if (a[i - 1] == b[j - 1]) 0 else 1
-                    var value =
-                        minOf(
-                            d[i - 1][j] + 1,
-                            d[i][j - 1] + 1,
-                            d[i - 1][j - 1] + cost,
-                        )
-                    if (
-                        i > 1 && j > 1 &&
-                        a[i - 1] == b[j - 2] &&
-                        a[i - 2] == b[j - 1]
-                    ) {
-                        value = minOf(value, d[i - 2][j - 2] + 1)
+            val exceedsMaxLengthDelta = kotlin.math.abs(a.length - b.length) > maxDistance
+            val canComputeDistance = a != b && !exceedsMaxLengthDelta
+            if (canComputeDistance) {
+                for (i in 1 until rows) {
+                    var rowMin = Int.MAX_VALUE
+                    for (j in 1 until cols) {
+                        val cost = if (a[i - 1] == b[j - 1]) 0 else 1
+                        var value =
+                            minOf(
+                                d[i - 1][j] + 1,
+                                d[i][j - 1] + 1,
+                                d[i - 1][j - 1] + cost,
+                            )
+                        if (
+                            i > 1 && j > 1 &&
+                            a[i - 1] == b[j - 2] &&
+                            a[i - 2] == b[j - 1]
+                        ) {
+                            value = minOf(value, d[i - 2][j - 2] + 1)
+                        }
+                        d[i][j] = value
+                        rowMin = minOf(rowMin, value)
                     }
-                    d[i][j] = value
-                    rowMin = minOf(rowMin, value)
+                    if (rowMin > maxDistance) {
+                        return maxDistance + 1
+                    }
                 }
-                if (rowMin > maxDistance) return maxDistance + 1
             }
-            return d[a.length][b.length]
+            return when {
+                a == b -> 0
+                exceedsMaxLengthDelta -> maxDistance + 1
+                else -> d[a.length][b.length]
+            }
+        }
+
+        private fun directMatchScore(
+            query: String,
+            text: String,
+        ): Int {
+            if (query.isBlank()) {
+                return EMPTY_QUERY_SCORE
+            }
+            val directIndex = text.indexOf(query)
+            return if (directIndex >= 0) {
+                DIRECT_MATCH_BASE_SCORE - directIndex
+            } else {
+                NO_MATCH_SCORE
+            }
+        }
+
+        private fun subsequenceMatchScore(
+            query: String,
+            text: String,
+        ): Int {
+            if (query.isBlank()) {
+                return NO_MATCH_SCORE
+            }
+            var qIndex = 0
+            var score = 0
+            var lastMatchIndex = INITIAL_LAST_MATCH_INDEX
+            for (i in text.indices) {
+                if (qIndex >= query.length) {
+                    break
+                }
+                if (text[i] == query[qIndex]) {
+                    score += CHARACTER_MATCH_SCORE
+                    if (i == lastMatchIndex + 1) {
+                        score += CONSECUTIVE_CHARACTER_BONUS
+                    }
+                    lastMatchIndex = i
+                    qIndex++
+                }
+            }
+            return if (qIndex == query.length) score else NO_MATCH_SCORE
         }
 
         private suspend fun getAllSearchCandidatesForFuzzy(): List<GlobalSearchResultItem> {
@@ -682,15 +778,15 @@ class GlobalSearchViewModel
                     expandedQueries.maxOfOrNull { variant ->
                         val idx = field.lowercase(Locale.getDefault()).indexOf(variant.lowercase(Locale.getDefault()))
                         if (idx == 0) {
-                            180
-                        } else if (idx in 1..3) {
-                            120
+                            PREFIX_MATCH_BONUS
+                        } else if (idx in NEAR_PREFIX_START_INDEX..NEAR_PREFIX_END_INDEX) {
+                            NEAR_PREFIX_BONUS
                         } else {
                             0
                         }
                     } ?: 0
                 } ?: 0
-            val usageBoost = (dataUsage[item.uniqueId] ?: 0) * 14
+            val usageBoost = (dataUsage[item.uniqueId] ?: 0) * DATA_USAGE_BOOST_MULTIPLIER
             return best + prefixBonus + usageBoost
         }
 

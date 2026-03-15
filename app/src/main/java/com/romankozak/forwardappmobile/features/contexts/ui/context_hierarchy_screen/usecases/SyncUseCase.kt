@@ -72,7 +72,13 @@ class SyncUseCase
                     manager.showWifiImportDialog,
                     manager.desktopAddress,
                     manager.syncStatus,
-                ) { showServerDialog, wifiServerAddress, showImportDialog, desktopAddress, syncStatus ->
+                ) {
+                        showServerDialog,
+                        wifiServerAddress,
+                        showImportDialog,
+                        desktopAddress,
+                        syncStatus,
+                    ->
                     SyncUiState(
                         showWifiServerDialog = showServerDialog,
                         wifiServerAddress = wifiServerAddress,
@@ -86,7 +92,8 @@ class SyncUseCase
             isInitialized = true
         }
 
-        private fun manager(): WifiSyncManager = wifiSyncManager ?: error("SyncUseCase.initialize must be called before use.")
+        private fun manager(): WifiSyncManager =
+            wifiSyncManager ?: error("SyncUseCase.initialize must be called before use.")
 
         fun onShowWifiServerDialog() = manager().onShowWifiServerDialog()
 

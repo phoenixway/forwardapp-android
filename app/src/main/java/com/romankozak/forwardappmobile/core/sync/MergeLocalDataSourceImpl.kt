@@ -1,3 +1,5 @@
+@file:Suppress("WildcardImport", "MaxLineLength")
+
 package com.romankozak.forwardappmobile.core.sync
 
 import android.util.Log

@@ -76,54 +76,93 @@ fun SearchTextField(
             ),
         interactionSource = interactionSource,
         decorationBox = { innerTextField ->
-            Row(
-                modifier =
-                    Modifier
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(
-                            color =
-                                MaterialTheme.colorScheme.surfaceVariant.copy(
-                                    alpha = if (isFocused) 0.6f else 0.3f,
-                                ),
-                        )
-                        .border(
-                            width = 1.dp,
-                            color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
-                            shape = RoundedCornerShape(24.dp),
-                        )
-                        .padding(horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(modifier = Modifier.weight(1f)) {
-                    if (searchQuery.text.isEmpty()) {
-                        Text(
-                            text = "Search by name, tag, or text...",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                            modifier = Modifier.semantics { contentDescription = "Search placeholder" },
-                        )
-                    }
-                    innerTextField()
-                }
-                AnimatedVisibility(
-                    visible = searchQuery.text.isNotBlank(),
-                    enter = fadeIn(animationSpec = tween(150)) + scaleIn(initialScale = 0.8f),
-                    exit = fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.8f),
-                ) {
-                    IconButton(
-                        onClick = { onQueryChange(TextFieldValue("")) },
-                        modifier = Modifier.size(28.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Close,
-                            contentDescription = "Clear search input",
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
+            SearchFieldDecoration(
+                searchQuery = searchQuery,
+                isFocused = isFocused,
+                onQueryChange = onQueryChange,
+                innerTextField = innerTextField,
+            )
         },
     )
 }
+
+@Composable
+private fun SearchFieldDecoration(
+    searchQuery: TextFieldValue,
+    isFocused: Boolean,
+    onQueryChange: (TextFieldValue) -> Unit,
+    innerTextField: @Composable () -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .height(44.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(
+                    color =
+                        MaterialTheme.colorScheme.surfaceVariant.copy(
+                            alpha = if (isFocused) 0.6f else 0.3f,
+                        ),
+                )
+                .border(
+                    width = 1.dp,
+                    color = if (isFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    shape = RoundedCornerShape(24.dp),
+                )
+                .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(modifier = Modifier.weight(1f)) {
+            SearchFieldInput(
+                searchQuery = searchQuery,
+                innerTextField = innerTextField,
+            )
+        }
+        ClearSearchButton(
+            isVisible = searchQuery.text.isNotBlank(),
+            onClick = { onQueryChange(TextFieldValue("")) },
+        )
+    }
+}
+
+@Composable
+private fun SearchFieldInput(
+    searchQuery: TextFieldValue,
+    innerTextField: @Composable () -> Unit,
+) {
+    if (searchQuery.text.isEmpty()) {
+        Text(
+            text = "Search by name, tag, or text...",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+            modifier = Modifier.semantics { contentDescription = "Search placeholder" },
+        )
+    }
+    innerTextField()
+}
+
+@Composable
+private fun ClearSearchButton(
+    isVisible: Boolean,
+    onClick: () -> Unit,
+) {
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = fadeIn(animationSpec = tween(SEARCH_CLEAR_ANIMATION_MS)) + scaleIn(initialScale = 0.8f),
+        exit = fadeOut(animationSpec = tween(SEARCH_CLEAR_ANIMATION_MS)) + scaleOut(targetScale = 0.8f),
+    ) {
+        IconButton(
+            onClick = onClick,
+            modifier = Modifier.size(28.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Close,
+                contentDescription = "Clear search input",
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+private const val SEARCH_CLEAR_ANIMATION_MS = 150

@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems
+package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.heightIn

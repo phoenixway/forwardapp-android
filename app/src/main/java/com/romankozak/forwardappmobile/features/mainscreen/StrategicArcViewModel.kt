@@ -30,6 +30,7 @@ import java.util.UUID
 import javax.inject.Inject
 
 private const val STRATEGIC_ARC_TAG = "arc"
+private const val FLOW_STOP_TIMEOUT_MILLIS = 5000L
 
 data class StrategicArcUiState(
     val allProjects: List<Context> = emptyList(),
@@ -63,7 +64,7 @@ class StrategicArcViewModel
                 }
                 .stateIn(
                     scope = viewModelScope,
-                    started = SharingStarted.WhileSubscribed(5000),
+                    started = SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS),
                     initialValue = StrategicArcUiState(isLoading = true),
                 )
 
@@ -210,23 +211,20 @@ class StrategicArcViewModel
                 }
                 is NewDocumentDraft.WebLink -> {
                     val target = request.url.trim()
-                    if (target.isBlank()) return null
-                    attachmentsRepository.createLinkAttachment(
+                    createLinkAttachmentOrNull(
+                        type = LinkType.URL,
+                        target = target,
+                        displayName = request.name.trim().ifBlank { target },
                         contextId = SystemContexts.STRATEGIC_BEACONS.raw,
-                        link = RelatedLink(type = LinkType.URL, target = target, displayName = request.name.trim().ifBlank { target }),
                     )
                 }
                 is NewDocumentDraft.Obsidian -> {
                     val target = request.noteName.trim()
-                    if (target.isBlank()) return null
-                    attachmentsRepository.createLinkAttachment(
+                    createLinkAttachmentOrNull(
+                        type = LinkType.OBSIDIAN,
+                        target = target,
+                        displayName = request.displayName.trim().ifBlank { target },
                         contextId = SystemContexts.STRATEGIC_BEACONS.raw,
-                        link =
-                            RelatedLink(
-                                type = LinkType.OBSIDIAN,
-                                target = target,
-                                displayName = request.displayName.trim().ifBlank { target },
-                            ),
                     )
                 }
             }
@@ -278,5 +276,26 @@ class StrategicArcViewModel
             if (next != current) {
                 contextRepository.updateContext(context.copy(tags = next))
             }
+        }
+
+        private suspend fun createLinkAttachmentOrNull(
+            type: LinkType,
+            target: String,
+            displayName: String,
+            contextId: String,
+        ): String? {
+            if (target.isBlank()) {
+                return null
+            }
+
+            return attachmentsRepository.createLinkAttachment(
+                contextId = contextId,
+                link =
+                    RelatedLink(
+                        type = type,
+                        target = target,
+                        displayName = displayName,
+                    ),
+            )
         }
     }

@@ -23,6 +23,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
+private const val COMMAND_DECK_GLOW_ANIMATION_MS = 2000
+
 /**
  * Новий основний варіант:
  *  - приймає HeaderLayout (стратегія розкладки)
@@ -54,57 +56,7 @@ fun FAHeader(
                         bottom = 4.dp,
                     ),
         ) {
-            val innerModifier =
-                if (backgroundStyle == FAHeaderBackground.CommandDeck) {
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp))
-                        .then(CommandDeckBackgroundModifier())
-                } else {
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp))
-                        .then(
-                            when (backgroundStyle) {
-                                FAHeaderBackground.Default ->
-                                    Modifier.background(
-                                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                                    )
-                                FAHeaderBackground.Transparent ->
-                                    Modifier.background(
-                                        color = Color.Transparent,
-                                    )
-                                FAHeaderBackground.Elevated ->
-                                    Modifier.background(
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                    )
-                                FAHeaderBackground.Gradient ->
-                                    Modifier.background(
-                                        brush =
-                                            Brush.verticalGradient(
-                                                listOf(
-                                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
-                                                ),
-                                            ),
-                                    )
-                                FAHeaderBackground.CommandDeck -> Modifier // Should not reach here
-                            },
-                        )
-                        .border(
-                            width = 1.dp,
-                            brush =
-                                Brush.horizontalGradient(
-                                    colors =
-                                        listOf(
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                                        ),
-                                ),
-                            shape = RoundedCornerShape(20.dp),
-                        )
-                }
+            val innerModifier = buildInnerHeaderModifier(backgroundStyle = backgroundStyle)
             Box(
                 modifier =
                     innerModifier
@@ -117,10 +69,66 @@ fun FAHeader(
 }
 
 @Composable
+private fun buildInnerHeaderModifier(backgroundStyle: FAHeaderBackground): Modifier {
+    if (backgroundStyle == FAHeaderBackground.CommandDeck) {
+        return Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .then(CommandDeckBackgroundModifier())
+    }
+
+    return Modifier
+        .fillMaxWidth()
+        .clip(RoundedCornerShape(20.dp))
+        .then(backgroundModifierFor(backgroundStyle))
+        .border(
+            width = 1.dp,
+            brush =
+                Brush.horizontalGradient(
+                    colors =
+                        listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                        ),
+                ),
+            shape = RoundedCornerShape(20.dp),
+        )
+}
+
+@Composable
+private fun backgroundModifierFor(backgroundStyle: FAHeaderBackground): Modifier =
+    when (backgroundStyle) {
+        FAHeaderBackground.Default ->
+            Modifier.background(
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+            )
+        FAHeaderBackground.Transparent ->
+            Modifier.background(
+                color = Color.Transparent,
+            )
+        FAHeaderBackground.Elevated ->
+            Modifier.background(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            )
+        FAHeaderBackground.Gradient ->
+            Modifier.background(
+                brush =
+                    Brush.verticalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                        ),
+                    ),
+            )
+        FAHeaderBackground.CommandDeck -> Modifier
+    }
+
+@Composable
 fun CommandDeckBackgroundModifier(): Modifier {
     val glowAlpha by animateFloatAsState(
         targetValue = 0.15f,
-        animationSpec = tween(2000),
+        animationSpec = tween(COMMAND_DECK_GLOW_ANIMATION_MS),
         label = "header_glow",
     )
     return Modifier

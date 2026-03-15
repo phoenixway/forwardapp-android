@@ -13,59 +13,67 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionType
 
+data class AdaptiveTopBarState(
+    val isSelectionModeActive: Boolean,
+    val project: Context?,
+    val selectedCount: Int,
+    val areAllSelected: Boolean,
+    val currentViewMode: ContextViewMode?,
+    val enabledCapabilities: Set<CapabilityId>,
+)
+
+data class AdaptiveTopBarActions(
+    val onClearSelection: () -> Unit,
+    val onSelectAll: () -> Unit,
+    val onDelete: () -> Unit,
+    val onMarkAsComplete: () -> Unit,
+    val onMarkAsIncomplete: () -> Unit,
+    val onMoreActions: (GoalActionType) -> Unit,
+    val onPaste: (() -> Unit)?,
+    val onInboxClick: () -> Unit,
+)
+
 @Composable
 fun AdaptiveTopBar(
-    isSelectionModeActive: Boolean,
-    project: Context?,
-    selectedCount: Int,
-    areAllSelected: Boolean,
-    onClearSelection: () -> Unit,
-    onSelectAll: () -> Unit,
-    onDelete: () -> Unit,
-    onMarkAsComplete: () -> Unit,
-    onMarkAsIncomplete: () -> Unit,
-    onMoreActions: (GoalActionType) -> Unit,
-    onPaste: (() -> Unit)?,
-    onInboxClick: () -> Unit,
-    currentViewMode: ContextViewMode? = null,
-    enabledCapabilities: Set<CapabilityId> = emptySet(),
+    state: AdaptiveTopBarState,
+    actions: AdaptiveTopBarActions,
     modifier: Modifier = Modifier,
     windowInsets: WindowInsets = WindowInsets.statusBars,
 ) {
     val topPadding = windowInsets.asPaddingValues().calculateTopPadding()
     val availableViews =
-        if (enabledCapabilities.isNotEmpty()) {
-            ContextViewPolicy.availableViews(enabledCapabilities)
+        if (state.enabledCapabilities.isNotEmpty()) {
+            ContextViewPolicy.availableViews(state.enabledCapabilities)
         } else {
             emptyList()
         }
     val displayViewMode =
-        currentViewMode?.takeIf { availableViews.isEmpty() || it in availableViews }
+        state.currentViewMode?.takeIf { availableViews.isEmpty() || it in availableViews }
 
     Column(modifier = modifier.padding(top = topPadding)) {
-        if (isSelectionModeActive) {
+        if (state.isSelectionModeActive) {
             ListTitleBar(
-                project = project?.copy(isContextManagementEnabled = false),
+                project = state.project?.copy(isContextManagementEnabled = false),
                 currentViewMode = displayViewMode,
-                onPasteClick = onPaste,
-                onInboxClick = onInboxClick,
+                onPasteClick = actions.onPaste,
+                onInboxClick = actions.onInboxClick,
             )
             MultiSelectTopAppBar(
-                selectedCount = selectedCount,
-                areAllSelected = areAllSelected,
-                onClearSelection = onClearSelection,
-                onSelectAll = onSelectAll,
-                onDelete = onDelete,
-                onMoreActions = onMoreActions,
-                onMarkAsComplete = onMarkAsComplete,
-                onMarkAsIncomplete = onMarkAsIncomplete,
+                selectedCount = state.selectedCount,
+                areAllSelected = state.areAllSelected,
+                onClearSelection = actions.onClearSelection,
+                onSelectAll = actions.onSelectAll,
+                onDelete = actions.onDelete,
+                onMoreActions = actions.onMoreActions,
+                onMarkAsComplete = actions.onMarkAsComplete,
+                onMarkAsIncomplete = actions.onMarkAsIncomplete,
             )
         } else {
             ListTitleBar(
-                project = project,
+                project = state.project,
                 currentViewMode = displayViewMode,
-                onPasteClick = onPaste,
-                onInboxClick = onInboxClick,
+                onPasteClick = actions.onPaste,
+                onInboxClick = actions.onInboxClick,
             )
         }
     }

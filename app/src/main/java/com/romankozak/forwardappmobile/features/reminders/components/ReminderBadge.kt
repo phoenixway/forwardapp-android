@@ -31,6 +31,13 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.features.reminders.util.ReminderTextUtil
 import kotlinx.coroutines.delay
 
+private const val OVERDUE_UPDATE_INTERVAL_MILLIS = 60_000L
+private const val URGENT_UPDATE_INTERVAL_MILLIS = 1_000L
+private const val DEFAULT_BADGE_UPDATE_INTERVAL_MILLIS = 60_000L
+private const val BADGE_CORNER_RADIUS_DP = 16
+private const val BADGE_ICON_SIZE_DP = 14
+private const val BADGE_FONT_SIZE_SP = 10
+
 @Composable
 fun ReminderBadge(reminder: Reminder) {
     var currentTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -44,9 +51,11 @@ fun ReminderBadge(reminder: Reminder) {
             val diff = reminderTime - now
             val delayMillis =
                 when {
-                    diff <= 0 -> 60_000L // Оновлювати раз на хвилину, якщо пропущено
-                    diff < 60_000L -> 1_000L // Оновлювати кожну секунду, якщо менше хвилини
-                    else -> (diff % 60_000L).takeIf { it > 0 } ?: 60_000L // Оновлювати на початку наступної хвилини
+                    diff <= 0 -> OVERDUE_UPDATE_INTERVAL_MILLIS
+                    diff < OVERDUE_UPDATE_INTERVAL_MILLIS -> URGENT_UPDATE_INTERVAL_MILLIS
+                    else ->
+                        (diff % OVERDUE_UPDATE_INTERVAL_MILLIS).takeIf { it > 0 }
+                            ?: DEFAULT_BADGE_UPDATE_INTERVAL_MILLIS
                 }
             delay(delayMillis)
         }
@@ -93,7 +102,7 @@ fun ReminderBadge(reminder: Reminder) {
     )
 
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(BADGE_CORNER_RADIUS_DP.dp),
         color = backgroundColor,
         shadowElevation = 1.dp,
         tonalElevation = 2.dp,
@@ -114,14 +123,14 @@ fun ReminderBadge(reminder: Reminder) {
                     },
                 contentDescription = "Нагадування",
                 tint = contentColor,
-                modifier = Modifier.size(14.dp),
+                modifier = Modifier.size(BADGE_ICON_SIZE_DP.dp),
             )
             Text(
                 text = reminderText,
                 style =
                     MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Medium,
-                        fontSize = 10.sp,
+                        fontSize = BADGE_FONT_SIZE_SP.sp,
                     ),
                 color = contentColor,
                 maxLines = 1,

@@ -1,12 +1,27 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.topbar
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.EaseOut
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentPaste
@@ -16,7 +31,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -40,6 +60,52 @@ private data class StatusVisuals(
     val color: Color,
 )
 
+private const val STATUS_COLOR_ALPHA = 0.3f
+private const val BRIEF_BACKGROUND_ALPHA = 0.8f
+private const val TEXT_SECONDARY_ALPHA = 0.9f
+private const val VIEW_MODE_BACKGROUND_ALPHA = 0.7f
+private const val VIEW_MODE_TEXT_ALPHA = 0.8f
+private const val SURFACE_CARD_ALPHA = 0.4f
+private const val BORDER_ALPHA = 0.6f
+private const val STATUS_PANEL_ALPHA = 0.85f
+private const val ICON_CONTAINER_ALPHA = 0.5f
+private const val EMOJI_ALPHA = 0.7f
+private const val ON_SURFACE_MUTED_ALPHA = 0.6f
+private const val ON_SURFACE_PRIMARY_ALPHA = 0.8f
+private const val STATUS_DELAY_MS = 300L
+private const val STATUS_ANIMATION_MS = 400
+private const val STATUS_HINT_ANIMATION_MS = 250
+private const val STATUS_HINT_ANIMATION_DELAY_MS = 100
+private const val STATUS_ENTER_DIVIDER = 3
+
+private val StatusNoPlanColor = Color(0xFFFF9800)
+private val StatusPlanningColor = Color(0xFF9C27B0)
+private val StatusInProgressColor = Color(0xFF2196F3)
+private val StatusCompletedColor = Color(0xFF4CAF50)
+private val StatusPausedColor = Color(0xFFFFC107)
+private val ViewModeBacklogBg = Color(0xFFE8F5E9)
+private val ViewModeBacklogFg = Color(0xFF2E7D32)
+private val ViewModeInboxBg = Color(0xFFE3F2FD)
+private val ViewModeInboxFg = Color(0xFF1565C0)
+private val ViewModeAdvancedBg = Color(0xFFF3E5F5)
+private val ViewModeAdvancedFg = Color(0xFF7B1FA2)
+private val ViewModeConnectionsBg = Color(0xFFF5F5F5)
+private val ViewModeConnectionsFg = Color(0xFF616161)
+private val ViewModeDashboardBg = Color(0xFFFFF3E0)
+private val ViewModeDashboardFg = Color(0xFFEF6C00)
+private val ViewModeDirectionBg = Color(0xFFE0F7FA)
+private val ViewModeDirectionFg = Color(0xFF00838F)
+private val ViewModeLogBg = Color(0xFFE0F2F7)
+private val ViewModeLogFg = Color(0xFF0277BD)
+private val ViewModeArtifactBg = Color(0xFFFBE9E7)
+private val ViewModeArtifactFg = Color(0xFFD84315)
+private val ViewModeProblemsBg = Color(0xFFFFEBEE)
+private val ViewModeProblemsFg = Color(0xFFC62828)
+private val ViewModeNotesBg = Color(0xFFFFFDE7)
+private val ViewModeNotesFg = Color(0xFFFBC02D)
+private val ViewModeVetCaseBg = Color(0xFFE8F5E9)
+private val ViewModeVetCaseFg = Color(0xFF388E3C)
+
 @Composable
 internal fun getViewModeText(viewMode: ContextViewMode): String =
     when (viewMode) {
@@ -59,12 +125,12 @@ internal fun getViewModeText(viewMode: ContextViewMode): String =
 @Composable
 private fun getStatusVisuals(status: String): StatusVisuals =
     when (status) {
-        ContextStatusValues.NO_PLAN -> StatusVisuals("⚠️", Color(0xFFFF9800).copy(alpha = 0.3f))
-        ContextStatusValues.PLANNING -> StatusVisuals("📝", Color(0xFF9C27B0).copy(alpha = 0.3f))
-        ContextStatusValues.IN_PROGRESS -> StatusVisuals("▶️", Color(0xFF2196F3).copy(alpha = 0.3f))
-        ContextStatusValues.COMPLETED -> StatusVisuals("✅", Color(0xFF4CAF50).copy(alpha = 0.3f))
-        ContextStatusValues.ON_HOLD -> StatusVisuals("⏸️", Color(0xFFFF9800).copy(alpha = 0.3f))
-        ContextStatusValues.PAUSED -> StatusVisuals("⏳", Color(0xFFFFC107).copy(alpha = 0.3f))
+        ContextStatusValues.NO_PLAN -> StatusVisuals("⚠️", StatusNoPlanColor.copy(alpha = STATUS_COLOR_ALPHA))
+        ContextStatusValues.PLANNING -> StatusVisuals("📝", StatusPlanningColor.copy(alpha = STATUS_COLOR_ALPHA))
+        ContextStatusValues.IN_PROGRESS -> StatusVisuals("▶️", StatusInProgressColor.copy(alpha = STATUS_COLOR_ALPHA))
+        ContextStatusValues.COMPLETED -> StatusVisuals("✅", StatusCompletedColor.copy(alpha = STATUS_COLOR_ALPHA))
+        ContextStatusValues.ON_HOLD -> StatusVisuals("⏸️", StatusNoPlanColor.copy(alpha = STATUS_COLOR_ALPHA))
+        ContextStatusValues.PAUSED -> StatusVisuals("⏳", StatusPausedColor.copy(alpha = STATUS_COLOR_ALPHA))
         else -> StatusVisuals("", Color.Transparent)
     }
 
@@ -80,7 +146,7 @@ private fun BriefStatusIndicator(
             modifier
                 .size(20.dp)
                 .background(
-                    color = visuals.color.copy(alpha = 0.8f),
+                    color = visuals.color.copy(alpha = BRIEF_BACKGROUND_ALPHA),
                     shape = RoundedCornerShape(6.dp),
                 ),
         contentAlignment = Alignment.Center,
@@ -88,7 +154,7 @@ private fun BriefStatusIndicator(
         Text(
             text = visuals.emoji,
             fontSize = 10.sp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = TEXT_SECONDARY_ALPHA),
         )
     }
 }
@@ -102,58 +168,58 @@ private fun ViewModeIndicator(
         when (viewMode) {
             ContextViewMode.BACKLOG ->
                 Pair(
-                    Color(0xFFE8F5E9).copy(alpha = 0.7f),
-                    Color(0xFF2E7D32).copy(alpha = 0.8f),
+                    ViewModeBacklogBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),
+                    ViewModeBacklogFg.copy(alpha = VIEW_MODE_TEXT_ALPHA),
                 )
             ContextViewMode.INBOX ->
                 Pair(
-                    Color(0xFFE3F2FD).copy(alpha = 0.7f),
-                    Color(0xFF1565C0).copy(alpha = 0.8f),
+                    ViewModeInboxBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),
+                    ViewModeInboxFg.copy(alpha = VIEW_MODE_TEXT_ALPHA),
                 )
             ContextViewMode.ADVANCED ->
                 Pair(
-                    Color(0xFFF3E5F5).copy(alpha = 0.7f),
-                    Color(0xFF7B1FA2).copy(alpha = 0.8f),
+                    ViewModeAdvancedBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),
+                    ViewModeAdvancedFg.copy(alpha = VIEW_MODE_TEXT_ALPHA),
                 )
             ContextViewMode.CONNECTIONS ->
                 Pair(
-                    Color(0xFFF5F5F5).copy(alpha = 0.7f),
-                    Color(0xFF616161).copy(alpha = 0.8f),
+                    ViewModeConnectionsBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),
+                    ViewModeConnectionsFg.copy(alpha = VIEW_MODE_TEXT_ALPHA),
                 )
             ContextViewMode.DASHBOARD ->
                 Pair(
-                    Color(0xFFFFF3E0).copy(alpha = 0.7f),
-                    Color(0xFFEF6C00).copy(alpha = 0.8f),
+                    ViewModeDashboardBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),
+                    ViewModeDashboardFg.copy(alpha = VIEW_MODE_TEXT_ALPHA),
                 )
             ContextViewMode.DIRECTION ->
                 Pair(
-                    Color(0xFFE0F7FA).copy(alpha = 0.7f),
-                    Color(0xFF00838F).copy(alpha = 0.8f),
+                    ViewModeDirectionBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),
+                    ViewModeDirectionFg.copy(alpha = VIEW_MODE_TEXT_ALPHA),
                 )
             ContextViewMode.LOG ->
                 Pair(
-                    Color(0xFFE0F2F7).copy(alpha = 0.7f), // Light blue-gray
-                    Color(0xFF0277BD).copy(alpha = 0.8f), // Darker blue
+                    ViewModeLogBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),
+                    ViewModeLogFg.copy(alpha = VIEW_MODE_TEXT_ALPHA),
                 )
             ContextViewMode.ARTIFACT ->
                 Pair(
-                    Color(0xFFFBE9E7).copy(alpha = 0.7f), // Light orange-brown
-                    Color(0xFFD84315).copy(alpha = 0.8f), // Darker orange
+                    ViewModeArtifactBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),
+                    ViewModeArtifactFg.copy(alpha = VIEW_MODE_TEXT_ALPHA),
                 )
             ContextViewMode.KEY_PROBLEMS ->
                 Pair(
-                    Color(0xFFFFEBEE).copy(alpha = 0.7f),
-                    Color(0xFFC62828).copy(alpha = 0.8f),
+                    ViewModeProblemsBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),
+                    ViewModeProblemsFg.copy(alpha = VIEW_MODE_TEXT_ALPHA),
                 )
             ContextViewMode.NOTES ->
                 Pair(
-                    Color(0xFFFFFDE7).copy(alpha = 0.7f), // Light yellow
-                    Color(0xFFFBC02D).copy(alpha = 0.8f), // Darker yellow
+                    ViewModeNotesBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),
+                    ViewModeNotesFg.copy(alpha = VIEW_MODE_TEXT_ALPHA),
                 )
             ContextViewMode.VET_CASE ->
                 Pair(
-                    Color(0xFFE8F5E9).copy(alpha = 0.7f), // Light green
-                    Color(0xFF388E3C).copy(alpha = 0.8f), // Darker green
+                    ViewModeVetCaseBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),
+                    ViewModeVetCaseFg.copy(alpha = VIEW_MODE_TEXT_ALPHA),
                 )
         }
 
@@ -190,7 +256,7 @@ private fun contextStatusIndicator(
     var isVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(status) {
-        delay(300)
+        delay(STATUS_DELAY_MS)
         isVisible = true
     }
 
@@ -198,11 +264,11 @@ private fun contextStatusIndicator(
         visible = isVisible,
         enter =
             fadeIn(
-                animationSpec = tween(400, easing = EaseOut),
+                animationSpec = tween(STATUS_ANIMATION_MS, easing = EaseOut),
             ) +
                 slideInVertically(
-                    animationSpec = tween(400, easing = EaseOut),
-                    initialOffsetY = { it / 3 },
+                    animationSpec = tween(STATUS_ANIMATION_MS, easing = EaseOut),
+                    initialOffsetY = { it / STATUS_ENTER_DIVIDER },
                 ),
         exit = fadeOut() + slideOutVertically(),
     ) {
@@ -213,15 +279,15 @@ private fun contextStatusIndicator(
                     .padding(horizontal = 32.dp, vertical = 4.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = SURFACE_CARD_ALPHA),
                     )
                     .border(
                         width = 0.5.dp,
-                        color = visuals.color.copy(alpha = 0.6f),
+                        color = visuals.color.copy(alpha = BORDER_ALPHA),
                         shape = RoundedCornerShape(12.dp),
                     )
                     .padding(horizontal = 14.dp, vertical = 8.dp)
-                    .alpha(0.85f),
+                    .alpha(STATUS_PANEL_ALPHA),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
@@ -241,12 +307,12 @@ private fun contextStatusIndicator(
                                 fontSize = 13.sp,
                                 letterSpacing = 0.1.sp,
                             ),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = ON_SURFACE_MUTED_ALPHA),
                     )
                     Text(
                         text = visuals.emoji,
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = ON_SURFACE_PRIMARY_ALPHA),
                     )
                     Text(
                         text = ContextStatusValues.getDisplayName(status),
@@ -256,7 +322,7 @@ private fun contextStatusIndicator(
                                 fontSize = 13.sp,
                                 letterSpacing = 0.1.sp,
                             ),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = ON_SURFACE_PRIMARY_ALPHA),
                     )
                 }
 
@@ -264,10 +330,18 @@ private fun contextStatusIndicator(
                     visible = !statusText.isNullOrBlank(),
                     enter =
                         fadeIn(
-                            animationSpec = tween(250, delayMillis = 100),
+                            animationSpec =
+                                tween(
+                                    STATUS_HINT_ANIMATION_MS,
+                                    delayMillis = STATUS_HINT_ANIMATION_DELAY_MS,
+                                ),
                         ) +
                             expandVertically(
-                                animationSpec = tween(250, delayMillis = 100),
+                                animationSpec =
+                                    tween(
+                                        STATUS_HINT_ANIMATION_MS,
+                                        delayMillis = STATUS_HINT_ANIMATION_DELAY_MS,
+                                    ),
                             ),
                     exit = fadeOut() + shrinkVertically(),
                 ) {
@@ -278,7 +352,7 @@ private fun contextStatusIndicator(
                                 fontSize = 11.sp,
                                 lineHeight = 13.sp,
                             ),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = ON_SURFACE_MUTED_ALPHA),
                         maxLines = 2,
                     )
                 }
@@ -289,7 +363,10 @@ private fun contextStatusIndicator(
                     Modifier
                         .size(20.dp)
                         .background(
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            color =
+                                MaterialTheme.colorScheme.surfaceVariant.copy(
+                                    alpha = ICON_CONTAINER_ALPHA,
+                                ),
                             shape = RoundedCornerShape(10.dp),
                         ),
                 contentAlignment = Alignment.Center,
@@ -297,7 +374,7 @@ private fun contextStatusIndicator(
                 Text(
                     text = "🙂",
                     fontSize = 10.sp,
-                    modifier = Modifier.alpha(0.7f),
+                    modifier = Modifier.alpha(EMOJI_ALPHA),
                 )
             }
         }

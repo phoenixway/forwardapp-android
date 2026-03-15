@@ -36,6 +36,8 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.features.settings.settings.SettingsUiState
 
+private val NerReadyColor = Color.Green
+
 @Composable
 fun NerSettingsCard(
     state: SettingsUiState,
@@ -45,43 +47,13 @@ fun NerSettingsCard(
     onReloadClick: () -> Unit,
 ) {
     val context = LocalContext.current
-    val areAllFilesSelected = state.nerModelUri.isNotBlank() && state.nerTokenizerUri.isNotBlank() && state.nerLabelsUri.isNotBlank()
-
-    val modelLauncher =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-            uri?.let {
-                try {
-                    context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    onModelFileSelected(it.toString())
-                } catch (e: SecurityException) {
-                    Log.e("NerSettings", "Failed to take persistable permission for model file. The user might see errors later.", e)
-                }
-            }
-        }
-
-    val tokenizerLauncher =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-            uri?.let {
-                try {
-                    context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    onTokenizerFileSelected(it.toString())
-                } catch (e: SecurityException) {
-                    Log.e("NerSettings", "Failed to take persistable permission for tokenizer file.", e)
-                }
-            }
-        }
-
-    val labelsLauncher =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-            uri?.let {
-                try {
-                    context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    onLabelsFileSelected(it.toString())
-                } catch (e: SecurityException) {
-                    Log.e("NerSettings", "Failed to take persistable permission for labels file.", e)
-                }
-            }
-        }
+    val areAllFilesSelected =
+        state.nerModelUri.isNotBlank() &&
+            state.nerTokenizerUri.isNotBlank() &&
+            state.nerLabelsUri.isNotBlank()
+    val modelLauncher = rememberDocumentLauncher(context, "model file", onModelFileSelected)
+    val tokenizerLauncher = rememberDocumentLauncher(context, "tokenizer file", onTokenizerFileSelected)
+    val labelsLauncher = rememberDocumentLauncher(context, "labels file", onLabelsFileSelected)
 
     SettingsCard(
         title = "Date/Time NER Model (ONNX)",
@@ -117,7 +89,11 @@ fun NerSettingsCard(
             enabled = areAllFilesSelected && state.nerState !is NerState.Downloading,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Icon(imageVector = Icons.Default.Sync, contentDescription = "Reload", modifier = Modifier.size(ButtonDefaults.IconSize))
+            Icon(
+                imageVector = Icons.Default.Sync,
+                contentDescription = "Reload",
+                modifier = Modifier.size(ButtonDefaults.IconSize),
+            )
             Spacer(Modifier.size(ButtonDefaults.IconSpacing))
             Text(if (state.nerState is NerState.Error) "Try Again" else "Reload Model")
         }
@@ -131,13 +107,20 @@ fun NerStatusIndicator(
 ) {
     val (icon, color, text) =
         when (nerState) {
-            is NerState.Downloading -> Triple(Icons.Default.Sync, MaterialTheme.colorScheme.primary, "Loading: ${nerState.progress}%")
-            is NerState.Error -> Triple(Icons.Default.Error, MaterialTheme.colorScheme.error, "Error: ${nerState.message}")
+            is NerState.Downloading ->
+                Triple(Icons.Default.Sync, MaterialTheme.colorScheme.primary, "Loading: ${nerState.progress}%")
+            is NerState.Error ->
+                Triple(Icons.Default.Error, MaterialTheme.colorScheme.error, "Error: ${nerState.message}")
             NerState.NotInitialized -> {
-                val message = if (areAllFilesSelected) "Model not loaded. Press 'Reload Model'." else "Select all three model files"
+                val message =
+                    if (areAllFilesSelected) {
+                        "Model not loaded. Press 'Reload Model'."
+                    } else {
+                        "Select all three model files"
+                    }
                 Triple(Icons.Default.Info, MaterialTheme.colorScheme.onSurfaceVariant, message)
             }
-            NerState.Ready -> Triple(Icons.Default.CheckCircle, Color(0xFF388E3C), "Model loaded successfully")
+            NerState.Ready -> Triple(Icons.Default.CheckCircle, NerReadyColor, "Model loaded successfully")
         }
 
     val animatedColor by animateColorAsState(targetValue = color, label = "ner_status_color")
@@ -149,11 +132,35 @@ fun NerStatusIndicator(
             modifier = Modifier.padding(vertical = 4.dp),
         ) {
             Icon(imageVector = icon, contentDescription = "Status", tint = animatedColor)
-            Text(text = text, style = MaterialTheme.typography.bodyMedium, color = animatedColor, modifier = Modifier.weight(1f))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = animatedColor,
+                modifier = Modifier.weight(1f),
+            )
         }
         if (nerState is NerState.Downloading) {
             Spacer(modifier = Modifier.height(8.dp))
             LinearProgressIndicator(progress = { nerState.progress / 100f }, modifier = Modifier.fillMaxWidth())
+        }
+    }
+}
+
+@Composable
+private fun rememberDocumentLauncher(
+    context: android.content.Context,
+    fileLabel: String,
+    onFileSelected: (String) -> Unit,
+) = rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+    uri?.let {
+        try {
+            context.contentResolver.takePersistableUriPermission(
+                it,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION,
+            )
+            onFileSelected(it.toString())
+        } catch (e: SecurityException) {
+            Log.e("NerSettings", "Failed to take persistable permission for $fileLabel.", e)
         }
     }
 }

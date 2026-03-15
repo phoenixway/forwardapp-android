@@ -16,11 +16,28 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
+private const val WEEK_DAYS = 7
+private const val TWO_WEEKS_DAYS = 14
+private const val MONTH_DAYS = 30
+private const val THREE_MONTHS_DAYS = 90
+private const val STALE_THRESHOLD_MINUTES = 30
+private const val MINUTES_PER_HOUR = 60
+private const val MILLIS_PER_MINUTE = 1000L * 60
+private const val LOW_PRODUCTIVITY_THRESHOLD = 0.3f
+private const val MEDIUM_PRODUCTIVITY_THRESHOLD = 0.7f
+private const val HIGH_PRODUCTIVITY_COLOR_THRESHOLD = 0.8f
+private const val MEDIUM_PRODUCTIVITY_COLOR_THRESHOLD = 0.6f
+private const val LOW_PRODUCTIVITY_COLOR_THRESHOLD = 0.4f
+private const val VERY_HIGH_WEEKDAY_SCORE = 0.9
+private const val MEDIUM_WEEKDAY_SCORE = 0.5
+private const val GROWING_TREND_THRESHOLD = 0.7
+private const val STABLE_TREND_THRESHOLD = 0.4
+
 enum class TimeRange(val days: Int, val displayName: String) {
-    WEEK(7, "Тиждень"),
-    TWO_WEEKS(14, "2 тижні"),
-    MONTH(30, "Місяць"),
-    THREE_MONTHS(90, "3 місяці"),
+    WEEK(WEEK_DAYS, "Тиждень"),
+    TWO_WEEKS(TWO_WEEKS_DAYS, "2 тижні"),
+    MONTH(MONTH_DAYS, "Місяць"),
+    THREE_MONTHS(THREE_MONTHS_DAYS, "3 місяці"),
 }
 
 data class DayAnalyticsUiState(
@@ -116,7 +133,7 @@ class DayAnalyticsViewModel
 
         fun isDataStale(): Boolean {
             val lastUpdated = _uiState.value.lastUpdated ?: return true
-            val staleThreshold = 30 * 60 * 1000L
+            val staleThreshold = STALE_THRESHOLD_MINUTES * MINUTES_PER_HOUR * MILLIS_PER_MINUTE
             return System.currentTimeMillis() - lastUpdated > staleThreshold
         }
 
@@ -125,7 +142,7 @@ class DayAnalyticsViewModel
             val recommendations = mutableListOf<String>()
 
             when {
-                insights.averageCompletionRate < 0.3f -> {
+                insights.averageCompletionRate < LOW_PRODUCTIVITY_THRESHOLD -> {
                     recommendations.addAll(
                         listOf(
                             "Спробуйте створювати менше завдань на день",
@@ -134,7 +151,7 @@ class DayAnalyticsViewModel
                         ),
                     )
                 }
-                insights.averageCompletionRate < 0.7f -> {
+                insights.averageCompletionRate < MEDIUM_PRODUCTIVITY_THRESHOLD -> {
                     recommendations.addAll(
                         listOf(
                             "Добре! Спробуйте покращити планування часу",
@@ -160,19 +177,19 @@ class DayAnalyticsViewModel
             val insights = _uiState.value.insights ?: return emptyMap()
 
             return mapOf(
-                "Понеділок" to 0.8,
-                "Вівторок" to 0.7,
-                "Середа" to 0.9,
-                "Четвер" to 0.6,
-                "П'ятниця" to 0.5,
-                "Субота" to 0.3,
-                "Неділя" to 0.4,
+                "Понеділок" to HIGH_PRODUCTIVITY_COLOR_THRESHOLD.toDouble(),
+                "Вівторок" to GROWING_TREND_THRESHOLD,
+                "Середа" to VERY_HIGH_WEEKDAY_SCORE,
+                "Четвер" to MEDIUM_PRODUCTIVITY_COLOR_THRESHOLD.toDouble(),
+                "П'ятниця" to MEDIUM_WEEKDAY_SCORE,
+                "Субота" to LOW_PRODUCTIVITY_THRESHOLD.toDouble(),
+                "Неділя" to STABLE_TREND_THRESHOLD,
             )
         }
 
         fun formatDuration(minutes: Int): String {
-            val hours = minutes / 60
-            val remainingMinutes = minutes % 60
+            val hours = minutes / MINUTES_PER_HOUR
+            val remainingMinutes = minutes % MINUTES_PER_HOUR
             return when {
                 hours == 0 -> "${remainingMinutes}хв"
                 remainingMinutes == 0 -> "${hours}г"
@@ -182,9 +199,9 @@ class DayAnalyticsViewModel
 
         fun getProductivityColor(completionRate: Float): String {
             return when {
-                completionRate >= 0.8f -> "success"
-                completionRate >= 0.6f -> "warning"
-                completionRate >= 0.4f -> "info"
+                completionRate >= HIGH_PRODUCTIVITY_COLOR_THRESHOLD -> "success"
+                completionRate >= MEDIUM_PRODUCTIVITY_COLOR_THRESHOLD -> "warning"
+                completionRate >= LOW_PRODUCTIVITY_COLOR_THRESHOLD -> "info"
                 else -> "error"
             }
         }
@@ -193,8 +210,8 @@ class DayAnalyticsViewModel
             val insights = _uiState.value.insights ?: return "Недостатньо даних"
 
             return when {
-                insights.averageCompletionRate > 0.7 -> "Зростаюча тенденція"
-                insights.averageCompletionRate > 0.4 -> "Стабільна тенденція"
+                insights.averageCompletionRate > GROWING_TREND_THRESHOLD -> "Зростаюча тенденція"
+                insights.averageCompletionRate > STABLE_TREND_THRESHOLD -> "Стабільна тенденція"
                 else -> "Потребує покращення"
             }
         }

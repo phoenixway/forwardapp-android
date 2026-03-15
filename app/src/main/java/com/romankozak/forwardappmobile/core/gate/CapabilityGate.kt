@@ -29,31 +29,32 @@ class CapabilityGate
          * 5. Legacy-прапорці (старі колонки enable_inbox тощо)
          */
         fun isEnabled(id: CapabilityId): Boolean {
-            // 1. Якщо фіча не зареєстрована в системі — вона вимкнена за замовчуванням
-            if (registry.get(id) == null) {
-                if (id.raw == "connections" && registry.get(CapabilityId("attachments")) != null) {
-                    // Legacy alias support.
-                } else {
-                    return false
-                }
+            val currentState = contextController.current()
+            val config = (currentState as? ConfigurableState)?.config
+            val enabledByRole = config?.let { currentConfig ->
+                val useRoleDefaults =
+                    !currentConfig.applyMode.equals(APPLY_MODE_OVERRIDE, ignoreCase = true)
+                useRoleDefaults &&
+                    ContextRoleRegistry.getCapabilitiesForRole(currentConfig.basePresetCode)
+                        .contains(id)
+            } == true
+
+            return isRegisteredOrLegacyAlias(id) && (
+                currentState.features.active.contains(id) ||
+                    (config != null && (
+                        enabledByRole ||
+                            config.experimentalCapabilityIds.contains(id) ||
+                            isLegacyEnabled(id, config)
+                    ))
+            )
+        }
+
+        private fun isRegisteredOrLegacyAlias(id: CapabilityId): Boolean {
+            if (registry.get(id) != null) {
+                return true
             }
 
-            val currentState = contextController.current()
-
-            // 2. Перевірка в динамічному наборі фіч поточного стану
-            if (currentState.features.active.contains(id)) return true
-
-            // Отримуємо конфігурацію через інтерфейс-міст ConfigurableState
-            val config = (currentState as? ConfigurableState)?.config ?: return false
-
-            // 3. Перевірка через пресет ролі (ContextRoleRegistry)
-            val useRoleDefaults = !config.applyMode.equals(APPLY_MODE_OVERRIDE, ignoreCase = true)
-            val enabledByRole = useRoleDefaults && ContextRoleRegistry.getCapabilitiesForRole(config.basePresetCode).contains(id)
-
-            // 4 & 5. Комбінована перевірка: Роль АБО Експериментальний список АБО Старий прапорець
-            return enabledByRole ||
-                config.experimentalCapabilityIds.contains(id) ||
-                isLegacyEnabled(id, config)
+            return id.raw == "connections" && registry.get(CapabilityId("attachments")) != null
         }
 
         /**

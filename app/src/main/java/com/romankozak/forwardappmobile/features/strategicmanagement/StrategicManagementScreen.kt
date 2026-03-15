@@ -3,7 +3,15 @@ package com.romankozak.forwardappmobile.features.strategicmanagement
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -63,6 +71,11 @@ import com.romankozak.forwardappmobile.ui.components.sortConnectionsByOrder
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
+
+private const val ATTACHMENT_ID_PREVIEW_LENGTH = 8
+private const val PICKER_OPEN_DELAY_MILLIS = 160L
+private val StrategicMenuShape = RoundedCornerShape(16.dp)
+private val ScopeSheetSpacerHeight = 12.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -134,7 +147,7 @@ fun StrategicManagementScreen(
                     val option = availableAttachmentById[id]
                     ConnectionItemUi(
                         id = id,
-                        title = option?.name ?: "Вкладення ${id.take(8)}",
+                        title = option?.name ?: "Вкладення ${id.take(ATTACHMENT_ID_PREVIEW_LENGTH)}",
                         type =
                             when (option?.attachmentType) {
                                 "NOTE_DOCUMENT" -> ConnectionType.NOTE_DOCUMENT
@@ -150,7 +163,7 @@ fun StrategicManagementScreen(
                 urlIds.map { id ->
                     ConnectionItemUi(
                         id = id,
-                        title = availableAttachmentById[id]?.name ?: "URL ${id.take(8)}",
+                        title = availableAttachmentById[id]?.name ?: "URL ${id.take(ATTACHMENT_ID_PREVIEW_LENGTH)}",
                         type = ConnectionType.URL,
                     )
                 },
@@ -159,7 +172,9 @@ fun StrategicManagementScreen(
                 obsidianIds.map { id ->
                     ConnectionItemUi(
                         id = id,
-                        title = availableAttachmentById[id]?.name ?: "Obsidian ${id.take(8)}",
+                        title =
+                            availableAttachmentById[id]?.name
+                                ?: "Obsidian ${id.take(ATTACHMENT_ID_PREVIEW_LENGTH)}",
                         type = ConnectionType.OBSIDIAN_NOTE,
                     )
                 },
@@ -234,7 +249,7 @@ fun StrategicManagementScreen(
                         modifier =
                             Modifier.background(
                                 color = MaterialTheme.colorScheme.surface,
-                                shape = RoundedCornerShape(16.dp),
+                                shape = StrategicMenuShape,
                             ),
                     ) {
                         DropdownMenuItem(
@@ -283,7 +298,7 @@ fun StrategicManagementScreen(
                             onAddButtonClick = {
                                 pendingCreateAction = null
                                 scope.launch {
-                                    delay(160)
+                                    delay(PICKER_OPEN_DELAY_MILLIS)
                                     activeLinkPickerTab = LinkPickerTab.CONTEXTS
                                 }
                             },
@@ -295,7 +310,7 @@ fun StrategicManagementScreen(
                                     AddConnectionType.ATTACHMENT -> {
                                         pendingCreateAction = null
                                         scope.launch {
-                                            delay(160)
+                                            delay(PICKER_OPEN_DELAY_MILLIS)
                                             showAttachmentChooser = true
                                         }
                                     }
@@ -306,7 +321,7 @@ fun StrategicManagementScreen(
                             onCreateConnection = { type ->
                                 pendingCreateAction = type.toPickerCreateAction()
                                 scope.launch {
-                                    delay(160)
+                                    delay(PICKER_OPEN_DELAY_MILLIS)
                                     activeLinkPickerTab =
                                         if (type == CreateConnectionType.CONTEXT) {
                                             LinkPickerTab.CONTEXTS
@@ -353,7 +368,7 @@ fun StrategicManagementScreen(
                     viewModel.dismissScopeLinksSheet()
                     pendingCreateAction = null
                     scope.launch {
-                        delay(160)
+                        delay(PICKER_OPEN_DELAY_MILLIS)
                         activeLinkPickerTab = LinkPickerTab.CONTEXTS
                     }
                 },
@@ -366,7 +381,7 @@ fun StrategicManagementScreen(
                             viewModel.dismissScopeLinksSheet()
                             pendingCreateAction = null
                             scope.launch {
-                                delay(160)
+                                delay(PICKER_OPEN_DELAY_MILLIS)
                                 showAttachmentChooser = true
                             }
                         }
@@ -378,7 +393,7 @@ fun StrategicManagementScreen(
                     viewModel.dismissScopeLinksSheet()
                     pendingCreateAction = type.toPickerCreateAction()
                     scope.launch {
-                        delay(160)
+                        delay(PICKER_OPEN_DELAY_MILLIS)
                         activeLinkPickerTab =
                             if (type == CreateConnectionType.CONTEXT) {
                                 LinkPickerTab.CONTEXTS
@@ -392,7 +407,7 @@ fun StrategicManagementScreen(
                     viewModel.updateConnectionsOrder(reordered.map { it.orderToken() })
                 },
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(ScopeSheetSpacerHeight))
         }
     }
 
@@ -411,7 +426,10 @@ fun StrategicManagementScreen(
     activeLinkPickerTab?.let { initialTab ->
         val availableAttachmentIds = attachmentOptions.map { it.id }.toSet()
         LinkedTargetsPickerDialog(
-            contextOptions = uiState.allProjects.map { ProjectOption(id = it.id, name = it.name, parentId = it.parentId) },
+            contextOptions =
+                uiState.allProjects.map {
+                    ProjectOption(id = it.id, name = it.name, parentId = it.parentId)
+                },
             attachmentOptions =
                 attachmentOptions.map {
                     AttachmentOption(
@@ -583,7 +601,6 @@ private fun AiChatPane(
                     state = chatState,
                     onInputChange = chatViewModel::onInputChange,
                     onSend = { chatViewModel.sendMessage(analysis) },
-                    onRegenerate = { chatViewModel.regenerate(analysis) },
                     onRegenerateMessage = { msg -> chatViewModel.regenerateFromMessage(msg, analysis) },
                     onQuickPrompt = { prompt -> chatViewModel.sendQuickPrompt(prompt, analysis) },
                 )

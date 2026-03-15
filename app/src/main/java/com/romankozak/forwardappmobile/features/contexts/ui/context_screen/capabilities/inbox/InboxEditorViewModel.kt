@@ -1,10 +1,8 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox
 
 import android.app.Application
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.InboxRepository
 import com.romankozak.forwardappmobile.ui.common.editor.viewmodel.UniversalEditorViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,10 +13,8 @@ import javax.inject.Inject
 class InboxEditorViewModel
     @Inject
     constructor(
-        private val contextRepository: ContextRepository,
         private val inboxRepository: InboxRepository,
         private val application: Application,
-        private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         val universalEditorViewModel = UniversalEditorViewModel(application)
         private var inboxId: String? = null

@@ -59,10 +59,13 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.MarkdownText
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownText
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownTextActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownTextState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.StatusIconsRow
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurfaceLayout
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTokens
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
 import kotlinx.coroutines.delay
@@ -180,26 +183,29 @@ private fun InternalGoalItem(
 
     UnifiedListItemSurface(
         isSelected = isSelected,
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .padding(
-                    vertical = UnifiedListItemTokens.OuterVerticalSpacing,
-                    horizontal = UnifiedListItemTokens.OuterHorizontalSpacing,
-                )
-                .combinedClickable(
-                    onClick = {
-                        if (!isInlineEditing) {
-                            onItemClick()
-                        }
-                    },
-                    onLongClick = {
-                        if (!isInlineEditing) {
-                            onLongClick()
-                        }
-                    },
-                ),
-        contentPadding = PaddingValues(0.dp),
+        layout =
+            UnifiedListItemSurfaceLayout(
+                modifier =
+                    modifier
+                        .fillMaxWidth()
+                        .padding(
+                            vertical = UnifiedListItemTokens.OuterVerticalSpacing,
+                            horizontal = UnifiedListItemTokens.OuterHorizontalSpacing,
+                        )
+                        .combinedClickable(
+                            onClick = {
+                                if (!isInlineEditing) {
+                                    onItemClick()
+                                }
+                            },
+                            onLongClick = {
+                                if (!isInlineEditing) {
+                                    onLongClick()
+                                }
+                            },
+                        ),
+                contentPadding = PaddingValues(0.dp),
+            ),
     ) {
         Box(
             modifier =
@@ -289,13 +295,18 @@ private fun InternalGoalItem(
                     } else {
                         Box(modifier = if (goal.completed) Modifier.alpha(0.65f) else Modifier) {
                             MarkdownText(
-                                text = parsedData.mainText,
-                                isCompleted = goal.completed,
-                                obsidianVaultName = "",
-                                onTagClick = {},
-                                onTextClick = onItemClick,
-                                onLongClick = onLongClick,
-                                maxLines = 4,
+                                state =
+                                    MarkdownTextState(
+                                        text = parsedData.mainText,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        isCompleted = goal.completed,
+                                        maxLines = 4,
+                                    ),
+                                actions =
+                                    MarkdownTextActions(
+                                        onTextClick = onItemClick,
+                                        onLongClick = onLongClick,
+                                    ),
                             )
                         }
                     }
@@ -424,18 +435,21 @@ private fun InternalSubprojectItem(
 
     UnifiedListItemSurface(
         isSelected = isSelected,
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .padding(
-                    vertical = UnifiedListItemTokens.OuterVerticalSpacing,
-                    horizontal = UnifiedListItemTokens.OuterHorizontalSpacing,
-                )
-                .combinedClickable(
-                    onClick = onItemClick,
-                    onLongClick = onLongClick,
-                ),
-        contentPadding = PaddingValues(0.dp),
+        layout =
+            UnifiedListItemSurfaceLayout(
+                modifier =
+                    modifier
+                        .fillMaxWidth()
+                        .padding(
+                            vertical = UnifiedListItemTokens.OuterVerticalSpacing,
+                            horizontal = UnifiedListItemTokens.OuterHorizontalSpacing,
+                        )
+                        .combinedClickable(
+                            onClick = onItemClick,
+                            onLongClick = onLongClick,
+                        ),
+                contentPadding = PaddingValues(0.dp),
+            ),
     ) {
         Box(
             modifier =

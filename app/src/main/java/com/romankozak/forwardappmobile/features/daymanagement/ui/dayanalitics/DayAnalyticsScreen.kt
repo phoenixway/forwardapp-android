@@ -1,7 +1,17 @@
 package com.romankozak.forwardappmobile.features.daymanagement.ui.dayanalitics
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -11,9 +21,33 @@ import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.PieChart
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.outlined.AccessTime
+import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.DonutSmall
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.InsertChart
+import androidx.compose.material.icons.outlined.Percent
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -26,15 +60,12 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private enum class AnalyticsTab(
-    val title: String,
-    val icon: ImageVector,
-    val description: String,
-) {
-    OVERVIEW("Огляд", Icons.Default.PieChart, "Загальна статистика продуктивності"),
-    TRENDS("Тренди", Icons.AutoMirrored.Filled.TrendingUp, "Аналіз тенденцій та покращень"),
-    DETAILS("Деталі", Icons.Default.BarChart, "Детальна аналітика та звіти"),
-}
+private const val CARD_ELEVATION = 4
+private const val CARD_CORNER_RADIUS = 16
+private const val CARD_CONTENT_PADDING = 20
+private const val TREND_GOOD_THRESHOLD = 0.7
+private const val TREND_OK_THRESHOLD = 0.5
+private const val MINUTES_PER_HOUR = 60L
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -186,10 +217,15 @@ fun AnalyticsOverviewScreen(
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            colors =
+                                CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                ),
                         ) {
                             Text(
-                                text = "Турбулентний період: метрики квот інтерпретуються мʼякше, без фіксації провалів.",
+                                text =
+                                    "Турбулентний період: метрики квот інтерпретуються мʼякше, " +
+                                        "без фіксації провалів.",
                                 modifier = Modifier.padding(14.dp),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
@@ -220,11 +256,11 @@ private fun ProductivityOverviewCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = CARD_ELEVATION.dp),
+        shape = RoundedCornerShape(CARD_CORNER_RADIUS.dp),
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.padding(CARD_CONTENT_PADDING.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -308,11 +344,11 @@ private fun TaskCompletionCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = CARD_ELEVATION.dp),
+        shape = RoundedCornerShape(CARD_CORNER_RADIUS.dp),
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.padding(CARD_CONTENT_PADDING.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -363,11 +399,11 @@ private fun TimeDistributionCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = CARD_ELEVATION.dp),
+        shape = RoundedCornerShape(CARD_CORNER_RADIUS.dp),
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.padding(CARD_CONTENT_PADDING.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -393,7 +429,7 @@ private fun TimeDistributionCard(
             ) {
                 StatItem(
                     label = "Загальний час",
-                    value = "${insights.totalActiveTime / 60}г ${insights.totalActiveTime % 60}хв",
+                    value = formatHoursAndMinutes(insights.totalActiveTime),
                     icon = Icons.Outlined.AccessTime,
                 )
                 StatItem(
@@ -413,11 +449,11 @@ private fun WeeklyTrendsCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = CARD_ELEVATION.dp),
+        shape = RoundedCornerShape(CARD_CORNER_RADIUS.dp),
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.padding(CARD_CONTENT_PADDING.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -438,7 +474,7 @@ private fun WeeklyTrendsCard(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                "Найпродуктивніший день: ${insights.bestDay?.date?.let { SimpleDateFormat("EEEE", Locale.getDefault()).format(Date(it)) } ?: "Немає даних"}",
+                text = "Найпродуктивніший день: ${bestDayName(insights)}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -446,19 +482,30 @@ private fun WeeklyTrendsCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                "Поліпшення: ${if (insights.averageCompletionRate > 0.7) {
-                    "Відмінна"
-                } else if (insights.averageCompletionRate > 0.5) {
-                    "Хороша"
-                } else {
-                    "Потребує покращення"
-                }} продуктивність",
+                text = "Поліпшення: ${productivityTrendLabel(insights.averageCompletionRate)} продуктивність",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
 }
+
+private fun formatHoursAndMinutes(totalMinutes: Long): String =
+    "${totalMinutes / MINUTES_PER_HOUR}г ${totalMinutes % MINUTES_PER_HOUR}хв"
+
+private fun bestDayName(insights: WeeklyInsights): String =
+    insights.bestDay?.date
+        ?.let { bestDay ->
+            SimpleDateFormat("EEEE", Locale.getDefault()).format(Date(bestDay))
+        }
+        ?: "Немає даних"
+
+private fun productivityTrendLabel(completionRate: Float): String =
+    when {
+        completionRate > TREND_GOOD_THRESHOLD -> "Відмінна"
+        completionRate > TREND_OK_THRESHOLD -> "Хороша"
+        else -> "Потребує покращення"
+    }
 
 @Composable
 fun AnalyticsTrendsScreen() {
@@ -500,7 +547,7 @@ fun AnalyticsDetailsScreen() {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Icon(
-                Icons.Outlined.BarChart,
+                Icons.Filled.BarChart,
                 contentDescription = null,
                 modifier = Modifier.size(64.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,

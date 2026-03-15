@@ -64,83 +64,103 @@ class ListChooserResultActions(
         val nextStep =
             orchestrationActions.resolveNextStep(
                 targetContextId = targetContextId,
-                state =
-                    ListChooserOrchestrationActions.PendingState(
-                        pendingDirectionLinkItemId = snapshot.pendingDirectionLinkItemId,
-                        pendingAddDirectionFromContextChooser = snapshot.pendingAddDirectionFromContextChooser,
-                        savedPendingAddDirectionFromContextChooser = snapshot.savedPendingAddDirectionFromContextChooser,
-                        pendingAttachmentShare = snapshot.pendingAttachmentShare,
-                        hasInboxPromotionRecord = snapshot.hasInboxPromotionRecord,
-                        pendingActionTypeName = snapshot.pendingActionTypeName,
-                        pendingSourceItemIds = snapshot.pendingSourceItemIds,
-                        pendingSourceGoalIds = snapshot.pendingSourceGoalIds,
-                    ),
+                state = snapshot.toPendingState(),
             )
 
         return when (nextStep) {
-            is ListChooserOrchestrationActions.NextStep.DirectionLink ->
-                ExecutionResult(
-                    outcome =
-                        Outcome.DirectionLink(
-                            itemId = nextStep.itemId,
-                            linkedContextId = nextStep.linkedContextId,
-                        ),
-                    cleanup = Cleanup(clearDirectionLink = true),
-                )
-
-            is ListChooserOrchestrationActions.NextStep.DirectionAdd -> {
-                val result =
-                    flowActions.addDirectionLinkedToContext(
-                        targetContextId = targetContextId,
-                        currentContextId = currentContextId,
-                    )
-                ExecutionResult(
-                    outcome = Outcome.DirectionAddCompleted(errorMessage = result.errorMessage),
-                    cleanup = Cleanup(clearDirectionAdd = true),
-                )
-            }
-
-            is ListChooserOrchestrationActions.NextStep.AttachmentShare -> {
-                val result =
-                    flowActions.shareAttachmentToProject(
-                        attachment = nextStep.attachment,
-                        targetContextId = targetContextId,
-                        currentContextId = currentContextId,
-                    )
-                ExecutionResult(
-                    outcome =
-                        Outcome.AttachmentShareCompleted(
-                            message = result.message,
-                            newlyAddedItemId = result.newlyAddedItemId,
-                            shouldRefreshCurrentContext = result.shouldRefreshCurrentContext,
-                        ),
-                )
-            }
-
+            is ListChooserOrchestrationActions.NextStep.DirectionLink -> nextStep.toDirectionLinkResult()
+            is ListChooserOrchestrationActions.NextStep.DirectionAdd ->
+                handleDirectionAdd(targetContextId, currentContextId)
+            is ListChooserOrchestrationActions.NextStep.AttachmentShare ->
+                handleAttachmentShare(nextStep, targetContextId, currentContextId)
             is ListChooserOrchestrationActions.NextStep.InboxPromotion ->
                 ExecutionResult(outcome = Outcome.InboxPromotion)
-
-            is ListChooserOrchestrationActions.NextStep.PendingAction -> {
-                val result =
-                    listChooserActions.executePendingAction(
-                        actionType = nextStep.actionType,
-                        targetContextId = targetContextId,
-                        currentContextId = currentContextId,
-                        itemIds = nextStep.itemIds,
-                        goalIds = nextStep.goalIds,
-                    )
-                ExecutionResult(
-                    outcome =
-                        Outcome.PendingActionCompleted(
-                            newlyAddedItemId = result.newlyAddedItemId,
-                            userMessage = result.userMessage,
-                        ),
-                    cleanup = Cleanup(clearPendingAction = true, clearSelection = true),
-                )
-            }
-
-            ListChooserOrchestrationActions.NextStep.None ->
-                ExecutionResult(outcome = Outcome.None)
+            is ListChooserOrchestrationActions.NextStep.PendingAction ->
+                handlePendingAction(nextStep, targetContextId, currentContextId)
+            ListChooserOrchestrationActions.NextStep.None -> ExecutionResult(outcome = Outcome.None)
         }
+    }
+
+    private fun PendingSnapshot.toPendingState(): ListChooserOrchestrationActions.PendingState {
+        return ListChooserOrchestrationActions.PendingState(
+            pendingDirectionLinkItemId = pendingDirectionLinkItemId,
+            pendingAddDirectionFromContextChooser = pendingAddDirectionFromContextChooser,
+            savedPendingAddDirectionFromContextChooser = savedPendingAddDirectionFromContextChooser,
+            pendingAttachmentShare = pendingAttachmentShare,
+            hasInboxPromotionRecord = hasInboxPromotionRecord,
+            pendingActionTypeName = pendingActionTypeName,
+            pendingSourceItemIds = pendingSourceItemIds,
+            pendingSourceGoalIds = pendingSourceGoalIds,
+        )
+    }
+
+    private fun ListChooserOrchestrationActions.NextStep.DirectionLink.toDirectionLinkResult(): ExecutionResult {
+        return ExecutionResult(
+            outcome =
+                Outcome.DirectionLink(
+                    itemId = itemId,
+                    linkedContextId = linkedContextId,
+                ),
+            cleanup = Cleanup(clearDirectionLink = true),
+        )
+    }
+
+    private suspend fun handleDirectionAdd(
+        targetContextId: String,
+        currentContextId: String,
+    ): ExecutionResult {
+        val result =
+            flowActions.addDirectionLinkedToContext(
+                targetContextId = targetContextId,
+                currentContextId = currentContextId,
+            )
+        return ExecutionResult(
+            outcome = Outcome.DirectionAddCompleted(errorMessage = result.errorMessage),
+            cleanup = Cleanup(clearDirectionAdd = true),
+        )
+    }
+
+    private suspend fun handleAttachmentShare(
+        nextStep: ListChooserOrchestrationActions.NextStep.AttachmentShare,
+        targetContextId: String,
+        currentContextId: String,
+    ): ExecutionResult {
+        val result =
+            flowActions.shareAttachmentToProject(
+                attachment = nextStep.attachment,
+                targetContextId = targetContextId,
+                currentContextId = currentContextId,
+            )
+        return ExecutionResult(
+            outcome =
+                Outcome.AttachmentShareCompleted(
+                    message = result.message,
+                    newlyAddedItemId = result.newlyAddedItemId,
+                    shouldRefreshCurrentContext = result.shouldRefreshCurrentContext,
+                ),
+        )
+    }
+
+    private suspend fun handlePendingAction(
+        nextStep: ListChooserOrchestrationActions.NextStep.PendingAction,
+        targetContextId: String,
+        currentContextId: String,
+    ): ExecutionResult {
+        val result =
+            listChooserActions.executePendingAction(
+                actionType = nextStep.actionType,
+                targetContextId = targetContextId,
+                currentContextId = currentContextId,
+                itemIds = nextStep.itemIds,
+                goalIds = nextStep.goalIds,
+            )
+        return ExecutionResult(
+            outcome =
+                Outcome.PendingActionCompleted(
+                    newlyAddedItemId = result.newlyAddedItemId,
+                    userMessage = result.userMessage,
+                ),
+            cleanup = Cleanup(clearPendingAction = true, clearSelection = true),
+        )
     }
 }

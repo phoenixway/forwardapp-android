@@ -1,9 +1,13 @@
+@file:Suppress("MatchingDeclarationName")
+
 package com.romankozak.forwardappmobile.features.mainscreen.scopelinks
 
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
+
+private const val ATTACHMENT_ID_SUFFIX_LENGTH = 4
 
 data class ScopeAttachmentOption(
     val id: String,
@@ -29,7 +33,7 @@ fun AttachmentLibraryQueryResult.toScopeAttachmentOption(): ScopeAttachmentOptio
             ?: scriptName?.takeIf { it.isNotBlank() }
             ?: linkLabel
             ?: contextName
-            ?: "Attachment ${id.takeLast(4)}"
+            ?: "Attachment ${id.takeLast(ATTACHMENT_ID_SUFFIX_LENGTH)}"
 
     return ScopeAttachmentOption(
         id = id,

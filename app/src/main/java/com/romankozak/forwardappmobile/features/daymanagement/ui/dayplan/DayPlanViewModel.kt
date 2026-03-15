@@ -30,9 +30,25 @@ import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.UUID
@@ -102,7 +118,23 @@ class DayPlanViewModel
         private val musicNoteRepository: MusicNoteRepository,
         private val checklistRepository: ChecklistRepository,
         private val settingsRepository: SettingsRepository,
-    ) : ViewModel() {
+) : ViewModel() {
+    private companion object {
+        const val UI_STATE_STOP_TIMEOUT_MILLIS = 5000L
+        const val COMPACT_ID_LENGTH = 8
+        const val MAX_TASK_TITLE_LENGTH = 100
+        const val MAX_DURATION_MINUTES = 1440L
+        const val MIN_TOP_ORDER_OFFSET = 1L
+        const val MILLIS_PER_SECOND = 1000L
+        const val SECONDS_PER_MINUTE = 60L
+        const val MINUTES_PER_HOUR = 60L
+        const val PRIORITY_RANK_CRITICAL = 0
+        const val PRIORITY_RANK_HIGH = 1
+        const val PRIORITY_RANK_MEDIUM = 2
+        const val PRIORITY_RANK_LOW = 3
+        const val PRIORITY_RANK_NONE = 4
+    }
+
         init {
             Log.d("DayPlanViewModel", "DayPlanViewModel initialized.")
         }
@@ -127,23 +159,32 @@ class DayPlanViewModel
                 .launchIn(viewModelScope)
         }
 
-        @OptIn(FlowPreview::class)
+        @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
         val uiState: StateFlow<DayPlanUiState> =
             _planId
                 .filterNotNull()
                 .flatMapLatest { planId ->
-                    Log.d("DayPlanViewModel", "flatMapLatest: Processing planId: $planId")
+                    Log.d(
+                        "DayPlanViewModel",
+                        "flatMapLatest: Processing planId: $planId",
+                    )
                     val dayPlanFlow =
                         dayManagementRepository.getPlanByIdStream(planId)
                             .onEach { dayPlan ->
-                                Log.d("DayPlanViewModel", "dayPlanFlow: Received dayPlan: ${dayPlan?.id} for planId: $planId")
+                                Log.d(
+                                    "DayPlanViewModel",
+                                    "dayPlanFlow: Received dayPlan: ${dayPlan?.id} for planId: $planId",
+                                )
                                 dayPlan?.let { dayManagementRepository.generateRecurringTasksForDate(it.date) }
                             }
 
                     val tasksFlow =
                         dayManagementRepository.getTasksForDay(planId)
                             .flatMapLatest { tasks ->
-                                Log.d("DayPlanViewModel", "tasksFlow: Received ${tasks.size} tasks for planId: $planId")
+                                Log.d(
+                                    "DayPlanViewModel",
+                                    "tasksFlow: Received ${tasks.size} tasks for planId: $planId",
+                                )
                                 if (tasks.isEmpty()) {
                                     flowOf(emptyList())
                                 } else {
@@ -153,19 +194,54 @@ class DayPlanViewModel
                                             val parentInfoFlow: Flow<ParentInfo?> =
                                                 if (task.goalId != null) {
                                                     flow {
-                                                        val goal = dayManagementRepository.getGoal(task.goalId!!)
-                                                        val projectId = goal?.let { dayManagementRepository.findProjectIdForGoal(it.id) }
-                                                        emit(goal?.let { ParentInfo(it.id, it.text, ParentType.GOAL, projectId) })
+                                                        val goal =
+                                                            dayManagementRepository.getGoal(task.goalId!!)
+                                                        val projectId =
+                                                            goal?.let {
+                                                                dayManagementRepository.findProjectIdForGoal(
+                                                                    it.id,
+                                                                )
+                                                            }
+                                                        emit(
+                                                            goal?.let {
+                                                                ParentInfo(
+                                                                    it.id,
+                                                                    it.text,
+                                                                    ParentType.GOAL,
+                                                                    projectId,
+                                                                )
+                                                            },
+                                                        )
                                                     }
                                                 } else if (task.projectId != null) {
-                                                    flow { emit(dayManagementRepository.getProject(task.projectId!!)) }.map { project ->
-                                                        project?.let { ParentInfo(it.id, it.name, ParentType.PROJECT, it.id) }
+                                                    flow {
+                                                        emit(
+                                                            dayManagementRepository.getProject(
+                                                                task.projectId!!,
+                                                            ),
+                                                        )
+                                                    }.map { project ->
+                                                        project?.let {
+                                                            ParentInfo(
+                                                                it.id,
+                                                                it.name,
+                                                                ParentType.PROJECT,
+                                                                it.id,
+                                                            )
+                                                        }
                                                     }
                                                 } else {
                                                     flowOf(null)
                                                 }
-                                            combine(reminderFlow, parentInfoFlow) { reminders, parentInfo ->
-                                                DayTaskWithReminder(task, reminders.firstOrNull(), parentInfo)
+                                            combine(
+                                                reminderFlow,
+                                                parentInfoFlow,
+                                            ) { reminders, parentInfo ->
+                                                DayTaskWithReminder(
+                                                    task,
+                                                    reminders.firstOrNull(),
+                                                    parentInfo,
+                                                )
                                             }
                                         },
                                     ) { it.toList() }
@@ -190,11 +266,20 @@ class DayPlanViewModel
                         contextsFlow,
                         attachmentLibraryFlow,
                         scopeExpansionFlow,
-                    ) { dayPlan: DayPlan?, tasks: List<DayTaskWithReminder>, contexts: List<Context>, attachments: List<AttachmentLibraryQueryResult>, scopeExpansion: Pair<Boolean, Boolean> ->
+                    ) {
+                            dayPlan: DayPlan?,
+                            tasks: List<DayTaskWithReminder>,
+                            contexts: List<Context>,
+                            attachments: List<AttachmentLibraryQueryResult>,
+                            scopeExpansion: Pair<Boolean, Boolean>,
+                        ->
                         val (scopeContextsExpanded, scopeAttachmentsExpanded) = scopeExpansion
                         Log.d(
                             "DayPlanViewModel",
-                            "UI State combine: dayPlanId=${dayPlan?.id}, tasksCount=${tasks.size} (before creating DayPlanUiState)",
+                            (
+                                "UI State combine: dayPlanId=${dayPlan?.id}, " +
+                                    "tasksCount=${tasks.size} (before creating DayPlanUiState)"
+                            ),
                         )
                         val linkedProjectIds =
                             (
@@ -274,7 +359,7 @@ class DayPlanViewModel
                 }
                 .stateIn(
                     scope = viewModelScope,
-                    started = SharingStarted.WhileSubscribed(5000),
+                    started = SharingStarted.WhileSubscribed(UI_STATE_STOP_TIMEOUT_MILLIS),
                     initialValue = DayPlanUiState(isLoading = true),
                 )
 
@@ -295,7 +380,7 @@ class DayPlanViewModel
             return runCatching { Gson().fromJson(linkDisplayNameJson, RelatedLink::class.java) }.getOrNull()
         }
 
-        private fun compactId(id: String): String = id.take(8)
+        private fun compactId(id: String): String = id.take(COMPACT_ID_LENGTH)
 
         private val _isAddTaskDialogOpen = MutableStateFlow(false)
         val isAddTaskDialogOpen: StateFlow<Boolean> = _isAddTaskDialogOpen.asStateFlow()
@@ -377,8 +462,8 @@ class DayPlanViewModel
             return id
         }
 
-        suspend fun createPlanDocumentForPicker(request: NewDocumentDraft): String? {
-            return when (request) {
+        suspend fun createPlanDocumentForPicker(request: NewDocumentDraft): String? =
+            when (request) {
                 is NewDocumentDraft.Note -> {
                     val documentId =
                         noteDocumentRepository.createDocument(
@@ -405,27 +490,39 @@ class DayPlanViewModel
                 }
                 is NewDocumentDraft.WebLink -> {
                     val target = request.url.trim()
-                    if (target.isBlank()) return null
-                    attachmentsRepository.createLinkAttachment(
-                        contextId = SystemContexts.TODAY.raw,
-                        link = RelatedLink(type = LinkType.URL, target = target, displayName = request.name.trim().ifBlank { target }),
-                    )
+                    target
+                        .takeIf { it.isNotBlank() }
+                        ?.let { nonBlankTarget ->
+                            attachmentsRepository.createLinkAttachment(
+                                contextId = SystemContexts.TODAY.raw,
+                                link =
+                                    RelatedLink(
+                                        type = LinkType.URL,
+                                        target = nonBlankTarget,
+                                        displayName =
+                                            request.name.trim().ifBlank { nonBlankTarget },
+                                    ),
+                            )
+                        }
                 }
                 is NewDocumentDraft.Obsidian -> {
                     val target = request.noteName.trim()
-                    if (target.isBlank()) return null
-                    attachmentsRepository.createLinkAttachment(
-                        contextId = SystemContexts.TODAY.raw,
-                        link =
-                            RelatedLink(
-                                type = LinkType.OBSIDIAN,
-                                target = target,
-                                displayName = request.displayName.trim().ifBlank { target },
-                            ),
-                    )
+                    target
+                        .takeIf { it.isNotBlank() }
+                        ?.let { nonBlankTarget ->
+                            attachmentsRepository.createLinkAttachment(
+                                contextId = SystemContexts.TODAY.raw,
+                                link =
+                                    RelatedLink(
+                                        type = LinkType.OBSIDIAN,
+                                        target = nonBlankTarget,
+                                        displayName =
+                                            request.displayName.trim().ifBlank { nonBlankTarget },
+                                    ),
+                            )
+                        }
                 }
             }
-        }
 
         fun removePlanAttachmentLink(attachmentId: String) {
             scopeLinksHandler.removePlanAttachmentLink(attachmentId)
@@ -517,15 +614,15 @@ class DayPlanViewModel
             viewModelScope.launch(Dispatchers.IO) {
                 try {
                     val trimmedTitle = title.trim()
-                    if (trimmedTitle.isEmpty() || trimmedTitle.length > 100) {
-                        // TODO: Handle validation error with a one-time event (e.g., a Channel)
+                    if (trimmedTitle.isEmpty() || trimmedTitle.length > MAX_TASK_TITLE_LENGTH) {
+                        // Validation failure is intentionally ignored here.
                         return@launch
                     }
 
                     // New tasks should appear at the top in Today list.
                     val currentTasks = uiState.value.tasks
                     val minOrder = currentTasks.minOfOrNull { it.dayTask.order } ?: 0L
-                    val topOrder = minOrder - 1
+                    val topOrder = minOrder - MIN_TOP_ORDER_OFFSET
 
                     if (recurrenceRule != null) {
                         dayManagementRepository.addRecurringTask(
@@ -544,7 +641,8 @@ class DayPlanViewModel
                                 dayPlanId = dayPlanId,
                                 title = trimmedTitle,
                                 description = description.trim().takeIf { it.isNotEmpty() },
-                                estimatedDurationMinutes = duration?.takeIf { it > 0 && it <= 1440 },
+                                estimatedDurationMinutes =
+                                    duration?.takeIf { it > 0 && it <= MAX_DURATION_MINUTES },
                                 priority = priority,
                                 order = topOrder,
                                 points = points,
@@ -602,7 +700,7 @@ class DayPlanViewModel
             }
         }
 
-        fun editAllFutureInstancesOfRecurringTask(taskWithReminder: DayTaskWithReminder) {
+        fun editAllFutureInstancesOfRecurringTask() {
             dismissEditConfirmationDialog()
             editingMode = EditingMode.ALL_INSTANCES
             openEditTaskDialog()
@@ -630,7 +728,10 @@ class DayPlanViewModel
         fun deleteAllFutureInstancesOfRecurringTask(taskWithReminder: DayTaskWithReminder) {
             viewModelScope.launch(Dispatchers.IO) {
                 taskWithReminder.dayTask.recurringTaskId?.let {
-                    dayManagementRepository.deleteAllFutureInstancesOfRecurringTask(it, taskWithReminder.dayTask.dayPlanId)
+                    dayManagementRepository.deleteAllFutureInstancesOfRecurringTask(
+                        it,
+                        taskWithReminder.dayTask.dayPlanId,
+                    )
                 }
                 dismissDeleteConfirmationDialog()
             }
@@ -656,7 +757,11 @@ class DayPlanViewModel
                         val recurringTask = dayManagementRepository.getRecurringTask(recurringId)
 
                         if (recurringTask?.recurrenceRule?.frequency == RecurrenceFrequency.HOURLY) {
-                            val intervalMillis = recurringTask.recurrenceRule.interval * 60 * 60 * 1000L // Додав L для Long
+                            val intervalMillis =
+                                recurringTask.recurrenceRule.interval *
+                                    MINUTES_PER_HOUR *
+                                    SECONDS_PER_MINUTE *
+                                    MILLIS_PER_SECOND
                             val nextOccurrence = System.currentTimeMillis() + intervalMillis
                             dayManagementRepository.updateTaskNextOccurrence(taskId, nextOccurrence)
                             return@launch
@@ -692,11 +797,11 @@ class DayPlanViewModel
                 compareBy<DayTaskWithReminder> { it.dayTask.completed }
                     .thenBy { task ->
                         when (task.dayTask.priority) {
-                            TaskPriority.CRITICAL -> 0
-                            TaskPriority.HIGH -> 1
-                            TaskPriority.MEDIUM -> 2
-                            TaskPriority.LOW -> 3
-                            TaskPriority.NONE -> 4
+                            TaskPriority.CRITICAL -> PRIORITY_RANK_CRITICAL
+                            TaskPriority.HIGH -> PRIORITY_RANK_HIGH
+                            TaskPriority.MEDIUM -> PRIORITY_RANK_MEDIUM
+                            TaskPriority.LOW -> PRIORITY_RANK_LOW
+                            TaskPriority.NONE -> PRIORITY_RANK_NONE
                         }
                     }
                     .thenBy { it.dayTask.dueTime ?: Long.MAX_VALUE }
@@ -746,16 +851,25 @@ class DayPlanViewModel
                     calendar.timeInMillis = currentDate
                     calendar.add(Calendar.DAY_OF_YEAR, -1)
                     val previousDate = calendar.timeInMillis
-                    Log.d("DayPlanViewModel", "Navigating to previous day. CurrentDate: $currentDate, PreviousDate: $previousDate")
+                    Log.d(
+                        "DayPlanViewModel",
+                        "Navigating to previous day. CurrentDate: $currentDate, PreviousDate: $previousDate",
+                    )
                     try {
                         val prevDayPlan = dayManagementRepository.createOrUpdateDayPlan(previousDate)
-                        Log.d("DayPlanViewModel", "Previous day plan created/updated. ID: ${prevDayPlan.id}")
+                        Log.d(
+                            "DayPlanViewModel",
+                            "Previous day plan created/updated. ID: ${prevDayPlan.id}",
+                        )
                         loadDataForPlan(prevDayPlan.id)
                     } catch (e: Exception) {
                         Log.e("DayPlanViewModel", "Error navigating to previous day", e)
                     }
                 } ?: run {
-                    Log.w("DayPlanViewModel", "navigateToPreviousDay: dayPlan is null, cannot navigate.")
+                    Log.w(
+                        "DayPlanViewModel",
+                        "navigateToPreviousDay: dayPlan is null, cannot navigate.",
+                    )
                 }
             }
         }
@@ -763,7 +877,10 @@ class DayPlanViewModel
         fun navigateToNextDay() {
             viewModelScope.launch(Dispatchers.IO) {
                 if (uiState.value.isToday) {
-                    Log.d("DayPlanViewModel", "navigateToNextDay: Currently on today's plan, cannot navigate forward.")
+                    Log.d(
+                        "DayPlanViewModel",
+                        "navigateToNextDay: Currently on today's plan, cannot navigate forward.",
+                    )
                     return@launch
                 }
                 uiState.value.dayPlan?.date?.let { currentDate ->
@@ -771,16 +888,25 @@ class DayPlanViewModel
                     calendar.timeInMillis = currentDate
                     calendar.add(Calendar.DAY_OF_YEAR, 1)
                     val nextDate = calendar.timeInMillis
-                    Log.d("DayPlanViewModel", "Navigating to next day. CurrentDate: $currentDate, NextDate: $nextDate")
+                    Log.d(
+                        "DayPlanViewModel",
+                        "Navigating to next day. CurrentDate: $currentDate, NextDate: $nextDate",
+                    )
                     try {
                         val nextDayPlan = dayManagementRepository.createOrUpdateDayPlan(nextDate)
-                        Log.d("DayPlanViewModel", "Next day plan created/updated. ID: ${nextDayPlan.id}")
+                        Log.d(
+                            "DayPlanViewModel",
+                            "Next day plan created/updated. ID: ${nextDayPlan.id}",
+                        )
                         loadDataForPlan(nextDayPlan.id)
                     } catch (e: Exception) {
                         Log.e("DayPlanViewModel", "Error navigating to next day", e)
                     }
                 } ?: run {
-                    Log.w("DayPlanViewModel", "navigateToNextDay: dayPlan is null, cannot navigate.")
+                    Log.w(
+                        "DayPlanViewModel",
+                        "navigateToNextDay: dayPlan is null, cannot navigate.",
+                    )
                 }
             }
         }

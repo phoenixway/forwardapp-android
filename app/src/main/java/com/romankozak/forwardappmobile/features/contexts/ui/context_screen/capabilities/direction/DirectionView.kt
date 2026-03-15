@@ -98,34 +98,40 @@ fun DirectionView(
                 itemsIndexed(items, key = { _, item -> item.id }) { _, item ->
                     ReorderableItem(reorderableState, key = item.id) { isDragging ->
                         DirectionItemCard(
-                            item = item,
-                            isDragging = isDragging,
-                            dragHandleModifier =
-                                with(this@ReorderableItem) {
-                                    Modifier
-                                        .size(28.dp)
-                                        .clip(MaterialTheme.shapes.small)
-                                        .longPressDraggableHandle(
-                                            onDragStarted = {
-                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            },
-                                        )
-                                },
-                            onEdit = {
-                                editingItem = item
-                                editingText = item.text
-                            },
-                            onToggleLink = {
-                                if (item.linkedContextId == null) {
-                                    onLinkRequest(item.id)
-                                } else {
-                                    onUnlinkRequest(item.id)
-                                }
-                            },
-                            onDelete = { onDeleteItem(item.id) },
-                            onOpenLinkedContext = onOpenLinkedContext,
-                            onCopy = { onCopyItem(item) },
-                            onCut = { onCutItem(item) },
+                            state =
+                                DirectionItemCardState(
+                                    item = item,
+                                    isDragging = isDragging,
+                                    dragHandleModifier =
+                                        with(this@ReorderableItem) {
+                                            Modifier
+                                                .size(28.dp)
+                                                .clip(MaterialTheme.shapes.small)
+                                                .longPressDraggableHandle(
+                                                    onDragStarted = {
+                                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    },
+                                                )
+                                        },
+                                ),
+                            actions =
+                                DirectionItemCardActions(
+                                    onEdit = {
+                                        editingItem = item
+                                        editingText = item.text
+                                    },
+                                    onToggleLink = {
+                                        if (item.linkedContextId == null) {
+                                            onLinkRequest(item.id)
+                                        } else {
+                                            onUnlinkRequest(item.id)
+                                        }
+                                    },
+                                    onDelete = { onDeleteItem(item.id) },
+                                    onOpenLinkedContext = onOpenLinkedContext,
+                                    onCopy = { onCopyItem(item) },
+                                    onCut = { onCutItem(item) },
+                                ),
                         )
                     }
                 }

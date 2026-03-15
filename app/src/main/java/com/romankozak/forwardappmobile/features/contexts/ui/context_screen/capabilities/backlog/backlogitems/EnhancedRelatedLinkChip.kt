@@ -19,7 +19,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -41,25 +45,12 @@ internal fun EnhancedRelatedLinkChip(
     onClick: () -> Unit,
 ) {
     var isPressed by remember { mutableStateOf(false) }
+    val chipColors = resolveRelatedLinkChipColors(link)
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.92f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
         label = "chip_scale",
     )
-
-    val isSubProject = link.type == LinkType.CONTEXT
-    val backgroundColor =
-        if (isSubProject) {
-            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
-        } else {
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-        }
-    val contentColor =
-        if (isSubProject) {
-            MaterialTheme.colorScheme.secondary
-        } else {
-            MaterialTheme.colorScheme.primary
-        }
 
     Surface(
         modifier =
@@ -84,38 +75,67 @@ internal fun EnhancedRelatedLinkChip(
                 }
                 .heightIn(min = 24.dp),
         shape = RoundedCornerShape(10.dp),
-        color = backgroundColor,
+        color = chipColors.backgroundColor,
         shadowElevation = 0.dp,
         tonalElevation = 0.dp,
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Icon(
-                imageVector =
-                    when (link.type) {
-                        LinkType.CONTEXT -> Icons.Default.AccountTree
-                        LinkType.URL -> Icons.Default.Link
-                        LinkType.OBSIDIAN -> Icons.Default.Book
-                        null -> Icons.Default.BrokenImage
-                    },
-                contentDescription = null,
-                tint = contentColor,
-                modifier = Modifier.size(12.dp),
-            )
-            Text(
-                text = link.displayName ?: link.target,
-                style =
-                    MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 0.1.sp,
-                    ),
-                color = contentColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+        EnhancedRelatedLinkChipContent(link = link, contentColor = chipColors.contentColor)
     }
 }
+
+@Composable
+private fun resolveRelatedLinkChipColors(link: RelatedLink): RelatedLinkChipColors {
+    val isContextLink = link.type == LinkType.CONTEXT
+    return if (isContextLink) {
+        RelatedLinkChipColors(
+            backgroundColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f),
+            contentColor = MaterialTheme.colorScheme.secondary,
+        )
+    } else {
+        RelatedLinkChipColors(
+            backgroundColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+            contentColor = MaterialTheme.colorScheme.primary,
+        )
+    }
+}
+
+@Composable
+private fun EnhancedRelatedLinkChipContent(
+    link: RelatedLink,
+    contentColor: androidx.compose.ui.graphics.Color,
+) {
+    Row(
+        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Icon(
+            imageVector =
+                when (link.type) {
+                    LinkType.CONTEXT -> Icons.Default.AccountTree
+                    LinkType.URL -> Icons.Default.Link
+                    LinkType.OBSIDIAN -> Icons.Default.Book
+                    null -> Icons.Default.BrokenImage
+                },
+            contentDescription = null,
+            tint = contentColor,
+            modifier = Modifier.size(12.dp),
+        )
+        Text(
+            text = link.displayName ?: link.target,
+            style =
+                MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.1.sp,
+                ),
+            color = contentColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+private data class RelatedLinkChipColors(
+    val backgroundColor: androidx.compose.ui.graphics.Color,
+    val contentColor: androidx.compose.ui.graphics.Color,
+)

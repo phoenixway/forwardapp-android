@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems
+package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -6,7 +6,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.unit.Dp
@@ -50,8 +54,11 @@ fun LimitedFlowRow(
         val hasMore = lines.size > maxLines && !expanded
 
         val width = constraints.maxWidth
+        val rowHeight = placeables.firstOrNull()?.height ?: 0
+        val spacingHeight = (linesToShow.size - 1).coerceAtLeast(0) * spacingInPx
+        val contentHeight = linesToShow.size * rowHeight + spacingHeight
         val height =
-            (linesToShow.size * (placeables.firstOrNull()?.height ?: 0) + (linesToShow.size - 1).coerceAtLeast(0) * spacingInPx).let {
+            contentHeight.let {
                 if (hasMore) it + 24.dp.toPx().toInt() else it
             }
 
@@ -63,7 +70,7 @@ fun LimitedFlowRow(
                     placeables[index].placeRelative(x, y)
                     x += placeables[index].width + spacingInPx
                 }
-                y += (placeables.firstOrNull()?.height ?: 0) + spacingInPx
+                y += rowHeight + spacingInPx
             }
 
             if (hasMore) {

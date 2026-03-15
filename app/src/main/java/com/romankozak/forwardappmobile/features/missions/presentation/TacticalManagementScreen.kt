@@ -3,25 +3,52 @@ package com.romankozak.forwardappmobile.features.missions.presentation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Link
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -33,6 +60,9 @@ import com.romankozak.forwardappmobile.core.data.models.entities.tactical.Missio
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckFabDefaults
 import com.romankozak.forwardappmobile.features.missions.presentation.missionlist.TacticalMissionList
+import com.romankozak.forwardappmobile.features.missions.presentation.missionlist.TacticalMissionListCallbacks
+import com.romankozak.forwardappmobile.features.missions.presentation.missionlist.TacticalMissionListLookups
+import com.romankozak.forwardappmobile.features.missions.presentation.missionlist.TacticalMissionSelectionState
 import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.TacticalScopeLinksSheet
 import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.dialogs.TacticalAddObsidianDialog
 import com.romankozak.forwardappmobile.features.missions.presentation.scopelinks.dialogs.TacticalAddUrlDialog
@@ -40,8 +70,7 @@ import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
 import com.romankozak.forwardappmobile.ui.components.orderToken
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
+private const val LINK_PICKER_OPEN_DELAY_MS = 160L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -153,7 +182,10 @@ fun TacticalManagementScreen(
                         }
 
                         Button(
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                            colors =
+                                ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                ),
                             onClick = {
                                 selectedMissionIds.forEach { id ->
                                     viewModel.deleteMission(id)
@@ -173,41 +205,50 @@ fun TacticalManagementScreen(
 
             TacticalMissionList(
                 missions = missions,
-                projectOptions = projectOptions,
-                attachmentOptions = attachmentOptions,
-                selectedMissionIds = selectedMissionIds,
-                selectionMode = selectionMode,
-                onMissionToggled = { viewModel.toggleMissionCompleted(it) },
-                onMissionSelectionToggle = { mission ->
-                    selectedMissionIds =
-                        if (mission.id in selectedMissionIds) {
-                            selectedMissionIds - mission.id
-                        } else {
-                            selectedMissionIds + mission.id
-                        }
-                },
-                onMissionClick = { mission ->
-                    if (!selectionMode) {
-                        editingMission = mission
-                    }
-                },
-                onMissionLongPress = { mission ->
-                    selectedMissionIds =
-                        if (mission.id in selectedMissionIds) {
-                            selectedMissionIds
-                        } else {
-                            selectedMissionIds + mission.id
-                        }
-                },
-                onMissionMoreClick = { mission -> actionMenuMission = mission },
-                onLinkedContextClick = onLinkedProjectClick,
-                onLinkedAttachmentClick = { attachmentId ->
-                    val option =
-                        attachmentOptions.firstOrNull { it.id == attachmentId }
-                            ?: AttachmentOption(id = attachmentId, name = attachmentId)
-                    onLinkedAttachmentClick(option)
-                },
-                onMissionsReordered = viewModel::reorderMissions,
+                lookups =
+                    TacticalMissionListLookups(
+                        projectOptions = projectOptions,
+                        attachmentOptions = attachmentOptions,
+                    ),
+                selectionState =
+                    TacticalMissionSelectionState(
+                        selectedMissionIds = selectedMissionIds,
+                        selectionMode = selectionMode,
+                    ),
+                callbacks =
+                    TacticalMissionListCallbacks(
+                        onMissionToggled = { viewModel.toggleMissionCompleted(it) },
+                        onMissionSelectionToggle = { mission ->
+                            selectedMissionIds =
+                                if (mission.id in selectedMissionIds) {
+                                    selectedMissionIds - mission.id
+                                } else {
+                                    selectedMissionIds + mission.id
+                                }
+                        },
+                        onMissionClick = { mission ->
+                            if (!selectionMode) {
+                                editingMission = mission
+                            }
+                        },
+                        onMissionLongPress = { mission ->
+                            selectedMissionIds =
+                                if (mission.id in selectedMissionIds) {
+                                    selectedMissionIds
+                                } else {
+                                    selectedMissionIds + mission.id
+                                }
+                        },
+                        onMissionMoreClick = { mission -> actionMenuMission = mission },
+                        onLinkedContextClick = onLinkedProjectClick,
+                        onLinkedAttachmentClick = { attachmentId ->
+                            val option =
+                                attachmentOptions.firstOrNull { it.id == attachmentId }
+                                    ?: AttachmentOption(id = attachmentId, name = attachmentId)
+                            onLinkedAttachmentClick(option)
+                        },
+                        onMissionsReordered = viewModel::reorderMissions,
+                    ),
                 modifier = Modifier.weight(1f),
             )
         }
@@ -278,7 +319,12 @@ fun TacticalManagementScreen(
                 SubtleActionDivider()
                 MissionActionSheetItem(
                     icon = Icons.Outlined.CheckCircle,
-                    text = if (mission.status == MissionStatus.COMPLETED) "Позначити невиконаною" else "Позначити виконаною",
+                    text =
+                        if (mission.status == MissionStatus.COMPLETED) {
+                            "Позначити невиконаною"
+                        } else {
+                            "Позначити виконаною"
+                        },
                     onClick = {
                         val nextStatus =
                             if (mission.status == MissionStatus.COMPLETED) {
@@ -327,7 +373,7 @@ fun TacticalManagementScreen(
             viewModel.dismissScopeLinksSheet()
             pendingCreateAction = null
             scope.launch {
-                delay(160)
+                delay(LINK_PICKER_OPEN_DELAY_MS)
                 activeLinkPickerTab = LinkPickerTab.CONTEXTS
             }
         },
@@ -335,7 +381,7 @@ fun TacticalManagementScreen(
             viewModel.dismissScopeLinksSheet()
             pendingCreateAction = null
             scope.launch {
-                delay(160)
+                delay(LINK_PICKER_OPEN_DELAY_MS)
                 activeLinkPickerTab = LinkPickerTab.ATTACHMENTS
             }
         },
@@ -345,7 +391,7 @@ fun TacticalManagementScreen(
             viewModel.dismissScopeLinksSheet()
             pendingCreateAction = type.toPickerCreateAction()
             scope.launch {
-                delay(160)
+                delay(LINK_PICKER_OPEN_DELAY_MS)
                 activeLinkPickerTab =
                     if (type == CreateConnectionType.CONTEXT) {
                         LinkPickerTab.CONTEXTS
@@ -465,26 +511,6 @@ fun TacticalManagementScreen(
 }
 
 @Composable
-fun AddMissionDialog(
-    attachmentOptions: List<AttachmentOption>,
-    onDismiss: () -> Unit,
-    onConfirm: (String, String, Long, MissionStatus, List<String>, List<String>) -> Unit,
-) {
-    MissionDialog(
-        title = "Create Tactical Mission",
-        initialTitle = "",
-        initialDescription = "",
-        initialDeadline = System.currentTimeMillis().toString(),
-        confirmText = "Create",
-        onDismiss = onDismiss,
-        onConfirm = onConfirm,
-        initialProjectLinks = emptyList(),
-        initialAttachmentLinks = emptyList(),
-        attachmentOptions = attachmentOptions,
-    )
-}
-
-@Composable
 private fun MissionActionSheetItem(
     icon: ImageVector,
     text: String,
@@ -522,183 +548,6 @@ private fun SubtleActionDivider() {
     )
 }
 
-@Composable
-fun MissionDialog(
-    title: String,
-    initialTitle: String,
-    initialDescription: String,
-    initialDeadline: String,
-    initialProjectLinks: List<String>,
-    initialAttachmentLinks: List<String>,
-    attachmentOptions: List<AttachmentOption>,
-    initialStatus: MissionStatus = MissionStatus.ACTIVE,
-    confirmText: String,
-    onDismiss: () -> Unit,
-    onConfirm: (String, String, Long, MissionStatus, List<String>, List<String>) -> Unit,
-) {
-    var titleField by remember { mutableStateOf(initialTitle) }
-    var descField by remember { mutableStateOf(initialDescription) }
-    var deadlineField by remember { mutableStateOf(initialDeadline) }
-    var deadlineLong by remember { mutableStateOf(initialDeadline.toLong()) }
-    var statusField by remember { mutableStateOf(initialStatus) }
-    var showDeadlinePicker by remember { mutableStateOf(false) }
-    val projectLinks = remember { mutableStateListOf<String>().apply { addAll(initialProjectLinks) } }
-    val attachmentLinks = remember { mutableStateListOf<String>().apply { addAll(initialAttachmentLinks) } }
-    var showAttachmentChooser by remember { mutableStateOf(false) }
-
-    fun attachmentLabel(id: String): String {
-        return attachmentOptions.firstOrNull { it.id == id }?.name ?: id
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title, fontWeight = FontWeight.Bold) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = titleField,
-                    onValueChange = { titleField = it },
-                    label = { Text("Title") },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                OutlinedTextField(
-                    value = descField,
-                    onValueChange = { descField = it },
-                    label = { Text("Description") },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                Button(
-                    onClick = { showDeadlinePicker = true },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Select Deadline: ${formatDate(deadlineLong)}")
-                }
-
-                Text("Status", style = MaterialTheme.typography.titleSmall)
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    listOf(MissionStatus.ACTIVE, MissionStatus.INACTIVE, MissionStatus.PAUSED).forEach { status ->
-                        FilterChip(
-                            selected = statusField == status,
-                            onClick = { statusField = status },
-                            label = {
-                                Text(
-                                    when (status) {
-                                        MissionStatus.ACTIVE -> "Активна"
-                                        MissionStatus.INACTIVE -> "Неактивна"
-                                        MissionStatus.PAUSED -> "На паузі"
-                                        MissionStatus.COMPLETED -> "Завершена"
-                                    },
-                                )
-                            },
-                        )
-                    }
-                }
-
-                HorizontalDivider()
-
-                Text("Attachments", style = MaterialTheme.typography.titleSmall)
-                if (attachmentLinks.isEmpty()) {
-                    Text(
-                        "No attachments linked",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        attachmentLinks.forEach { id ->
-                            Row(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    attachmentLabel(id),
-                                    modifier = Modifier.weight(1f),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                                IconButton(onClick = { attachmentLinks.remove(id) }) {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        contentDescription = "Remove attachment",
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Button(
-                    onClick = { showAttachmentChooser = true },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Add attachment")
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    onConfirm(
-                        titleField,
-                        descField,
-                        deadlineLong,
-                        statusField,
-                        projectLinks.toList(),
-                        attachmentLinks.toList(),
-                    )
-                },
-                enabled = titleField.isNotBlank(),
-            ) {
-                Text(confirmText)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
-    )
-
-    if (showDeadlinePicker) {
-        DeadlinePickerDialog(
-            initialTime = deadlineLong,
-            onDismiss = { showDeadlinePicker = false },
-            onConfirm = {
-                deadlineLong = it
-                showDeadlinePicker = false
-            },
-        )
-    }
-
-    if (showAttachmentChooser) {
-        AttachmentChooserScreen(
-            options = attachmentOptions,
-            preselected = attachmentLinks.toSet(),
-            onDismiss = { showAttachmentChooser = false },
-            onConfirm = { selected ->
-                selected.forEach { id ->
-                    if (!attachmentLinks.contains(id)) {
-                        attachmentLinks.add(id)
-                    }
-                }
-                showAttachmentChooser = false
-            },
-        )
-    }
-}
-
-private fun formatDate(ts: Long): String {
-    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-    return sdf.format(Date(ts))
-}
-
 private fun CreateConnectionType.toPickerCreateAction(): PickerCreateAction =
     when (this) {
         CreateConnectionType.CONTEXT -> PickerCreateAction.CONTEXT
@@ -709,91 +558,3 @@ private fun CreateConnectionType.toPickerCreateAction(): PickerCreateAction =
         CreateConnectionType.EXTERNAL_LINK -> PickerCreateAction.WEB_LINK
         CreateConnectionType.OBSIDIAN_NOTE -> PickerCreateAction.OBSIDIAN
     }
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DeadlinePickerDialog(
-    initialTime: Long = System.currentTimeMillis(),
-    onDismiss: () -> Unit,
-    onConfirm: (Long) -> Unit,
-) {
-    val initialCalendar =
-        remember(initialTime) {
-            Calendar.getInstance().apply { timeInMillis = initialTime }
-        }
-
-    var selectedDate by remember { mutableStateOf(initialCalendar.timeInMillis) }
-    var showTimePicker by remember { mutableStateOf(false) }
-
-    if (showTimePicker) {
-        TimePickerDialog(
-            initialCalendar = Calendar.getInstance().apply { timeInMillis = selectedDate },
-            onDismiss = onDismiss,
-            onConfirm = { hour, minute ->
-                val calendar =
-                    Calendar.getInstance().apply {
-                        timeInMillis = selectedDate
-                        set(Calendar.HOUR_OF_DAY, hour)
-                        set(Calendar.MINUTE, minute)
-                    }
-                onConfirm(calendar.timeInMillis)
-            },
-        )
-        return
-    }
-
-    val datePickerState =
-        rememberDatePickerState(
-            initialSelectedDateMillis = initialCalendar.timeInMillis,
-        )
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Select Deadline") },
-        text = {
-            DatePicker(state = datePickerState)
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    selectedDate =
-                        datePickerState.selectedDateMillis ?: initialCalendar.timeInMillis
-
-                    showTimePicker = true
-                },
-            ) { Text("Next") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TimePickerDialog(
-    initialCalendar: Calendar,
-    onDismiss: () -> Unit,
-    onConfirm: (hour: Int, minute: Int) -> Unit,
-) {
-    val state =
-        rememberTimePickerState(
-            initialHour = initialCalendar.get(Calendar.HOUR_OF_DAY),
-            initialMinute = initialCalendar.get(Calendar.MINUTE),
-            is24Hour = true,
-        )
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Select Time") },
-        text = { TimePicker(state = state) },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(state.hour, state.minute) }) {
-                Text("OK")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        },
-    )
-}

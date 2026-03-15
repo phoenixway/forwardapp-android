@@ -24,15 +24,40 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.features.reminders.util.ReminderTextUtil.formatDateTime
 
+private const val MINUTES_PER_HOUR = 60
+private const val MIN_HOURS = 0
+private const val MAX_HOURS = 23
+private const val HOUR_SLIDER_STEPS = 22
+private const val MIN_MINUTES = 0
+private const val MAX_MINUTES = 59
+private const val MINUTE_SLIDER_STEPS = 58
+private const val QUICK_OPTION_ONE_HOUR = 1
+private const val QUICK_OPTION_TWO_HOURS = 2
+private const val QUICK_OPTION_FOUR_HOURS = 4
+private const val QUICK_OPTION_EIGHT_HOURS = 8
+private val QuickHourOptions =
+    listOf(
+        QUICK_OPTION_ONE_HOUR,
+        QUICK_OPTION_TWO_HOURS,
+        QUICK_OPTION_FOUR_HOURS,
+        QUICK_OPTION_EIGHT_HOURS,
+    )
+private const val INITIAL_TOTAL_MINUTES_RADIX = 10
+private const val MILLIS_PER_SECOND = 1000L
+
 @Composable
 fun CustomDurationPicker(
     minutes: String,
     onMinutesChanged: (String) -> Unit,
 ) {
-    var hours by remember { mutableStateOf(0) }
-    var mins by remember { mutableStateOf(0) }
+    val initialTotalMinutes =
+        remember(minutes) {
+            minutes.toIntOrNull(INITIAL_TOTAL_MINUTES_RADIX)?.coerceAtLeast(0) ?: 0
+        }
+    var hours by remember(initialTotalMinutes) { mutableStateOf(initialTotalMinutes / MINUTES_PER_HOUR) }
+    var mins by remember(initialTotalMinutes) { mutableStateOf(initialTotalMinutes % MINUTES_PER_HOUR) }
 
-    val totalMinutes = hours * 60 + mins
+    val totalMinutes = hours * MINUTES_PER_HOUR + mins
 
     LaunchedEffect(totalMinutes) {
         onMinutesChanged(totalMinutes.toString())
@@ -45,120 +70,136 @@ fun CustomDurationPicker(
             fontWeight = FontWeight.Medium,
         )
 
-        // Quick selection chips
-        com.google.accompanist.flowlayout.FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            mainAxisSpacing = 8.dp,
-            crossAxisSpacing = 8.dp,
-        ) {
-            listOf(1, 2, 4, 8).forEach { h ->
-                OutlinedButton(
-                    onClick = {
-                        hours = h
-                        mins = 0
-                    },
-                ) {
-                    Text("$h год")
-                }
-            }
-        }
-
-        // Sliders for hours and minutes
-        Card(
-            colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                ),
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                // Hours slider
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        "Годин: $hours",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                    )
-                    Row {
-                        IconButton(
-                            onClick = { if (hours > 0) hours-- },
-                            enabled = hours > 0,
-                        ) {
-                            Text("−", style = MaterialTheme.typography.headlineSmall)
-                        }
-                        IconButton(
-                            onClick = { if (hours < 23) hours++ },
-                            enabled = hours < 23,
-                        ) {
-                            Text("+", style = MaterialTheme.typography.headlineSmall)
-                        }
-                    }
-                }
-                Slider(
-                    value = hours.toFloat(),
-                    onValueChange = { hours = it.toInt() },
-                    valueRange = 0f..23f,
-                    steps = 22,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                // Minutes slider
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        "Хвилин: $mins",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                    )
-                    Row {
-                        IconButton(
-                            onClick = { if (mins > 0) mins-- },
-                            enabled = mins > 0,
-                        ) {
-                            Text("−", style = MaterialTheme.typography.headlineSmall)
-                        }
-                        IconButton(
-                            onClick = { if (mins < 59) mins++ },
-                            enabled = mins < 59,
-                        ) {
-                            Text("+", style = MaterialTheme.typography.headlineSmall)
-                        }
-                    }
-                }
-                Slider(
-                    value = mins.toFloat(),
-                    onValueChange = { mins = it.toInt() },
-                    valueRange = 0f..59f,
-                    steps = 58,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
+        QuickHourSelection(
+            onHourSelected = { selectedHours ->
+                hours = selectedHours
+                mins = 0
+            },
+        )
+        DurationSliders(
+            hours = hours,
+            mins = mins,
+            onHoursChanged = { hours = it },
+            onMinutesChanged = { mins = it },
+        )
 
         if (totalMinutes > 0) {
-            val future = System.currentTimeMillis() + totalMinutes * 60 * 1000L
-            Card(
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    ),
-            ) {
-                Text(
-                    text = "Нагадування: ${formatDateTime(future)}",
-                    modifier = Modifier.padding(12.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
+            val future = System.currentTimeMillis() + totalMinutes * MINUTES_PER_HOUR * MILLIS_PER_SECOND
+            ReminderPreviewCard(future)
+        }
+    }
+}
+
+@Composable
+private fun QuickHourSelection(
+    onHourSelected: (Int) -> Unit,
+) {
+    com.google.accompanist.flowlayout.FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        mainAxisSpacing = 8.dp,
+        crossAxisSpacing = 8.dp,
+    ) {
+        QuickHourOptions.forEach { h ->
+            OutlinedButton(onClick = { onHourSelected(h) }) {
+                Text("$h год")
             }
         }
+    }
+}
+
+@Composable
+private fun DurationSliders(
+    hours: Int,
+    mins: Int,
+    onHoursChanged: (Int) -> Unit,
+    onMinutesChanged: (Int) -> Unit,
+) {
+    Card(
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+            ),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            DurationSliderRow(
+                title = "Годин",
+                value = hours,
+                minValue = MIN_HOURS,
+                maxValue = MAX_HOURS,
+                steps = HOUR_SLIDER_STEPS,
+                onValueChanged = onHoursChanged,
+            )
+            DurationSliderRow(
+                title = "Хвилин",
+                value = mins,
+                minValue = MIN_MINUTES,
+                maxValue = MAX_MINUTES,
+                steps = MINUTE_SLIDER_STEPS,
+                onValueChanged = onMinutesChanged,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DurationSliderRow(
+    title: String,
+    value: Int,
+    minValue: Int,
+    maxValue: Int,
+    steps: Int,
+    onValueChanged: (Int) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            "$title: $value",
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+        )
+        Row {
+            IconButton(
+                onClick = { if (value > minValue) onValueChanged(value - 1) },
+                enabled = value > minValue,
+            ) {
+                Text("−", style = MaterialTheme.typography.headlineSmall)
+            }
+            IconButton(
+                onClick = { if (value < maxValue) onValueChanged(value + 1) },
+                enabled = value < maxValue,
+            ) {
+                Text("+", style = MaterialTheme.typography.headlineSmall)
+            }
+        }
+    }
+    Slider(
+        value = value.toFloat(),
+        onValueChange = { onValueChanged(it.toInt()) },
+        valueRange = minValue.toFloat()..maxValue.toFloat(),
+        steps = steps,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+@Composable
+private fun ReminderPreviewCard(future: Long) {
+    Card(
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+            ),
+    ) {
+        Text(
+            text = "Нагадування: ${formatDateTime(future)}",
+            modifier = Modifier.padding(12.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
     }
 }

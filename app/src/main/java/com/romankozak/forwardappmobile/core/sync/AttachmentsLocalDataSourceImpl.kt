@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package com.romankozak.forwardappmobile.core.sync
 
 import androidx.room.withTransaction
@@ -142,9 +144,11 @@ class AttachmentsLocalDataSourceImpl
         }
 
         // AttachmentsLocalDataSourceImpl.kt
-        override fun getAttachmentLibraryItems(): Flow<List<AttachmentLibraryQueryResult>> = attachmentDao.getLibraryItemsFlow()
+        override fun getAttachmentLibraryItems(): Flow<List<AttachmentLibraryQueryResult>> =
+            attachmentDao.getLibraryItemsFlow()
 
-        override fun getAllAttachmentLinks(): Flow<List<ContextAttachmentCrossRef>> = attachmentDao.getAllContextAttachmentLinksFlow()
+        override fun getAllAttachmentLinks(): Flow<List<ContextAttachmentCrossRef>> =
+            attachmentDao.getAllContextAttachmentLinksFlow()
 
         override suspend fun linkAttachmentToContext(
             attachmentId: String,

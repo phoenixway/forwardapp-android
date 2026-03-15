@@ -20,36 +20,36 @@ object ReminderTextUtil {
         val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
         val formattedTime = timeFormat.format(calendar.time)
 
-        if (reminderTime < now) {
-            val relativeTime =
-                DateUtils
-                    .getRelativeTimeSpanString(
-                        reminderTime,
-                        now,
-                        DateUtils.MINUTE_IN_MILLIS,
-                    ).toString()
-            return "Пропущено ($relativeTime)"
-        }
-
         val diff = reminderTime - now
-        if (diff < ONE_MINUTE_MILLIS) {
-            return "Через хвилину"
-        }
-        if (diff < ONE_HOUR_MILLIS) {
-            val minutes = (diff / ONE_MINUTE_MILLIS).toInt()
-            return "Через $minutes хв"
-        }
+        val formattedText =
+            when {
+                reminderTime < now -> {
+                    val relativeTime =
+                        DateUtils
+                            .getRelativeTimeSpanString(
+                                reminderTime,
+                                now,
+                                DateUtils.MINUTE_IN_MILLIS,
+                            ).toString()
+                    "Пропущено ($relativeTime)"
+                }
 
-        if (DateUtils.isToday(reminderTime)) {
-            return "Сьогодні о $formattedTime"
-        }
+                diff < ONE_MINUTE_MILLIS -> "Через хвилину"
 
-        if (isTomorrow(reminderTime)) {
-            return "Завтра о $formattedTime"
-        }
+                diff < ONE_HOUR_MILLIS -> {
+                    val minutes = (diff / ONE_MINUTE_MILLIS).toInt()
+                    "Через $minutes хв"
+                }
 
-        val dateFormat = SimpleDateFormat("d MMM о HH:mm", Locale.forLanguageTag("uk-UA"))
-        return dateFormat.format(calendar.time)
+                DateUtils.isToday(reminderTime) -> "Сьогодні о $formattedTime"
+                isTomorrow(reminderTime) -> "Завтра о $formattedTime"
+                else -> {
+                    val dateFormat =
+                        SimpleDateFormat("d MMM о HH:mm", Locale.forLanguageTag("uk-UA"))
+                    dateFormat.format(calendar.time)
+                }
+            }
+        return formattedText
     }
 
     private fun isTomorrow(time: Long): Boolean {
@@ -63,5 +63,6 @@ object ReminderTextUtil {
             tomorrow.get(Calendar.DAY_OF_YEAR) == target.get(Calendar.DAY_OF_YEAR)
     }
 
-    fun formatDateTime(timeMillis: Long): String = SimpleDateFormat("dd.MM.yyyy 'о' HH:mm", Locale.getDefault()).format(Date(timeMillis))
+    fun formatDateTime(timeMillis: Long): String =
+        SimpleDateFormat("dd.MM.yyyy 'о' HH:mm", Locale.getDefault()).format(Date(timeMillis))
 }

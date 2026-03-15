@@ -43,6 +43,8 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
+private val DateTimePickerIconSize = 16.dp
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DateTimePicker(
@@ -127,47 +129,14 @@ fun DateTimePickerDialog(
         title = { Text("Виберіть дату і час") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    OutlinedButton(
-                        onClick = { showDatePicker = true },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(selectedDate)),
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        }
-                    }
+                DateTimeSelectionButtons(
+                    selectedDate = selectedDate,
+                    selectedTime = selectedTime,
+                    onDateClick = { showDatePicker = true },
+                    onTimeClick = { showTimePicker = true },
+                )
 
-                    OutlinedButton(
-                        onClick = { showTimePicker = true },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.AccessTime, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                String.format(Locale.getDefault(), "%02d:%02d", selectedTime.first, selectedTime.second),
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        }
-                    }
-                }
-
-                val finalDateTime =
-                    Calendar
-                        .getInstance()
-                        .apply {
-                            timeInMillis = selectedDate
-                            set(Calendar.HOUR_OF_DAY, selectedTime.first)
-                            set(Calendar.MINUTE, selectedTime.second)
-                        }.timeInMillis
+                val finalDateTime = buildDateTime(selectedDate, selectedTime)
 
                 Card(
                     colors =
@@ -186,28 +155,8 @@ fun DateTimePickerDialog(
         },
         confirmButton = {
             Button(
-                onClick = {
-                    val finalDateTime =
-                        Calendar
-                            .getInstance()
-                            .apply {
-                                timeInMillis = selectedDate
-                                set(Calendar.HOUR_OF_DAY, selectedTime.first)
-                                set(Calendar.MINUTE, selectedTime.second)
-                                set(Calendar.SECOND, 0)
-                                set(Calendar.MILLISECOND, 0)
-                            }.timeInMillis
-
-                    onConfirm(finalDateTime)
-                },
-                enabled =
-                    Calendar
-                        .getInstance()
-                        .apply {
-                            timeInMillis = selectedDate
-                            set(Calendar.HOUR_OF_DAY, selectedTime.first)
-                            set(Calendar.MINUTE, selectedTime.second)
-                        }.timeInMillis > System.currentTimeMillis(),
+                onClick = { onConfirm(buildDateTime(selectedDate, selectedTime)) },
+                enabled = buildDateTime(selectedDate, selectedTime) > System.currentTimeMillis(),
             ) {
                 Text("Підтвердити")
             }
@@ -220,57 +169,148 @@ fun DateTimePickerDialog(
     )
 
     if (showDatePicker) {
-        val datePickerState =
-            rememberDatePickerState(
-                initialSelectedDateMillis = selectedDate,
-            )
-
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { selectedDate = it }
-                    showDatePicker = false
-                }) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Скасувати")
-                }
-            },
-        ) {
-            DatePicker(state = datePickerState)
-        }
+        DateSelectionDialog(
+            selectedDate = selectedDate,
+            onDismiss = { showDatePicker = false },
+            onDateSelected = { selectedDate = it },
+        )
     }
 
     if (showTimePicker) {
-        val timePickerState =
-            rememberTimePickerState(
-                initialHour = selectedTime.first,
-                initialMinute = selectedTime.second,
-                is24Hour = true,
-            )
-
-        AlertDialog(
-            onDismissRequest = { showTimePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    selectedTime = timePickerState.hour to timePickerState.minute
-                    showTimePicker = false
-                }) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) {
-                    Text("Скасувати")
-                }
-            },
-            text = {
-                TimePicker(state = timePickerState)
-            },
+        TimeSelectionDialog(
+            selectedTime = selectedTime,
+            onDismiss = { showTimePicker = false },
+            onTimeSelected = { selectedTime = it },
         )
     }
 }
+
+@Composable
+private fun DateTimeSelectionButtons(
+    selectedDate: Long,
+    selectedTime: Pair<Int, Int>,
+    onDateClick: () -> Unit,
+    onTimeClick: () -> Unit,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        OutlinedButton(
+            onClick = onDateClick,
+            modifier = Modifier.weight(1f),
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    Icons.Default.DateRange,
+                    contentDescription = null,
+                    modifier = Modifier.size(DateTimePickerIconSize),
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(selectedDate)),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
+
+        OutlinedButton(
+            onClick = onTimeClick,
+            modifier = Modifier.weight(1f),
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    Icons.Default.AccessTime,
+                    contentDescription = null,
+                    modifier = Modifier.size(DateTimePickerIconSize),
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    String.format(
+                        Locale.getDefault(),
+                        "%02d:%02d",
+                        selectedTime.first,
+                        selectedTime.second,
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DateSelectionDialog(
+    selectedDate: Long,
+    onDismiss: () -> Unit,
+    onDateSelected: (Long) -> Unit,
+) {
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDate)
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                datePickerState.selectedDateMillis?.let(onDateSelected)
+                onDismiss()
+            }) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Скасувати")
+            }
+        },
+    ) {
+        DatePicker(state = datePickerState)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TimeSelectionDialog(
+    selectedTime: Pair<Int, Int>,
+    onDismiss: () -> Unit,
+    onTimeSelected: (Pair<Int, Int>) -> Unit,
+) {
+    val timePickerState =
+        rememberTimePickerState(
+            initialHour = selectedTime.first,
+            initialMinute = selectedTime.second,
+            is24Hour = true,
+        )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                onTimeSelected(timePickerState.hour to timePickerState.minute)
+                onDismiss()
+            }) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Скасувати")
+            }
+        },
+        text = { TimePicker(state = timePickerState) },
+    )
+}
+
+private fun buildDateTime(
+    selectedDate: Long,
+    selectedTime: Pair<Int, Int>,
+): Long =
+    Calendar
+        .getInstance()
+        .apply {
+            timeInMillis = selectedDate
+            set(Calendar.HOUR_OF_DAY, selectedTime.first)
+            set(Calendar.MINUTE, selectedTime.second)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis

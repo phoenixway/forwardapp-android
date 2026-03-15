@@ -1,4 +1,4 @@
-package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems
+package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider

@@ -47,6 +47,10 @@ import com.romankozak.forwardappmobile.features.ai.insights.AiInsightsViewModel
 import com.romankozak.forwardappmobile.features.ai.insights.AiMessage
 import com.romankozak.forwardappmobile.features.ai.insights.MessageType
 
+private const val DASHBOARD_INSIGHTS_LIMIT = 3
+private const val FOCUS_CARD_BACKGROUND_ALPHA = 0.35f
+private const val INSIGHT_DISMISS_BACKGROUND_ALPHA = 0.6f
+
 @Composable
 fun DashboardContent(
     modifier: Modifier = Modifier,
@@ -98,28 +102,13 @@ private fun AnimatedCommandDeck(
             )
         }
 
-        if (focusContextsExpanded) {
-            if (focusedContexts.isEmpty()) {
-                item {
-                    MetricCard(
-                        title = "Немає фокус-контекстів",
-                        value = "Додай контексти у фокус",
-                        subtitle = "через меню в ієрархії або з екрана контексту",
-                    )
-                }
-            } else {
-                focusedContexts.forEach { focusedContext ->
-                    item {
-                        FocusContextCard(
-                            name = focusedContext.name,
-                            onOpen = { onOpenFocusedContext(focusedContext.contextId) },
-                            onStartTracking = { focusContextsViewModel.startTracking(focusedContext.contextId) },
-                            onDefocus = { focusContextsViewModel.unfocus(focusedContext.contextId) },
-                        )
-                    }
-                }
-            }
-        }
+        DashboardFocusContextsSection(
+            isExpanded = focusContextsExpanded,
+            focusedContexts = focusedContexts,
+            onOpenFocusedContext = onOpenFocusedContext,
+            onStartTracking = focusContextsViewModel::startTracking,
+            onDefocus = focusContextsViewModel::unfocus,
+        )
 
         item {
             SectionHeader(
@@ -130,32 +119,83 @@ private fun AnimatedCommandDeck(
             )
         }
 
-        if (aiInsightsExpanded) {
-            val latestInsights =
-                aiInsights
-                    .filterNot { it.isRead || dismissedInsightIds.contains(it.id) }
-                    .take(3)
-            if (latestInsights.isNotEmpty()) {
-                latestInsights.forEach { insight ->
-                    item(key = "deck_insight_${insight.id}") {
-                        AiInsightCard(
-                            insight = insight,
-                            onMarkRead = {
-                                dismissedInsightIds = dismissedInsightIds + insight.id
-                                aiInsightsViewModel.markRead(insight.id)
-                            },
-                        )
-                    }
-                }
-            } else {
-                item {
-                    MetricCard(
-                        title = "Немає інсайтів",
-                        value = "Поки що немає аналітики",
-                        subtitle = "AI ще не згенерував інсайти",
-                    )
-                }
+        DashboardAiInsightsSection(
+            isExpanded = aiInsightsExpanded,
+            aiInsights = aiInsights,
+            dismissedInsightIds = dismissedInsightIds,
+            onDismissInsight = { insightId ->
+                dismissedInsightIds = dismissedInsightIds + insightId
+                aiInsightsViewModel.markRead(insightId)
+            },
+        )
+    }
+}
+
+private fun androidx.compose.foundation.lazy.LazyListScope.DashboardFocusContextsSection(
+    isExpanded: Boolean,
+    focusedContexts: List<FocusContextsViewModel.FocusedContextUi>,
+    onOpenFocusedContext: (String) -> Unit,
+    onStartTracking: (String) -> Unit,
+    onDefocus: (String) -> Unit,
+) {
+    if (!isExpanded) {
+        return
+    }
+
+    if (focusedContexts.isEmpty()) {
+        item {
+            MetricCard(
+                title = "Немає фокус-контекстів",
+                value = "Додай контексти у фокус",
+                subtitle = "через меню в ієрархії або з екрана контексту",
+            )
+        }
+        return
+    }
+
+    focusedContexts.forEach { focusedContext ->
+        item {
+            FocusContextCard(
+                name = focusedContext.name,
+                onOpen = { onOpenFocusedContext(focusedContext.contextId) },
+                onStartTracking = { onStartTracking(focusedContext.contextId) },
+                onDefocus = { onDefocus(focusedContext.contextId) },
+            )
+        }
+    }
+}
+
+private fun androidx.compose.foundation.lazy.LazyListScope.DashboardAiInsightsSection(
+    isExpanded: Boolean,
+    aiInsights: List<AiMessage>,
+    dismissedInsightIds: Set<String>,
+    onDismissInsight: (String) -> Unit,
+) {
+    if (!isExpanded) {
+        return
+    }
+
+    val latestInsights =
+        aiInsights
+            .filterNot { it.isRead || dismissedInsightIds.contains(it.id) }
+            .take(DASHBOARD_INSIGHTS_LIMIT)
+
+    if (latestInsights.isNotEmpty()) {
+        latestInsights.forEach { insight ->
+            item(key = "deck_insight_${insight.id}") {
+                AiInsightCard(
+                    insight = insight,
+                    onMarkRead = { onDismissInsight(insight.id) },
+                )
             }
+        }
+    } else {
+        item {
+            MetricCard(
+                title = "Немає інсайтів",
+                value = "Поки що немає аналітики",
+                subtitle = "AI ще не згенерував інсайти",
+            )
         }
     }
 }
@@ -170,7 +210,11 @@ private fun FocusContextCard(
     Card(
         onClick = onOpen,
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.35f)),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = FOCUS_CARD_BACKGROUND_ALPHA),
+            ),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -268,9 +312,21 @@ private fun MetricCard(
             modifier = Modifier.padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text(title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                title,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                value,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -281,34 +337,9 @@ private fun AiInsightCard(
     insight: AiMessage,
     onMarkRead: () -> Unit,
 ) {
-    val backgroundColor =
-        when (insight.type) {
-            MessageType.MOTIVATION -> MaterialTheme.colorScheme.primaryContainer
-            MessageType.JOKE -> MaterialTheme.colorScheme.secondaryContainer
-            MessageType.INFO -> MaterialTheme.colorScheme.tertiaryContainer
-            MessageType.WARNING -> MaterialTheme.colorScheme.errorContainer
-            MessageType.ERROR -> MaterialTheme.colorScheme.errorContainer
-        }
-    val textColor =
-        when (insight.type) {
-            MessageType.MOTIVATION -> MaterialTheme.colorScheme.onPrimaryContainer
-            MessageType.JOKE -> MaterialTheme.colorScheme.onSecondaryContainer
-            MessageType.INFO -> MaterialTheme.colorScheme.onTertiaryContainer
-            MessageType.WARNING -> MaterialTheme.colorScheme.onErrorContainer
-            MessageType.ERROR -> MaterialTheme.colorScheme.onErrorContainer
-        }
-    val timeFormatter = remember { java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()) }
-    val dismissState =
-        rememberSwipeToDismissBoxState(
-            confirmValueChange = { value ->
-                if (value == SwipeToDismissBoxValue.StartToEnd || value == SwipeToDismissBoxValue.EndToStart) {
-                    onMarkRead()
-                    true
-                } else {
-                    false
-                }
-            },
-        )
+    val insightColors = insightColors(insight.type)
+    val timeFormatter = rememberInsightTimeFormatter()
+    val dismissState = rememberInsightDismissState(onMarkRead)
 
     SwipeToDismissBox(
         state = dismissState,
@@ -317,7 +348,10 @@ private fun AiInsightCard(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
+                        .background(
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = INSIGHT_DISMISS_BACKGROUND_ALPHA),
+                            RoundedCornerShape(16.dp),
+                        )
                         .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.CenterStart,
             ) {
@@ -335,26 +369,94 @@ private fun AiInsightCard(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = backgroundColor),
+            colors = CardDefaults.cardColors(containerColor = insightColors.backgroundColor),
         ) {
-            Column(
-                modifier = Modifier.padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    text = insight.text,
-                    color = textColor,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (insight.isRead) FontWeight.Normal else FontWeight.Bold,
-                )
-                Text(
-                    text = "${insight.type.name.lowercase().replaceFirstChar { it.uppercase() }} • ${timeFormatter.format(
-                        java.util.Date(insight.timestamp),
-                    )}",
-                    color = textColor.copy(alpha = 0.7f),
-                    style = MaterialTheme.typography.labelSmall,
-                )
-            }
+            AiInsightContent(
+                insight = insight,
+                textColor = insightColors.textColor,
+                timeFormatter = timeFormatter,
+            )
         }
     }
 }
+
+@Composable
+private fun AiInsightContent(
+    insight: AiMessage,
+    textColor: androidx.compose.ui.graphics.Color,
+    timeFormatter: java.text.SimpleDateFormat,
+) {
+    Column(
+        modifier = Modifier.padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = insight.text,
+            color = textColor,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (insight.isRead) FontWeight.Normal else FontWeight.Bold,
+        )
+        Text(
+            text = formatInsightMeta(insight, timeFormatter),
+            color = textColor.copy(alpha = 0.7f),
+            style = MaterialTheme.typography.labelSmall,
+        )
+    }
+}
+
+@Composable
+private fun rememberInsightTimeFormatter(): java.text.SimpleDateFormat =
+    remember { java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()) }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun rememberInsightDismissState(
+    onMarkRead: () -> Unit,
+) = rememberSwipeToDismissBoxState(
+    confirmValueChange = { value ->
+        if (value == SwipeToDismissBoxValue.StartToEnd || value == SwipeToDismissBoxValue.EndToStart) {
+            onMarkRead()
+            true
+        } else {
+            false
+        }
+    },
+)
+
+private data class InsightColors(
+    val backgroundColor: androidx.compose.ui.graphics.Color,
+    val textColor: androidx.compose.ui.graphics.Color,
+)
+
+@Composable
+private fun insightColors(type: MessageType): InsightColors =
+    when (type) {
+        MessageType.MOTIVATION ->
+            InsightColors(
+                backgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                textColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        MessageType.JOKE ->
+            InsightColors(
+                backgroundColor = MaterialTheme.colorScheme.secondaryContainer,
+                textColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+        MessageType.INFO ->
+            InsightColors(
+                backgroundColor = MaterialTheme.colorScheme.tertiaryContainer,
+                textColor = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+        MessageType.WARNING,
+        MessageType.ERROR ->
+            InsightColors(
+                backgroundColor = MaterialTheme.colorScheme.errorContainer,
+                textColor = MaterialTheme.colorScheme.onErrorContainer,
+            )
+    }
+
+private fun formatInsightMeta(
+    insight: AiMessage,
+    timeFormatter: java.text.SimpleDateFormat,
+): String =
+    "${insight.type.name.lowercase().replaceFirstChar { it.uppercase() }} • " +
+        timeFormatter.format(java.util.Date(insight.timestamp))

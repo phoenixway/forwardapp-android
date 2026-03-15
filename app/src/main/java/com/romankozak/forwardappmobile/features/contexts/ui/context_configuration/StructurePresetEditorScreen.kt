@@ -126,19 +126,21 @@ fun StructurePresetEditorScreen(
             item {
                 FeatureToggles(
                     enableInbox = uiState.enableInbox,
-                    onInboxChange = viewModel::onEnableInboxChange,
+                    onInboxChange = { viewModel.updateToggle(PresetToggle.INBOX, it) },
                     enableLog = uiState.enableLog,
-                    onLogChange = viewModel::onEnableLogChange,
+                    onLogChange = { viewModel.updateToggle(PresetToggle.LOG, it) },
                     enableAdvanced = uiState.enableAdvanced,
-                    onAdvancedChange = viewModel::onEnableAdvancedChange,
+                    onAdvancedChange = { viewModel.updateToggle(PresetToggle.ADVANCED, it) },
                     enableDashboard = uiState.enableDashboard,
-                    onDashboardChange = viewModel::onEnableDashboardChange,
+                    onDashboardChange = { viewModel.updateToggle(PresetToggle.DASHBOARD, it) },
                     enableBacklog = uiState.enableBacklog,
-                    onBacklogChange = viewModel::onEnableBacklogChange,
+                    onBacklogChange = { viewModel.updateToggle(PresetToggle.BACKLOG, it) },
                     enableAttachments = uiState.enableAttachments,
-                    onAttachmentsChange = viewModel::onEnableAttachmentsChange,
+                    onAttachmentsChange = { viewModel.updateToggle(PresetToggle.ATTACHMENTS, it) },
                     enableAutoLinkSubprojects = uiState.enableAutoLinkSubprojects,
-                    onAutoLinkSubprojectsChange = viewModel::onEnableAutoLinkSubprojectsChange,
+                    onAutoLinkSubprojectsChange = {
+                        viewModel.updateToggle(PresetToggle.AUTO_LINK_SUBPROJECTS, it)
+                    },
                 )
             }
 

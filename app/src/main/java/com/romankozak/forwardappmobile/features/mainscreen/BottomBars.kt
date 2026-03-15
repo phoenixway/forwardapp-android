@@ -153,14 +153,6 @@ fun DashboardBottomBar(
                         onNavigateToReminders()
                     }
                 },
-                onNavigateToProjectSearch = {
-                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
-                        if (!modalSheetState.isVisible) {
-                            showMoreBottomSheet = false
-                        }
-                        onNavigateToProjectSearch()
-                    }
-                },
                 onNavigateToPresets = {
                     coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
                         if (!modalSheetState.isVisible) {
@@ -410,7 +402,6 @@ fun DashboardBottomBar(
 @Composable
 private fun MoreBottomSheetContent(
     onNavigateToReminders: () -> Unit,
-    onNavigateToProjectSearch: () -> Unit,
     onNavigateToPresets: () -> Unit,
     onNavigateToProjectHierarchy: () -> Unit,
     onNavigateToAiChat: () -> Unit,
@@ -605,13 +596,13 @@ fun TodayBottomBar(
 }
 
 @Composable
-fun StrategicArcBottomBar(viewModel: StrategicArcViewModel) {
+fun StrategicArcBottomBar() {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // TODO: Add buttons based on StrategicArcViewModel logic
+        // Placeholder for future Strategic Arc actions.
     }
 }
 
@@ -622,7 +613,7 @@ fun CoreBottomBar() {
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // TODO: Add buttons for Core screen
+        // Placeholder for future Core screen actions.
     }
 }
 
@@ -633,7 +624,7 @@ fun TacticsBottomBar() {
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // TODO: Add buttons for Tactics screen
+        // Placeholder for future Tactics screen actions.
     }
 }
 

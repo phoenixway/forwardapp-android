@@ -29,6 +29,7 @@ import java.util.UUID
 import javax.inject.Inject
 
 private const val STRATEGIC_TAG = "strategic"
+private const val FLOW_STOP_TIMEOUT_MILLIS = 5_000L
 
 @HiltViewModel
 class StrategicManagementViewModel
@@ -55,7 +56,7 @@ class StrategicManagementViewModel
                 }
                 .stateIn(
                     scope = viewModelScope,
-                    started = SharingStarted.WhileSubscribed(5000),
+                    started = SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS),
                     initialValue = StrategicManagementUiState(isLoading = true),
                 )
 
@@ -208,24 +209,17 @@ class StrategicManagementViewModel
                     attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.CHECKLIST, checklistId)?.id
                 }
                 is NewDocumentDraft.WebLink -> {
-                    val target = request.url.trim()
-                    if (target.isBlank()) return null
-                    attachmentsRepository.createLinkAttachment(
-                        contextId = SystemContexts.STRATEGIC.raw,
-                        link = RelatedLink(type = LinkType.URL, target = target, displayName = request.name.trim().ifBlank { target }),
+                    createStrategicLinkAttachment(
+                        target = request.url,
+                        displayName = request.name,
+                        linkType = LinkType.URL,
                     )
                 }
                 is NewDocumentDraft.Obsidian -> {
-                    val target = request.noteName.trim()
-                    if (target.isBlank()) return null
-                    attachmentsRepository.createLinkAttachment(
-                        contextId = SystemContexts.STRATEGIC.raw,
-                        link =
-                            RelatedLink(
-                                type = LinkType.OBSIDIAN,
-                                target = target,
-                                displayName = request.displayName.trim().ifBlank { target },
-                            ),
+                    createStrategicLinkAttachment(
+                        target = request.noteName,
+                        displayName = request.displayName,
+                        linkType = LinkType.OBSIDIAN,
                     )
                 }
             }
@@ -258,6 +252,23 @@ class StrategicManagementViewModel
             viewModelScope.launch {
                 settingsRepository.setStrategicConnectionsOrder(order)
             }
+        }
+
+        private suspend fun createStrategicLinkAttachment(
+            target: String,
+            displayName: String,
+            linkType: LinkType,
+        ): String? {
+            val normalizedTarget = target.trim().takeIf { it.isNotBlank() } ?: return null
+            return attachmentsRepository.createLinkAttachment(
+                contextId = SystemContexts.STRATEGIC.raw,
+                link =
+                    RelatedLink(
+                        type = linkType,
+                        target = normalizedTarget,
+                        displayName = displayName.trim().ifBlank { normalizedTarget },
+                    ),
+            )
         }
 
         private suspend fun updateTags(

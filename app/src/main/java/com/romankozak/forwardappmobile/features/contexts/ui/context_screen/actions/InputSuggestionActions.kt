@@ -11,19 +11,25 @@ class InputSuggestionActions {
         cursorPosition: Int,
         suggestion: String,
     ): SuggestionApplyResult? {
-        val wordInfo = getCurrentWordInfo(currentText, cursorPosition) ?: return null
-        val startIndex = currentText.substring(0, cursorPosition).lastIndexOf(wordInfo.prefix)
-        if (startIndex < 0) return null
-        val newText =
-            currentText.substring(0, startIndex) +
-                suggestion +
-                " " +
-                currentText.substring(cursorPosition)
-        val newCursorPosition = startIndex + suggestion.length + 1
-        return SuggestionApplyResult(
-            text = newText,
-            cursorPosition = newCursorPosition,
-        )
+        val wordInfo = getCurrentWordInfo(currentText, cursorPosition)
+        val startIndex = wordInfo?.let {
+            currentText.substring(0, cursorPosition).lastIndexOf(it.prefix)
+        } ?: -1
+
+        return if (startIndex >= 0) {
+            val newText =
+                currentText.substring(0, startIndex) +
+                    suggestion +
+                    " " +
+                    currentText.substring(cursorPosition)
+            val newCursorPosition = startIndex + suggestion.length + 1
+            SuggestionApplyResult(
+                text = newText,
+                cursorPosition = newCursorPosition,
+            )
+        } else {
+            null
+        }
     }
 
     private data class WordInfo(
@@ -38,17 +44,22 @@ class InputSuggestionActions {
         val textUpToCursor = text.substring(0, cursorPosition)
         val lastAt = textUpToCursor.lastIndexOf('@')
         val lastHash = textUpToCursor.lastIndexOf('#')
-        if (lastAt == -1 && lastHash == -1) return null
-
-        val (startIndex, prefix) =
-            if (lastAt > lastHash) {
+        val markerInfo =
+            if (lastAt == -1 && lastHash == -1) {
+                null
+            } else if (lastAt > lastHash) {
                 lastAt to "@"
             } else {
                 lastHash to "#"
             }
 
-        val word = textUpToCursor.substring(startIndex + 1)
-        if (word.contains(" ")) return null
-        return WordInfo(word = word, prefix = prefix)
+        return markerInfo?.let { (startIndex, prefix) ->
+            val word = textUpToCursor.substring(startIndex + 1)
+            if (word.contains(" ")) {
+                null
+            } else {
+                WordInfo(word = word, prefix = prefix)
+            }
+        }
     }
 }

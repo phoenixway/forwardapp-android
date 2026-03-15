@@ -13,3 +13,5 @@ interface BaseHandlerResultListener {
         label: String = "Copied Text",
     )
 }
+
+typealias BaseHandler = BaseHandlerResultListener

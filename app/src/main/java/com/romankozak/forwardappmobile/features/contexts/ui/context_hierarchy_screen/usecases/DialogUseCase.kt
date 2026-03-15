@@ -3,8 +3,6 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 import android.net.Uri
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.data.repository.ActivityRepository
-import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DialogState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.state.DialogStateManager
@@ -21,21 +19,19 @@ class DialogUseCase
     @Inject
     constructor(
         private val dialogStateManager: DialogStateManager,
-        private val activityRepository: ActivityRepository,
         private val reminderRepository: ReminderRepository,
-        private val contextRepository: ContextRepository,
     ) {
         val dialogState: StateFlow<DialogState> = dialogStateManager.dialogState
 
         private val _recordForReminderDialog = MutableStateFlow<ActivityRecord?>(null)
         val recordForReminderDialog: StateFlow<ActivityRecord?> = _recordForReminderDialog.asStateFlow()
 
-        fun onAddNewProjectRequest() {
-            dialogStateManager.onAddNewProjectRequest()
-        }
-
-        fun onAddSubprojectRequest(parentProject: Context) {
-            dialogStateManager.onAddSubprojectRequest(parentProject)
+        fun onAddProjectRequest(parentProject: Context? = null) {
+            if (parentProject == null) {
+                dialogStateManager.onAddNewProjectRequest()
+            } else {
+                dialogStateManager.onAddSubprojectRequest(parentProject)
+            }
         }
 
         fun onMenuRequested(
@@ -49,16 +45,12 @@ class DialogUseCase
             dialogStateManager.onDeleteRequest(project)
         }
 
-        fun onShowAboutDialog() {
-            dialogStateManager.onShowAboutDialog()
-        }
-
-        fun onImportFromFileRequested(uri: Uri) {
-            dialogStateManager.onImportFromFileRequested(uri)
-        }
-
-        fun onExportToFileRequested() {
-            dialogStateManager.onExportToFileRequested()
+        fun onUtilityDialogRequest(request: UtilityDialogRequest) {
+            when (request) {
+                UtilityDialogRequest.About -> dialogStateManager.onShowAboutDialog()
+                UtilityDialogRequest.Export -> dialogStateManager.onExportToFileRequested()
+                is UtilityDialogRequest.Import -> dialogStateManager.onImportFromFileRequested(request.uri)
+            }
         }
 
         fun dismissDialog() {
@@ -129,3 +121,11 @@ class DialogUseCase
             }
         }
     }
+
+sealed interface UtilityDialogRequest {
+    data object About : UtilityDialogRequest
+
+    data object Export : UtilityDialogRequest
+
+    data class Import(val uri: Uri) : UtilityDialogRequest
+}

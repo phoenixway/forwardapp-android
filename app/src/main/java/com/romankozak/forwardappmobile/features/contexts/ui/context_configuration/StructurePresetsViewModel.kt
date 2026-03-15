@@ -6,7 +6,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProf
 import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +26,6 @@ class StructurePresetsViewModel
     @Inject
     constructor(
         private val structurePresetDao: StructurePresetDao,
-        private val structurePresetItemDao: StructurePresetItemDao,
         private val contextStructureRepository: ContextStructureRepository,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(StructurePresetsUiState())

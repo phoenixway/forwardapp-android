@@ -6,7 +6,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ListAlt
@@ -15,8 +24,17 @@ import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,21 +57,15 @@ fun LinkSearchResultItem(
     onOpenUrl: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.98f else 1f,
-        animationSpec = spring(dampingRatio = 0.8f),
-        label = "scale_animation",
-    )
-
     val linkType = result.link.linkData.type
-    val (icon, colors, actionHandler, actionIcon, actionDescription) =
+    val displayData =
         getLinkDisplayData(
             linkType = linkType,
             onOpenInObsidian = onOpenInObsidian,
             onGoToTargetProject = onGoToTargetProject,
             onOpenUrl = onOpenUrl,
         )
+    val scale = rememberLinkCardScale(interactionSource = interactionSource)
 
     Card(
         modifier =
@@ -72,108 +84,160 @@ fun LinkSearchResultItem(
             ),
         shape = RoundedCornerShape(16.dp),
     ) {
-        Row(
+        LinkResultCardContent(
+            result = result,
+            linkType = linkType,
+            displayData = displayData,
+        )
+    }
+}
+
+@Composable
+private fun rememberLinkCardScale(interactionSource: MutableInteractionSource): Float {
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(dampingRatio = 0.8f),
+        label = "scale_animation",
+    )
+    return scale
+}
+
+@Composable
+private fun LinkResultCardContent(
+    result: GlobalLinkSearchResult,
+    linkType: LinkType?,
+    displayData: LinkDisplayData,
+) {
+    Row(
+        modifier =
+            Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
             modifier =
                 Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(
+                        brush =
+                            Brush.verticalGradient(
+                                colors =
+                                    listOf(
+                                        displayData.colors.container.copy(alpha = 0.5f),
+                                        displayData.colors.container.copy(alpha = 0.3f),
+                                    ),
+                            ),
+                    ),
+            contentAlignment = Alignment.Center,
         ) {
-            Box(
-                modifier =
-                    Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            brush =
-                                Brush.verticalGradient(
-                                    colors =
-                                        listOf(
-                                            colors.container.copy(alpha = 0.5f),
-                                            colors.container.copy(alpha = 0.3f),
-                                        ),
-                                ),
-                        ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = "Іконка посилання",
-                    tint = colors.onContainer,
-                    modifier = Modifier.size(22.dp),
-                )
-            }
+            LinkResultLeadingIcon(displayData = displayData)
+        }
 
-            Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(16.dp))
 
-            Column(
-                modifier = Modifier.weight(1f),
-            ) {
-                Text(
-                    text = result.link.linkData.displayName ?: result.link.linkData.target,
-                    style =
-                        MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = FontWeight.SemiBold,
-                        ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
+        LinkResultContent(
+            result = result,
+            linkType = linkType,
+            displayData = displayData,
+        )
+        LinkResultActionButton(displayData = displayData)
+    }
+}
 
-                Spacer(modifier = Modifier.height(6.dp))
+@Composable
+private fun LinkResultLeadingIcon(displayData: LinkDisplayData) {
+    Icon(
+        imageVector = displayData.icon,
+        contentDescription = "Іконка посилання",
+        tint = displayData.colors.onContainer,
+        modifier = Modifier.size(22.dp),
+    )
+}
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ListAlt,
-                        contentDescription = "Проект",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(14.dp),
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = result.contextName,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+@Composable
+private fun RowScope.LinkResultContent(
+    result: GlobalLinkSearchResult,
+    linkType: LinkType?,
+    displayData: LinkDisplayData,
+) {
+    Column(modifier = Modifier.weight(1f)) {
+        Text(
+            text = result.link.linkData.displayName ?: result.link.linkData.target,
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
 
-                Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
+        LinkResultProjectMeta(contextName = result.contextName)
+        Spacer(modifier = Modifier.height(8.dp))
+        LinkResultTypeChip(
+            label = getLinkTypeLabel(linkType),
+            color = displayData.colors.primary,
+        )
+    }
+}
 
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = colors.primary.copy(alpha = 0.1f),
-                ) {
-                    Text(
-                        text = getLinkTypeLabel(linkType),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = colors.primary,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    )
-                }
-            }
+@Composable
+private fun LinkResultProjectMeta(contextName: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ListAlt,
+            contentDescription = "Проект",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(14.dp),
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = contextName,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
 
-            if (actionHandler != null && actionIcon != null) {
-                Spacer(modifier = Modifier.width(16.dp))
-                IconButton(
-                    onClick = actionHandler,
-                    modifier = Modifier.size(40.dp),
-                    colors =
-                        IconButtonDefaults.iconButtonColors(
-                            containerColor = colors.container.copy(alpha = 0.8f),
-                            contentColor = colors.onContainer,
-                        ),
-                ) {
-                    Icon(
-                        imageVector = actionIcon,
-                        contentDescription = actionDescription,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-            }
+@Composable
+private fun LinkResultTypeChip(
+    label: String,
+    color: Color,
+) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = color.copy(alpha = 0.1f),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = color,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+        )
+    }
+}
+
+@Composable
+private fun LinkResultActionButton(displayData: LinkDisplayData) {
+    if (displayData.actionHandler != null && displayData.actionIcon != null) {
+        Spacer(modifier = Modifier.width(16.dp))
+        IconButton(
+            onClick = displayData.actionHandler,
+            modifier = Modifier.size(40.dp),
+            colors =
+                IconButtonDefaults.iconButtonColors(
+                    containerColor = displayData.colors.container.copy(alpha = 0.8f),
+                    contentColor = displayData.colors.onContainer,
+                ),
+        ) {
+            Icon(
+                imageVector = displayData.actionIcon,
+                contentDescription = displayData.actionDescription,
+                modifier = Modifier.size(20.dp),
+            )
         }
     }
 }

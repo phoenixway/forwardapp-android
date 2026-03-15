@@ -39,30 +39,32 @@ class ListChooserOrchestrationActions {
     fun resolveNextStep(
         targetContextId: String,
         state: PendingState,
-    ): NextStep {
-        state.pendingDirectionLinkItemId?.let { itemId ->
-            return NextStep.DirectionLink(
-                itemId = itemId,
-                linkedContextId = targetContextId.takeIf { it != "root" },
-            )
+    ): NextStep =
+        when {
+            state.pendingDirectionLinkItemId != null ->
+                NextStep.DirectionLink(
+                    itemId = state.pendingDirectionLinkItemId,
+                    linkedContextId = targetContextId.takeIf { it != "root" },
+                )
+
+            state.pendingAddDirectionFromContextChooser ||
+                state.savedPendingAddDirectionFromContextChooser -> {
+                NextStep.DirectionAdd
+            }
+
+            state.pendingAttachmentShare != null -> {
+                NextStep.AttachmentShare(state.pendingAttachmentShare)
+            }
+
+            state.hasInboxPromotionRecord -> NextStep.InboxPromotion
+
+            state.pendingActionTypeName != null ->
+                NextStep.PendingAction(
+                    actionType = GoalActionType.valueOf(state.pendingActionTypeName),
+                    itemIds = state.pendingSourceItemIds,
+                    goalIds = state.pendingSourceGoalIds,
+                )
+
+            else -> NextStep.None
         }
-
-        val pendingDirectionAdd =
-            state.pendingAddDirectionFromContextChooser || state.savedPendingAddDirectionFromContextChooser
-        if (pendingDirectionAdd) return NextStep.DirectionAdd
-
-        state.pendingAttachmentShare?.let { attachment ->
-            return NextStep.AttachmentShare(attachment)
-        }
-
-        if (state.hasInboxPromotionRecord) return NextStep.InboxPromotion
-
-        val actionTypeName = state.pendingActionTypeName ?: return NextStep.None
-        val actionType = GoalActionType.valueOf(actionTypeName)
-        return NextStep.PendingAction(
-            actionType = actionType,
-            itemIds = state.pendingSourceItemIds,
-            goalIds = state.pendingSourceGoalIds,
-        )
-    }
 }

@@ -16,6 +16,7 @@ class ReminderHandler
         private val reminderRepository: ReminderRepository,
         private val scope: CoroutineScope,
     ) {
+        @Suppress("UnusedParameter")
         fun onSetReminderForProject(
             projectId: String,
             projectName: String,

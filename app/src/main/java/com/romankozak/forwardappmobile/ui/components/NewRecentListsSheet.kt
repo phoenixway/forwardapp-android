@@ -3,7 +3,18 @@ package com.romankozak.forwardappmobile.ui.components
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -18,8 +29,19 @@ import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.PushPin
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -30,6 +52,19 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
 import kotlinx.coroutines.launch
+
+private const val TEXT_CONTRAST_THRESHOLD = 4.5f
+private const val BORDER_CONTRAST_THRESHOLD = 2.2f
+private const val CARD_ASPECT_RATIO = 1.3f
+private const val CONTRAST_LUMINANCE_OFFSET = 0.05f
+private const val SOFTEN_BLEND_FACTOR = 0.30f
+
+private data class RecentItemCardColors(
+    val textColor: Color,
+    val borderColor: Color,
+    val typeIconColor: Color,
+    val cardBackground: Color,
+)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -119,37 +154,20 @@ private fun RecentItemCard(
     onClick: () -> Unit,
     onPinClick: () -> Unit,
 ) {
-    val accentColor = getColorsForType(item.type)
-    val cardBackground = MaterialTheme.colorScheme.surfaceContainerHigh
-    val baseTextColor =
-        if (contrastRatio(accentColor, cardBackground) >= 4.5f) {
-            accentColor
-        } else {
-            MaterialTheme.colorScheme.onSurface
-        }
-    val baseBorderColor =
-        if (contrastRatio(accentColor, cardBackground) >= 2.2f) {
-            accentColor
-        } else {
-            MaterialTheme.colorScheme.outline
-        }
-    val isChecklist = item.type == RecentItemType.CHECKLIST
-    val textColor = if (isChecklist) softenAgainstBackground(baseTextColor, cardBackground) else baseTextColor
-    val borderColor = if (isChecklist) softenAgainstBackground(baseBorderColor, cardBackground) else baseBorderColor
-    val typeIconColor = if (isChecklist) textColor else accentColor
+    val colors = rememberRecentItemCardColors(item.type)
 
     Card(
         modifier =
             Modifier
-                .aspectRatio(1.3f)
+                .aspectRatio(CARD_ASPECT_RATIO)
                 .clickable(onClick = onClick)
                 .border(
                     width = 1.dp,
-                    color = borderColor,
+                    color = colors.borderColor,
                     shape = MaterialTheme.shapes.medium,
                 ),
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = cardBackground),
+        colors = CardDefaults.cardColors(containerColor = colors.cardBackground),
     ) {
         Column(
             modifier =
@@ -163,25 +181,15 @@ private fun RecentItemCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top,
             ) {
-                Icon(
-                    imageVector =
-                        when (item.type) {
-                            RecentItemType.PROJECT -> Icons.Outlined.Folder
-                            RecentItemType.NOTE -> Icons.AutoMirrored.Outlined.Note
-                            RecentItemType.NOTE_DOCUMENT -> Icons.AutoMirrored.Outlined.List
-                            RecentItemType.CHECKLIST -> Icons.Outlined.Checklist
-                            RecentItemType.MUSIC_NOTE -> Icons.Outlined.MusicNote
-                            RecentItemType.OBSIDIAN_LINK -> Icons.Outlined.Link
-                        },
-                    contentDescription = null,
-                    modifier = Modifier.size(36.dp),
-                    tint = typeIconColor,
+                ItemTypeIcon(
+                    type = item.type,
+                    tint = colors.typeIconColor,
                 )
                 IconButton(onClick = onPinClick, modifier = Modifier.size(24.dp)) {
                     Icon(
                         imageVector = if (item.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
                         contentDescription = "Pin",
-                        tint = typeIconColor,
+                        tint = colors.typeIconColor,
                         modifier = Modifier.size(18.dp),
                     )
                 }
@@ -189,11 +197,60 @@ private fun RecentItemCard(
             Text(
                 text = item.displayName.ifBlank { fallbackRecentItemTitle(item) },
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                color = textColor,
+                color = colors.textColor,
                 maxLines = 3,
             )
         }
     }
+}
+
+@Composable
+private fun ItemTypeIcon(
+    type: RecentItemType,
+    tint: Color,
+) {
+    Icon(
+        imageVector =
+            when (type) {
+                RecentItemType.PROJECT -> Icons.Outlined.Folder
+                RecentItemType.NOTE -> Icons.AutoMirrored.Outlined.Note
+                RecentItemType.NOTE_DOCUMENT -> Icons.AutoMirrored.Outlined.List
+                RecentItemType.CHECKLIST -> Icons.Outlined.Checklist
+                RecentItemType.MUSIC_NOTE -> Icons.Outlined.MusicNote
+                RecentItemType.OBSIDIAN_LINK -> Icons.Outlined.Link
+            },
+        contentDescription = null,
+        modifier = Modifier.size(36.dp),
+        tint = tint,
+    )
+}
+
+@Composable
+private fun rememberRecentItemCardColors(type: RecentItemType): RecentItemCardColors {
+    val accentColor = getColorsForType(type)
+    val cardBackground = MaterialTheme.colorScheme.surfaceContainerHigh
+    val baseTextColor =
+        if (contrastRatio(accentColor, cardBackground) >= TEXT_CONTRAST_THRESHOLD) {
+            accentColor
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        }
+    val baseBorderColor =
+        if (contrastRatio(accentColor, cardBackground) >= BORDER_CONTRAST_THRESHOLD) {
+            accentColor
+        } else {
+            MaterialTheme.colorScheme.outline
+        }
+    val isChecklist = type == RecentItemType.CHECKLIST
+    val textColor = if (isChecklist) softenAgainstBackground(baseTextColor, cardBackground) else baseTextColor
+    val borderColor = if (isChecklist) softenAgainstBackground(baseBorderColor, cardBackground) else baseBorderColor
+    val typeIconColor = if (isChecklist) textColor else accentColor
+    return RecentItemCardColors(
+        textColor = textColor,
+        borderColor = borderColor,
+        typeIconColor = typeIconColor,
+        cardBackground = cardBackground,
+    )
 }
 
 @Composable
@@ -224,10 +281,10 @@ private fun contrastRatio(
 ): Float {
     val lighter = maxOf(foreground.luminance(), background.luminance())
     val darker = minOf(foreground.luminance(), background.luminance())
-    return (lighter + 0.05f) / (darker + 0.05f)
+    return (lighter + CONTRAST_LUMINANCE_OFFSET) / (darker + CONTRAST_LUMINANCE_OFFSET)
 }
 
 private fun softenAgainstBackground(
     color: Color,
     background: Color,
-): Color = lerp(color, background, 0.30f)
+): Color = lerp(color, background, SOFTEN_BLEND_FACTOR)

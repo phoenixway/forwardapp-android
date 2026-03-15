@@ -7,31 +7,23 @@ import java.util.Calendar
 class UiStateActions(
     private val stateManager: ContextStateManager,
 ) {
-    fun updateInputState(
-        inputValue: TextFieldValue?,
-        inputMode: com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputMode?,
-        localSearchQuery: String?,
-        newlyAddedItemId: String?,
-        detectedReminderSuggestion: String?,
-        detectedReminderCalendar: Calendar?,
-        clearDetectedReminder: Boolean,
-    ) {
+    fun updateInputState(inputState: InputStateUpdate) {
         stateManager.updateState { currentState ->
             currentState.copy(
-                inputValue = inputValue ?: currentState.inputValue,
-                inputMode = inputMode ?: currentState.inputMode,
-                localSearchQuery = localSearchQuery ?: currentState.localSearchQuery,
-                newlyAddedItemId = newlyAddedItemId,
+                inputValue = inputState.inputValue ?: currentState.inputValue,
+                inputMode = inputState.inputMode ?: currentState.inputMode,
+                localSearchQuery = inputState.localSearchQuery ?: currentState.localSearchQuery,
+                newlyAddedItemId = inputState.newlyAddedItemId,
                 detectedReminderSuggestion =
                     when {
-                        clearDetectedReminder -> null
-                        detectedReminderSuggestion != null -> detectedReminderSuggestion
+                        inputState.clearDetectedReminder -> null
+                        inputState.detectedReminderSuggestion != null -> inputState.detectedReminderSuggestion
                         else -> currentState.detectedReminderSuggestion
                     },
                 detectedReminderCalendar =
                     when {
-                        clearDetectedReminder -> null
-                        detectedReminderCalendar != null -> detectedReminderCalendar
+                        inputState.clearDetectedReminder -> null
+                        inputState.detectedReminderCalendar != null -> inputState.detectedReminderCalendar
                         else -> currentState.detectedReminderCalendar
                     },
             )
@@ -55,35 +47,35 @@ class UiStateActions(
     }
 
     fun showRecentProjectsSheet() {
-        stateManager.updateState { it.copy(showRecentProjectsSheet = true) }
+        setRecentProjectsSheetVisibility(isVisible = true)
     }
 
     fun dismissRecentProjectsSheet() {
-        stateManager.updateState { it.copy(showRecentProjectsSheet = false) }
+        setRecentProjectsSheetVisibility(isVisible = false)
     }
 
     fun showShareDialog() {
-        stateManager.updateState { it.copy(showShareDialog = true) }
+        setShareDialogVisibility(isVisible = true)
     }
 
     fun dismissShareDialog() {
-        stateManager.updateState { it.copy(showShareDialog = false) }
+        setShareDialogVisibility(isVisible = false)
     }
 
     fun showAddWebLinkDialog() {
-        stateManager.updateState { it.copy(showAddWebLinkDialog = true) }
+        setWebLinkDialogVisibility(isVisible = true)
     }
 
     fun dismissAddWebLinkDialog() {
-        stateManager.updateState { it.copy(showAddWebLinkDialog = false) }
+        setWebLinkDialogVisibility(isVisible = false)
     }
 
     fun showAddObsidianLinkDialog() {
-        stateManager.updateState { it.copy(showAddObsidianLinkDialog = true) }
+        setObsidianLinkDialogVisibility(isVisible = true)
     }
 
     fun dismissAddObsidianLinkDialog() {
-        stateManager.updateState { it.copy(showAddObsidianLinkDialog = false) }
+        setObsidianLinkDialogVisibility(isVisible = false)
     }
 
     fun highlightItem(itemId: String?) {
@@ -134,4 +126,31 @@ class UiStateActions(
             currentState.copy(resetTriggers = newTriggers)
         }
     }
+
+    private fun setRecentProjectsSheetVisibility(isVisible: Boolean) {
+        stateManager.updateState { it.copy(showRecentProjectsSheet = isVisible) }
+    }
+
+    private fun setShareDialogVisibility(isVisible: Boolean) {
+        stateManager.updateState { it.copy(showShareDialog = isVisible) }
+    }
+
+    private fun setWebLinkDialogVisibility(isVisible: Boolean) {
+        stateManager.updateState { it.copy(showAddWebLinkDialog = isVisible) }
+    }
+
+    private fun setObsidianLinkDialogVisibility(isVisible: Boolean) {
+        stateManager.updateState { it.copy(showAddObsidianLinkDialog = isVisible) }
+    }
 }
+
+data class InputStateUpdate(
+    val inputValue: TextFieldValue? = null,
+    val inputMode:
+        com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputMode? = null,
+    val localSearchQuery: String? = null,
+    val newlyAddedItemId: String? = null,
+    val detectedReminderSuggestion: String? = null,
+    val detectedReminderCalendar: Calendar? = null,
+    val clearDetectedReminder: Boolean = false,
+)

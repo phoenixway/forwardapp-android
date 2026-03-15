@@ -17,7 +17,10 @@ typealias PlanningModeManager = ProjectHierarchyScreenPlanningModeManager
 class ProjectHierarchyScreenPlanningModeManager
     @Inject
     constructor() {
-        private val _planningMode = MutableStateFlow<ProjectHierarchyScreenPlanningMode>(ProjectHierarchyScreenPlanningMode.All)
+        private val _planningMode =
+            MutableStateFlow<ProjectHierarchyScreenPlanningMode>(
+                ProjectHierarchyScreenPlanningMode.All,
+            )
         val planningMode: StateFlow<PlanningMode> = _planningMode.asStateFlow()
 
         private val _expandedInDailyMode = MutableStateFlow<Set<String>>(emptySet())

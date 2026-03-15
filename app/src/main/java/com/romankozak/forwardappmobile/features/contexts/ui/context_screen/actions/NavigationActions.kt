@@ -120,19 +120,18 @@ class NavigationActions(
             links.find {
                 it.target == target || runCatching { URLEncoder.encode(it.target, "UTF-8") }.getOrNull() == rawTarget
             }
-        if (link != null) return HandleLinkClickResult.ExistingLink(link)
-
         val obsidianNoteTarget = extractObsidianNoteTarget(target)
-        if (obsidianNoteTarget != null) return HandleLinkClickResult.OpenObsidianNote(obsidianNoteTarget)
-        if (target.startsWith("obsidian://")) return HandleLinkClickResult.OpenUri(target)
-        if (target.startsWith("http://") || target.startsWith("https://")) return HandleLinkClickResult.OpenUri(target)
-
         val context = withContext(ioDispatcher) { contextRepository.getContextById(target) }
-        if (context != null) {
-            return HandleLinkClickResult.NavigateToContext(context.id, context.name)
-        }
 
-        return HandleLinkClickResult.UnknownTarget(target)
+        return when {
+            link != null -> HandleLinkClickResult.ExistingLink(link)
+            obsidianNoteTarget != null -> HandleLinkClickResult.OpenObsidianNote(obsidianNoteTarget)
+            target.startsWith("obsidian://") -> HandleLinkClickResult.OpenUri(target)
+            target.startsWith("http://") || target.startsWith("https://") ->
+                HandleLinkClickResult.OpenUri(target)
+            context != null -> HandleLinkClickResult.NavigateToContext(context.id, context.name)
+            else -> HandleLinkClickResult.UnknownTarget(target)
+        }
     }
 
     suspend fun resolveGoalDetail(contextId: String): GoalDetailNavigation {
@@ -174,15 +173,34 @@ class NavigationActions(
 
     private fun extractObsidianNoteTarget(target: String): String? {
         val trimmed = target.trim()
-        if (trimmed.startsWith("[[") && trimmed.endsWith("]]") && trimmed.length > 4) {
-            return trimmed.substring(2, trimmed.length - 2).trim().takeIf { it.isNotBlank() }
-        }
-        if (!trimmed.startsWith("obsidian://")) return null
+        val wikiLinkTarget =
+            if (trimmed.startsWith(WIKI_LINK_PREFIX) &&
+                trimmed.endsWith(WIKI_LINK_SUFFIX) &&
+                trimmed.length > MIN_WIKI_LINK_LENGTH
+            ) {
+                trimmed
+                    .substring(WIKI_LINK_PREFIX.length, trimmed.length - WIKI_LINK_SUFFIX.length)
+                    .trim()
+                    .takeIf { it.isNotBlank() }
+            } else {
+                null
+            }
+
         val encodedFile =
-            Regex("""[?&]file=([^&]+)""").find(trimmed)?.groupValues?.get(1)
-                ?: Regex("""[?&]name=([^&]+)""").find(trimmed)?.groupValues?.get(1)
-        return encodedFile
-            ?.takeIf { it.isNotBlank() }
-            ?.let { runCatching { URLDecoder.decode(it, "UTF-8") }.getOrDefault(it) }
+            if (trimmed.startsWith("obsidian://")) {
+                Regex("""[?&]file=([^&]+)""").find(trimmed)?.groupValues?.get(1)
+                    ?: Regex("""[?&]name=([^&]+)""").find(trimmed)?.groupValues?.get(1)
+            } else {
+                null
+            }
+
+        return wikiLinkTarget
+            ?: encodedFile
+                ?.takeIf { it.isNotBlank() }
+                ?.let { runCatching { URLDecoder.decode(it, "UTF-8") }.getOrDefault(it) }
     }
 }
+
+private const val WIKI_LINK_PREFIX = "[["
+private const val WIKI_LINK_SUFFIX = "]]"
+private const val MIN_WIKI_LINK_LENGTH = 4

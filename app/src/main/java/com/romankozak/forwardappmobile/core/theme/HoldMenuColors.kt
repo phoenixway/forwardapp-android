@@ -1,3 +1,5 @@
+@file:Suppress("MagicNumber")
+
 package com.romankozak.forwardappmobile.core.theme
 
 import androidx.compose.material3.ColorScheme

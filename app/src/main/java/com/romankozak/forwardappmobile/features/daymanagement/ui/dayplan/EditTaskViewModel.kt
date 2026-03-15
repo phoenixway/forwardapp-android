@@ -119,76 +119,82 @@ class EditTaskViewModel
                 val state = _uiState.value
                 val originalTask = state.task ?: return@launch
 
-                val wasRecurring = originalTask.recurringTaskId != null
-                val isRecurring = state.isRecurring
-
-                if (isRecurring) {
-                    val recurrenceRule =
-                        RecurrenceRule(
-                            frequency = state.recurrenceFrequency,
-                            interval = state.recurrenceInterval,
-                            daysOfWeek = if (state.recurrenceFrequency == RecurrenceFrequency.WEEKLY) state.recurrenceDaysOfWeek.toList() else null,
-                        )
-                    if (wasRecurring) {
-                        // Recurring -> Recurring: Update existing recurring task
-                        dayManagementRepository.updateRecurringTaskTemplate(
-                            recurringTaskId = originalTask.recurringTaskId!!,
-                            title = state.title,
-                            description = state.description,
-                            priority = state.priority,
-                            duration = state.duration,
-                        )
-                        // Also update the current instance
-                        dayManagementRepository.updateTask(
-                            taskId = originalTask.id,
-                            title = state.title,
-                            description = state.description,
-                            priority = state.priority,
-                            duration = state.duration,
-                            points = state.points,
-                        )
-                    } else {
-                        // Non-recurring -> Recurring: Create new recurring task and link it
-                        dayManagementRepository.addRecurringTask(
-                            title = state.title,
-                            description = state.description,
-                            duration = state.duration,
-                            priority = state.priority,
-                            recurrenceRule = recurrenceRule,
-                            dayPlanId = originalTask.dayPlanId,
-                            goalId = originalTask.goalId,
-                            projectId = originalTask.projectId,
-                            taskType = originalTask.taskType,
-                            points = state.points,
-                        )
-                        // The old simple task should be deleted
-                        dayManagementRepository.deleteTask(originalTask.id)
-                    }
-                } else { // Not recurring
-                    if (wasRecurring) {
-                        // Recurring -> Non-recurring: Detach and update
-                        dayManagementRepository.detachFromRecurrence(originalTask.id)
-                        dayManagementRepository.updateTask(
-                            taskId = originalTask.id,
-                            title = state.title,
-                            description = state.description,
-                            priority = state.priority,
-                            duration = state.duration,
-                            points = state.points,
-                        )
-                    } else {
-                        // Non-recurring -> Non-recurring: Just update
-                        dayManagementRepository.updateTask(
-                            taskId = originalTask.id,
-                            title = state.title,
-                            description = state.description,
-                            priority = state.priority,
-                            duration = state.duration,
-                            points = state.points,
-                        )
-                    }
+                if (state.isRecurring) {
+                    saveRecurringTask(state, originalTask)
+                } else {
+                    saveNonRecurringTask(state, originalTask)
                 }
                 _uiEvent.send(EditTaskUiEvent.NavigateUp)
             }
         }
+
+        private suspend fun saveRecurringTask(
+            state: EditTaskUiState,
+            originalTask: DayTask,
+        ) {
+            val recurrenceRule = buildRecurrenceRule(state)
+            val recurringTaskId = originalTask.recurringTaskId
+
+            if (recurringTaskId != null) {
+                dayManagementRepository.updateRecurringTaskTemplate(
+                    recurringTaskId = recurringTaskId,
+                    title = state.title,
+                    description = state.description,
+                    priority = state.priority,
+                    duration = state.duration,
+                )
+                updateTaskInstance(state, originalTask)
+                return
+            }
+
+            dayManagementRepository.addRecurringTask(
+                title = state.title,
+                description = state.description,
+                duration = state.duration,
+                priority = state.priority,
+                recurrenceRule = recurrenceRule,
+                dayPlanId = originalTask.dayPlanId,
+                goalId = originalTask.goalId,
+                projectId = originalTask.projectId,
+                taskType = originalTask.taskType,
+                points = state.points,
+            )
+            dayManagementRepository.deleteTask(originalTask.id)
+        }
+
+        private suspend fun saveNonRecurringTask(
+            state: EditTaskUiState,
+            originalTask: DayTask,
+        ) {
+            if (originalTask.recurringTaskId != null) {
+                dayManagementRepository.detachFromRecurrence(originalTask.id)
+            }
+            updateTaskInstance(state, originalTask)
+        }
+
+        private suspend fun updateTaskInstance(
+            state: EditTaskUiState,
+            originalTask: DayTask,
+        ) {
+            dayManagementRepository.updateTask(
+                taskId = originalTask.id,
+                title = state.title,
+                description = state.description,
+                priority = state.priority,
+                duration = state.duration,
+                points = state.points,
+            )
+        }
+
+        private fun buildRecurrenceRule(state: EditTaskUiState): RecurrenceRule =
+            RecurrenceRule(
+                frequency = state.recurrenceFrequency,
+                interval = state.recurrenceInterval,
+                daysOfWeek =
+                    if (state.recurrenceFrequency == RecurrenceFrequency.WEEKLY) {
+                        state.recurrenceDaysOfWeek.toList()
+                    } else {
+                        null
+                    },
+            )
     }

@@ -23,6 +23,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+private const val INTRO_RECOMMENDATIONS_LIMIT = 3
+private const val SYSTEM_PROMPT_RECOMMENDATIONS_LIMIT = 5
+
 data class LifeStateChatUiState(
     val conversationId: Long? = null,
     val messages: List<ChatMessage> = emptyList(),
@@ -60,7 +63,7 @@ class LifeStateChatViewModel
                             if (analysis.recommendations.isNotEmpty()) {
                                 appendLine()
                                 appendLine("Recommendations (24-48h):")
-                                analysis.recommendations.take(3).forEach { rec ->
+                                analysis.recommendations.take(INTRO_RECOMMENDATIONS_LIMIT).forEach { rec ->
                                     appendLine("- ${rec.title}: ${rec.message}")
                                 }
                             }
@@ -106,7 +109,7 @@ class LifeStateChatViewModel
                         )
                     chatRepo.addMessage(userMsg.toEntity())
                     _uiState.update { it.copy(userInput = "") }
-                } catch (e: Exception) {
+                } catch (e: RuntimeException) {
                     Log.e(tag, "Chat send failed: ${e.message}", e)
                     _uiState.update { it.copy(error = e.message) }
                 } finally {
@@ -144,11 +147,10 @@ class LifeStateChatViewModel
             message: ChatMessage,
             contextAnalysis: AiAnalysis,
         ) {
-            if (_uiState.value.isSending) return
-            if (!message.isFromUser) return
             val conversationId = _uiState.value.conversationId ?: return
-            if (conversationId != message.conversationId) return
-            sendMessage(contextAnalysis, promptOverride = message.text)
+            if (canRegenerateFromMessage(message, conversationId)) {
+                sendMessage(contextAnalysis, promptOverride = message.text)
+            }
         }
 
         fun sendQuickPrompt(
@@ -162,14 +164,23 @@ class LifeStateChatViewModel
 
         private fun buildLifeCoachSystemPrompt(contextAnalysis: AiAnalysis): String =
             buildString {
-                appendLine("You are an AI life-coach for ForwardApp. Use the context below, be concise and action-oriented.")
-                appendLine("Always respond in English only, even if the user writes in another language. Do not switch languages.")
-                appendLine("If context or user input is not English, first interpret it and then answer strictly in English.")
+                appendLine(
+                    "You are an AI life-coach for ForwardApp. Use the context below, be concise and action-oriented.",
+                )
+                appendLine(
+                    """
+                    Always respond in English only, even if the user writes in another language.
+                    Do not switch languages.
+                    """.trimIndent(),
+                )
+                appendLine(
+                    "If context or user input is not English, first interpret it and then answer strictly in English.",
+                )
                 appendLine("=== Current analysis ===")
                 appendLine(contextAnalysis.summary)
                 if (contextAnalysis.recommendations.isNotEmpty()) {
                     appendLine("Recommendations for the next 24-48h:")
-                    contextAnalysis.recommendations.take(5).forEach { rec ->
+                    contextAnalysis.recommendations.take(SYSTEM_PROMPT_RECOMMENDATIONS_LIMIT).forEach { rec ->
                         appendLine("- ${rec.title}: ${rec.message}")
                     }
                 }
@@ -193,4 +204,12 @@ class LifeStateChatViewModel
                 context.startService(intent)
             }
         }
+
+        private fun canRegenerateFromMessage(
+            message: ChatMessage,
+            conversationId: Long,
+        ): Boolean =
+            !_uiState.value.isSending &&
+                message.isFromUser &&
+                conversationId == message.conversationId
     }

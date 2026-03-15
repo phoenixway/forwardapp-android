@@ -7,12 +7,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.domain.lifecontext.StartContextTrackingUseCase
 import com.romankozak.forwardappmobile.domain.lifecontext.SubmitContextInputUseCase
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SyncUseCase.SyncUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+private const val COMMAND_DECK_PREFS_NAME = "command_deck_prefs"
 
 @HiltViewModel
 class CommandDeckViewModel
@@ -23,7 +26,8 @@ class CommandDeckViewModel
         private val startContextTrackingUseCase: StartContextTrackingUseCase,
         private val importExportHandler: CommandDeckImportExportHandler,
     ) : ViewModel() {
-        private val sharedPreferences = application.getSharedPreferences("command_deck_prefs", Context.MODE_PRIVATE)
+        private val sharedPreferences =
+            application.getSharedPreferences(COMMAND_DECK_PREFS_NAME, Context.MODE_PRIVATE)
 
         private val _isContextInputVisible = MutableStateFlow(false)
         val isContextInputVisible: StateFlow<Boolean> = _isContextInputVisible.asStateFlow()
@@ -33,9 +37,7 @@ class CommandDeckViewModel
 
         val importChoiceUri: StateFlow<Uri?> = importExportHandler.importChoiceUri
         val exportChoiceVisible: StateFlow<Boolean> = importExportHandler.exportChoiceVisible
-        val syncUiState:
-            StateFlow<com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SyncUseCase.SyncUiState> =
-            importExportHandler.syncUiState
+        val syncUiState: StateFlow<SyncUiState> = importExportHandler.syncUiState
         val showWifiImportDialog: StateFlow<Boolean> = importExportHandler.showWifiImportDialog
         val uiEvents = importExportHandler.uiEvents
 

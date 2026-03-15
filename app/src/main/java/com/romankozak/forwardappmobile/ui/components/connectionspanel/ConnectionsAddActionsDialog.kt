@@ -47,6 +47,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.romankozak.forwardappmobile.ui.components.AddConnectionType
 
+private const val DIALOG_WIDTH_FRACTION = 0.92f
+private const val ACTION_GRID_COLUMNS = 3
+
 private data class ConnectionActionItem(
     val title: String,
     val icon: ImageVector,
@@ -60,40 +63,14 @@ fun ConnectionsAddActionsDialog(
     onActionSelected: (AddConnectionType) -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
-    val items =
-        listOf(
-            ConnectionActionItem(
-                "Контекст",
-                Icons.Outlined.AccountTree,
-                MaterialTheme.colorScheme.tertiary,
-                AddConnectionType.CONTEXT,
-            ),
-            ConnectionActionItem(
-                "Вкладення",
-                Icons.Outlined.AttachFile,
-                MaterialTheme.colorScheme.secondary,
-                AddConnectionType.ATTACHMENT,
-            ),
-            ConnectionActionItem(
-                "Web посилання",
-                Icons.Outlined.Public,
-                MaterialTheme.colorScheme.secondary,
-                AddConnectionType.EXTERNAL_LINK,
-            ),
-            ConnectionActionItem(
-                "Obsidian note",
-                Icons.Outlined.DataObject,
-                MaterialTheme.colorScheme.secondary,
-                AddConnectionType.OBSIDIAN_NOTE,
-            ),
-        )
+    val items = addConnectionItems()
 
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = true),
     ) {
         Card(
-            modifier = Modifier.fillMaxWidth(0.92f),
+            modifier = Modifier.fillMaxWidth(DIALOG_WIDTH_FRACTION),
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
             elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
@@ -110,7 +87,7 @@ fun ConnectionsAddActionsDialog(
                     modifier = Modifier.padding(horizontal = 4.dp),
                 )
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
+                    columns = GridCells.Fixed(ACTION_GRID_COLUMNS),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(bottom = 2.dp),
@@ -184,3 +161,32 @@ private fun ConnectionActionGridItem(
         )
     }
 }
+
+@Composable
+private fun addConnectionItems(): List<ConnectionActionItem> =
+    listOf(
+        ConnectionActionItem(
+            "Контекст",
+            Icons.Outlined.AccountTree,
+            MaterialTheme.colorScheme.tertiary,
+            AddConnectionType.CONTEXT,
+        ),
+        ConnectionActionItem(
+            "Вкладення",
+            Icons.Outlined.AttachFile,
+            MaterialTheme.colorScheme.secondary,
+            AddConnectionType.ATTACHMENT,
+        ),
+        ConnectionActionItem(
+            "Web посилання",
+            Icons.Outlined.Public,
+            MaterialTheme.colorScheme.secondary,
+            AddConnectionType.EXTERNAL_LINK,
+        ),
+        ConnectionActionItem(
+            "Obsidian note",
+            Icons.Outlined.DataObject,
+            MaterialTheme.colorScheme.secondary,
+            AddConnectionType.OBSIDIAN_NOTE,
+        ),
+    )

@@ -58,44 +58,28 @@ class ListChooserActions(
         goalIds: List<String>,
     ): PendingActionResult {
         return when (actionType) {
-            GoalActionType.CreateInstance -> {
-                backlogClipboardUseCase.copyBacklogGoals(
+            GoalActionType.CreateInstance ->
+                copyAndPasteGoals(
                     sourceContextId = currentContextId,
                     goalIds = goalIds,
+                    targetContextId = targetContextId,
+                    mode = BacklogPasteMode.AS_LINK,
                 )
-                val report =
-                    backlogClipboardUseCase.pasteBacklogGoals(
-                        targetContextId = targetContextId,
-                        mode = BacklogPasteMode.AS_LINK,
-                    )
-                PendingActionResult(userMessage = report.toUserMessage())
-            }
 
-            GoalActionType.MoveInstance -> {
-                backlogClipboardUseCase.cutBacklogGoals(
+            GoalActionType.MoveInstance ->
+                cutAndPasteGoals(
                     sourceContextId = currentContextId,
-                    listItemIds = itemIds,
+                    itemIds = itemIds,
+                    targetContextId = targetContextId,
                 )
-                val report =
-                    backlogClipboardUseCase.pasteBacklogGoals(
-                        targetContextId = targetContextId,
-                        mode = BacklogPasteMode.AS_LINK,
-                    )
-                PendingActionResult(userMessage = report.toUserMessage())
-            }
 
-            GoalActionType.CopyGoal -> {
-                backlogClipboardUseCase.copyBacklogGoals(
+            GoalActionType.CopyGoal ->
+                copyAndPasteGoals(
                     sourceContextId = currentContextId,
                     goalIds = goalIds,
+                    targetContextId = targetContextId,
+                    mode = BacklogPasteMode.AS_CLONE,
                 )
-                val report =
-                    backlogClipboardUseCase.pasteBacklogGoals(
-                        targetContextId = targetContextId,
-                        mode = BacklogPasteMode.AS_CLONE,
-                    )
-                PendingActionResult(userMessage = report.toUserMessage())
-            }
 
             GoalActionType.AddLinkToList -> {
                 val targetProject = contextRepository.getContextById(targetContextId)
@@ -120,5 +104,45 @@ class ListChooserActions(
                 PendingActionResult(newlyAddedItemId = newItemId)
             }
         }
+    }
+
+    private suspend fun copyAndPasteGoals(
+        sourceContextId: String,
+        goalIds: List<String>,
+        targetContextId: String,
+        mode: BacklogPasteMode,
+    ): PendingActionResult {
+        backlogClipboardUseCase.copyBacklogGoals(
+            sourceContextId = sourceContextId,
+            goalIds = goalIds,
+        )
+        return buildPasteResult(targetContextId = targetContextId, mode = mode)
+    }
+
+    private suspend fun cutAndPasteGoals(
+        sourceContextId: String,
+        itemIds: List<String>,
+        targetContextId: String,
+    ): PendingActionResult {
+        backlogClipboardUseCase.cutBacklogGoals(
+            sourceContextId = sourceContextId,
+            listItemIds = itemIds,
+        )
+        return buildPasteResult(
+            targetContextId = targetContextId,
+            mode = BacklogPasteMode.AS_LINK,
+        )
+    }
+
+    private suspend fun buildPasteResult(
+        targetContextId: String,
+        mode: BacklogPasteMode,
+    ): PendingActionResult {
+        val report =
+            backlogClipboardUseCase.pasteBacklogGoals(
+                targetContextId = targetContextId,
+                mode = mode,
+            )
+        return PendingActionResult(userMessage = report.toUserMessage())
     }
 }

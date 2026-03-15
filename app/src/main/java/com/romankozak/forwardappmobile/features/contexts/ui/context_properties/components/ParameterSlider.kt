@@ -17,26 +17,23 @@ import kotlin.math.roundToInt
 
 @Composable
 fun ParameterSlider(
-    label: String,
-    value: Float,
+    state: ParameterSliderConfig,
     onValueChange: (Float) -> Unit,
-    scale: List<Float>,
     enabled: Boolean,
-    valueLabels: List<String>? = null,
 ) {
-    val currentIndex = scale.indexOf(value).coerceAtLeast(0)
+    val currentIndex = state.scale.indexOf(state.value).coerceAtLeast(0)
     Column(modifier = Modifier.padding(vertical = 4.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(label, style = MaterialTheme.typography.bodyLarge)
+            Text(state.label, style = MaterialTheme.typography.bodyLarge)
             val displayText =
                 when {
-                    valueLabels != null -> valueLabels.getOrElse(currentIndex) { value.toString() }
-                    scale == Scales.weights -> "x${"%.1f".format(value)}"
-                    else -> value.toInt().toString()
+                    state.valueLabels != null -> state.valueLabels.getOrElse(currentIndex) { state.value.toString() }
+                    state.scale == Scales.weights -> "x${"%.1f".format(state.value)}"
+                    else -> state.value.toInt().toString()
                 }
             Text(
                 text = displayText,
@@ -49,11 +46,11 @@ fun ParameterSlider(
             enabled = enabled,
             value = currentIndex.toFloat(),
             onValueChange = { newIndex ->
-                val roundedIndex = newIndex.roundToInt().coerceIn(0, scale.lastIndex)
-                onValueChange(scale[roundedIndex])
+                val roundedIndex = newIndex.roundToInt().coerceIn(0, state.scale.lastIndex)
+                onValueChange(state.scale[roundedIndex])
             },
-            valueRange = 0f..scale.lastIndex.toFloat(),
-            steps = (scale.size - 2).coerceAtLeast(0),
+            valueRange = 0f..state.scale.lastIndex.toFloat(),
+            steps = (state.scale.size - 2).coerceAtLeast(0),
         )
     }
 }

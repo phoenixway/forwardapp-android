@@ -23,6 +23,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+private const val LIFE_STATE_CARD_CORNER_DP = 18
+private const val LIFE_STATE_BACKGROUND_ALPHA = 0.04f
+private const val LIFE_STATE_TITLE_SIZE_SP = 16
+private const val LIFE_STATE_STATUS_DOT_SIZE_DP = 10
+private const val LIFE_STATE_STATUS_TEXT_SIZE_SP = 12
+private const val LEVEL_OK_COLOR_HEX = 0xFF4CAF50
+private const val LEVEL_ATTENTION_COLOR_HEX = 0xFFFFC107
+private const val LEVEL_CRITICAL_COLOR_HEX = 0xFFF44336
+private val LEVEL_OK_COLOR = Color(LEVEL_OK_COLOR_HEX)
+private val LEVEL_ATTENTION_COLOR = Color(LEVEL_ATTENTION_COLOR_HEX)
+private val LEVEL_CRITICAL_COLOR = Color(LEVEL_CRITICAL_COLOR_HEX)
+
 private enum class LevelStatus {
     OK,
     ATTENTION,
@@ -31,9 +43,9 @@ private enum class LevelStatus {
 
 private fun levelColor(status: LevelStatus): Color =
     when (status) {
-        LevelStatus.OK -> Color(0xFF4CAF50)
-        LevelStatus.ATTENTION -> Color(0xFFFFC107)
-        LevelStatus.CRITICAL -> Color(0xFFF44336)
+        LevelStatus.OK -> LEVEL_OK_COLOR
+        LevelStatus.ATTENTION -> LEVEL_ATTENTION_COLOR
+        LevelStatus.CRITICAL -> LEVEL_CRITICAL_COLOR
     }
 
 @Composable
@@ -41,19 +53,29 @@ fun LifeManagementState() {
     Column(
         modifier =
             Modifier.fillMaxWidth()
-                .clip(RoundedCornerShape(18.dp))
-                .background(Color.White.copy(alpha = 0.04f))
+                .clip(RoundedCornerShape(LIFE_STATE_CARD_CORNER_DP.dp))
+                .background(Color.White.copy(alpha = LIFE_STATE_BACKGROUND_ALPHA))
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text("Life-management State", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+        Text(
+            text = "Life-management State",
+            fontSize = LIFE_STATE_TITLE_SIZE_SP.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(10.dp).clip(CircleShape).background(levelColor(LevelStatus.ATTENTION)))
+            Box(
+                Modifier
+                    .size(LIFE_STATE_STATUS_DOT_SIZE_DP.dp)
+                    .clip(CircleShape)
+                    .background(levelColor(LevelStatus.ATTENTION)),
+            )
             Spacer(Modifier.width(8.dp))
             Text(
                 "Warning",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 12.sp,
+                fontSize = LIFE_STATE_STATUS_TEXT_SIZE_SP.sp,
             )
         }
     }

@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.comp
 
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.navigation.NavController
@@ -16,7 +17,7 @@ fun handleRelatedLinkClick(
     context: Context,
     navController: NavController,
 ) {
-    try {
+    runCatching {
         when (link.type) {
             LinkType.URL -> {
                 val intent = Intent(Intent.ACTION_VIEW, link.target.toUri())
@@ -33,13 +34,26 @@ fun handleRelatedLinkClick(
                     val intent = Intent(Intent.ACTION_VIEW, obsidianUri.toUri())
                     context.startActivity(intent)
                 } else {
-                    Toast.makeText(context, context.getString(R.string.error_obsidian_vault_not_set), Toast.LENGTH_LONG).show()
+                    Toast
+                        .makeText(
+                            context,
+                            context.getString(R.string.error_obsidian_vault_not_set),
+                            Toast.LENGTH_LONG,
+                        ).show()
                 }
             }
 
             null -> {}
         }
-    } catch (e: Exception) {
-        Toast.makeText(context, context.getString(R.string.error_link_open_failed), Toast.LENGTH_LONG).show()
+    }.onFailure { error ->
+        Log.e(TAG, "Failed to open related link", error)
+        Toast
+            .makeText(
+                context,
+                context.getString(R.string.error_link_open_failed),
+                Toast.LENGTH_LONG,
+            ).show()
     }
 }
+
+private const val TAG = "LinkHelpers"

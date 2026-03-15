@@ -2,7 +2,10 @@
 
 package com.romankozak.forwardappmobile.features.contexts.data.models.capabilities.notes
 
-import com.romankozak.forwardappmobile.core.capability.*
+import com.romankozak.forwardappmobile.core.capability.Capability
+import com.romankozak.forwardappmobile.core.capability.CapabilityDescriptor
+import com.romankozak.forwardappmobile.core.capability.CapabilityId
+import com.romankozak.forwardappmobile.core.capability.CapabilityRuntime
 import com.romankozak.forwardappmobile.core.context.ViewId
 
 object NotesCapability : Capability {

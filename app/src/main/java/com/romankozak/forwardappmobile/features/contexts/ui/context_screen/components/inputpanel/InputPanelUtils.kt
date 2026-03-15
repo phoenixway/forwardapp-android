@@ -1,10 +1,5 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel
 
-import androidx.compose.animation.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.*
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.romankozak.forwardappmobile.core.theme.InputPanelColors
 
@@ -18,6 +13,8 @@ internal data class MenuItem(
     val isVisible: Boolean = true,
     val isDestructive: Boolean = false,
 )
+
+internal typealias InputPanelUtils = MenuItem
 
 /**
  * Логіка вибору кольорової схеми панелі залежно від режиму введення.

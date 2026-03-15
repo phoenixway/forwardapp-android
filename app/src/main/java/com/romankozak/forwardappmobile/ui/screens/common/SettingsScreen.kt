@@ -25,26 +25,38 @@ import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.ui.components.AdaptiveSegmentedControl
 import com.romankozak.forwardappmobile.ui.components.SegmentedTab
 
+private const val CONTENT_ENTER_ANIMATION_MS = 400
+private const val CONTENT_EXIT_ANIMATION_MS = 200
+private const val CONTENT_SLIDE_DIVISOR = 8
+
+data class SettingsScreenState(
+    val title: String,
+    val tabs: List<String>,
+    val tabIcons: List<ImageVector>,
+    val selectedTabIndex: Int,
+    val isSaveEnabled: Boolean,
+)
+
+data class SettingsScreenActions(
+    val onTabSelected: (Int) -> Unit,
+    val onSave: () -> Unit,
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    title: String,
+    state: SettingsScreenState,
+    actions: SettingsScreenActions,
     navController: NavController,
-    tabs: List<String>,
-    tabIcons: List<ImageVector>,
-    selectedTabIndex: Int,
-    onTabSelected: (Int) -> Unit,
-    onSave: () -> Unit,
-    isSaveEnabled: Boolean,
     content: @Composable (Int) -> Unit,
 ) {
     Scaffold(
         topBar = {
             SettingsTopAppBar(
-                title = title,
+                title = state.title,
                 navController = navController,
-                onSave = onSave,
-                isSaveEnabled = isSaveEnabled,
+                onSave = actions.onSave,
+                isSaveEnabled = state.isSaveEnabled,
             )
         },
     ) { paddingValues ->
@@ -58,14 +70,14 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             val tabsWithIcons: List<SegmentedTab> =
-                tabs.mapIndexed { index, tabTitle ->
-                    SegmentedTab(tabTitle, tabIcons[index])
+                state.tabs.mapIndexed { index, tabTitle ->
+                    SegmentedTab(tabTitle, state.tabIcons[index])
                 }
 
             AdaptiveSegmentedControl(
                 tabs = tabsWithIcons,
-                selectedTabIndex = selectedTabIndex,
-                onTabSelected = onTabSelected,
+                selectedTabIndex = state.selectedTabIndex,
+                onTabSelected = actions.onTabSelected,
                 modifier =
                     Modifier
                         .fillMaxWidth()
@@ -76,19 +88,19 @@ fun SettingsScreen(
 
             HorizontalDivider()
             AnimatedContent(
-                targetState = selectedTabIndex,
+                targetState = state.selectedTabIndex,
                 transitionSpec = {
                     (
-                        fadeIn(animationSpec = tween(400)) +
+                        fadeIn(animationSpec = tween(CONTENT_ENTER_ANIMATION_MS)) +
                             slideInVertically(
-                                animationSpec = tween(400),
-                                initialOffsetY = { it / 8 },
+                                animationSpec = tween(CONTENT_ENTER_ANIMATION_MS),
+                                initialOffsetY = { it / CONTENT_SLIDE_DIVISOR },
                             )
                     ).togetherWith(
-                        fadeOut(animationSpec = tween(200)) +
+                        fadeOut(animationSpec = tween(CONTENT_EXIT_ANIMATION_MS)) +
                             slideOutVertically(
-                                animationSpec = tween(200),
-                                targetOffsetY = { -it / 8 },
+                                animationSpec = tween(CONTENT_EXIT_ANIMATION_MS),
+                                targetOffsetY = { -it / CONTENT_SLIDE_DIVISOR },
                             ),
                     )
                 },

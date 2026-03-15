@@ -66,11 +66,15 @@ import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.capability.settings.CapabilitySettingsEntry
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
+import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreenActions
 import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreen
+import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreenState
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.DisplayTabContent
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabContent
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabUiState
+import com.romankozak.forwardappmobile.ui.screens.common.tabs.GeneralTabActions
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.GeneralTabContent
+import com.romankozak.forwardappmobile.ui.screens.common.tabs.GeneralTabState
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabContent
 
 @Composable
@@ -124,14 +128,20 @@ fun ProjectSettingsScreen(
     val titleText = if (uiState.isNewProject) "New Project" else "Edit context"
 
     SettingsScreen(
-        title = titleText,
+        state =
+            SettingsScreenState(
+                title = titleText,
+                tabs = tabs,
+                tabIcons = tabIcons,
+                selectedTabIndex = selectedTabIndex,
+                isSaveEnabled = uiState.title.text.isNotBlank(),
+            ),
+        actions =
+            SettingsScreenActions(
+                onTabSelected = viewModel::onTabSelected,
+                onSave = viewModel::onSave,
+            ),
         navController = navController,
-        tabs = tabs,
-        tabIcons = tabIcons,
-        selectedTabIndex = selectedTabIndex,
-        onTabSelected = viewModel::onTabSelected,
-        onSave = viewModel::onSave,
-        isSaveEnabled = uiState.title.text.isNotBlank(),
     ) { tabIndex ->
         Box(
             modifier =
@@ -159,15 +169,21 @@ fun ProjectSettingsScreen(
             when (tabs[tabIndex]) {
                 "General" ->
                     GeneralTabContent(
-                        title = uiState.title,
-                        onTitleChange = viewModel::onTextChange,
+                        state =
+                            GeneralTabState(
+                                title = uiState.title,
+                                description = uiState.description,
+                                tags = uiState.tags,
+                            ),
+                        actions =
+                            GeneralTabActions(
+                                onTitleChange = viewModel::onTextChange,
+                                onDescriptionChange = viewModel::onDescriptionChange,
+                                onExpandDescriptionClick = viewModel::openDescriptionEditor,
+                                onAddTag = viewModel::onAddTag,
+                                onRemoveTag = viewModel::onRemoveTag,
+                            ),
                         titleLabel = "Назва проекту",
-                        description = uiState.description,
-                        onDescriptionChange = viewModel::onDescriptionChange,
-                        onExpandDescriptionClick = viewModel::openDescriptionEditor,
-                        tags = uiState.tags,
-                        onAddTag = viewModel::onAddTag,
-                        onRemoveTag = viewModel::onRemoveTag,
                     )
                 "Display" ->
                     DisplayTabContent(

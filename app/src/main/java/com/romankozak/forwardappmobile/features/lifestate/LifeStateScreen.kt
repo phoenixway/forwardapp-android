@@ -79,6 +79,14 @@ import com.romankozak.forwardappmobile.domain.lifestate.model.AiRisk
 import com.romankozak.forwardappmobile.features.ai.chat.ChatMessage
 import kotlinx.coroutines.delay
 
+private const val LOADING_SKELETON_CARDS = 3
+private const val SKELETON_PRIMARY_PROGRESS = 0.4f
+private const val SKELETON_PRIMARY_WIDTH_FRACTION = 0.6f
+private const val SKELETON_SECONDARY_PROGRESS = 0.2f
+private const val RECOMMENDATION_ACTIONS_LIMIT = 3
+private const val CHAT_HISTORY_LIMIT = 20
+private const val TYPING_ANIMATION_DELAY_MILLIS = 12L
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LifeStateScreen(
@@ -143,7 +151,6 @@ fun LifeStateScreen(
                                 state = chatState,
                                 onInputChange = chatViewModel::onInputChange,
                                 onSend = { chatViewModel.sendMessage(uiState.analysis!!) },
-                                onRegenerate = { chatViewModel.regenerate(uiState.analysis!!) },
                                 onRegenerateMessage = { msg ->
                                     chatViewModel.regenerateFromMessage(msg, uiState.analysis!!)
                                 },
@@ -256,7 +263,7 @@ private fun LoadingState() {
                     .padding(top = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            repeat(3) { SkeletonCard() }
+            repeat(LOADING_SKELETON_CARDS) { SkeletonCard() }
         }
     }
 }
@@ -280,13 +287,13 @@ private fun SkeletonCard() {
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             LinearProgressIndicator(
-                progress = { 0.4f },
-                modifier = Modifier.fillMaxWidth(0.6f),
+                progress = { SKELETON_PRIMARY_PROGRESS },
+                modifier = Modifier.fillMaxWidth(SKELETON_PRIMARY_WIDTH_FRACTION),
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
                 trackColor = MaterialTheme.colorScheme.surface,
             )
             LinearProgressIndicator(
-                progress = { 0.2f },
+                progress = { SKELETON_SECONDARY_PROGRESS },
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
                 trackColor = MaterialTheme.colorScheme.surface,
@@ -363,8 +370,16 @@ fun AnalysisContent(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    SignalColumn(label = "Positive", items = analysis.signals.positive, accent = MaterialTheme.colorScheme.primary)
-                    SignalColumn(label = "Negative", items = analysis.signals.negative, accent = MaterialTheme.colorScheme.error)
+                    SignalColumn(
+                        label = "Positive",
+                        items = analysis.signals.positive,
+                        accent = MaterialTheme.colorScheme.primary,
+                    )
+                    SignalColumn(
+                        label = "Negative",
+                        items = analysis.signals.negative,
+                        accent = MaterialTheme.colorScheme.error,
+                    )
                 }
             }
         }
@@ -558,7 +573,7 @@ fun RecommendationCard(recommendation: AiRecommendation) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    recommendation.actions.take(3).forEach { action ->
+                    recommendation.actions.take(RECOMMENDATION_ACTIONS_LIMIT).forEach { action ->
                         AssistChip(
                             onClick = {},
                             label = { Text(action.label) },
@@ -681,7 +696,6 @@ fun ChatSection(
     state: LifeStateChatUiState,
     onInputChange: (String) -> Unit,
     onSend: () -> Unit,
-    onRegenerate: () -> Unit,
     onRegenerateMessage: (ChatMessage) -> Unit,
     onQuickPrompt: (String) -> Unit,
 ) {
@@ -722,7 +736,7 @@ fun ChatSection(
         if (state.isSending && !isStreaming) {
             SubtlePendingIndicator()
         }
-        val history = state.messages.takeLast(20)
+        val history = state.messages.takeLast(CHAT_HISTORY_LIMIT)
         if (history.isEmpty()) {
             Text(
                 text = "Ask a question or request personal recommendations.",
@@ -839,7 +853,7 @@ fun ChatBubble(message: ChatMessage) {
         while (currentLength < target.length) {
             currentLength += 1
             animatedText = target.take(currentLength)
-            delay(12L)
+            delay(TYPING_ANIMATION_DELAY_MILLIS)
         }
     }
 

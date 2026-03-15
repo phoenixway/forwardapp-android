@@ -1,7 +1,19 @@
 package com.romankozak.forwardappmobile.features.reminders.components
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -10,6 +22,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.google.accompanist.flowlayout.FlowRow
+
+private val ReminderActionButtonSize = 72.dp
+private val ReminderActionIconSize = 24.dp
+private val ReminderActionSpacing = 6.dp
 
 data class ReminderAction(
     val text: String,
@@ -33,8 +49,8 @@ fun ReminderActionsDialog(
         },
         text = {
             FlowRow(
-                mainAxisSpacing = 6.dp,
-                crossAxisSpacing = 6.dp,
+                mainAxisSpacing = ReminderActionSpacing,
+                crossAxisSpacing = ReminderActionSpacing,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 actions.forEach { action ->
@@ -60,7 +76,7 @@ fun ActionButton(action: ReminderAction) {
         }
 
     Surface(
-        modifier = Modifier.size(72.dp),
+        modifier = Modifier.size(ReminderActionButtonSize),
         shape = MaterialTheme.shapes.medium,
         tonalElevation = 1.dp,
         onClick = action.onClick,
@@ -77,7 +93,7 @@ fun ActionButton(action: ReminderAction) {
                 imageVector = action.icon,
                 contentDescription = action.text,
                 tint = contentColor,
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(ReminderActionIconSize),
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(

@@ -20,9 +20,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownText
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownTextActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownTextState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.GoalItemViewModelFactory
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.GoalItemViewModel
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurfaceLayout
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTokens
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
@@ -51,14 +56,17 @@ fun GoalItem(
 
     UnifiedListItemSurface(
         isSelected = isSelected,
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .padding(
-                    vertical = UnifiedListItemTokens.OuterVerticalSpacing,
-                    horizontal = UnifiedListItemTokens.OuterHorizontalSpacing,
-                ),
-        contentPadding = PaddingValues(0.dp),
+        layout =
+            UnifiedListItemSurfaceLayout(
+                modifier =
+                    modifier
+                        .fillMaxWidth()
+                        .padding(
+                            vertical = UnifiedListItemTokens.OuterVerticalSpacing,
+                            horizontal = UnifiedListItemTokens.OuterHorizontalSpacing,
+                        ),
+                contentPadding = PaddingValues(0.dp),
+            ),
     ) {
         Box(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -93,19 +101,25 @@ fun GoalItem(
                             },
                 ) {
                     MarkdownText(
-                        text = parsedData.mainText,
-                        isCompleted = goal.completed,
-                        obsidianVaultName = obsidianVaultName,
-                        onTagClick = onTagClick,
-                        onTextClick = onItemClick,
-                        onLongClick = onLongClick,
-                        maxLines = 4,
-                        style =
-                            MaterialTheme.typography.bodySmall.copy(
-                                lineHeight = 16.sp,
-                                letterSpacing = 0.1.sp,
-                                fontSize = 12.sp,
-                                fontWeight = if (goal.completed) FontWeight.Normal else FontWeight.Medium,
+                        state =
+                            MarkdownTextState(
+                                text = parsedData.mainText,
+                                style =
+                                    MaterialTheme.typography.bodySmall.copy(
+                                        lineHeight = 16.sp,
+                                        letterSpacing = 0.1.sp,
+                                        fontSize = 12.sp,
+                                        fontWeight = if (goal.completed) FontWeight.Normal else FontWeight.Medium,
+                                    ),
+                                isCompleted = goal.completed,
+                                obsidianVaultName = obsidianVaultName,
+                                maxLines = 4,
+                            ),
+                        actions =
+                            MarkdownTextActions(
+                                onTagClick = onTagClick,
+                                onTextClick = onItemClick,
+                                onLongClick = onLongClick,
                             ),
                     )
 
