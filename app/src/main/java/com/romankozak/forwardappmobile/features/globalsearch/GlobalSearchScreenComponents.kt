@@ -7,6 +7,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,8 +16,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
@@ -71,6 +74,8 @@ internal data class EmptyDataSearchActions(
     val onQuickCatch: () -> Unit,
     val onStartActivity: () -> Unit,
     val onAddActivityEvent: () -> Unit,
+    val onCreateContext: () -> Unit,
+    val onCreateDocument: () -> Unit,
     val onRunBestCommand: () -> Unit,
 )
 
@@ -344,6 +349,14 @@ internal fun EmptyDataSearchContent(
                         Text("Подія")
                     }
                 }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilledTonalButton(onClick = args.actions.onCreateContext, modifier = Modifier.weight(1f)) {
+                        Text("Створити контекст")
+                    }
+                    FilledTonalButton(onClick = args.actions.onCreateDocument, modifier = Modifier.weight(1f)) {
+                        Text("Створити документ")
+                    }
+                }
                 TextButton(onClick = args.actions.onRunBestCommand, modifier = Modifier.fillMaxWidth()) {
                     Text("Виконати найкращу команду")
                 }
@@ -534,6 +547,57 @@ internal fun DataActionsBottomSheet(
                 supportingContent = { Text("Змінити порядок відображення результатів") },
                 leadingContent = { Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = null) },
                 modifier = Modifier.fillMaxWidth().clickable { onSelectSorting() },
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun CreateFromSearchBottomSheet(
+    onCreateContext: () -> Unit,
+    onCreateDocument: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(bottom = 16.dp),
+        ) {
+            Text(
+                text = "Створити з пошуку",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            )
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+            ListItem(
+                headlineContent = { Text("Новий контекст") },
+                supportingContent = { Text("Створити новий контекст без виходу в інші розділи") },
+                leadingContent = { Icon(Icons.Default.AccountTree, contentDescription = null) },
+                trailingContent = { Icon(Icons.Default.Add, contentDescription = null) },
+                modifier = Modifier.fillMaxWidth().clickable { onCreateContext() },
+                colors =
+                    androidx.compose.material3.ListItemDefaults.colors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    ),
+            )
+            ListItem(
+                headlineContent = { Text("Новий документ") },
+                supportingContent = { Text("Створити документ у Inbox як початковому контексті") },
+                leadingContent = { Icon(Icons.Default.Description, contentDescription = null) },
+                trailingContent = { Icon(Icons.Default.Add, contentDescription = null) },
+                modifier = Modifier.fillMaxWidth().clickable { onCreateDocument() },
+                colors =
+                    androidx.compose.material3.ListItemDefaults.colors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    ),
             )
         }
     }

@@ -15,6 +15,7 @@ class InputSuggestionActions {
     ): List<String> {
         val wordInfo = getCurrentWordInfo(currentText, cursorPosition) ?: return emptyList()
         val query = wordInfo.word.trim()
+        if (query.length < 2) return emptyList()
 
         return when (wordInfo.prefix) {
             "@" ->

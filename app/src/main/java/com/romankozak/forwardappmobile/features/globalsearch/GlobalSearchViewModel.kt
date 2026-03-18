@@ -393,6 +393,19 @@ class GlobalSearchViewModel
             submitAddActivityEvent(_uiState.value.query)
         }
 
+        fun createContextFromSearch() {
+            enhancedNavigationManager.navigate(target = NavTarget.ProjectSettings())
+        }
+
+        fun createDocumentFromSearch() {
+            viewModelScope.launch {
+                val inboxContextId = resolveInboxContextId() ?: return@launch
+                enhancedNavigationManager.navigate(
+                    target = NavTarget.NoteDocumentEdit(contextId = inboxContextId, documentId = null),
+                )
+            }
+        }
+
         fun runBestCommandForCurrentQuery() {
             val best = findCommandResults(_uiState.value.query).firstOrNull() ?: return
             executeCommand(best.id)

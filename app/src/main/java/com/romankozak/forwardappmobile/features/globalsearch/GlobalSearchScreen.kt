@@ -18,6 +18,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
@@ -135,6 +137,7 @@ fun GlobalSearchScreen(
     var showSortSheet by remember { mutableStateOf(false) }
     var showModeMenu by remember { mutableStateOf(false) }
     var showDataActionsSheet by remember { mutableStateOf(false) }
+    var showCreateSheet by remember { mutableStateOf(false) }
     var selectedCommandIndex by remember { mutableStateOf<Int?>(null) }
     var selectedDataIndex by remember { mutableStateOf<Int?>(null) }
     var selectionArea by remember { mutableStateOf(OmniboxSelectionArea.None) }
@@ -310,6 +313,19 @@ fun GlobalSearchScreen(
             onDismiss = { showDataActionsSheet = false },
         )
     }
+    if (showCreateSheet) {
+        CreateFromSearchBottomSheet(
+            onCreateContext = {
+                showCreateSheet = false
+                viewModel.createContextFromSearch()
+            },
+            onCreateDocument = {
+                showCreateSheet = false
+                viewModel.createDocumentFromSearch()
+            },
+            onDismiss = { showCreateSheet = false },
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -335,6 +351,12 @@ fun GlobalSearchScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showCreateSheet = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Створити",
+                        )
+                    }
                     AnimatedVisibility(
                         visible =
                             !uiState.isLoading &&
@@ -448,6 +470,8 @@ fun GlobalSearchScreen(
                                                     onQuickCatch = viewModel::quickCatchCurrentQuery,
                                                     onStartActivity = viewModel::startActivityFromCurrentQuery,
                                                     onAddActivityEvent = viewModel::addActivityEventFromCurrentQuery,
+                                                    onCreateContext = viewModel::createContextFromSearch,
+                                                    onCreateDocument = viewModel::createDocumentFromSearch,
                                                     onRunBestCommand = viewModel::runBestCommandForCurrentQuery,
                                                 ),
                                         ),
