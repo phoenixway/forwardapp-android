@@ -439,8 +439,18 @@ class ContextScreenViewModel
             activityManager.currentActivity
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
         val autocompleteSuggestions =
-            tagManager.allTags
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+            combine(
+                uiState.map { it.inputValue },
+                tagManager.allTags,
+                contextHandler.contextMarkerNamesFlow,
+            ) { inputValue, allTags, contextMarkerNames ->
+                inputSuggestionActions.buildSuggestions(
+                    currentText = inputValue.text,
+                    cursorPosition = inputValue.selection.start,
+                    contextMarkerNames = contextMarkerNames,
+                    tags = allTags,
+                )
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
         internal val artifactHandler by lazy {
             ArtifactHandler(
                 contextRepository,

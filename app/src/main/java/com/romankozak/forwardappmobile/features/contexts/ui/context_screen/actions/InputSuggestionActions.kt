@@ -6,6 +6,41 @@ class InputSuggestionActions {
         val cursorPosition: Int,
     )
 
+    fun buildSuggestions(
+        currentText: String,
+        cursorPosition: Int,
+        contextMarkerNames: List<String>,
+        tags: List<String>,
+        limit: Int = 8,
+    ): List<String> {
+        val wordInfo = getCurrentWordInfo(currentText, cursorPosition) ?: return emptyList()
+        val query = wordInfo.word.trim()
+
+        return when (wordInfo.prefix) {
+            "@" ->
+                contextMarkerNames
+                    .asSequence()
+                    .filter { query.isBlank() || it.contains(query, ignoreCase = true) }
+                    .map { markerName ->
+                        if (markerName.startsWith("@")) markerName else "@$markerName"
+                    }.distinct()
+                    .take(limit)
+                    .toList()
+
+            "#" ->
+                tags
+                    .asSequence()
+                    .map { tag ->
+                        if (tag.startsWith("#")) tag else "#$tag"
+                    }.filter { query.isBlank() || it.contains("#$query", ignoreCase = true) }
+                    .distinct()
+                    .take(limit)
+                    .toList()
+
+            else -> emptyList()
+        }
+    }
+
     fun applySuggestion(
         currentText: String,
         cursorPosition: Int,

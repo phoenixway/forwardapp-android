@@ -116,7 +116,7 @@ fun DashboardBottomBar(
     val coroutineScope = rememberCoroutineScope()
     val modalSheetState =
         rememberModalBottomSheetState(
-            skipPartiallyExpanded = true,
+            skipPartiallyExpanded = false,
         )
     var showMoreBottomSheet by remember { mutableStateOf(false) }
     var showRecentSheet by remember { mutableStateOf(false) }

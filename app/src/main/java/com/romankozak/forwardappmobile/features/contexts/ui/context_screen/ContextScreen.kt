@@ -69,6 +69,7 @@ fun ProjectsScreen(
     TransparentSystemBars()
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val autocompleteSuggestions by viewModel.autocompleteSuggestions.collectAsStateWithLifecycle()
     val recordToEdit by viewModel.inboxHandler.recordToEdit.collectAsStateWithLifecycle()
     val editorViewModel: UniversalEditorViewModel = hiltViewModel()
     val currentProjectArtifact by viewModel.contextArtifact.collectAsStateWithLifecycle()
@@ -513,8 +514,10 @@ private fun ProjectBottomBar(
             ModernInputPanel(
                 holdMenuController = holdMenuController,
                 inputValue = uiState.inputValue,
+                autocompleteSuggestions = autocompleteSuggestions,
                 inputMode = uiState.inputMode,
                 onValueChange = { viewModel.inputHandler.onInputTextChanged(it, uiState.inputMode) },
+                onSuggestionClick = viewModel::onSuggestionClick,
                 onSubmit = { viewModel.inputHandler.submitInput(uiState.inputValue, uiState.inputMode) },
                 onInputModeSelected = { viewModel.inputHandler.onInputModeSelected(it, uiState.inputValue) },
                 onRecentsClick = {

@@ -32,8 +32,10 @@ fun ModernInputPanel(
     modifier: Modifier = Modifier,
     holdMenuController: HoldMenu2Controller,
     inputValue: TextFieldValue,
+    autocompleteSuggestions: List<String>,
     inputMode: InputMode,
     onValueChange: (TextFieldValue) -> Unit,
+    onSuggestionClick: (String) -> Unit,
     onSubmit: () -> Unit,
     onInputModeSelected: (InputMode) -> Unit,
     onRecentsClick: () -> Unit,
@@ -189,6 +191,11 @@ fun ModernInputPanel(
         Column {
             // Верхня панель (NavigationBar автоматично відфільтрує доступні вкладки через activeCapabilities)
             NavigationBar(state, actions, panelColors.contentColor, holdMenuController)
+
+            AutocompleteSuggestions(
+                suggestions = autocompleteSuggestions,
+                onSuggestionClick = onSuggestionClick,
+            )
 
             Row(
                 modifier =
