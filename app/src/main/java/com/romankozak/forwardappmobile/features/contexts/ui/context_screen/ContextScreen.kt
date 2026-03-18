@@ -154,6 +154,7 @@ fun ProjectsScreen(
                 navController = navController,
                 viewModel = viewModel,
                 projectId = projectId,
+                autocompleteSuggestions = autocompleteSuggestions,
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope,
             )
@@ -167,6 +168,7 @@ private fun ProjectScaffold(
     navController: NavController,
     viewModel: ContextScreenViewModel,
     projectId: String?,
+    autocompleteSuggestions: List<String>,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
