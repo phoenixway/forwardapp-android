@@ -140,10 +140,12 @@ fun DashboardBottomBar(
         }
 
     if (showMoreBottomSheet) {
+        val moreSheetColor = MaterialTheme.colorScheme.surfaceContainerLow
         ModalBottomSheet(
             onDismissRequest = { showMoreBottomSheet = false },
             sheetState = modalSheetState,
             shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
+            containerColor = moreSheetColor,
         ) {
             MoreBottomSheetContent(
                 onNavigateToReminders = {
@@ -243,13 +245,23 @@ fun DashboardBottomBar(
                     }
                 },
                 featureToggles = featureToggles,
+                containerColor = moreSheetColor,
             )
         }
     }
 
     if (showImportExportSheet) {
-        ModalBottomSheet(onDismissRequest = { showImportExportSheet = false }) {
-            Column(modifier = Modifier.padding(bottom = 24.dp)) {
+        val importExportSheetColor = MaterialTheme.colorScheme.surfaceContainerLow
+        ModalBottomSheet(
+            onDismissRequest = { showImportExportSheet = false },
+            containerColor = importExportSheetColor,
+        ) {
+            Column(
+                modifier =
+                    Modifier
+                        .background(importExportSheetColor)
+                        .padding(bottom = 24.dp),
+            ) {
                 Text(
                     text = "Імпорт / Експорт",
                     style = MaterialTheme.typography.titleMedium,
@@ -267,6 +279,7 @@ fun DashboardBottomBar(
                             icon = Icons.Default.CloudUpload,
                             title = "Експорт бекапу",
                             subtitle = "Зберегти JSON у файлі",
+                            containerColor = importExportSheetColor,
                             onClick = {
                                 showImportExportSheet = false
                                 onExportToFile()
@@ -278,6 +291,7 @@ fun DashboardBottomBar(
                             icon = Icons.Default.CloudDownload,
                             title = "Повний імпорт",
                             subtitle = "Замінити поточні дані",
+                            containerColor = importExportSheetColor,
                             onClick = {
                                 showImportExportSheet = false
                                 importLauncher.launch("application/json")
@@ -289,6 +303,7 @@ fun DashboardBottomBar(
                             icon = Icons.Default.FolderOpen,
                             title = "Вибірковий імпорт",
                             subtitle = "Обрати сутності",
+                            containerColor = importExportSheetColor,
                             onClick = {
                                 showImportExportSheet = false
                                 selectiveImportLauncher.launch("application/json")
@@ -300,6 +315,7 @@ fun DashboardBottomBar(
                             icon = Icons.Default.Description,
                             title = "Експорт вкладень",
                             subtitle = "JSON вкладень",
+                            containerColor = importExportSheetColor,
                             onClick = {
                                 showImportExportSheet = false
                                 onExportAttachments()
@@ -311,6 +327,7 @@ fun DashboardBottomBar(
                             icon = Icons.Default.FolderOpen,
                             title = "Імпорт вкладень",
                             subtitle = "Додати вкладення",
+                            containerColor = importExportSheetColor,
                             onClick = {
                                 showImportExportSheet = false
                                 importAttachmentsLauncher.launch("application/json")
@@ -322,6 +339,7 @@ fun DashboardBottomBar(
                             icon = Icons.Default.CloudUpload,
                             title = "Push змін по Wi‑Fi",
                             subtitle = "Надіслати несинхронізоване",
+                            containerColor = importExportSheetColor,
                             onClick = {
                                 showImportExportSheet = false
                                 onWifiPush("localhost:8080")
@@ -333,6 +351,7 @@ fun DashboardBottomBar(
                             icon = Icons.Default.Wifi,
                             title = "Wi‑Fi сервер",
                             subtitle = "Запустити локальний сервер",
+                            containerColor = importExportSheetColor,
                             onClick = {
                                 showImportExportSheet = false
                                 onShowWifiServer()
@@ -344,6 +363,7 @@ fun DashboardBottomBar(
                             icon = Icons.Default.Wifi,
                             title = "Wi‑Fi імпорт",
                             subtitle = "Отримати дані з сервера",
+                            containerColor = importExportSheetColor,
                             onClick = {
                                 showImportExportSheet = false
                                 onShowWifiImport()
@@ -423,12 +443,13 @@ private fun MoreBottomSheetContent(
     onShowAbout: () -> Unit,
     onNavigateToSettings: () -> Unit,
     featureToggles: Map<FeatureFlag, Boolean>,
+    containerColor: androidx.compose.ui.graphics.Color,
 ) {
     Box(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface)
+                .background(containerColor)
                 .padding(16.dp),
     ) {
         Column {
@@ -708,6 +729,7 @@ private fun ImportExportTile(
     icon: ImageVector,
     title: String,
     subtitle: String,
+    containerColor: androidx.compose.ui.graphics.Color,
     onClick: () -> Unit,
 ) {
     Card(
@@ -716,6 +738,7 @@ private fun ImportExportTile(
                 .fillMaxWidth()
                 .padding(vertical = 4.dp),
         onClick = onClick,
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = containerColor),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)

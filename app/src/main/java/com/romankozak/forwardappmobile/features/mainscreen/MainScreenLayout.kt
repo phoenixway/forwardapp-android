@@ -90,7 +90,7 @@ fun MainScreenLayout(
     navController: NavController,
     navigationManager: EnhancedNavigationManager? = null,
     onNavigateToProjectHierarchy: () -> Unit,
-    onShowContextMarkersSheet: () -> Unit = {},
+    onNavigateToManageContextMarkers: () -> Unit = {},
     onNavigateToPresets: () -> Unit,
     onNavigateToCharacter: () -> Unit,
     onNavigateToGlobalSearch: () -> Unit,
@@ -678,6 +678,7 @@ fun MainScreenLayout(
             onDismiss = { showContextMarkersSheet = false },
             contextMarkers = contextUiState.allContextMarkers,
             contextMarkerToEmojiMap = contextUiState.contextMarkerToEmojiMap,
+            onManageContextMarkers = onNavigateToManageContextMarkers,
             onContextSelected = { contextMarkerName ->
                 showContextMarkersSheet = false
                 contextHierarchyViewModel.onEvent(

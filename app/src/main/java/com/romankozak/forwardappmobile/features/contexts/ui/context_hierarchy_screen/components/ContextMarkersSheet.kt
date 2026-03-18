@@ -1,7 +1,10 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,9 +14,11 @@ import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -27,16 +32,41 @@ fun ContextMarkersSheet(
     onDismiss: () -> Unit,
     contextMarkers: List<UiContextMarker>,
     contextMarkerToEmojiMap: Map<String, String>,
+    onManageContextMarkers: () -> Unit,
     onContextSelected: (String) -> Unit,
 ) {
     if (showSheet) {
-        ModalBottomSheet(onDismissRequest = onDismiss) {
-            Column(Modifier.navigationBarsPadding()) {
-                Text(
-                    text = "Context Markers",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
+        val sheetColor = MaterialTheme.colorScheme.surfaceContainerLow
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            containerColor = sheetColor,
+        ) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding(),
+            ) {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = "Context Markers",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                    )
+                    TextButton(
+                        onClick = {
+                            onDismiss()
+                            onManageContextMarkers()
+                        },
+                    ) {
+                        Text("Manage")
+                    }
+                }
                 if (contextMarkers.isEmpty()) {
                     Text(
                         text = "Немає налаштованих маркерів контексту.",
@@ -57,6 +87,10 @@ fun ContextMarkersSheet(
                                         Icon(Icons.AutoMirrored.Outlined.Label, contentDescription = contextMarker.name)
                                     }
                                 },
+                                colors =
+                                    ListItemDefaults.colors(
+                                        containerColor = sheetColor,
+                                    ),
                                 modifier = Modifier.clickable { onContextSelected(contextMarker.name) },
                             )
                         }

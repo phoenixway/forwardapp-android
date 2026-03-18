@@ -157,6 +157,9 @@ private fun NavGraphBuilder.mainGraph(
                     recordInHistory = true,
                 )
             },
+            onNavigateToManageContextMarkers = {
+                navigationManager.navigate(target = NavTarget.ManageContextMarkers)
+            },
             onNavigateToPresets = {
                 navigationManager.navigate(target = NavTarget.StructurePresets)
             },
