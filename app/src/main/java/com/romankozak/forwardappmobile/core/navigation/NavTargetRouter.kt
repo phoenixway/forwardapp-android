@@ -72,8 +72,8 @@ object NavTargetRouter {
             NavTarget.Sync ->
                 NavigationRoutes.SYNC
 
-            NavTarget.ManageContexts ->
-                NavigationRoutes.MANAGE_CONTEXTS
+            NavTarget.ManageContextMarkers ->
+                NavigationRoutes.MANAGE_CONTEXT_MARKERS
 
             NavTarget.ScriptChooser ->
                 NavigationRoutes.SCRIPT_CHOOSER

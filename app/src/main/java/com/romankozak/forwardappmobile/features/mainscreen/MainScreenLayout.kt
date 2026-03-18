@@ -49,6 +49,7 @@ import com.romankozak.forwardappmobile.core.navigation.routes.GOAL_LISTS_ROUTE
 import com.romankozak.forwardappmobile.core.navigation.routes.STRATEGIC_MANAGEMENT_ROUTE
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.ContextMarkersSheet
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.CoreBottomPanel
@@ -89,6 +90,7 @@ fun MainScreenLayout(
     navController: NavController,
     navigationManager: EnhancedNavigationManager? = null,
     onNavigateToProjectHierarchy: () -> Unit,
+    onShowContextMarkersSheet: () -> Unit = {},
     onNavigateToPresets: () -> Unit,
     onNavigateToCharacter: () -> Unit,
     onNavigateToGlobalSearch: () -> Unit,
@@ -158,6 +160,7 @@ fun MainScreenLayout(
     val activeUserAwarenessState by userAwarenessViewModel.activeState.collectAsStateWithLifecycle()
     var showAboutDialog by remember { mutableStateOf(false) }
     var showStateSwitchDialog by remember { mutableStateOf(false) }
+    var showContextMarkersSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(commandDeckViewModel) {
         commandDeckViewModel.uiEvents.collect { message ->
@@ -292,6 +295,7 @@ fun MainScreenLayout(
                         MAIN_SCREEN_DASHBOARD_ROUTE ->
                             DashboardBottomPanel(
                                 onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                                onShowContextMarkersSheet = { showContextMarkersSheet = true },
                                 onNavigateToPresets = onNavigateToPresets,
                                 onNavigateToGlobalSearch = onNavigateToGlobalSearch,
                                 onNavigateToSettings = onNavigateToSettings,
@@ -319,6 +323,7 @@ fun MainScreenLayout(
                         MAIN_SCREEN_TODAY_ROUTE ->
                             TodayBottomPanel(
                                 onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                                onShowContextMarkersSheet = { showContextMarkersSheet = true },
                                 onNavigateToPresets = onNavigateToPresets,
                                 onNavigateToGlobalSearch = onNavigateToGlobalSearch,
                                 onNavigateToSettings = onNavigateToSettings,
@@ -346,6 +351,7 @@ fun MainScreenLayout(
                         MAIN_SCREEN_TACTICS_ROUTE ->
                             TacticsBottomPanel(
                                 onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                                onShowContextMarkersSheet = { showContextMarkersSheet = true },
                                 onNavigateToPresets = onNavigateToPresets,
                                 onNavigateToGlobalSearch = onNavigateToGlobalSearch,
                                 onNavigateToSettings = onNavigateToSettings,
@@ -373,6 +379,7 @@ fun MainScreenLayout(
                         MAIN_SCREEN_STRATEGIC_ARC_ROUTE ->
                             StrategicArcBottomPanel(
                                 onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                                onShowContextMarkersSheet = { showContextMarkersSheet = true },
                                 onNavigateToPresets = onNavigateToPresets,
                                 onNavigateToGlobalSearch = onNavigateToGlobalSearch,
                                 onNavigateToSettings = onNavigateToSettings,
@@ -400,6 +407,7 @@ fun MainScreenLayout(
                         STRATEGIC_MANAGEMENT_ROUTE -> // Strategy
                             StrategyBottomPanel(
                                 onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                                onShowContextMarkersSheet = { showContextMarkersSheet = true },
                                 onNavigateToPresets = onNavigateToPresets,
                                 onNavigateToGlobalSearch = onNavigateToGlobalSearch,
                                 onNavigateToSettings = onNavigateToSettings,
@@ -427,6 +435,7 @@ fun MainScreenLayout(
                         MAIN_SCREEN_CORE_ROUTE ->
                             CoreBottomPanel(
                                 onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                                onShowContextMarkersSheet = { showContextMarkersSheet = true },
                                 onNavigateToPresets = onNavigateToPresets,
                                 onNavigateToGlobalSearch = onNavigateToGlobalSearch,
                                 onNavigateToSettings = onNavigateToSettings,
@@ -454,6 +463,7 @@ fun MainScreenLayout(
                         else ->
                             DashboardBottomPanel( // Fallback to Dashboard for unknown routes
                                 onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                                onShowContextMarkersSheet = { showContextMarkersSheet = true },
                                 onNavigateToPresets = onNavigateToPresets,
                                 onNavigateToGlobalSearch = onNavigateToGlobalSearch,
                                 onNavigateToSettings = onNavigateToSettings,
@@ -662,6 +672,21 @@ fun MainScreenLayout(
                 onCrisis = userAwarenessViewModel::setCrisis,
             )
         }
+
+        ContextMarkersSheet(
+            showSheet = showContextMarkersSheet,
+            onDismiss = { showContextMarkersSheet = false },
+            contextMarkers = contextUiState.allContextMarkers,
+            contextMarkerToEmojiMap = contextUiState.contextMarkerToEmojiMap,
+            onContextSelected = { contextMarkerName ->
+                showContextMarkersSheet = false
+                contextHierarchyViewModel.onEvent(
+                    com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent.ContextSelected(
+                        contextMarkerName,
+                    ),
+                )
+            },
+        )
 
         if (importChoiceUri != null) {
             AlertDialog(

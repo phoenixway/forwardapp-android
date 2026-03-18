@@ -19,7 +19,7 @@ import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.routes.COMMAND_DECK_ROUTE
 import com.romankozak.forwardappmobile.core.theme.ThemeSettings
-import com.romankozak.forwardappmobile.data.logic.ContextHandler
+import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
@@ -71,7 +71,7 @@ class ContextHierarchyScreenViewModel
         private val searchUseCase: SearchUseCase,
         private val dialogUseCase: DialogUseCase,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
-        private val contextHandler: ContextHandler,
+        private val contextMarkerHandler: ContextMarkerHandler,
         private val dayManagementRepository: DayManagementRepository,
         private val focusContextRepository: FocusContextRepository,
         private val activityRepository: ActivityRepository,
@@ -135,7 +135,7 @@ class ContextHierarchyScreenViewModel
         private val navigationSnapshot =
             MutableStateFlow(ProjectHierarchyScreenStateUseCase.NavigationSnapshot())
 
-        val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = contextHandler.contextMarkerToEmojiMap
+        val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = contextMarkerHandler.contextMarkerToEmojiMap
         val focusedContextIds: StateFlow<Set<String>> =
             focusContextRepository
                 .observeActiveFocusContextIds()
@@ -241,7 +241,7 @@ class ContextHierarchyScreenViewModel
 
         private fun onContextSelected(name: String) {
             viewModelScope.launch {
-                val tag = contextHandler.getContextTag(name)
+                val tag = contextMarkerHandler.getContextTag(name)
                 val projectId =
                     if (tag != null) {
                         withContext(ioDispatcher) { contextRepository.findContextIdsByTag(tag).firstOrNull() }
@@ -330,7 +330,7 @@ class ContextHierarchyScreenViewModel
 
         private fun initializeAndCollectStates() {
             viewModelScope.launch(ioDispatcher) {
-                contextHandler.initialize()
+                contextMarkerHandler.initialize()
                 settingsRepo.isBottomNavExpandedFlow.firstOrNull()?.let { savedState ->
                     _isBottomNavExpanded.value = savedState
                 }
@@ -763,8 +763,8 @@ class ContextHierarchyScreenViewModel
                 is ContextHierarchyScreenEvent.SaveSettings -> {
                     settingsUseCase.saveSettings(viewModelScope, event.settings)
                 }
-                is ContextHierarchyScreenEvent.SaveAllContexts -> {
-                    settingsUseCase.saveAllContexts(viewModelScope, event.updatedContexts)
+                is ContextHierarchyScreenEvent.SaveAllContextMarkers -> {
+                    settingsUseCase.saveAllContextMarkers(viewModelScope, event.updatedContextMarkers)
                 }
                 is ContextHierarchyScreenEvent.DismissWifiServerDialog -> if (uiState.value.featureToggles[FeatureFlag.WifiSync] == true) syncUseCase.onDismissWifiServerDialog()
                 is ContextHierarchyScreenEvent.DismissWifiImportDialog -> if (uiState.value.featureToggles[FeatureFlag.WifiSync] == true) syncUseCase.onDismissWifiImportDialog()

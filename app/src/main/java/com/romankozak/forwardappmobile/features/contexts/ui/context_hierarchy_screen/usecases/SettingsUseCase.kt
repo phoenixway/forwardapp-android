@@ -1,9 +1,9 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
-import com.romankozak.forwardappmobile.data.logic.ContextHandler
+import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.settings.settings.models.PlanningSettings
-import com.romankozak.forwardappmobile.ui.dialogs.UiContext
+import com.romankozak.forwardappmobile.ui.dialogs.UiContextMarker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -12,7 +12,7 @@ class SettingsUseCase
     @Inject
     constructor(
         private val settingsRepo: SettingsRepository,
-        private val contextHandler: ContextHandler,
+        private val contextMarkerHandler: ContextMarkerHandler,
     ) {
         fun saveSettings(
             scope: CoroutineScope,
@@ -27,18 +27,18 @@ class SettingsUseCase
             }
         }
 
-        fun saveAllContexts(
+        fun saveAllContextMarkers(
             scope: CoroutineScope,
-            updatedContexts: List<UiContext>,
+            updatedContextMarkers: List<UiContextMarker>,
         ) {
             scope.launch {
-                val customContexts = updatedContexts.filter { !it.isReserved }
-                val reservedContexts = updatedContexts.filter { it.isReserved }
+                val customContextMarkers = updatedContextMarkers.filter { !it.isReserved }
+                val reservedContextMarkers = updatedContextMarkers.filter { it.isReserved }
 
-                settingsRepo.saveCustomContexts(customContexts)
-                settingsRepo.saveReservedContexts(reservedContexts)
+                settingsRepo.saveCustomContextMarkers(customContextMarkers)
+                settingsRepo.saveReservedContextMarkers(reservedContextMarkers)
 
-                contextHandler.initialize()
+                contextMarkerHandler.initialize()
             }
         }
     }

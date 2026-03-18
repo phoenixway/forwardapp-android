@@ -7,7 +7,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
 import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
-import com.romankozak.forwardappmobile.data.logic.ContextHandler
+import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
@@ -26,10 +26,10 @@ class GoalRepository
         private val goalDao: GoalDao,
         private val listItemDao: ListItemDao,
         private val reminderRepository: ReminderRepository,
-        private val contextHandlerProvider: Provider<ContextHandler>,
+        private val contextMarkerHandlerProvider: Provider<ContextMarkerHandler>,
         private val contextDao: ContextDao,
     ) {
-        private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
+        private val contextMarkerHandler: ContextMarkerHandler by lazy { contextMarkerHandlerProvider.get() }
 
         suspend fun addGoalToContext(
             title: String,
@@ -61,7 +61,7 @@ class GoalRepository
             listItemDao.insertItem(newBacklogItem)
 
             val finalGoalState = goalDao.getGoalById(newGoal.id)!!
-            contextHandler.handleContextsOnCreate(finalGoalState)
+            contextMarkerHandler.handleContextsOnCreate(finalGoalState)
             return newBacklogItem.id
         }
 
@@ -95,7 +95,7 @@ class GoalRepository
             reminderRepository.createReminder(newGoal.id, "GOAL", reminderTime)
 
             syncContextMarker(newGoal.id, contextId, ContextTextAction.ADD)
-            contextHandler.handleContextsOnCreate(newGoal)
+            contextMarkerHandler.handleContextsOnCreate(newGoal)
             return newGoal
         }
 
@@ -120,9 +120,9 @@ class GoalRepository
             val contextTags = context.tags.orEmpty()
             if (contextTags.isEmpty()) return
 
-            val tagMap = contextHandler.tagToContextNameMap.value
+            val tagMap = contextMarkerHandler.tagToContextMarkerNameMap.value
             val contextName = tagMap.entries.find { (tagKey, _) -> tagKey in contextTags }?.value ?: return
-            val marker = contextHandler.getContextMarker(contextName) ?: return
+            val marker = contextMarkerHandler.getContextMarker(contextName) ?: return
             val goal = goalDao.getGoalById(goalId) ?: return
 
             var newText = goal.text

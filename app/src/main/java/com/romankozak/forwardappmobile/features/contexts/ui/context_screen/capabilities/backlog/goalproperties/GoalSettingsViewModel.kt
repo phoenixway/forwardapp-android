@@ -10,7 +10,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
-import com.romankozak.forwardappmobile.data.logic.ContextHandler
+import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
@@ -37,7 +37,7 @@ class GoalSettingsViewModel
     constructor(
         private val goalRepository: GoalRepository,
         private val contextRepository: ContextRepository,
-        private val contextHandler: ContextHandler,
+        private val contextMarkerHandler: ContextMarkerHandler,
         private val reminderRepository: ReminderRepository,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel(), EvaluationTabActions, RemindersTabActions {
@@ -52,7 +52,7 @@ class GoalSettingsViewModel
 
         private var currentGoal: Goal? = null
 
-        val allContextNames: StateFlow<List<String>> = contextHandler.contextNamesFlow
+        val allContextMarkerNames: StateFlow<List<String>> = contextMarkerHandler.contextMarkerNamesFlow
 
         private val _allTags = MutableStateFlow<List<String>>(emptyList())
         val allTags: StateFlow<List<String>> = _allTags.asStateFlow()
@@ -61,7 +61,7 @@ class GoalSettingsViewModel
             viewModelScope.launch {
                 val goalId: String? = savedStateHandle["goalId"]
 
-                contextHandler.initialize()
+                contextMarkerHandler.initialize()
                 loadAvailableTags()
 
                 if (goalId != null) {
@@ -160,7 +160,7 @@ class GoalSettingsViewModel
 
             if (currentGoal != null) {
                 goalRepository.updateGoal(goalToSave)
-                contextHandler.syncContextsOnUpdate(oldGoal = currentGoal!!, newGoal = goalToSave)
+                contextMarkerHandler.syncContextsOnUpdate(oldGoal = currentGoal!!, newGoal = goalToSave)
             } else {
                 initialProjectId ?: return
                 goalRepository.addGoalToContext(goalToSave.text, initialProjectId)

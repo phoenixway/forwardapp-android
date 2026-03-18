@@ -68,13 +68,13 @@ class MainActivity : ComponentActivity() {
     lateinit var contextUtils: ContextUtils
 
     @Inject
-    lateinit var contextHandler: com.romankozak.forwardappmobile.data.logic.ContextHandler
+    lateinit var contextMarkerHandler: com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         lifecycleScope.launch {
             remoteConfigManager.fetchAndActivate()
-            contextHandler.initialize()
+            contextMarkerHandler.initialize()
         }
         enableEdgeToEdge()
 

@@ -73,6 +73,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun DashboardBottomBar(
     onNavigateToProjectHierarchy: () -> Unit,
+    onShowContextMarkersSheet: () -> Unit,
     onNavigateToProjectSearch: () -> Unit,
     onNavigateToTracker: () -> Unit,
     onNavigateToInbox: () -> Unit,
@@ -175,6 +176,14 @@ fun DashboardBottomBar(
                             showMoreBottomSheet = false
                         }
                         onNavigateToProjectHierarchy()
+                    }
+                },
+                onShowContextMarkersSheet = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onShowContextMarkersSheet()
                     }
                 },
                 onNavigateToAiChat = {
@@ -404,6 +413,7 @@ private fun MoreBottomSheetContent(
     onNavigateToReminders: () -> Unit,
     onNavigateToPresets: () -> Unit,
     onNavigateToProjectHierarchy: () -> Unit,
+    onShowContextMarkersSheet: () -> Unit,
     onNavigateToAiChat: () -> Unit,
     onNavigateToAiInsights: () -> Unit,
     onNavigateToAiLifeManagement: () -> Unit,
@@ -435,6 +445,18 @@ private fun MoreBottomSheetContent(
                 Icon(Icons.Outlined.AccountTree, contentDescription = "Contexts")
                 Spacer(modifier = Modifier.width(16.dp))
                 Text("Contexts")
+            }
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onShowContextMarkersSheet)
+                        .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Outlined.AccountTree, contentDescription = "Context Markers")
+                Spacer(modifier = Modifier.width(16.dp))
+                Text("Context Markers")
             }
             val aiLifeManagementEnabled = featureToggles[FeatureFlag.AiLifeManagement] == true
             if (aiLifeManagementEnabled) {

@@ -17,7 +17,7 @@ import com.romankozak.forwardappmobile.core.navigation.*
 import com.romankozak.forwardappmobile.core.navigation.capability.actions.CapabilityViewActionDescriptor
 import com.romankozak.forwardappmobile.core.navigation.capability.actions.CapabilityViewActionIds
 import com.romankozak.forwardappmobile.core.navigation.capability.actions.CapabilityViewActionRegistry
-import com.romankozak.forwardappmobile.data.logic.ContextHandler
+import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.repository.*
 import com.romankozak.forwardappmobile.domain.ner.NerManager
 import com.romankozak.forwardappmobile.domain.ner.ReminderParser
@@ -96,7 +96,7 @@ class ContextScreenViewModel
         private val application: Application,
         private val contextRepository: ContextRepository,
         private val settingsRepository: SettingsRepository,
-        private val contextHandler: ContextHandler,
+        private val contextHandler: ContextMarkerHandler,
         private val alarmScheduler: AlarmScheduler,
         private val nerManager: NerManager,
         private val reminderParser: ReminderParser,

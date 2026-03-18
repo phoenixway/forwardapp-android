@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.ui.dialogs
 
 import java.util.UUID
 
-data class UiContext(
+data class UiContextMarker(
     val id: String = UUID.randomUUID().toString(),
     val name: String,
     val tag: String,

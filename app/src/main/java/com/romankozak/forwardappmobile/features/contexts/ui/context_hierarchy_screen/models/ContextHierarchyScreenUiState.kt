@@ -6,7 +6,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.features.sync.WifiSyncStatus
-import com.romankozak.forwardappmobile.ui.dialogs.UiContext
+import com.romankozak.forwardappmobile.ui.dialogs.UiContextMarker
 
 typealias MainScreenUiState = ProjectHierarchyScreenUiState
 
@@ -29,7 +29,7 @@ data class ProjectHierarchyScreenUiState(
     val showRecentListsSheet: Boolean = false,
     val isBottomNavExpanded: Boolean = false,
     val recentItems: List<RecentItem> = emptyList(),
-    val allContexts: List<UiContext> = emptyList(),
+    val allContextMarkers: List<UiContextMarker> = emptyList(),
     val listChooserFinalExpandedIds: Set<String> = emptySet(),
     val filteredListHierarchyForDialog: ContextHierarchyData = ContextHierarchyData(),
     val canGoBack: Boolean = false,

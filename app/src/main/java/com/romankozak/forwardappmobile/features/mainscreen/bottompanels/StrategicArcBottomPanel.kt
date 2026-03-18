@@ -20,6 +20,7 @@ import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroun
 @Composable
 fun StrategicArcBottomPanel(
     onNavigateToProjectHierarchy: () -> Unit,
+    onShowContextMarkersSheet: () -> Unit,
     onNavigateToPresets: () -> Unit,
     onNavigateToGlobalSearch: () -> Unit,
     onNavigateToSettings: () -> Unit,
@@ -56,6 +57,7 @@ fun StrategicArcBottomPanel(
         ) {
             DashboardBottomBar(
                 onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                onShowContextMarkersSheet = onShowContextMarkersSheet,
                 onNavigateToProjectSearch = onNavigateToGlobalSearch,
                 onNavigateToTracker = onNavigateToTracker,
                 onNavigateToInbox = onNavigateToInbox,

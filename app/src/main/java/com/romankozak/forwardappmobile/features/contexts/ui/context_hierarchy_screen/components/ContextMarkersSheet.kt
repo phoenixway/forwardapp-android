@@ -18,14 +18,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.romankozak.forwardappmobile.ui.dialogs.UiContext
+import com.romankozak.forwardappmobile.ui.dialogs.UiContextMarker
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ContextBottomSheet(
+fun ContextMarkersSheet(
     showSheet: Boolean,
     onDismiss: () -> Unit,
-    contexts: List<UiContext>,
+    contextMarkers: List<UiContextMarker>,
     contextMarkerToEmojiMap: Map<String, String>,
     onContextSelected: (String) -> Unit,
 ) {
@@ -33,31 +33,31 @@ fun ContextBottomSheet(
         ModalBottomSheet(onDismissRequest = onDismiss) {
             Column(Modifier.navigationBarsPadding()) {
                 Text(
-                    text = "Обрати контекст",
+                    text = "Context Markers",
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 )
-                if (contexts.isEmpty()) {
+                if (contextMarkers.isEmpty()) {
                     Text(
-                        text = "Немає налаштованих контекстів.",
+                        text = "Немає налаштованих маркерів контексту.",
                         modifier = Modifier.padding(16.dp),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 } else {
                     LazyColumn {
-                        items(contexts, key = { it.name }) { context ->
+                        items(contextMarkers, key = { it.name }) { contextMarker ->
                             ListItem(
-                                headlineContent = { Text(context.name.replaceFirstChar { it.uppercase() }) },
+                                headlineContent = { Text(contextMarker.name.replaceFirstChar { it.uppercase() }) },
                                 leadingContent = {
-                                    val markerKey = "@${context.name.lowercase()}"
+                                    val markerKey = "@${contextMarker.name.lowercase()}"
                                     val emoji = contextMarkerToEmojiMap[markerKey]
                                     if (!emoji.isNullOrBlank()) {
                                         Text(emoji, fontSize = 24.sp)
                                     } else {
-                                        Icon(Icons.AutoMirrored.Outlined.Label, contentDescription = context.name)
+                                        Icon(Icons.AutoMirrored.Outlined.Label, contentDescription = contextMarker.name)
                                     }
                                 },
-                                modifier = Modifier.clickable { onContextSelected(context.name) },
+                                modifier = Modifier.clickable { onContextSelected(contextMarker.name) },
                             )
                         }
                     }

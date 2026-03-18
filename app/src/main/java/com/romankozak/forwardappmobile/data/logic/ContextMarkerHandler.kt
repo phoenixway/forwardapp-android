@@ -5,7 +5,7 @@ import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.ui.common.IconProvider
-import com.romankozak.forwardappmobile.ui.dialogs.UiContext
+import com.romankozak.forwardappmobile.ui.dialogs.UiContextMarker
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -15,7 +15,7 @@ import javax.inject.Provider
 import javax.inject.Singleton
 
 @Singleton
-class ContextHandler
+class ContextMarkerHandler
     @Inject
     constructor(
         private val contextRepositoryProvider: Provider<ContextRepository>,
@@ -29,18 +29,17 @@ class ContextHandler
         private val contextTagMap = mutableMapOf<String, String>()
         private val contextMarkerMap = mutableMapOf<String, String>()
 
-        private val _allContextsFlow = MutableStateFlow<List<UiContext>>(emptyList())
-        val allContextsFlow: StateFlow<List<UiContext>> = _allContextsFlow.asStateFlow()
+        private val _allContextMarkersFlow = MutableStateFlow<List<UiContextMarker>>(emptyList())
+        val allContextMarkersFlow: StateFlow<List<UiContextMarker>> = _allContextMarkersFlow.asStateFlow()
 
-        private val _tagToContextNameMap = MutableStateFlow<Map<String, String>>(emptyMap())
-        val tagToContextNameMap: StateFlow<Map<String, String>> = _tagToContextNameMap.asStateFlow()
+        private val _tagToContextMarkerNameMap = MutableStateFlow<Map<String, String>>(emptyMap())
+        val tagToContextMarkerNameMap: StateFlow<Map<String, String>> = _tagToContextMarkerNameMap.asStateFlow()
 
         private val _contextMarkerToEmojiMap = MutableStateFlow<Map<String, String>>(emptyMap())
-        private val _contextNamesFlow = MutableStateFlow<List<String>>(emptyList())
+        private val _contextMarkerNamesFlow = MutableStateFlow<List<String>>(emptyList())
 
-        // 2. ПУБЛІЧНІ поля (доступні для читання)
         val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = _contextMarkerToEmojiMap.asStateFlow()
-        val contextNamesFlow: StateFlow<List<String>> = _contextNamesFlow.asStateFlow()
+        val contextMarkerNamesFlow: StateFlow<List<String>> = _contextMarkerNamesFlow.asStateFlow()
 
         fun getContextMarker(contextName: String): String? = contextMarkerMap[contextName.uppercase()]
 
@@ -59,7 +58,7 @@ class ContextHandler
             val localContextTagMap = mutableMapOf<String, String>()
             val localContextMarkerMap = mutableMapOf<String, String>()
             val localMarkerToEmojiMap = mutableMapOf<String, String>()
-            val contextsBeingBuilt = mutableListOf<UiContext>()
+            val contextMarkersBeingBuilt = mutableListOf<UiContextMarker>()
 
             iconProvider.getIconMappings().forEach { (icon, markers) ->
                 markers.forEach { marker -> localMarkerToEmojiMap[marker] = icon }
@@ -74,7 +73,7 @@ class ContextHandler
                 localContextMarkerMap[name.uppercase()] = marker
                 if (emojiValue.isNotBlank()) localMarkerToEmojiMap[marker] = emojiValue
 
-                contextsBeingBuilt.add(UiContext(name = name.lowercase(), emoji = emojiValue, tag = tag, isReserved = true))
+                contextMarkersBeingBuilt.add(UiContextMarker(name = name.lowercase(), emoji = emojiValue, tag = tag, isReserved = true))
             }
 
             // Кастомні
@@ -87,11 +86,11 @@ class ContextHandler
                     localContextTagMap[name.lowercase()] = tag
                     localContextMarkerMap[name.uppercase()] = marker
                     if (emojiValue.isNotBlank()) localMarkerToEmojiMap[marker] = emojiValue
-                    contextsBeingBuilt.add(UiContext(name = name.lowercase(), emoji = emojiValue, tag = tag, isReserved = false))
+                    contextMarkersBeingBuilt.add(UiContextMarker(name = name.lowercase(), emoji = emojiValue, tag = tag, isReserved = false))
                 }
             }
 
-            _allContextsFlow.value = contextsBeingBuilt.sortedBy { it.name }
+            _allContextMarkersFlow.value = contextMarkersBeingBuilt.sortedBy { it.name }
             contextTagMap.apply {
                 clear()
                 putAll(localContextTagMap)
@@ -100,7 +99,9 @@ class ContextHandler
                 clear()
                 putAll(localContextMarkerMap)
             }
-            _tagToContextNameMap.value = localContextTagMap.entries.associate { it.value to it.key }
+            _tagToContextMarkerNameMap.value = localContextTagMap.entries.associate { it.value to it.key }
+            _contextMarkerToEmojiMap.value = localMarkerToEmojiMap
+            _contextMarkerNamesFlow.value = contextMarkersBeingBuilt.map { it.name }.sorted()
         }
 
         private suspend fun ensureLinksExist(

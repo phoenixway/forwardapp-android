@@ -78,7 +78,7 @@ fun SettingsScreen(
     planningSettings: PlanningSettingsState,
     initialVaultName: String,
     reservedContextCount: Int,
-    onManageContextsClick: () -> Unit,
+    onManageContextMarkersClick: () -> Unit,
     onBack: () -> Unit,
     onSave: (PlanningSettings) -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
@@ -295,13 +295,13 @@ fun SettingsScreen(
                             }
                         }
                         SettingsCard(
-                            title = "Contexts",
+                            title = "Context Markers",
                             icon = Icons.AutoMirrored.Filled.Label,
                         ) {
                             OutlinedButton(
-                                onClick = onManageContextsClick,
+                                onClick = onManageContextMarkersClick,
                                 modifier = Modifier.fillMaxWidth(),
-                                content = { Text("Manage Reserved Contexts ($reservedContextCount)") },
+                                content = { Text("Manage Context Markers ($reservedContextCount)") },
                                 colors = ButtonDefaults.outlinedButtonColors(),
                             )
                         }

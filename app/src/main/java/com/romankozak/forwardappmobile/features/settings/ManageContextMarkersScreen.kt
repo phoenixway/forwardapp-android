@@ -44,27 +44,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.ui.dialogs.UiContext
+import com.romankozak.forwardappmobile.ui.dialogs.UiContextMarker
 import java.text.BreakIterator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ManageContextsScreen(
-    initialContexts: List<UiContext>,
+fun ManageContextMarkersScreen(
+    initialContextMarkers: List<UiContextMarker>,
     onBack: () -> Unit,
-    onSave: (updatedContexts: List<UiContext>) -> Unit,
+    onSave: (updatedContextMarkers: List<UiContextMarker>) -> Unit,
 ) {
-    val contexts =
+    val contextMarkers =
         remember {
-            mutableStateListOf<UiContext>().apply {
-                addAll(initialContexts.map { it.copy() })
+            mutableStateListOf<UiContextMarker>().apply {
+                addAll(initialContextMarkers.map { it.copy() })
             }
         }
 
     val hasNameErrors by remember {
         derivedStateOf {
             val names =
-                contexts
+                contextMarkers
                     .filter { !it.isReserved }
                     .map { it.name.lowercase().trim() }
                     .filter { it.isNotEmpty() }
@@ -79,7 +79,7 @@ fun ManageContextsScreen(
                 .imePadding(),
         topBar = {
             TopAppBar(
-                title = { Text("Manage Contexts") },
+                title = { Text("Manage Context Markers") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -88,7 +88,7 @@ fun ManageContextsScreen(
                 actions = {
                     TextButton(
                         enabled = !hasNameErrors,
-                        onClick = { onSave(contexts.toList()) },
+                        onClick = { onSave(contextMarkers.toList()) },
                     ) {
                         Text("Save")
                     }
@@ -96,8 +96,8 @@ fun ManageContextsScreen(
             )
         },
     ) { padding ->
-        val reserved = contexts.filter { it.isReserved }
-        val custom = contexts.filter { !it.isReserved }
+        val reserved = contextMarkers.filter { it.isReserved }
+        val custom = contextMarkers.filter { !it.isReserved }
 
         LazyColumn(
             modifier =
@@ -111,12 +111,12 @@ fun ManageContextsScreen(
 
             if (reserved.isNotEmpty()) {
                 item { SectionHeader("Reserved") }
-                items(reserved, key = { it.id }) { context ->
-                    val index = contexts.indexOf(context)
-                    ContextEditorItem(
-                        context = context,
-                        contextsList = contexts,
-                        onValueChange = { if (index != -1) contexts[index] = it },
+                items(reserved, key = { it.id }) { contextMarker ->
+                    val index = contextMarkers.indexOf(contextMarker)
+                    ContextMarkerEditorItem(
+                        contextMarker = contextMarker,
+                        contextMarkersList = contextMarkers,
+                        onValueChange = { if (index != -1) contextMarkers[index] = it },
                         onDelete = {},
                     )
                 }
@@ -134,7 +134,7 @@ fun ManageContextsScreen(
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     ) {
                         Text(
-                            text = "No custom contexts yet.\nTap the button below to add one.",
+                            text = "No custom context markers yet.\nTap the button below to add one.",
                             modifier = Modifier.padding(16.dp),
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
@@ -142,13 +142,13 @@ fun ManageContextsScreen(
                     }
                 }
             } else {
-                items(custom, key = { it.id }) { context ->
-                    val index = contexts.indexOf(context)
-                    ContextEditorItem(
-                        context = context,
-                        contextsList = contexts,
-                        onValueChange = { if (index != -1) contexts[index] = it },
-                        onDelete = { contexts.remove(context) },
+                items(custom, key = { it.id }) { contextMarker ->
+                    val index = contextMarkers.indexOf(contextMarker)
+                    ContextMarkerEditorItem(
+                        contextMarker = contextMarker,
+                        contextMarkersList = contextMarkers,
+                        onValueChange = { if (index != -1) contextMarkers[index] = it },
+                        onDelete = { contextMarkers.remove(contextMarker) },
                     )
                 }
             }
@@ -157,14 +157,14 @@ fun ManageContextsScreen(
                 Spacer(Modifier.height(8.dp))
                 FilledTonalButton(
                     onClick = {
-                        val newContext = UiContext(name = "", tag = "", emoji = "", isReserved = false)
-                        contexts.add(newContext)
+                        val newContextMarker = UiContextMarker(name = "", tag = "", emoji = "", isReserved = false)
+                        contextMarkers.add(newContextMarker)
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Context")
+                    Icon(Icons.Default.Add, contentDescription = "Add Context Marker")
                     Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                    Text("Add Custom Context")
+                    Text("Add Custom Context Marker")
                 }
                 Spacer(Modifier.height(16.dp))
             }
@@ -187,18 +187,18 @@ private fun SectionHeader(title: String) {
 }
 
 @Composable
-private fun ContextEditorItem(
-    context: UiContext,
-    contextsList: SnapshotStateList<UiContext>,
-    onValueChange: (UiContext) -> Unit,
+private fun ContextMarkerEditorItem(
+    contextMarker: UiContextMarker,
+    contextMarkersList: SnapshotStateList<UiContextMarker>,
+    onValueChange: (UiContextMarker) -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val isNameError =
-        remember(context.name, contextsList.size) {
-            !context.isReserved && context.name.isNotBlank() &&
-                contextsList.any {
-                    (it.id != context.id) && it.name.equals(context.name, ignoreCase = true)
+        remember(contextMarker.name, contextMarkersList.size) {
+            !contextMarker.isReserved && contextMarker.name.isNotBlank() &&
+                contextMarkersList.any {
+                    (it.id != contextMarker.id) && it.name.equals(contextMarker.name, ignoreCase = true)
                 }
         }
 
@@ -211,27 +211,27 @@ private fun ContextEditorItem(
         Column(modifier = Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
-                    value = context.name,
+                    value = contextMarker.name,
                     onValueChange = {
                         onValueChange(
-                            context.copy(
+                            contextMarker.copy(
                                 name = it.filter { char -> char.isLetterOrDigit() || (char == '-') },
                             ),
                         )
                     },
                     label = { Text("Name") },
                     modifier = Modifier.weight(1f),
-                    readOnly = context.isReserved,
-                    enabled = !context.isReserved,
+                    readOnly = contextMarker.isReserved,
+                    enabled = !contextMarker.isReserved,
                     singleLine = true,
                     isError = isNameError,
                     supportingText = { if (isNameError) Text("Name must be unique") },
                 )
-                if (!context.isReserved) {
+                if (!contextMarker.isReserved) {
                     IconButton(onClick = onDelete) {
                         Icon(
                             imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete Context",
+                            contentDescription = "Delete Context Marker",
                             tint = MaterialTheme.colorScheme.error,
                         )
                     }
@@ -243,15 +243,15 @@ private fun ContextEditorItem(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 OutlinedTextField(
-                    value = context.emoji,
+                    value = contextMarker.emoji,
                     onValueChange = { newText ->
                         if (newText.isNotEmpty()) {
                             val breakIterator = BreakIterator.getCharacterInstance()
                             breakIterator.setText(newText)
                             val firstCharacterEnd = breakIterator.next()
-                            onValueChange(context.copy(emoji = newText.substring(0, firstCharacterEnd)))
+                            onValueChange(contextMarker.copy(emoji = newText.substring(0, firstCharacterEnd)))
                         } else {
-                            onValueChange(context.copy(emoji = ""))
+                            onValueChange(contextMarker.copy(emoji = ""))
                         }
                     },
                     label = { Text("Emoji") },
@@ -260,9 +260,9 @@ private fun ContextEditorItem(
                     singleLine = true,
                 )
                 OutlinedTextField(
-                    value = context.tag,
-                    onValueChange = { onValueChange(context.copy(tag = it)) },
-                    label = { Text("Corresponding Tag") },
+                    value = contextMarker.tag,
+                    onValueChange = { onValueChange(contextMarker.copy(tag = it)) },
+                    label = { Text("Corresponding Project Tag") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                 )

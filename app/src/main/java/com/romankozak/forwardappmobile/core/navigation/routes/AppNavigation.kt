@@ -61,7 +61,7 @@ import com.romankozak.forwardappmobile.features.mainscreen.MainScreenLayout
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.features.reminders.list.RemindersScreen
-import com.romankozak.forwardappmobile.features.settings.ManageContextsScreen
+import com.romankozak.forwardappmobile.features.settings.ManageContextMarkersScreen
 import com.romankozak.forwardappmobile.features.settings.settings.SettingsScreen
 import com.romankozak.forwardappmobile.features.sync.SyncScreen
 import com.romankozak.forwardappmobile.features.sync.selectiveimport.SelectiveImportScreen
@@ -373,14 +373,14 @@ private fun NavGraphBuilder.mainGraph(
         val goalListViewModel: ContextHierarchyScreenViewModel = hiltViewModel(parentEntry)
 
         val uiState by goalListViewModel.uiState.collectAsStateWithLifecycle()
-        val reservedContextCount = uiState.allContexts.count { it.isReserved }
+        val reservedContextCount = uiState.allContextMarkers.count { it.isReserved }
 
         SettingsScreen(
             planningSettings = uiState.planningSettings,
             initialVaultName = uiState.obsidianVaultName,
             reservedContextCount = reservedContextCount,
-            onManageContextsClick = {
-                appNavigationViewModel.navigationManager.navigate(target = NavTarget.ManageContexts)
+            onManageContextMarkersClick = {
+                appNavigationViewModel.navigationManager.navigate(target = NavTarget.ManageContextMarkers)
             },
             onBack = { navController.popBackStack() },
             onSave = { settings ->
@@ -389,17 +389,17 @@ private fun NavGraphBuilder.mainGraph(
         )
     }
 
-    composable(NavigationRoutes.MANAGE_CONTEXTS) { backStackEntry ->
+    composable(NavigationRoutes.MANAGE_CONTEXT_MARKERS) { backStackEntry ->
         val parentEntry = remember(backStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) }
         val goalListViewModel: ContextHierarchyScreenViewModel = hiltViewModel(parentEntry)
 
         val uiState by goalListViewModel.uiState.collectAsStateWithLifecycle()
 
-        ManageContextsScreen(
-            initialContexts = uiState.allContexts,
+        ManageContextMarkersScreen(
+            initialContextMarkers = uiState.allContextMarkers,
             onBack = { navController.popBackStack() },
-            onSave = { updatedContexts ->
-                goalListViewModel.onEvent(ContextHierarchyScreenEvent.SaveAllContexts(updatedContexts))
+            onSave = { updatedContextMarkers ->
+                goalListViewModel.onEvent(ContextHierarchyScreenEvent.SaveAllContextMarkers(updatedContextMarkers))
                 navController.popBackStack()
             },
         )

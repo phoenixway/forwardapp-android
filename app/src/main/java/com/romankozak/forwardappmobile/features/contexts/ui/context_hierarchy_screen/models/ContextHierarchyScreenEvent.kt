@@ -8,7 +8,7 @@ import com.romankozak.forwardappmobile.core.theme.ThemeMode
 import com.romankozak.forwardappmobile.core.theme.ThemeName
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogPasteMode
 import com.romankozak.forwardappmobile.features.settings.settings.models.PlanningSettings
-import com.romankozak.forwardappmobile.ui.dialogs.UiContext
+import com.romankozak.forwardappmobile.ui.dialogs.UiContextMarker
 
 sealed interface ContextHierarchyScreenEvent {
     data class SearchQueryChanged(val query: TextFieldValue) : ContextHierarchyScreenEvent
@@ -154,7 +154,7 @@ sealed interface ContextHierarchyScreenEvent {
 
     data class SaveSettings(val settings: PlanningSettings) : ContextHierarchyScreenEvent
 
-    data class SaveAllContexts(val updatedContexts: List<UiContext>) : ContextHierarchyScreenEvent
+    data class SaveAllContextMarkers(val updatedContextMarkers: List<UiContextMarker>) : ContextHierarchyScreenEvent
 
     data object DismissWifiServerDialog : ContextHierarchyScreenEvent
 

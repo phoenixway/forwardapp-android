@@ -66,7 +66,7 @@ sealed interface NavTarget {
 
     data object Sync : NavTarget
 
-    data object ManageContexts : NavTarget
+    data object ManageContextMarkers : NavTarget
 
     data object ScriptChooser : NavTarget
 

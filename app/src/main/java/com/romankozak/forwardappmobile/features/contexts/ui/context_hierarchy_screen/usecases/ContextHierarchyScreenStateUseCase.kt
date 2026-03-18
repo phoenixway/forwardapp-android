@@ -9,7 +9,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarch
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
-import com.romankozak.forwardappmobile.data.logic.ContextHandler
+import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
@@ -29,7 +29,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResultFilter
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResultSort
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.flattenHierarchyWithLevels
-import com.romankozak.forwardappmobile.ui.dialogs.UiContext
+import com.romankozak.forwardappmobile.ui.dialogs.UiContextMarker
 import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,7 +55,7 @@ class ProjectHierarchyScreenStateUseCase
         private val navigationUseCase: NavigationUseCase,
         private val settingsRepository: SettingsRepository,
         private val structurePresetDao: StructurePresetDao,
-        private val contextHandler: ContextHandler,
+        private val contextMarkerHandler: ContextMarkerHandler,
         private val recentItemsRepository: RecentItemsRepository,
     ) {
         data class NavigationSnapshot(
@@ -144,12 +144,12 @@ class ProjectHierarchyScreenStateUseCase
                 combine(
                     allProjectsFlat,
                     recentItemsRepository.getRecentItems(),
-                    contextHandler.allContextsFlow,
-                ) { allProjects, recentItems, contexts ->
+                    contextMarkerHandler.allContextMarkersFlow,
+                ) { allProjects, recentItems, contextMarkers ->
                     ExpensiveCalculations(
                         areAnyProjectsExpanded = allProjects.any { it.isExpanded },
                         recentItems = recentItems,
-                        allContexts = contexts,
+                        allContextMarkers = contextMarkers,
                     )
                 }
                     .stateIn(scope, SharingStarted.Lazily, ExpensiveCalculations())
@@ -229,7 +229,7 @@ class ProjectHierarchyScreenStateUseCase
                     dialogUseCase.recordForReminderDialog,
                     obsidianVaultNameFlow,
                     navigationSnapshot,
-                    contextHandler.contextMarkerToEmojiMap,
+                    contextMarkerHandler.contextMarkerToEmojiMap,
                     availableContextRolesFlow,
                     FeatureToggles.overrides,
                 ) { values ->
@@ -274,7 +274,7 @@ class ProjectHierarchyScreenStateUseCase
                         showRecentListsSheet = dialogState.showRecentListsSheet,
                         isBottomNavExpanded = dialogState.isBottomNavExpanded,
                         recentItems = expensiveCalcs.recentItems,
-                        allContexts = expensiveCalcs.allContexts,
+                        allContextMarkers = expensiveCalcs.allContextMarkers,
                         canGoBack = navSnapshot.canGoBack,
                         canGoForward = navSnapshot.canGoForward,
                         showNavigationMenu = navSnapshot.showNavigationMenu,
@@ -341,7 +341,7 @@ class ProjectHierarchyScreenStateUseCase
         private data class ExpensiveCalculations(
             val areAnyProjectsExpanded: Boolean = false,
             val recentItems: List<RecentItem> = emptyList(),
-            val allContexts: List<UiContext> = emptyList(),
+            val allContextMarkers: List<UiContextMarker> = emptyList(),
         )
 
         private fun buildAvailableContextRoles(presets: List<ContextRoleProfile>): List<ContextRoleOption> {

@@ -18,7 +18,7 @@ import com.romankozak.forwardappmobile.core.theme.ThemeName
 import com.romankozak.forwardappmobile.core.theme.ThemeSettings
 import com.romankozak.forwardappmobile.domain.reminders.RingtoneType
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.PlanningSettingsProvider
-import com.romankozak.forwardappmobile.ui.dialogs.UiContext
+import com.romankozak.forwardappmobile.ui.dialogs.UiContextMarker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
@@ -688,20 +688,20 @@ class SettingsRepository
             context.dataStore.edit { settings -> settings[customContextEmojiKey(name)] = emoji }
         }
 
-        suspend fun saveReservedContexts(contexts: List<UiContext>) {
-            for (context in contexts) {
-                val upperCaseName = context.name.uppercase()
+        suspend fun saveReservedContextMarkers(contextMarkers: List<UiContextMarker>) {
+            for (contextMarker in contextMarkers) {
+                val upperCaseName = contextMarker.name.uppercase()
                 val keys = ContextKeys.reservedContexts[upperCaseName]
                 if (keys != null) {
-                    saveContextTag(keys.first, context.tag)
-                    saveContextEmoji(keys.second, context.emoji)
+                    saveContextTag(keys.first, contextMarker.tag)
+                    saveContextEmoji(keys.second, contextMarker.emoji)
                 }
             }
         }
 
-        suspend fun saveCustomContexts(contexts: List<UiContext>) {
+        suspend fun saveCustomContextMarkers(contextMarkers: List<UiContextMarker>) {
             val currentNames = customContextNamesFlow.first()
-            val newNames = contexts.map { it.name }.toSet()
+            val newNames = contextMarkers.map { it.name }.toSet()
             val deletedNames = currentNames - newNames
 
             context.dataStore.edit { settings ->
@@ -710,9 +710,9 @@ class SettingsRepository
                     settings.remove(customContextEmojiKey(name))
                 }
                 settings[ContextKeys.CUSTOM_CONTEXT_NAMES] = newNames
-                for (context in contexts) {
-                    settings[customContextTagKey(context.name)] = context.tag
-                    settings[customContextEmojiKey(context.name)] = context.emoji
+                for (contextMarker in contextMarkers) {
+                    settings[customContextTagKey(contextMarker.name)] = contextMarker.tag
+                    settings[customContextEmojiKey(contextMarker.name)] = contextMarker.emoji
                 }
             }
         }

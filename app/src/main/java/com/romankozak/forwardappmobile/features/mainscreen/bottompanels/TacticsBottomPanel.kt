@@ -20,6 +20,7 @@ import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroun
 @Composable
 fun TacticsBottomPanel(
     onNavigateToProjectHierarchy: () -> Unit,
+    onShowContextMarkersSheet: () -> Unit,
     onNavigateToPresets: () -> Unit,
     onNavigateToGlobalSearch: () -> Unit,
     onNavigateToSettings: () -> Unit,
@@ -56,6 +57,7 @@ fun TacticsBottomPanel(
         ) {
             DashboardBottomBar(
                 onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                onShowContextMarkersSheet = onShowContextMarkersSheet,
                 onNavigateToProjectSearch = onNavigateToGlobalSearch,
                 onNavigateToTracker = onNavigateToTracker,
                 onNavigateToInbox = onNavigateToInbox,

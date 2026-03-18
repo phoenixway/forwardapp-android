@@ -24,7 +24,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
 import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
-import com.romankozak.forwardappmobile.data.logic.ContextHandler
+import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
@@ -65,16 +65,15 @@ class ContextRepository
         private val backlogOrderRepository: BacklogOrderRepository,
         private val aiEventRepository: AiEventRepository,
         // ДОДАНО: Потрібен провайдер для уникнення циклічної залежності
-        private val contextHandlerProvider: Provider<ContextHandler>,
+        private val contextMarkerHandlerProvider: Provider<ContextMarkerHandler>,
     ) {
-        private val contextHandler: ContextHandler by lazy { contextHandlerProvider.get() }
+        private val contextMarkerHandler: ContextMarkerHandler by lazy { contextMarkerHandlerProvider.get() }
 
-        // --- Потоки та Дані з Handler ---
-        val contextMarkerToEmojiMap: StateFlow<Map<String, String>> get() = contextHandler.contextMarkerToEmojiMap
-        val contextNamesFlow: StateFlow<List<String>> get() = contextHandler.contextNamesFlow
-        private val internalHandler: ContextHandler by lazy { contextHandlerProvider.get() }
+        val contextMarkerToEmojiMap: StateFlow<Map<String, String>> get() = contextMarkerHandler.contextMarkerToEmojiMap
+        val contextMarkerNamesFlow: StateFlow<List<String>> get() = contextMarkerHandler.contextMarkerNamesFlow
+        private val internalHandler: ContextMarkerHandler by lazy { contextMarkerHandlerProvider.get() }
 
-        fun getContextTag(contextName: String): String? = contextHandler.getContextTag(contextName)
+        fun getContextTag(contextName: String): String? = contextMarkerHandler.getContextTag(contextName)
 
         // --- Базові операції з Контекстами ---
         fun getAllContextsFlow(): Flow<List<Context>> =

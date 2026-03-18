@@ -26,7 +26,7 @@ object NavigationRoutes {
     const val SCRIPTS_LIBRARY = "scripts_library_screen"
     const val SCRIPT_CHOOSER = "script_chooser_screen"
     const val SETTINGS = "settings_screen"
-    const val MANAGE_CONTEXTS = "manage_contexts_screen"
+    const val MANAGE_CONTEXT_MARKERS = "manage_context_markers_screen"
     const val ACTIVITY_TRACKER = "activity_tracker_screen"
     const val PROJECT_SETTINGS = "project_settings_screen"
     const val GOAL_SETTINGS = "goal_settings_screen"
