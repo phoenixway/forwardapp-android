@@ -10,9 +10,9 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -157,6 +157,7 @@ fun ConnectionsPanel(
     Column(
         modifier =
             modifier
+                .fillMaxSize()
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
     ) {
@@ -204,7 +205,7 @@ fun ConnectionsPanel(
         Spacer(modifier = Modifier.height(8.dp))
 
         ElevatedCard(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().weight(1f),
             colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
             elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
             shape = RoundedCornerShape(16.dp),
@@ -219,7 +220,7 @@ fun ConnectionsPanel(
             } else {
                 LazyColumn(
                     state = lazyListState,
-                    modifier = Modifier.heightIn(max = 440.dp),
+                    modifier = Modifier.fillMaxSize(),
                 ) {
                     items(internalItems, key = { "${it.type}-${it.id}" }) { item ->
                         ReorderableItem(reorderableState, key = "${item.type}-${item.id}") {
