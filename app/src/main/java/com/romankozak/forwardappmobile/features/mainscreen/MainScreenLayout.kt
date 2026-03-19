@@ -27,7 +27,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,11 +46,9 @@ import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.core.navigation.routes.GOAL_LISTS_ROUTE
 import com.romankozak.forwardappmobile.core.navigation.routes.STRATEGIC_MANAGEMENT_ROUTE
-import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.ContextMarkersSheet
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementScreen
-import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.CoreBottomPanel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.DashboardBottomPanel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.StrategicArcBottomPanel
@@ -72,12 +69,10 @@ import com.romankozak.forwardappmobile.ui.components.header.FAHeaderBackground
 import com.romankozak.forwardappmobile.ui.components.header.StrategicArcHeader
 import com.romankozak.forwardappmobile.ui.components.header.StrategyHeader
 import com.romankozak.forwardappmobile.ui.components.header.TacticsHeader
-import com.romankozak.forwardappmobile.ui.components.header.TodayHeader
 import com.romankozak.forwardappmobile.ui.dialogs.WifiImportDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiServerDialog
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
-import java.util.Calendar
 
 const val MAIN_SCREEN_DASHBOARD_ROUTE = "command_deck_dashboard"
 const val MAIN_SCREEN_CORE_ROUTE = "command_deck_core"
@@ -154,8 +149,6 @@ fun MainScreenLayout(
     val snackbarHostState = remember { SnackbarHostState() }
     val contextUiState by contextHierarchyViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val dayPlanViewModel: DayPlanViewModel = hiltViewModel()
-    val dayPlanUiState by dayPlanViewModel.uiState.collectAsState()
     val userAwarenessViewModel: UserAwarenessViewModel = hiltViewModel()
     val activeUserAwarenessState by userAwarenessViewModel.activeState.collectAsStateWithLifecycle()
     var showAboutDialog by remember { mutableStateOf(false) }
@@ -233,32 +226,7 @@ fun MainScreenLayout(
                             modifier = headerModifier,
                         )
 
-                    MAIN_SCREEN_TODAY_ROUTE -> {
-                        val activityTrackerViewModel: ActivityTrackerViewModel = hiltViewModel()
-                        val activityLog by activityTrackerViewModel.activityLog.collectAsStateWithLifecycle()
-
-                        val (xpToday, antyXpToday) =
-                            remember(activityLog, dayPlanUiState.dayPlan?.date) {
-                                val targetDate = dayPlanUiState.dayPlan?.date ?: System.currentTimeMillis()
-                                val recordsForDay =
-                                    activityLog.filter { record ->
-                                        isSameDay(record.createdAt, targetDate)
-                                    }
-                                val xp = recordsForDay.sumOf { it.xpGained ?: 0 }
-                                val antyXp = recordsForDay.sumOf { it.antyXp ?: 0 }
-                                xp to antyXp
-                            }
-
-                        FAHeader(
-                            layout =
-                                TodayHeader(
-                                    date = dayPlanUiState.dayPlan?.date,
-                                    titleTrailingContent = titleStateBadge,
-                                ),
-                            backgroundStyle = FAHeaderBackground.CommandDeck,
-                            modifier = headerModifier,
-                        )
-                    }
+                    MAIN_SCREEN_TODAY_ROUTE -> Unit
 
                     STRATEGIC_MANAGEMENT_ROUTE ->
                         FAHeader(
@@ -646,6 +614,7 @@ fun MainScreenLayout(
                                 mainNavController = navController,
                                 navigationManager = navigationManager,
                                 startTab = "PLAN",
+                                showFabMenu = false,
                             )
                         }
                     }
@@ -760,16 +729,6 @@ fun MainScreenLayout(
             )
         }
     }
-}
-
-private fun isSameDay(
-    timestamp: Long,
-    other: Long,
-): Boolean {
-    val cal1 = Calendar.getInstance().apply { timeInMillis = timestamp }
-    val cal2 = Calendar.getInstance().apply { timeInMillis = other }
-    return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
-        cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
 }
 
 private fun buildExternalTarget(

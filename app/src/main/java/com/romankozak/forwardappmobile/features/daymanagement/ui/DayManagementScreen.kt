@@ -78,6 +78,7 @@ fun DayManagementScreen(
     viewModel: DayManagementViewModel = hiltViewModel(),
     modifier: Modifier = Modifier,
     startTab: String? = null,
+    showFabMenu: Boolean = true,
 ) {
     val screenLogTag = "NAV_DEBUG"
 
@@ -107,12 +108,14 @@ fun DayManagementScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
-            DayManagementFabMenu(
-                isFabMenuExpanded = isFabMenuExpanded,
-                onToggleExpanded = { isFabMenuExpanded = !isFabMenuExpanded },
-                onDismiss = { isFabMenuExpanded = false },
-                dayPlanViewModel = dayPlanViewModel,
-            )
+            if (showFabMenu) {
+                DayManagementFabMenu(
+                    isFabMenuExpanded = isFabMenuExpanded,
+                    onToggleExpanded = { isFabMenuExpanded = !isFabMenuExpanded },
+                    onDismiss = { isFabMenuExpanded = false },
+                    dayPlanViewModel = dayPlanViewModel,
+                )
+            }
         },
     ) { innerPadding ->
         val contentArgs =
@@ -182,9 +185,23 @@ private fun DayManagementFabMenu(
         FloatingActionButton(onClick = onToggleExpanded) {
             Icon(Icons.Default.Menu, contentDescription = "Меню дій дня")
         }
-        DropdownMenu(
+        DayManagementActionsMenu(
             expanded = isFabMenuExpanded,
             onDismissRequest = onDismiss,
+            dayPlanViewModel = dayPlanViewModel,
+        )
+    }
+}
+
+@Composable
+fun DayManagementActionsMenu(
+    expanded: Boolean,
+    onDismissRequest: () -> Unit,
+    dayPlanViewModel: DayPlanViewModel,
+) {
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = onDismissRequest,
             modifier =
                 Modifier.background(
                     color = MaterialTheme.colorScheme.surface,
@@ -195,7 +212,7 @@ private fun DayManagementFabMenu(
                 text = { Text("Додати задачу") },
                 leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
                 onClick = {
-                    onDismiss()
+                    onDismissRequest()
                     dayPlanViewModel.openAddTaskDialog()
                 },
             )
@@ -203,7 +220,7 @@ private fun DayManagementFabMenu(
                 text = { Text("Показати зв'язки") },
                 leadingIcon = { Icon(Icons.Outlined.Link, contentDescription = null) },
                 onClick = {
-                    onDismiss()
+                    onDismissRequest()
                     dayPlanViewModel.toggleScopeLinksSheet()
                 },
             )
@@ -213,7 +230,7 @@ private fun DayManagementFabMenu(
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                 },
                 onClick = {
-                    onDismiss()
+                    onDismissRequest()
                     dayPlanViewModel.navigateToPreviousDay()
                 },
             )
@@ -223,12 +240,11 @@ private fun DayManagementFabMenu(
                     Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
                 },
                 onClick = {
-                    onDismiss()
+                    onDismissRequest()
                     dayPlanViewModel.navigateToNextDay()
                 },
             )
         }
-    }
 }
 
 @Composable

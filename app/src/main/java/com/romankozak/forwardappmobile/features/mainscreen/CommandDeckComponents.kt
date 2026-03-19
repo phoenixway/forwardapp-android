@@ -75,6 +75,7 @@ private const val TAB_SELECTED_BACKGROUND_ALPHA = 0.22f
 private const val TAB_DEFAULT_BACKGROUND_ALPHA = 0.12f
 private const val TAB_SYMBOL_Y_OFFSET_DP = -2
 private const val TAB_SELECTED_SPACER_DP = 6
+private const val TAB_SELECTED_TITLE_SIZE_SP = 13
 private const val DECK_MODULE_BACKGROUND_COLOR_HEX = 0xFF1E1E1E
 private const val DECK_MODULE_SUBTITLE_COLOR_HEX = 0xFFCCCCCC
 private val DeckModuleBackgroundColor = Color(DECK_MODULE_BACKGROUND_COLOR_HEX)
@@ -232,6 +233,12 @@ fun CommandDeckTabItem(
 
         if (isSelected) {
             Spacer(Modifier.width(TAB_SELECTED_SPACER_DP.dp))
+            Text(
+                text = tab.title,
+                fontSize = TAB_SELECTED_TITLE_SIZE_SP.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
         }
     }
 }
