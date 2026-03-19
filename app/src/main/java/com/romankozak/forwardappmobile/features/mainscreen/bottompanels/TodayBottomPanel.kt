@@ -37,7 +37,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.luminance
@@ -55,7 +54,6 @@ import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementAc
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
-import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
 
 @Composable
 fun TodayBottomPanel(
@@ -109,122 +107,115 @@ fun TodayBottomPanel(
     }
 
     CommonBottomPanelLayout {
-        Box(
+        Surface(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .then(CommandDeckBackgroundModifier())
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+            shape = RoundedCornerShape(28.dp),
+            color = panelStyle.backgroundColor,
+            border = BorderStroke(1.dp, panelStyle.textColor.copy(alpha = 0.1f)),
         ) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(28.dp),
-                color = panelStyle.backgroundColor,
-                border = BorderStroke(1.dp, panelStyle.textColor.copy(alpha = 0.1f)),
-            ) {
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    DayManagementActionsMenu(
-                        expanded = showActionsMenu,
-                        onDismissRequest = { showActionsMenu = false },
-                        dayPlanViewModel = dayPlanViewModel,
-                    )
+            Box(modifier = Modifier.fillMaxWidth()) {
+                DayManagementActionsMenu(
+                    expanded = showActionsMenu,
+                    onDismissRequest = { showActionsMenu = false },
+                    dayPlanViewModel = dayPlanViewModel,
+                )
 
-                    Row(
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 10.dp)
+                            .defaultMinSize(minHeight = 64.dp),
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    IconButton(
+                        onClick = { showActionsMenu = true },
+                        modifier = Modifier.size(44.dp),
+                        colors =
+                            IconButtonDefaults.iconButtonColors(
+                                contentColor = panelStyle.textColor.copy(alpha = 0.9f),
+                            ),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "Дії дня",
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Surface(
                         modifier =
                             Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp, vertical = 10.dp)
-                                .defaultMinSize(minHeight = 64.dp),
-                        verticalAlignment = Alignment.Bottom,
+                                .weight(1f)
+                                .heightIn(max = LocalConfiguration.current.screenHeightDp.dp / 3)
+                                .defaultMinSize(minHeight = 44.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        color = panelStyle.inputFieldColor,
+                        border = BorderStroke(1.dp, panelStyle.textColor.copy(alpha = 0.3f)),
+                    ) {
+                        BasicTextField(
+                            value = inputValue,
+                            onValueChange = { inputValue = it },
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                            textStyle =
+                                MaterialTheme.typography.bodyLarge.copy(
+                                    color = panelStyle.textColor,
+                                ),
+                            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Send),
+                            keyboardActions = KeyboardActions(onSend = { submitTask() }),
+                            cursorBrush = SolidColor(panelStyle.textColor),
+                            decorationBox = { innerTextField ->
+                                Box {
+                                    if (inputValue.text.isBlank()) {
+                                        Text(
+                                            text = "Нове завдання...",
+                                            color = panelStyle.textColor.copy(alpha = 0.6f),
+                                            style = MaterialTheme.typography.bodyLarge,
+                                        )
+                                    }
+                                    innerTextField()
+                                }
+                            },
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    AnimatedVisibility(
+                        visible = inputValue.text.isNotBlank(),
+                        enter = fadeIn() + scaleIn(),
+                        exit = fadeOut() + scaleOut(),
                     ) {
                         IconButton(
-                            onClick = { showActionsMenu = true },
-                            modifier = Modifier.size(44.dp),
+                            onClick = ::submitTask,
+                            modifier =
+                                Modifier
+                                    .size(44.dp)
+                                    .background(
+                                        color = panelStyle.textColor,
+                                        shape = RoundedCornerShape(22.dp),
+                                    ),
                             colors =
                                 IconButtonDefaults.iconButtonColors(
-                                    contentColor = panelStyle.textColor.copy(alpha = 0.9f),
+                                    contentColor =
+                                        if (panelStyle.textColor.luminance() > 0.5f) {
+                                            Color.Black
+                                        } else {
+                                            Color.White
+                                        },
                                 ),
                         ) {
                             Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "Дії дня",
+                                imageVector = Icons.AutoMirrored.Filled.Send,
+                                contentDescription = "Створити задачу",
                             )
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Surface(
-                            modifier =
-                                Modifier
-                                    .weight(1f)
-                                    .heightIn(max = LocalConfiguration.current.screenHeightDp.dp / 3)
-                                    .defaultMinSize(minHeight = 44.dp),
-                            shape = RoundedCornerShape(20.dp),
-                            color = panelStyle.inputFieldColor,
-                            border = BorderStroke(1.dp, panelStyle.textColor.copy(alpha = 0.3f)),
-                        ) {
-                            BasicTextField(
-                                value = inputValue,
-                                onValueChange = { inputValue = it },
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                                textStyle =
-                                    MaterialTheme.typography.bodyLarge.copy(
-                                        color = panelStyle.textColor,
-                                    ),
-                                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Send),
-                                keyboardActions = KeyboardActions(onSend = { submitTask() }),
-                                cursorBrush = SolidColor(panelStyle.textColor),
-                                decorationBox = { innerTextField ->
-                                    Box {
-                                        if (inputValue.text.isBlank()) {
-                                            Text(
-                                                text = "Нове завдання...",
-                                                color = panelStyle.textColor.copy(alpha = 0.6f),
-                                                style = MaterialTheme.typography.bodyLarge,
-                                            )
-                                        }
-                                        innerTextField()
-                                    }
-                                },
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        AnimatedVisibility(
-                            visible = inputValue.text.isNotBlank(),
-                            enter = fadeIn() + scaleIn(),
-                            exit = fadeOut() + scaleOut(),
-                        ) {
-                            IconButton(
-                                onClick = ::submitTask,
-                                modifier =
-                                    Modifier
-                                        .size(44.dp)
-                                        .background(
-                                            color = panelStyle.textColor,
-                                            shape = RoundedCornerShape(22.dp),
-                                        ),
-                                colors =
-                                    IconButtonDefaults.iconButtonColors(
-                                        contentColor =
-                                            if (panelStyle.textColor.luminance() > 0.5f) {
-                                                Color.Black
-                                            } else {
-                                                Color.White
-                                            },
-                                    ),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Send,
-                                    contentDescription = "Створити задачу",
-                                )
-                            }
                         }
                     }
                 }
