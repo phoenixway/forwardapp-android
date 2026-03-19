@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.ListAlt
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Notifications
@@ -18,6 +19,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -35,6 +37,7 @@ data class TaskOptionsActions(
     val onDelete: (DayTaskWithReminder) -> Unit,
     val onSetReminder: () -> Unit,
     val onAddToToday: () -> Unit,
+    val onAddToTacticalMissions: () -> Unit,
     val onShowInBacklog: (DayTask) -> Unit,
     val onMoveToTop: () -> Unit,
     val onMoveToTomorrow: () -> Unit,
@@ -48,7 +51,10 @@ fun TaskOptionsBottomSheet(
     actions: TaskOptionsActions,
     showAddToTodayOption: Boolean,
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
         TaskOptionsContent(
             task = taskWithReminder.dayTask,
             taskWithReminder = taskWithReminder,
@@ -123,6 +129,14 @@ private fun SecondaryTaskOptions(
         icon = { Icon(Icons.Outlined.Notifications, contentDescription = null) },
         onClick = actions.onSetReminder,
     )
+    TaskOptionsItem(
+        label = "Додати в тактичні місії",
+        icon = { Icon(Icons.Outlined.Flag, contentDescription = null) },
+        onClick = {
+            actions.onAddToTacticalMissions()
+            onDismiss()
+        },
+    )
     if (showAddToTodayOption) {
         TaskOptionsItem(
             label = "Додати в план на сьогодні",
@@ -191,6 +205,10 @@ private fun TaskOptionsItem(
         headlineContent = { Text(label, color = color) },
         leadingContent = icon,
         modifier = Modifier.clickable(onClick = onClick),
+        colors =
+            ListItemDefaults.colors(
+                containerColor = Color.Transparent,
+            ),
     )
 }
 

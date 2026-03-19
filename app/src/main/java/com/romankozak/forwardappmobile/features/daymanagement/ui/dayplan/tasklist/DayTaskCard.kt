@@ -134,7 +134,7 @@ private fun RowScope.DayTaskCardContent(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha),
                 ),
             isCompleted = task.completed,
-            maxLines = 1,
+            maxLines = 4,
         )
 
         parsedDescription.mainText.takeIf { it.isNotBlank() }?.let { description ->

@@ -25,7 +25,10 @@ import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.handlers.DayPlanScopeLinksHandler
+import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
 import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -118,6 +121,7 @@ class DayPlanViewModel
         private val musicNoteRepository: MusicNoteRepository,
         private val checklistRepository: ChecklistRepository,
         private val settingsRepository: SettingsRepository,
+        private val missionRepository: MissionRepository,
 ) : ViewModel() {
     private companion object {
         const val UI_STATE_STOP_TIMEOUT_MILLIS = 5000L
@@ -950,6 +954,30 @@ class DayPlanViewModel
                     clearSelectedTask()
                 } catch (e: Exception) {
                     Log.e("DayPlanViewModel", "Error moving task to tomorrow", e)
+                }
+            }
+        }
+
+        fun addTaskToTacticalMissions(taskWithReminder: DayTaskWithReminder) {
+            viewModelScope.launch(Dispatchers.IO) {
+                val task = taskWithReminder.dayTask
+                val trimmedTitle = task.title.trim()
+                if (trimmedTitle.isBlank()) return@launch
+                try {
+                    missionRepository.insertMissionWithAutoOrder(
+                        TacticalMission(
+                            title = trimmedTitle,
+                            description = task.description,
+                            deadline = System.currentTimeMillis(),
+                            status = MissionStatus.ACTIVE,
+                            projectId = task.projectId,
+                            linkedProjectIds = task.linkedProjectIds.orEmpty(),
+                            linkedAttachmentIds = emptyList(),
+                        ),
+                    )
+                    clearSelectedTask()
+                } catch (e: Exception) {
+                    Log.e("DayPlanViewModel", "Error adding task to tactical missions", e)
                 }
             }
         }

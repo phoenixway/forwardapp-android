@@ -125,6 +125,7 @@ private fun SelectedTaskDialogs(
                         },
                         onSetReminder = { overlayState.showReminderDialog.value = true },
                         onAddToToday = { viewModel.copyTaskToTodaysPlan(selectedTaskWithReminder) },
+                        onAddToTacticalMissions = { viewModel.addTaskToTacticalMissions(selectedTaskWithReminder) },
                         onShowInBacklog = state.navigator.onNavigateToBacklog,
                         onMoveToTop = { viewModel.moveTaskToTop(selectedTaskWithReminder) },
                         onMoveToTomorrow = { viewModel.moveTaskToTomorrow(selectedTaskWithReminder) },

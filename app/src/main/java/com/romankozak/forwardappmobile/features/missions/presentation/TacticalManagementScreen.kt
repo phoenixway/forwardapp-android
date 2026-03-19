@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.Today
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -297,6 +298,7 @@ fun TacticalManagementScreen(
     actionMenuMission?.let { mission ->
         ModalBottomSheet(
             onDismissRequest = { actionMenuMission = null },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ) {
             Column(
                 modifier =
@@ -336,6 +338,15 @@ fun TacticalManagementScreen(
                                 MissionStatus.COMPLETED
                             }
                         viewModel.updateMission(mission.copy(status = nextStatus))
+                        actionMenuMission = null
+                    },
+                )
+                SubtleActionDivider()
+                MissionActionSheetItem(
+                    icon = Icons.Outlined.Today,
+                    text = "Додати місію в план дня",
+                    onClick = {
+                        viewModel.addMissionToTodayPlan(mission)
                         actionMenuMission = null
                     },
                 )

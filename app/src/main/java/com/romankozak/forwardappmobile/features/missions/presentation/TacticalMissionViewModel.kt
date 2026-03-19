@@ -11,6 +11,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.tactical.Missio
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
@@ -34,6 +35,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
+import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.NewTaskParameters
 
 @HiltViewModel
 class TacticalMissionViewModel
@@ -45,6 +48,7 @@ class TacticalMissionViewModel
         private val deleteTacticalMissionUseCase: DeleteTacticalMissionUseCase,
         private val missionRepository: MissionRepository,
         private val contextRepository: ContextRepository,
+        private val dayManagementRepository: DayManagementRepository,
         private val attachmentsRepository: AttachmentsRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
         private val musicNoteRepository: MusicNoteRepository,
@@ -202,6 +206,26 @@ class TacticalMissionViewModel
                     linkedAttachmentIds = emptyList(),
                 ),
             )
+        }
+
+        fun addMissionToTodayPlan(mission: TacticalMission) {
+            val trimmedTitle = mission.title.trim()
+            if (trimmedTitle.isBlank()) return
+            viewModelScope.launch {
+                val todayPlan = dayManagementRepository.createOrUpdateDayPlan(System.currentTimeMillis())
+                dayManagementRepository.addTaskToDayPlan(
+                    NewTaskParameters(
+                        dayPlanId = todayPlan.id,
+                        title = trimmedTitle,
+                        description = mission.description,
+                        projectId = mission.projectId,
+                        linkedProjectIds = mission.linkedProjectIds.orEmpty(),
+                        priority = TaskPriority.MEDIUM,
+                        taskType = BacklogItemTypeValues.GOAL,
+                        points = 0,
+                    ),
+                )
+            }
         }
 
         fun updateMission(
