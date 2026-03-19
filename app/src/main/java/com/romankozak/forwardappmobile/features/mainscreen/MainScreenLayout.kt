@@ -63,11 +63,8 @@ import com.romankozak.forwardappmobile.features.userawareness.UserAwarenessQuick
 import com.romankozak.forwardappmobile.features.userawareness.UserAwarenessViewModel
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckHeaderPreset
-import com.romankozak.forwardappmobile.ui.components.header.CoreHeader
 import com.romankozak.forwardappmobile.ui.components.header.FAHeader
 import com.romankozak.forwardappmobile.ui.components.header.FAHeaderBackground
-import com.romankozak.forwardappmobile.ui.components.header.StrategicArcHeader
-import com.romankozak.forwardappmobile.ui.components.header.StrategyHeader
 import com.romankozak.forwardappmobile.ui.dialogs.WifiImportDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiServerDialog
 import kotlinx.coroutines.launch
@@ -218,28 +215,13 @@ fun MainScreenLayout(
                         )
                     }
 
-                    MAIN_SCREEN_CORE_ROUTE ->
-                        FAHeader(
-                            layout = CoreHeader(titleTrailingContent = titleStateBadge),
-                            backgroundStyle = FAHeaderBackground.CommandDeck,
-                            modifier = headerModifier,
-                        )
+                    MAIN_SCREEN_CORE_ROUTE -> Unit
 
                     MAIN_SCREEN_TODAY_ROUTE -> Unit
 
-                    STRATEGIC_MANAGEMENT_ROUTE ->
-                        FAHeader(
-                            layout = StrategyHeader(onModeClick = {}, titleTrailingContent = titleStateBadge),
-                            backgroundStyle = FAHeaderBackground.CommandDeck,
-                            modifier = headerModifier,
-                        )
+                    STRATEGIC_MANAGEMENT_ROUTE -> Unit
 
-                    MAIN_SCREEN_STRATEGIC_ARC_ROUTE ->
-                        FAHeader(
-                            layout = StrategicArcHeader(onModeClick = {}, titleTrailingContent = titleStateBadge),
-                            backgroundStyle = FAHeaderBackground.CommandDeck,
-                            modifier = headerModifier,
-                        )
+                    MAIN_SCREEN_STRATEGIC_ARC_ROUTE -> Unit
 
                     MAIN_SCREEN_TACTICS_ROUTE -> Unit
 
