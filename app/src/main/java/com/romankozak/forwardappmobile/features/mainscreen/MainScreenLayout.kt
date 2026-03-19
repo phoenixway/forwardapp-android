@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -63,6 +64,7 @@ import com.romankozak.forwardappmobile.features.userawareness.UserAwarenessQuick
 import com.romankozak.forwardappmobile.features.userawareness.UserAwarenessViewModel
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckHeaderPreset
+import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
 import com.romankozak.forwardappmobile.ui.components.header.FAHeader
 import com.romankozak.forwardappmobile.ui.components.header.FAHeaderBackground
 import com.romankozak.forwardappmobile.ui.dialogs.WifiImportDialog
@@ -178,34 +180,47 @@ fun MainScreenLayout(
         val showBadge =
             com.romankozak.forwardappmobile.BuildConfig.DEBUG ||
                 com.romankozak.forwardappmobile.BuildConfig.IS_EXPERIMENTAL_BUILD
-        FAHeader(
-            layout =
-                CommandDeckHeaderPreset(
-                    onClick = {},
-                    onRightClick = { onNavigateToCharacter() },
-                    titleTrailingContent = titleStateBadge,
-                    rightContent = {
-                        if (showBadge) {
-                            Badge(
-                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                            ) {
-                                Text(
-                                    text =
-                                        if (com.romankozak.forwardappmobile.BuildConfig.DEBUG) {
-                                            "Debug"
-                                        } else {
-                                            "Experimental"
-                                        },
-                                    style = MaterialTheme.typography.labelSmall,
-                                )
-                            }
+        val layout =
+            CommandDeckHeaderPreset(
+                onClick = {},
+                onRightClick = { onNavigateToCharacter() },
+                titleTrailingContent = titleStateBadge,
+                rightContent = {
+                    if (showBadge) {
+                        Badge(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        ) {
+                            Text(
+                                text =
+                                    if (com.romankozak.forwardappmobile.BuildConfig.DEBUG) {
+                                        "Debug"
+                                    } else {
+                                        "Experimental"
+                                    },
+                                style = MaterialTheme.typography.labelSmall,
+                            )
                         }
-                    },
-                ),
-            backgroundStyle = FAHeaderBackground.CommandDeck,
-            modifier = headerModifier,
-        )
+                    }
+                },
+            )
+        Box(
+            modifier =
+                headerModifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 2.dp),
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(20.dp))
+                        .then(CommandDeckBackgroundModifier())
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+            ) {
+                layout.Content()
+            }
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
