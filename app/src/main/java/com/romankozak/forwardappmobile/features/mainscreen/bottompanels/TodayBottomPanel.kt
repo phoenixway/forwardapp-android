@@ -8,7 +8,9 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
@@ -22,8 +24,11 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -50,7 +55,6 @@ import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.theme.LocalInputPanelColors
-import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementActionsMenu
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
@@ -87,7 +91,6 @@ fun TodayBottomPanel(
     val dayPlanUiState by dayPlanViewModel.uiState.collectAsStateWithLifecycle()
     val panelStyle = LocalInputPanelColors.current.addGoal
     var inputValue by remember { mutableStateOf(TextFieldValue("")) }
-    var showActionsMenu by remember { mutableStateOf(false) }
 
     fun submitTask() {
         val dayPlanId = dayPlanUiState.dayPlan?.id ?: return
@@ -116,37 +119,89 @@ fun TodayBottomPanel(
             color = panelStyle.backgroundColor,
             border = BorderStroke(1.dp, panelStyle.textColor.copy(alpha = 0.1f)),
         ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                DayManagementActionsMenu(
-                    expanded = showActionsMenu,
-                    onDismissRequest = { showActionsMenu = false },
-                    dayPlanViewModel = dayPlanViewModel,
-                )
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(
+                        onClick = { dayPlanViewModel.openAddTaskDialog() },
+                        modifier = Modifier.size(32.dp),
+                        colors =
+                            IconButtonDefaults.iconButtonColors(
+                                contentColor = panelStyle.textColor.copy(alpha = 0.8f),
+                            ),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Додати задачу",
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { dayPlanViewModel.toggleScopeLinksSheet() },
+                        modifier = Modifier.size(32.dp),
+                        colors =
+                            IconButtonDefaults.iconButtonColors(
+                                contentColor = panelStyle.textColor.copy(alpha = 0.8f),
+                            ),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Link,
+                            contentDescription = "Показати зв'язки",
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { dayPlanViewModel.navigateToPreviousDay() },
+                        modifier = Modifier.size(32.dp),
+                        colors =
+                            IconButtonDefaults.iconButtonColors(
+                                contentColor = panelStyle.textColor.copy(alpha = 0.8f),
+                            ),
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Попередній день",
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { dayPlanViewModel.navigateToNextDay() },
+                        modifier = Modifier.size(32.dp),
+                        colors =
+                            IconButtonDefaults.iconButtonColors(
+                                contentColor = panelStyle.textColor.copy(alpha = 0.8f),
+                            ),
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "Наступний день",
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
 
                 Row(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 10.dp)
                             .defaultMinSize(minHeight = 64.dp),
                     verticalAlignment = Alignment.Bottom,
                 ) {
-                    IconButton(
-                        onClick = { showActionsMenu = true },
-                        modifier = Modifier.size(44.dp),
-                        colors =
-                            IconButtonDefaults.iconButtonColors(
-                                contentColor = panelStyle.textColor.copy(alpha = 0.9f),
-                            ),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Дії дня",
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
                     Surface(
                         modifier =
                             Modifier
