@@ -7,6 +7,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class DayPlanScopeLinksHandler(
     private val dayManagementRepository: DayManagementRepository,
@@ -15,51 +17,61 @@ class DayPlanScopeLinksHandler(
     private val isScopeLinksSheetVisible: MutableStateFlow<Boolean>,
     private val scope: CoroutineScope,
 ) {
+    private val linksMutationMutex = Mutex()
+
     fun addPlanProjectLink(projectId: String) {
         val planId = planIdFlow.value ?: return
         scope.launch(Dispatchers.IO) {
-            val current = dayManagementRepository.getPlanById(planId) ?: return@launch
-            dayManagementRepository.updatePlanLinks(
-                planId = planId,
-                linkedProjectIds = (current.linkedProjectIds.orEmpty() + projectId).distinct(),
-                linkedAttachmentIds = current.linkedAttachmentIds.orEmpty(),
-            )
+            linksMutationMutex.withLock {
+                val current = dayManagementRepository.getPlanById(planId) ?: return@withLock
+                dayManagementRepository.updatePlanLinks(
+                    planId = planId,
+                    linkedProjectIds = (current.linkedProjectIds.orEmpty() + projectId).distinct(),
+                    linkedAttachmentIds = current.linkedAttachmentIds.orEmpty(),
+                )
+            }
         }
     }
 
     fun removePlanProjectLink(projectId: String) {
         val planId = planIdFlow.value ?: return
         scope.launch(Dispatchers.IO) {
-            val current = dayManagementRepository.getPlanById(planId) ?: return@launch
-            dayManagementRepository.updatePlanLinks(
-                planId = planId,
-                linkedProjectIds = current.linkedProjectIds.orEmpty().filterNot { it == projectId },
-                linkedAttachmentIds = current.linkedAttachmentIds.orEmpty(),
-            )
+            linksMutationMutex.withLock {
+                val current = dayManagementRepository.getPlanById(planId) ?: return@withLock
+                dayManagementRepository.updatePlanLinks(
+                    planId = planId,
+                    linkedProjectIds = current.linkedProjectIds.orEmpty().filterNot { it == projectId },
+                    linkedAttachmentIds = current.linkedAttachmentIds.orEmpty(),
+                )
+            }
         }
     }
 
     fun addPlanAttachmentLink(attachmentId: String) {
         val planId = planIdFlow.value ?: return
         scope.launch(Dispatchers.IO) {
-            val current = dayManagementRepository.getPlanById(planId) ?: return@launch
-            dayManagementRepository.updatePlanLinks(
-                planId = planId,
-                linkedProjectIds = current.linkedProjectIds.orEmpty(),
-                linkedAttachmentIds = (current.linkedAttachmentIds.orEmpty() + attachmentId).distinct(),
-            )
+            linksMutationMutex.withLock {
+                val current = dayManagementRepository.getPlanById(planId) ?: return@withLock
+                dayManagementRepository.updatePlanLinks(
+                    planId = planId,
+                    linkedProjectIds = current.linkedProjectIds.orEmpty(),
+                    linkedAttachmentIds = (current.linkedAttachmentIds.orEmpty() + attachmentId).distinct(),
+                )
+            }
         }
     }
 
     fun removePlanAttachmentLink(attachmentId: String) {
         val planId = planIdFlow.value ?: return
         scope.launch(Dispatchers.IO) {
-            val current = dayManagementRepository.getPlanById(planId) ?: return@launch
-            dayManagementRepository.updatePlanLinks(
-                planId = planId,
-                linkedProjectIds = current.linkedProjectIds.orEmpty(),
-                linkedAttachmentIds = current.linkedAttachmentIds.orEmpty().filterNot { it == attachmentId },
-            )
+            linksMutationMutex.withLock {
+                val current = dayManagementRepository.getPlanById(planId) ?: return@withLock
+                dayManagementRepository.updatePlanLinks(
+                    planId = planId,
+                    linkedProjectIds = current.linkedProjectIds.orEmpty(),
+                    linkedAttachmentIds = current.linkedAttachmentIds.orEmpty().filterNot { it == attachmentId },
+                )
+            }
         }
     }
 
