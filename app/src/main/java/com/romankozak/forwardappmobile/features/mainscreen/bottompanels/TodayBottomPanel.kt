@@ -98,12 +98,13 @@ fun TodayBottomPanel(
     val allTags by dayPlanViewModel.allTags.collectAsStateWithLifecycle()
     val contextMarkerNames by dayPlanViewModel.contextMarkerNames.collectAsStateWithLifecycle()
     val panelStyle = LocalInputPanelColors.current.addGoal
+    val colorScheme = MaterialTheme.colorScheme
     val inputSuggestionActions = remember { InputSuggestionActions() }
     val dateChipBackground =
-        if (panelStyle.textColor.luminance() > 0.5f) {
-            panelStyle.textColor.copy(alpha = 0.16f)
+        if (colorScheme.surface.luminance() > 0.5f) {
+            colorScheme.surfaceContainerHighest
         } else {
-            panelStyle.inputFieldColor.copy(alpha = 0.92f)
+            colorScheme.surfaceContainerHigh
         }
     var inputValue by remember { mutableStateOf(TextFieldValue("")) }
     val autocompleteSuggestions =
@@ -167,7 +168,7 @@ fun TodayBottomPanel(
                 ) {
                     IconButton(
                         onClick = { dayPlanViewModel.openAddTaskDialog() },
-                        modifier = Modifier.size(36.dp),
+                        modifier = Modifier.size(38.dp),
                         colors =
                             IconButtonDefaults.iconButtonColors(
                                 contentColor = panelStyle.textColor.copy(alpha = 0.8f),
@@ -176,13 +177,13 @@ fun TodayBottomPanel(
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = "Додати задачу",
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(22.dp),
                         )
                     }
 
                     IconButton(
                         onClick = { dayPlanViewModel.toggleScopeLinksSheet() },
-                        modifier = Modifier.size(36.dp),
+                        modifier = Modifier.size(38.dp),
                         colors =
                             IconButtonDefaults.iconButtonColors(
                                 contentColor = panelStyle.textColor.copy(alpha = 0.8f),
@@ -191,13 +192,13 @@ fun TodayBottomPanel(
                         Icon(
                             imageVector = Icons.Outlined.Link,
                             contentDescription = "Показати зв'язки",
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(22.dp),
                         )
                     }
 
                     IconButton(
                         onClick = { dayPlanViewModel.navigateToPreviousDay() },
-                        modifier = Modifier.size(36.dp),
+                        modifier = Modifier.size(38.dp),
                         colors =
                             IconButtonDefaults.iconButtonColors(
                                 contentColor = panelStyle.textColor.copy(alpha = 0.8f),
@@ -206,13 +207,13 @@ fun TodayBottomPanel(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Попередній день",
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(22.dp),
                         )
                     }
 
                     IconButton(
                         onClick = { dayPlanViewModel.navigateToNextDay() },
-                        modifier = Modifier.size(36.dp),
+                        modifier = Modifier.size(38.dp),
                         colors =
                             IconButtonDefaults.iconButtonColors(
                                 contentColor = panelStyle.textColor.copy(alpha = 0.8f),
@@ -221,7 +222,7 @@ fun TodayBottomPanel(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = "Наступний день",
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(22.dp),
                         )
                     }
 
@@ -231,13 +232,13 @@ fun TodayBottomPanel(
                         Surface(
                             shape = RoundedCornerShape(12.dp),
                             color = dateChipBackground,
-                            border = BorderStroke(1.dp, panelStyle.textColor.copy(alpha = 0.16f)),
+                            border = BorderStroke(1.dp, panelStyle.textColor.copy(alpha = 0.12f)),
                         ) {
                             Text(
                                 text = dateLabel,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                 style = MaterialTheme.typography.labelMedium,
-                                color = panelStyle.textColor.copy(alpha = 0.92f),
+                                color = colorScheme.onSurface.copy(alpha = 0.88f),
                             )
                         }
                     }
