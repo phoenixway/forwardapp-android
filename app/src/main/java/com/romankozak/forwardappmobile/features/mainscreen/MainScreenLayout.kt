@@ -499,6 +499,7 @@ fun MainScreenLayout(
                         }
                         CommandDeckTab.Tactics -> {
                             TacticalManagementScreen(
+                                showFabMenu = false,
                                 onLinkedProjectClick = { projectId ->
                                     navigationManager.navigateOrFallback(
                                         navController = navController,

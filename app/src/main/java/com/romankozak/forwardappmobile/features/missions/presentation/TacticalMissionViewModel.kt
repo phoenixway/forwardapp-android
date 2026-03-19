@@ -169,6 +169,22 @@ class TacticalMissionViewModel
             }
         }
 
+        fun addQuickMission(title: String) {
+            val trimmedTitle = title.trim()
+            if (trimmedTitle.isBlank()) return
+            addMission(
+                TacticalMission(
+                    title = trimmedTitle,
+                    description = null,
+                    deadline = System.currentTimeMillis(),
+                    status = MissionStatus.ACTIVE,
+                    projectId = null,
+                    linkedProjectIds = emptyList(),
+                    linkedAttachmentIds = emptyList(),
+                ),
+            )
+        }
+
         fun updateMission(
             id: Long,
             title: String,

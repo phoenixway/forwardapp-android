@@ -58,6 +58,9 @@ import com.romankozak.forwardappmobile.core.theme.LocalInputPanelColors
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun TodayBottomPanel(
@@ -91,6 +94,13 @@ fun TodayBottomPanel(
     val dayPlanUiState by dayPlanViewModel.uiState.collectAsStateWithLifecycle()
     val panelStyle = LocalInputPanelColors.current.addGoal
     var inputValue by remember { mutableStateOf(TextFieldValue("")) }
+    val dateLabel =
+        remember(dayPlanUiState.dayPlan?.date, dayPlanUiState.isToday) {
+            val date = dayPlanUiState.dayPlan?.date ?: return@remember ""
+            val prefix = if (dayPlanUiState.isToday) "Today" else ""
+            val formatted = SimpleDateFormat("d MMM", Locale.getDefault()).format(Date(date))
+            listOf(prefix, formatted).filter { it.isNotBlank() }.joinToString(" ")
+        }
 
     fun submitTask() {
         val dayPlanId = dayPlanUiState.dayPlan?.id ?: return
@@ -192,6 +202,23 @@ fun TodayBottomPanel(
                             contentDescription = "Наступний день",
                             modifier = Modifier.size(18.dp),
                         )
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    if (dateLabel.isNotBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = panelStyle.inputFieldColor.copy(alpha = 0.9f),
+                            border = BorderStroke(1.dp, panelStyle.textColor.copy(alpha = 0.18f)),
+                        ) {
+                            Text(
+                                text = dateLabel,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = panelStyle.textColor.copy(alpha = 0.85f),
+                            )
+                        }
                     }
                 }
 

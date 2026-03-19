@@ -78,6 +78,7 @@ fun TacticalManagementScreen(
     onLinkedProjectClick: (String) -> Unit = {},
     onLinkedAttachmentClick: (AttachmentOption) -> Unit = {},
     viewModel: TacticalMissionViewModel = hiltViewModel(),
+    showFabMenu: Boolean = true,
 ) {
     val missions by viewModel.missions.collectAsState()
     val attachmentOptions by viewModel.attachmentOptions.collectAsState()
@@ -253,40 +254,42 @@ fun TacticalManagementScreen(
             )
         }
 
-        Box(
-            modifier =
-                Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = CommandDeckFabDefaults.BottomPadding),
-        ) {
-            FloatingActionButton(onClick = { isFabMenuExpanded = !isFabMenuExpanded }) {
-                Icon(Icons.Default.Menu, contentDescription = "Меню дій тактик")
-            }
-            DropdownMenu(
-                expanded = isFabMenuExpanded,
-                onDismissRequest = { isFabMenuExpanded = false },
+        if (showFabMenu) {
+            Box(
                 modifier =
-                    Modifier.background(
-                        color = MaterialTheme.colorScheme.surface,
-                        shape = RoundedCornerShape(16.dp),
-                    ),
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 16.dp, bottom = CommandDeckFabDefaults.BottomPadding),
             ) {
-                DropdownMenuItem(
-                    text = { Text("Додати місію") },
-                    leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
-                    onClick = {
-                        isFabMenuExpanded = false
-                        viewModel.openAddMissionDialog()
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text("Показати зв'язки") },
-                    leadingIcon = { Icon(Icons.Outlined.Link, contentDescription = null) },
-                    onClick = {
-                        isFabMenuExpanded = false
-                        viewModel.toggleScopeLinksSheet()
-                    },
-                )
+                FloatingActionButton(onClick = { isFabMenuExpanded = !isFabMenuExpanded }) {
+                    Icon(Icons.Default.Menu, contentDescription = "Меню дій тактик")
+                }
+                DropdownMenu(
+                    expanded = isFabMenuExpanded,
+                    onDismissRequest = { isFabMenuExpanded = false },
+                    modifier =
+                        Modifier.background(
+                            color = MaterialTheme.colorScheme.surface,
+                            shape = RoundedCornerShape(16.dp),
+                        ),
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Додати місію") },
+                        leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                        onClick = {
+                            isFabMenuExpanded = false
+                            viewModel.openAddMissionDialog()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Показати зв'язки") },
+                        leadingIcon = { Icon(Icons.Outlined.Link, contentDescription = null) },
+                        onClick = {
+                            isFabMenuExpanded = false
+                            viewModel.toggleScopeLinksSheet()
+                        },
+                    )
+                }
             }
         }
     }
