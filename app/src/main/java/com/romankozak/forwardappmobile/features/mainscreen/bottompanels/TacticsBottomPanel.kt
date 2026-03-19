@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
@@ -52,6 +53,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.theme.LocalInputPanelColors
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.InputSuggestionActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.AutocompleteSuggestions
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalMissionViewModel
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
@@ -85,8 +88,20 @@ fun TacticsBottomPanel(
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
     val viewModel: TacticalMissionViewModel = hiltViewModel()
+    val allTags by viewModel.allTags.collectAsStateWithLifecycle()
+    val contextMarkerNames by viewModel.contextMarkerNames.collectAsStateWithLifecycle()
     val panelStyle = LocalInputPanelColors.current.addProjectLog
+    val inputSuggestionActions = remember { InputSuggestionActions() }
     var inputValue by remember { mutableStateOf(TextFieldValue("")) }
+    val autocompleteSuggestions =
+        remember(inputValue, allTags, contextMarkerNames) {
+            inputSuggestionActions.buildSuggestions(
+                currentText = inputValue.text,
+                cursorPosition = inputValue.selection.start.coerceAtLeast(0),
+                contextMarkerNames = contextMarkerNames,
+                tags = allTags,
+            )
+        }
 
     fun submitMission() {
         val title = inputValue.text.trim()
@@ -150,6 +165,25 @@ fun TacticsBottomPanel(
                         )
                     }
                 }
+
+                AutocompleteSuggestions(
+                    suggestions = autocompleteSuggestions,
+                    onSuggestionClick = { suggestion ->
+                        inputSuggestionActions
+                            .applySuggestion(
+                                currentText = inputValue.text,
+                                cursorPosition = inputValue.selection.start.coerceAtLeast(0),
+                                suggestion = suggestion,
+                            )?.let { result ->
+                                inputValue =
+                                    TextFieldValue(
+                                        text = result.text,
+                                        selection = TextRange(result.cursorPosition),
+                                    )
+                            }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
                 Row(
                     modifier =

@@ -46,6 +46,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
@@ -56,6 +57,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.theme.LocalInputPanelColors
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.InputSuggestionActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.AutocompleteSuggestions
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
 import java.text.SimpleDateFormat
@@ -92,8 +95,26 @@ fun TodayBottomPanel(
 ) {
     val dayPlanViewModel: DayPlanViewModel = hiltViewModel()
     val dayPlanUiState by dayPlanViewModel.uiState.collectAsStateWithLifecycle()
+    val allTags by dayPlanViewModel.allTags.collectAsStateWithLifecycle()
+    val contextMarkerNames by dayPlanViewModel.contextMarkerNames.collectAsStateWithLifecycle()
     val panelStyle = LocalInputPanelColors.current.addGoal
+    val inputSuggestionActions = remember { InputSuggestionActions() }
+    val dateChipBackground =
+        if (panelStyle.textColor.luminance() > 0.5f) {
+            panelStyle.textColor.copy(alpha = 0.16f)
+        } else {
+            panelStyle.inputFieldColor.copy(alpha = 0.92f)
+        }
     var inputValue by remember { mutableStateOf(TextFieldValue("")) }
+    val autocompleteSuggestions =
+        remember(inputValue, allTags, contextMarkerNames) {
+            inputSuggestionActions.buildSuggestions(
+                currentText = inputValue.text,
+                cursorPosition = inputValue.selection.start.coerceAtLeast(0),
+                contextMarkerNames = contextMarkerNames,
+                tags = allTags,
+            )
+        }
     val dateLabel =
         remember(dayPlanUiState.dayPlan?.date, dayPlanUiState.isToday) {
             val date = dayPlanUiState.dayPlan?.date ?: return@remember ""
@@ -146,7 +167,7 @@ fun TodayBottomPanel(
                 ) {
                     IconButton(
                         onClick = { dayPlanViewModel.openAddTaskDialog() },
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(36.dp),
                         colors =
                             IconButtonDefaults.iconButtonColors(
                                 contentColor = panelStyle.textColor.copy(alpha = 0.8f),
@@ -155,13 +176,13 @@ fun TodayBottomPanel(
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = "Додати задачу",
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(20.dp),
                         )
                     }
 
                     IconButton(
                         onClick = { dayPlanViewModel.toggleScopeLinksSheet() },
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(36.dp),
                         colors =
                             IconButtonDefaults.iconButtonColors(
                                 contentColor = panelStyle.textColor.copy(alpha = 0.8f),
@@ -170,13 +191,13 @@ fun TodayBottomPanel(
                         Icon(
                             imageVector = Icons.Outlined.Link,
                             contentDescription = "Показати зв'язки",
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(20.dp),
                         )
                     }
 
                     IconButton(
                         onClick = { dayPlanViewModel.navigateToPreviousDay() },
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(36.dp),
                         colors =
                             IconButtonDefaults.iconButtonColors(
                                 contentColor = panelStyle.textColor.copy(alpha = 0.8f),
@@ -185,13 +206,13 @@ fun TodayBottomPanel(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Попередній день",
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(20.dp),
                         )
                     }
 
                     IconButton(
                         onClick = { dayPlanViewModel.navigateToNextDay() },
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(36.dp),
                         colors =
                             IconButtonDefaults.iconButtonColors(
                                 contentColor = panelStyle.textColor.copy(alpha = 0.8f),
@@ -200,7 +221,7 @@ fun TodayBottomPanel(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = "Наступний день",
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(20.dp),
                         )
                     }
 
@@ -209,18 +230,37 @@ fun TodayBottomPanel(
                     if (dateLabel.isNotBlank()) {
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = panelStyle.inputFieldColor.copy(alpha = 0.9f),
-                            border = BorderStroke(1.dp, panelStyle.textColor.copy(alpha = 0.18f)),
+                            color = dateChipBackground,
+                            border = BorderStroke(1.dp, panelStyle.textColor.copy(alpha = 0.16f)),
                         ) {
                             Text(
                                 text = dateLabel,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                 style = MaterialTheme.typography.labelMedium,
-                                color = panelStyle.textColor.copy(alpha = 0.85f),
+                                color = panelStyle.textColor.copy(alpha = 0.92f),
                             )
                         }
                     }
                 }
+
+                AutocompleteSuggestions(
+                    suggestions = autocompleteSuggestions,
+                    onSuggestionClick = { suggestion ->
+                        inputSuggestionActions
+                            .applySuggestion(
+                                currentText = inputValue.text,
+                                cursorPosition = inputValue.selection.start.coerceAtLeast(0),
+                                suggestion = suggestion,
+                            )?.let { result ->
+                                inputValue =
+                                    TextFieldValue(
+                                        text = result.text,
+                                        selection = TextRange(result.cursorPosition),
+                                    )
+                            }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
                 Row(
                     modifier =

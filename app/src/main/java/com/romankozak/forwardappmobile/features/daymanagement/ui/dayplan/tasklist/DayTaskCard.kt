@@ -27,12 +27,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.AnimatedContextEmoji
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayTaskWithReminder
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentInfo
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentType
+import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedCheckboxStyle
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemCheckbox
 import com.romankozak.forwardappmobile.ui.components.listitem.unifiedCheckboxColors
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedMetaChip
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusRow
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedTrailingActionButton
@@ -50,6 +53,7 @@ data class DayTaskCardActions(
 @Composable
 fun DayTaskCard(
     taskWithReminder: DayTaskWithReminder,
+    contextMarkerToEmojiMap: Map<String, String>,
     actions: DayTaskCardActions,
     modifier: Modifier = Modifier,
     dragHandleModifier: Modifier = Modifier,
@@ -76,6 +80,7 @@ fun DayTaskCard(
 
         DayTaskCardContent(
             taskWithReminder = taskWithReminder,
+            contextMarkerToEmojiMap = contextMarkerToEmojiMap,
             contentAlpha = contentAlpha,
             onClick = actions.onClick,
             onParentInfoClick = actions.onParentInfoClick,
@@ -93,12 +98,26 @@ fun DayTaskCard(
 @Composable
 private fun RowScope.DayTaskCardContent(
     taskWithReminder: DayTaskWithReminder,
+    contextMarkerToEmojiMap: Map<String, String>,
     contentAlpha: Float,
     onClick: () -> Unit,
     onParentInfoClick: (ParentInfo) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val task = taskWithReminder.dayTask
+    val parsedTitle = rememberParsedText(task.title, contextMarkerToEmojiMap)
+    val parsedDescription = rememberParsedText(task.description.orEmpty(), contextMarkerToEmojiMap)
+    val parsedTaskText =
+        rememberParsedText(
+            buildString {
+                append(task.title)
+                task.description?.takeIf { it.isNotBlank() }?.let {
+                    append('\n')
+                    append(it)
+                }
+            },
+            contextMarkerToEmojiMap,
+        )
 
     Column(
         modifier =
@@ -107,7 +126,7 @@ private fun RowScope.DayTaskCardContent(
                 .clickable(onClick = onClick),
     ) {
         DayPlanMarkdownText(
-            text = task.title,
+            text = parsedTitle.mainText,
             style =
                 MaterialTheme.typography.titleMedium.copy(
                     fontSize = MaterialTheme.typography.titleSmall.fontSize,
@@ -118,7 +137,7 @@ private fun RowScope.DayTaskCardContent(
             maxLines = 1,
         )
 
-        task.description?.takeIf { it.isNotBlank() }?.let { description ->
+        parsedDescription.mainText.takeIf { it.isNotBlank() }?.let { description ->
             DayPlanMarkdownText(
                 text = description,
                 style =
@@ -132,6 +151,7 @@ private fun RowScope.DayTaskCardContent(
 
         DayTaskMetaRow(
             taskWithReminder = taskWithReminder,
+            contextIcons = parsedTaskText.icons,
             modifier = Modifier.padding(top = 2.dp),
             onParentInfoClick = onParentInfoClick,
         )
@@ -155,6 +175,7 @@ private fun DayTaskCardMoreButton(
 @Composable
 private fun DayTaskMetaRow(
     taskWithReminder: DayTaskWithReminder,
+    contextIcons: List<String>,
     modifier: Modifier = Modifier,
     onParentInfoClick: (ParentInfo) -> Unit,
 ) {
@@ -204,8 +225,20 @@ private fun DayTaskMetaRow(
             }
         }
 
-    if (metaItems.isEmpty()) return
-    UnifiedStatusRow(items = metaItems, modifier = modifier)
+    if (metaItems.isEmpty() && contextIcons.isEmpty()) return
+    UnifiedStatusRow(modifier = modifier) {
+        contextIcons.forEach { icon ->
+            AnimatedContextEmoji(emoji = icon)
+        }
+        metaItems.forEach { item ->
+            UnifiedMetaChip(
+                text = item.text,
+                icon = item.icon,
+                contentColor = item.contentColor ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                onClick = item.onClick,
+            )
+        }
+    }
 }
 
 @Composable

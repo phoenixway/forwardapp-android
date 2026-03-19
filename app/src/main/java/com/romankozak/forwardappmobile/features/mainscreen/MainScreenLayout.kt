@@ -63,7 +63,6 @@ import com.romankozak.forwardappmobile.features.strategicmanagement.StrategicMan
 import com.romankozak.forwardappmobile.features.userawareness.UserAwarenessHeaderBadge
 import com.romankozak.forwardappmobile.features.userawareness.UserAwarenessQuickSwitchDialog
 import com.romankozak.forwardappmobile.features.userawareness.UserAwarenessViewModel
-import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckHeaderPreset
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
 import com.romankozak.forwardappmobile.ui.components.header.FAHeader
@@ -251,8 +250,7 @@ fun MainScreenLayout(
                 }
             },
             bottomBar = {
-                CommonBottomPanelLayout {
-                    when (currentRoute) {
+                when (currentRoute) {
                         MAIN_SCREEN_DASHBOARD_ROUTE ->
                             DashboardBottomPanel(
                                 onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
@@ -450,7 +448,6 @@ fun MainScreenLayout(
                                 recentViewModel = recentViewModel,
                             )
                     }
-                }
             },
         ) { paddingValues ->
             Column(

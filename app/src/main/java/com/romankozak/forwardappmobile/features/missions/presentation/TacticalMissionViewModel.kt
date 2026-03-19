@@ -26,8 +26,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
@@ -73,6 +76,22 @@ class TacticalMissionViewModel
         val scopeAttachmentsExpanded: StateFlow<Boolean> = _scopeAttachmentsExpanded.asStateFlow()
         private val _connectionsOrder = MutableStateFlow<List<String>>(emptyList())
         val connectionsOrder: StateFlow<List<String>> = _connectionsOrder.asStateFlow()
+        val contextMarkerNames: StateFlow<List<String>> = contextRepository.contextMarkerNamesFlow
+        val allTags: StateFlow<List<String>> =
+            contextRepository
+                .getAllContextsFlow()
+                .map { contexts ->
+                    contexts
+                        .flatMap { it.tags.orEmpty() }
+                        .map { it.trim() }
+                        .filter { it.isNotBlank() }
+                        .distinct()
+                        .sorted()
+                }.stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(5000),
+                    initialValue = emptyList(),
+                )
 
         private val _isScopeLinksSheetVisible = MutableStateFlow(false)
         val isScopeLinksSheetVisible: StateFlow<Boolean> = _isScopeLinksSheetVisible.asStateFlow()

@@ -46,6 +46,7 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 @Composable
 fun TaskList(
     tasks: List<DayTaskWithReminder>,
+    contextMarkerToEmojiMap: Map<String, String>,
     actions: TaskListActions,
     modifier: Modifier = Modifier,
 ) {
@@ -71,6 +72,7 @@ fun TaskList(
         } else {
             TaskListContent(
                 tasks = internalTasks,
+                contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                 lazyListState = lazyListState,
                 reorderableState = reorderableState,
                 actions = actions,
@@ -83,6 +85,7 @@ fun TaskList(
 @Composable
 private fun TaskListContent(
     tasks: List<DayTaskWithReminder>,
+    contextMarkerToEmojiMap: Map<String, String>,
     lazyListState: androidx.compose.foundation.lazy.LazyListState,
     reorderableState: sh.calvin.reorderable.ReorderableLazyListState,
     actions: TaskListActions,
@@ -96,6 +99,7 @@ private fun TaskListContent(
         items(tasks, key = { it.dayTask.id }) { taskWithReminder ->
             TaskListItem(
                 taskWithReminder = taskWithReminder,
+                contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                 reorderableState = reorderableState,
                 actions = actions,
             )
@@ -107,6 +111,7 @@ private fun TaskListContent(
 @Composable
 private fun LazyItemScope.TaskListItem(
     taskWithReminder: DayTaskWithReminder,
+    contextMarkerToEmojiMap: Map<String, String>,
     reorderableState: sh.calvin.reorderable.ReorderableLazyListState,
     actions: TaskListActions,
 ) {
@@ -140,6 +145,7 @@ private fun LazyItemScope.TaskListItem(
             ) {
                 DayTaskCard(
                     taskWithReminder = taskWithReminder,
+                    contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                     actions =
                         DayTaskCardActions(
                             onClick = { actions.onTaskClick(taskWithReminder) },

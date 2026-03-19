@@ -25,10 +25,12 @@ import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.viewinterop.AndroidView
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
@@ -118,6 +120,8 @@ private fun DayPlanPrimaryContent(
     state: DayPlanContentState,
     viewModel: DayPlanViewModel,
 ) {
+    val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
+
     Box(modifier = Modifier.fillMaxSize()) {
         when {
             state.uiState.isLoading -> LoadingState()
@@ -132,6 +136,7 @@ private fun DayPlanPrimaryContent(
                 Column(modifier = Modifier.fillMaxSize()) {
                     TaskList(
                         tasks = state.uiState.tasks,
+                        contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                         actions =
                             TaskListActions(
                                 onTaskClick = viewModel::onEditTaskClicked,

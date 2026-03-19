@@ -144,6 +144,23 @@ class DayPlanViewModel
         val isScopeLinksSheetVisible: StateFlow<Boolean> = _isScopeLinksSheetVisible.asStateFlow()
         private val _connectionsOrder = MutableStateFlow<List<String>>(emptyList())
         val connectionsOrder: StateFlow<List<String>> = _connectionsOrder.asStateFlow()
+        val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = contextRepository.contextMarkerToEmojiMap
+        val contextMarkerNames: StateFlow<List<String>> = contextRepository.contextMarkerNamesFlow
+        val allTags: StateFlow<List<String>> =
+            contextRepository
+                .getAllContextsFlow()
+                .map { contexts ->
+                    contexts
+                        .flatMap { it.tags.orEmpty() }
+                        .map { it.trim() }
+                        .filter { it.isNotBlank() }
+                        .distinct()
+                        .sorted()
+                }.stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(5000),
+                    initialValue = emptyList(),
+                )
         private val scopeLinksHandler =
             DayPlanScopeLinksHandler(
                 dayManagementRepository = dayManagementRepository,
