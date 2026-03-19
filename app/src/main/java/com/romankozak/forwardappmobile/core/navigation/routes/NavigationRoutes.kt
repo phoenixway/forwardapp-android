@@ -56,7 +56,7 @@ object NavigationRoutes {
     const val CONTEXT_DETAIL_PATTERN =
         "$CONTEXT_DETAIL/{listId}?goalId={goalId}&itemIdToHighlight={itemIdToHighlight}" +
             "&inboxRecordIdToHighlight={inboxRecordIdToHighlight}&initialViewMode={initialViewMode}" +
-            "&originContextId={originContextId}"
+            "&initialTagQuery={initialTagQuery}&originContextId={originContextId}"
     const val SCRIPT_EDITOR_PATTERN = "$SCRIPT_EDITOR?projectId={projectId}&scriptId={scriptId}"
     const val NOTE_DOCUMENT_EDIT_PATTERN = "$NOTE_DOCUMENT_EDIT?projectId={projectId}&documentId={documentId}"
     const val CHECKLIST_PATTERN = "$CHECKLIST?projectId={projectId}&checklistId={checklistId}"
@@ -71,6 +71,7 @@ object NavigationRoutes {
         itemIdToHighlight: String? = null,
         inboxRecordIdToHighlight: String? = null,
         initialViewMode: String? = null,
+        initialTagQuery: String? = null,
         originContextId: String? = null,
     ): String =
         "$CONTEXT_DETAIL/$contextId" +
@@ -80,6 +81,7 @@ object NavigationRoutes {
                     "itemIdToHighlight" to itemIdToHighlight,
                     "inboxRecordIdToHighlight" to inboxRecordIdToHighlight,
                     "initialViewMode" to initialViewMode,
+                    "initialTagQuery" to initialTagQuery,
                     "originContextId" to originContextId,
                 ),
             )

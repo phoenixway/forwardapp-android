@@ -15,6 +15,7 @@ object NavTargetRouter {
                     itemIdToHighlight = target.itemIdToHighlight,
                     inboxRecordIdToHighlight = target.inboxRecordIdToHighlight,
                     initialViewMode = target.initialViewMode,
+                    initialTagQuery = target.initialTagQuery,
                     originContextId = target.originContextId,
                 )
 

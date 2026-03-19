@@ -259,6 +259,14 @@ class ContextHierarchyScreenViewModel
             }
         }
 
+        suspend fun findFirstContextIdForTag(tag: String): String? {
+            val normalized = tag.trim().removePrefix("#")
+            if (normalized.isBlank()) return null
+            return withContext(ioDispatcher) {
+                contextRepository.findContextIdsByTag(normalized).firstOrNull()
+            }
+        }
+
         private suspend fun revealProject(projectId: String) {
             Log.d("ProjectRevealDebug", "Attempting to reveal projectId: $projectId")
             planningUseCase.onPlanningModeChange(PlanningMode.All)

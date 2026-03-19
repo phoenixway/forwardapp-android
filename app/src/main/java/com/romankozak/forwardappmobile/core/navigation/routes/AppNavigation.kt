@@ -315,6 +315,10 @@ private fun NavGraphBuilder.mainGraph(
                     type = NavType.StringType
                     nullable = true
                 },
+                navArgument("initialTagQuery") {
+                    type = NavType.StringType
+                    nullable = true
+                },
                 navArgument("originContextId") {
                     type = NavType.StringType
                     nullable = true

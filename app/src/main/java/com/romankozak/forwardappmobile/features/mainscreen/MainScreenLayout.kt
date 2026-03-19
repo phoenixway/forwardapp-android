@@ -174,6 +174,39 @@ fun MainScreenLayout(
             onOpenQuickSwitch = { showStateSwitchDialog = true },
         )
     }
+    val dashboardHeaderContent: @Composable () -> Unit = {
+        val showBadge =
+            com.romankozak.forwardappmobile.BuildConfig.DEBUG ||
+                com.romankozak.forwardappmobile.BuildConfig.IS_EXPERIMENTAL_BUILD
+        FAHeader(
+            layout =
+                CommandDeckHeaderPreset(
+                    onClick = {},
+                    onRightClick = { onNavigateToCharacter() },
+                    titleTrailingContent = titleStateBadge,
+                    rightContent = {
+                        if (showBadge) {
+                            Badge(
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                            ) {
+                                Text(
+                                    text =
+                                        if (com.romankozak.forwardappmobile.BuildConfig.DEBUG) {
+                                            "Debug"
+                                        } else {
+                                            "Experimental"
+                                        },
+                                    style = MaterialTheme.typography.labelSmall,
+                                )
+                            }
+                        }
+                    },
+                ),
+            backgroundStyle = FAHeaderBackground.CommandDeck,
+            modifier = headerModifier,
+        )
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -181,39 +214,7 @@ fun MainScreenLayout(
             snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
             topBar = {
                 when (currentRoute) {
-                    MAIN_SCREEN_DASHBOARD_ROUTE -> {
-                        val showBadge =
-                            com.romankozak.forwardappmobile.BuildConfig.DEBUG ||
-                                com.romankozak.forwardappmobile.BuildConfig.IS_EXPERIMENTAL_BUILD
-                        FAHeader(
-                            layout =
-                                CommandDeckHeaderPreset(
-                                    onClick = {},
-                                    onRightClick = { onNavigateToCharacter() },
-                                    titleTrailingContent = titleStateBadge,
-                                    rightContent = {
-                                        if (showBadge) {
-                                            Badge(
-                                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                                            ) {
-                                                Text(
-                                                    text =
-                                                        if (com.romankozak.forwardappmobile.BuildConfig.DEBUG) {
-                                                            "Debug"
-                                                        } else {
-                                                            "Experimental"
-                                                        },
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                )
-                                            }
-                                        }
-                                    },
-                                ),
-                            backgroundStyle = FAHeaderBackground.CommandDeck,
-                            modifier = headerModifier,
-                        )
-                    }
+                    MAIN_SCREEN_DASHBOARD_ROUTE -> Unit
 
                     MAIN_SCREEN_CORE_ROUTE -> Unit
 
@@ -460,6 +461,11 @@ fun MainScreenLayout(
 
                 Spacer(Modifier.height(16.dp))
 
+                if (currentRoute == MAIN_SCREEN_DASHBOARD_ROUTE) {
+                    dashboardHeaderContent()
+                    Spacer(Modifier.height(12.dp))
+                }
+
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize(),
@@ -625,13 +631,35 @@ fun MainScreenLayout(
             contextMarkers = contextUiState.allContextMarkers,
             contextMarkerToEmojiMap = contextUiState.contextMarkerToEmojiMap,
             onManageContextMarkers = onNavigateToManageContextMarkers,
-            onContextSelected = { contextMarkerName ->
+            onContextSelected = { contextMarkerName, tag ->
                 showContextMarkersSheet = false
-                contextHierarchyViewModel.onEvent(
-                    com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent.ContextSelected(
-                        contextMarkerName,
-                    ),
-                )
+                scope.launch {
+                    val normalizedTag = tag?.trim()?.takeIf { it.isNotBlank() }?.let {
+                        if (it.startsWith("#")) it else "#$it"
+                    }
+                    val targetContextId = normalizedTag?.let { normalized ->
+                        contextHierarchyViewModel.findFirstContextIdForTag(normalized)
+                    }
+
+                    if (targetContextId != null) {
+                        navigationManager.navigateOrFallback(
+                            navController = navController,
+                            target =
+                                NavTarget.ContextDetail(
+                                    contextId = targetContextId,
+                                    initialViewMode = "BACKLOG",
+                                    initialTagQuery = normalizedTag,
+                                ),
+                            recordInHistory = true,
+                        )
+                    } else {
+                        contextHierarchyViewModel.onEvent(
+                            com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent.ContextSelected(
+                                contextMarkerName,
+                            ),
+                        )
+                    }
+                }
             },
         )
 

@@ -157,6 +157,7 @@ class ContextScreenViewModel
         private val tagManager = TagManager(contextRepository, viewModelScope)
         private val activityManager = ActivityManager(activityRepository, viewModelScope)
         private val contextIdFlow: StateFlow<String> = savedStateHandle.getStateFlow("listId", "")
+        private val initialTagQuery: String? = savedStateHandle.get<String>("initialTagQuery")
         private val originContextId: String? = savedStateHandle.get<String>("originContextId")
         private val _listContent = MutableStateFlow<List<BacklogItemContent>>(emptyList())
         val listContent: StateFlow<List<BacklogItemContent>> = _listContent.asStateFlow()
@@ -528,6 +529,17 @@ class ContextScreenViewModel
                 )
 
         init {
+            initialTagQuery
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
+                ?.let { initialQuery ->
+                    stateManager.updateState {
+                        it.copy(
+                            currentViewMode = ContextViewMode.BACKLOG,
+                            localSearchQuery = initialQuery,
+                        )
+                    }
+                }
             setupContextObserver()
             observeContextIdChanges()
             observeDirectionFrontAutoLinkSyncOnOpen()

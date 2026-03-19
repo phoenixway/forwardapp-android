@@ -33,7 +33,7 @@ fun ContextMarkersSheet(
     contextMarkers: List<UiContextMarker>,
     contextMarkerToEmojiMap: Map<String, String>,
     onManageContextMarkers: () -> Unit,
-    onContextSelected: (String) -> Unit,
+    onContextSelected: (String, String?) -> Unit,
 ) {
     if (showSheet) {
         val sheetColor = MaterialTheme.colorScheme.surfaceContainerLow
@@ -91,7 +91,9 @@ fun ContextMarkersSheet(
                                     ListItemDefaults.colors(
                                         containerColor = sheetColor,
                                     ),
-                                modifier = Modifier.clickable { onContextSelected(contextMarker.name) },
+                                modifier = Modifier.clickable {
+                                    onContextSelected(contextMarker.name, contextMarker.tag)
+                                },
                             )
                         }
                     }
