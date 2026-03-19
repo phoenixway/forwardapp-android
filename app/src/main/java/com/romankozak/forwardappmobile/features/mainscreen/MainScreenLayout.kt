@@ -459,11 +459,11 @@ fun MainScreenLayout(
                     },
                 )
 
-                Spacer(Modifier.height(16.dp))
-
                 if (currentRoute == MAIN_SCREEN_DASHBOARD_ROUTE) {
                     dashboardHeaderContent()
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(4.dp))
+                } else {
+                    Spacer(Modifier.height(16.dp))
                 }
 
                 HorizontalPager(
