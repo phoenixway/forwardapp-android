@@ -461,7 +461,7 @@ fun MainScreenLayout(
 
                 if (currentRoute == MAIN_SCREEN_DASHBOARD_ROUTE) {
                     dashboardHeaderContent()
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(1.dp))
                 } else {
                     Spacer(Modifier.height(16.dp))
                 }
