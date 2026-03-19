@@ -68,7 +68,6 @@ import com.romankozak.forwardappmobile.ui.components.header.FAHeader
 import com.romankozak.forwardappmobile.ui.components.header.FAHeaderBackground
 import com.romankozak.forwardappmobile.ui.components.header.StrategicArcHeader
 import com.romankozak.forwardappmobile.ui.components.header.StrategyHeader
-import com.romankozak.forwardappmobile.ui.components.header.TacticsHeader
 import com.romankozak.forwardappmobile.ui.dialogs.WifiImportDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiServerDialog
 import kotlinx.coroutines.launch
@@ -242,12 +241,7 @@ fun MainScreenLayout(
                             modifier = headerModifier,
                         )
 
-                    MAIN_SCREEN_TACTICS_ROUTE ->
-                        FAHeader(
-                            layout = TacticsHeader(titleTrailingContent = titleStateBadge),
-                            backgroundStyle = FAHeaderBackground.CommandDeck,
-                            modifier = headerModifier,
-                        )
+                    MAIN_SCREEN_TACTICS_ROUTE -> Unit
 
                     else ->
                         FAHeader(
