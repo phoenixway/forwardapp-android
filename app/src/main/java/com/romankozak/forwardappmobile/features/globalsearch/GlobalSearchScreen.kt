@@ -70,8 +70,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -328,63 +326,6 @@ fun GlobalSearchScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Пошук",
-                        style = MaterialTheme.typography.titleLarge,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        if (!navController.popBackStack()) {
-                            viewModel.enhancedNavigationManager.goBack()
-                        }
-                    }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Назад",
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { showCreateSheet = true }) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Створити",
-                        )
-                    }
-                    AnimatedVisibility(
-                        visible =
-                            !uiState.isLoading &&
-                                when (currentMode) {
-                                    OmniboxMode.DataSearch -> filteredResults.isNotEmpty()
-                                    OmniboxMode.Command -> uiState.commandResults.isNotEmpty()
-                                    else -> false
-                                },
-                        enter = fadeIn(animationSpec = tween(delayMillis = 200)) + scaleIn(),
-                        exit = fadeOut() + scaleOut(),
-                    ) {
-                        ResultsCountBadge(
-                            count =
-                                when (currentMode) {
-                                    OmniboxMode.DataSearch -> filteredResults.size
-                                    OmniboxMode.Command -> uiState.commandResults.size
-                                    else -> 0
-                                },
-                            modifier = Modifier.padding(end = 16.dp),
-                        )
-                    }
-                },
-                colors =
-                    TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                    ),
-            )
-        },
         floatingActionButton = {
             AnimatedVisibility(
                 visible = showScrollToTopButton,
@@ -542,6 +483,75 @@ fun GlobalSearchScreen(
                 tonalElevation = 1.dp,
             ) {
                 Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(start = 2.dp, end = 4.dp, bottom = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Surface(
+                            onClick = {
+                                if (!navController.popBackStack()) {
+                                    viewModel.enhancedNavigationManager.goBack()
+                                }
+                            },
+                            shape = RoundedCornerShape(999.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Закрити пошук",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                                Text(
+                                    text = "Close",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            IconButton(onClick = { showCreateSheet = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Створити",
+                                )
+                            }
+                            AnimatedVisibility(
+                                visible =
+                                    !uiState.isLoading &&
+                                        when (currentMode) {
+                                            OmniboxMode.DataSearch -> filteredResults.isNotEmpty()
+                                            OmniboxMode.Command -> uiState.commandResults.isNotEmpty()
+                                            else -> false
+                                        },
+                                enter = fadeIn(animationSpec = tween(delayMillis = 200)) + scaleIn(),
+                                exit = fadeOut() + scaleOut(),
+                            ) {
+                                ResultsCountBadge(
+                                    count =
+                                        when (currentMode) {
+                                            OmniboxMode.DataSearch -> filteredResults.size
+                                            OmniboxMode.Command -> uiState.commandResults.size
+                                            else -> 0
+                                        },
+                                )
+                            }
+                        }
+                    }
+
                     Row(
                         modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
