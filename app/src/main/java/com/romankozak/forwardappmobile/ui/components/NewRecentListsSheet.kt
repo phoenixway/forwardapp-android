@@ -40,8 +40,11 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -83,9 +86,18 @@ fun NewRecentListsSheet(
             val tabs = listOf("Недавні", "Закріплені")
             val pagerState = rememberPagerState { tabs.size }
             val coroutineScope = rememberCoroutineScope()
-            val stableRecentItems =
-                remember(recentItems) {
+            var displayedRecentItems by remember(showSheet) {
+                mutableStateOf(
                     recentItems.sortedWith(
+                        compareByDescending<RecentItem> { it.lastAccessed }
+                            .thenBy { it.id },
+                    ),
+                )
+            }
+
+            val stableRecentItems =
+                remember(displayedRecentItems) {
+                    displayedRecentItems.sortedWith(
                         compareByDescending<RecentItem> { it.lastAccessed }
                             .thenBy { it.id },
                     )
@@ -111,7 +123,21 @@ fun NewRecentListsSheet(
                 ) {
                         page ->
                     val items = if (page == 0) stableRecentItems else stableRecentItems.filter { it.isPinned }
-                    RecentItemsGrid(items = items, onItemClick = onItemClick, onPinClick = onPinClick)
+                    RecentItemsGrid(
+                        items = items,
+                        onItemClick = onItemClick,
+                        onPinClick = { item ->
+                            displayedRecentItems =
+                                displayedRecentItems.map { existing ->
+                                    if (existing.id == item.id) {
+                                        existing.copy(isPinned = !existing.isPinned)
+                                    } else {
+                                        existing
+                                    }
+                                }
+                            onPinClick(item)
+                        },
+                    )
                 }
             }
         }

@@ -12,11 +12,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
@@ -28,14 +30,17 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceFrequency
 import java.time.DayOfWeek
@@ -63,18 +69,30 @@ private data class EditTaskActions(
     val onRecurrenceDayOfWeekToggle: (DayOfWeek) -> Unit,
 )
 
+private enum class EditTaskTab(
+    val title: String,
+) {
+    Main("Основне"),
+    Details("Деталі"),
+    Repeat("Повтор"),
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun EditTaskScreen(
     viewModel: EditTaskViewModel = hiltViewModel(),
     onNavigateUp: () -> Unit,
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var selectedTab by remember { mutableStateOf(EditTaskTab.Main) }
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
             when (event) {
-                is EditTaskUiEvent.NavigateUp -> onNavigateUp()
+                is EditTaskUiEvent.NavigateUp -> {
+                    viewModel.reset()
+                    onNavigateUp()
+                }
             }
         }
     }
@@ -100,9 +118,80 @@ fun EditTaskScreen(
                 onRecurrenceIntervalChange = viewModel::onRecurrenceIntervalChange,
                 onRecurrenceDayOfWeekToggle = viewModel::onRecurrenceDayOfWeekToggle,
             )
-        EditTaskContent(
+        EditTaskBody(
             uiState = uiState,
-            paddingValues = paddingValues,
+            selectedTab = selectedTab,
+            onTabSelected = { selectedTab = it },
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .imePadding(),
+            actions = actions,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+fun EditTaskBottomSheet(
+    taskId: String,
+    onDismissRequest: () -> Unit,
+    viewModel: EditTaskViewModel = hiltViewModel(),
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    var selectedTab by remember(taskId) { mutableStateOf(EditTaskTab.Main) }
+
+    LaunchedEffect(taskId) {
+        selectedTab = EditTaskTab.Main
+        viewModel.loadTask(taskId)
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                is EditTaskUiEvent.NavigateUp -> {
+                    viewModel.reset()
+                    onDismissRequest()
+                }
+            }
+        }
+    }
+
+    val actions =
+        EditTaskActions(
+            onTitleChange = viewModel::onTitleChange,
+            onDescriptionChange = viewModel::onDescriptionChange,
+            onPointsChange = viewModel::onPointsChange,
+            onPriorityChange = viewModel::onPriorityChange,
+            onDurationChange = viewModel::onDurationChange,
+            onRecurringChange = viewModel::onRecurringChange,
+            onRecurrenceFrequencyChange = viewModel::onRecurrenceFrequencyChange,
+            onRecurrenceIntervalChange = viewModel::onRecurrenceIntervalChange,
+            onRecurrenceDayOfWeekToggle = viewModel::onRecurrenceDayOfWeekToggle,
+        )
+
+    ModalBottomSheet(
+        onDismissRequest = {
+            viewModel.reset()
+            onDismissRequest()
+        },
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        EditTaskSheetHeader(
+            onDismissRequest = {
+                viewModel.reset()
+                onDismissRequest()
+            },
+            onSave = viewModel::saveTask,
+        )
+        EditTaskBody(
+            uiState = uiState,
+            selectedTab = selectedTab,
+            onTabSelected = { selectedTab = it },
+            modifier = Modifier.navigationBarsPadding(),
             actions = actions,
         )
     }
@@ -133,17 +222,15 @@ private fun EditTaskTopBar(
 }
 
 @Composable
-private fun EditTaskContent(
+private fun EditTaskBody(
     uiState: EditTaskUiState,
-    paddingValues: PaddingValues,
+    selectedTab: EditTaskTab,
+    onTabSelected: (EditTaskTab) -> Unit,
+    modifier: Modifier = Modifier,
     actions: EditTaskActions,
 ) {
     LazyColumn(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .imePadding(),
+        modifier = modifier.fillMaxWidth(),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -155,34 +242,150 @@ private fun EditTaskContent(
             )
         }
         item {
-            NumericInputCard(
-                value = uiState.points.toString(),
-                label = "Points",
-                onValueChange = { actions.onPointsChange(it.toIntOrNull() ?: 0) },
+            EditTaskTabSelector(
+                selectedTab = selectedTab,
+                onTabSelected = onTabSelected,
             )
         }
-        item {
-            PriorityCard(
-                selectedPriority = uiState.priority,
-                onPriorityChange = actions.onPriorityChange,
-            )
+        when (selectedTab) {
+            EditTaskTab.Main -> {
+                item {
+                    EditTaskSummaryCard(uiState = uiState)
+                }
+            }
+            EditTaskTab.Details -> {
+                item {
+                    NumericInputCard(
+                        value = uiState.points.toString(),
+                        label = "Points",
+                        onValueChange = { actions.onPointsChange(it.toIntOrNull() ?: 0) },
+                    )
+                }
+                item {
+                    PriorityCard(
+                        selectedPriority = uiState.priority,
+                        onPriorityChange = actions.onPriorityChange,
+                    )
+                }
+                item {
+                    NumericInputCard(
+                        value = uiState.duration?.toString().orEmpty(),
+                        label = "Duration (minutes)",
+                        onValueChange = { actions.onDurationChange(it.toLongOrNull()) },
+                    )
+                }
+            }
+            EditTaskTab.Repeat -> {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            RecurrenceSection(
+                                uiState = uiState,
+                                onRecurringChange = actions.onRecurringChange,
+                                onRecurrenceFrequencyChange = actions.onRecurrenceFrequencyChange,
+                                onRecurrenceIntervalChange = actions.onRecurrenceIntervalChange,
+                                onRecurrenceDayOfWeekToggle = actions.onRecurrenceDayOfWeekToggle,
+                            )
+                        }
+                    }
+                }
+            }
         }
-        item {
-            NumericInputCard(
-                value = uiState.duration?.toString().orEmpty(),
-                label = "Duration (minutes)",
-                onValueChange = { actions.onDurationChange(it.toLongOrNull()) },
-            )
+    }
+}
+
+@Composable
+private fun EditTaskSheetHeader(
+    onDismissRequest: () -> Unit,
+    onSave: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "Редагувати задачу",
+            style = MaterialTheme.typography.titleLarge,
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            androidx.compose.material3.TextButton(onClick = onDismissRequest) {
+                Text("Закрити")
+            }
+            Button(onClick = onSave) {
+                Text("Зберегти")
+            }
         }
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    RecurrenceSection(
-                        uiState = uiState,
-                        onRecurringChange = actions.onRecurringChange,
-                        onRecurrenceFrequencyChange = actions.onRecurrenceFrequencyChange,
-                        onRecurrenceIntervalChange = actions.onRecurrenceIntervalChange,
-                        onRecurrenceDayOfWeekToggle = actions.onRecurrenceDayOfWeekToggle,
+    }
+}
+
+@Composable
+private fun EditTaskTabSelector(
+    selectedTab: EditTaskTab,
+    onTabSelected: (EditTaskTab) -> Unit,
+) {
+    SingleChoiceSegmentedButtonRow(
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        EditTaskTab.entries.forEachIndexed { index, tab ->
+            SegmentedButton(
+                selected = selectedTab == tab,
+                onClick = { onTabSelected(tab) },
+                shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(index = index, count = EditTaskTab.entries.size),
+            ) {
+                Text(tab.title)
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditTaskSummaryCard(
+    uiState: EditTaskUiState,
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = "Коротко",
+                style = MaterialTheme.typography.titleMedium,
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                FilterChip(
+                    selected = false,
+                    onClick = {},
+                    enabled = false,
+                    label = { Text("Пріоритет: ${uiState.priority.name}") },
+                    leadingIcon = { Icon(Icons.Default.Tune, contentDescription = null) },
+                )
+                FilterChip(
+                    selected = false,
+                    onClick = {},
+                    enabled = false,
+                    label = { Text("Бали: ${uiState.points}") },
+                )
+                uiState.duration?.let {
+                    FilterChip(
+                        selected = false,
+                        onClick = {},
+                        enabled = false,
+                        label = { Text("Тривалість: $it хв") },
+                    )
+                }
+                if (uiState.isRecurring) {
+                    FilterChip(
+                        selected = false,
+                        onClick = {},
+                        enabled = false,
+                        label = { Text("Повтор: ${uiState.recurrenceFrequency.name}") },
                     )
                 }
             }

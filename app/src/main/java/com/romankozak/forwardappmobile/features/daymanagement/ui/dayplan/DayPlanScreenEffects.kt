@@ -12,8 +12,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import com.google.accompanist.systemuicontroller.SystemUiController
-import com.romankozak.forwardappmobile.core.navigation.NavTarget
-import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
 import com.romankozak.forwardappmobile.features.missions.presentation.PickerCreateAction
 import com.romankozak.forwardappmobile.ui.common.MatrixRainView
@@ -41,6 +39,7 @@ data class DayPlanEffectsConfig(
 fun rememberDayPlanPresentationState(viewModel: DayPlanViewModel): DayPlanPresentationState {
     val uiState by viewModel.uiState.collectAsState()
     val isAddTaskDialogOpen by viewModel.isAddTaskDialogOpen.collectAsState()
+    val isEditTaskDialogOpen by viewModel.isEditTaskDialogOpen.collectAsState()
     val selectedTask by viewModel.selectedTask.collectAsState()
     val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsState()
     val connectionsOrder by viewModel.connectionsOrder.collectAsState()
@@ -58,6 +57,7 @@ fun rememberDayPlanPresentationState(viewModel: DayPlanViewModel): DayPlanPresen
     val dialogState =
         DayPlanDialogState(
             isAddTaskDialogOpen = isAddTaskDialogOpen,
+            isEditTaskDialogOpen = isEditTaskDialogOpen,
             isScopeLinksSheetVisible = isScopeLinksSheetVisible,
             selectedTask = selectedTask,
             taskToDelete = taskToDelete,
@@ -85,7 +85,12 @@ fun HandleDayPlanScreenEffects(
     viewModel: DayPlanViewModel,
     config: DayPlanEffectsConfig,
 ) {
-    DisposableEffect(Unit) { onDispose { viewModel.clearSelectedTask() } }
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.dismissEditTaskDialog()
+            viewModel.clearSelectedTask()
+        }
+    }
 
     LaunchedEffect(config.isLight) {
         config.systemUiController.setSystemBarsColor(
@@ -93,19 +98,6 @@ fun HandleDayPlanScreenEffects(
             darkIcons = config.isLight,
             isNavigationBarContrastEnforced = false,
         )
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.uiEvent.collect {
-            when (it) {
-                is DayPlanUiEvent.NavigateToEditTask -> {
-                    config.navigator.navigationManager.navigateOrFallback(
-                        navController = config.navigator.navController,
-                        target = NavTarget.EditTask(taskId = it.taskId),
-                    )
-                }
-            }
-        }
     }
 
     LaunchedEffect(Unit) {

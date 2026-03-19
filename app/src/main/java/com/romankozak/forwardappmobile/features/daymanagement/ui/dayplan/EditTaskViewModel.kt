@@ -44,32 +44,47 @@ class EditTaskViewModel
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(EditTaskUiState())
         val uiState = _uiState.asStateFlow()
+        private var loadedTaskId: String? = null
 
         private val _uiEvent = Channel<EditTaskUiEvent>()
         val uiEvent = _uiEvent.receiveAsFlow()
 
         init {
-            viewModelScope.launch {
-                val taskId = savedStateHandle.get<String>("taskId")
-                if (taskId != null) {
-                    val task = dayManagementRepository.getTaskById(taskId)
-                    val recurringTask = task?.recurringTaskId?.let { dayManagementRepository.getRecurringTask(it) }
-                    _uiState.value =
-                        EditTaskUiState(
-                            task = task,
-                            title = task?.title ?: "",
-                            description = task?.description ?: "",
-                            priority = task?.priority ?: TaskPriority.NONE,
-                            duration = task?.estimatedDurationMinutes,
-                            points = task?.points ?: 0,
-                            isRecurring = task?.recurringTaskId != null,
-                            recurrenceRule = recurringTask?.recurrenceRule,
-                            recurrenceFrequency = recurringTask?.recurrenceRule?.frequency ?: RecurrenceFrequency.DAILY,
-                            recurrenceInterval = recurringTask?.recurrenceRule?.interval ?: 1,
-                            recurrenceDaysOfWeek = recurringTask?.recurrenceRule?.daysOfWeek?.toSet() ?: emptySet(),
-                        )
-                }
+            loadTask(savedStateHandle.get<String>("taskId"))
+        }
+
+        fun loadTask(taskId: String?) {
+            if (taskId.isNullOrBlank()) {
+                loadedTaskId = null
+                _uiState.value = EditTaskUiState()
+                return
             }
+            if (loadedTaskId == taskId && _uiState.value.task?.id == taskId) return
+
+            loadedTaskId = taskId
+            viewModelScope.launch {
+                val task = dayManagementRepository.getTaskById(taskId)
+                val recurringTask = task?.recurringTaskId?.let { dayManagementRepository.getRecurringTask(it) }
+                _uiState.value =
+                    EditTaskUiState(
+                        task = task,
+                        title = task?.title ?: "",
+                        description = task?.description ?: "",
+                        priority = task?.priority ?: TaskPriority.NONE,
+                        duration = task?.estimatedDurationMinutes,
+                        points = task?.points ?: 0,
+                        isRecurring = task?.recurringTaskId != null,
+                        recurrenceRule = recurringTask?.recurrenceRule,
+                        recurrenceFrequency = recurringTask?.recurrenceRule?.frequency ?: RecurrenceFrequency.DAILY,
+                        recurrenceInterval = recurringTask?.recurrenceRule?.interval ?: 1,
+                        recurrenceDaysOfWeek = recurringTask?.recurrenceRule?.daysOfWeek?.toSet() ?: emptySet(),
+                    )
+            }
+        }
+
+        fun reset() {
+            loadedTaskId = null
+            _uiState.value = EditTaskUiState()
         }
 
         fun onTitleChange(title: String) {

@@ -23,6 +23,7 @@ data class DayPlanOverlayState(
 
 data class DayPlanDialogState(
     val isAddTaskDialogOpen: Boolean,
+    val isEditTaskDialogOpen: Boolean,
     val isScopeLinksSheetVisible: Boolean,
     val selectedTask: DayTaskWithReminder?,
     val taskToDelete: DayTaskWithReminder?,

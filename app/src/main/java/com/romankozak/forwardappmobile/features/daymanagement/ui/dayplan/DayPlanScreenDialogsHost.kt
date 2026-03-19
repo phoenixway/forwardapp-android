@@ -112,23 +112,35 @@ private fun SelectedTaskDialogs(
     hapticFeedback: HapticFeedback,
 ) {
     dialogState.selectedTask?.let { selectedTaskWithReminder ->
-        TaskOptionsBottomSheet(
-            taskWithReminder = selectedTaskWithReminder,
-            onDismiss = viewModel::clearSelectedTask,
-            actions =
-                TaskOptionsActions(
-                    onEdit = { viewModel.onEditTaskClicked(selectedTaskWithReminder) },
-                    onDelete = {
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                        viewModel.onDeleteTaskClicked(it)
-                    },
-                    onSetReminder = { overlayState.showReminderDialog.value = true },
-                    onAddToToday = { viewModel.copyTaskToTodaysPlan(selectedTaskWithReminder) },
-                    onShowInBacklog = state.navigator.onNavigateToBacklog,
-                    onMoveToTop = { viewModel.moveTaskToTop(selectedTaskWithReminder) },
-                    onMoveToTomorrow = { viewModel.moveTaskToTomorrow(selectedTaskWithReminder) },
-                ),
-            showAddToTodayOption = !state.uiState.isToday,
+        if (!dialogState.isEditTaskDialogOpen) {
+            TaskOptionsBottomSheet(
+                taskWithReminder = selectedTaskWithReminder,
+                onDismiss = viewModel::clearSelectedTask,
+                actions =
+                    TaskOptionsActions(
+                        onEdit = { viewModel.onEditTaskClicked(selectedTaskWithReminder) },
+                        onDelete = {
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                            viewModel.onDeleteTaskClicked(it)
+                        },
+                        onSetReminder = { overlayState.showReminderDialog.value = true },
+                        onAddToToday = { viewModel.copyTaskToTodaysPlan(selectedTaskWithReminder) },
+                        onShowInBacklog = state.navigator.onNavigateToBacklog,
+                        onMoveToTop = { viewModel.moveTaskToTop(selectedTaskWithReminder) },
+                        onMoveToTomorrow = { viewModel.moveTaskToTomorrow(selectedTaskWithReminder) },
+                    ),
+                showAddToTodayOption = !state.uiState.isToday,
+            )
+        }
+    }
+
+    if (dialogState.isEditTaskDialogOpen && dialogState.selectedTask != null) {
+        EditTaskBottomSheet(
+            taskId = dialogState.selectedTask.dayTask.id,
+            onDismissRequest = {
+                viewModel.dismissEditTaskDialog()
+                viewModel.clearSelectedTask()
+            },
         )
     }
 

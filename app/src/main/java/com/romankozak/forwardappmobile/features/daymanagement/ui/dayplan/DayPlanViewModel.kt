@@ -699,8 +699,12 @@ class DayPlanViewModel
         }
 
         fun onEditTaskClicked(taskWithReminder: DayTaskWithReminder) {
-            viewModelScope.launch {
-                _uiEvent.send(DayPlanUiEvent.NavigateToEditTask(taskWithReminder.dayTask.id))
+            _selectedTask.value = taskWithReminder
+            if (taskWithReminder.dayTask.recurringTaskId != null) {
+                _showEditConfirmationDialog.value = taskWithReminder
+            } else {
+                editingMode = EditingMode.SINGLE
+                openEditTaskDialog()
             }
         }
 
