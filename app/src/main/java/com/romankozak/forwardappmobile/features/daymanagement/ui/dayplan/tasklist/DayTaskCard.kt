@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,7 +10,9 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
@@ -20,17 +23,20 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.AnimatedContextEmoji
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayTaskWithReminder
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentInfo
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentType
+import com.romankozak.forwardappmobile.features.daymanagement.utils.formatDayTime
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedCheckboxStyle
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemCheckbox
@@ -38,7 +44,6 @@ import com.romankozak.forwardappmobile.ui.components.listitem.unifiedCheckboxCol
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedMetaChip
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusRow
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedTrailingActionButton
 
 private const val COMPLETED_TASK_CONTENT_ALPHA = 0.6f
 
@@ -63,12 +68,13 @@ fun DayTaskCard(
 
     Row(
         modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
     ) {
         UnifiedItemCheckbox(
             checked = task.completed,
             onCheckedChange = { actions.onToggle() },
             style = UnifiedCheckboxStyle.Square,
+            modifier = dragHandleModifier.padding(top = 2.dp),
             colors =
                 unifiedCheckboxColors(
                     checked = MaterialTheme.colorScheme.primary,
@@ -76,7 +82,7 @@ fun DayTaskCard(
                 ),
         )
 
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(6.dp))
 
         DayTaskCardContent(
             taskWithReminder = taskWithReminder,
@@ -84,13 +90,7 @@ fun DayTaskCard(
             contentAlpha = contentAlpha,
             onClick = actions.onClick,
             onParentInfoClick = actions.onParentInfoClick,
-        )
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        DayTaskCardMoreButton(
-            onClick = actions.onLongPress,
-            modifier = dragHandleModifier,
+            onMoreClick = actions.onLongPress,
         )
     }
 }
@@ -102,6 +102,7 @@ private fun RowScope.DayTaskCardContent(
     contentAlpha: Float,
     onClick: () -> Unit,
     onParentInfoClick: (ParentInfo) -> Unit,
+    onMoreClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val task = taskWithReminder.dayTask
@@ -118,6 +119,10 @@ private fun RowScope.DayTaskCardContent(
             },
             contextMarkerToEmojiMap,
         )
+    val displayTime =
+        task.scheduledTime
+            ?: taskWithReminder.reminder?.reminderTime
+            ?: task.dueTime
 
     Column(
         modifier =
@@ -125,11 +130,32 @@ private fun RowScope.DayTaskCardContent(
                 .weight(1f)
                 .clickable(onClick = onClick),
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            task.priority.takeIf { it != TaskPriority.NONE }?.let { priority ->
+                DayTaskPriorityLabel(
+                    priority = priority,
+                    contentAlpha = contentAlpha,
+                )
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            displayTime?.let { timestamp ->
+                Text(
+                    text = formatDayTime(timestamp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f * contentAlpha),
+                )
+            }
+        }
+
         DayPlanMarkdownText(
             text = parsedTitle.mainText,
             style =
-                MaterialTheme.typography.titleMedium.copy(
-                    fontSize = MaterialTheme.typography.titleSmall.fontSize,
+                MaterialTheme.typography.bodyLarge.copy(
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha),
                 ),
@@ -152,22 +178,35 @@ private fun RowScope.DayTaskCardContent(
         DayTaskMetaRow(
             taskWithReminder = taskWithReminder,
             contextIcons = parsedTaskText.icons,
-            modifier = Modifier.padding(top = 2.dp),
+            modifier = Modifier.padding(top = 8.dp),
             onParentInfoClick = onParentInfoClick,
+            onMoreClick = onMoreClick,
         )
     }
 }
 
 @Composable
-private fun DayTaskCardMoreButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
+private fun DayTaskPriorityLabel(
+    priority: TaskPriority,
+    contentAlpha: Float,
 ) {
-    Box(modifier = modifier) {
-        UnifiedTrailingActionButton(
-            icon = Icons.Filled.MoreVert,
-            contentDescription = "Більше опцій",
-            onClick = onClick,
+    val color = priority.priorityIndicatorColor()
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .size(7.dp)
+                    .background(color.copy(alpha = contentAlpha), CircleShape),
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = priority.name.lowercase(),
+            style = MaterialTheme.typography.labelSmall,
+            color = color.copy(alpha = contentAlpha),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -178,6 +217,7 @@ private fun DayTaskMetaRow(
     contextIcons: List<String>,
     modifier: Modifier = Modifier,
     onParentInfoClick: (ParentInfo) -> Unit,
+    onMoreClick: () -> Unit,
 ) {
     val task = taskWithReminder.dayTask
     val metaItems =
@@ -223,6 +263,13 @@ private fun DayTaskMetaRow(
             if (taskWithReminder.reminder != null) {
                 add(UnifiedStatusChipSpec(icon = Icons.Outlined.Notifications, text = "Нагадування"))
             }
+            add(
+                UnifiedStatusChipSpec(
+                    icon = Icons.Filled.MoreVert,
+                    text = "",
+                    onClick = onMoreClick,
+                ),
+            )
         }
 
     if (metaItems.isEmpty() && contextIcons.isEmpty()) return

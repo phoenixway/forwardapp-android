@@ -135,7 +135,7 @@ private fun LazyItemScope.TaskListItem(
                 layout =
                     UnifiedListItemSurfaceLayout(
                         modifier = Modifier.fillMaxWidth(),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
                     ),
                 colors =
                     UnifiedListItemColors(
@@ -163,8 +163,8 @@ private fun LazyItemScope.TaskListItem(
 @Composable
 private fun UnifiedItemState.containerColor() =
     when (this) {
-        UnifiedItemState.COMPLETED -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.28f)
-        UnifiedItemState.DEFAULT -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.34f)
+        UnifiedItemState.COMPLETED -> MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.78f)
+        UnifiedItemState.DEFAULT -> MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.96f)
         UnifiedItemState.SELECTED -> MaterialTheme.colorScheme.surfaceContainerHighest
         UnifiedItemState.OVERDUE -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.50f)
         UnifiedItemState.DISABLED -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
@@ -173,8 +173,8 @@ private fun UnifiedItemState.containerColor() =
 @Composable
 private fun UnifiedItemState.borderColor() =
     when (this) {
-        UnifiedItemState.COMPLETED -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
-        UnifiedItemState.DEFAULT -> MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)
+        UnifiedItemState.COMPLETED -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+        UnifiedItemState.DEFAULT -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f)
         UnifiedItemState.SELECTED -> MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
         UnifiedItemState.OVERDUE -> MaterialTheme.colorScheme.error.copy(alpha = 0.45f)
         UnifiedItemState.DISABLED -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
