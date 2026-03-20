@@ -105,7 +105,7 @@ android {
         }
 
         create("local") {
-            initWith(getByName("debug"))
+            initWith(getByName("release"))
             applicationIdSuffix = null
             isDebuggable = true
             isMinifyEnabled = false
@@ -116,7 +116,7 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             }
 
-            matchingFallbacks += listOf("debug")
+            matchingFallbacks += listOf("release")
         }
 
         release {
