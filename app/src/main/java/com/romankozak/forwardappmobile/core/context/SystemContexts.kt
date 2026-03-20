@@ -3,7 +3,6 @@ package com.romankozak.forwardappmobile.core.context
 object SystemContexts {
     val PERSONAL_MANAGEMENT = ContextId("sys_personal-management")
     val STRATEGIC = ContextId("sys_strategic")
-    val STRATEGIC_BEACONS = ContextId("sys_strategic-beacons")
     val MISSION = ContextId("sys_mission")
     val LONG_TERM_STRATEGY = ContextId("sys_long-term-strategy")
     val STRATEGIC_PROGRAMS = ContextId("sys_strategic-programs")
@@ -20,7 +19,6 @@ object SystemContexts {
         setOf(
             PERSONAL_MANAGEMENT,
             STRATEGIC,
-            STRATEGIC_BEACONS,
             MISSION,
             LONG_TERM_STRATEGY,
             STRATEGIC_PROGRAMS,

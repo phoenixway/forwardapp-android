@@ -627,11 +627,10 @@ class ContextHierarchyScreenViewModel
                         when (payload.operation) {
                             ContextClipboardOperation.CUT -> {
                                 withContext(ioDispatcher) {
-                                    val allowSystemMoves = settingsRepo.allowSystemProjectMovesFlow.first()
                                     contextRepository.moveContext(
                                         contextToMove = source,
                                         newParentId = event.project.id,
-                                        allowSystemMoves = allowSystemMoves,
+                                        allowSystemMoves = true,
                                     )
                                 }
                                 contextClipboard.value = null

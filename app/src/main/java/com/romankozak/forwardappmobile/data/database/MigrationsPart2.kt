@@ -255,7 +255,6 @@ val MIGRATION_94_95 =
                     mapOf(
                         "personal-management" to "sys_personal-management",
                         "strategic" to "sys_strategic",
-                        "strategic-beacons" to "sys_strategic-beacons",
                         "mission" to "sys_mission",
                         "long-term-strategy" to "sys_long-term-strategy",
                         "strategic-programs" to "sys_strategic-programs",

@@ -109,62 +109,10 @@ private fun migrateSpecialProjectsLegacy(db: SupportSQLiteDatabase) {
         }
         strategicGroupIdCursor.close()
 
-        var strategicBeaconsGroupId: String? = null
         if (strategicGroupId != null) {
-            val beaconsUnderStrategicCursor =
-                db.query(
-                    "SELECT id FROM projects WHERE parentId = ? AND name = 'strategic-beacons' LIMIT 1",
-                    arrayOf(strategicGroupId),
-                )
-            if (beaconsUnderStrategicCursor.moveToFirst()) {
-                strategicBeaconsGroupId =
-                    beaconsUnderStrategicCursor.getString(
-                        beaconsUnderStrategicCursor.getColumnIndexOrThrow("id"),
-                    )
-            }
-            beaconsUnderStrategicCursor.close()
-
-            if (strategicBeaconsGroupId == null) {
-                val beaconsUnderRootCursor =
-                    db.query(
-                        "SELECT id FROM projects WHERE parentId = ? AND name = 'strategic-beacons' LIMIT 1",
-                        arrayOf(personalManagementProjectId),
-                    )
-                if (beaconsUnderRootCursor.moveToFirst()) {
-                    strategicBeaconsGroupId =
-                        beaconsUnderRootCursor.getString(
-                            beaconsUnderRootCursor.getColumnIndexOrThrow("id"),
-                        )
-                }
-                beaconsUnderRootCursor.close()
-            }
-
-            if (strategicBeaconsGroupId == null) {
-                strategicBeaconsGroupId = UUID.randomUUID().toString()
-                db.execSQL(
-                    """
-                    INSERT INTO projects (id, name, parentId, is_expanded, createdAt, scoring_status)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                    """.trimIndent(),
-                    arrayOf(
-                        strategicBeaconsGroupId,
-                        "strategic-beacons",
-                        strategicGroupId,
-                        0,
-                        System.currentTimeMillis(),
-                        "NOT_ASSESSED",
-                    ),
-                )
-            } else {
-                db.execSQL(
-                    "UPDATE projects SET name = 'strategic-beacons', parentId = ? WHERE id = ?",
-                    arrayOf(strategicGroupId, strategicBeaconsGroupId),
-                )
-            }
-
             db.execSQL(
                 "UPDATE projects SET parentId = ? WHERE name = 'long-term-strategy'",
-                arrayOf(strategicBeaconsGroupId),
+                arrayOf(strategicGroupId),
             )
 
             var strategicProgramsExists = false
@@ -180,10 +128,10 @@ private fun migrateSpecialProjectsLegacy(db: SupportSQLiteDatabase) {
                     strategicProgramsCursor.getString(
                         strategicProgramsCursor.getColumnIndexOrThrow("parentId"),
                     )
-                if (currentParentId != strategicBeaconsGroupId) {
+                if (currentParentId != strategicGroupId) {
                     db.execSQL(
                         "UPDATE projects SET parentId = ? WHERE id = ?",
-                        arrayOf(strategicBeaconsGroupId, existingStrategicProgramsId),
+                        arrayOf(strategicGroupId, existingStrategicProgramsId),
                     )
                 }
             }
@@ -199,7 +147,7 @@ private fun migrateSpecialProjectsLegacy(db: SupportSQLiteDatabase) {
                     arrayOf(
                         strategicProgramsId,
                         "strategic-programs",
-                        strategicBeaconsGroupId,
+                        strategicGroupId,
                         0,
                         System.currentTimeMillis(),
                         "NOT_ASSESSED",
@@ -266,17 +214,6 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
             defaultName = "strategic",
             parentId = personalManagementId,
             legacyNames = listOf("strategic", "Стратегічні"),
-        ) ?: return
-
-    val strategicBeaconsId =
-        ensureProjectWithKey(
-            db = db,
-            key = ReservedContextKeys.STRATEGIC_BEACONS,
-            defaultName = "strategic-beacons",
-            parentId = strategicId,
-            legacyParentIds = listOf(personalManagementId),
-            legacyNames = listOf("strategic-beacons"),
-            legacyNamePatterns = listOf("strategic-beacons%"),
         ) ?: return
 
     val weekId =
@@ -367,7 +304,7 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
         db = db,
         key = ReservedContextKeys.MISSION,
         defaultName = "mission",
-        parentId = strategicBeaconsId,
+        parentId = strategicId,
         legacyParentIds = listOf(strategicId),
         legacyNames = listOf("mission", "Місія"),
     )
@@ -376,7 +313,7 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
         db = db,
         key = ReservedContextKeys.LONG_TERM_STRATEGY,
         defaultName = "long-term-strategy",
-        parentId = strategicBeaconsId,
+        parentId = strategicId,
         legacyParentIds = listOf(strategicId),
         legacyNames = listOf("long-term-strategy", "Довгострокова стратегія"),
     )
@@ -386,7 +323,7 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
             db = db,
             key = ReservedContextKeys.STRATEGIC_PROGRAMS,
             defaultName = "strategic-programs",
-            parentId = strategicBeaconsId,
+            parentId = strategicId,
             legacyParentIds = listOf(strategicId),
             legacyNames = listOf("strategic-programs", "strategic-program"),
             legacyNamePatterns = listOf("%strategic%program%"),
@@ -403,7 +340,6 @@ private fun migrateSpecialProjectsWithSystemKeys(db: SupportSQLiteDatabase) {
         )
 
     cleanUpDuplicateReservedProjects(db, "week", weekId)
-    cleanUpDuplicateReservedProjects(db, "strategic-beacons", strategicBeaconsId)
     cleanUpDuplicateReservedProjects(db, "main-beacons", mainBeaconsId)
     cleanUpDuplicateReservedProjects(db, "today", todayId)
     cleanUpDuplicateReservedProjects(db, "medium-term-strategy", mediumTermId)

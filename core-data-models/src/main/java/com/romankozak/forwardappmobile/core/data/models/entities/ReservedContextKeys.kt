@@ -3,7 +3,6 @@ package com.romankozak.forwardappmobile.core.data.models.entities
 object ReservedContextKeys {
     const val PERSONAL_MANAGEMENT = "personal-management"
     const val STRATEGIC = "strategic"
-    const val STRATEGIC_BEACONS = "strategic-beacons"
     const val MISSION = "mission"
     const val LONG_TERM_STRATEGY = "long-term-strategy"
     const val STRATEGIC_PROGRAMS = "strategic-programs"

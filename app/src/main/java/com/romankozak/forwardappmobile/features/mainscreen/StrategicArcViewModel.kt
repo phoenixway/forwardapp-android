@@ -147,7 +147,7 @@ class StrategicArcViewModel
             viewModelScope.launch {
                 val attachmentId =
                     attachmentsRepository.createLinkAttachment(
-                        contextId = SystemContexts.STRATEGIC_BEACONS.raw,
+                        contextId = SystemContexts.STRATEGIC.raw,
                         link = RelatedLink(type = LinkType.URL, target = target, displayName = display),
                     )
                 addAttachmentLink(attachmentId)
@@ -164,7 +164,7 @@ class StrategicArcViewModel
             viewModelScope.launch {
                 val attachmentId =
                     attachmentsRepository.createLinkAttachment(
-                        contextId = SystemContexts.STRATEGIC_BEACONS.raw,
+                        contextId = SystemContexts.STRATEGIC.raw,
                         link = RelatedLink(type = LinkType.OBSIDIAN, target = target, displayName = display),
                     )
                 addAttachmentLink(attachmentId)
@@ -189,7 +189,7 @@ class StrategicArcViewModel
                     val documentId =
                         noteDocumentRepository.createDocument(
                             name = request.name.ifBlank { "New note" },
-                            contextId = SystemContexts.STRATEGIC_BEACONS.raw,
+                            contextId = SystemContexts.STRATEGIC.raw,
                         )
                     attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)?.id
                 }
@@ -197,7 +197,7 @@ class StrategicArcViewModel
                     val musicNoteId =
                         musicNoteRepository.create(
                             name = request.name.ifBlank { "New music note" },
-                            contextId = SystemContexts.STRATEGIC_BEACONS.raw,
+                            contextId = SystemContexts.STRATEGIC.raw,
                         )
                     attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.MUSIC_NOTE, musicNoteId)?.id
                 }
@@ -205,7 +205,7 @@ class StrategicArcViewModel
                     val checklistId =
                         checklistRepository.createChecklist(
                             name = request.name.ifBlank { "New checklist" },
-                            contextId = SystemContexts.STRATEGIC_BEACONS.raw,
+                            contextId = SystemContexts.STRATEGIC.raw,
                         )
                     attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.CHECKLIST, checklistId)?.id
                 }
@@ -215,7 +215,7 @@ class StrategicArcViewModel
                         type = LinkType.URL,
                         target = target,
                         displayName = request.name.trim().ifBlank { target },
-                        contextId = SystemContexts.STRATEGIC_BEACONS.raw,
+                        contextId = SystemContexts.STRATEGIC.raw,
                     )
                 }
                 is NewDocumentDraft.Obsidian -> {
@@ -224,7 +224,7 @@ class StrategicArcViewModel
                         type = LinkType.OBSIDIAN,
                         target = target,
                         displayName = request.displayName.trim().ifBlank { target },
-                        contextId = SystemContexts.STRATEGIC_BEACONS.raw,
+                        contextId = SystemContexts.STRATEGIC.raw,
                     )
                 }
             }

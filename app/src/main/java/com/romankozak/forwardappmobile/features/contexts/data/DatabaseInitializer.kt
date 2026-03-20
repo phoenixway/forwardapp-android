@@ -34,13 +34,6 @@ class DatabaseInitializer
                     name = "strategic",
                     parentId = personalManagementProjectId,
                 )
-            val strategicBeaconsGroupId =
-                ensureProjectExists(
-                    contextDao = contextDao,
-                    id = SystemContexts.STRATEGIC_BEACONS.raw,
-                    name = "strategic-beacons",
-                    parentId = strategicGroupId,
-                )
             val weekProjectId =
                 ensureProjectExists(
                     contextDao = contextDao,
@@ -62,7 +55,6 @@ class DatabaseInitializer
                     buildSystemProjectDefinitions(
                         personalManagementProjectId = personalManagementProjectId,
                         strategicGroupId = strategicGroupId,
-                        strategicBeaconsGroupId = strategicBeaconsGroupId,
                         weekProjectId = weekProjectId,
                         todayProjectId = todayProjectId,
                     ),
@@ -72,7 +64,6 @@ class DatabaseInitializer
         private fun buildSystemProjectDefinitions(
             personalManagementProjectId: String,
             strategicGroupId: String,
-            strategicBeaconsGroupId: String,
             weekProjectId: String,
             todayProjectId: String,
         ): List<SystemProjectDefinition> =
@@ -85,17 +76,17 @@ class DatabaseInitializer
                 SystemProjectDefinition(
                     id = SystemContexts.MISSION.raw,
                     name = "mission",
-                    parentId = strategicBeaconsGroupId,
+                    parentId = strategicGroupId,
                 ),
                 SystemProjectDefinition(
                     id = SystemContexts.LONG_TERM_STRATEGY.raw,
                     name = "long-term-strategy",
-                    parentId = strategicBeaconsGroupId,
+                    parentId = strategicGroupId,
                 ),
                 SystemProjectDefinition(
                     id = SystemContexts.STRATEGIC_PROGRAMS.raw,
                     name = "strategic-programs",
-                    parentId = strategicBeaconsGroupId,
+                    parentId = strategicGroupId,
                 ),
                 SystemProjectDefinition(
                     id = SystemContexts.MEDIUM_TERM_STRATEGY.raw,
