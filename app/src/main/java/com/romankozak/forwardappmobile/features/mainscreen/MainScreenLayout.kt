@@ -177,8 +177,9 @@ fun MainScreenLayout(
         )
     }
     val dashboardHeaderContent: @Composable () -> Unit = {
+        val isDebugBuild = com.romankozak.forwardappmobile.BuildConfig.BUILD_TYPE == "debug"
         val showBadge =
-            com.romankozak.forwardappmobile.BuildConfig.DEBUG ||
+            isDebugBuild ||
                 com.romankozak.forwardappmobile.BuildConfig.IS_EXPERIMENTAL_BUILD
         val layout =
             CommandDeckHeaderPreset(
@@ -193,7 +194,7 @@ fun MainScreenLayout(
                         ) {
                             Text(
                                 text =
-                                    if (com.romankozak.forwardappmobile.BuildConfig.DEBUG) {
+                                    if (isDebugBuild) {
                                         "Debug"
                                     } else {
                                         "Experimental"
