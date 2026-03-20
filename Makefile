@@ -24,7 +24,7 @@ DEVICE_FLAG=-s $(DEVICE_ID)
 
 # --- Цілі (Targets) ---
 
-.PHONY: work-end work-start all debug-cycle release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test sync-contract get-android-dumps get-release-apk exp-cycle build-exp install-exp start-exp stop-exp logcat-exp backup quality-report quality-strict quality-unit
+.PHONY: work-end work-start all debug-cycle release install start stop logcat debug install-debug start-debug stop-debug logcat-debug clean help test sync-contract get-android-dumps get-release-apk exp-cycle build-exp install-exp start-exp stop-exp logcat-exp exp-arm64-cycle build-exp-arm64 install-exp-arm64 check-release-signing check-exp-signature-match backup quality-report quality-strict quality-unit
 
 work-start:
 	@echo "▶ Starting agent workflow…"
@@ -44,6 +44,8 @@ all: install-prod start
 debug-cycle: install-debug start-debug
 ## Зібрати, встановити та запустити EXPERIMENTAL RELEASE (expRelease)
 exp-cycle: install-exp start-exp
+## Швидкий EXPERIMENTAL цикл: expLocal + ARM64 only + base package
+exp-arm64-cycle: check-release-signing check-exp-signature-match install-exp-arm64 start-exp
 
 
 # ============== RELEASE ЦИКЛ ==============
@@ -125,6 +127,10 @@ build-exp:
 	@echo "🚀  Збираю exp release APK..."
 	@./gradlew :app:assembleExpRelease
 
+build-exp-arm64:
+	@echo "🚀  Збираю exp local APK тільки для ARM64..."
+	@./gradlew :app:assembleExpLocal -PabiFilter=arm64-v8a
+
 install-exp: build-exp
 	@echo "📦  Встановлюю exp release APK (пріоритет ARM64)..."
 	@if [ -f app/build/outputs/apk/exp/release/app-exp-arm64-v8a-release.apk ]; then \
@@ -135,6 +141,81 @@ install-exp: build-exp
 		find app/build/outputs/apk/exp/release -type f -name "*-release.apk" -print0 | xargs -0 -I {} adb $(DEVICE_FLAG) install -r {}; \
 	fi
 	@echo "✅  Exp release APK встановлено."
+
+install-exp-arm64:
+	@echo "📦  Встановлюю exp ARM64 local APK..."
+	@./gradlew :app:assembleExpLocal -PabiFilter=arm64-v8a
+	@adb $(DEVICE_FLAG) install -r app/build/outputs/apk/exp/local/app-exp-arm64-v8a-local.apk
+	@echo "✅  Exp ARM64 local APK встановлено."
+
+check-release-signing:
+	@echo "🔐  Перевіряю release signing для локальної expLocal збірки..."
+	@if [ ! -f signing.properties ]; then \
+		echo "❌ signing.properties не знайдено."; \
+		echo "exp-arm64-cycle використовує пакет $(PACKAGE_NAME) без .debug, тому для оновлення CI APK потрібен той самий release key."; \
+		echo "Рішення: додай локальний signing.properties з CI keystore або використовуй debug-cycle."; \
+		exit 1; \
+	fi
+	@if ! grep -Eq '^[[:space:]]*storeFile[[:space:]]*=' signing.properties || \
+		! grep -Eq '^[[:space:]]*storePassword[[:space:]]*=' signing.properties || \
+		! grep -Eq '^[[:space:]]*keyAlias[[:space:]]*=' signing.properties || \
+		! grep -Eq '^[[:space:]]*keyPassword[[:space:]]*=' signing.properties; then \
+		echo "❌ signing.properties існує, але не містить усіх обов'язкових полів."; \
+		echo "Потрібні поля: storeFile, storePassword, keyAlias, keyPassword."; \
+		exit 1; \
+	fi
+	@STORE_FILE=$$(sed -n 's/^[[:space:]]*storeFile[[:space:]]*=[[:space:]]*//p' signing.properties | head -n 1); \
+	if [ -z "$$STORE_FILE" ]; then \
+		echo "❌ signing.properties містить порожній storeFile."; \
+		exit 1; \
+	fi; \
+	if [ ! -f "$$STORE_FILE" ]; then \
+		echo "❌ Keystore не знайдено: $$STORE_FILE"; \
+		exit 1; \
+	fi; \
+	echo "✅ Release signing знайдено: $$STORE_FILE"
+
+check-exp-signature-match: check-release-signing
+	@echo "🔍  Перевіряю збіг підпису встановленого $(PACKAGE_NAME) з локальним keystore..."
+	@INSTALLED_APK_PATH=$$(adb $(DEVICE_FLAG) shell pm path $(PACKAGE_NAME) 2>/dev/null | sed -n 's/^package://p' | tr -d '\r' | head -n 1); \
+	if [ -z "$$INSTALLED_APK_PATH" ]; then \
+		echo "ℹ️  Пакет $(PACKAGE_NAME) не встановлений на пристрої. Перевірку підпису пропускаю."; \
+		exit 0; \
+	fi; \
+	SDK_DIR=$$(sed -n 's/^sdk\.dir=//p' local.properties | head -n 1); \
+	APKSIGNER_BIN=$$(command -v apksigner || true); \
+	if [ -z "$$APKSIGNER_BIN" ] && [ -n "$$SDK_DIR" ]; then \
+		APKSIGNER_BIN=$$(find "$$SDK_DIR/build-tools" -maxdepth 2 -name apksigner 2>/dev/null | sort -V | tail -n 1); \
+	fi; \
+	if [ -z "$$APKSIGNER_BIN" ]; then \
+		echo "❌ apksigner не знайдено. Встанови Android build-tools або додай apksigner у PATH."; \
+		exit 1; \
+	fi; \
+	if ! command -v keytool >/dev/null 2>&1; then \
+		echo "❌ keytool не знайдено в PATH."; \
+		exit 1; \
+	fi; \
+	STORE_FILE=$$(sed -n 's/^[[:space:]]*storeFile[[:space:]]*=[[:space:]]*//p' signing.properties | head -n 1); \
+	STORE_PASSWORD=$$(sed -n 's/^[[:space:]]*storePassword[[:space:]]*=[[:space:]]*//p' signing.properties | head -n 1); \
+	KEY_ALIAS=$$(sed -n 's/^[[:space:]]*keyAlias[[:space:]]*=[[:space:]]*//p' signing.properties | head -n 1); \
+	TMP_APK=/tmp/forwardapp-installed-base.apk; \
+	rm -f "$$TMP_APK"; \
+	adb $(DEVICE_FLAG) pull "$$INSTALLED_APK_PATH" "$$TMP_APK" >/dev/null; \
+	LOCAL_FP=$$(keytool -list -v -keystore "$$STORE_FILE" -storepass "$$STORE_PASSWORD" -alias "$$KEY_ALIAS" 2>/dev/null | sed -n 's/.*SHA256: //p' | head -n 1 | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]'); \
+	INSTALLED_FP=$$("$$APKSIGNER_BIN" verify --print-certs "$$TMP_APK" 2>/dev/null | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n 1 | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]'); \
+	rm -f "$$TMP_APK"; \
+	if [ -z "$$LOCAL_FP" ] || [ -z "$$INSTALLED_FP" ]; then \
+		echo "❌ Не вдалося прочитати SHA-256 fingerprint для локального або встановленого APK."; \
+		exit 1; \
+	fi; \
+	if [ "$$LOCAL_FP" != "$$INSTALLED_FP" ]; then \
+		echo "❌ Підпис не збігається."; \
+		echo "Локальний keystore : $$LOCAL_FP"; \
+		echo "Встановлений APK   : $$INSTALLED_FP"; \
+		echo "exp-arm64-cycle не зможе оновити встановлений $(PACKAGE_NAME) без сумісного release key."; \
+		exit 1; \
+	fi; \
+	echo "✅ Підпис збігається. Можна оновлювати встановлений $(PACKAGE_NAME)."
 
 start-exp:
 	@echo "▶️  Запускаю exp додаток ($(PACKAGE_NAME))..."
@@ -279,6 +360,8 @@ help:
 	@echo "Доступні команди:"
 	@echo "---"
 	@echo "  make debug-cycle    - (Найчастіша команда) Зібрати, встановити та запустити DEBUG версію."
+	@echo "  make exp-arm64-cycle - Швидкий exp цикл: expLocal, тільки ARM64, пакет без .debug."
+	@echo "  make check-exp-signature-match - Порівняти підпис локального keystore з APK на пристрої."
 	@echo "  make all            - Зібрати, встановити та запустити RELEASE версію."
 	@echo "  make test           - Виконати unit й instrumentation тести."
 	@echo ""

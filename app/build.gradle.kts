@@ -20,6 +20,12 @@ plugins {
 val signingProps = Properties()
 val signingPropsFile = rootProject.file("signing.properties")
 val googleServicesFile = file("google-services.json")
+val abiFilterOverride =
+    providers.gradleProperty("abiFilter").orNull
+        ?.split(',')
+        ?.map(String::trim)
+        ?.filter(String::isNotBlank)
+        ?.distinct()
 
 if (signingPropsFile.exists()) {
     signingPropsFile.inputStream().use { signingProps.load(it) }
@@ -98,6 +104,21 @@ android {
             buildConfigField("boolean", "SYNC_ENABLED", "false")
         }
 
+        create("local") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = null
+            isDebuggable = true
+            isMinifyEnabled = false
+            isShrinkResources = false
+            buildConfigField("boolean", "SYNC_ENABLED", "false")
+
+            if (signingProps.isNotEmpty()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+
+            matchingFallbacks += listOf("debug")
+        }
+
         release {
             isMinifyEnabled = true
             buildConfigField("boolean", "SYNC_ENABLED", "false")
@@ -133,8 +154,8 @@ android {
         abi {
             isEnable = true
             reset()
-            include("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
-            isUniversalApk = true
+            include(*(abiFilterOverride ?: listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")).toTypedArray())
+            isUniversalApk = abiFilterOverride == null
         }
     }
 
