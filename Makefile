@@ -145,7 +145,30 @@ install-exp: build-exp
 install-exp-arm64:
 	@echo "📦  Встановлюю exp ARM64 local APK..."
 	@./gradlew :app:assembleExpLocal -PabiFilter=arm64-v8a
-	@adb $(DEVICE_FLAG) install -r app/build/outputs/apk/exp/local/app-exp-arm64-v8a-local.apk
+	@TMP_ERR=$$(mktemp); \
+	if adb $(DEVICE_FLAG) install -r app/build/outputs/apk/exp/local/app-exp-arm64-v8a-local.apk 2>"$$TMP_ERR"; then \
+		rm -f "$$TMP_ERR"; \
+	else \
+		if grep -q "INSTALL_FAILED_UPDATE_INCOMPATIBLE" "$$TMP_ERR"; then \
+			echo "⚠️  Встановлена несумісна версія $(PACKAGE_NAME)."; \
+			echo "Увага: uninstall видалить локальні дані застосунку на пристрої."; \
+			printf "Підтвердити видалення і перевстановлення? [y/N] "; \
+			read ANSWER; \
+			if [ "$$ANSWER" = "y" ] || [ "$$ANSWER" = "Y" ]; then \
+				adb $(DEVICE_FLAG) uninstall $(PACKAGE_NAME) || true; \
+				adb $(DEVICE_FLAG) install -r app/build/outputs/apk/exp/local/app-exp-arm64-v8a-local.apk; \
+				rm -f "$$TMP_ERR"; \
+			else \
+				echo "Скасовано користувачем."; \
+				rm -f "$$TMP_ERR"; \
+				exit 1; \
+			fi; \
+		else \
+			cat "$$TMP_ERR" >&2; \
+			rm -f "$$TMP_ERR"; \
+			exit 1; \
+		fi; \
+	fi
 	@echo "✅  Exp ARM64 local APK встановлено."
 
 check-release-signing:
