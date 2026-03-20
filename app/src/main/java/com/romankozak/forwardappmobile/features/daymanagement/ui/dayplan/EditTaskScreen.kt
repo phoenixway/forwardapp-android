@@ -1,45 +1,61 @@
 package com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.Checkbox
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,8 +64,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
@@ -57,6 +79,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import java.time.DayOfWeek
 import java.time.format.TextStyle
 import java.util.Locale
+
+// ─── Actions / tab model ──────────────────────────────────────────────────────
 
 private data class EditTaskActions(
     val onTitleChange: (String) -> Unit,
@@ -70,13 +94,13 @@ private data class EditTaskActions(
     val onRecurrenceDayOfWeekToggle: (DayOfWeek) -> Unit,
 )
 
-private enum class EditTaskTab(
-    val title: String,
-) {
+private enum class EditTaskTab(val title: String) {
     Main("Основне"),
     Details("Деталі"),
     Repeat("Повтор"),
 }
+
+// ─── Full-screen edit ─────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -90,48 +114,76 @@ fun EditTaskScreen(
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
             when (event) {
-                is EditTaskUiEvent.NavigateUp -> {
-                    viewModel.reset()
-                    onNavigateUp()
-                }
+                is EditTaskUiEvent.NavigateUp -> { viewModel.reset(); onNavigateUp() }
             }
         }
     }
 
     Scaffold(
         topBar = {
-            EditTaskTopBar(
-                onNavigateUp = onNavigateUp,
-                onSave = viewModel::saveTask,
+            TopAppBar(
+                title = {
+                    Text(
+                        text = uiState.title.ifBlank { "Нова задача" },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Normal,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        ),
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateUp) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Назад",
+                            tint = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = viewModel::saveTask,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                        ),
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .size(36.dp)
+                            .clip(CircleShape),
+                    ) {
+                        Icon(
+                            Icons.Default.Save,
+                            contentDescription = "Зберегти",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                ),
             )
         },
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = Modifier.fillMaxSize(),
     ) { paddingValues ->
-        val actions =
-            EditTaskActions(
-                onTitleChange = viewModel::onTitleChange,
-                onDescriptionChange = viewModel::onDescriptionChange,
-                onPointsChange = viewModel::onPointsChange,
-                onPriorityChange = viewModel::onPriorityChange,
-                onDurationChange = viewModel::onDurationChange,
-                onRecurringChange = viewModel::onRecurringChange,
-                onRecurrenceFrequencyChange = viewModel::onRecurrenceFrequencyChange,
-                onRecurrenceIntervalChange = viewModel::onRecurrenceIntervalChange,
-                onRecurrenceDayOfWeekToggle = viewModel::onRecurrenceDayOfWeekToggle,
-            )
+        val actions = rememberActions(viewModel)
         EditTaskBody(
             uiState = uiState,
             selectedTab = selectedTab,
             onTabSelected = { selectedTab = it },
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .imePadding(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .imePadding(),
             actions = actions,
         )
     }
 }
+
+// ─── Bottom sheet ─────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -143,92 +195,154 @@ fun EditTaskBottomSheet(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var selectedTab by remember(taskId) { mutableStateOf(EditTaskTab.Main) }
+    var isExpanded by remember(taskId) { mutableStateOf(false) }
 
     LaunchedEffect(taskId) {
         selectedTab = EditTaskTab.Main
+        isExpanded = true
         viewModel.loadTask(taskId)
+        sheetState.show()
     }
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
             when (event) {
-                is EditTaskUiEvent.NavigateUp -> {
-                    viewModel.reset()
-                    onDismissRequest()
-                }
+                is EditTaskUiEvent.NavigateUp -> { viewModel.reset(); onDismissRequest() }
             }
         }
     }
 
-    val actions =
-        EditTaskActions(
-            onTitleChange = viewModel::onTitleChange,
-            onDescriptionChange = viewModel::onDescriptionChange,
-            onPointsChange = viewModel::onPointsChange,
-            onPriorityChange = viewModel::onPriorityChange,
-            onDurationChange = viewModel::onDurationChange,
-            onRecurringChange = viewModel::onRecurringChange,
-            onRecurrenceFrequencyChange = viewModel::onRecurrenceFrequencyChange,
-            onRecurrenceIntervalChange = viewModel::onRecurrenceIntervalChange,
-            onRecurrenceDayOfWeekToggle = viewModel::onRecurrenceDayOfWeekToggle,
-        )
+    val actions = rememberActions(viewModel)
+    val dragHandleColor = MaterialTheme.colorScheme.outlineVariant
 
     ModalBottomSheet(
-        onDismissRequest = {
-            viewModel.reset()
-            onDismissRequest()
-        },
+        onDismissRequest = { viewModel.reset(); onDismissRequest() },
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        dragHandle = { BottomSheetDefaults.DragHandle() },
-    ) {
-        Column(
-            modifier =
-                Modifier
+        contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
+        dragHandle = {
+            Column(
+                modifier = Modifier
                     .fillMaxWidth()
-                    .navigationBarsPadding(),
+                    .padding(top = 10.dp, bottom = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                androidx.compose.foundation.Canvas(
+                    modifier = Modifier.size(width = 32.dp, height = 3.dp),
+                ) {
+                    drawRoundRect(
+                        color = dragHandleColor,
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx()),
+                    )
+                }
+            }
+        },
+    ) {
+        // Висота визначається вмістом — animateContentSize плавно анімує зміну.
+        // Прибрано requiredHeightIn який конфліктував з ModalBottomSheet.
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .animateContentSize(animationSpec = tween(durationMillis = 280)),
         ) {
-            EditTaskSheetHeader(
-                onDismissRequest = {
-                    viewModel.reset()
-                    onDismissRequest()
-                },
-                onSave = viewModel::saveTask,
-            )
-            EditTaskBody(
-                uiState = uiState,
+            // ── Header ───────────────────────────────────────────────────────
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = uiState.title,
+                    onValueChange = actions.onTitleChange,
+                    placeholder = {
+                        Text(
+                            "Назва задачі…",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                                fontWeight = FontWeight.Normal,
+                            ),
+                        )
+                    },
+                    textStyle = MaterialTheme.typography.titleMedium.copy(
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 19.sp,
+                    ),
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                    colors = outlinedFieldColors(),
+                )
+
+                Spacer(modifier = Modifier.width(10.dp))
+
+                IconButton(
+                    onClick = viewModel::saveTask,
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                    ),
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Save,
+                        contentDescription = "Зберегти",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+
+            // ── Tabs ─────────────────────────────────────────────────────────
+            SheetTabSelector(
                 selectedTab = selectedTab,
-                onTabSelected = { selectedTab = it },
-                actions = actions,
+                onTabSelected = { tab ->
+                    if (tab == selectedTab) {
+                        // Повторний тап на активну вкладку — toggle розгортання
+                        isExpanded = !isExpanded
+                    } else {
+                        // Нова вкладка — завжди розгортаємо
+                        selectedTab = tab
+                        isExpanded = true
+                    }
+                },
             )
+
+            // ── Collapsed: тільки summary чіпи ───────────────────────────────
+            AnimatedVisibility(
+                visible = !isExpanded,
+                enter = expandVertically(animationSpec = tween(220)),
+                exit = shrinkVertically(animationSpec = tween(220)),
+            ) {
+                SummaryChips(
+                    uiState = uiState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                )
+            }
+
+            // ── Expanded: повний контент поточної вкладки ────────────────────
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(animationSpec = tween(220)),
+                exit = shrinkVertically(animationSpec = tween(220)),
+            ) {
+                SheetExpandedBody(
+                    uiState = uiState,
+                    selectedTab = selectedTab,
+                    actions = actions,
+                )
+            }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun EditTaskTopBar(
-    onNavigateUp: () -> Unit,
-    onSave: () -> Unit,
-) {
-    TopAppBar(
-        title = { Text("Edit Task") },
-        navigationIcon = {
-            IconButton(onClick = onNavigateUp) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                )
-            }
-        },
-        actions = {
-            Button(onClick = onSave) {
-                Text("Save")
-            }
-        },
-    )
-}
+// ─── Full-screen body ─────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun EditTaskBody(
     uiState: EditTaskUiState,
@@ -238,52 +352,378 @@ private fun EditTaskBody(
     actions: EditTaskActions,
 ) {
     Column(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        EditTaskBasicFields(
-            uiState = uiState,
-            onTitleChange = actions.onTitleChange,
-            onDescriptionChange = actions.onDescriptionChange,
+        OutlinedTextField(
+            value = uiState.title,
+            onValueChange = actions.onTitleChange,
+            label = {
+                Text(
+                    "Назва",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                )
+            },
+            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                color = MaterialTheme.colorScheme.onSurface,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            colors = outlinedFieldColors(),
         )
-        EditTaskTabSelector(
-            selectedTab = selectedTab,
-            onTabSelected = onTabSelected,
+        OutlinedTextField(
+            value = uiState.description,
+            onValueChange = actions.onDescriptionChange,
+            label = {
+                Text(
+                    "Опис",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                )
+            },
+            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                color = MaterialTheme.colorScheme.onSurface,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            maxLines = 4,
+            colors = outlinedFieldColors(),
         )
+
+        SheetTabSelector(selectedTab = selectedTab, onTabSelected = onTabSelected)
+
+        when (selectedTab) {
+            EditTaskTab.Main -> SummaryChips(uiState = uiState)
+            EditTaskTab.Details -> DetailsContent(uiState = uiState, actions = actions)
+            EditTaskTab.Repeat -> RepeatContent(uiState = uiState, actions = actions)
+        }
+    }
+}
+
+// ─── Sheet expanded body ──────────────────────────────────────────────────────
+
+@Composable
+private fun SheetExpandedBody(
+    uiState: EditTaskUiState,
+    selectedTab: EditTaskTab,
+    actions: EditTaskActions,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
         when (selectedTab) {
             EditTaskTab.Main -> {
-                EditTaskSummaryCard(uiState = uiState)
+                OutlinedTextField(
+                    value = uiState.description,
+                    onValueChange = actions.onDescriptionChange,
+                    label = { Text("Опис", fontSize = 12.sp) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    maxLines = 5,
+                    colors = outlinedFieldColors(),
+                )
+                SummaryChips(uiState = uiState)
             }
-            EditTaskTab.Details -> {
-                NumericInputCard(
-                    value = uiState.points.toString(),
-                    label = "Points",
-                    onValueChange = { actions.onPointsChange(it.toIntOrNull() ?: 0) },
-                )
-                PriorityCard(
-                    selectedPriority = uiState.priority,
-                    onPriorityChange = actions.onPriorityChange,
-                )
-                NumericInputCard(
-                    value = uiState.duration?.toString().orEmpty(),
-                    label = "Duration (minutes)",
-                    onValueChange = { actions.onDurationChange(it.toLongOrNull()) },
+            EditTaskTab.Details -> DetailsContent(uiState = uiState, actions = actions)
+            EditTaskTab.Repeat -> RepeatContent(uiState = uiState, actions = actions)
+        }
+    }
+}
+
+// ─── Tab selector ─────────────────────────────────────────────────────────────
+
+@Composable
+private fun SheetTabSelector(
+    selectedTab: EditTaskTab,
+    onTabSelected: (EditTaskTab) -> Unit,
+) {
+    SingleChoiceSegmentedButtonRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+    ) {
+        EditTaskTab.entries.forEachIndexed { index, tab ->
+            SegmentedButton(
+                selected = selectedTab == tab,
+                onClick = { onTabSelected(tab) },
+                shape = SegmentedButtonDefaults.itemShape(
+                    index = index,
+                    count = EditTaskTab.entries.size,
+                ),
+                colors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = MaterialTheme.colorScheme.primary,
+                    activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                    inactiveContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
+            ) {
+                Text(tab.title, fontSize = 11.sp, fontWeight = FontWeight.Normal)
+            }
+        }
+    }
+}
+
+// ─── Summary chips ────────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SummaryChips(
+    uiState: EditTaskUiState,
+    modifier: Modifier = Modifier,
+) {
+    val cs = MaterialTheme.colorScheme
+    val priorityColor = when (uiState.priority) {
+        TaskPriority.LOW      -> cs.secondary
+        TaskPriority.MEDIUM   -> cs.tertiary
+        TaskPriority.HIGH     -> cs.primary
+        TaskPriority.CRITICAL -> cs.error
+        TaskPriority.NONE     -> cs.onSurfaceVariant
+    }
+    val priorityBg = when (uiState.priority) {
+        TaskPriority.LOW      -> cs.secondaryContainer.copy(alpha = 0.45f)
+        TaskPriority.MEDIUM   -> cs.tertiaryContainer.copy(alpha = 0.45f)
+        TaskPriority.HIGH     -> cs.primaryContainer.copy(alpha = 0.45f)
+        TaskPriority.CRITICAL -> cs.errorContainer.copy(alpha = 0.45f)
+        TaskPriority.NONE     -> Color.Transparent
+    }
+
+    FlowRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        CompactChip(
+            label = uiState.priority.name,
+            textColor = priorityColor,
+            borderColor = priorityColor,
+            bg = priorityBg,
+        )
+        CompactChip(label = "${uiState.points} балів")
+        uiState.duration?.let {
+            CompactChip(
+                label = "$it хв",
+                textColor = cs.secondary,
+                borderColor = cs.secondary,
+                bg = cs.secondaryContainer.copy(alpha = 0.45f),
+            )
+        }
+        if (uiState.isRecurring) {
+            CompactChip(label = uiState.recurrenceFrequency.name)
+        }
+    }
+}
+
+@Composable
+private fun CompactChip(
+    label: String,
+    textColor: Color = MaterialTheme.colorScheme.onSurface,
+    borderColor: Color = MaterialTheme.colorScheme.outline,
+    bg: Color = Color.Transparent,
+) {
+    val shape = RoundedCornerShape(12.dp)
+    Box(
+        modifier = Modifier
+            .clip(shape)
+            .then(if (bg != Color.Transparent) Modifier.background(bg) else Modifier)
+            .border(width = 1.dp, color = borderColor, shape = shape)
+            .padding(horizontal = 9.dp, vertical = 4.dp),
+    ) {
+        Text(
+            text = label.uppercase(),
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Medium,
+            color = textColor,
+            fontFamily = FontFamily.Monospace,
+            letterSpacing = 0.06.sp,
+        )
+    }
+}
+
+// ─── Details tab ─────────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun DetailsContent(
+    uiState: EditTaskUiState,
+    actions: EditTaskActions,
+) {
+    val cs = MaterialTheme.colorScheme
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        SectionLabel("Пріоритет")
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            TaskPriority.values().forEach { priority ->
+                FilterChip(
+                    selected = uiState.priority == priority,
+                    onClick = { actions.onPriorityChange(priority) },
+                    label = {
+                        Text(priority.name, fontSize = 11.sp, softWrap = false, maxLines = 1)
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = cs.primary,
+                        selectedLabelColor = cs.onPrimary,
+                        containerColor = cs.surfaceContainerHigh,
+                        labelColor = cs.onSurfaceVariant,
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        borderColor = cs.outlineVariant,
+                        selectedBorderColor = cs.primary,
+                        enabled = true,
+                        selected = uiState.priority == priority,
+                    ),
                 )
             }
-            EditTaskTab.Repeat -> {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        RecurrenceSection(
-                            uiState = uiState,
-                            onRecurringChange = actions.onRecurringChange,
-                            onRecurrenceFrequencyChange = actions.onRecurrenceFrequencyChange,
-                            onRecurrenceIntervalChange = actions.onRecurrenceIntervalChange,
-                            onRecurrenceDayOfWeekToggle = actions.onRecurrenceDayOfWeekToggle,
-                        )
+        }
+
+        HorizontalDivider(color = cs.outlineVariant)
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SectionLabel("Бали", modifier = Modifier.weight(1f))
+            Text(
+                text = uiState.points.toString(),
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    color = cs.onSurface,
+                    fontFamily = FontFamily.Serif,
+                    fontSize = 30.sp,
+                ),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                SmallStepButton("+") { actions.onPointsChange(uiState.points + 1) }
+                SmallStepButton("−") { actions.onPointsChange((uiState.points - 1).coerceAtLeast(0)) }
+            }
+        }
+
+        HorizontalDivider(color = cs.outlineVariant)
+
+        SectionLabel("Тривалість (хв)")
+        OutlinedTextField(
+            value = uiState.duration?.toString().orEmpty(),
+            onValueChange = { actions.onDurationChange(it.toLongOrNull()) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            colors = outlinedFieldColors(),
+        )
+    }
+}
+
+// ─── Repeat tab ───────────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+private fun RepeatContent(
+    uiState: EditTaskUiState,
+    actions: EditTaskActions,
+) {
+    val cs = MaterialTheme.colorScheme
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "Повторювана",
+                fontSize = 13.sp,
+                color = cs.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            Switch(
+                checked = uiState.isRecurring,
+                onCheckedChange = actions.onRecurringChange,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = cs.onPrimary,
+                    checkedTrackColor = cs.primary,
+                    uncheckedThumbColor = cs.surface,
+                    uncheckedTrackColor = cs.surfaceVariant,
+                    uncheckedBorderColor = cs.outlineVariant,
+                ),
+            )
+        }
+
+        AnimatedVisibility(visible = uiState.isRecurring) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                var expanded by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded },
+                ) {
+                    OutlinedTextField(
+                        value = uiState.recurrenceFrequency.name,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Частота", fontSize = 11.sp) },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        colors = outlinedFieldColors(),
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                    ) {
+                        RecurrenceFrequency.values().forEach { frequency ->
+                            DropdownMenuItem(
+                                text = { Text(frequency.name, fontSize = 13.sp) },
+                                onClick = {
+                                    actions.onRecurrenceFrequencyChange(frequency)
+                                    expanded = false
+                                },
+                            )
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = uiState.recurrenceInterval.toString(),
+                    onValueChange = { actions.onRecurrenceIntervalChange(it.toIntOrNull() ?: 1) },
+                    label = { Text("Інтервал", fontSize = 11.sp) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    colors = outlinedFieldColors(),
+                )
+
+                if (uiState.recurrenceFrequency == RecurrenceFrequency.WEEKLY) {
+                    SectionLabel("Дні тижня")
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        DayOfWeek.values().forEach { day ->
+                            FilterChip(
+                                selected = uiState.recurrenceDaysOfWeek.contains(day),
+                                onClick = { actions.onRecurrenceDayOfWeekToggle(day) },
+                                label = {
+                                    Text(
+                                        day.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
+                                        fontSize = 10.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = cs.primary,
+                                    selectedLabelColor = cs.onPrimary,
+                                    containerColor = cs.surfaceContainerHigh,
+                                    labelColor = cs.onSurfaceVariant,
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    borderColor = cs.outlineVariant,
+                                    selectedBorderColor = cs.primary,
+                                    enabled = true,
+                                    selected = uiState.recurrenceDaysOfWeek.contains(day),
+                                ),
+                            )
+                        }
                     }
                 }
             }
@@ -291,281 +731,55 @@ private fun EditTaskBody(
     }
 }
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 @Composable
-private fun EditTaskSheetHeader(
-    onDismissRequest: () -> Unit,
-    onSave: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+private fun SectionLabel(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text.uppercase(),
+        fontSize = 9.sp,
+        fontWeight = FontWeight.Medium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontFamily = FontFamily.Monospace,
+        letterSpacing = 0.07.sp,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun SmallStepButton(label: String, onClick: () -> Unit) {
+    OutlinedIconButton(
+        onClick = onClick,
+        modifier = Modifier.size(width = 26.dp, height = 20.dp),
+        shape = RoundedCornerShape(3.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
     ) {
-        Text(
-            text = "Редагувати задачу",
-            style = MaterialTheme.typography.titleLarge,
-        )
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            androidx.compose.material3.TextButton(onClick = onDismissRequest) {
-                Text("Закрити")
-            }
-            Button(onClick = onSave) {
-                Text("Зберегти")
-            }
-        }
+        Text(label, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 
 @Composable
-private fun EditTaskTabSelector(
-    selectedTab: EditTaskTab,
-    onTabSelected: (EditTaskTab) -> Unit,
-) {
-    SingleChoiceSegmentedButtonRow(
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        EditTaskTab.entries.forEachIndexed { index, tab ->
-            SegmentedButton(
-                selected = selectedTab == tab,
-                onClick = { onTabSelected(tab) },
-                shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(index = index, count = EditTaskTab.entries.size),
-            ) {
-                Text(tab.title)
-            }
-        }
-    }
-}
+private fun outlinedFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedBorderColor = MaterialTheme.colorScheme.primary,
+    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+    cursorColor = MaterialTheme.colorScheme.primary,
+    focusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+)
 
 @Composable
-private fun EditTaskSummaryCard(
-    uiState: EditTaskUiState,
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text(
-                text = "Коротко",
-                style = MaterialTheme.typography.titleMedium,
-            )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                FilterChip(
-                    selected = false,
-                    onClick = {},
-                    enabled = false,
-                    label = { Text("Пріоритет: ${uiState.priority.name}") },
-                    leadingIcon = { Icon(Icons.Default.Tune, contentDescription = null) },
-                )
-                FilterChip(
-                    selected = false,
-                    onClick = {},
-                    enabled = false,
-                    label = { Text("Бали: ${uiState.points}") },
-                )
-                uiState.duration?.let {
-                    FilterChip(
-                        selected = false,
-                        onClick = {},
-                        enabled = false,
-                        label = { Text("Тривалість: $it хв") },
-                    )
-                }
-                if (uiState.isRecurring) {
-                    FilterChip(
-                        selected = false,
-                        onClick = {},
-                        enabled = false,
-                        label = { Text("Повтор: ${uiState.recurrenceFrequency.name}") },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun EditTaskBasicFields(
-    uiState: EditTaskUiState,
-    onTitleChange: (String) -> Unit,
-    onDescriptionChange: (String) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        OutlinedTextField(
-            value = uiState.title,
-            onValueChange = onTitleChange,
-            label = { Text("Title") },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = uiState.description,
-            onValueChange = onDescriptionChange,
-            label = { Text("Description") },
-            modifier = Modifier.fillMaxWidth(),
-            maxLines = 5,
-        )
-    }
-}
-
-@Composable
-private fun NumericInputCard(
-    value: String,
-    label: String,
-    onValueChange: (String) -> Unit,
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            OutlinedTextField(
-                value = value,
-                onValueChange = onValueChange,
-                label = { Text(label) },
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun PriorityCard(
-    selectedPriority: TaskPriority,
-    onPriorityChange: (TaskPriority) -> Unit,
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Priority", style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(8.dp))
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                TaskPriority.values().forEach { priority ->
-                    FilterChip(
-                        selected = selectedPriority == priority,
-                        onClick = { onPriorityChange(priority) },
-                        label = { Text(priority.name, softWrap = false, maxLines = 1) },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RecurrenceSection(
-    uiState: EditTaskUiState,
-    onRecurringChange: (Boolean) -> Unit,
-    onRecurrenceFrequencyChange: (RecurrenceFrequency) -> Unit,
-    onRecurrenceIntervalChange: (Int) -> Unit,
-    onRecurrenceDayOfWeekToggle: (DayOfWeek) -> Unit,
-) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("Recurrence", style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.weight(1f))
-        Checkbox(
-            checked = uiState.isRecurring,
-            onCheckedChange = onRecurringChange,
-        )
-    }
-    AnimatedVisibility(visible = uiState.isRecurring) {
-        RecurrenceFields(
-            uiState = uiState,
-            onRecurrenceFrequencyChange = onRecurrenceFrequencyChange,
-            onRecurrenceIntervalChange = onRecurrenceIntervalChange,
-            onRecurrenceDayOfWeekToggle = onRecurrenceDayOfWeekToggle,
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun RecurrenceFields(
-    uiState: EditTaskUiState,
-    onRecurrenceFrequencyChange: (RecurrenceFrequency) -> Unit,
-    onRecurrenceIntervalChange: (Int) -> Unit,
-    onRecurrenceDayOfWeekToggle: (DayOfWeek) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded },
-        ) {
-            OutlinedTextField(
-                value = uiState.recurrenceFrequency.name,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Frequency") },
-                trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                },
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-            )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-            ) {
-                RecurrenceFrequency.values().forEach { frequency ->
-                    DropdownMenuItem(
-                        text = { Text(frequency.name) },
-                        onClick = {
-                            onRecurrenceFrequencyChange(frequency)
-                            expanded = false
-                        },
-                    )
-                }
-            }
-        }
-
-        OutlinedTextField(
-            value = uiState.recurrenceInterval.toString(),
-            onValueChange = { onRecurrenceIntervalChange(it.toIntOrNull() ?: 1) },
-            label = { Text("Interval") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        )
-
-        if (uiState.recurrenceFrequency == RecurrenceFrequency.WEEKLY) {
-            WeeklyRecurrenceDays(
-                selectedDays = uiState.recurrenceDaysOfWeek,
-                onRecurrenceDayOfWeekToggle = onRecurrenceDayOfWeekToggle,
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun WeeklyRecurrenceDays(
-    selectedDays: Set<DayOfWeek>,
-    onRecurrenceDayOfWeekToggle: (DayOfWeek) -> Unit,
-) {
-    Spacer(modifier = Modifier.height(8.dp))
-    Text("Days of week", style = MaterialTheme.typography.labelMedium)
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        DayOfWeek.values().forEach { day ->
-            FilterChip(
-                selected = selectedDays.contains(day),
-                onClick = { onRecurrenceDayOfWeekToggle(day) },
-                label = {
-                    Text(day.getDisplayName(TextStyle.SHORT, Locale.getDefault()))
-                },
-            )
-        }
-    }
-}
+private fun rememberActions(viewModel: EditTaskViewModel) = EditTaskActions(
+    onTitleChange = viewModel::onTitleChange,
+    onDescriptionChange = viewModel::onDescriptionChange,
+    onPointsChange = viewModel::onPointsChange,
+    onPriorityChange = viewModel::onPriorityChange,
+    onDurationChange = viewModel::onDurationChange,
+    onRecurringChange = viewModel::onRecurringChange,
+    onRecurrenceFrequencyChange = viewModel::onRecurrenceFrequencyChange,
+    onRecurrenceIntervalChange = viewModel::onRecurrenceIntervalChange,
+    onRecurrenceDayOfWeekToggle = viewModel::onRecurrenceDayOfWeekToggle,
+)

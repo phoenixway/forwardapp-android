@@ -23,6 +23,8 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -68,13 +70,13 @@ fun DayTaskCard(
 
     Row(
         modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.Top,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         UnifiedItemCheckbox(
             checked = task.completed,
             onCheckedChange = { actions.onToggle() },
             style = UnifiedCheckboxStyle.Square,
-            modifier = dragHandleModifier.padding(top = 2.dp),
+            modifier = dragHandleModifier,
             colors =
                 unifiedCheckboxColors(
                     checked = MaterialTheme.colorScheme.primary,
@@ -90,8 +92,19 @@ fun DayTaskCard(
             contentAlpha = contentAlpha,
             onClick = actions.onClick,
             onParentInfoClick = actions.onParentInfoClick,
-            onMoreClick = actions.onLongPress,
         )
+
+        IconButton(
+            onClick = actions.onLongPress,
+            modifier = Modifier.size(34.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.MoreVert,
+                contentDescription = "Більше опцій",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
+                modifier = Modifier.size(22.dp),
+            )
+        }
     }
 }
 
@@ -102,7 +115,6 @@ private fun RowScope.DayTaskCardContent(
     contentAlpha: Float,
     onClick: () -> Unit,
     onParentInfoClick: (ParentInfo) -> Unit,
-    onMoreClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val task = taskWithReminder.dayTask
@@ -141,6 +153,17 @@ private fun RowScope.DayTaskCardContent(
                 )
             }
 
+            if (task.recurringTaskId != null) {
+                if (task.priority != TaskPriority.NONE) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                UnifiedMetaChip(
+                    text = "",
+                    icon = Icons.Outlined.Repeat,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
+                )
+            }
+
             Spacer(modifier = Modifier.weight(1f))
 
             displayTime?.let { timestamp ->
@@ -156,7 +179,7 @@ private fun RowScope.DayTaskCardContent(
             text = parsedTitle.mainText,
             style =
                 MaterialTheme.typography.bodyLarge.copy(
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha),
                 ),
             isCompleted = task.completed,
@@ -180,7 +203,6 @@ private fun RowScope.DayTaskCardContent(
             contextIcons = parsedTaskText.icons,
             modifier = Modifier.padding(top = 8.dp),
             onParentInfoClick = onParentInfoClick,
-            onMoreClick = onMoreClick,
         )
     }
 }
@@ -217,19 +239,10 @@ private fun DayTaskMetaRow(
     contextIcons: List<String>,
     modifier: Modifier = Modifier,
     onParentInfoClick: (ParentInfo) -> Unit,
-    onMoreClick: () -> Unit,
 ) {
     val task = taskWithReminder.dayTask
     val metaItems =
         buildList<UnifiedStatusChipSpec> {
-            if (task.recurringTaskId != null) {
-                add(
-                    UnifiedStatusChipSpec(
-                        icon = Icons.Outlined.Repeat,
-                        text = "",
-                    ),
-                )
-            }
             task.points.takeIf { it > 0 }?.let { points ->
                 add(
                     UnifiedStatusChipSpec(
@@ -250,13 +263,6 @@ private fun DayTaskMetaRow(
             if (taskWithReminder.reminder != null) {
                 add(UnifiedStatusChipSpec(icon = Icons.Outlined.Notifications, text = "Нагадування"))
             }
-            add(
-                UnifiedStatusChipSpec(
-                    icon = Icons.Filled.MoreVert,
-                    text = "",
-                    onClick = onMoreClick,
-                ),
-            )
         }
 
     if (metaItems.isEmpty() && contextIcons.isEmpty()) return
