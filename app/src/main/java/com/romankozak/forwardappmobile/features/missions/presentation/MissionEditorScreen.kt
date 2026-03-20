@@ -13,9 +13,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -27,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Description
@@ -37,11 +40,16 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -80,6 +88,7 @@ fun MissionEditorScreen(
     onConfirm: (String, String, Long, MissionStatus, List<String>, List<String>) -> Unit,
     onCreateRootContext: (suspend (String) -> String?)? = null,
     onCreateDocument: (suspend (NewDocumentDraft) -> String?)? = null,
+    sheetMode: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     var titleField by remember { mutableStateOf(mission.title) }
@@ -104,90 +113,171 @@ fun MissionEditorScreen(
 
     fun projectLabel(id: String): String = projectOptions.firstOrNull { it.id == id }?.name ?: id
 
+    val saveMission = {
+        onConfirm(
+            titleField,
+            descField,
+            deadlineLong,
+            statusField,
+            projectLinks.toList(),
+            attachmentLinks.toList(),
+        )
+    }
+
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background,
+        color = if (sheetMode) MaterialTheme.colorScheme.surfaceContainerLow else MaterialTheme.colorScheme.background,
     ) {
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            "Edit Mission",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(
-                            onClick = onDismiss,
-                            modifier =
-                                Modifier
-                                    .padding(8.dp)
-                                    .size(40.dp),
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = MaterialTheme.colorScheme.onSurface,
+                if (!sheetMode) {
+                    TopAppBar(
+                        title = {
+                            Text(
+                                "Edit Mission",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
                             )
-                        }
-                    },
-                    actions = {
-                        FilledTonalButton(
-                            enabled = titleField.isNotBlank(),
-                            onClick = {
-                                onConfirm(
-                                    titleField,
-                                    descField,
-                                    deadlineLong,
-                                    statusField,
-                                    projectLinks.toList(),
-                                    attachmentLinks.toList(),
+                        },
+                        navigationIcon = {
+                            IconButton(
+                                onClick = onDismiss,
+                                modifier =
+                                    Modifier
+                                        .padding(8.dp)
+                                        .size(40.dp),
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = MaterialTheme.colorScheme.onSurface,
                                 )
-                            },
-                            modifier = Modifier.padding(end = 8.dp),
-                        ) {
-                            Text("Save", fontWeight = FontWeight.SemiBold)
-                        }
-                    },
-                    colors =
-                        TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
-                        ),
-                )
+                            }
+                        },
+                        actions = {
+                            FilledTonalButton(
+                                enabled = titleField.isNotBlank(),
+                                onClick = saveMission,
+                                modifier = Modifier.padding(end = 8.dp),
+                            ) {
+                                Text("Save", fontWeight = FontWeight.SemiBold)
+                            }
+                        },
+                        colors =
+                            TopAppBarDefaults.topAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                            ),
+                    )
+                }
             },
+            containerColor = if (sheetMode) MaterialTheme.colorScheme.surfaceContainerLow else MaterialTheme.colorScheme.background,
+            contentWindowInsets = if (sheetMode) WindowInsets(0, 0, 0, 0) else ScaffoldDefaults.contentWindowInsets,
         ) { padding ->
             Column(
                 modifier =
                     Modifier
                         .fillMaxSize()
                         .padding(padding)
+                        .then(if (sheetMode) Modifier.navigationBarsPadding() else Modifier)
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp),
+                        .padding(horizontal = if (sheetMode) 16.dp else 20.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(if (sheetMode) 16.dp else 20.dp),
             ) {
-                ScrollableTabRow(
-                    selectedTabIndex = selectedTab,
-                    edgePadding = 12.dp,
-                ) {
-                    tabs.forEachIndexed { index, tab ->
-                        Tab(
-                            selected = selectedTab == index,
-                            onClick = { selectedTab = index },
-                            icon = null,
-                            text = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    Icon(tab.icon, contentDescription = null)
-                                    if (selectedTab == index) {
-                                        Text(tab.title)
-                                    }
-                                }
+                if (sheetMode) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        OutlinedTextField(
+                            value = titleField,
+                            onValueChange = { titleField = it },
+                            placeholder = {
+                                Text(
+                                    "Назва місії…",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                                        fontWeight = FontWeight.Normal,
+                                    ),
+                                )
                             },
+                            textStyle = MaterialTheme.typography.titleMedium.copy(
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Normal,
+                            ),
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
+                            colors = missionFieldColors(),
                         )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        IconButton(
+                            enabled = titleField.isNotBlank(),
+                            onClick = saveMission,
+                            colors =
+                                IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                ),
+                            modifier = Modifier.size(36.dp).clip(CircleShape),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Save,
+                                contentDescription = "Зберегти",
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    }
+
+                    SingleChoiceSegmentedButtonRow(
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        tabs.forEachIndexed { index, tab ->
+                            SegmentedButton(
+                                selected = selectedTab == index,
+                                onClick = { selectedTab = index },
+                                modifier = Modifier.height(40.dp),
+                                shape = SegmentedButtonDefaults.itemShape(index = index, count = tabs.size),
+                                colors = SegmentedButtonDefaults.colors(
+                                    activeContainerColor = MaterialTheme.colorScheme.primary,
+                                    activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                                    inactiveContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                ),
+                                icon = {},
+                            ) {
+                                Text(
+                                    text = tab.title,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    ScrollableTabRow(
+                        selectedTabIndex = selectedTab,
+                        edgePadding = 12.dp,
+                    ) {
+                        tabs.forEachIndexed { index, tab ->
+                            Tab(
+                                selected = selectedTab == index,
+                                onClick = { selectedTab = index },
+                                icon = null,
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        Icon(tab.icon, contentDescription = null)
+                                        if (selectedTab == index) {
+                                            Text(tab.title)
+                                        }
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
 
@@ -752,6 +842,20 @@ fun MissionEditorScreen(
         )
     }
 }
+
+@Composable
+private fun missionFieldColors() =
+    OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = MaterialTheme.colorScheme.primary,
+        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+        cursorColor = MaterialTheme.colorScheme.primary,
+        focusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+    )
 
 private fun formatDate(ts: Long): String {
     val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())

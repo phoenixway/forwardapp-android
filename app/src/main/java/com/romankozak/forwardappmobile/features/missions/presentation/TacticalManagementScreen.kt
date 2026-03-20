@@ -54,8 +54,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
@@ -441,38 +439,32 @@ fun TacticalManagementScreen(
     }
 
     editingMission?.let { mission ->
-        Dialog(
+        ModalBottomSheet(
             onDismissRequest = { editingMission = null },
-            properties = DialogProperties(usePlatformDefaultWidth = false),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ) {
-            Surface(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background),
-            ) {
-                MissionEditorScreen(
-                    mission = mission,
-                    attachmentOptions = attachmentOptions,
-                    projectOptions = projectOptions,
-                    onDismiss = { editingMission = null },
-                    onConfirm = { title, desc, deadline, status, projects, attachments ->
-                        viewModel.updateMission(
-                            mission.id,
-                            title,
-                            desc,
-                            deadline,
-                            status,
-                            projects,
-                            attachments,
-                        )
-                        editingMission = null
-                    },
-                    onCreateRootContext = { name -> viewModel.createRootContextForPicker(name) },
-                    onCreateDocument = { draft -> viewModel.createBoardDocumentForPicker(draft) },
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
+            MissionEditorScreen(
+                mission = mission,
+                attachmentOptions = attachmentOptions,
+                projectOptions = projectOptions,
+                onDismiss = { editingMission = null },
+                onConfirm = { title, desc, deadline, status, projects, attachments ->
+                    viewModel.updateMission(
+                        mission.id,
+                        title,
+                        desc,
+                        deadline,
+                        status,
+                        projects,
+                        attachments,
+                    )
+                    editingMission = null
+                },
+                onCreateRootContext = { name -> viewModel.createRootContextForPicker(name) },
+                onCreateDocument = { draft -> viewModel.createBoardDocumentForPicker(draft) },
+                sheetMode = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 
