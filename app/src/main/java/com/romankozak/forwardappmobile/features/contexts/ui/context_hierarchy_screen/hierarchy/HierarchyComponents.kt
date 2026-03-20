@@ -55,6 +55,8 @@ import androidx.compose.ui.unit.dp
 import com.mohamedrejeb.compose.dnd.DragAndDropState
 import com.mohamedrejeb.compose.dnd.drag.DraggableItem
 import com.mohamedrejeb.compose.dnd.drop.dropTarget
+import com.romankozak.forwardappmobile.core.context.ContextId
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
@@ -333,6 +335,7 @@ fun SwipeableProjectRow(
     displayName: AnnotatedString? = null,
     isFocused: Boolean = false,
 ) {
+    val isSystemContext = remember(project.id) { SystemContexts.isSystem(ContextId(project.id)) }
     val density = LocalDensity.current
     val coroutineScope = rememberCoroutineScope()
     val startActionWidth = 120.dp
@@ -428,7 +431,7 @@ fun SwipeableProjectRow(
             }
         }
 
-        if (endProgress > 0.02f) {
+        if (endProgress > 0.02f && !isSystemContext) {
             val endBg = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f)
             Surface(
                 modifier =

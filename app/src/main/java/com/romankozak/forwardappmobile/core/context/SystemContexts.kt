@@ -34,5 +34,12 @@ object SystemContexts {
             TODAY,
         )
 
+    private val PINNED_ROOT =
+        setOf(
+            PERSONAL_MANAGEMENT,
+        )
+
     fun isSystem(id: ContextId): Boolean = RESERVED.contains(id)
+
+    fun isPinnedRoot(id: ContextId): Boolean = PINNED_ROOT.contains(id)
 }

@@ -45,6 +45,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.romankozak.forwardappmobile.core.context.ContextId
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 
 private data class ContextActionItem(
@@ -80,6 +82,7 @@ fun ContextMenuDialog(
     canPasteContextLinks: Boolean,
 ) {
     var showAddActionsDialog by remember { mutableStateOf(false) }
+    val isSystemContext = remember(project.id) { SystemContexts.isSystem(ContextId(project.id)) }
     val primaryColor = MaterialTheme.colorScheme.primary
     val secondaryColor = MaterialTheme.colorScheme.secondary
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
@@ -200,22 +203,24 @@ fun ContextMenuDialog(
                         )
                     }
                 }
-                FilledTonalButton(
-                    onClick = { onDeleteRequest(project) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors =
-                        ButtonDefaults.filledTonalButtonColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                        ),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text("Видалити")
+                if (!isSystemContext) {
+                    FilledTonalButton(
+                        onClick = { onDeleteRequest(project) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors =
+                            ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                            ),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text("Видалити")
+                    }
                 }
             }
         }

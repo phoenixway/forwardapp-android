@@ -1,6 +1,8 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
 import android.net.Uri
+import com.romankozak.forwardappmobile.core.context.ContextId
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
@@ -11,7 +13,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.getDescendantIds
 import com.romankozak.forwardappmobile.sync.SyncRepository
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
@@ -75,9 +76,11 @@ class ContextActionsUseCase
             val finalNewParentId = if (newParentId == "root") null else newParentId
 
             if (projectToMove.parentId == finalNewParentId) return@withContext
+            if (SystemContexts.isPinnedRoot(ContextId(projectToMove.id)) && finalNewParentId != null) {
+                return@withContext
+            }
 
-            val allowSystemMoves = settingsRepository.allowSystemProjectMovesFlow.first()
-            contextRepository.moveContext(projectToMove, finalNewParentId, allowSystemMoves)
+            contextRepository.moveContext(projectToMove, finalNewParentId, allowSystemMoves = true)
 
             if (finalNewParentId != null) {
                 val parentProject = allProjects.find { it.id == finalNewParentId }
@@ -104,6 +107,9 @@ class ContextActionsUseCase
             }
 
             val newParentId = toProject.parentId
+            if (SystemContexts.isPinnedRoot(ContextId(fromProject.id)) && newParentId != null) {
+                return@withContext
+            }
             val childMap = allProjects.filter { it.parentId != null }.groupBy { it.parentId!! }
             val descendantsOfFrom = getDescendantIds(fromProject.id, childMap)
             if (newParentId == fromProject.id || (newParentId != null && descendantsOfFrom.contains(newParentId))) {

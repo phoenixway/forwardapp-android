@@ -711,6 +711,7 @@ class ContextRepository
                     com.romankozak.forwardappmobile.core.context.ContextId(contextToMove.id),
                 )
             if (isSystem && !allowSystemMoves) return
+            if (SystemContexts.isPinnedRoot(ContextId(contextToMove.id)) && newParentId != null) return
 
             val oldParentId = contextToMove.parentId
             if (oldParentId == newParentId) return
