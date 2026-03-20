@@ -28,10 +28,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayTaskWithReminder
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentInfo
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemState
@@ -129,6 +131,7 @@ private fun LazyItemScope.TaskListItem(
                 } else {
                     UnifiedItemState.DEFAULT
                 }
+            val borderColor = taskWithReminder.dayTask.priorityBorderColor()
             UnifiedListItemSurface(
                 isSelected = isDragging,
                 state = itemState,
@@ -139,8 +142,8 @@ private fun LazyItemScope.TaskListItem(
                     ),
                 colors =
                     UnifiedListItemColors(
-                        container = itemState.containerColor(),
-                        border = itemState.borderColor(),
+                        container = taskWithReminder.dayTask.priorityContainerColor(borderColor),
+                        border = borderColor,
                     ),
             ) {
                 DayTaskCard(
@@ -161,24 +164,21 @@ private fun LazyItemScope.TaskListItem(
 }
 
 @Composable
-private fun UnifiedItemState.containerColor() =
-    when (this) {
-        UnifiedItemState.COMPLETED -> MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.78f)
-        UnifiedItemState.DEFAULT -> MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.96f)
-        UnifiedItemState.SELECTED -> MaterialTheme.colorScheme.surfaceContainerHighest
-        UnifiedItemState.OVERDUE -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.50f)
-        UnifiedItemState.DISABLED -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+private fun com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask.priorityBorderColor(): Color {
+    val colorScheme = MaterialTheme.colorScheme
+    return when (priority) {
+        TaskPriority.CRITICAL -> colorScheme.error.copy(alpha = if (completed) 0.42f else 0.64f)
+        TaskPriority.HIGH -> colorScheme.tertiary.copy(alpha = if (completed) 0.40f else 0.58f)
+        TaskPriority.MEDIUM -> colorScheme.primary.copy(alpha = if (completed) 0.36f else 0.52f)
+        TaskPriority.LOW -> colorScheme.secondary.copy(alpha = if (completed) 0.34f else 0.46f)
+        TaskPriority.NONE -> colorScheme.outline.copy(alpha = if (completed) 0.28f else 0.38f)
     }
+}
 
 @Composable
-private fun UnifiedItemState.borderColor() =
-    when (this) {
-        UnifiedItemState.COMPLETED -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
-        UnifiedItemState.DEFAULT -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.75f)
-        UnifiedItemState.SELECTED -> MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-        UnifiedItemState.OVERDUE -> MaterialTheme.colorScheme.error.copy(alpha = 0.45f)
-        UnifiedItemState.DISABLED -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-    }
+private fun com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask.priorityContainerColor(
+    borderColor: Color,
+): Color = borderColor.copy(alpha = if (completed) 0.08f else 0.12f)
 
 @Composable
 private fun EmptyTasksState(modifier: Modifier = Modifier) {

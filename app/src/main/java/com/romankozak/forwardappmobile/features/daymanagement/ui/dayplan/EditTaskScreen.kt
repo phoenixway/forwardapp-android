@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,7 +13,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -31,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -140,7 +141,7 @@ fun EditTaskBottomSheet(
     viewModel: EditTaskViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var selectedTab by remember(taskId) { mutableStateOf(EditTaskTab.Main) }
 
     LaunchedEffect(taskId) {
@@ -179,21 +180,28 @@ fun EditTaskBottomSheet(
         },
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
     ) {
-        EditTaskSheetHeader(
-            onDismissRequest = {
-                viewModel.reset()
-                onDismissRequest()
-            },
-            onSave = viewModel::saveTask,
-        )
-        EditTaskBody(
-            uiState = uiState,
-            selectedTab = selectedTab,
-            onTabSelected = { selectedTab = it },
-            modifier = Modifier.navigationBarsPadding(),
-            actions = actions,
-        )
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding(),
+        ) {
+            EditTaskSheetHeader(
+                onDismissRequest = {
+                    viewModel.reset()
+                    onDismissRequest()
+                },
+                onSave = viewModel::saveTask,
+            )
+            EditTaskBody(
+                uiState = uiState,
+                selectedTab = selectedTab,
+                onTabSelected = { selectedTab = it },
+                actions = actions,
+            )
+        }
     }
 }
 
@@ -229,64 +237,53 @@ private fun EditTaskBody(
     modifier: Modifier = Modifier,
     actions: EditTaskActions,
 ) {
-    LazyColumn(
-        modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+    Column(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item {
-            EditTaskBasicFields(
-                uiState = uiState,
-                onTitleChange = actions.onTitleChange,
-                onDescriptionChange = actions.onDescriptionChange,
-            )
-        }
-        item {
-            EditTaskTabSelector(
-                selectedTab = selectedTab,
-                onTabSelected = onTabSelected,
-            )
-        }
+        EditTaskBasicFields(
+            uiState = uiState,
+            onTitleChange = actions.onTitleChange,
+            onDescriptionChange = actions.onDescriptionChange,
+        )
+        EditTaskTabSelector(
+            selectedTab = selectedTab,
+            onTabSelected = onTabSelected,
+        )
         when (selectedTab) {
             EditTaskTab.Main -> {
-                item {
-                    EditTaskSummaryCard(uiState = uiState)
-                }
+                EditTaskSummaryCard(uiState = uiState)
             }
             EditTaskTab.Details -> {
-                item {
-                    NumericInputCard(
-                        value = uiState.points.toString(),
-                        label = "Points",
-                        onValueChange = { actions.onPointsChange(it.toIntOrNull() ?: 0) },
-                    )
-                }
-                item {
-                    PriorityCard(
-                        selectedPriority = uiState.priority,
-                        onPriorityChange = actions.onPriorityChange,
-                    )
-                }
-                item {
-                    NumericInputCard(
-                        value = uiState.duration?.toString().orEmpty(),
-                        label = "Duration (minutes)",
-                        onValueChange = { actions.onDurationChange(it.toLongOrNull()) },
-                    )
-                }
+                NumericInputCard(
+                    value = uiState.points.toString(),
+                    label = "Points",
+                    onValueChange = { actions.onPointsChange(it.toIntOrNull() ?: 0) },
+                )
+                PriorityCard(
+                    selectedPriority = uiState.priority,
+                    onPriorityChange = actions.onPriorityChange,
+                )
+                NumericInputCard(
+                    value = uiState.duration?.toString().orEmpty(),
+                    label = "Duration (minutes)",
+                    onValueChange = { actions.onDurationChange(it.toLongOrNull()) },
+                )
             }
             EditTaskTab.Repeat -> {
-                item {
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            RecurrenceSection(
-                                uiState = uiState,
-                                onRecurringChange = actions.onRecurringChange,
-                                onRecurrenceFrequencyChange = actions.onRecurrenceFrequencyChange,
-                                onRecurrenceIntervalChange = actions.onRecurrenceIntervalChange,
-                                onRecurrenceDayOfWeekToggle = actions.onRecurrenceDayOfWeekToggle,
-                            )
-                        }
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        RecurrenceSection(
+                            uiState = uiState,
+                            onRecurringChange = actions.onRecurringChange,
+                            onRecurrenceFrequencyChange = actions.onRecurrenceFrequencyChange,
+                            onRecurrenceIntervalChange = actions.onRecurrenceIntervalChange,
+                            onRecurrenceDayOfWeekToggle = actions.onRecurrenceDayOfWeekToggle,
+                        )
                     }
                 }
             }

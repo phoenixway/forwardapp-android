@@ -230,19 +230,6 @@ private fun DayTaskMetaRow(
                     ),
                 )
             }
-            if (task.priority != TaskPriority.NONE) {
-                add(
-                    UnifiedStatusChipSpec(
-                        icon = Icons.Outlined.Flag,
-                        text =
-                            task.priority
-                                .name
-                                .lowercase()
-                                .replaceFirstChar { it.titlecase() },
-                        contentColor = task.priority.priorityIndicatorColor(),
-                    ),
-                )
-            }
             task.points.takeIf { it > 0 }?.let { points ->
                 add(
                     UnifiedStatusChipSpec(
