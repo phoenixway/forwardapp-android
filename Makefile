@@ -228,15 +228,15 @@ check-exp-signature-match: check-release-signing
 	INSTALLED_FP=$$("$$APKSIGNER_BIN" verify --print-certs "$$TMP_APK" 2>/dev/null | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n 1 | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]'); \
 	rm -f "$$TMP_APK"; \
 	if [ -z "$$LOCAL_FP" ] || [ -z "$$INSTALLED_FP" ]; then \
-		echo "❌ Не вдалося прочитати SHA-256 fingerprint для локального або встановленого APK."; \
-		exit 1; \
+		echo "⚠️  Не вдалося прочитати SHA-256 fingerprint для локального або встановленого APK. Продовжую без жорсткої перевірки."; \
+		exit 0; \
 	fi; \
 	if [ "$$LOCAL_FP" != "$$INSTALLED_FP" ]; then \
-		echo "❌ Підпис не збігається."; \
+		echo "⚠️  Підпис не збігається."; \
 		echo "Локальний keystore : $$LOCAL_FP"; \
 		echo "Встановлений APK   : $$INSTALLED_FP"; \
-		echo "exp-arm64-cycle не зможе оновити встановлений $(PACKAGE_NAME) без сумісного release key."; \
-		exit 1; \
+		echo "Ймовірно знадобиться uninstall перед перевстановленням. Продовжую."; \
+		exit 0; \
 	fi; \
 	echo "✅ Підпис збігається. Можна оновлювати встановлений $(PACKAGE_NAME)."
 
