@@ -65,6 +65,45 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+private data class TodayQuickTaskDraft(
+    val title: String,
+    val description: String,
+)
+
+private const val TODAY_QUICK_TASK_TITLE_LIMIT = 100
+
+private fun buildTodayQuickTaskDraft(rawInput: String): TodayQuickTaskDraft? {
+    val normalizedInput =
+        rawInput
+            .replace("\r\n", "\n")
+            .trim()
+    if (normalizedInput.isBlank()) return null
+
+    val lines = normalizedInput.lines()
+    val firstLine = lines.firstOrNull()?.trim().orEmpty()
+    val remainingText =
+        lines
+            .drop(1)
+            .joinToString("\n")
+            .trim()
+
+    if (firstLine.isBlank()) return null
+
+    return if (firstLine.length <= TODAY_QUICK_TASK_TITLE_LIMIT) {
+        TodayQuickTaskDraft(
+            title = firstLine,
+            description = remainingText,
+        )
+    } else {
+        TodayQuickTaskDraft(
+            title = firstLine.take(TODAY_QUICK_TASK_TITLE_LIMIT).trimEnd(),
+            description = listOf(firstLine.drop(TODAY_QUICK_TASK_TITLE_LIMIT).trim(), remainingText)
+                .filter { it.isNotBlank() }
+                .joinToString("\n"),
+        )
+    }
+}
+
 @Composable
 fun TodayBottomPanel(
     onNavigateToProjectHierarchy: () -> Unit,
@@ -126,13 +165,12 @@ fun TodayBottomPanel(
 
     fun submitTask() {
         val dayPlanId = dayPlanUiState.dayPlan?.id ?: return
-        val title = inputValue.text.trim()
-        if (title.isBlank()) return
+        val taskDraft = buildTodayQuickTaskDraft(inputValue.text) ?: return
 
         dayPlanViewModel.addTask(
             dayPlanId = dayPlanId,
-            title = title,
-            description = "",
+            title = taskDraft.title,
+            description = taskDraft.description,
             duration = null,
             priority = TaskPriority.MEDIUM,
             recurrenceRule = null,
@@ -291,6 +329,8 @@ fun TodayBottomPanel(
                                 MaterialTheme.typography.bodyLarge.copy(
                                     color = panelStyle.textColor,
                                 ),
+                            singleLine = false,
+                            maxLines = 6,
                             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Send),
                             keyboardActions = KeyboardActions(onSend = { submitTask() }),
                             cursorBrush = SolidColor(panelStyle.textColor),

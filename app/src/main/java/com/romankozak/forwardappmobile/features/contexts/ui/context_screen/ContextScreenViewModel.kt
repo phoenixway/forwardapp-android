@@ -167,6 +167,7 @@ class ContextScreenViewModel
             ItemActionHandler(
                 contextRepository = contextRepository,
                 goalRepository = goalRepository,
+                inboxRepository = inboxRepository,
                 recentItemsRepository = recentItemsRepository,
                 backlogClipboardUseCase = backlogClipboardUseCase,
                 scope = viewModelScope,
@@ -654,6 +655,8 @@ class ContextScreenViewModel
         override fun scrollToListEnd() {
             viewModelScope.launch { uiEventActions.tryEmit(UiEvent.ScrollToLatestInboxRecord) }
         }
+
+        override fun highlightInboxRecord(recordId: String) = uiStateActions.highlightInboxRecord(recordId)
 
         override fun updateInputState(inputValue: TextFieldValue) = stateManager.setInputValue(inputValue)
 

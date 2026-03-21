@@ -8,6 +8,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistItemEntity
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.DirectionRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.ListItemRepository
@@ -18,6 +19,7 @@ import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.Clipbo
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.ClipboardOperation
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.EntityClipboardPayload
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.EntityClipboardService
+import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -62,6 +64,8 @@ class ChecklistViewModel
         private val goalRepository: GoalRepository,
         private val listItemRepository: ListItemRepository,
         private val directionRepository: DirectionRepository,
+        private val dayManagementRepository: DayManagementRepository,
+        private val missionRepository: MissionRepository,
         private val recentItemsRepository: RecentItemsRepository,
         private val entityClipboardService: EntityClipboardService,
         savedStateHandle: SavedStateHandle,
@@ -376,7 +380,9 @@ class ChecklistViewModel
                     it is ClipboardEntityRef.BacklogGoal ||
                     it is ClipboardEntityRef.BacklogItem ||
                     it is ClipboardEntityRef.DirectionItem ||
-                    it is ClipboardEntityRef.BacklogContextLink
+                    it is ClipboardEntityRef.BacklogContextLink ||
+                    it is ClipboardEntityRef.DayTask ||
+                    it is ClipboardEntityRef.TacticalMission
             }
         }
 
@@ -462,6 +468,16 @@ class ChecklistViewModel
                         if (resolved.directionItemIdsToDelete.isNotEmpty()) {
                             directionRepository.deleteDirectionItems(resolved.directionItemIdsToDelete)
                         }
+                        if (resolved.dayTaskIdsToDelete.isNotEmpty()) {
+                            resolved.dayTaskIdsToDelete.forEach { taskId ->
+                                dayManagementRepository.deleteTask(taskId)
+                            }
+                        }
+                        if (resolved.tacticalMissionIdsToDelete.isNotEmpty()) {
+                            resolved.tacticalMissionIdsToDelete.forEach { missionId ->
+                                missionRepository.deleteMissionById(missionId)
+                            }
+                        }
                         entityClipboardService.clear()
                         onResult("Переміщено елементів: $movedCount")
                     }
@@ -474,6 +490,8 @@ class ChecklistViewModel
             val checklistItemIdToDelete: String? = null,
             val backlogItemIdToDelete: String? = null,
             val directionItemIdToDelete: String? = null,
+            val dayTaskIdToDelete: String? = null,
+            val tacticalMissionIdToDelete: Long? = null,
         )
 
         private data class ResolvedChecklistPastePayload(
@@ -482,6 +500,8 @@ class ChecklistViewModel
             val checklistItemIdsToDelete: List<String>,
             val backlogItemIdsToDelete: List<String>,
             val directionItemIdsToDelete: List<String>,
+            val dayTaskIdsToDelete: List<String>,
+            val tacticalMissionIdsToDelete: List<Long>,
         )
 
         private suspend fun resolveChecklistPastePayload(
@@ -493,10 +513,13 @@ class ChecklistViewModel
             val backlogItemIds = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogItem>().map { it.listItemId }
             val directionIds = payload.entities.filterIsInstance<ClipboardEntityRef.DirectionItem>().map { it.directionItemId }
             val contextIds = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogContextLink>().map { it.contextId }
+            val dayTaskIds = payload.entities.filterIsInstance<ClipboardEntityRef.DayTask>().map { it.taskId }
+            val tacticalMissionIds = payload.entities.filterIsInstance<ClipboardEntityRef.TacticalMission>().map { it.missionId }
 
             val checklistById = checklistRepository.getItemsByIds(checklistIds).associateBy { it.id }
             val backlogItemsById = listItemRepository.getItemsByIds(backlogItemIds).associateBy { it.id }
             val directionById = directionRepository.getDirectionItemsByIds(directionIds).associateBy { it.id }
+            val dayTasksById = dayTaskIds.associateWith { id -> contextRepository; null }
 
             val goalsFromRefs = backlogGoalIds.associateWith { id -> goalRepository.getGoalById(id) }
             val goalIdsFromBacklog = backlogItemsById.values.filter { it.itemType == BacklogItemTypeValues.GOAL }.map { it.entityId }.distinct()
@@ -578,6 +601,30 @@ class ChecklistViewModel
                         itemsToInsert += ChecklistPasteSourceItem(content = name)
                     }
 
+                    is ClipboardEntityRef.DayTask -> {
+                        val task = dayManagementRepository.getTaskById(ref.taskId) ?: return@forEach
+                        val text = task.title.trim().ifBlank { task.description?.trim().orEmpty() }
+                        if (text.isNotBlank()) {
+                            itemsToInsert +=
+                                ChecklistPasteSourceItem(
+                                    content = text,
+                                    dayTaskIdToDelete = if (payload.operation == ClipboardOperation.CUT) task.id else null,
+                                )
+                        }
+                    }
+
+                    is ClipboardEntityRef.TacticalMission -> {
+                        val mission = missionRepository.getMissionById(ref.missionId) ?: return@forEach
+                        val text = mission.title.trim().ifBlank { mission.description?.trim().orEmpty() }
+                        if (text.isNotBlank()) {
+                            itemsToInsert +=
+                                ChecklistPasteSourceItem(
+                                    content = text,
+                                    tacticalMissionIdToDelete = if (payload.operation == ClipboardOperation.CUT) mission.id else null,
+                                )
+                        }
+                    }
+
                     is ClipboardEntityRef.BacklogAttachment -> Unit
                 }
             }
@@ -588,6 +635,8 @@ class ChecklistViewModel
                 checklistItemIdsToDelete = itemsToInsert.mapNotNull { it.checklistItemIdToDelete }.distinct(),
                 backlogItemIdsToDelete = itemsToInsert.mapNotNull { it.backlogItemIdToDelete }.distinct(),
                 directionItemIdsToDelete = itemsToInsert.mapNotNull { it.directionItemIdToDelete }.distinct(),
+                dayTaskIdsToDelete = itemsToInsert.mapNotNull { it.dayTaskIdToDelete }.distinct(),
+                tacticalMissionIdsToDelete = itemsToInsert.mapNotNull { it.tacticalMissionIdToDelete }.distinct(),
             )
         }
 

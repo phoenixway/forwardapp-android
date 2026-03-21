@@ -1,11 +1,9 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel
-
 import androidx.compose.ui.text.input.TextFieldValue
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -20,6 +18,8 @@ interface InboxHandlerResultListener {
     )
 
     fun scrollToListEnd()
+
+    fun highlightInboxRecord(recordId: String)
 
     fun updateInputState(inputValue: TextFieldValue)
 }
@@ -56,12 +56,11 @@ class InboxHandler(
         scope.launch {
             val projectId = projectIdFlow.value
             if (projectId.isNotEmpty() && text.isNotBlank()) {
-                withContext(Dispatchers.IO) {
-                    inboxRepository.addInboxRecord(text, projectId)
-                }
-                listener.scrollToListEnd()
-                delay(120)
-                listener.scrollToListEnd()
+                val recordId =
+                    withContext(Dispatchers.IO) {
+                        inboxRepository.addInboxRecord(text, projectId)
+                    }
+                listener.highlightInboxRecord(recordId)
             }
         }
     }

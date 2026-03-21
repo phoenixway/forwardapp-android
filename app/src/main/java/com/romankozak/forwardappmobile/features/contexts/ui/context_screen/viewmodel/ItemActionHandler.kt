@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.repository.InboxRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogPasteMode
@@ -27,6 +28,7 @@ class ItemActionHandler
     constructor(
         private val contextRepository: ContextRepository,
         private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
+        private val inboxRepository: InboxRepository,
         private val recentItemsRepository: RecentItemsRepository,
         private val backlogClipboardUseCase: BacklogClipboardUseCase,
         val scope: CoroutineScope,
@@ -77,6 +79,9 @@ class ItemActionHandler
         private val _canPasteIntoCurrentAttachments = MutableStateFlow(false)
         val canPasteIntoCurrentAttachments = _canPasteIntoCurrentAttachments.asStateFlow()
 
+        private val _canPasteIntoCurrentInbox = MutableStateFlow(false)
+        val canPasteIntoCurrentInbox = _canPasteIntoCurrentInbox.asStateFlow()
+
         private var pendingPasteTargetViewMode: ContextViewMode? = null
         private var pendingIncludeAttachmentsForPaste: Boolean = false
         private var pendingAddSourceContextLinkForGoalLinks: Boolean = false
@@ -101,6 +106,13 @@ class ItemActionHandler
                     backlogClipboardUseCase.canPasteIntoAttachments(contextId)
                 }.collect { canPaste ->
                     _canPasteIntoCurrentAttachments.value = canPaste
+                }
+            }
+            scope.launch {
+                combine(projectIdFlow, backlogClipboardUseCase.clipboardPayload) { contextId, _ ->
+                    backlogClipboardUseCase.canPasteIntoInbox(contextId)
+                }.collect { canPaste ->
+                    _canPasteIntoCurrentInbox.value = canPaste
                 }
             }
         }
@@ -340,9 +352,31 @@ class ItemActionHandler
                     pendingPasteTargetViewMode = null
                 }
 
+                ContextViewMode.INBOX -> {
+                    pasteIntoCurrentInbox()
+                    pendingPasteTargetViewMode = null
+                }
+
                 else -> {
                     pendingPasteTargetViewMode = null
-                    resultListener.showSnackbar("Вставка підтримується лише у беклозі, напрямку або вкладеннях", null)
+                    resultListener.showSnackbar("Вставка підтримується лише у беклозі, інбоксі, напрямку або вкладеннях", null)
+                }
+            }
+        }
+
+        private fun pasteIntoCurrentInbox() {
+            val targetContextId = projectIdFlow.value
+            if (targetContextId.isBlank()) {
+                resultListener.showSnackbar("Контекст не визначено", null)
+                return
+            }
+            scope.launch {
+                val insertedCount = backlogClipboardUseCase.pasteIntoInbox(targetContextId)
+                if (insertedCount > 0) {
+                    resultListener.forceRefresh()
+                    resultListener.showSnackbar("Додано записів в інбокс: $insertedCount", null)
+                } else {
+                    resultListener.showSnackbar("Немає валідних елементів для вставки", null)
                 }
             }
         }

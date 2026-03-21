@@ -49,6 +49,19 @@ interface FocusContextIntervalDao {
 
     @Query(
         """
+        UPDATE focus_context_intervals
+        SET priority = :priority
+        WHERE contextId = :contextId AND scope = :scope AND endedAt IS NULL
+        """,
+    )
+    suspend fun updateActivePriority(
+        contextId: String,
+        priority: Int,
+        scope: String = FocusContextIntervalEntity.SCOPE_GLOBAL,
+    ): Int
+
+    @Query(
+        """
         DELETE FROM focus_context_intervals
         WHERE id IN (
             SELECT id FROM focus_context_intervals

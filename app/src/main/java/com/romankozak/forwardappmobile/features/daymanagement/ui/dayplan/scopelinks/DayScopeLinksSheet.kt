@@ -74,6 +74,7 @@ fun DayScopeLinksSheet(
             onAddButtonClick = actions.onAddContextClick,
             onCreateConnection = actions.onCreateConnectionClick,
             preferActionsBesideTitleWhenWide = true,
+            wrapContentHeight = true,
             onConnectionsReordered = actions.onConnectionsReordered,
         )
         Spacer(modifier = Modifier.height(12.dp))

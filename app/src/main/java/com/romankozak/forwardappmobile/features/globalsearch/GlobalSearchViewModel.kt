@@ -29,6 +29,7 @@ import javax.inject.Inject
 data class GlobalSearchUiState(
     val query: String = "",
     val results: List<GlobalSearchResultItem> = emptyList(),
+    val selectedTypes: Set<GlobalSearchType> = GlobalSearchType.entries.toSet(),
     val commandResults: List<OmniboxCommandResult> = emptyList(),
     val hybridCommandResults: List<OmniboxCommandResult> = emptyList(),
     val recentCommands: List<OmniboxCommandId> = emptyList(),
@@ -226,6 +227,7 @@ class GlobalSearchViewModel
         private var searchJob: Job? = null
         private var allSearchCandidatesCache: List<GlobalSearchResultItem>? = null
         private var allSearchCandidatesCacheUpdatedAt: Long = 0L
+        private var latestUnfilteredResults: List<GlobalSearchResultItem> = emptyList()
 
         lateinit var enhancedNavigationManager: EnhancedNavigationManager
 
@@ -249,8 +251,35 @@ class GlobalSearchViewModel
                     recentCommands = recentCommands,
                 )
             }
+            viewModelScope.launch {
+                val storedTypes = settingsRepository.globalSearchSelectedTypesFlow.first()
+                val resolvedTypes =
+                    storedTypes
+                        .mapNotNull { typeName -> GlobalSearchType.entries.firstOrNull { it.name == typeName } }
+                        .toSet()
+                        .ifEmpty { GlobalSearchType.entries.toSet() }
+                _uiState.update { state ->
+                    state.copy(
+                        selectedTypes = resolvedTypes,
+                        results = filterResultsBySelectedTypes(latestUnfilteredResults, resolvedTypes),
+                    )
+                }
+            }
             if (initialQuery.isNotBlank()) {
                 performSearch(initialQuery)
+            }
+        }
+
+        fun updateSelectedTypes(types: Set<GlobalSearchType>) {
+            val normalizedTypes = types.ifEmpty { GlobalSearchType.entries.toSet() }
+            _uiState.update {
+                it.copy(
+                    selectedTypes = normalizedTypes,
+                    results = filterResultsBySelectedTypes(latestUnfilteredResults, normalizedTypes),
+                )
+            }
+            viewModelScope.launch {
+                settingsRepository.saveGlobalSearchSelectedTypes(normalizedTypes)
             }
         }
 
@@ -266,6 +295,7 @@ class GlobalSearchViewModel
             _uiState.update { it.copy(query = strippedQuery) }
             searchJob?.cancel()
             if (_uiState.value.mode == OmniboxMode.Command) {
+                latestUnfilteredResults = emptyList()
                 val commandResults = findCommandResults(strippedQuery)
                 _uiState.update {
                     it.copy(
@@ -278,6 +308,7 @@ class GlobalSearchViewModel
                 return
             }
             if (_uiState.value.mode != OmniboxMode.DataSearch) {
+                latestUnfilteredResults = emptyList()
                 _uiState.update {
                     it.copy(
                         results = emptyList(),
@@ -432,6 +463,7 @@ class GlobalSearchViewModel
         private fun performSearch(rawQuery: String) {
             val query = rawQuery.trim()
             if (query.isBlank()) {
+                latestUnfilteredResults = emptyList()
                 _uiState.update {
                     it.copy(
                         results = emptyList(),
@@ -476,9 +508,10 @@ class GlobalSearchViewModel
                             .map { it.first }
                             .take(MAX_FUZZY_RESULTS)
                     }
+                latestUnfilteredResults = finalResults
                 _uiState.update {
                     it.copy(
-                        results = finalResults,
+                        results = filterResultsBySelectedTypes(finalResults, it.selectedTypes),
                         isLoading = false,
                         commandResults = emptyList(),
                         hybridCommandResults = findCommandResults(query).take(HYBRID_COMMANDS_LIMIT),
@@ -529,7 +562,7 @@ class GlobalSearchViewModel
             when (commandId) {
                 OmniboxCommandId.OpenContexts ->
                     enhancedNavigationManager.navigate(
-                        target = NavTarget.ContextHierarchy,
+                        target = NavTarget.ContextHierarchy(),
                         recordInHistory = true,
                     )
                 OmniboxCommandId.OpenInbox ->
@@ -845,6 +878,12 @@ class GlobalSearchViewModel
                         item.searchResult.contextName ?: "",
                     )
             }
+
+        private fun filterResultsBySelectedTypes(
+            results: List<GlobalSearchResultItem>,
+            selectedTypes: Set<GlobalSearchType>,
+        ): List<GlobalSearchResultItem> =
+            results.filter { result -> selectedTypes.any { type -> type.matches(result) } }
 
         private suspend fun resolveInboxContextId(): String? {
             val allContexts = contextRepository.getAllContextsFlow().first()

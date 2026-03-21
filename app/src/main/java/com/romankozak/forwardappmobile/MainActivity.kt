@@ -29,8 +29,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -71,6 +73,7 @@ class MainActivity : ComponentActivity() {
     lateinit var contextMarkerHandler: com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(R.style.Theme_Cyberpunk_Day)
         super.onCreate(savedInstanceState)
         lifecycleScope.launch {
             remoteConfigManager.fetchAndActivate()
@@ -87,7 +90,19 @@ class MainActivity : ComponentActivity() {
             val themeSettings by settingsRepository.themeSettings.collectAsState(initial = ThemeSettings())
             ForwardAppMobileTheme(themeSettings = themeSettings) {
                 CompositionLocalProvider(LocalContextUtils provides contextUtils) {
-                    AppNavigation(syncDataViewModel = syncDataViewModel)
+                    var showStartupOverlay by remember { mutableStateOf(true) }
+
+                    LaunchedEffect(Unit) {
+                        withFrameNanos { }
+                        showStartupOverlay = false
+                    }
+
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        AppNavigation(syncDataViewModel = syncDataViewModel)
+                        if (showStartupOverlay) {
+                            StartupLoadingOverlay()
+                        }
+                    }
                 }
             }
         }
@@ -139,6 +154,34 @@ class MainActivity : ComponentActivity() {
                 }
 
                 prefs.edit().putLong("last_summary_log_time", System.currentTimeMillis()).apply()
+            }
+        }
+    }
+}
+
+@Composable
+private fun StartupLoadingOverlay() {
+    Surface(
+        color = Color(0xFF0F1115),
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(28.dp),
+                    strokeWidth = 2.5.dp,
+                )
+                Text(
+                    text = "ForwardApp",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
+                )
             }
         }
     }

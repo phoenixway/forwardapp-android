@@ -312,7 +312,7 @@ internal fun EmptyDataSearchContent(
 ) {
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (args.commandResults.isNotEmpty()) {
             HybridCommandSection(
@@ -330,35 +330,51 @@ internal fun EmptyDataSearchContent(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
-                modifier = Modifier.padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
                     text = "Швидкі дії для \"${args.query}\"",
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilledTonalButton(onClick = args.actions.onQuickCatch, modifier = Modifier.weight(1f)) {
-                        Text("В inbox")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    FilledTonalButton(
+                        onClick = args.actions.onQuickCatch,
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(vertical = 8.dp),
+                    ) {
+                        Text("В inbox", style = MaterialTheme.typography.labelSmall)
                     }
-                    FilledTonalButton(onClick = args.actions.onStartActivity, modifier = Modifier.weight(1f)) {
-                        Text("В activity")
-                    }
-                    FilledTonalButton(onClick = args.actions.onAddActivityEvent, modifier = Modifier.weight(1f)) {
-                        Text("Подія")
+                    FilledTonalButton(
+                        onClick = args.actions.onStartActivity,
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(vertical = 8.dp),
+                    ) {
+                        Text("Активність", style = MaterialTheme.typography.labelSmall)
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilledTonalButton(onClick = args.actions.onCreateContext, modifier = Modifier.weight(1f)) {
-                        Text("Створити контекст")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    FilledTonalButton(
+                        onClick = args.actions.onCreateContext,
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(vertical = 8.dp),
+                    ) {
+                        Text("Контекст", style = MaterialTheme.typography.labelSmall)
                     }
-                    FilledTonalButton(onClick = args.actions.onCreateDocument, modifier = Modifier.weight(1f)) {
-                        Text("Створити документ")
+                    FilledTonalButton(
+                        onClick = args.actions.onCreateDocument,
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(vertical = 8.dp),
+                    ) {
+                        Text("Документ", style = MaterialTheme.typography.labelSmall)
                     }
-                }
-                TextButton(onClick = args.actions.onRunBestCommand, modifier = Modifier.fillMaxWidth()) {
-                    Text("Виконати найкращу команду")
                 }
             }
         }

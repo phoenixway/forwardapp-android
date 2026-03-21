@@ -18,6 +18,7 @@ import com.romankozak.forwardappmobile.core.theme.ThemeName
 import com.romankozak.forwardappmobile.core.theme.ThemeSettings
 import com.romankozak.forwardappmobile.domain.reminders.RingtoneType
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.PlanningSettingsProvider
+import com.romankozak.forwardappmobile.features.globalsearch.GlobalSearchType
 import com.romankozak.forwardappmobile.ui.dialogs.UiContextMarker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -75,6 +76,7 @@ class SettingsRepository
         private val reminderVibrationEnabledKey = booleanPreferencesKey("reminder_vibration_enabled")
         private val wifiSyncServerEnabledKey = booleanPreferencesKey("wifi_sync_server_enabled")
         private val desktopSyncAddressKey = stringPreferencesKey("desktop_sync_address")
+        private val globalSearchSelectedTypesKey = stringSetPreferencesKey("global_search_selected_types")
 
         val serverIpConfigurationModeFlow: Flow<String> =
             context.dataStore.data.map {
@@ -837,6 +839,22 @@ class SettingsRepository
         suspend fun saveBottomNavExpanded(isExpanded: Boolean) {
             context.dataStore.edit { settings ->
                 settings[isBottomNavExpandedKey] = isExpanded
+            }
+        }
+
+        val globalSearchSelectedTypesFlow: Flow<Set<String>> =
+            context.dataStore.data
+                .map { preferences ->
+                    try {
+                        preferences[globalSearchSelectedTypesKey] ?: emptySet()
+                    } catch (e: ClassCastException) {
+                        parseSet(preferences[stringPreferencesKey(globalSearchSelectedTypesKey.name)])
+                    }
+                }
+
+        suspend fun saveGlobalSearchSelectedTypes(types: Set<GlobalSearchType>) {
+            context.dataStore.edit { settings ->
+                settings[globalSearchSelectedTypesKey] = types.mapTo(linkedSetOf()) { it.name }
             }
         }
 

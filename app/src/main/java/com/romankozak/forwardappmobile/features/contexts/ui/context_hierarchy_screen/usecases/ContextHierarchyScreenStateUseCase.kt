@@ -28,6 +28,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResult
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResultFilter
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResultSort
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.createHierarchyDescendantOverflowMap
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.flattenHierarchyWithLevels
 import com.romankozak.forwardappmobile.ui.dialogs.UiContextMarker
 import dagger.hilt.android.scopes.ViewModelScoped
@@ -181,6 +182,7 @@ class ProjectHierarchyScreenStateUseCase
                                 hierarchy.topLevelProjects,
                                 hierarchy.childMap,
                             ),
+                        longDescendantsMap = createHierarchyDescendantOverflowMap(hierarchy),
                     )
                 }
 
@@ -266,6 +268,7 @@ class ProjectHierarchyScreenStateUseCase
                         searchHistory = searchHistory,
                         projectHierarchy = coreState.projectHierarchy,
                         flattenedHierarchy = coreState.flattenedHierarchy,
+                        longDescendantsMap = coreState.longDescendantsMap,
                         currentBreadcrumbs = coreState.currentBreadcrumbs,
                         areAnyProjectsExpanded = expensiveCalcs.areAnyProjectsExpanded,
                         planningMode = coreState.planningMode,
@@ -329,6 +332,7 @@ class ProjectHierarchyScreenStateUseCase
             val searchResultFilter: SearchResultFilter,
             val searchResultSort: SearchResultSort,
             val flattenedHierarchy: List<FlatHierarchyItem>,
+            val longDescendantsMap: Map<String, Boolean>,
         )
 
         private data class DialogUiState(

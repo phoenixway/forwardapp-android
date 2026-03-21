@@ -11,7 +11,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -49,7 +48,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -63,7 +61,6 @@ import com.romankozak.forwardappmobile.domain.aichat.RoleFile
 import com.romankozak.forwardappmobile.domain.aichat.RoleFolder
 import com.romankozak.forwardappmobile.domain.aichat.RoleItem
 import com.romankozak.forwardappmobile.ui.ModelsState
-import com.romankozak.forwardappmobile.ui.common.MatrixRainView
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -96,13 +93,6 @@ fun ChatScreen(
     val coroutineScope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val snackbarHostState = remember { SnackbarHostState() }
-
-    var showMatrixSplash by remember { mutableStateOf(true) }
-
-    LaunchedEffect(Unit) {
-        delay(480)
-        showMatrixSplash = false
-    }
 
     LaunchedEffect(navController, viewModel) {
         navController.currentBackStackEntry
@@ -394,17 +384,6 @@ fun ChatScreen(
                     )
                 }
             }
-        }
-        AnimatedVisibility(
-            visible = showMatrixSplash,
-            exit = fadeOut(animationSpec = tween(300)),
-        ) {
-            AndroidView(
-                factory = { context ->
-                    MatrixRainView(context)
-                },
-                modifier = Modifier.fillMaxSize(),
-            )
         }
     }
 }

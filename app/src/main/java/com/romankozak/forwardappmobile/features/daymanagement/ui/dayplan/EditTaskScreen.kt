@@ -270,8 +270,9 @@ fun EditTaskBottomSheet(
                         fontWeight = FontWeight.Normal,
                         fontSize = 19.sp,
                     ),
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).animateContentSize(),
+                    minLines = 1,
+                    maxLines = 4,
                     colors = outlinedFieldColors(),
                 )
 
@@ -371,8 +372,9 @@ private fun EditTaskBody(
             textStyle = MaterialTheme.typography.bodyLarge.copy(
                 color = MaterialTheme.colorScheme.onSurface,
             ),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
+            modifier = Modifier.fillMaxWidth().animateContentSize(),
+            minLines = 1,
+            maxLines = 4,
             colors = outlinedFieldColors(),
         )
         OutlinedTextField(

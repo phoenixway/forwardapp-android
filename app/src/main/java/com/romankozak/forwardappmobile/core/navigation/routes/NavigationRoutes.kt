@@ -50,9 +50,11 @@ object NavigationRoutes {
     const val ARG_DAY_PLAN_ID = "dayPlanId"
     const val ARG_START_TAB = "startTab"
     const val ARG_FILE_URI = "fileUri"
+    const val ARG_PROJECT_ID_TO_REVEAL = "projectIdToReveal"
 
     const val SELECTIVE_IMPORT_PATTERN = "$SELECTIVE_IMPORT?$ARG_FILE_URI={$ARG_FILE_URI}"
     const val PLACEHOLDER_PATTERN = "$PLACEHOLDER/{viewId}/{screenId}"
+    const val GOAL_LISTS_PATTERN = "$GOAL_LISTS?$ARG_PROJECT_ID_TO_REVEAL={$ARG_PROJECT_ID_TO_REVEAL}"
     const val CONTEXT_DETAIL_PATTERN =
         "$CONTEXT_DETAIL/{listId}?goalId={goalId}&itemIdToHighlight={itemIdToHighlight}" +
             "&inboxRecordIdToHighlight={inboxRecordIdToHighlight}&initialViewMode={initialViewMode}" +
@@ -84,6 +86,12 @@ object NavigationRoutes {
                     "initialTagQuery" to initialTagQuery,
                     "originContextId" to originContextId,
                 ),
+            )
+
+    fun goalLists(projectIdToReveal: String? = null): String =
+        GOAL_LISTS +
+            queryOf(
+                listOf(ARG_PROJECT_ID_TO_REVEAL to projectIdToReveal),
             )
 
     fun noteDocument(

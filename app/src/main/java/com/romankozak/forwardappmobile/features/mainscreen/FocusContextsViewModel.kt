@@ -62,4 +62,11 @@ class FocusContextsViewModel
                 focusContextRepository.unfocusContext(contextId)
             }
         }
+
+        fun updateFocusedContextsOrder(orderedContextIds: List<String>) {
+            if (orderedContextIds.isEmpty()) return
+            viewModelScope.launch {
+                focusContextRepository.updateActiveFocusOrder(orderedContextIds)
+            }
+        }
     }

@@ -18,6 +18,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.navigation.RevealResult
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.buildPathToProject
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.findAncestorsRecursive
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.shouldUseHierarchyFocusModeForBreadcrumbNames
 import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -57,8 +58,6 @@ class SearchUseCase
 
         companion object {
             private const val TAG = "SearchUseCase_DEBUG"
-            private const val FOCUS_SEGMENT_THRESHOLD = 3
-            private const val FOCUS_BREADCRUMB_CHAR_THRESHOLD = 30
             private const val SEARCH_HISTORY_KEY = "search_history"
             private const val MAX_SEARCH_HISTORY = 10
             private const val ACTIVE_SEARCH_QUERY_TEXT_KEY = "active_search_query_text"
@@ -179,16 +178,14 @@ class SearchUseCase
                     findAncestorsRecursive(projectId, projectLookup, ancestorIds, mutableSetOf())
 
                     val breadcrumbNames = buildBreadcrumbNames(projectId, projectLookup)
-                    val estimatedBreadcrumbChars =
-                        breadcrumbNames.sumOf { it.length } +
-                            (breadcrumbNames.size * 4) + // chips + separators
-                            3 // "All"
                     val shouldFocus =
-                        breadcrumbNames.size >= FOCUS_SEGMENT_THRESHOLD ||
-                            estimatedBreadcrumbChars >= FOCUS_BREADCRUMB_CHAR_THRESHOLD
+                        shouldUseHierarchyFocusModeForBreadcrumbNames(
+                            breadcrumbNames = breadcrumbNames,
+                            hasFocusedProject = false,
+                        )
                     Log.d(
                         TAG,
-                        "Reveal heuristic: segments=${breadcrumbNames.size}, estimatedChars=$estimatedBreadcrumbChars, shouldFocus=$shouldFocus",
+                        "Reveal heuristic: segments=${breadcrumbNames.size}, shouldFocus=$shouldFocus",
                     )
 
                     val projectsToExpand =
@@ -321,6 +318,18 @@ class SearchUseCase
             }
         }
 
+        fun enterProjectFocus(projectId: String) {
+            val targetState = ProjectHierarchyScreenSubState.ProjectFocused(projectId)
+            when (val currentState = _subStateStack.value.lastOrNull()) {
+                is ProjectHierarchyScreenSubState.ProjectFocused -> {
+                    if (currentState.projectId != projectId) {
+                        pushSubState(targetState)
+                    }
+                }
+                else -> pushSubState(targetState)
+            }
+        }
+
         fun popSubState(): MainSubState? {
             val currentStack = _subStateStack.value
             return if (currentStack.size > 1) {
@@ -352,6 +361,7 @@ class SearchUseCase
         }
 
         fun handleBackNavigation(
+            currentHierarchy: ContextHierarchyData,
             areAnyProjectsExpanded: Boolean,
             collapseAllProjects: () -> Unit,
             goBack: () -> Unit,
@@ -360,7 +370,12 @@ class SearchUseCase
             when {
                 currentStack.lastOrNull() is ProjectHierarchyScreenSubState.ProjectFocused -> {
                     popSubState()
-                    clearNavigation()
+                    val previousFocusedState = _subStateStack.value.lastOrNull() as? ProjectHierarchyScreenSubState.ProjectFocused
+                    if (previousFocusedState != null) {
+                        navigateToProject(previousFocusedState.projectId, currentHierarchy)
+                    } else {
+                        clearNavigation()
+                    }
                 }
                 currentStack.lastOrNull() is ProjectHierarchyScreenSubState.LocalSearch -> {
                     onCloseSearch()
@@ -390,7 +405,7 @@ class SearchUseCase
 
                         when (val result = revealProjectInHierarchy(value)) {
                             is RevealResult.Success -> {
-                                pushSubState(ProjectHierarchyScreenSubState.ProjectFocused(value))
+                                enterProjectFocus(value)
                                 navigateToProject(
                                     result.projectId,
                                     projectHierarchy,

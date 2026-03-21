@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.navigation.NavOptionsBuilder
 import com.romankozak.forwardappmobile.data.database.models.NavigationEntry
 import com.romankozak.forwardappmobile.data.database.models.NavigationType
+import com.romankozak.forwardappmobile.core.navigation.routes.NavigationRoutes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -66,7 +67,7 @@ class EnhancedNavigationManager(
     fun navigateToProjectHierarchyScreen(isInitial: Boolean = false) {
         if (!isInitial) {
             navigate(
-                target = NavTarget.ContextHierarchy,
+                target = NavTarget.ContextHierarchy(),
                 recordInHistory = true,
             )
         }
@@ -209,12 +210,12 @@ class EnhancedNavigationManager(
     ): NavigationEntry? {
         val route = NavTargetRouter.routeOf(target)
         return when (target) {
-            NavTarget.ContextHierarchy ->
+            is NavTarget.ContextHierarchy ->
                 NavigationEntry(
                     type = NavigationType.PROJECT_HIERARCHY_SCREEN,
                     id = "main",
                     title = titleOverride ?: "Contexts",
-                    route = route,
+                    route = NavigationRoutes.GOAL_LISTS,
                 )
 
             is NavTarget.ContextDetail ->

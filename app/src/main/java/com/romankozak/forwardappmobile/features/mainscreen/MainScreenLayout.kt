@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.features.mainscreen
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -36,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -46,7 +48,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
-import com.romankozak.forwardappmobile.core.navigation.routes.GOAL_LISTS_ROUTE
 import com.romankozak.forwardappmobile.core.navigation.routes.STRATEGIC_MANAGEMENT_ROUTE
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.ContextMarkersSheet
@@ -71,12 +72,14 @@ import com.romankozak.forwardappmobile.ui.dialogs.WifiImportDialog
 import com.romankozak.forwardappmobile.ui.dialogs.WifiServerDialog
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
+import kotlin.math.abs
 
 const val MAIN_SCREEN_DASHBOARD_ROUTE = "command_deck_dashboard"
 const val MAIN_SCREEN_CORE_ROUTE = "command_deck_core"
 const val MAIN_SCREEN_STRATEGIC_ARC_ROUTE = "command_deck_strategic_arc"
 const val MAIN_SCREEN_TACTICS_ROUTE = "command_deck_tactics"
 const val MAIN_SCREEN_TODAY_ROUTE = "command_deck_today"
+private const val TAB_SWIPE_THRESHOLD_PX = 72f
 
 @Composable
 fun MainScreenLayout(
@@ -170,6 +173,7 @@ fun MainScreenLayout(
         ) { commandDeckViewModel.openContextInput() }
 
     val selectedTabIndex = (pagerState.currentPage % tabs.size + tabs.size) % tabs.size
+    var horizontalDragAccum by remember { mutableStateOf(0f) }
     val titleStateBadge: @Composable (() -> Unit) = {
         UserAwarenessHeaderBadge(
             activeState = activeUserAwarenessState,
@@ -465,8 +469,12 @@ fun MainScreenLayout(
                     selectedTabIndex = selectedTabIndex,
                     onTabSelected = { index ->
                         scope.launch {
-                            val currentRealIndex = pagerState.currentPage % tabs.size
-                            val diff = index - currentRealIndex
+                            val currentRealIndex = (pagerState.currentPage % tabs.size + tabs.size) % tabs.size
+                            val diff = shortestCircularTabDelta(
+                                currentIndex = currentRealIndex,
+                                targetIndex = index,
+                                tabCount = tabs.size,
+                            )
                             val targetInfinitePage = pagerState.currentPage + diff
                             pagerState.animateScrollToPage(targetInfinitePage)
                         }
@@ -483,8 +491,33 @@ fun MainScreenLayout(
 
                 HorizontalPager(
                     state = pagerState,
-                    modifier = Modifier.fillMaxSize(),
-                    userScrollEnabled = true, // Enable swiping
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .pointerInput(tabs.size) {
+                                detectHorizontalDragGestures(
+                                    onDragStart = { horizontalDragAccum = 0f },
+                                    onHorizontalDrag = { _, dragAmount ->
+                                        horizontalDragAccum += dragAmount
+                                    },
+                                    onDragCancel = { horizontalDragAccum = 0f },
+                                    onDragEnd = {
+                                        val dragDelta = horizontalDragAccum
+                                        horizontalDragAccum = 0f
+                                        if (abs(dragDelta) < TAB_SWIPE_THRESHOLD_PX) {
+                                            return@detectHorizontalDragGestures
+                                        }
+
+                                        scope.launch {
+                                            val pageDelta = if (dragDelta < 0f) 1 else -1
+                                            pagerState.animateScrollToPage(
+                                                pagerState.currentPage + pageDelta,
+                                            )
+                                        }
+                                    },
+                                )
+                            },
+                    userScrollEnabled = false,
                 ) { page ->
                     val actualTabIndex = (page % tabs.size + tabs.size) % tabs.size
                     when (tabs[actualTabIndex]) {
@@ -524,14 +557,10 @@ fun MainScreenLayout(
                                 onLinkedProjectClick = { projectId ->
                                     navigationManager.navigateOrFallback(
                                         navController = navController,
-                                        target = NavTarget.ContextHierarchy,
+                                        target = NavTarget.ContextHierarchy(projectIdToReveal = projectId),
                                     ) {
                                         launchSingleTop = true
                                         restoreState = true
-                                    }
-                                    runCatching {
-                                        navController.getBackStackEntry(GOAL_LISTS_ROUTE)
-                                            .savedStateHandle["projectIdToReveal"] = projectId
                                     }
                                 },
                                 onLinkedAttachmentClick = { attachment ->
@@ -760,4 +789,14 @@ private fun buildExternalTarget(
         return "obsidian://open?file=${URLEncoder.encode(trimmed, "UTF-8")}"
     }
     return trimmed
+}
+
+private fun shortestCircularTabDelta(
+    currentIndex: Int,
+    targetIndex: Int,
+    tabCount: Int,
+): Int {
+    val forward = (targetIndex - currentIndex + tabCount) % tabCount
+    val backward = forward - tabCount
+    return if (forward <= tabCount / 2) forward else backward
 }

@@ -36,6 +36,7 @@ fun ProjectHierarchyScreen(
     syncDataViewModel: SyncDataViewModel,
     viewModel: ContextHierarchyScreenViewModel = hiltViewModel(),
     navigationManager: EnhancedNavigationManager? = null,
+    projectIdToReveal: String? = null,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
@@ -109,6 +110,14 @@ fun ProjectHierarchyScreen(
         }
     }
 
+    LaunchedEffect(projectIdToReveal) {
+        projectIdToReveal?.let {
+            viewModel.onEvent(
+                ContextHierarchyScreenEvent.RevealContextInHierarchy(projectId = it),
+            )
+        }
+    }
+
     DisposableEffect(navController, lifecycleOwner, viewModel) {
         val observer =
             LifecycleEventObserver { _, event ->
@@ -130,18 +139,21 @@ fun ProjectHierarchyScreen(
                             }
                         }
 
-                    navController.currentBackStackEntry
-                        ?.savedStateHandle
-                        ?.remove<String>("projectIdToReveal")
-                        ?.let { projectId ->
-                            android.util.Log.d("ProjectRevealDebug", "Retrieved and removed projectIdToReveal: $projectId")
-                            android.util.Log.d("ProjectRevealDebug", "Calling RevealProjectInHierarchy event")
-                            viewModel.onEvent(
-                                ContextHierarchyScreenEvent.RevealContextInHierarchy(
-                                    projectId = projectId,
-                                ),
-                            )
-                        }
+                    val projectIdToReveal =
+                        navController.currentBackStackEntry
+                            ?.savedStateHandle
+                            ?.remove<String>("projectIdToReveal")
+                            ?: viewModel.consumePendingProjectToReveal()
+
+                    projectIdToReveal?.let { projectId ->
+                        android.util.Log.d("ProjectRevealDebug", "Retrieved projectIdToReveal: $projectId")
+                        android.util.Log.d("ProjectRevealDebug", "Calling RevealProjectInHierarchy event")
+                        viewModel.onEvent(
+                            ContextHierarchyScreenEvent.RevealContextInHierarchy(
+                                projectId = projectId,
+                            ),
+                        )
+                    }
                 }
             }
         lifecycleOwner.lifecycle.addObserver(observer)

@@ -100,4 +100,21 @@ class FocusContextRepository
                 }
             }
         }
+
+        suspend fun updateActiveFocusOrder(
+            orderedContextIds: List<String>,
+            scope: String = FocusContextIntervalEntity.SCOPE_GLOBAL,
+        ) {
+            if (orderedContextIds.isEmpty()) return
+            appDatabase.withTransaction {
+                val topPriority = orderedContextIds.size
+                orderedContextIds.forEachIndexed { index, contextId ->
+                    dao.updateActivePriority(
+                        contextId = contextId,
+                        priority = topPriority - index,
+                        scope = scope,
+                    )
+                }
+            }
+        }
     }

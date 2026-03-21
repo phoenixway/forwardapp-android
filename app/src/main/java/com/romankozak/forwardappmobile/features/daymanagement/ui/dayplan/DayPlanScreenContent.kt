@@ -5,7 +5,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,12 +30,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.ui.viewinterop.AndroidView
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.TaskList
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.TaskListActions
-import com.romankozak.forwardappmobile.ui.common.MatrixRainView
 
 @OptIn(
     ExperimentalMaterial3Api::class,
@@ -88,29 +85,10 @@ fun DayPlanContent(
     Box(modifier = modifier.fillMaxSize()) {
         AnimatedVisibility(
             visible = visualState.isContentReady,
-            enter =
-                fadeIn(
-                    animationSpec =
-                        tween(
-                            CONTENT_FADE_IN_DURATION_MILLIS,
-                            delayMillis = CONTENT_FADE_IN_DELAY_MILLIS,
-                        ),
-                ),
+            enter = fadeIn(animationSpec = tween(CONTENT_FADE_IN_DURATION_MILLIS)),
             modifier = Modifier.fillMaxSize(),
         ) {
             DayPlanPrimaryContent(state = state, viewModel = viewModel)
-        }
-
-        AnimatedVisibility(
-            visible = visualState.showMatrixSplash,
-            exit = fadeOut(animationSpec = tween(CONTENT_FADE_IN_DURATION_MILLIS)),
-        ) {
-            AndroidView(
-                factory = { context ->
-                    MatrixRainView(context).also(visualState.onMatrixViewCreated)
-                },
-                modifier = Modifier.fillMaxSize(),
-            )
         }
     }
 }

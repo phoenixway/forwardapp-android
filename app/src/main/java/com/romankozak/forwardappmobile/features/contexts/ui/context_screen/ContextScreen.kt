@@ -181,6 +181,7 @@ private fun ProjectScaffold(
     val canGoForward by viewModel.canGoForward.collectAsStateWithLifecycle()
     val sessionState by viewModel.contextSessionState.collectAsStateWithLifecycle()
     val canPasteIntoCurrentBacklog by viewModel.itemActionHandler.canPasteIntoCurrentBacklog.collectAsStateWithLifecycle()
+    val canPasteIntoCurrentInbox by viewModel.itemActionHandler.canPasteIntoCurrentInbox.collectAsStateWithLifecycle()
     val canPasteIntoCurrentDirection by viewModel.itemActionHandler.canPasteIntoCurrentDirection.collectAsStateWithLifecycle()
     val canPasteIntoCurrentAttachments by viewModel.itemActionHandler.canPasteIntoCurrentAttachments.collectAsStateWithLifecycle()
     val isCurrentContextFocused by viewModel.isCurrentContextFocused.collectAsStateWithLifecycle()
@@ -195,6 +196,7 @@ private fun ProjectScaffold(
     val canPasteIntoCurrentList =
         when (uiState.currentViewMode) {
             ContextViewMode.BACKLOG -> canPasteIntoCurrentBacklog
+            ContextViewMode.INBOX -> canPasteIntoCurrentInbox
             ContextViewMode.DIRECTION -> canPasteIntoCurrentDirection
             ContextViewMode.CONNECTIONS -> canPasteIntoCurrentAttachments
             else -> false
@@ -532,17 +534,12 @@ private fun ProjectBottomBar(
                 onShowCurrentContextInHierarchyFocus = {
                     val contextIdToReveal = project?.id ?: return@ModernInputPanel
                     navigationManager.navigate(
-                        target = NavTarget.ContextHierarchy,
+                        target = NavTarget.ContextHierarchy(projectIdToReveal = contextIdToReveal),
                         builder = {
                             launchSingleTop = true
                             restoreState = true
                         },
                     )
-                    runCatching {
-                        navController.getBackStackEntry("goal_lists_screen").savedStateHandle.apply {
-                            this["projectIdToReveal"] = contextIdToReveal
-                        }
-                    }
                 },
                 canGoBack = canGoBack,
                 canGoForward = canGoForward,

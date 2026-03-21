@@ -13,6 +13,8 @@ import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.Today
 import androidx.compose.material.icons.outlined.VerticalAlignTop
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,6 +40,8 @@ data class TaskOptionsActions(
     val onSetReminder: () -> Unit,
     val onAddToToday: () -> Unit,
     val onAddToTacticalMissions: () -> Unit,
+    val onCopyToClipboard: () -> Unit,
+    val onCutToClipboard: () -> Unit,
     val onShowInBacklog: (DayTask) -> Unit,
     val onMoveToTop: () -> Unit,
     val onMoveToTomorrow: () -> Unit,
@@ -106,6 +110,22 @@ private fun PrimaryTaskOptions(
         label = "Підняти на вершину списку",
         icon = { Icon(Icons.Outlined.VerticalAlignTop, contentDescription = null) },
         onClick = actions.onMoveToTop,
+    )
+    TaskOptionsItem(
+        label = "Копіювати для вставки",
+        icon = { Icon(Icons.Outlined.ContentCopy, contentDescription = null) },
+        onClick = {
+            actions.onCopyToClipboard()
+            onDismiss()
+        },
+    )
+    TaskOptionsItem(
+        label = "Вирізати для вставки",
+        icon = { Icon(Icons.Outlined.ContentCut, contentDescription = null) },
+        onClick = {
+            actions.onCutToClipboard()
+            onDismiss()
+        },
     )
     TaskOptionsItem(
         label = "Перенести на завтра",

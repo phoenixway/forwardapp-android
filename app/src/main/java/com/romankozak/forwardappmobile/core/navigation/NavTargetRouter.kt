@@ -5,8 +5,8 @@ import com.romankozak.forwardappmobile.core.navigation.routes.NavigationRoutes
 object NavTargetRouter {
     fun routeOf(target: NavTarget): String =
         when (target) {
-            NavTarget.ContextHierarchy ->
-                NavigationRoutes.GOAL_LISTS
+            is NavTarget.ContextHierarchy ->
+                NavigationRoutes.goalLists(target.projectIdToReveal)
 
             is NavTarget.ContextDetail ->
                 NavigationRoutes.contextDetail(

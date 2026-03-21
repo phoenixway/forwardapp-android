@@ -6,9 +6,12 @@ import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.DirectionRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.repository.InboxRepository
 import com.romankozak.forwardappmobile.data.repository.ListItemRepository
+import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -57,6 +60,9 @@ class BacklogClipboardUseCase
         private val directionRepository: DirectionRepository,
         private val contextRepository: ContextRepository,
         private val checklistRepository: ChecklistRepository,
+        private val dayManagementRepository: DayManagementRepository,
+        private val missionRepository: MissionRepository,
+        private val inboxRepository: InboxRepository,
     ) {
         val clipboardPayload: StateFlow<EntityClipboardPayload?> get() = clipboardService.payload
 
@@ -88,7 +94,9 @@ class BacklogClipboardUseCase
                     it is ClipboardEntityRef.BacklogContextLink ||
                     it is ClipboardEntityRef.DirectionItem ||
                     it is ClipboardEntityRef.BacklogAttachment ||
-                    it is ClipboardEntityRef.ChecklistItem
+                    it is ClipboardEntityRef.ChecklistItem ||
+                    it is ClipboardEntityRef.DayTask ||
+                    it is ClipboardEntityRef.TacticalMission
             }
 
         fun canPasteIntoBacklog(targetContextId: String): Boolean {
@@ -98,6 +106,8 @@ class BacklogClipboardUseCase
                 val hasDirectionItemCut = payload.entities.any { it is ClipboardEntityRef.DirectionItem }
                 val hasAttachmentRef = payload.entities.any { it is ClipboardEntityRef.BacklogAttachment }
                 val hasChecklistItem = payload.entities.any { it is ClipboardEntityRef.ChecklistItem }
+                val hasDayTask = payload.entities.any { it is ClipboardEntityRef.DayTask }
+                val hasTacticalMission = payload.entities.any { it is ClipboardEntityRef.TacticalMission }
                 when (payload.operation) {
                     ClipboardOperation.COPY -> payload.hasCopyableBacklogEntities()
                     ClipboardOperation.CUT ->
@@ -105,7 +115,9 @@ class BacklogClipboardUseCase
                             hasContextLinkRef ||
                             hasDirectionItemCut ||
                             hasAttachmentRef ||
-                            hasChecklistItem
+                            hasChecklistItem ||
+                            hasDayTask ||
+                            hasTacticalMission
                 }
             }
         }
@@ -117,6 +129,8 @@ class BacklogClipboardUseCase
                 val hasDirectionItemCut = payload.entities.any { it is ClipboardEntityRef.DirectionItem }
                 val hasAttachmentRef = payload.entities.any { it is ClipboardEntityRef.BacklogAttachment }
                 val hasChecklistItem = payload.entities.any { it is ClipboardEntityRef.ChecklistItem }
+                val hasDayTask = payload.entities.any { it is ClipboardEntityRef.DayTask }
+                val hasTacticalMission = payload.entities.any { it is ClipboardEntityRef.TacticalMission }
                 when (payload.operation) {
                     ClipboardOperation.COPY -> payload.hasCopyableBacklogEntities()
                     ClipboardOperation.CUT ->
@@ -124,7 +138,23 @@ class BacklogClipboardUseCase
                             hasContextLinkRef ||
                             (hasDirectionItemCut && payload.sourceContextId != targetContextId) ||
                             hasAttachmentRef ||
-                            hasChecklistItem
+                            hasChecklistItem ||
+                            hasDayTask ||
+                            hasTacticalMission
+                }
+            }
+        }
+
+        fun canPasteIntoInbox(targetContextId: String): Boolean {
+            return canPasteToTarget(targetContextId) { payload ->
+                payload.entities.any {
+                    it is ClipboardEntityRef.BacklogGoal ||
+                        it is ClipboardEntityRef.BacklogItem ||
+                        it is ClipboardEntityRef.BacklogContextLink ||
+                        it is ClipboardEntityRef.DirectionItem ||
+                        it is ClipboardEntityRef.ChecklistItem ||
+                        it is ClipboardEntityRef.DayTask ||
+                        it is ClipboardEntityRef.TacticalMission
                 }
             }
         }
@@ -291,6 +321,66 @@ class BacklogClipboardUseCase
             )
         }
 
+        fun copyDayTasks(
+            sourceContextId: String,
+            taskIds: List<String>,
+        ) {
+            val refs = taskIds.distinct().map { ClipboardEntityRef.DayTask(taskId = it) }
+            if (refs.isEmpty()) return
+            clipboardService.set(
+                EntityClipboardPayload(
+                    sourceContextId = sourceContextId,
+                    operation = ClipboardOperation.COPY,
+                    entities = refs,
+                ),
+            )
+        }
+
+        fun cutDayTasks(
+            sourceContextId: String,
+            taskIds: List<String>,
+        ) {
+            val refs = taskIds.distinct().map { ClipboardEntityRef.DayTask(taskId = it) }
+            if (refs.isEmpty()) return
+            clipboardService.set(
+                EntityClipboardPayload(
+                    sourceContextId = sourceContextId,
+                    operation = ClipboardOperation.CUT,
+                    entities = refs,
+                ),
+            )
+        }
+
+        fun copyTacticalMissions(
+            sourceContextId: String,
+            missionIds: List<Long>,
+        ) {
+            val refs = missionIds.distinct().map { ClipboardEntityRef.TacticalMission(missionId = it) }
+            if (refs.isEmpty()) return
+            clipboardService.set(
+                EntityClipboardPayload(
+                    sourceContextId = sourceContextId,
+                    operation = ClipboardOperation.COPY,
+                    entities = refs,
+                ),
+            )
+        }
+
+        fun cutTacticalMissions(
+            sourceContextId: String,
+            missionIds: List<Long>,
+        ) {
+            val refs = missionIds.distinct().map { ClipboardEntityRef.TacticalMission(missionId = it) }
+            if (refs.isEmpty()) return
+            clipboardService.set(
+                EntityClipboardPayload(
+                    sourceContextId = sourceContextId,
+                    operation = ClipboardOperation.CUT,
+                    entities = refs,
+                ),
+            )
+        }
+
         suspend fun pasteBacklogGoals(
             targetContextId: String,
             mode: BacklogPasteMode,
@@ -306,7 +396,9 @@ class BacklogClipboardUseCase
                     val directionRefs = payload.entities.filterIsInstance<ClipboardEntityRef.DirectionItem>()
                     val attachmentRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogAttachment>()
                     val checklistRefs = payload.entities.filterIsInstance<ClipboardEntityRef.ChecklistItem>()
-                    if (areAllEntityGroupsEmpty(goalRefs, contextRefs, directionRefs, attachmentRefs, checklistRefs)) {
+                    val dayTaskRefs = payload.entities.filterIsInstance<ClipboardEntityRef.DayTask>()
+                    val tacticalMissionRefs = payload.entities.filterIsInstance<ClipboardEntityRef.TacticalMission>()
+                    if (areAllEntityGroupsEmpty(goalRefs, contextRefs, directionRefs, attachmentRefs, checklistRefs, dayTaskRefs, tacticalMissionRefs)) {
                         BacklogPasteReport(totalRequested = 0, skippedInvalid = 1)
                     } else {
                         pasteCopyToBacklog(
@@ -315,6 +407,8 @@ class BacklogClipboardUseCase
                             directionRefs = directionRefs,
                             attachmentRefs = attachmentRefs,
                             checklistRefs = checklistRefs,
+                            dayTaskRefs = dayTaskRefs,
+                            tacticalMissionRefs = tacticalMissionRefs,
                             targetContextId = targetContextId,
                             mode = mode,
                             includeAttachments = includeAttachments,
@@ -330,7 +424,9 @@ class BacklogClipboardUseCase
                     val directionRefs = payload.entities.filterIsInstance<ClipboardEntityRef.DirectionItem>()
                     val attachmentRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogAttachment>()
                     val checklistRefs = payload.entities.filterIsInstance<ClipboardEntityRef.ChecklistItem>()
-                    if (areAllEntityGroupsEmpty(itemRefs, contextRefs, directionRefs, attachmentRefs, checklistRefs)) {
+                    val dayTaskRefs = payload.entities.filterIsInstance<ClipboardEntityRef.DayTask>()
+                    val tacticalMissionRefs = payload.entities.filterIsInstance<ClipboardEntityRef.TacticalMission>()
+                    if (areAllEntityGroupsEmpty(itemRefs, contextRefs, directionRefs, attachmentRefs, checklistRefs, dayTaskRefs, tacticalMissionRefs)) {
                         BacklogPasteReport(totalRequested = 0, skippedInvalid = 1)
                     } else {
                         pasteCutToBacklog(
@@ -339,6 +435,8 @@ class BacklogClipboardUseCase
                             directionRefs = directionRefs,
                             attachmentRefs = attachmentRefs,
                             checklistRefs = checklistRefs,
+                            dayTaskRefs = dayTaskRefs,
+                            tacticalMissionRefs = tacticalMissionRefs,
                             sourceContextId = payload.sourceContextId,
                             targetContextId = targetContextId,
                             mode = mode,
@@ -362,7 +460,9 @@ class BacklogClipboardUseCase
                     val directionRefs = payload.entities.filterIsInstance<ClipboardEntityRef.DirectionItem>()
                     val attachmentRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogAttachment>()
                     val checklistRefs = payload.entities.filterIsInstance<ClipboardEntityRef.ChecklistItem>()
-                    if (areAllEntityGroupsEmpty(goalRefs, contextRefs, directionRefs, attachmentRefs, checklistRefs)) {
+                    val dayTaskRefs = payload.entities.filterIsInstance<ClipboardEntityRef.DayTask>()
+                    val tacticalMissionRefs = payload.entities.filterIsInstance<ClipboardEntityRef.TacticalMission>()
+                    if (areAllEntityGroupsEmpty(goalRefs, contextRefs, directionRefs, attachmentRefs, checklistRefs, dayTaskRefs, tacticalMissionRefs)) {
                         BacklogPasteReport(totalRequested = 0, skippedInvalid = 1)
                     } else {
                         pasteCopyToDirection(
@@ -371,6 +471,8 @@ class BacklogClipboardUseCase
                             directionRefs = directionRefs,
                             attachmentRefs = attachmentRefs,
                             checklistRefs = checklistRefs,
+                            dayTaskRefs = dayTaskRefs,
+                            tacticalMissionRefs = tacticalMissionRefs,
                             targetContextId = targetContextId,
                             includeAttachments = includeAttachments,
                         )
@@ -383,7 +485,9 @@ class BacklogClipboardUseCase
                     val directionRefs = payload.entities.filterIsInstance<ClipboardEntityRef.DirectionItem>()
                     val attachmentRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogAttachment>()
                     val checklistRefs = payload.entities.filterIsInstance<ClipboardEntityRef.ChecklistItem>()
-                    if (areAllEntityGroupsEmpty(itemRefs, contextRefs, directionRefs, attachmentRefs, checklistRefs)) {
+                    val dayTaskRefs = payload.entities.filterIsInstance<ClipboardEntityRef.DayTask>()
+                    val tacticalMissionRefs = payload.entities.filterIsInstance<ClipboardEntityRef.TacticalMission>()
+                    if (areAllEntityGroupsEmpty(itemRefs, contextRefs, directionRefs, attachmentRefs, checklistRefs, dayTaskRefs, tacticalMissionRefs)) {
                         BacklogPasteReport(totalRequested = 0, skippedInvalid = 1)
                     } else {
                         pasteCutToDirection(
@@ -392,6 +496,8 @@ class BacklogClipboardUseCase
                             directionRefs = directionRefs,
                             attachmentRefs = attachmentRefs,
                             checklistRefs = checklistRefs,
+                            dayTaskRefs = dayTaskRefs,
+                            tacticalMissionRefs = tacticalMissionRefs,
                             sourceContextId = payload.sourceContextId,
                             targetContextId = targetContextId,
                             includeAttachments = includeAttachments,
@@ -457,6 +563,30 @@ class BacklogClipboardUseCase
             } ?: invalidPasteReport()
         }
 
+        suspend fun pasteIntoInbox(targetContextId: String): Int {
+            val payload = clipboardService.payload.value ?: return 0
+            if (targetContextId.isBlank()) return 0
+            val textItems = resolveStructuredTextClipboardItems(
+                dayTaskRefs = payload.entities.filterIsInstance<ClipboardEntityRef.DayTask>(),
+                tacticalMissionRefs = payload.entities.filterIsInstance<ClipboardEntityRef.TacticalMission>(),
+                directionRefs = payload.entities.filterIsInstance<ClipboardEntityRef.DirectionItem>(),
+                checklistRefs = payload.entities.filterIsInstance<ClipboardEntityRef.ChecklistItem>(),
+                backlogGoalRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogGoal>(),
+                backlogItemRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogItem>(),
+                contextRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogContextLink>(),
+                operation = payload.operation,
+            )
+            if (textItems.isEmpty()) return 0
+            textItems.forEach { item ->
+                inboxRepository.addInboxRecord(item.text, targetContextId)
+            }
+            if (payload.operation == ClipboardOperation.CUT) {
+                finalizeStructuredTextCut(textItems)
+                clipboardService.clear()
+            }
+            return textItems.size
+        }
+
         private suspend fun finalizeAttachmentCut(
             payload: EntityClipboardPayload,
             attachmentCopyResult: AttachmentCopyResult,
@@ -502,6 +632,8 @@ class BacklogClipboardUseCase
             directionRefs: List<ClipboardEntityRef.DirectionItem>,
             attachmentRefs: List<ClipboardEntityRef.BacklogAttachment>,
             checklistRefs: List<ClipboardEntityRef.ChecklistItem>,
+            dayTaskRefs: List<ClipboardEntityRef.DayTask>,
+            tacticalMissionRefs: List<ClipboardEntityRef.TacticalMission>,
             targetContextId: String,
             mode: BacklogPasteMode,
             includeAttachments: Boolean,
@@ -519,6 +651,17 @@ class BacklogClipboardUseCase
             var skippedInvalid = directionRefs.size - directionItems.size
             val checklistItems = loadChecklistItems(checklistRefs)
             skippedInvalid += checklistRefs.size - checklistItems.size
+            val structuredTextItems =
+                resolveStructuredTextClipboardItems(
+                    dayTaskRefs = dayTaskRefs,
+                    tacticalMissionRefs = tacticalMissionRefs,
+                    directionRefs = emptyList(),
+                    checklistRefs = emptyList(),
+                    backlogGoalRefs = emptyList(),
+                    backlogItemRefs = emptyList(),
+                    contextRefs = emptyList(),
+                    operation = ClipboardOperation.COPY,
+                )
 
             val contextIdsToLink =
                 sourceContextIds
@@ -602,6 +745,19 @@ class BacklogClipboardUseCase
                 createdGoals += 1
             }
 
+            structuredTextItems.forEach { textItem ->
+                val normalizedText = normalizeText(textItem.text)
+                if (normalizedText.isBlank()) {
+                    skippedInvalid += 1
+                } else if (normalizedText in existingGoalTexts) {
+                    skippedDuplicates += 1
+                } else {
+                    goalRepository.addGoalToContext(textItem.text.trim(), targetContextId)
+                    existingGoalTexts += normalizedText
+                    createdGoals += 1
+                }
+            }
+
             if (includeAttachments && attachmentRefs.isNotEmpty()) {
                 val attachmentCopy =
                     copyAttachmentRefsToContext(
@@ -620,7 +776,9 @@ class BacklogClipboardUseCase
                         sourceContextIds.size +
                         directionRefs.size +
                         attachmentRefs.size +
-                        checklistRefs.size,
+                        checklistRefs.size +
+                        dayTaskRefs.size +
+                        tacticalMissionRefs.size,
                 createdLinks = createdLinks,
                 clonedGoals = clonedGoals,
                 createdGoals = createdGoals,
@@ -636,6 +794,8 @@ class BacklogClipboardUseCase
             directionRefs: List<ClipboardEntityRef.DirectionItem>,
             attachmentRefs: List<ClipboardEntityRef.BacklogAttachment>,
             checklistRefs: List<ClipboardEntityRef.ChecklistItem>,
+            dayTaskRefs: List<ClipboardEntityRef.DayTask>,
+            tacticalMissionRefs: List<ClipboardEntityRef.TacticalMission>,
             sourceContextId: String,
             targetContextId: String,
             mode: BacklogPasteMode,
@@ -651,6 +811,17 @@ class BacklogClipboardUseCase
             val checklistItems = loadChecklistItems(checklistRefs)
             skippedInvalid += checklistRefs.size - checklistItems.size
             val checklistItemsToDelete = mutableListOf<String>()
+            val structuredTextItems =
+                resolveStructuredTextClipboardItems(
+                    dayTaskRefs = dayTaskRefs,
+                    tacticalMissionRefs = tacticalMissionRefs,
+                    directionRefs = emptyList(),
+                    checklistRefs = emptyList(),
+                    backlogGoalRefs = emptyList(),
+                    backlogItemRefs = emptyList(),
+                    contextRefs = emptyList(),
+                    operation = ClipboardOperation.CUT,
+                )
 
             if (contextRefs.isNotEmpty()) {
                 val sourceContextIds = contextRefs.map { it.contextId }.distinct()
@@ -757,6 +928,21 @@ class BacklogClipboardUseCase
                 }
             }
 
+            val existingGoalTextsFromStructured = getExistingBacklogGoalTexts(targetContextId).toMutableSet()
+            structuredTextItems.forEach { textItem ->
+                val normalizedText = normalizeText(textItem.text)
+                if (normalizedText.isBlank()) {
+                    skippedInvalid += 1
+                } else if (normalizedText in existingGoalTextsFromStructured) {
+                    skippedDuplicates += 1
+                } else {
+                    goalRepository.addGoalToContext(textItem.text.trim(), targetContextId)
+                    existingGoalTextsFromStructured += normalizedText
+                    createdGoals += 1
+                    moved += finalizeStructuredTextCut(listOf(textItem))
+                }
+            }
+
             if (includeAttachments && attachmentRefs.isNotEmpty()) {
                 val attachmentCopy =
                     copyAttachmentRefsToContext(
@@ -796,7 +982,9 @@ class BacklogClipboardUseCase
                         contextRefs.size +
                         directionRefs.size +
                         attachmentRefs.size +
-                        checklistRefs.size,
+                        checklistRefs.size +
+                        dayTaskRefs.size +
+                        tacticalMissionRefs.size,
                 moved = moved,
                 createdLinks = createdLinks,
                 clonedGoals = clonedGoals,
@@ -813,6 +1001,8 @@ class BacklogClipboardUseCase
             directionRefs: List<ClipboardEntityRef.DirectionItem>,
             attachmentRefs: List<ClipboardEntityRef.BacklogAttachment>,
             checklistRefs: List<ClipboardEntityRef.ChecklistItem>,
+            dayTaskRefs: List<ClipboardEntityRef.DayTask>,
+            tacticalMissionRefs: List<ClipboardEntityRef.TacticalMission>,
             targetContextId: String,
             includeAttachments: Boolean,
         ): BacklogPasteReport {
@@ -834,6 +1024,17 @@ class BacklogClipboardUseCase
             var skippedInvalid = directionRefs.size - sourceDirectionItems.size
             val checklistItems = loadChecklistItems(checklistRefs)
             skippedInvalid += checklistRefs.size - checklistItems.size
+            val structuredTextItems =
+                resolveStructuredTextClipboardItems(
+                    dayTaskRefs = dayTaskRefs,
+                    tacticalMissionRefs = tacticalMissionRefs,
+                    directionRefs = emptyList(),
+                    checklistRefs = emptyList(),
+                    backlogGoalRefs = emptyList(),
+                    backlogItemRefs = emptyList(),
+                    contextRefs = emptyList(),
+                    operation = ClipboardOperation.COPY,
+                )
 
             for (goalId in backlogGoalIds) {
                 val goal = goalRepository.getGoalById(goalId)
@@ -898,6 +1099,18 @@ class BacklogClipboardUseCase
                 existingTexts += normalized
             }
 
+            structuredTextItems.forEach { textItem ->
+                val normalized = normalizeText(textItem.text)
+                if (normalized.isBlank()) {
+                    skippedInvalid += 1
+                } else if (normalized in existingTexts) {
+                    skippedDuplicates += 1
+                } else {
+                    itemsToCreate += textItem.text.trim() to null
+                    existingTexts += normalized
+                }
+            }
+
             val created = directionRepository.addDirectionItems(targetContextId, itemsToCreate)
             if (includeAttachments && attachmentRefs.isNotEmpty()) {
                 val attachmentCopy =
@@ -916,7 +1129,9 @@ class BacklogClipboardUseCase
                         backlogContextIds.size +
                         directionRefs.size +
                         attachmentRefs.size +
-                        checklistRefs.size,
+                        checklistRefs.size +
+                        dayTaskRefs.size +
+                        tacticalMissionRefs.size,
                 createdDirectionItems = created,
                 createdAttachments = createdAttachments,
                 skippedDuplicates = skippedDuplicates,
@@ -930,6 +1145,8 @@ class BacklogClipboardUseCase
             directionRefs: List<ClipboardEntityRef.DirectionItem>,
             attachmentRefs: List<ClipboardEntityRef.BacklogAttachment>,
             checklistRefs: List<ClipboardEntityRef.ChecklistItem>,
+            dayTaskRefs: List<ClipboardEntityRef.DayTask>,
+            tacticalMissionRefs: List<ClipboardEntityRef.TacticalMission>,
             sourceContextId: String,
             targetContextId: String,
             includeAttachments: Boolean,
@@ -941,6 +1158,17 @@ class BacklogClipboardUseCase
             var skippedInvalid = 0
             val checklistItems = loadChecklistItems(checklistRefs)
             skippedInvalid += checklistRefs.size - checklistItems.size
+            val structuredTextItems =
+                resolveStructuredTextClipboardItems(
+                    dayTaskRefs = dayTaskRefs,
+                    tacticalMissionRefs = tacticalMissionRefs,
+                    directionRefs = emptyList(),
+                    checklistRefs = emptyList(),
+                    backlogGoalRefs = emptyList(),
+                    backlogItemRefs = emptyList(),
+                    contextRefs = emptyList(),
+                    operation = ClipboardOperation.CUT,
+                )
             val checklistItemsToDelete = mutableListOf<String>()
 
             val existingItems = directionRepository.getDirectionItemsForContextSync(targetContextId)
@@ -1055,6 +1283,20 @@ class BacklogClipboardUseCase
                 checklistItemsToDelete += checklistItem.id
             }
 
+            val structuredTextItemsToDelete = mutableListOf<StructuredTextClipboardItem>()
+            structuredTextItems.forEach { textItem ->
+                val normalized = normalizeText(textItem.text)
+                if (normalized.isBlank()) {
+                    skippedInvalid += 1
+                } else if (normalized in existingTexts) {
+                    skippedDuplicates += 1
+                } else {
+                    itemsToCreate += textItem.text.trim() to null
+                    existingTexts += normalized
+                    structuredTextItemsToDelete += textItem
+                }
+            }
+
             if (itemsToCreate.isNotEmpty()) {
                 createdDirectionItems = directionRepository.addDirectionItems(targetContextId, itemsToCreate)
             }
@@ -1075,6 +1317,9 @@ class BacklogClipboardUseCase
             if (checklistItemsToDelete.isNotEmpty()) {
                 checklistRepository.deleteItems(checklistItemsToDelete)
                 moved += checklistItemsToDelete.size
+            }
+            if (structuredTextItemsToDelete.isNotEmpty()) {
+                moved += finalizeStructuredTextCut(structuredTextItemsToDelete)
             }
 
             if (includeAttachments && attachmentRefs.isNotEmpty()) {
@@ -1112,7 +1357,9 @@ class BacklogClipboardUseCase
                         contextRefs.size +
                         directionRefs.size +
                         attachmentRefs.size +
-                        checklistRefs.size,
+                        checklistRefs.size +
+                        dayTaskRefs.size +
+                        tacticalMissionRefs.size,
                 moved = moved,
                 createdDirectionItems = createdDirectionItems,
                 createdAttachments = createdAttachments,
@@ -1305,6 +1552,98 @@ class BacklogClipboardUseCase
                     val byId = checklistRepository.getItemsByIds(requestedIds).associateBy { it.id }
                     requestedIds.mapNotNull(byId::get)
                 }
+
+        private data class StructuredTextClipboardItem(
+            val text: String,
+            val dayTaskIdToDelete: String? = null,
+            val tacticalMissionIdToDelete: Long? = null,
+        )
+
+        private suspend fun resolveStructuredTextClipboardItems(
+            dayTaskRefs: List<ClipboardEntityRef.DayTask>,
+            tacticalMissionRefs: List<ClipboardEntityRef.TacticalMission>,
+            directionRefs: List<ClipboardEntityRef.DirectionItem>,
+            checklistRefs: List<ClipboardEntityRef.ChecklistItem>,
+            backlogGoalRefs: List<ClipboardEntityRef.BacklogGoal>,
+            backlogItemRefs: List<ClipboardEntityRef.BacklogItem>,
+            contextRefs: List<ClipboardEntityRef.BacklogContextLink>,
+            operation: ClipboardOperation,
+        ): List<StructuredTextClipboardItem> {
+            val result = mutableListOf<StructuredTextClipboardItem>()
+            val directionById = loadDirectionItems(directionRefs).associateBy { it.id }
+            val checklistById = loadChecklistItems(checklistRefs).associateBy { it.id }
+            val backlogItemsById = listItemRepository.getItemsByIds(backlogItemRefs.map { it.listItemId }).associateBy { it.id }
+            val goalTexts = backlogGoalRefs.associate { it.goalId to goalRepository.getGoalById(it.goalId)?.text.orEmpty() }
+            val contextNames = contextRefs.associate { it.contextId to contextRepository.getContextById(it.contextId)?.name.orEmpty() }
+
+            dayTaskRefs.forEach { ref ->
+                val task = dayManagementRepository.getTaskById(ref.taskId) ?: return@forEach
+                val text = task.title.trim().ifBlank { task.description?.trim().orEmpty() }
+                if (text.isNotBlank()) {
+                    result += StructuredTextClipboardItem(text = text, dayTaskIdToDelete = if (operation == ClipboardOperation.CUT) task.id else null)
+                }
+            }
+            tacticalMissionRefs.forEach { ref ->
+                val mission = missionRepository.getMissionById(ref.missionId) ?: return@forEach
+                val text = mission.title.trim().ifBlank { mission.description?.trim().orEmpty() }
+                if (text.isNotBlank()) {
+                    result += StructuredTextClipboardItem(text = text, tacticalMissionIdToDelete = if (operation == ClipboardOperation.CUT) mission.id else null)
+                }
+            }
+            directionRefs.forEach { ref ->
+                val item = directionById[ref.directionItemId] ?: return@forEach
+                val text = item.text.trim()
+                if (text.isNotBlank()) {
+                    result += StructuredTextClipboardItem(text = text)
+                }
+            }
+            checklistRefs.forEach { ref ->
+                val item = checklistById[ref.checklistItemId] ?: return@forEach
+                val text = item.content.trim()
+                if (text.isNotBlank()) {
+                    result += StructuredTextClipboardItem(text = text)
+                }
+            }
+            backlogGoalRefs.forEach { ref ->
+                val text = goalTexts[ref.goalId].orEmpty().trim()
+                if (text.isNotBlank()) {
+                    result += StructuredTextClipboardItem(text = text)
+                }
+            }
+            backlogItemRefs.forEach { ref ->
+                val item = backlogItemsById[ref.listItemId] ?: return@forEach
+                when (item.itemType) {
+                    BacklogItemTypeValues.GOAL -> {
+                        val text = goalRepository.getGoalById(item.entityId)?.text?.trim().orEmpty()
+                        if (text.isNotBlank()) result += StructuredTextClipboardItem(text = text)
+                    }
+                    BacklogItemTypeValues.SUBLIST -> {
+                        val text = contextRepository.getContextById(item.entityId)?.name?.trim().orEmpty()
+                        if (text.isNotBlank()) result += StructuredTextClipboardItem(text = text)
+                    }
+                }
+            }
+            contextRefs.forEach { ref ->
+                val text = contextNames[ref.contextId].orEmpty().trim()
+                if (text.isNotBlank()) {
+                    result += StructuredTextClipboardItem(text = text)
+                }
+            }
+            return result
+        }
+
+        private suspend fun finalizeStructuredTextCut(items: List<StructuredTextClipboardItem>): Int {
+            var moved = 0
+            items.mapNotNull { it.dayTaskIdToDelete }.distinct().forEach { taskId ->
+                dayManagementRepository.deleteTask(taskId)
+                moved += 1
+            }
+            items.mapNotNull { it.tacticalMissionIdToDelete }.distinct().forEach { missionId ->
+                missionRepository.deleteMissionById(missionId)
+                moved += 1
+            }
+            return moved
+        }
 
         private suspend fun getExistingBacklogGoalTexts(contextId: String): Set<String> {
             val goalIds = listItemRepository.getGoalIdsForContext(contextId).distinct()

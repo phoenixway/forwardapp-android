@@ -21,6 +21,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Link
@@ -345,6 +347,24 @@ fun TacticalManagementScreen(
                     text = "Додати місію в план дня",
                     onClick = {
                         viewModel.addMissionToTodayPlan(mission)
+                        actionMenuMission = null
+                    },
+                )
+                SubtleActionDivider()
+                MissionActionSheetItem(
+                    icon = Icons.Outlined.ContentCopy,
+                    text = "Копіювати для вставки",
+                    onClick = {
+                        viewModel.copyMissionToEntityClipboard(mission)
+                        actionMenuMission = null
+                    },
+                )
+                SubtleActionDivider()
+                MissionActionSheetItem(
+                    icon = Icons.Outlined.ContentCut,
+                    text = "Вирізати для вставки",
+                    onClick = {
+                        viewModel.cutMissionToEntityClipboard(mission)
                         actionMenuMission = null
                     },
                 )

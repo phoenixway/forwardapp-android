@@ -30,5 +30,5 @@ class TopNavigationActions {
         )
     }
 
-    fun homeEvent(): UiEvent = UiEvent.Navigate(NavTarget.ContextHierarchy)
+    fun homeEvent(): UiEvent = UiEvent.Navigate(NavTarget.ContextHierarchy())
 }

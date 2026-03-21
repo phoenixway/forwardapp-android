@@ -69,16 +69,16 @@ internal fun SearchResultItemCard(
             slideInVertically(
                 animationSpec = spring(dampingRatio = 0.7f, stiffness = 300f),
                 initialOffsetY = { it / 2 },
-            ) + fadeIn(animationSpec = tween(durationMillis = 300, delayMillis = index * 35)),
+            ) + fadeIn(animationSpec = tween(durationMillis = 280, delayMillis = index * 25)),
     ) {
-        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+        Box(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
             val typePresentation = result.typePresentation()
             UnifiedSearchResultCard(
                 spec = buildSearchResultCardSpec(result, typePresentation, renderContext),
             )
             ResultTypeBadge(
                 presentation = typePresentation,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 8.dp, end = 8.dp),
+                modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 6.dp, end = 6.dp),
             )
         }
     }

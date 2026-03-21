@@ -74,7 +74,11 @@ fun ProjectHierarchyScreenContent(
             uiState.searchQuery.text
         }
 
-    val isFocusMode = rememberHierarchyFocusMode(uiState.currentBreadcrumbs)
+    val isFocusMode =
+        rememberHierarchyFocusMode(
+            breadcrumbs = uiState.currentBreadcrumbs,
+            hasFocusedProject = currentSubState is ProjectHierarchyScreenSubState.ProjectFocused,
+        )
 
     Column(
         modifier =
@@ -207,7 +211,7 @@ fun ProjectHierarchyScreenContent(
                     planningMode = uiState.planningMode,
                     hierarchySettings = HierarchyDisplaySettings(),
                     listState = listState,
-                    longDescendantsMap = emptyMap(),
+                    longDescendantsMap = uiState.longDescendantsMap,
                     onEvent = onEvent,
                     sharedTransitionScope = sharedTransitionScope,
                     animatedVisibilityScope = animatedVisibilityScope,

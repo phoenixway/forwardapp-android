@@ -47,6 +47,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SyncUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ThemingUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.UtilityDialogRequest
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.buildPathToProject
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.flattenHierarchy
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -57,6 +58,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
 import java.net.URLEncoder
 import java.util.UUID
@@ -92,6 +94,7 @@ class ContextHierarchyScreenViewModel
     ) : ViewModel() {
         companion object {
             private const val PROJECT_BEING_MOVED_ID_KEY = "projectBeingMovedId"
+            private const val PROJECT_TO_REVEAL_KEY = "projectIdToReveal"
             private const val TAG = "ProjectHierarchyScreenVM_DEBUG"
         }
 
@@ -267,7 +270,12 @@ class ContextHierarchyScreenViewModel
             }
         }
 
-        private suspend fun revealProject(projectId: String) {
+        fun consumePendingProjectToReveal(): String? = savedStateHandle.remove(PROJECT_TO_REVEAL_KEY)
+
+        private suspend fun revealProject(
+            projectId: String,
+            forceFocusMode: Boolean = false,
+        ) {
             Log.d("ProjectRevealDebug", "Attempting to reveal projectId: $projectId")
             planningUseCase.onPlanningModeChange(PlanningMode.All)
 
@@ -277,11 +285,14 @@ class ContextHierarchyScreenViewModel
                         "ProjectRevealDebug",
                         "revealProjectInHierarchy result: Success, shouldFocus=${result.shouldFocus}",
                     )
-                    searchUseCase.pushSubState(ProjectHierarchyScreenSubState.ProjectFocused(result.projectId))
+                    if (forceFocusMode || result.shouldFocus) {
+                        searchUseCase.enterProjectFocus(result.projectId)
+                    }
+                    val hierarchyForReveal = awaitHierarchyForProjectPath(result.projectId)
                     Log.d("ProjectRevealDebug", "Calling navigateToProject for ${result.projectId}")
                     searchUseCase.navigateToProject(
                         result.projectId,
-                        uiState.value.projectHierarchy,
+                        hierarchyForReveal,
                     )
                 }
                 is RevealResult.Failure -> {
@@ -559,7 +570,7 @@ class ContextHierarchyScreenViewModel
                 is ContextHierarchyScreenEvent.FocusContext -> {
                     viewModelScope.launch {
                         searchUseCase.navigateToProject(event.project.id, uiState.value.projectHierarchy)
-                        searchUseCase.pushSubState(ProjectHierarchyScreenSubState.ProjectFocused(event.project.id))
+                        searchUseCase.enterProjectFocus(event.project.id)
                         dialogUseCase.dismissDialog()
                     }
                 }
@@ -827,7 +838,10 @@ class ContextHierarchyScreenViewModel
                 }
                 is ContextHierarchyScreenEvent.RevealContextInHierarchy -> {
                     viewModelScope.launch {
-                        revealProject(projectId = event.projectId)
+                        revealProject(
+                            projectId = event.projectId,
+                            forceFocusMode = true,
+                        )
                     }
                 }
                 is ContextHierarchyScreenEvent.OpenInboxContext -> {
@@ -851,6 +865,7 @@ class ContextHierarchyScreenViewModel
 
         private fun handleBackNavigation() {
             searchUseCase.handleBackNavigation(
+                currentHierarchy = uiState.value.projectHierarchy,
                 areAnyProjectsExpanded = uiState.value.areAnyProjectsExpanded,
                 collapseAllProjects = { viewModelScope.launch { contextActionsUseCase.collapseAllProjects(_allProjectsFlat.value) } },
                 goBack = { enhancedNavigationManager?.goBack() },
@@ -1059,6 +1074,14 @@ class ContextHierarchyScreenViewModel
                 contextRepository.getContextById(projectId)?.let { recentItemsRepository.logProjectAccess(it) }
                 navigationUseCase.onNavigateToProject(viewModelScope, projectId)
             }
+        }
+
+        private suspend fun awaitHierarchyForProjectPath(projectId: String): com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData {
+            return withTimeoutOrNull(1_500) {
+                uiState.first { state ->
+                    buildPathToProject(projectId, state.projectHierarchy).isNotEmpty()
+                }.projectHierarchy
+            } ?: uiState.value.projectHierarchy
         }
 
         private fun canPasteContextInto(targetContextId: String): Boolean {

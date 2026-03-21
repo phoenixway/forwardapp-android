@@ -19,6 +19,7 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.MoveUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -32,6 +33,9 @@ import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -53,6 +57,17 @@ fun InboxScreen(
     val scope = rememberCoroutineScope()
 
     var lastItemHeight by remember { mutableStateOf(0) }
+
+    LaunchedEffect(highlightedRecordId, records) {
+        val recordId = highlightedRecordId ?: return@LaunchedEffect
+        val index =
+            snapshotFlow { records.indexOfFirst { it.id == recordId } }
+                .map { it }
+                .filter { it >= 0 }
+                .first()
+        listState.scrollToItem(index)
+        listState.animateScrollToItem(index)
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },

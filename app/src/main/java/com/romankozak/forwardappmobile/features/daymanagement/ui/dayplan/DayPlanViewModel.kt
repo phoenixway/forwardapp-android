@@ -23,6 +23,7 @@ import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.handlers.DayPlanScopeLinksHandler
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
@@ -122,6 +123,7 @@ class DayPlanViewModel
         private val checklistRepository: ChecklistRepository,
         private val settingsRepository: SettingsRepository,
         private val missionRepository: MissionRepository,
+        private val backlogClipboardUseCase: BacklogClipboardUseCase,
 ) : ViewModel() {
     private companion object {
         const val UI_STATE_STOP_TIMEOUT_MILLIS = 5000L
@@ -945,6 +947,20 @@ class DayPlanViewModel
                     Log.e("DayPlanViewModel", "Error copying task", e)
                 }
             }
+        }
+
+        fun copyTaskToEntityClipboard(taskWithReminder: DayTaskWithReminder) {
+            backlogClipboardUseCase.copyDayTasks(
+                sourceContextId = taskWithReminder.dayTask.projectId.orEmpty(),
+                taskIds = listOf(taskWithReminder.dayTask.id),
+            )
+        }
+
+        fun cutTaskToEntityClipboard(taskWithReminder: DayTaskWithReminder) {
+            backlogClipboardUseCase.cutDayTasks(
+                sourceContextId = taskWithReminder.dayTask.projectId.orEmpty(),
+                taskIds = listOf(taskWithReminder.dayTask.id),
+            )
         }
 
         fun moveTaskToTomorrow(taskToMoveWithReminder: DayTaskWithReminder) {

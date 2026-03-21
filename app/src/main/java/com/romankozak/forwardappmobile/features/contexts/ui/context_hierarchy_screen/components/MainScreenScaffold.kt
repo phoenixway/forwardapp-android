@@ -99,7 +99,11 @@ fun ProjectHierarchyScreenScaffold(
         modifier = Modifier.imePadding(),
         topBar = {
             val isSearchActive = uiState.subStateStack.any { it is ProjectHierarchyScreenSubState.LocalSearch }
-            val isFocusMode = rememberHierarchyFocusMode(uiState.currentBreadcrumbs)
+            val isFocusMode =
+                rememberHierarchyFocusMode(
+                    breadcrumbs = uiState.currentBreadcrumbs,
+                    hasFocusedProject = uiState.currentSubState is ProjectHierarchyScreenSubState.ProjectFocused,
+                )
             val focusedProjectId =
                 if (isFocusMode) {
                     (uiState.currentSubState as? ProjectHierarchyScreenSubState.ProjectFocused)?.projectId

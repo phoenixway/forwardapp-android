@@ -82,7 +82,7 @@ internal fun SearchResultsContent(
     }
 }
 
-internal enum class GlobalSearchType(
+enum class GlobalSearchType(
     val label: String,
     val icon: ImageVector,
 ) {

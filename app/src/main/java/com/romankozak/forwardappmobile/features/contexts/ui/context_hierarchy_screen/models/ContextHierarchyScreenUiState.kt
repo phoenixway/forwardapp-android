@@ -21,6 +21,7 @@ data class ProjectHierarchyScreenUiState(
     val searchHistory: List<String> = emptyList(),
     val projectHierarchy: ContextHierarchyData = ContextHierarchyData(),
     val flattenedHierarchy: List<FlatHierarchyItem> = emptyList(),
+    val longDescendantsMap: Map<String, Boolean> = emptyMap(),
     val currentBreadcrumbs: List<BreadcrumbItem> = emptyList(),
     val areAnyProjectsExpanded: Boolean = false,
     val planningMode: PlanningMode = PlanningMode.All,

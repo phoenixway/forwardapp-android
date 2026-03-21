@@ -7,6 +7,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningSettingsState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResult
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.buildPathToProject
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.createHierarchyDescendantOverflowMap
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.findAncestorsRecursive
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.fuzzyMatch
 import javax.inject.Inject
@@ -181,43 +182,8 @@ class HierarchyUseCase
             )
         }
 
-        fun createLongDescendantsMap(allProjects: List<Context>): Map<String, Boolean> {
-            if (allProjects.isEmpty()) return emptyMap()
-
-            val childMap = allProjects.filter { it.parentId != null }.groupBy { it.parentId!! }
-            val resultMap = mutableMapOf<String, Boolean>()
-            val memo = mutableMapOf<String, Boolean>()
-            val characterLimit = 35
-
-            fun hasLongDescendantsRecursive(
-                projectId: String,
-                visitedInPath: Set<String>,
-            ): Boolean {
-                if (projectId in visitedInPath) {
-                    return false
-                }
-
-                if (memo.containsKey(projectId)) return memo[projectId]!!
-
-                val children = childMap[projectId] ?: emptyList()
-                for (child in children) {
-                    if (child.name.length > characterLimit) {
-                        memo[projectId] = true
-                        return true
-                    }
-                    if (hasLongDescendantsRecursive(child.id, visitedInPath + projectId)) {
-                        memo[projectId] = true
-                        return true
-                    }
-                }
-                memo[projectId] = false
-                return false
-            }
-
-            allProjects.forEach { project ->
-                resultMap[project.id] = hasLongDescendantsRecursive(project.id, emptySet())
-            }
-            return resultMap
+        fun createLongDescendantsMap(hierarchy: ContextHierarchyData): Map<String, Boolean> {
+            return createHierarchyDescendantOverflowMap(hierarchy)
         }
 
         fun createSearchResults(

@@ -413,8 +413,7 @@ private fun ContextScreenInboxHighlightEffect(
                 Log.d(TAG, "Highlight duration passed. Resetting state.")
                 viewModel.onInboxHighlightShown()
             } else {
-                Log.w(TAG, "Record ID $recordId not found. Clearing highlight state.")
-                viewModel.onInboxHighlightShown()
+                Log.w(TAG, "Record ID $recordId not found yet. Waiting for inboxRecords update.")
             }
         }
     }

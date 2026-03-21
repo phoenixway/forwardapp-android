@@ -25,5 +25,10 @@
         <item name="inputPanelAddProjectLogBackgroundColor">@color/input_panel_add_project_log_bg</item>
         <item name="inputPanelAddProjectLogTextColor">@color/input_panel_add_project_log_text</item>
     </style>
-</resources>
 
+    <style name="Theme.ForwardAppMobile.Launch" parent="Theme.Cyberpunk.Day">
+        <item name="android:windowBackground">@drawable/launch_screen_background</item>
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:windowDisablePreview">false</item>
+    </style>
+</resources>

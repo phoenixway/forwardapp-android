@@ -5,7 +5,6 @@ package com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,17 +13,12 @@ import androidx.compose.ui.graphics.Color
 import com.google.accompanist.systemuicontroller.SystemUiController
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
 import com.romankozak.forwardappmobile.features.missions.presentation.PickerCreateAction
-import com.romankozak.forwardappmobile.ui.common.MatrixRainView
-import kotlinx.coroutines.delay
 
 data class DayPlanPresentationState(
     val uiState: DayPlanUiState,
     val dialogState: DayPlanDialogState,
     val overlayState: DayPlanOverlayState,
     val snackbarHostState: androidx.compose.material3.SnackbarHostState,
-    val showMatrixSplash: MutableState<Boolean>,
-    val matrixView: MutableState<MatrixRainView?>,
-    val isContentReady: MutableState<Boolean>,
 )
 
 data class DayPlanEffectsConfig(
@@ -64,18 +58,13 @@ fun rememberDayPlanPresentationState(viewModel: DayPlanViewModel): DayPlanPresen
             taskToEdit = taskToEdit,
             connectionsOrder = connectionsOrder,
         )
-    val showMatrixSplash = remember { mutableStateOf(true) }
-    val matrixView = remember { mutableStateOf<MatrixRainView?>(null) }
-    val isContentReady = remember { mutableStateOf(false) }
+    val isContentReady = remember { mutableStateOf(true) }
 
     return DayPlanPresentationState(
         uiState = uiState,
         dialogState = dialogState,
         overlayState = overlayState,
         snackbarHostState = snackbarHostState,
-        showMatrixSplash = showMatrixSplash,
-        matrixView = matrixView,
-        isContentReady = isContentReady,
     )
 }
 
@@ -98,15 +87,6 @@ fun HandleDayPlanScreenEffects(
             darkIcons = config.isLight,
             isNavigationBarContrastEnforced = false,
         )
-    }
-
-    LaunchedEffect(Unit) {
-        delay(PRELOAD_CONTENT_DELAY_MILLIS)
-        presentationState.isContentReady.value = true
-        delay(MATRIX_SPLASH_VISIBLE_DELAY_MILLIS)
-        presentationState.matrixView.value?.startFadeOut()
-        delay(MATRIX_SPLASH_FADE_OUT_DELAY_MILLIS)
-        presentationState.showMatrixSplash.value = false
     }
 
     LaunchedEffect(config.addTaskTrigger) {

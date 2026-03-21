@@ -1,5 +1,4 @@
 package com.romankozak.forwardappmobile.data.repository
-
 import androidx.room.Transaction
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
@@ -22,7 +21,7 @@ class InboxRepository
         suspend fun addInboxRecord(
             text: String,
             contextId: String,
-        ) {
+        ): String {
             val currentTime = System.currentTimeMillis()
             val newRecord =
                 InboxRecord(
@@ -36,6 +35,7 @@ class InboxRepository
                     version = 1,
                 )
             inboxRecordDao.insert(newRecord)
+            return newRecord.id
         }
 
         suspend fun updateInboxRecord(record: InboxRecord) {

@@ -3,7 +3,9 @@ package com.romankozak.forwardappmobile.core.navigation
 sealed interface NavTarget {
     // -------- HIGH LEVEL --------
 
-    data object ContextHierarchy : NavTarget
+    data class ContextHierarchy(
+        val projectIdToReveal: String? = null,
+    ) : NavTarget
 
     data class ContextDetail(
         val contextId: String,

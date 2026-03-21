@@ -19,6 +19,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.shouldShowHierarchyFocusButton
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -57,8 +58,12 @@ fun LegacySmartHierarchyView(
         }
 
     val hasLongDescendants = longDescendantsMap[project.id] ?: false
-    val isDeeplyNested = hasChildren && level >= 3
-    val shouldShowFocusButton = hasLongDescendants || isDeeplyNested
+    val shouldShowFocusButton =
+        shouldShowHierarchyFocusButton(
+            hasChildren = hasChildren,
+            level = level,
+            hasOverflowingDescendants = hasLongDescendants,
+        )
     val isFocused = project.id == focusedProjectId
 
     Column {

@@ -63,6 +63,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.shouldShowHierarchyFocusButton
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -275,20 +276,34 @@ fun ProjectRow(
                 enter = fadeIn(),
                 exit = fadeOut(),
             ) {
-                IconButton(
+                Surface(
                     onClick = { onFocusRequested(project) },
-                    modifier = Modifier.size(36.dp),
+                    modifier = Modifier.padding(start = 4.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color =
+                        if (isFocused) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surfaceContainerHigh
+                        },
+                    tonalElevation = 0.dp,
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.MoreHoriz,
-                        contentDescription = if (isFocused) "Вийти з фокусу" else "Сфокусуватися",
-                        tint =
-                            if (isFocused) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                    )
+                    Box(
+                        modifier = Modifier.size(34.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.FilterCenterFocus,
+                            contentDescription = "Сфокусувати гілку",
+                            tint =
+                                if (isFocused) {
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                },
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
                 }
             }
 
@@ -628,8 +643,12 @@ internal fun buildVisibleHierarchy(
 
         val hasChildren = childMap[item.project.id]?.isNotEmpty() == true
         val hasLongDescendants = longDescendantsMap[item.project.id] ?: false
-        val isDeeplyNested = hasChildren && item.level >= 3
-        val shouldShowFocusButton = hasLongDescendants || isDeeplyNested
+        val shouldShowFocusButton =
+            shouldShowHierarchyFocusButton(
+                hasChildren = hasChildren,
+                level = item.level,
+                hasOverflowingDescendants = hasLongDescendants,
+            )
 
         if (shouldShowFocusButton) {
             skipLevel = item.level
@@ -682,8 +701,12 @@ fun HierarchyListItem(
         }
 
     val hasLongDescendants = longDescendantsMap[project.id] ?: false
-    val isDeeplyNested = hasChildren && item.level >= 3
-    val shouldShowFocusButton = hasLongDescendants || isDeeplyNested
+    val shouldShowFocusButton =
+        shouldShowHierarchyFocusButton(
+            hasChildren = hasChildren,
+            level = item.level,
+            hasOverflowingDescendants = hasLongDescendants,
+        )
     val isFocused = project.id == focusedProjectId
 
     with(sharedTransitionScope) {

@@ -15,6 +15,7 @@ import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.AddTacticalMissionUseCase
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.DeleteTacticalMissionUseCase
@@ -54,6 +55,7 @@ class TacticalMissionViewModel
         private val musicNoteRepository: MusicNoteRepository,
         private val checklistRepository: ChecklistRepository,
         private val settingsRepository: SettingsRepository,
+        private val backlogClipboardUseCase: BacklogClipboardUseCase,
     ) : ViewModel() {
         private val _missions = MutableStateFlow<List<TacticalMission>>(emptyList())
         val missions: StateFlow<List<TacticalMission>> = _missions.asStateFlow()
@@ -266,6 +268,20 @@ class TacticalMissionViewModel
             viewModelScope.launch {
                 deleteTacticalMissionUseCase(missionId)
             }
+        }
+
+        fun copyMissionToEntityClipboard(mission: TacticalMission) {
+            backlogClipboardUseCase.copyTacticalMissions(
+                sourceContextId = mission.projectId.orEmpty(),
+                missionIds = listOf(mission.id),
+            )
+        }
+
+        fun cutMissionToEntityClipboard(mission: TacticalMission) {
+            backlogClipboardUseCase.cutTacticalMissions(
+                sourceContextId = mission.projectId.orEmpty(),
+                missionIds = listOf(mission.id),
+            )
         }
 
         fun toggleMissionCompleted(mission: TacticalMission) {

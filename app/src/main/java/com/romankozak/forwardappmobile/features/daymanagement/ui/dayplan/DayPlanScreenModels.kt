@@ -4,7 +4,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.MutableState
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
 import com.romankozak.forwardappmobile.features.missions.presentation.PickerCreateAction
-import com.romankozak.forwardappmobile.ui.common.MatrixRainView
 
 data class DayPlanContentState(
     val initialDayPlanId: String,
@@ -33,6 +32,4 @@ data class DayPlanDialogState(
 
 data class DayPlanVisualState(
     val isContentReady: Boolean,
-    val showMatrixSplash: Boolean,
-    val onMatrixViewCreated: (MatrixRainView) -> Unit,
 )

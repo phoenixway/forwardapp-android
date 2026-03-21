@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -38,6 +40,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,10 +51,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.features.ai.insights.AiInsightsViewModel
 import com.romankozak.forwardappmobile.features.ai.insights.AiMessage
 import com.romankozak.forwardappmobile.features.ai.insights.MessageType
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 private const val DASHBOARD_INSIGHTS_LIMIT = 3
 private const val FOCUS_CARD_BACKGROUND_ALPHA = 0.35f
 private const val INSIGHT_DISMISS_BACKGROUND_ALPHA = 0.6f
+private const val FOCUS_CONTEXTS_LIST_MAX_HEIGHT_DP = 420
 
 @Composable
 fun DashboardContent(
@@ -108,6 +116,7 @@ private fun AnimatedCommandDeck(
             onOpenFocusedContext = onOpenFocusedContext,
             onStartTracking = focusContextsViewModel::startTracking,
             onDefocus = focusContextsViewModel::unfocus,
+            onReorder = focusContextsViewModel::updateFocusedContextsOrder,
         )
 
         item {
@@ -137,6 +146,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.DashboardFocusContext
     onOpenFocusedContext: (String) -> Unit,
     onStartTracking: (String) -> Unit,
     onDefocus: (String) -> Unit,
+    onReorder: (List<String>) -> Unit,
 ) {
     if (!isExpanded) {
         return
@@ -153,14 +163,63 @@ private fun androidx.compose.foundation.lazy.LazyListScope.DashboardFocusContext
         return
     }
 
-    focusedContexts.forEach { focusedContext ->
-        item {
-            FocusContextCard(
-                name = focusedContext.name,
-                onOpen = { onOpenFocusedContext(focusedContext.contextId) },
-                onStartTracking = { onStartTracking(focusedContext.contextId) },
-                onDefocus = { onDefocus(focusedContext.contextId) },
-            )
+    item {
+        FocusContextsReorderableList(
+            focusedContexts = focusedContexts,
+            onOpenFocusedContext = onOpenFocusedContext,
+            onStartTracking = onStartTracking,
+            onDefocus = onDefocus,
+            onReorder = onReorder,
+        )
+    }
+}
+
+@Composable
+private fun FocusContextsReorderableList(
+    focusedContexts: List<FocusContextsViewModel.FocusedContextUi>,
+    onOpenFocusedContext: (String) -> Unit,
+    onStartTracking: (String) -> Unit,
+    onDefocus: (String) -> Unit,
+    onReorder: (List<String>) -> Unit,
+) {
+    val hapticFeedback = LocalHapticFeedback.current
+    var internalItems by remember(focusedContexts) { mutableStateOf(focusedContexts) }
+    val lazyListState = rememberLazyListState()
+    val reorderableState =
+        rememberReorderableLazyListState(lazyListState) { from, to ->
+            internalItems =
+                internalItems.toMutableList().apply {
+                    add(to.index, removeAt(from.index))
+                }
+            onReorder(internalItems.map { it.contextId })
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+
+    LazyColumn(
+        state = lazyListState,
+        modifier = Modifier.heightIn(max = FOCUS_CONTEXTS_LIST_MAX_HEIGHT_DP.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        items(internalItems, key = { it.contextId }) { focusedContext ->
+            ReorderableItem(reorderableState, key = focusedContext.contextId) {
+                FocusContextCard(
+                    name = focusedContext.name,
+                    onOpen = { onOpenFocusedContext(focusedContext.contextId) },
+                    onStartTracking = { onStartTracking(focusedContext.contextId) },
+                    onDefocus = { onDefocus(focusedContext.contextId) },
+                    dragHandleModifier =
+                        with(this@ReorderableItem) {
+                            Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .longPressDraggableHandle(
+                                    onDragStarted = {
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    },
+                                )
+                        },
+                )
+            }
         }
     }
 }
@@ -206,6 +265,7 @@ private fun FocusContextCard(
     onOpen: () -> Unit,
     onStartTracking: () -> Unit,
     onDefocus: () -> Unit,
+    dragHandleModifier: Modifier = Modifier,
 ) {
     Card(
         onClick = onOpen,
@@ -228,7 +288,9 @@ private fun FocusContextCard(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Box(
-                    modifier = Modifier.size(34.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                    modifier =
+                        dragHandleModifier
+                            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(

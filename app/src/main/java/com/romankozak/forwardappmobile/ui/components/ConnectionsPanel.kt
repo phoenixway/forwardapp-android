@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -108,6 +109,7 @@ private const val NORMAL_TITLE_MAX_LINES = 4
 private const val COMPACT_TITLE_MAX_LINES = 2
 private const val CONNECTION_DIVIDER_ALPHA = 0.08f
 private const val TYPE_ICON_BG_ALPHA = 0.18f
+private const val WRAP_CONTENT_LIST_MAX_HEIGHT_DP = 360
 
 private val ContextTypeTint = Color(0xFF2E7D32)
 private val AttachmentTypeTint = Color(0xFF1565C0)
@@ -132,6 +134,7 @@ fun ConnectionsPanel(
     onCreateConnection: ((CreateConnectionType) -> Unit)? = null,
     mode: ConnectionPanelMode = ConnectionPanelMode.COMPACT,
     preferActionsBesideTitleWhenWide: Boolean = false,
+    wrapContentHeight: Boolean = false,
     onConnectionsReordered: (List<ConnectionItemUi>) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -157,7 +160,6 @@ fun ConnectionsPanel(
     Column(
         modifier =
             modifier
-                .fillMaxSize()
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
     ) {
@@ -205,7 +207,14 @@ fun ConnectionsPanel(
         Spacer(modifier = Modifier.height(8.dp))
 
         ElevatedCard(
-            modifier = Modifier.fillMaxWidth().weight(1f),
+            modifier =
+                if (wrapContentHeight) {
+                    Modifier.fillMaxWidth()
+                } else {
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                },
             colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
             elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
             shape = RoundedCornerShape(16.dp),
@@ -220,7 +229,14 @@ fun ConnectionsPanel(
             } else {
                 LazyColumn(
                     state = lazyListState,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier =
+                        if (wrapContentHeight) {
+                            Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = WRAP_CONTENT_LIST_MAX_HEIGHT_DP.dp)
+                        } else {
+                            Modifier.fillMaxSize()
+                        },
                 ) {
                     items(internalItems, key = { "${it.type}-${it.id}" }) { item ->
                         ReorderableItem(reorderableState, key = "${item.type}-${item.id}") {

@@ -8,21 +8,13 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.core.EaseOutCubic
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -30,77 +22,23 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.automirrored.filled.Sort
-import androidx.compose.material.icons.filled.AccountTree
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.Navigation
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.SearchOff
-import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.MoveToInbox
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FabPosition
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.InputChip
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -129,36 +67,32 @@ fun GlobalSearchScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val configuration = LocalConfiguration.current
     val typeOptions = remember { GlobalSearchType.entries }
-    var selectedTypes by remember { mutableStateOf(typeOptions.toSet()) }
+    val selectedTypes = uiState.selectedTypes
     var selectedSort by remember { mutableStateOf(GlobalSearchSort.Relevance) }
-    var showTypeSheet by remember { mutableStateOf(false) }
     var showSortSheet by remember { mutableStateOf(false) }
     var showModeMenu by remember { mutableStateOf(false) }
-    var showDataActionsSheet by remember { mutableStateOf(false) }
     var showCreateSheet by remember { mutableStateOf(false) }
     var selectedCommandIndex by remember { mutableStateOf<Int?>(null) }
     var selectedDataIndex by remember { mutableStateOf<Int?>(null) }
     var selectionArea by remember { mutableStateOf(OmniboxSelectionArea.None) }
     val currentMode = uiState.mode
     val modePalette = rememberModePalette(currentMode)
+
     val submitCommandIndex = selectedCommandIndex.takeIf { selectionArea == OmniboxSelectionArea.Command }
     val submitWithKeyboardHide: () -> Unit = {
         viewModel.onSubmitSearch(submitCommandIndex)
         keyboardController?.hide()
     }
-    val filteredResults by remember(uiState.results, selectedTypes, selectedSort, uiState.query) {
+
+    val filteredResults by remember(uiState.results, selectedSort, uiState.query) {
         derivedStateOf {
-            uiState.results
-                .filter { result -> selectedTypes.any { it.matches(result) } }
-                .let { results ->
-                    when (selectedSort) {
-                        GlobalSearchSort.Relevance -> results
-                        GlobalSearchSort.Type ->
-                            results.sortedBy { it.groupKey() }
-                        GlobalSearchSort.Alphabetical ->
-                            results.sortedBy { resultTitle(it).lowercase(Locale.getDefault()) }
-                    }
+            uiState.results.let { results ->
+                when (selectedSort) {
+                    GlobalSearchSort.Relevance -> results
+                    GlobalSearchSort.Type -> results.sortedBy { it.groupKey() }
+                    GlobalSearchSort.Alphabetical -> results.sortedBy { resultTitle(it).lowercase(Locale.getDefault()) }
                 }
+            }
         }
     }
 
@@ -167,16 +101,15 @@ fun GlobalSearchScreen(
         animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
         label = "loading_scale",
     )
-
     val resultsAlpha by animateFloatAsState(
         targetValue = if (!uiState.isLoading && uiState.results.isNotEmpty()) 1f else 0f,
         animationSpec = tween(durationMillis = 400, easing = EaseOutCubic),
         label = "results_alpha",
     )
-    val selectedDataResultUniqueId =
-        remember(filteredResults, selectedDataIndex) {
-            selectedDataIndex?.let { index -> filteredResults.getOrNull(index)?.uniqueId }
-        }
+
+    val selectedDataResultUniqueId = remember(filteredResults, selectedDataIndex) {
+        selectedDataIndex?.let { index -> filteredResults.getOrNull(index)?.uniqueId }
+    }
 
     LaunchedEffect(currentMode, uiState.commandResults, uiState.hybridCommandResults, filteredResults) {
         when (currentMode) {
@@ -223,17 +156,11 @@ fun GlobalSearchScreen(
             }
             is GlobalSearchResultItem.LinkItem -> {
                 viewModel.onDataResultOpened(result.uniqueId)
-                viewModel.navigateToProjectForResult(
-                    result.searchResult.contextId,
-                    result.searchResult.contextName,
-                )
+                viewModel.navigateToProjectForResult(result.searchResult.contextId, result.searchResult.contextName)
             }
             is GlobalSearchResultItem.SubcontextItem -> {
                 viewModel.onDataResultOpened(result.uniqueId)
-                viewModel.navigateToProjectForResult(
-                    result.searchResult.subcontext.id,
-                    result.searchResult.subcontext.name,
-                )
+                viewModel.navigateToProjectForResult(result.searchResult.subcontext.id, result.searchResult.subcontext.name)
             }
             is GlobalSearchResultItem.ContextItem -> {
                 viewModel.onDataResultOpened(result.uniqueId)
@@ -276,51 +203,18 @@ fun GlobalSearchScreen(
         }
     }
 
-    if (showTypeSheet) {
-        TypeBottomSheet(
-            options = typeOptions,
-            selected = selectedTypes,
-            onApply = {
-                selectedTypes = if (it.isEmpty()) typeOptions.toSet() else it
-                showTypeSheet = false
-            },
-            onDismiss = { showTypeSheet = false },
-        )
-    }
-
+    // Sheets (sort stays as sheet; type filter is now inline chips so TypeBottomSheet removed)
     if (showSortSheet) {
         SortBottomSheet(
             selectedSort = selectedSort,
-            onSortSelected = {
-                selectedSort = it
-                showSortSheet = false
-            },
+            onSortSelected = { selectedSort = it; showSortSheet = false },
             onDismiss = { showSortSheet = false },
-        )
-    }
-    if (showDataActionsSheet) {
-        DataActionsBottomSheet(
-            onSelectTypes = {
-                showDataActionsSheet = false
-                showTypeSheet = true
-            },
-            onSelectSorting = {
-                showDataActionsSheet = false
-                showSortSheet = true
-            },
-            onDismiss = { showDataActionsSheet = false },
         )
     }
     if (showCreateSheet) {
         CreateFromSearchBottomSheet(
-            onCreateContext = {
-                showCreateSheet = false
-                viewModel.createContextFromSearch()
-            },
-            onCreateDocument = {
-                showCreateSheet = false
-                viewModel.createDocumentFromSearch()
-            },
+            onCreateContext = { showCreateSheet = false; viewModel.createContextFromSearch() },
+            onCreateDocument = { showCreateSheet = false; viewModel.createDocumentFromSearch() },
             onDismiss = { showCreateSheet = false },
         )
     }
@@ -333,11 +227,7 @@ fun GlobalSearchScreen(
                 exit = scaleOut() + fadeOut(),
             ) {
                 FloatingActionButton(
-                    onClick = {
-                        coroutineScope.launch {
-                            listState.animateScrollToItem(0)
-                        }
-                    },
+                    onClick = { coroutineScope.launch { listState.animateScrollToItem(0) } },
                     shape = RoundedCornerShape(16.dp),
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -348,34 +238,26 @@ fun GlobalSearchScreen(
         },
         floatingActionButtonPosition = FabPosition.End,
     ) { paddingValues ->
-        val contentBottomPadding =
-            when (currentMode) {
-                OmniboxMode.DataSearch -> 150.dp
-                OmniboxMode.Command -> 116.dp
-                OmniboxMode.QuickCatchInbox, OmniboxMode.StartActivity, OmniboxMode.AddActivityEvent -> 116.dp
-            }
+        // Bottom padding: omnibox is now more compact (~100dp instead of 150/116)
+        val contentBottomPadding = 108.dp
+
         Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .background(
-                        brush =
-                            Brush.verticalGradient(
-                                colors =
-                                    listOf(
-                                        MaterialTheme.colorScheme.surface,
-                                        modePalette.screenBottomTint,
-                                    ),
-                                startY = 0.1f,
-                            ),
-                    ).padding(paddingValues)
-                    .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(MaterialTheme.colorScheme.surface, modePalette.screenBottomTint),
+                        startY = 0.1f,
+                    ),
+                )
+                .padding(paddingValues)
+                .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 8.dp),
         ) {
+            // ── Content area ──────────────────────────────────────────────────
             Box(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(bottom = contentBottomPadding),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = contentBottomPadding),
             ) {
                 when (currentMode) {
                     OmniboxMode.DataSearch -> {
@@ -391,43 +273,53 @@ fun GlobalSearchScreen(
                             }
                             uiState.isLoading -> {
                                 DataSearchLoadingContent(
-                                    modifier =
-                                        Modifier
-                                            .fillMaxSize()
-                                            .graphicsLayer(scaleX = loadingScale, scaleY = loadingScale),
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer(scaleX = loadingScale, scaleY = loadingScale),
                                 )
                             }
                             filteredResults.isEmpty() -> {
                                 EmptyDataSearchContent(
-                                    args =
-                                        EmptyDataSearchArgs(
-                                            query = uiState.query,
-                                            commandResults = uiState.hybridCommandResults,
-                                            selectedCommandIndex = selectedCommandIndex,
-                                            accentColor = modePalette.iconTint,
-                                            onCommandClick = viewModel::onCommandClick,
-                                            actions =
-                                                EmptyDataSearchActions(
-                                                    onQuickCatch = viewModel::quickCatchCurrentQuery,
-                                                    onStartActivity = viewModel::startActivityFromCurrentQuery,
-                                                    onAddActivityEvent = viewModel::addActivityEventFromCurrentQuery,
-                                                    onCreateContext = viewModel::createContextFromSearch,
-                                                    onCreateDocument = viewModel::createDocumentFromSearch,
-                                                    onRunBestCommand = viewModel::runBestCommandForCurrentQuery,
-                                                ),
+                                    args = EmptyDataSearchArgs(
+                                        query = uiState.query,
+                                        commandResults = uiState.hybridCommandResults,
+                                        selectedCommandIndex = selectedCommandIndex,
+                                        accentColor = modePalette.iconTint,
+                                        onCommandClick = viewModel::onCommandClick,
+                                        actions = EmptyDataSearchActions(
+                                            onQuickCatch = viewModel::quickCatchCurrentQuery,
+                                            onStartActivity = viewModel::startActivityFromCurrentQuery,
+                                            onAddActivityEvent = viewModel::addActivityEventFromCurrentQuery,
+                                            onCreateContext = viewModel::createContextFromSearch,
+                                            onCreateDocument = viewModel::createDocumentFromSearch,
+                                            onRunBestCommand = viewModel::runBestCommandForCurrentQuery,
                                         ),
+                                    ),
                                     modifier = Modifier.fillMaxSize(),
                                 )
                             }
                             else -> {
-                                SearchResultsContent(
-                                    args =
-                                        SearchResultsContentArgs(
+                                Column(modifier = Modifier.fillMaxSize().graphicsLayer(alpha = resultsAlpha)) {
+                                    // ── Inline type-filter chips ──────────────
+                                    InlineTypeFilterRow(
+                                        typeOptions = typeOptions,
+                                        selectedTypes = selectedTypes,
+                                        onToggleType = { type ->
+                                            val current = selectedTypes.toMutableSet()
+                                            if (type in current && current.size > 1) current.remove(type)
+                                            else if (type !in current) current.add(type)
+                                            viewModel.updateSelectedTypes(current)
+                                        },
+                                        onSelectAll = { viewModel.updateSelectedTypes(typeOptions.toSet()) },
+                                        onShowSort = { showSortSheet = true },
+                                        selectedSort = selectedSort,
+                                    )
+                                    SearchResultsContent(
+                                        args = SearchResultsContentArgs(
                                             commandResults = uiState.hybridCommandResults,
-                                            selectedCommandIndex =
-                                                selectedCommandIndex.takeIf {
-                                                    selectionArea == OmniboxSelectionArea.Command
-                                                },
+                                            selectedCommandIndex = selectedCommandIndex.takeIf {
+                                                selectionArea == OmniboxSelectionArea.Command
+                                            },
                                             onCommandClick = viewModel::onCommandClick,
                                             accentColor = modePalette.iconTint,
                                             results = filteredResults,
@@ -438,422 +330,480 @@ fun GlobalSearchScreen(
                                             listState = listState,
                                             selectedResultUniqueId = selectedDataResultUniqueId,
                                         ),
-                                    modifier =
-                                        Modifier
-                                            .fillMaxSize()
-                                            .graphicsLayer(alpha = resultsAlpha),
-                                )
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
                             }
                         }
                     }
                     OmniboxMode.Command -> {
                         CommandResultsContent(
-                            args =
-                                CommandResultsArgs(
-                                    results = uiState.commandResults,
-                                    query = uiState.query,
-                                    recentCommands = uiState.recentCommands,
-                                    selectedCommandIndex = selectedCommandIndex,
-                                    onCommandClick = viewModel::onCommandClick,
-                                    accentColor = modePalette.iconTint,
-                                ),
+                            args = CommandResultsArgs(
+                                results = uiState.commandResults,
+                                query = uiState.query,
+                                recentCommands = uiState.recentCommands,
+                                selectedCommandIndex = selectedCommandIndex,
+                                onCommandClick = viewModel::onCommandClick,
+                                accentColor = modePalette.iconTint,
+                            ),
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
-                    OmniboxMode.QuickCatchInbox -> {
-                        Spacer(modifier = Modifier.fillMaxSize())
-                    }
-                    OmniboxMode.StartActivity -> {
-                        Spacer(modifier = Modifier.fillMaxSize())
-                    }
+                    OmniboxMode.QuickCatchInbox,
+                    OmniboxMode.StartActivity,
                     OmniboxMode.AddActivityEvent -> {
                         Spacer(modifier = Modifier.fillMaxSize())
                     }
                 }
             }
-            Surface(
-                modifier =
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .imePadding(),
-                shape = RoundedCornerShape(18.dp),
-                color = modePalette.searchSurface,
-                tonalElevation = 1.dp,
-            ) {
-                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(start = 2.dp, end = 4.dp, bottom = 6.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
+
+            // ── Compact Omnibox ───────────────────────────────────────────────
+            CompactOmnibox(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .imePadding(),
+                uiState = uiState,
+                currentMode = currentMode,
+                modePalette = modePalette,
+                filteredResults = filteredResults,
+                selectedCommandIndex = selectedCommandIndex,
+                selectionArea = selectionArea,
+                showModeMenu = showModeMenu,
+                onShowModeMenu = { showModeMenu = true },
+                onDismissModeMenu = { showModeMenu = false },
+                onSetMode = { viewModel.setMode(it); showModeMenu = false },
+                onCycleMode = viewModel::cycleMode,
+                onQueryChange = viewModel::onQueryChange,
+                onClearQuery = { viewModel.onQueryChange("") },
+                onSubmit = submitWithKeyboardHide,
+                onShowCreate = { showCreateSheet = true },
+                onNavigateBack = {
+                    if (!navController.popBackStack()) viewModel.enhancedNavigationManager.goBack()
+                },
+                onKeyDown = { keyEvent ->
+                    handleOmniboxKeyEvent(
+                        keyEvent = keyEvent,
+                        currentMode = currentMode,
+                        uiState = uiState,
+                        filteredResults = filteredResults,
+                        selectedCommandIndex = selectedCommandIndex,
+                        selectedDataIndex = selectedDataIndex,
+                        selectionArea = selectionArea,
+                        onSelectedCommandIndex = { selectedCommandIndex = it },
+                        onSelectedDataIndex = { selectedDataIndex = it },
+                        onSelectionArea = { selectionArea = it },
+                        onOpenDataResult = { result -> openDataResultPrimary(result) },
+                        onSubmit = { idx ->
+                            viewModel.onSubmitSearch(idx)
+                            keyboardController?.hide()
+                        },
+                        focusRequester = focusRequester,
+                    )
+                },
+                focusRequester = focusRequester,
+            )
+        }
+    }
+}
+
+// ── Inline type filter + sort row ────────────────────────────────────────────
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun InlineTypeFilterRow(
+    typeOptions: List<GlobalSearchType>,
+    selectedTypes: Set<GlobalSearchType>,
+    onToggleType: (GlobalSearchType) -> Unit,
+    onSelectAll: () -> Unit,
+    onShowSort: () -> Unit,
+    selectedSort: GlobalSearchSort,
+) {
+    val allSelected = selectedTypes.size == typeOptions.size
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        androidx.compose.foundation.lazy.LazyRow(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            contentPadding = PaddingValues(end = 4.dp),
+        ) {
+            item {
+                FilterChip(
+                    selected = allSelected,
+                    onClick = onSelectAll,
+                    label = { Text("Усі", style = MaterialTheme.typography.labelSmall) },
+                    leadingIcon = if (allSelected) ({
+                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
+                    }) else null,
+                )
+            }
+            items(typeOptions.size) { idx ->
+                val type = typeOptions[idx]
+                val isSelected = type in selectedTypes && !allSelected
+                FilterChip(
+                    selected = isSelected,
+                    onClick = { onToggleType(type) },
+                    label = { Text(type.label, style = MaterialTheme.typography.labelSmall) },
+                    leadingIcon = {
+                        Icon(type.icon, contentDescription = null, modifier = Modifier.size(14.dp))
+                    },
+                )
+            }
+        }
+        // Sort icon button — compact, no label
+        IconButton(
+            onClick = onShowSort,
+            modifier = Modifier.size(32.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Tune,
+                contentDescription = "Сортування",
+                modifier = Modifier.size(18.dp),
+                tint = if (selectedSort != GlobalSearchSort.Relevance)
+                    MaterialTheme.colorScheme.primary
+                else
+                    MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+// ── Compact Omnibox ───────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CompactOmnibox(
+    modifier: Modifier = Modifier,
+    uiState: GlobalSearchUiState,
+    currentMode: OmniboxMode,
+    modePalette: OmniboxModePalette,
+    filteredResults: List<GlobalSearchResultItem>,
+    selectedCommandIndex: Int?,
+    selectionArea: OmniboxSelectionArea,
+    showModeMenu: Boolean,
+    onShowModeMenu: () -> Unit,
+    onDismissModeMenu: () -> Unit,
+    onSetMode: (OmniboxMode) -> Unit,
+    onCycleMode: (Boolean) -> Unit,
+    onQueryChange: (String) -> Unit,
+    onClearQuery: () -> Unit,
+    onSubmit: () -> Unit,
+    onShowCreate: () -> Unit,
+    onNavigateBack: () -> Unit,
+    onKeyDown: (androidx.compose.ui.input.key.KeyEvent) -> Boolean,
+    focusRequester: FocusRequester,
+) {
+    val isQuickCatchMode = currentMode == OmniboxMode.QuickCatchInbox
+
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        color = modePalette.searchSurface,
+        tonalElevation = 2.dp,
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+
+            // ── Row 1: TextField ────────────────────────────────────────────
+            TextField(
+                value = uiState.query,
+                onValueChange = onQueryChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (isQuickCatchMode) Modifier.heightIn(min = 48.dp, max = 140.dp)
+                        else Modifier.heightIn(min = 48.dp)
+                    )
+                    .focusRequester(focusRequester)
+                    .onPreviewKeyEvent { onKeyDown(it) },
+                singleLine = !isQuickCatchMode,
+                maxLines = if (isQuickCatchMode) 6 else 1,
+                placeholder = {
+                    Text(
+                        placeholderForMode(currentMode),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                },
+                leadingIcon = {
+                    // Mode icon: tap = menu, long-press = nothing extra, swipe = cycle
+                    Box {
                         Surface(
-                            onClick = {
-                                if (!navController.popBackStack()) {
-                                    viewModel.enhancedNavigationManager.goBack()
-                                }
-                            },
-                            shape = RoundedCornerShape(999.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Закрити пошук",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                                Text(
-                                    text = "Close",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            IconButton(onClick = { showCreateSheet = true }) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "Створити",
-                                )
-                            }
-                            AnimatedVisibility(
-                                visible =
-                                    !uiState.isLoading &&
-                                        when (currentMode) {
-                                            OmniboxMode.DataSearch -> filteredResults.isNotEmpty()
-                                            OmniboxMode.Command -> uiState.commandResults.isNotEmpty()
-                                            else -> false
+                            shape = RoundedCornerShape(10.dp),
+                            color = modePalette.modeIconContainer,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .pointerInput(currentMode) {
+                                    var totalDrag = 0f
+                                    detectHorizontalDragGestures(
+                                        onHorizontalDrag = { _, dragAmount -> totalDrag += dragAmount },
+                                        onDragEnd = {
+                                            when {
+                                                totalDrag > 36f -> onCycleMode(false)
+                                                totalDrag < -36f -> onCycleMode(true)
+                                            }
+                                            totalDrag = 0f
                                         },
-                                enter = fadeIn(animationSpec = tween(delayMillis = 200)) + scaleIn(),
-                                exit = fadeOut() + scaleOut(),
-                            ) {
-                                ResultsCountBadge(
-                                    count =
-                                        when (currentMode) {
-                                            OmniboxMode.DataSearch -> filteredResults.size
-                                            OmniboxMode.Command -> uiState.commandResults.size
-                                            else -> 0
-                                        },
-                                )
-                            }
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        ModePill(
-                            mode = currentMode,
-                            palette = modePalette,
-                        )
-                        if (currentMode == OmniboxMode.DataSearch) {
-                            Surface(
-                                onClick = { showDataActionsSheet = true },
-                                shape = RoundedCornerShape(999.dp),
-                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.MoreHoriz,
-                                        contentDescription = "Додаткові дії пошуку",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(14.dp),
                                     )
                                 }
+                                .pointerInput(Unit) {
+                                    detectTapGestures(
+                                        onTap = { onShowModeMenu() },
+                                    )
+                                },
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = modeIcon(currentMode),
+                                    contentDescription = "Режим omnibox",
+                                    tint = modePalette.iconTint,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                        }
+                        DropdownMenu(
+                            expanded = showModeMenu,
+                            onDismissRequest = onDismissModeMenu,
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        ) {
+                            OmniboxMode.entries.forEach { mode ->
+                                DropdownMenuItem(
+                                    text = { Text(modeTitle(mode), style = MaterialTheme.typography.bodyMedium) },
+                                    leadingIcon = {
+                                        Icon(modeIcon(mode), contentDescription = null, modifier = Modifier.size(16.dp))
+                                    },
+                                    onClick = { onSetMode(mode) },
+                                )
                             }
                         }
                     }
-                    val modeHint = ""
-                    if (modeHint.isNotBlank()) {
-                        val hintContainerColor =
-                            if (currentMode == OmniboxMode.QuickCatchInbox) {
-                                modePalette.modeIconContainer
-                            } else {
-                                MaterialTheme.colorScheme.surfaceContainerHigh
+                },
+                trailingIcon = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (uiState.query.isNotBlank()) {
+                            IconButton(onClick = onClearQuery, modifier = Modifier.size(36.dp)) {
+                                Icon(
+                                    Icons.Default.Clear,
+                                    contentDescription = "Очистити",
+                                    modifier = Modifier.size(16.dp),
+                                )
                             }
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = hintContainerColor,
-                            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp),
-                        ) {
-                            Text(
-                                text = modeHint,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        }
+                        IconButton(onClick = onSubmit, modifier = Modifier.size(36.dp)) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Send,
+                                contentDescription = submitDescriptionForMode(currentMode),
+                                modifier = Modifier.size(16.dp),
                             )
                         }
                     }
+                },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { onSubmit() }),
+                shape = RoundedCornerShape(14.dp),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = modePalette.inputFocusedContainer.copy(alpha = 1f),
+                    unfocusedContainerColor = modePalette.inputContainer.copy(alpha = 1f),
+                    disabledContainerColor = modePalette.inputContainer.copy(alpha = 1f),
+                    focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                    unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                    focusedLeadingIconColor = modePalette.iconTint,
+                    unfocusedLeadingIconColor = modePalette.iconTint,
+                    focusedTrailingIconColor = modePalette.iconTint,
+                    unfocusedTrailingIconColor = modePalette.iconTint,
+                ),
+            )
 
-                    val isQuickCatchMode = currentMode == OmniboxMode.QuickCatchInbox
+            // ── Row 2: mode pill + results count + back button ──────────────
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 6.dp, start = 2.dp, end = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Left: mode pill
+                ModePill(mode = currentMode, palette = modePalette)
 
-                    TextField(
-                        value = uiState.query,
-                        onValueChange = viewModel::onQueryChange,
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .then(
-                                    if (isQuickCatchMode) {
-                                        Modifier.heightIn(min = 56.dp, max = 160.dp)
-                                    } else {
-                                        Modifier.heightIn(min = 56.dp)
-                                    },
-                                )
-                                .focusRequester(focusRequester)
-                                .onPreviewKeyEvent { keyEvent ->
-                                    if (keyEvent.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-                                    when (keyEvent.key) {
-                                        Key.DirectionDown -> {
-                                            when (currentMode) {
-                                                OmniboxMode.Command -> {
-                                                    val commands = uiState.commandResults
-                                                    if (commands.isEmpty()) return@onPreviewKeyEvent false
-                                                    val current = selectedCommandIndex ?: -1
-                                                    selectedCommandIndex =
-                                                        (current + 1).coerceAtMost(commands.lastIndex)
-                                                    true
-                                                }
-                                                OmniboxMode.DataSearch -> {
-                                                    val commandSize = uiState.hybridCommandResults.size
-                                                    val dataSize = filteredResults.size
-                                                    if (commandSize == 0 && dataSize == 0) {
-                                                        return@onPreviewKeyEvent false
-                                                    }
-                                                    when (selectionArea) {
-                                                        OmniboxSelectionArea.Command -> {
-                                                            val current = selectedCommandIndex ?: 0
-                                                            if (current < commandSize - 1) {
-                                                                selectedCommandIndex = current + 1
-                                                            } else if (dataSize > 0) {
-                                                                selectionArea = OmniboxSelectionArea.Data
-                                                                selectedDataIndex = 0
-                                                            }
-                                                        }
-                                                        OmniboxSelectionArea.Data -> {
-                                                            val current = selectedDataIndex ?: -1
-                                                            selectedDataIndex = (current + 1).coerceAtMost(dataSize - 1)
-                                                        }
-                                                        OmniboxSelectionArea.None -> {
-                                                            if (commandSize > 0) {
-                                                                selectionArea = OmniboxSelectionArea.Command
-                                                                selectedCommandIndex = 0
-                                                            } else if (dataSize > 0) {
-                                                                selectionArea = OmniboxSelectionArea.Data
-                                                                selectedDataIndex = 0
-                                                            }
-                                                        }
-                                                    }
-                                                    true
-                                                }
-                                                else -> false
-                                            }
-                                        }
-                                        Key.DirectionUp -> {
-                                            when (currentMode) {
-                                                OmniboxMode.Command -> {
-                                                    val commands = uiState.commandResults
-                                                    if (commands.isEmpty()) return@onPreviewKeyEvent false
-                                                    val current = selectedCommandIndex ?: commands.size
-                                                    selectedCommandIndex = (current - 1).coerceAtLeast(0)
-                                                    true
-                                                }
-                                                OmniboxMode.DataSearch -> {
-                                                    val commandSize = uiState.hybridCommandResults.size
-                                                    val dataSize = filteredResults.size
-                                                    if (commandSize == 0 && dataSize == 0) {
-                                                        return@onPreviewKeyEvent false
-                                                    }
-                                                    when (selectionArea) {
-                                                        OmniboxSelectionArea.Command -> {
-                                                            val current = selectedCommandIndex ?: commandSize
-                                                            selectedCommandIndex = (current - 1).coerceAtLeast(0)
-                                                        }
-                                                        OmniboxSelectionArea.Data -> {
-                                                            val current = selectedDataIndex ?: dataSize
-                                                            if (current > 0) {
-                                                                selectedDataIndex = current - 1
-                                                            } else if (commandSize > 0) {
-                                                                selectionArea = OmniboxSelectionArea.Command
-                                                                selectedCommandIndex = commandSize - 1
-                                                            }
-                                                        }
-                                                        OmniboxSelectionArea.None -> {
-                                                            if (dataSize > 0) {
-                                                                selectionArea = OmniboxSelectionArea.Data
-                                                                selectedDataIndex = dataSize - 1
-                                                            } else if (commandSize > 0) {
-                                                                selectionArea = OmniboxSelectionArea.Command
-                                                                selectedCommandIndex = commandSize - 1
-                                                            }
-                                                        }
-                                                    }
-                                                    true
-                                                }
-                                                else -> false
-                                            }
-                                        }
-                                        Key.Enter, Key.NumPadEnter -> {
-                                            when (currentMode) {
-                                                OmniboxMode.Command -> {
-                                                    viewModel.onSubmitSearch(selectedCommandIndex)
-                                                    keyboardController?.hide()
-                                                    true
-                                                }
-                                                OmniboxMode.DataSearch -> {
-                                                    when (selectionArea) {
-                                                        OmniboxSelectionArea.Command -> {
-                                                            viewModel.onSubmitSearch(selectedCommandIndex)
-                                                            keyboardController?.hide()
-                                                            true
-                                                        }
-                                                        OmniboxSelectionArea.Data -> {
-                                                            val result =
-                                                                selectedDataIndex?.let {
-                                                                    filteredResults.getOrNull(it)
-                                                                }
-                                                            if (result != null) {
-                                                                openDataResultPrimary(result)
-                                                                keyboardController?.hide()
-                                                                true
-                                                            } else {
-                                                                false
-                                                            }
-                                                        }
-                                                        OmniboxSelectionArea.None -> {
-                                                            viewModel.onSubmitSearch(selectedCommandIndex)
-                                                            keyboardController?.hide()
-                                                            true
-                                                        }
-                                                    }
-                                                }
-                                                else -> {
-                                                    viewModel.onSubmitSearch()
-                                                    keyboardController?.hide()
-                                                    true
-                                                }
-                                            }
-                                        }
-                                        else -> false
-                                    }
-                                },
-                        singleLine = !isQuickCatchMode,
-                        maxLines = if (isQuickCatchMode) 6 else 1,
-                        placeholder = { Text(placeholderForMode(currentMode)) },
-                        leadingIcon = {
-                            Box {
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = modePalette.modeIconContainer,
-                                    modifier =
-                                        Modifier
-                                            .size(34.dp)
-                                            .pointerInput(currentMode) {
-                                                var totalDrag = 0f
-                                                detectHorizontalDragGestures(
-                                                    onHorizontalDrag = { _, dragAmount ->
-                                                        totalDrag += dragAmount
-                                                    },
-                                                    onDragEnd = {
-                                                        when {
-                                                            totalDrag > 36f -> viewModel.cycleMode(forward = false)
-                                                            totalDrag < -36f -> viewModel.cycleMode(forward = true)
-                                                        }
-                                                        totalDrag = 0f
-                                                    },
-                                                )
-                                            }
-                                            .clickable { showModeMenu = true },
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = modeIcon(currentMode),
-                                            contentDescription = "Режим omnibox",
-                                            tint = modePalette.iconTint,
-                                        )
-                                    }
-                                }
-                                DropdownMenu(
-                                    expanded = showModeMenu,
-                                    onDismissRequest = { showModeMenu = false },
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                ) {
-                                    OmniboxMode.entries.forEach { mode ->
-                                        DropdownMenuItem(
-                                            text = { Text(modeTitle(mode)) },
-                                            leadingIcon = {
-                                                Icon(
-                                                    imageVector = modeIcon(mode),
-                                                    contentDescription = null,
-                                                )
-                                            },
-                                            onClick = {
-                                                showModeMenu = false
-                                                viewModel.setMode(mode)
-                                            },
-                                        )
-                                    }
-                                }
-                            }
+                // Right: count badge + create button + back button
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AnimatedVisibility(
+                        visible = !uiState.isLoading && when (currentMode) {
+                            OmniboxMode.DataSearch -> filteredResults.isNotEmpty()
+                            OmniboxMode.Command -> uiState.commandResults.isNotEmpty()
+                            else -> false
                         },
-                        trailingIcon = {
-                            Row {
-                                if (uiState.query.isNotBlank()) {
-                                    IconButton(onClick = { viewModel.onQueryChange("") }) {
-                                        Icon(
-                                            imageVector = Icons.Default.Clear,
-                                            contentDescription = "Очистити запит",
-                                        )
-                                    }
-                                }
-                                IconButton(onClick = submitWithKeyboardHide) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.Send,
-                                        contentDescription = submitDescriptionForMode(currentMode),
-                                    )
-                                }
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(onSearch = { submitWithKeyboardHide() }),
-                        shape = RoundedCornerShape(14.dp),
-                        colors =
-                            TextFieldDefaults.colors(
-                                focusedContainerColor = modePalette.inputFocusedContainer.copy(alpha = 1f),
-                                unfocusedContainerColor = modePalette.inputContainer.copy(alpha = 1f),
-                                disabledContainerColor = modePalette.inputContainer.copy(alpha = 1f),
-                                focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                                unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                                focusedLeadingIconColor = modePalette.iconTint,
-                                unfocusedLeadingIconColor = modePalette.iconTint,
-                                focusedTrailingIconColor = modePalette.iconTint,
-                                unfocusedTrailingIconColor = modePalette.iconTint,
-                            ),
-                    )
+                        enter = fadeIn(animationSpec = tween(delayMillis = 200)) + scaleIn(),
+                        exit = fadeOut() + scaleOut(),
+                    ) {
+                        ResultsCountBadge(
+                            count = when (currentMode) {
+                                OmniboxMode.DataSearch -> filteredResults.size
+                                OmniboxMode.Command -> uiState.commandResults.size
+                                else -> 0
+                            },
+                        )
+                    }
+
+                    // Create button (compact icon only)
+                    IconButton(
+                        onClick = onShowCreate,
+                        modifier = Modifier.size(32.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = "Створити",
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    // Back button (compact)
+                    Surface(
+                        onClick = onNavigateBack,
+                        shape = RoundedCornerShape(999.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Закрити пошук",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(14.dp),
+                            )
+                            Text(
+                                text = "Закрити",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 }
 
+// ── Key event handler (extracted to keep GlobalSearchScreen readable) ─────────
+
+private fun handleOmniboxKeyEvent(
+    keyEvent: androidx.compose.ui.input.key.KeyEvent,
+    currentMode: OmniboxMode,
+    uiState: GlobalSearchUiState,
+    filteredResults: List<GlobalSearchResultItem>,
+    selectedCommandIndex: Int?,
+    selectedDataIndex: Int?,
+    selectionArea: OmniboxSelectionArea,
+    onSelectedCommandIndex: (Int?) -> Unit,
+    onSelectedDataIndex: (Int?) -> Unit,
+    onSelectionArea: (OmniboxSelectionArea) -> Unit,
+    onOpenDataResult: (GlobalSearchResultItem) -> Unit,
+    onSubmit: (Int?) -> Unit,
+    focusRequester: FocusRequester,
+): Boolean {
+    if (keyEvent.type != KeyEventType.KeyDown) return false
+    return when (keyEvent.key) {
+        Key.DirectionDown -> {
+            when (currentMode) {
+                OmniboxMode.Command -> {
+                    val commands = uiState.commandResults
+                    if (commands.isEmpty()) return false
+                    val current = selectedCommandIndex ?: -1
+                    onSelectedCommandIndex((current + 1).coerceAtMost(commands.lastIndex))
+                    true
+                }
+                OmniboxMode.DataSearch -> {
+                    val commandSize = uiState.hybridCommandResults.size
+                    val dataSize = filteredResults.size
+                    if (commandSize == 0 && dataSize == 0) return false
+                    when (selectionArea) {
+                        OmniboxSelectionArea.Command -> {
+                            val current = selectedCommandIndex ?: 0
+                            if (current < commandSize - 1) onSelectedCommandIndex(current + 1)
+                            else if (dataSize > 0) { onSelectionArea(OmniboxSelectionArea.Data); onSelectedDataIndex(0) }
+                        }
+                        OmniboxSelectionArea.Data -> {
+                            val current = selectedDataIndex ?: -1
+                            onSelectedDataIndex((current + 1).coerceAtMost(dataSize - 1))
+                        }
+                        OmniboxSelectionArea.None -> {
+                            if (commandSize > 0) { onSelectionArea(OmniboxSelectionArea.Command); onSelectedCommandIndex(0) }
+                            else if (dataSize > 0) { onSelectionArea(OmniboxSelectionArea.Data); onSelectedDataIndex(0) }
+                        }
+                    }
+                    true
+                }
+                else -> false
+            }
+        }
+        Key.DirectionUp -> {
+            when (currentMode) {
+                OmniboxMode.Command -> {
+                    val commands = uiState.commandResults
+                    if (commands.isEmpty()) return false
+                    val current = selectedCommandIndex ?: commands.size
+                    onSelectedCommandIndex((current - 1).coerceAtLeast(0))
+                    true
+                }
+                OmniboxMode.DataSearch -> {
+                    val commandSize = uiState.hybridCommandResults.size
+                    val dataSize = filteredResults.size
+                    if (commandSize == 0 && dataSize == 0) return false
+                    when (selectionArea) {
+                        OmniboxSelectionArea.Command -> {
+                            val current = selectedCommandIndex ?: commandSize
+                            onSelectedCommandIndex((current - 1).coerceAtLeast(0))
+                        }
+                        OmniboxSelectionArea.Data -> {
+                            val current = selectedDataIndex ?: dataSize
+                            if (current > 0) onSelectedDataIndex(current - 1)
+                            else if (commandSize > 0) {
+                                onSelectionArea(OmniboxSelectionArea.Command)
+                                onSelectedCommandIndex(commandSize - 1)
+                            }
+                        }
+                        OmniboxSelectionArea.None -> {
+                            if (dataSize > 0) { onSelectionArea(OmniboxSelectionArea.Data); onSelectedDataIndex(dataSize - 1) }
+                            else if (commandSize > 0) { onSelectionArea(OmniboxSelectionArea.Command); onSelectedCommandIndex(commandSize - 1) }
+                        }
+                    }
+                    true
+                }
+                else -> false
+            }
+        }
+        Key.Enter, Key.NumPadEnter -> {
+            when (currentMode) {
+                OmniboxMode.Command -> { onSubmit(selectedCommandIndex); true }
+                OmniboxMode.DataSearch -> {
+                    when (selectionArea) {
+                        OmniboxSelectionArea.Command -> { onSubmit(selectedCommandIndex); true }
+                        OmniboxSelectionArea.Data -> {
+                            val result = selectedDataIndex?.let { filteredResults.getOrNull(it) }
+                            if (result != null) { onOpenDataResult(result); true } else false
+                        }
+                        OmniboxSelectionArea.None -> { onSubmit(selectedCommandIndex); true }
+                    }
+                }
+                else -> { onSubmit(null); true }
+            }
+        }
+        else -> false
+    }
+}
+
+// ── Helpers (unchanged from original) ────────────────────────────────────────
 
 private fun modeIcon(mode: OmniboxMode): ImageVector =
     when (mode) {
@@ -885,15 +835,15 @@ private fun ModePill(
         color = palette.modeIconContainer,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 imageVector = modeIcon(mode),
                 contentDescription = null,
                 tint = palette.iconTint,
-                modifier = Modifier.size(14.dp),
+                modifier = Modifier.size(12.dp),
             )
             Text(
                 text = modeTitle(mode),
@@ -904,21 +854,16 @@ private fun ModePill(
     }
 }
 
-private enum class OmniboxSelectionArea {
-    None,
-    Command,
-    Data,
-}
+private enum class OmniboxSelectionArea { None, Command, Data }
 
 private fun placeholderForMode(mode: OmniboxMode): String =
     when (mode) {
-        OmniboxMode.DataSearch -> "Пошук по контекстах, цілях, активностях і вкладеннях"
-        OmniboxMode.Command -> "Команда або екран (fuzzy), напр. ctx, rem, ai"
+        OmniboxMode.DataSearch -> "Пошук по контекстах, цілях, активностях..."
+        OmniboxMode.Command -> "Команда або екран (fuzzy)"
         OmniboxMode.QuickCatchInbox -> "Швидкий запис в inbox..."
         OmniboxMode.StartActivity -> "Назва нової активності..."
         OmniboxMode.AddActivityEvent -> "Назва події трекера..."
     }
-
 
 private fun submitDescriptionForMode(mode: OmniboxMode): String =
     when (mode) {
@@ -938,7 +883,7 @@ internal fun commandIcon(commandId: OmniboxCommandId): ImageVector =
         OmniboxCommandId.OpenSettings -> Icons.Default.Tune
         OmniboxCommandId.OpenSearch -> Icons.Default.Search
         OmniboxCommandId.OpenAttachments -> Icons.Default.Description
-        OmniboxCommandId.OpenScripts -> Icons.AutoMirrored.Filled.Sort
+        OmniboxCommandId.OpenScripts -> Icons.Default.Tune
         OmniboxCommandId.OpenAiChat -> Icons.Default.Navigation
         OmniboxCommandId.OpenAiInsights -> Icons.Default.Navigation
         OmniboxCommandId.OpenAiLife -> Icons.Default.Navigation
@@ -962,12 +907,12 @@ internal fun commandTitle(commandId: OmniboxCommandId): String =
     }
 
 private data class OmniboxModePalette(
-    val searchSurface: Color,
-    val screenBottomTint: Color,
-    val inputContainer: Color,
-    val inputFocusedContainer: Color,
-    val modeIconContainer: Color,
-    val iconTint: Color,
+    val searchSurface: androidx.compose.ui.graphics.Color,
+    val screenBottomTint: androidx.compose.ui.graphics.Color,
+    val inputContainer: androidx.compose.ui.graphics.Color,
+    val inputFocusedContainer: androidx.compose.ui.graphics.Color,
+    val modeIconContainer: androidx.compose.ui.graphics.Color,
+    val iconTint: androidx.compose.ui.graphics.Color,
 )
 
 @Composable
@@ -975,51 +920,46 @@ private fun rememberModePalette(mode: OmniboxMode): OmniboxModePalette {
     val scheme = MaterialTheme.colorScheme
     return remember(mode, scheme) {
         when (mode) {
-            OmniboxMode.DataSearch ->
-                OmniboxModePalette(
-                    searchSurface = scheme.surfaceContainerLow,
-                    screenBottomTint = scheme.background,
-                    inputContainer = scheme.surfaceVariant.copy(alpha = 0.88f),
-                    inputFocusedContainer = scheme.surfaceVariant,
-                    modeIconContainer = scheme.primaryContainer.copy(alpha = 0.45f),
-                    iconTint = scheme.primary.copy(alpha = 0.9f),
-                )
-            OmniboxMode.Command ->
-                OmniboxModePalette(
-                    searchSurface = scheme.secondaryContainer.copy(alpha = 0.22f),
-                    screenBottomTint = scheme.secondaryContainer.copy(alpha = 0.10f),
-                    inputContainer = scheme.secondaryContainer.copy(alpha = 0.28f),
-                    inputFocusedContainer = scheme.secondaryContainer.copy(alpha = 0.36f),
-                    modeIconContainer = scheme.secondaryContainer.copy(alpha = 0.5f),
-                    iconTint = scheme.secondary.copy(alpha = 0.92f),
-                )
-            OmniboxMode.QuickCatchInbox ->
-                OmniboxModePalette(
-                    searchSurface = scheme.tertiaryContainer.copy(alpha = 0.20f),
-                    screenBottomTint = scheme.tertiaryContainer.copy(alpha = 0.10f),
-                    inputContainer = scheme.tertiaryContainer.copy(alpha = 0.28f),
-                    inputFocusedContainer = scheme.tertiaryContainer.copy(alpha = 0.36f),
-                    modeIconContainer = scheme.tertiaryContainer.copy(alpha = 0.52f),
-                    iconTint = scheme.tertiary.copy(alpha = 0.92f),
-                )
-            OmniboxMode.StartActivity ->
-                OmniboxModePalette(
-                    searchSurface = scheme.primaryContainer.copy(alpha = 0.20f),
-                    screenBottomTint = scheme.primaryContainer.copy(alpha = 0.09f),
-                    inputContainer = scheme.primaryContainer.copy(alpha = 0.28f),
-                    inputFocusedContainer = scheme.primaryContainer.copy(alpha = 0.36f),
-                    modeIconContainer = scheme.primaryContainer.copy(alpha = 0.54f),
-                    iconTint = scheme.primary.copy(alpha = 0.9f),
-                )
-            OmniboxMode.AddActivityEvent ->
-                OmniboxModePalette(
-                    searchSurface = scheme.secondaryContainer.copy(alpha = 0.20f),
-                    screenBottomTint = scheme.secondaryContainer.copy(alpha = 0.10f),
-                    inputContainer = scheme.secondaryContainer.copy(alpha = 0.28f),
-                    inputFocusedContainer = scheme.secondaryContainer.copy(alpha = 0.36f),
-                    modeIconContainer = scheme.secondaryContainer.copy(alpha = 0.52f),
-                    iconTint = scheme.secondary.copy(alpha = 0.92f),
-                )
+            OmniboxMode.DataSearch -> OmniboxModePalette(
+                searchSurface = scheme.surfaceContainerLow,
+                screenBottomTint = scheme.background,
+                inputContainer = scheme.surfaceVariant.copy(alpha = 0.88f),
+                inputFocusedContainer = scheme.surfaceVariant,
+                modeIconContainer = scheme.primaryContainer.copy(alpha = 0.45f),
+                iconTint = scheme.primary.copy(alpha = 0.9f),
+            )
+            OmniboxMode.Command -> OmniboxModePalette(
+                searchSurface = scheme.secondaryContainer.copy(alpha = 0.22f),
+                screenBottomTint = scheme.secondaryContainer.copy(alpha = 0.10f),
+                inputContainer = scheme.secondaryContainer.copy(alpha = 0.28f),
+                inputFocusedContainer = scheme.secondaryContainer.copy(alpha = 0.36f),
+                modeIconContainer = scheme.secondaryContainer.copy(alpha = 0.5f),
+                iconTint = scheme.secondary.copy(alpha = 0.92f),
+            )
+            OmniboxMode.QuickCatchInbox -> OmniboxModePalette(
+                searchSurface = scheme.tertiaryContainer.copy(alpha = 0.20f),
+                screenBottomTint = scheme.tertiaryContainer.copy(alpha = 0.10f),
+                inputContainer = scheme.tertiaryContainer.copy(alpha = 0.28f),
+                inputFocusedContainer = scheme.tertiaryContainer.copy(alpha = 0.36f),
+                modeIconContainer = scheme.tertiaryContainer.copy(alpha = 0.52f),
+                iconTint = scheme.tertiary.copy(alpha = 0.92f),
+            )
+            OmniboxMode.StartActivity -> OmniboxModePalette(
+                searchSurface = scheme.primaryContainer.copy(alpha = 0.20f),
+                screenBottomTint = scheme.primaryContainer.copy(alpha = 0.09f),
+                inputContainer = scheme.primaryContainer.copy(alpha = 0.28f),
+                inputFocusedContainer = scheme.primaryContainer.copy(alpha = 0.36f),
+                modeIconContainer = scheme.primaryContainer.copy(alpha = 0.54f),
+                iconTint = scheme.primary.copy(alpha = 0.9f),
+            )
+            OmniboxMode.AddActivityEvent -> OmniboxModePalette(
+                searchSurface = scheme.secondaryContainer.copy(alpha = 0.20f),
+                screenBottomTint = scheme.secondaryContainer.copy(alpha = 0.10f),
+                inputContainer = scheme.secondaryContainer.copy(alpha = 0.28f),
+                inputFocusedContainer = scheme.secondaryContainer.copy(alpha = 0.36f),
+                modeIconContainer = scheme.secondaryContainer.copy(alpha = 0.52f),
+                iconTint = scheme.secondary.copy(alpha = 0.92f),
+            )
         }
     }
 }

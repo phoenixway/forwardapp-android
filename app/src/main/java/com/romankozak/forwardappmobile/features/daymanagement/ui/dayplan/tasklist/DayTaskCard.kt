@@ -96,7 +96,7 @@ fun DayTaskCard(
 
         IconButton(
             onClick = actions.onLongPress,
-            modifier = Modifier.size(34.dp),
+            modifier = dragHandleModifier.size(34.dp),
         ) {
             Icon(
                 imageVector = Icons.Filled.MoreVert,

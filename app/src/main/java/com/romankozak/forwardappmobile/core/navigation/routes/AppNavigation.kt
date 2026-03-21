@@ -74,7 +74,7 @@ import java.net.URLDecoder
 const val MAIN_GRAPH_ROUTE = NavigationRoutes.MAIN_GRAPH
 const val COMMAND_DECK_ROUTE = NavigationRoutes.COMMAND_DECK
 const val CHARACTER_SCREEN_ROUTE = NavigationRoutes.CHARACTER
-const val GOAL_LISTS_ROUTE = NavigationRoutes.GOAL_LISTS
+const val GOAL_LISTS_ROUTE = NavigationRoutes.GOAL_LISTS_PATTERN
 const val AI_INSIGHTS_ROUTE = NavigationRoutes.AI_INSIGHTS
 const val LIFE_STATE_ROUTE = NavigationRoutes.LIFE_STATE
 const val SELECTIVE_IMPORT_ROUTE = NavigationRoutes.SELECTIVE_IMPORT_PATTERN
@@ -153,7 +153,7 @@ private fun NavGraphBuilder.mainGraph(
             navigationManager = navigationManager,
             onNavigateToProjectHierarchy = {
                 navigationManager.navigate(
-                    target = NavTarget.ContextHierarchy,
+                    target = NavTarget.ContextHierarchy(),
                     recordInHistory = true,
                 )
             },
@@ -278,7 +278,17 @@ private fun NavGraphBuilder.mainGraph(
         StructurePresetEditorScreen(navController = navController)
     }
 
-    composable(GOAL_LISTS_ROUTE) { backStackEntry ->
+    composable(
+        route = GOAL_LISTS_ROUTE,
+        arguments =
+            listOf(
+                navArgument(NavigationRoutes.ARG_PROJECT_ID_TO_REVEAL) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+    ) { backStackEntry ->
         val parentEntry = remember(backStackEntry) { navController.getBackStackEntry(MAIN_GRAPH_ROUTE) }
         val viewModel: ContextHierarchyScreenViewModel = hiltViewModel(parentEntry)
 
@@ -289,6 +299,7 @@ private fun NavGraphBuilder.mainGraph(
             syncDataViewModel = syncDataViewModel,
             viewModel = viewModel,
             navigationManager = appNavigationViewModel.navigationManager,
+            projectIdToReveal = backStackEntry.arguments?.getString(NavigationRoutes.ARG_PROJECT_ID_TO_REVEAL),
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = this,
         )

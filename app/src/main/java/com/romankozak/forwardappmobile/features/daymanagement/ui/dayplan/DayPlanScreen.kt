@@ -11,15 +11,10 @@ import androidx.navigation.NavController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
-import com.romankozak.forwardappmobile.ui.common.MatrixRainView
 
 const val TAG = "NAV_DEBUG"
-internal const val PRELOAD_CONTENT_DELAY_MILLIS = 100L
-internal const val MATRIX_SPLASH_VISIBLE_DELAY_MILLIS = 600L
-internal const val MATRIX_SPLASH_FADE_OUT_DELAY_MILLIS = 500L
 internal const val LINK_PICKER_OPEN_DELAY_MILLIS = 160L
 internal const val CONTENT_FADE_IN_DURATION_MILLIS = 300
-internal const val CONTENT_FADE_IN_DELAY_MILLIS = 400
 
 data class DayPlanScreenNavigator(
     val navController: NavController,
@@ -67,11 +62,7 @@ fun DayPlanScreen(
         viewModel = viewModel,
         visualState =
             DayPlanVisualState(
-                isContentReady = presentationState.isContentReady.value,
-                showMatrixSplash = presentationState.showMatrixSplash.value,
-                onMatrixViewCreated = { view: MatrixRainView ->
-                    presentationState.matrixView.value = view
-                },
+                isContentReady = true,
             ),
         modifier = modifier,
     )
