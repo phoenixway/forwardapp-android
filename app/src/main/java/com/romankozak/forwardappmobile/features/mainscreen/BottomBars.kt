@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.Add
@@ -45,6 +46,8 @@ import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -425,6 +428,305 @@ fun DashboardBottomBar(
             label = "More",
             onClick = { showMoreBottomSheet = true },
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CommandDeckMoreActionButton(
+    onNavigateToProjectHierarchy: () -> Unit,
+    onShowContextMarkersSheet: () -> Unit,
+    onNavigateToReminders: () -> Unit,
+    onNavigateToPresets: () -> Unit,
+    onNavigateToAiChat: () -> Unit,
+    onNavigateToAiInsights: () -> Unit,
+    onNavigateToAiLifeManagement: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onExportToFile: () -> Unit,
+    onImportFromFileRequest: (Uri) -> Unit,
+    onSelectiveImportFromFileRequest: (Uri) -> Unit,
+    onExportAttachments: () -> Unit,
+    onImportAttachmentsFromFileRequest: (Uri) -> Unit,
+    onWifiPush: (String) -> Unit,
+    onShowWifiServer: () -> Unit,
+    onShowWifiImport: () -> Unit,
+    onNavigateToAttachments: () -> Unit,
+    onNavigateToScripts: () -> Unit,
+    onShowAbout: () -> Unit,
+    featureToggles: Map<FeatureFlag, Boolean>,
+    modifier: Modifier = Modifier,
+) {
+    val coroutineScope = rememberCoroutineScope()
+    val modalSheetState =
+        rememberModalBottomSheetState(
+            skipPartiallyExpanded = false,
+        )
+    var showMoreBottomSheet by remember { mutableStateOf(false) }
+    var showImportExportSheet by remember { mutableStateOf(false) }
+
+    val importLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { onImportFromFileRequest(it) }
+        }
+
+    val selectiveImportLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { onSelectiveImportFromFileRequest(it) }
+        }
+
+    val importAttachmentsLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { onImportAttachmentsFromFileRequest(it) }
+        }
+
+    IconButton(
+        onClick = { showMoreBottomSheet = true },
+        modifier = modifier,
+        colors =
+            IconButtonDefaults.iconButtonColors(
+                contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
+            ),
+    ) {
+        Icon(
+            imageVector = Icons.Default.MoreVert,
+            contentDescription = "Більше дій",
+        )
+    }
+
+    if (showMoreBottomSheet) {
+        val moreSheetColor = MaterialTheme.colorScheme.surfaceContainerLow
+        ModalBottomSheet(
+            onDismissRequest = { showMoreBottomSheet = false },
+            sheetState = modalSheetState,
+            shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
+            containerColor = moreSheetColor,
+        ) {
+            MoreBottomSheetContent(
+                onNavigateToReminders = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onNavigateToReminders()
+                    }
+                },
+                onNavigateToPresets = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onNavigateToPresets()
+                    }
+                },
+                onNavigateToAiInsights = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onNavigateToAiInsights()
+                    }
+                },
+                onNavigateToProjectHierarchy = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onNavigateToProjectHierarchy()
+                    }
+                },
+                onShowContextMarkersSheet = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onShowContextMarkersSheet()
+                    }
+                },
+                onNavigateToAiChat = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onNavigateToAiChat()
+                    }
+                },
+                onNavigateToAiLifeManagement = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onNavigateToAiLifeManagement()
+                    }
+                },
+                onShowImportExportSheet = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        showImportExportSheet = true
+                    }
+                },
+                onNavigateToAttachments = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onNavigateToAttachments()
+                    }
+                },
+                onNavigateToScripts = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onNavigateToScripts()
+                    }
+                },
+                onShowAbout = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onShowAbout()
+                    }
+                },
+                onNavigateToSettings = {
+                    coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                        if (!modalSheetState.isVisible) {
+                            showMoreBottomSheet = false
+                        }
+                        onNavigateToSettings()
+                    }
+                },
+                featureToggles = featureToggles,
+                containerColor = moreSheetColor,
+            )
+        }
+    }
+
+    if (showImportExportSheet) {
+        val importExportSheetColor = MaterialTheme.colorScheme.surfaceContainerLow
+        ModalBottomSheet(
+            onDismissRequest = { showImportExportSheet = false },
+            containerColor = importExportSheetColor,
+        ) {
+            Column(
+                modifier =
+                    Modifier
+                        .background(importExportSheetColor)
+                        .padding(bottom = 24.dp),
+            ) {
+                Text(
+                    text = "Імпорт / Експорт",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(160.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                ) {
+                    item {
+                        ImportExportTile(
+                            icon = Icons.Default.CloudUpload,
+                            title = "Експорт бекапу",
+                            subtitle = "Зберегти JSON у файлі",
+                            containerColor = importExportSheetColor,
+                            onClick = {
+                                showImportExportSheet = false
+                                onExportToFile()
+                            },
+                        )
+                    }
+                    item {
+                        ImportExportTile(
+                            icon = Icons.Default.CloudDownload,
+                            title = "Повний імпорт",
+                            subtitle = "Замінити поточні дані",
+                            containerColor = importExportSheetColor,
+                            onClick = {
+                                showImportExportSheet = false
+                                importLauncher.launch("application/json")
+                            },
+                        )
+                    }
+                    item {
+                        ImportExportTile(
+                            icon = Icons.Default.FolderOpen,
+                            title = "Вибірковий імпорт",
+                            subtitle = "Обрати сутності",
+                            containerColor = importExportSheetColor,
+                            onClick = {
+                                showImportExportSheet = false
+                                selectiveImportLauncher.launch("application/json")
+                            },
+                        )
+                    }
+                    item {
+                        ImportExportTile(
+                            icon = Icons.Default.Description,
+                            title = "Експорт вкладень",
+                            subtitle = "JSON вкладень",
+                            containerColor = importExportSheetColor,
+                            onClick = {
+                                showImportExportSheet = false
+                                onExportAttachments()
+                            },
+                        )
+                    }
+                    item {
+                        ImportExportTile(
+                            icon = Icons.Default.FolderOpen,
+                            title = "Імпорт вкладень",
+                            subtitle = "Додати вкладення",
+                            containerColor = importExportSheetColor,
+                            onClick = {
+                                showImportExportSheet = false
+                                importAttachmentsLauncher.launch("application/json")
+                            },
+                        )
+                    }
+                    item {
+                        ImportExportTile(
+                            icon = Icons.Default.CloudUpload,
+                            title = "Push змін по Wi‑Fi",
+                            subtitle = "Надіслати несинхронізоване",
+                            containerColor = importExportSheetColor,
+                            onClick = {
+                                showImportExportSheet = false
+                                onWifiPush("localhost:8080")
+                            },
+                        )
+                    }
+                    item {
+                        ImportExportTile(
+                            icon = Icons.Default.Wifi,
+                            title = "Wi‑Fi сервер",
+                            subtitle = "Запустити локальний сервер",
+                            containerColor = importExportSheetColor,
+                            onClick = {
+                                showImportExportSheet = false
+                                onShowWifiServer()
+                            },
+                        )
+                    }
+                    item {
+                        ImportExportTile(
+                            icon = Icons.Default.Wifi,
+                            title = "Wi‑Fi імпорт",
+                            subtitle = "Отримати дані з сервера",
+                            containerColor = importExportSheetColor,
+                            onClick = {
+                                showImportExportSheet = false
+                                onShowWifiImport()
+                            },
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

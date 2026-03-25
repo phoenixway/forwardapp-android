@@ -55,6 +55,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.theme.LocalInputPanelColors
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.InputSuggestionActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.AutocompleteSuggestions
+import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckMoreActionButton
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTargetsPickerDialog
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalMissionViewModel
@@ -168,6 +169,32 @@ fun TacticsBottomPanel(
                             modifier = Modifier.size(18.dp),
                         )
                     }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    CommandDeckMoreActionButton(
+                        onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                        onShowContextMarkersSheet = onShowContextMarkersSheet,
+                        onNavigateToReminders = onNavigateToReminders,
+                        onNavigateToPresets = onNavigateToPresets,
+                        onNavigateToAiChat = onNavigateToAiChat,
+                        onNavigateToAiInsights = onNavigateToAiInsights,
+                        onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
+                        onNavigateToSettings = onNavigateToSettings,
+                        onExportToFile = onExportToFile,
+                        onImportFromFileRequest = onImportFromFileRequest,
+                        onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
+                        onExportAttachments = onExportAttachments,
+                        onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
+                        onWifiPush = onWifiPush,
+                        onShowWifiServer = onShowWifiServer,
+                        onShowWifiImport = onShowWifiImport,
+                        onNavigateToAttachments = onNavigateToAttachments,
+                        onNavigateToScripts = onNavigateToScripts,
+                        onShowAbout = onShowAbout,
+                        featureToggles = featureToggles,
+                        modifier = Modifier.size(32.dp),
+                    )
                 }
 
                 AutocompleteSuggestions(

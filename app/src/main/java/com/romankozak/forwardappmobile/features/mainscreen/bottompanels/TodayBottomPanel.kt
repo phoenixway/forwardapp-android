@@ -62,6 +62,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.compo
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTargetsPickerDialog
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
+import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckMoreActionButton
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
 import java.text.SimpleDateFormat
@@ -294,6 +295,30 @@ fun TodayBottomPanel(
                             )
                         }
                     }
+
+                    CommandDeckMoreActionButton(
+                        onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                        onShowContextMarkersSheet = onShowContextMarkersSheet,
+                        onNavigateToReminders = onNavigateToReminders,
+                        onNavigateToPresets = onNavigateToPresets,
+                        onNavigateToAiChat = onNavigateToAiChat,
+                        onNavigateToAiInsights = onNavigateToAiInsights,
+                        onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
+                        onNavigateToSettings = onNavigateToSettings,
+                        onExportToFile = onExportToFile,
+                        onImportFromFileRequest = onImportFromFileRequest,
+                        onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
+                        onExportAttachments = onExportAttachments,
+                        onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
+                        onWifiPush = onWifiPush,
+                        onShowWifiServer = onShowWifiServer,
+                        onShowWifiImport = onShowWifiImport,
+                        onNavigateToAttachments = onNavigateToAttachments,
+                        onNavigateToScripts = onNavigateToScripts,
+                        onShowAbout = onShowAbout,
+                        featureToggles = featureToggles,
+                        modifier = Modifier.size(38.dp),
+                    )
                 }
 
                 AutocompleteSuggestions(
