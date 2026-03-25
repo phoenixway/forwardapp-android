@@ -485,13 +485,7 @@ private fun InternalSubprojectItem(
                 Column(
                     modifier =
                         Modifier
-                            .weight(1f)
-                            .pointerInput(onItemClick, onLongClick) {
-                                detectTapGestures(
-                                    onLongPress = { onLongClick() },
-                                    onTap = { onItemClick() },
-                                )
-                            },
+                            .weight(1f),
                 ) {
                     if (subproject.isCompleted) {
                         CompletedBadge(
