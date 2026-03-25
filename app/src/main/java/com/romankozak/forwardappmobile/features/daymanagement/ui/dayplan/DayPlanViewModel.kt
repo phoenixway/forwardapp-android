@@ -160,6 +160,8 @@ class DayPlanViewModel
         val isScopeLinksSheetVisible: StateFlow<Boolean> = _isScopeLinksSheetVisible.asStateFlow()
         private val _connectionsOrder = MutableStateFlow<List<String>>(emptyList())
         val connectionsOrder: StateFlow<List<String>> = _connectionsOrder.asStateFlow()
+        private val _pendingScrollToTaskId = MutableStateFlow<String?>(null)
+        val pendingScrollToTaskId: StateFlow<String?> = _pendingScrollToTaskId.asStateFlow()
         val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = contextRepository.contextMarkerToEmojiMap
         val contextMarkerNames: StateFlow<List<String>> = contextRepository.contextMarkerNamesFlow
         private val allContextsFlow =
@@ -713,7 +715,8 @@ class DayPlanViewModel
                             order = topOrder,
                         )
                     } else {
-                        dayManagementRepository.addTaskToDayPlan(
+                        val createdTask =
+                            dayManagementRepository.addTaskToDayPlan(
                             NewTaskParameters(
                                 dayPlanId = dayPlanId,
                                 title = trimmedTitle,
@@ -727,12 +730,17 @@ class DayPlanViewModel
                                 linkedProjectIds = linkedProjectIds,
                             ),
                         )
+                        _pendingScrollToTaskId.value = createdTask.id
                     }
                     dismissAddTaskDialog()
                 } catch (e: Exception) {
                     Log.e("DayPlanViewModel", "Error adding task", e)
                 }
             }
+        }
+
+        fun consumePendingScrollToTask() {
+            _pendingScrollToTaskId.value = null
         }
 
         fun addTaskFromContext(contextId: String) {

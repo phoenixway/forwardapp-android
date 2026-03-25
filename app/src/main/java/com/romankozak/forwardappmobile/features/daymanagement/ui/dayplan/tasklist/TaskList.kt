@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -50,12 +51,12 @@ fun TaskList(
     tasks: List<DayTaskWithReminder>,
     contextMarkerToEmojiMap: Map<String, String>,
     actions: TaskListActions,
+    lazyListState: LazyListState = rememberLazyListState(),
     modifier: Modifier = Modifier,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
     var internalTasks by remember(tasks) { mutableStateOf(tasks) }
 
-    val lazyListState = rememberLazyListState()
     val reorderableState =
         rememberReorderableLazyListState(lazyListState) { from, to ->
             internalTasks =
@@ -88,7 +89,7 @@ fun TaskList(
 private fun TaskListContent(
     tasks: List<DayTaskWithReminder>,
     contextMarkerToEmojiMap: Map<String, String>,
-    lazyListState: androidx.compose.foundation.lazy.LazyListState,
+    lazyListState: LazyListState,
     reorderableState: sh.calvin.reorderable.ReorderableLazyListState,
     actions: TaskListActions,
 ) {

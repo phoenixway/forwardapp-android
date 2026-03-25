@@ -6,6 +6,7 @@ import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,7 +25,9 @@ import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -99,6 +102,17 @@ private fun DayPlanPrimaryContent(
     viewModel: DayPlanViewModel,
 ) {
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
+    val pendingScrollToTaskId by viewModel.pendingScrollToTaskId.collectAsStateWithLifecycle()
+    val taskListState = rememberLazyListState()
+
+    LaunchedEffect(pendingScrollToTaskId, state.uiState.tasks) {
+        val targetTaskId = pendingScrollToTaskId ?: return@LaunchedEffect
+        val targetIndex = state.uiState.tasks.indexOfFirst { it.dayTask.id == targetTaskId }
+        if (targetIndex >= 0) {
+            taskListState.animateScrollToItem(targetIndex)
+            viewModel.consumePendingScrollToTask()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         when {
@@ -129,6 +143,7 @@ private fun DayPlanPrimaryContent(
                                     navigateToParentInfo(parentInfo = parentInfo, navigator = state.navigator)
                                 },
                             ),
+                        lazyListState = taskListState,
                         modifier = Modifier.weight(1f),
                     )
                 }
