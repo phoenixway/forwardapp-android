@@ -1,5 +1,4 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,7 +18,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -38,40 +39,59 @@ fun BacklogListScreen(
     modifier: Modifier = Modifier,
 ) {
     val sortedItems = remember(state.items) { state.items.withCompletedAtEnd() }
+    val uiItems = remember { mutableStateListOf<BacklogItemContent>() }
+    var isDragInProgress by remember { mutableStateOf(false) }
+
+    LaunchedEffect(sortedItems) {
+        if (!isDragInProgress) {
+            uiItems.clear()
+            uiItems.addAll(sortedItems)
+        }
+    }
+
     val reorderableState =
         rememberReorderableLazyListState(state.listState) { from, to ->
-            if (sortedItems.isEmpty()) return@rememberReorderableLazyListState
-            val safeFromIndex = from.index.coerceIn(0, sortedItems.lastIndex)
-            val safeToIndex = to.index.coerceIn(0, sortedItems.lastIndex)
+            if (uiItems.isEmpty()) return@rememberReorderableLazyListState
+            val safeFromIndex = from.index.coerceIn(0, uiItems.lastIndex)
+            val safeToIndex = to.index.coerceIn(0, uiItems.lastIndex)
             if (safeFromIndex == safeToIndex) return@rememberReorderableLazyListState
-            val fromItem = sortedItems[safeFromIndex]
-            val toItem = sortedItems[safeToIndex]
-            val originalFrom = state.items.indexOfFirst { it.backlogItem.id == fromItem.backlogItem.id }
-            val originalTo = state.items.indexOfFirst { it.backlogItem.id == toItem.backlogItem.id }
-            if (originalFrom >= 0 && originalTo >= 0 && originalFrom != originalTo) {
-                actions.onMove(originalFrom, originalTo)
-            }
+            isDragInProgress = true
+            val movedItem = uiItems.removeAt(safeFromIndex)
+            uiItems.add(safeToIndex, movedItem)
         }
     var showBottomSheet by remember { mutableStateOf(false) }
     var selectedItemForActions by remember { mutableStateOf<BacklogItemContent?>(null) }
-    val completedStartIndex = remember(sortedItems) { sortedItems.indexOfFirst { it.isCompleted() } }
+    val completedStartIndex = remember(uiItems.toList()) { uiItems.indexOfFirst { it.isCompleted() } }
     val completedCount =
-        remember(sortedItems) {
-            if (completedStartIndex == -1) 0 else sortedItems.size - completedStartIndex
+        remember(uiItems.toList()) {
+            if (completedStartIndex == -1) 0 else uiItems.size - completedStartIndex
         }
 
     if (showBottomSheet && selectedItemForActions != null) {
+        val selectedItem = selectedItemForActions!!
+        val isCompleted =
+            when (selectedItem) {
+                is BacklogItemContent.GoalItem -> selectedItem.goal.completed
+                is BacklogItemContent.ContextLinkItem -> selectedItem.project.isCompleted
+                else -> false
+            }
         BacklogItemActionsBottomSheet(
             onDismiss = { showBottomSheet = false },
-            onCopyContent = { actions.onCopyContent(selectedItemForActions!!) },
-            onRemindersClick = { actions.onRemindersClick(selectedItemForActions!!) },
-            onDeleteEverywhere = { actions.onDeleteEverywhere(selectedItemForActions!!) },
+            isCompleted = isCompleted,
             onOpenGoalProperties =
-                if (selectedItemForActions is BacklogItemContent.GoalItem) {
-                    { actions.onOpenGoalProperties(selectedItemForActions!!) }
+                if (selectedItem is BacklogItemContent.GoalItem) {
+                    { actions.onOpenGoalProperties(selectedItem) }
                 } else {
                     null
                 },
+            onRemindersClick = { actions.onRemindersClick(selectedItem) },
+            onAddToDayPlan = { actions.onAddToDayPlan(selectedItem) },
+            onStartTracking = { actions.onStartTracking(selectedItem) },
+            onMoveOrShare = { actions.onShowGoalTransportMenu(selectedItem) },
+            onToggleCompleted = { actions.onCheckedChange(selectedItem, !isCompleted) },
+            onCopyContent = { actions.onCopyContent(selectedItem) },
+            onDelete = { actions.onDelete(selectedItem) },
+            onDeleteEverywhere = { actions.onDeleteEverywhere(selectedItem) },
         )
     }
 
@@ -87,6 +107,7 @@ fun BacklogListScreen(
         contentState =
             BacklogListContentState(
                 sortedItems = sortedItems,
+                uiItems = uiItems,
                 reorderableState = reorderableState,
                 completedStartIndex = completedStartIndex,
                 completedCount = completedCount,
@@ -94,6 +115,9 @@ fun BacklogListScreen(
         onShowItemActions = { item ->
             selectedItemForActions = item
             showBottomSheet = true
+        },
+        onDragFinished = {
+            isDragInProgress = false
         },
     )
 }
@@ -135,12 +159,13 @@ private fun BacklogListContent(
     modifier: Modifier,
     contentState: BacklogListContentState,
     onShowItemActions: (BacklogItemContent) -> Unit,
+    onDragFinished: () -> Unit,
 ) {
     LazyColumn(
         state = state.listState,
         modifier = modifier,
     ) {
-        itemsIndexed(contentState.sortedItems, key = { _, item -> item.backlogItem.id }) { index, item ->
+        itemsIndexed(contentState.uiItems, key = { _, item -> item.backlogItem.id }) { index, item ->
             val showCompletedHeader =
                 contentState.completedStartIndex != -1 && index == contentState.completedStartIndex
             Column {
@@ -149,30 +174,25 @@ private fun BacklogListContent(
                 }
                 ReorderableItem(contentState.reorderableState, key = item.backlogItem.id) { isDragging ->
                     val isSelected = item.backlogItem.id in state.selectedItemIds
-                    SwipeableBacklogItem(
+                    BacklogItem(
                         item = item,
                         reorderableScope = this,
-                        showCheckboxes = state.showCheckboxes,
-                        isDragging = isDragging,
-                        isSelected = isSelected,
-                        contextMarkerToEmojiMap = state.contextMarkerToEmojiMap,
-                        isInlineEditing = (item as? BacklogItemContent.GoalItem)?.goal?.id == state.editingGoalId,
-                        onRequestCloseOthers = { actions.onResetSwipe(item.backlogItem.id) },
-                        swipedItemId = state.swipedItemId,
-                        resetCounter = state.swipeResetCounter,
+                        modifier = Modifier,
                         onItemClick = { actions.onItemClick(item) },
                         onLongClick = { actions.onLongClick(item) },
                         onMoreClick = { onShowItemActions(item) },
-                        onCheckedChange = actions.onCheckedChange,
-                        onDelete = { actions.onDelete(item) },
-                        onRemindersClick = { actions.onRemindersClick(item) },
-                        onAddToDayPlan = { actions.onAddToDayPlan(item) },
-                        onStartTracking = { actions.onStartTracking(item) },
-                        onShowGoalTransportMenu = { actions.onShowGoalTransportMenu(item) },
+                        onCheckedChange = { isChecked -> actions.onCheckedChange(item, isChecked) },
                         onRelatedLinkClick = actions.onRelatedLinkClick,
+                        showCheckbox = state.showCheckboxes,
+                        isSelected = isSelected,
+                        contextMarkerToEmojiMap = state.contextMarkerToEmojiMap,
+                        isInlineEditing = (item as? BacklogItemContent.GoalItem)?.goal?.id == state.editingGoalId,
                         onInlineEditSave = actions.onGoalInlineEditSave,
                         onInlineEditCancel = actions.onGoalInlineEditCancel,
-                        onDragStopped = actions.onDragStopped,
+                        onDragStopped = {
+                            onDragFinished()
+                            actions.onDragStopped(contentState.uiItems.toList())
+                        },
                     )
                 }
             }
@@ -218,13 +238,10 @@ data class BacklogListState(
     val showCheckboxes: Boolean,
     val selectedItemIds: Set<String>,
     val contextMarkerToEmojiMap: Map<String, String>,
-    val swipedItemId: String?,
-    val swipeResetCounter: Int,
     val editingGoalId: String?,
 )
 
 data class BacklogListActions(
-    val onMove: (from: Int, to: Int) -> Unit,
     val onItemClick: (BacklogItemContent) -> Unit,
     val onLongClick: (BacklogItemContent) -> Unit,
     val onCheckedChange: (BacklogItemContent, Boolean) -> Unit,
@@ -239,12 +256,12 @@ data class BacklogListActions(
     val onOpenGoalProperties: (BacklogItemContent) -> Unit,
     val onGoalInlineEditSave: (String) -> Unit,
     val onGoalInlineEditCancel: () -> Unit,
-    val onResetSwipe: (String) -> Unit,
-    val onDragStopped: () -> Unit,
+    val onDragStopped: (List<BacklogItemContent>) -> Unit,
 )
 
 private data class BacklogListContentState(
     val sortedItems: List<BacklogItemContent>,
+    val uiItems: List<BacklogItemContent>,
     val reorderableState: sh.calvin.reorderable.ReorderableLazyListState,
     val completedStartIndex: Int,
     val completedCount: Int,

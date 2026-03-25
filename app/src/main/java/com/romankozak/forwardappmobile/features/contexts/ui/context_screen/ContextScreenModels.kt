@@ -31,8 +31,6 @@ sealed class UiEvent {
 
     data class Navigate(val target: NavTarget) : UiEvent()
 
-    data class ResetSwipeState(val itemId: String) : UiEvent()
-
     data class ScrollTo(val index: Int) : UiEvent()
 
     data class NavigateBackAndReveal(val contextId: String) : UiEvent()
@@ -67,9 +65,6 @@ data class UiState(
     val newlyAddedItemId: String? = null,
     val selectedItemIds: Set<String> = emptySet(),
     val inputValue: TextFieldValue = TextFieldValue(""),
-    val resetTriggers: Map<String, Int> = emptyMap(),
-    val swipedItemId: String? = null,
-    val swipeResetCounter: Int = 0,
     val showAddWebLinkDialog: Boolean = false,
     val showAddObsidianLinkDialog: Boolean = false,
     val itemToHighlight: String? = null,

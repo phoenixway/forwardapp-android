@@ -127,13 +127,10 @@ fun GoalDetailContent(
                         showCheckboxes = uiState.showCheckboxes,
                         selectedItemIds = uiState.selectedItemIds,
                         contextMarkerToEmojiMap = contextMarkerToEmojiMap,
-                        swipedItemId = uiState.swipedItemId,
-                        swipeResetCounter = uiState.swipeResetCounter,
                         editingGoalId = uiState.goalToEditInline?.id,
                     ),
                 actions =
                     BacklogListActions(
-                        onMove = { from, to -> viewModel.onMove(from, to) },
                         onItemClick = { item -> viewModel.itemActionHandler.onItemClick(item) },
                         onLongClick = { item -> viewModel.toggleSelection(item.backlogItem.id) },
                         onCheckedChange = { item, isChecked ->
@@ -166,7 +163,6 @@ fun GoalDetailContent(
                         onOpenGoalProperties = viewModel::openGoalProperties,
                         onGoalInlineEditSave = viewModel::onSaveGoalInlineEditor,
                         onGoalInlineEditCancel = viewModel::onDismissGoalInlineEditor,
-                        onResetSwipe = viewModel::resetSwipeStatesExcept,
                         onDragStopped = viewModel::onBacklogDragStopped,
                     ),
             )

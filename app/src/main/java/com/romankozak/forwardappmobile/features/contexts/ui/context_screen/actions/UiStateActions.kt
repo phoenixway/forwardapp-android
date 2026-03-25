@@ -98,33 +98,12 @@ class UiStateActions(
         stateManager.updateState { it.copy(inboxRecordToHighlight = null) }
     }
 
-    fun setSwipedItem(itemId: String?) {
-        stateManager.updateState { it.copy(swipedItemId = itemId) }
-    }
-
-    fun resetSwipeState() {
-        stateManager.updateState {
-            it.copy(
-                swipedItemId = null,
-                swipeResetCounter = it.swipeResetCounter + 1,
-            )
-        }
-    }
-
     fun markNewItemConsumed() {
         stateManager.updateState { it.copy(newlyAddedItemId = null) }
     }
 
     fun toggleCheckboxes() {
         stateManager.updateState { it.copy(showCheckboxes = !it.showCheckboxes) }
-    }
-
-    fun bumpSwipeResetTrigger(itemId: String) {
-        stateManager.updateState { currentState ->
-            val newTriggers = currentState.resetTriggers.toMutableMap()
-            newTriggers[itemId] = (newTriggers[itemId] ?: 0) + 1
-            currentState.copy(resetTriggers = newTriggers)
-        }
     }
 
     private fun setRecentProjectsSheetVisibility(isVisible: Boolean) {

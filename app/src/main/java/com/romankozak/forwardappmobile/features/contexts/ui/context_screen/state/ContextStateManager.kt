@@ -195,9 +195,6 @@ data class ContextUiState(
     val inputMode: InputMode = InputMode.AddGoal,
     val inputValue: androidx.compose.ui.text.input.TextFieldValue = androidx.compose.ui.text.input.TextFieldValue(""),
     val selectedItemIds: Set<String> = emptySet(),
-    val swipedItemId: String? = null,
-    val swipeResetCounter: Int = 0,
-    val resetTriggers: Map<String, Int> = emptyMap(),
     // UI State - Highlighting & Focus
     val goalToHighlight: String? = null,
     val itemToHighlight: String? = null,
@@ -232,8 +229,6 @@ sealed class UiEvent {
     data class ShowSnackbar(val message: String, val action: String? = null) : UiEvent()
 
     data class Navigate(val target: NavTarget) : UiEvent()
-
-    data class ResetSwipeState(val itemId: String) : UiEvent()
 
     data class ScrollTo(val index: Int) : UiEvent()
 

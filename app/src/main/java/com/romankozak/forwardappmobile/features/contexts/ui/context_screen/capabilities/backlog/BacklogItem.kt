@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -70,6 +71,8 @@ import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTok
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
 import kotlinx.coroutines.delay
 import sh.calvin.reorderable.ReorderableCollectionItemScope
+
+private const val BACKLOG_SWIPE_DEBUG_TAG = "BACKLOG_SWIPE_DEBUG"
 
 @Composable
 fun BacklogItem(
@@ -443,10 +446,6 @@ private fun InternalSubprojectItem(
                         .padding(
                             vertical = UnifiedListItemTokens.OuterVerticalSpacing,
                             horizontal = UnifiedListItemTokens.OuterHorizontalSpacing,
-                        )
-                        .combinedClickable(
-                            onClick = onItemClick,
-                            onLongClick = onLongClick,
                         ),
                 contentPadding = PaddingValues(0.dp),
             ),
@@ -476,7 +475,13 @@ private fun InternalSubprojectItem(
                 if (showCheckbox) {
                     Checkbox(
                         checked = subproject.isCompleted,
-                        onCheckedChange = onCheckedChange,
+                        onCheckedChange = {
+                            Log.d(
+                                BACKLOG_SWIPE_DEBUG_TAG,
+                                "subcontextCheckbox itemId=${subproject.id} checked=$it",
+                            )
+                            onCheckedChange(it)
+                        },
                         modifier = Modifier.size(24.dp),
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -485,7 +490,23 @@ private fun InternalSubprojectItem(
                 Column(
                     modifier =
                         Modifier
-                            .weight(1f),
+                            .weight(1f)
+                            .combinedClickable(
+                                onClick = {
+                                    Log.d(
+                                        BACKLOG_SWIPE_DEBUG_TAG,
+                                        "subcontextTap itemId=${subproject.id} name=${subproject.name}",
+                                    )
+                                    onItemClick()
+                                },
+                                onLongClick = {
+                                    Log.d(
+                                        BACKLOG_SWIPE_DEBUG_TAG,
+                                        "subcontextLongTap itemId=${subproject.id} name=${subproject.name}",
+                                    )
+                                    onLongClick()
+                                },
+                            ),
                 ) {
                     if (subproject.isCompleted) {
                         CompletedBadge(
@@ -544,7 +565,15 @@ private fun InternalSubprojectItem(
                         }
                             .size(20.dp)
                             .alpha(if (subproject.isCompleted) 0.5f else 1f)
-                            .clickable(onClick = onMoreClick),
+                            .clickable(
+                                onClick = {
+                                    Log.d(
+                                        BACKLOG_SWIPE_DEBUG_TAG,
+                                        "subcontextMoreTap itemId=${subproject.id}",
+                                    )
+                                    onMoreClick()
+                                },
+                            ),
                 )
             }
         }

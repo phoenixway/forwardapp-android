@@ -210,7 +210,6 @@ private fun ContextScreenUiEventsEffect(
                     context.localContext.startActivity(intent)
                 }
 
-                is UiEvent.ResetSwipeState -> viewModel.onSwipeStateReset(event.itemId)
                 is UiEvent.ScrollTo -> dependencies.listState.animateScrollToItem(event.index)
                 is UiEvent.ScrollToLatestInboxRecord ->
                     dependencies.coroutineScope.launch {

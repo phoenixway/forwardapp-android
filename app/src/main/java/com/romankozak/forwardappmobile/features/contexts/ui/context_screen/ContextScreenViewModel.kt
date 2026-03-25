@@ -912,10 +912,6 @@ class ContextScreenViewModel
 
         fun onHighlightInboxRecord(recordId: String?) = uiStateActions.highlightInboxRecord(recordId)
 
-        fun onItemSwiped(itemId: String?) = uiStateActions.setSwipedItem(itemId)
-
-        fun onResetSwipeState() = uiStateActions.resetSwipeState()
-
         fun onToggleCheckboxes() = uiStateActions.toggleCheckboxes()
 
         override fun onCleared() {
@@ -1181,17 +1177,10 @@ class ContextScreenViewModel
             }
         }
 
-        fun onMove(
-            from: Int,
-            to: Int,
-        ) {
-            if (from == to) return
-            _listContent.value = backlogDndCoordinator.move(_listContent.value, from, to)
-        }
-
-        fun onBacklogDragStopped() {
+        fun onBacklogDragStopped(reorderedItems: List<BacklogItemContent>) {
+            _listContent.value = reorderedItems
             viewModelScope.launch(ioDispatcher) {
-                backlogDndCoordinator.onDragStopped(_listContent.value)
+                backlogDndCoordinator.onDragStopped(reorderedItems)
             }
         }
 
@@ -1447,8 +1436,6 @@ class ContextScreenViewModel
 
         fun onLimitLastActivityRequested() {}
 
-        fun resetSwipeStatesExcept(itemId: String) {}
-
         fun onSetReminderForItem(item: BacklogItemContent) =
             viewModelScope.launch {
                 reminderActions.onSetReminderForItem(item)
@@ -1474,8 +1461,6 @@ class ContextScreenViewModel
         fun onRemoveReminder(reminderId: String) = viewModelScope.launch { reminderActions.onRemoveReminder(reminderId) }
 
         fun getBacklogAsMarkdown(): String = backlogActions.getBacklogAsMarkdown(listContent.value)
-
-        fun onSwipeStateReset(itemId: String) = uiStateActions.bumpSwipeResetTrigger(itemId)
 
         fun onExportInboxToMarkdown() = markdownActions.onExportInboxToMarkdown(inboxHandler.inboxRecords.value)
 
