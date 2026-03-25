@@ -99,12 +99,23 @@ fun GoalDetailContent(
         ContextViewMode.BACKLOG -> {
             val listContent by viewModel.listContent.collectAsStateWithLifecycle()
             val searchQuery = uiState.localSearchQuery.trim()
+            val currentContextId = goalList?.id
             val filteredBacklogItems =
-                remember(listContent, searchQuery) {
+                remember(listContent, searchQuery, currentContextId) {
+                    val backlogItemsWithoutAutoChildContexts =
+                        if (currentContextId.isNullOrBlank()) {
+                            listContent
+                        } else {
+                            listContent.filterNot { item ->
+                                item is BacklogItemContent.ContextLinkItem &&
+                                    item.project.parentId == currentContextId
+                            }
+                        }
+
                     if (searchQuery.isBlank()) {
-                        listContent
+                        backlogItemsWithoutAutoChildContexts
                     } else {
-                        listContent.filter { it.matchesLocalSearch(searchQuery) }
+                        backlogItemsWithoutAutoChildContexts.filter { it.matchesLocalSearch(searchQuery) }
                     }
                 }
             BacklogListScreen(
