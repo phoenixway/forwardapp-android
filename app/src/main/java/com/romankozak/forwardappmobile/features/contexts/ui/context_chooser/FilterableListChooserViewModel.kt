@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.displayParentId
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -48,16 +49,28 @@ class FilterableListChooserViewModel
                 allProjects,
                 showDescendants,
             ) { filter, projects, shouldShowDescendants ->
+                val allProjectsById = projects.associateBy { it.id }
+                val displayParentById =
+                    projects.associate { project ->
+                        project.id to project.displayParentId(allProjectsById)
+                    }
+
                 if (filter.isBlank()) {
                     val fullChildMap =
                         projects
-                            .filter { it.parentId != null }
-                            .groupBy { it.parentId!! }
+                            .mapNotNull { project ->
+                                displayParentById[project.id]?.let { parentId -> parentId to project }
+                            }.groupBy(
+                                keySelector = { it.first },
+                                valueTransform = { it.second },
+                            )
                             .mapValues { (_, children) -> children.sortedBy { it.order } }
-                    val fullTopLevelProjects = projects.filter { it.parentId == null }.sortedBy { it.order }
+                    val fullTopLevelProjects =
+                        projects
+                            .filter { displayParentById[it.id] == null }
+                            .sortedBy { it.order }
                     ChooserUiState(topLevelProjects = fullTopLevelProjects, childMap = fullChildMap)
                 } else {
-                    val allProjectsById = projects.associateBy { it.id }
                     val matchingProjects = projects.filter { it.name.contains(filter, ignoreCase = true) }
 
                     val visibleIds = mutableSetOf<String>()
@@ -68,12 +81,19 @@ class FilterableListChooserViewModel
                         while (current != null && current.id !in path) {
                             path.add(current.id)
                             visibleIds.add(current.id)
-                            current = current.parentId?.let { parentId -> allProjectsById[parentId] }
+                            current = displayParentById[current.id]?.let { parentId -> allProjectsById[parentId] }
                         }
                     }
 
                     if (shouldShowDescendants) {
-                        val fullChildMapForTraversal = projects.filter { it.parentId != null }.groupBy { it.parentId!! }
+                        val fullChildMapForTraversal =
+                            projects
+                                .mapNotNull { project ->
+                                    displayParentById[project.id]?.let { parentId -> parentId to project }
+                                }.groupBy(
+                                    keySelector = { it.first },
+                                    valueTransform = { it.second },
+                                )
                         val descendantsQueue = ArrayDeque(matchingProjects)
 
                         while (descendantsQueue.isNotEmpty()) {
@@ -87,13 +107,17 @@ class FilterableListChooserViewModel
 
                     val filteredChildMap =
                         visibleProjects
-                            .filter { project -> project.parentId != null }
-                            .groupBy { project -> project.parentId!! }
+                            .mapNotNull { project ->
+                                displayParentById[project.id]?.let { parentId -> parentId to project }
+                            }.groupBy(
+                                keySelector = { it.first },
+                                valueTransform = { it.second },
+                            )
                             .mapValues { entry -> entry.value.sortedBy { child -> child.order } }
 
                     val filteredTopLevelProjects =
                         visibleProjects
-                            .filter { project -> project.parentId == null }
+                            .filter { project -> displayParentById[project.id] == null }
                             .sortedBy { project -> project.order }
 
                     ChooserUiState(topLevelProjects = filteredTopLevelProjects, childMap = filteredChildMap)
@@ -113,14 +137,18 @@ class FilterableListChooserViewModel
                 viewModelScope.launch(Dispatchers.Default) {
                     val projects = allProjects.value
                     val projectMap = projects.associateBy { it.id }
+                    val displayParentById =
+                        projects.associate { project ->
+                            project.id to project.displayParentId(projectMap)
+                        }
                     val matchingProjects = projects.filter { it.name.contains(text, ignoreCase = true) }
 
                     val idsToExpand = mutableSetOf<String>()
                     matchingProjects.forEach { project ->
-                        var parentId = project.parentId
+                        var parentId = displayParentById[project.id]
                         while (parentId != null) {
                             idsToExpand.add(parentId)
-                            parentId = projectMap[parentId]?.parentId
+                            parentId = displayParentById[parentId]
                         }
                     }
                     _expandedIds.value = idsToExpand

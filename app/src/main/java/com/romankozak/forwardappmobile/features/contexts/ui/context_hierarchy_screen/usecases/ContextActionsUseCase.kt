@@ -9,6 +9,7 @@ import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.displayParentId
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.findDescendantsForDeletion
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.getDescendantIds
 import com.romankozak.forwardappmobile.sync.SyncRepository
@@ -30,16 +31,9 @@ class ContextActionsUseCase
             parentId: String?,
             name: String,
             roleCode: String? = null,
-            allProjects: List<Context>,
         ) = withContext(ioDispatcher) {
             if (name.isBlank()) return@withContext
             contextRepository.createContextWithId(id, name, parentId, roleCode = roleCode)
-            if (parentId != null) {
-                val parentProject = allProjects.find { it.id == parentId }
-                if (parentProject != null && !parentProject.isExpanded) {
-                    contextRepository.updateContext(parentProject.copy(isExpanded = true))
-                }
-            }
         }
 
         suspend fun onDeleteProjectConfirmed(
@@ -55,9 +49,17 @@ class ContextActionsUseCase
             allProjects: List<Context>,
         ): NavTarget.ListChooser {
             val title = "Move '${project.name}'"
-            val childMap = allProjects.filter { it.parentId != null }.groupBy { it.parentId!! }
+            val projectsById = allProjects.associateBy { it.id }
+            val childMap =
+                allProjects
+                    .mapNotNull { context ->
+                        context.displayParentId(projectsById)?.let { parentId -> parentId to context }
+                    }.groupBy(
+                        keySelector = { it.first },
+                        valueTransform = { it.second },
+                    )
             val descendantIds = getDescendantIds(project.id, childMap).joinToString(",")
-            val currentParentId = project.parentId ?: "root"
+            val currentParentId = project.displayParentId(projectsById) ?: "root"
             val disabledIds = "${project.id}${if (descendantIds.isNotEmpty()) ",$descendantIds" else ""}"
             return NavTarget.ListChooser(
                 title = title,
@@ -74,20 +76,14 @@ class ContextActionsUseCase
             val projectToMoveId = projectBeingMovedId ?: return@withContext
             val projectToMove = allProjects.find { it.id == projectToMoveId } ?: return@withContext
             val finalNewParentId = if (newParentId == "root") null else newParentId
+            val projectsById = allProjects.associateBy { it.id }
 
-            if (projectToMove.parentId == finalNewParentId) return@withContext
+            if (projectToMove.displayParentId(projectsById) == finalNewParentId) return@withContext
             if (SystemContexts.isPinnedRoot(ContextId(projectToMove.id)) && finalNewParentId != null) {
                 return@withContext
             }
 
             contextRepository.moveContext(projectToMove, finalNewParentId, allowSystemMoves = true)
-
-            if (finalNewParentId != null) {
-                val parentProject = allProjects.find { it.id == finalNewParentId }
-                if (parentProject != null && !parentProject.isExpanded) {
-                    contextRepository.updateContext(parentProject.copy(isExpanded = true))
-                }
-            }
         }
 
         suspend fun onProjectReorder(
@@ -106,7 +102,8 @@ class ContextActionsUseCase
                 return@withContext
             }
 
-            val newParentId = toProject.parentId
+            val projectsById = allProjects.associateBy { it.id }
+            val newParentId = toProject.displayParentId(projectsById)
             if (SystemContexts.isPinnedRoot(ContextId(fromProject.id)) && newParentId != null) {
                 return@withContext
             }
@@ -117,14 +114,14 @@ class ContextActionsUseCase
             }
 
             val now = System.currentTimeMillis()
-            val sourceParentId = fromProject.parentId
+            val sourceParentId = fromProject.displayParentId(projectsById)
             val sourceSiblings =
                 allProjects
-                    .filter { it.parentId == sourceParentId }
+                    .filter { it.displayParentId(projectsById) == sourceParentId }
                     .sortedBy { it.order }
             val targetSiblings =
                 allProjects
-                    .filter { it.parentId == newParentId }
+                    .filter { it.displayParentId(projectsById) == newParentId }
                     .sortedBy { it.order }
 
             val targetList = targetSiblings.filterNot { it.id == fromId }.toMutableList()
@@ -165,35 +162,12 @@ class ContextActionsUseCase
 
                 updates.addAll(sourceWithout)
                 updates.addAll(targetWithOrder)
-
-                if (newParentId != null) {
-                    val newParent = allProjects.find { it.id == newParentId }
-                    if (newParent != null && !newParent.isExpanded) {
-                        updates.add(newParent.copy(isExpanded = true, updatedAt = now))
-                    }
-                }
             }
 
             if (updates.isNotEmpty()) {
                 contextRepository.updateContexts(updates)
             }
         }
-
-        suspend fun collapseAllProjects(allProjects: List<Context>) =
-            withContext(ioDispatcher) {
-                val projectsToCollapse =
-                    allProjects
-                        .filter { it.isExpanded }
-                        .map { it.copy(isExpanded = false) }
-                if (projectsToCollapse.isNotEmpty()) {
-                    contextRepository.updateContexts(projectsToCollapse)
-                }
-            }
-
-        suspend fun onToggleExpanded(project: Context) =
-            withContext(ioDispatcher) {
-                contextRepository.updateContext(project.copy(isExpanded = !project.isExpanded))
-            }
 
         suspend fun exportToFile() = withContext(ioDispatcher) { syncRepository.exportFullBackupToFile() }
 

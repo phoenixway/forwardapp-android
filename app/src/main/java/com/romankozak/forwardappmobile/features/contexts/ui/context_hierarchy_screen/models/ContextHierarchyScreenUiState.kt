@@ -23,8 +23,6 @@ data class ProjectHierarchyScreenUiState(
     val flattenedHierarchy: List<FlatHierarchyItem> = emptyList(),
     val longDescendantsMap: Map<String, Boolean> = emptyMap(),
     val currentBreadcrumbs: List<BreadcrumbItem> = emptyList(),
-    val areAnyProjectsExpanded: Boolean = false,
-    val planningMode: PlanningMode = PlanningMode.All,
     val planningSettings: PlanningSettingsState = PlanningSettingsState(),
     val dialogState: DialogState = DialogState.Hidden,
     val showRecentListsSheet: Boolean = false,

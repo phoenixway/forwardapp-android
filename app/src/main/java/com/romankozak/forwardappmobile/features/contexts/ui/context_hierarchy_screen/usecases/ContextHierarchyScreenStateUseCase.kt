@@ -22,7 +22,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.MainScreenUiState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningSettingsState
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenPlanningMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResult
@@ -90,30 +89,11 @@ class ProjectHierarchyScreenStateUseCase
                     .obsidianVaultNameFlow
                     .stateIn(scope, SharingStarted.WhileSubscribed(5_000), "")
 
-            val expansionState =
-                combine(
-                    planningUseCase.planningModeManager.expandedInDailyMode,
-                    planningUseCase.planningModeManager.expandedInMediumMode,
-                    planningUseCase.planningModeManager.expandedInLongMode,
-                ) { expandedDaily, expandedMedium, expandedLong ->
-                    ExpansionState(
-                        expandedDaily = expandedDaily,
-                        expandedMedium = expandedMedium,
-                        expandedLong = expandedLong,
-                    )
-                }
-                    .stateIn(
-                        scope,
-                        SharingStarted.Eagerly,
-                        ExpansionState(emptySet(), emptySet(), emptySet()),
-                    )
-
             val hierarchyState =
                 HierarchyStateBuilder(hierarchyUseCase)
                     .buildHierarchyState(
                         scope = scope,
                         filterStates = planningUseCase.filterStateFlow,
-                        expansionStates = expansionState,
                     )
 
             scope.launch {
@@ -143,12 +123,10 @@ class ProjectHierarchyScreenStateUseCase
 
             val expensiveCalculationsFlow =
                 combine(
-                    allProjectsFlat,
                     recentItemsRepository.getRecentItems(),
                     contextMarkerHandler.allContextMarkersFlow,
-                ) { allProjects, recentItems, contextMarkers ->
+                ) { recentItems, contextMarkers ->
                     ExpensiveCalculations(
-                        areAnyProjectsExpanded = allProjects.any { it.isExpanded },
                         recentItems = recentItems,
                         allContextMarkers = contextMarkers,
                     )
@@ -167,14 +145,12 @@ class ProjectHierarchyScreenStateUseCase
                     searchUseCase.searchQuery,
                     hierarchyState,
                     searchUseCase.currentBreadcrumbs,
-                    planningUseCase.planningMode,
-                ) { subStateStack, searchQuery, hierarchy, breadcrumbs, planningMode ->
+                ) { subStateStack, searchQuery, hierarchy, breadcrumbs ->
                     CoreUiState(
                         subStateStack = subStateStack,
                         searchQuery = searchQuery,
                         projectHierarchy = hierarchy,
                         currentBreadcrumbs = breadcrumbs,
-                        planningMode = planningMode,
                         searchResultFilter = SearchResultFilter.All,
                         searchResultSort = SearchResultSort.Relevance,
                         flattenedHierarchy =
@@ -270,8 +246,6 @@ class ProjectHierarchyScreenStateUseCase
                         flattenedHierarchy = coreState.flattenedHierarchy,
                         longDescendantsMap = coreState.longDescendantsMap,
                         currentBreadcrumbs = coreState.currentBreadcrumbs,
-                        areAnyProjectsExpanded = expensiveCalcs.areAnyProjectsExpanded,
-                        planningMode = coreState.planningMode,
                         planningSettings = planningSettings,
                         dialogState = dialogState.dialogState,
                         showRecentListsSheet = dialogState.showRecentListsSheet,
@@ -317,18 +291,11 @@ class ProjectHierarchyScreenStateUseCase
         val searchResults: StateFlow<List<SearchResult>>
             get() = searchResultsInternal
 
-        internal data class ExpansionState(
-            val expandedDaily: Set<String>,
-            val expandedMedium: Set<String>,
-            val expandedLong: Set<String>,
-        )
-
         private data class CoreUiState(
             val subStateStack: List<ProjectHierarchyScreenSubState>,
             val searchQuery: TextFieldValue,
             val projectHierarchy: ContextHierarchyData,
             val currentBreadcrumbs: List<BreadcrumbItem>,
-            val planningMode: PlanningMode,
             val searchResultFilter: SearchResultFilter,
             val searchResultSort: SearchResultSort,
             val flattenedHierarchy: List<FlatHierarchyItem>,
@@ -343,7 +310,6 @@ class ProjectHierarchyScreenStateUseCase
         )
 
         private data class ExpensiveCalculations(
-            val areAnyProjectsExpanded: Boolean = false,
             val recentItems: List<RecentItem> = emptyList(),
             val allContextMarkers: List<UiContextMarker> = emptyList(),
         )
@@ -384,21 +350,14 @@ internal class HierarchyStateBuilder(
     fun buildHierarchyState(
         scope: CoroutineScope,
         filterStates: StateFlow<FilterState>,
-        expansionStates: StateFlow<ProjectHierarchyScreenStateUseCase.ExpansionState>,
     ): StateFlow<ContextHierarchyData> {
         val readyFilterState = prepareReadyFilterState(filterStates)
 
-        return combine(readyFilterState, expansionStates) { filterState, expansion ->
+        return readyFilterState.map { filterState ->
             HierarchyDebugLogger.d {
                 "coreHierarchyFlow combine triggered: flat=${filterState.flatList.size}, mode=${filterState.mode}, ready=${filterState.isReady}"
             }
-            val hierarchy =
-                hierarchyUseCase.createProjectHierarchy(
-                    filterState,
-                    expansion.expandedDaily,
-                    expansion.expandedMedium,
-                    expansion.expandedLong,
-                )
+            val hierarchy = hierarchyUseCase.createProjectHierarchy(filterState)
             if (
                 hierarchy.topLevelProjects.isEmpty() &&
                 hierarchy.childMap.isEmpty()
@@ -450,7 +409,7 @@ internal class HierarchyStateBuilder(
                         }
                         lastNonEmptyFlatList.isNotEmpty() &&
                             !state.searchActive &&
-                            state.mode == ProjectHierarchyScreenPlanningMode.All -> {
+                            state.mode == PlanningMode.All -> {
                             HierarchyDebugLogger.d {
                                 "coreHierarchyFlow using cached flat list size=${lastNonEmptyFlatList.size}"
                             }

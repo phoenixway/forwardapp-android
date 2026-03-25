@@ -55,6 +55,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.theme.LocalInputPanelColors
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.InputSuggestionActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.AutocompleteSuggestions
+import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
+import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTargetsPickerDialog
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalMissionViewModel
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
@@ -86,13 +88,15 @@ fun TacticsBottomPanel(
     featureToggles: Map<FeatureFlag, Boolean>,
     onNavigateToRecentItem: (RecentItem) -> Unit,
     recentViewModel: RecentViewModel = hiltViewModel(),
+    viewModel: TacticalMissionViewModel = hiltViewModel(),
 ) {
-    val viewModel: TacticalMissionViewModel = hiltViewModel()
     val allTags by viewModel.allTags.collectAsStateWithLifecycle()
     val contextMarkerNames by viewModel.contextMarkerNames.collectAsStateWithLifecycle()
+    val projectOptions by viewModel.projectOptions.collectAsStateWithLifecycle()
     val panelStyle = LocalInputPanelColors.current.addProjectLog
     val inputSuggestionActions = remember { InputSuggestionActions() }
     var inputValue by remember { mutableStateOf(TextFieldValue("")) }
+    var showContextPicker by remember { mutableStateOf(false) }
     val autocompleteSuggestions =
         remember(inputValue, allTags, contextMarkerNames) {
             inputSuggestionActions.buildSuggestions(
@@ -136,7 +140,7 @@ fun TacticsBottomPanel(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(
-                        onClick = viewModel::openAddMissionDialog,
+                        onClick = { showContextPicker = true },
                         modifier = Modifier.size(32.dp),
                         colors =
                             IconButtonDefaults.iconButtonColors(
@@ -266,5 +270,24 @@ fun TacticsBottomPanel(
                 }
             }
         }
+    }
+
+    if (showContextPicker) {
+        LinkedTargetsPickerDialog(
+            contextOptions = projectOptions,
+            attachmentOptions = emptyList(),
+            preselectedContextIds = emptySet(),
+            preselectedAttachmentIds = emptySet(),
+            initialTab = LinkPickerTab.CONTEXTS,
+            allowedTabs = setOf(LinkPickerTab.CONTEXTS),
+            onDismiss = { showContextPicker = false },
+            onContextSelected = { contextId ->
+                viewModel.addWeeklyMissionFromContext(contextId)
+                showContextPicker = false
+            },
+            onAttachmentSelected = {},
+            onCreateRootContext = null,
+            onCreateDocument = null,
+        )
     }
 }

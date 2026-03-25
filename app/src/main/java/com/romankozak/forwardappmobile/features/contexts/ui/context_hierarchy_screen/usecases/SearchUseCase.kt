@@ -188,21 +188,6 @@ class SearchUseCase
                         "Reveal heuristic: segments=${breadcrumbNames.size}, shouldFocus=$shouldFocus",
                     )
 
-                    val projectsToExpand =
-                        ancestorIds
-                            .mapNotNull { projectLookup[it] }
-                            .filter { !it.isExpanded }
-
-                    if (projectsToExpand.isNotEmpty()) {
-                        contextRepository.updateContexts(projectsToExpand.map { it.copy(isExpanded = true) })
-                        allProjectsFlat.first { currentProjects ->
-                            projectsToExpand.all { toExpand ->
-                                currentProjects.find { it.id == toExpand.id }?.isExpanded == true
-                            }
-                        }
-                        Log.d(TAG, "Всі предки гарантовано розгорнуті.")
-                    }
-
                     withContext(Dispatchers.Main.immediate) {
                         clearAllSearchState()
                     }
@@ -362,8 +347,6 @@ class SearchUseCase
 
         fun handleBackNavigation(
             currentHierarchy: ContextHierarchyData,
-            areAnyProjectsExpanded: Boolean,
-            collapseAllProjects: () -> Unit,
             goBack: () -> Unit,
         ) {
             val currentStack = _subStateStack.value
@@ -382,9 +365,6 @@ class SearchUseCase
                 }
                 currentBreadcrumbs.value.isNotEmpty() -> {
                     clearNavigation()
-                }
-                areAnyProjectsExpanded -> {
-                    collapseAllProjects()
                 }
                 else -> {
                     goBack()

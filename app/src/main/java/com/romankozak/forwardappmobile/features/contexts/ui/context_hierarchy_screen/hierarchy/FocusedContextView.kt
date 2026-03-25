@@ -32,7 +32,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.flattenHierarchyWithLevels
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
@@ -43,7 +42,6 @@ fun FocusedProjectView(
     breadcrumbs: List<BreadcrumbItem>,
     dragAndDropState: DragAndDropState<Context>,
     isSearchActive: Boolean,
-    planningMode: PlanningMode,
     highlightedProjectId: String?,
     settings: HierarchyDisplaySettings,
     searchQuery: String,
@@ -54,7 +52,6 @@ fun FocusedProjectView(
     onDeleteProject: (Context) -> Unit,
     onEditProject: (Context) -> Unit,
     onProjectClick: (String) -> Unit,
-    onToggleExpanded: (Context) -> Unit,
     onMenuRequested: (Context) -> Unit,
     onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
@@ -102,14 +99,12 @@ fun FocusedProjectView(
                         childMap = hierarchy.childMap,
                         dragAndDropState = dragAndDropState,
                         isSearchActive = isSearchActive,
-                        planningMode = planningMode,
                         highlightedProjectId = highlightedProjectId,
                         settings = settings,
                         searchQuery = searchQuery,
                         focusedProjectId = focusedProjectId,
                         longDescendantsMap = longDescendantsMap,
                         onProjectClick = onProjectClick,
-                        onToggleExpanded = onToggleExpanded,
                         onMenuRequested = onMenuRequested,
                         onProjectReorder = onProjectReorder,
                         onFocusProject = onFocusProject,

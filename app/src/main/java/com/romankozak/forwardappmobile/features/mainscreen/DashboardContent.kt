@@ -4,13 +4,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -35,8 +36,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,10 +66,14 @@ private const val FOCUS_CONTEXTS_LIST_MAX_HEIGHT_DP = 420
 fun DashboardContent(
     modifier: Modifier = Modifier,
     onOpenFocusedContext: (String) -> Unit = {},
+    aiInsightsViewModel: AiInsightsViewModel = hiltViewModel(),
+    focusContextsViewModel: FocusContextsViewModel = hiltViewModel(),
 ) {
     AnimatedCommandDeck(
         modifier = modifier,
         onOpenFocusedContext = onOpenFocusedContext,
+        aiInsightsViewModel = aiInsightsViewModel,
+        focusContextsViewModel = focusContextsViewModel,
     )
 }
 
@@ -74,17 +81,13 @@ fun DashboardContent(
 private fun AnimatedCommandDeck(
     modifier: Modifier = Modifier,
     onOpenFocusedContext: (String) -> Unit,
+    aiInsightsViewModel: AiInsightsViewModel,
+    focusContextsViewModel: FocusContextsViewModel,
 ) {
     var aiInsightsExpanded by remember { mutableStateOf(false) }
     var focusContextsExpanded by remember { mutableStateOf(true) }
-    var dismissedInsightIds by remember { mutableStateOf(emptySet<String>()) }
 
-    val aiInsightsViewModel: AiInsightsViewModel = hiltViewModel()
-    val focusContextsViewModel: FocusContextsViewModel = hiltViewModel()
-    val aiInsights by aiInsightsViewModel.messages.collectAsStateWithLifecycle()
-    val focusedContexts by focusContextsViewModel.focusedContexts.collectAsStateWithLifecycle()
-
-    LazyColumn(
+    Column(
         modifier =
             modifier
                 .fillMaxSize()
@@ -92,85 +95,153 @@ private fun AnimatedCommandDeck(
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.05f),
                     shape = RoundedCornerShape(0.dp),
                 )
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 18.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(bottom = 18.dp),
     ) {
-        item {
-            SectionHeader(
-                title = "Фокус-контексти",
-                subtitle =
-                    if (focusContextsExpanded) {
-                        if (focusedContexts.isEmpty()) "Поки порожньо" else "${focusedContexts.size} активних"
-                    } else {
-                        "Згорнуто"
-                    },
+        Column(
+            modifier = Modifier.padding(bottom = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            DashboardFocusContextsSection(
                 isExpanded = focusContextsExpanded,
-                onClick = { focusContextsExpanded = !focusContextsExpanded },
+                onToggleExpanded = { focusContextsExpanded = !focusContextsExpanded },
+                onOpenFocusedContext = onOpenFocusedContext,
+                focusContextsViewModel = focusContextsViewModel,
             )
-        }
 
-        DashboardFocusContextsSection(
-            isExpanded = focusContextsExpanded,
-            focusedContexts = focusedContexts,
-            onOpenFocusedContext = onOpenFocusedContext,
-            onStartTracking = focusContextsViewModel::startTracking,
-            onDefocus = focusContextsViewModel::unfocus,
-            onReorder = focusContextsViewModel::updateFocusedContextsOrder,
-        )
-
-        item {
-            SectionHeader(
-                title = "AI Insights",
-                subtitle = if (aiInsightsExpanded) "Останні інсайти" else "Згорнуто",
+            DashboardAiInsightsSection(
                 isExpanded = aiInsightsExpanded,
-                onClick = { aiInsightsExpanded = !aiInsightsExpanded },
+                onToggleExpanded = { aiInsightsExpanded = !aiInsightsExpanded },
+                aiInsightsViewModel = aiInsightsViewModel,
             )
         }
-
-        DashboardAiInsightsSection(
-            isExpanded = aiInsightsExpanded,
-            aiInsights = aiInsights,
-            dismissedInsightIds = dismissedInsightIds,
-            onDismissInsight = { insightId ->
-                dismissedInsightIds = dismissedInsightIds + insightId
-                aiInsightsViewModel.markRead(insightId)
-            },
-        )
     }
 }
 
-private fun androidx.compose.foundation.lazy.LazyListScope.DashboardFocusContextsSection(
+@Composable
+private fun DashboardFocusContextsSection(
     isExpanded: Boolean,
-    focusedContexts: List<FocusContextsViewModel.FocusedContextUi>,
+    onToggleExpanded: () -> Unit,
     onOpenFocusedContext: (String) -> Unit,
-    onStartTracking: (String) -> Unit,
-    onDefocus: (String) -> Unit,
-    onReorder: (List<String>) -> Unit,
+    focusContextsViewModel: FocusContextsViewModel,
 ) {
+    val focusedContexts by focusContextsViewModel.focusedContexts.collectAsStateWithLifecycle()
+
+    SectionHeader(
+        title = "Фокус-контексти",
+        subtitle =
+            if (isExpanded) {
+                if (focusedContexts.isEmpty()) "Поки порожньо" else "${focusedContexts.size} активних"
+            } else {
+                "Згорнуто"
+            },
+        isExpanded = isExpanded,
+        onClick = onToggleExpanded,
+    )
     if (!isExpanded) {
         return
     }
 
     if (focusedContexts.isEmpty()) {
-        item {
-            MetricCard(
-                title = "Немає фокус-контекстів",
-                value = "Додай контексти у фокус",
-                subtitle = "через меню в ієрархії або з екрана контексту",
-            )
-        }
+        MetricCard(
+            title = "Немає фокус-контекстів",
+            value = "Додай контексти у фокус",
+            subtitle = "через меню в ієрархії або з екрана контексту",
+        )
         return
     }
 
-    item {
-        FocusContextsReorderableList(
-            focusedContexts = focusedContexts,
-            onOpenFocusedContext = onOpenFocusedContext,
-            onStartTracking = onStartTracking,
-            onDefocus = onDefocus,
-            onReorder = onReorder,
+    FocusContextsReorderableList(
+        focusedContexts = focusedContexts,
+        onOpenFocusedContext = onOpenFocusedContext,
+        onStartTracking = focusContextsViewModel::startTracking,
+        onDefocus = focusContextsViewModel::unfocus,
+        onReorder = focusContextsViewModel::updateFocusedContextsOrder,
+    )
+}
+
+@Composable
+private fun DashboardAiInsightsSection(
+    isExpanded: Boolean,
+    onToggleExpanded: () -> Unit,
+    aiInsightsViewModel: AiInsightsViewModel,
+) {
+    var dismissedInsightIds by remember { mutableStateOf(emptySet<String>()) }
+    val aiInsights by aiInsightsViewModel.messages.collectAsStateWithLifecycle()
+    val latestInsights =
+        remember(aiInsights, dismissedInsightIds) {
+            aiInsights
+                .filterNot { it.isRead || dismissedInsightIds.contains(it.id) }
+                .take(DASHBOARD_INSIGHTS_LIMIT)
+        }
+
+    SectionHeader(
+        title = "AI Insights",
+        subtitle = if (isExpanded) "Останні інсайти" else "Згорнуто",
+        isExpanded = isExpanded,
+        onClick = onToggleExpanded,
+    )
+    if (!isExpanded) {
+        return
+    }
+
+    if (latestInsights.isNotEmpty()) {
+        latestInsights.forEach { insight ->
+            AiInsightCard(
+                insight = insight,
+                onMarkRead = {
+                    dismissedInsightIds = dismissedInsightIds + insight.id
+                    aiInsightsViewModel.markRead(insight.id)
+                },
+            )
+        }
+    } else {
+        MetricCard(
+            title = "Немає інсайтів",
+            value = "Поки що немає аналітики",
+            subtitle = "AI ще не згенерував інсайти",
         )
+    }
+}
+
+@Composable
+private fun SectionHeader(
+    title: String,
+    subtitle: String,
+    isExpanded: Boolean,
+    onClick: () -> Unit,
+) {
+    Card(
+        onClick = onClick,
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.08f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.padding(end = 12.dp)) {
+                Text(
+                    text = title,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(
+                imageVector = if (isExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -183,14 +254,15 @@ private fun FocusContextsReorderableList(
     onReorder: (List<String>) -> Unit,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
-    var internalItems by remember(focusedContexts) { mutableStateOf(focusedContexts) }
+    val internalItems = remember { mutableStateListOf<FocusContextsViewModel.FocusedContextUi>() }
+    LaunchedEffect(focusedContexts) {
+        internalItems.clear()
+        internalItems.addAll(focusedContexts)
+    }
     val lazyListState = rememberLazyListState()
     val reorderableState =
         rememberReorderableLazyListState(lazyListState) { from, to ->
-            internalItems =
-                internalItems.toMutableList().apply {
-                    add(to.index, removeAt(from.index))
-                }
+            internalItems.add(to.index, internalItems.removeAt(from.index))
             onReorder(internalItems.map { it.contextId })
             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
         }
@@ -220,41 +292,6 @@ private fun FocusContextsReorderableList(
                         },
                 )
             }
-        }
-    }
-}
-
-private fun androidx.compose.foundation.lazy.LazyListScope.DashboardAiInsightsSection(
-    isExpanded: Boolean,
-    aiInsights: List<AiMessage>,
-    dismissedInsightIds: Set<String>,
-    onDismissInsight: (String) -> Unit,
-) {
-    if (!isExpanded) {
-        return
-    }
-
-    val latestInsights =
-        aiInsights
-            .filterNot { it.isRead || dismissedInsightIds.contains(it.id) }
-            .take(DASHBOARD_INSIGHTS_LIMIT)
-
-    if (latestInsights.isNotEmpty()) {
-        latestInsights.forEach { insight ->
-            item(key = "deck_insight_${insight.id}") {
-                AiInsightCard(
-                    insight = insight,
-                    onMarkRead = { onDismissInsight(insight.id) },
-                )
-            }
-        }
-    } else {
-        item {
-            MetricCard(
-                title = "Немає інсайтів",
-                value = "Поки що немає аналітики",
-                subtitle = "AI ще не згенерував інсайти",
-            )
         }
     }
 }
@@ -318,45 +355,6 @@ private fun FocusContextCard(
     }
 }
 
-@Composable
-private fun SectionHeader(
-    title: String,
-    subtitle: String,
-    isExpanded: Boolean,
-    onClick: () -> Unit,
-) {
-    Card(
-        onClick = onClick,
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.08f)),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.padding(end = 12.dp)) {
-                Text(
-                    text = title,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Icon(
-                imageVector = if (isExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
 
 @Composable
 private fun MetricCard(

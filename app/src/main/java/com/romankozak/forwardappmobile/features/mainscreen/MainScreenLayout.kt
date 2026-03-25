@@ -49,9 +49,12 @@ import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.core.navigation.routes.STRATEGIC_MANAGEMENT_ROUTE
+import com.romankozak.forwardappmobile.features.ai.insights.AiInsightsViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.ContextMarkersSheet
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementScreen
+import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementViewModel
+import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.CoreBottomPanel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.DashboardBottomPanel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.StrategicArcBottomPanel
@@ -59,6 +62,7 @@ import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.Strategy
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.TacticsBottomPanel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.TodayBottomPanel
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
+import com.romankozak.forwardappmobile.features.missions.presentation.TacticalMissionViewModel
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.features.strategicmanagement.StrategicManagementScreen
 import com.romankozak.forwardappmobile.features.userawareness.UserAwarenessHeaderBadge
@@ -79,7 +83,7 @@ const val MAIN_SCREEN_CORE_ROUTE = "command_deck_core"
 const val MAIN_SCREEN_STRATEGIC_ARC_ROUTE = "command_deck_strategic_arc"
 const val MAIN_SCREEN_TACTICS_ROUTE = "command_deck_tactics"
 const val MAIN_SCREEN_TODAY_ROUTE = "command_deck_today"
-private const val TAB_SWIPE_THRESHOLD_PX = 72f
+private const val TAB_SWIPE_THRESHOLD_PX = 48f
 
 @Composable
 fun MainScreenLayout(
@@ -125,14 +129,14 @@ fun MainScreenLayout(
         )
     val pagerState =
         rememberPagerState(
-            initialPage = Int.MAX_VALUE / 2 - (Int.MAX_VALUE / 2 % tabs.size),
+            initialPage = tabs.indexOf(CommandDeckTab.Dashboard),
         ) {
-            Int.MAX_VALUE
+            tabs.size
         }
     val scope = rememberCoroutineScope()
 
     val currentRoute =
-        when (tabs[(pagerState.currentPage % tabs.size + tabs.size) % tabs.size]) {
+        when (tabs[pagerState.currentPage]) {
             CommandDeckTab.Dashboard -> MAIN_SCREEN_DASHBOARD_ROUTE
             CommandDeckTab.Core -> MAIN_SCREEN_CORE_ROUTE
             CommandDeckTab.Strategy -> STRATEGIC_MANAGEMENT_ROUTE
@@ -141,16 +145,15 @@ fun MainScreenLayout(
             CommandDeckTab.Today -> MAIN_SCREEN_TODAY_ROUTE
         }
 
-    val isContextInputVisible by commandDeckViewModel.isContextInputVisible.collectAsStateWithLifecycle()
-    val contextInputText by commandDeckViewModel.contextInputText.collectAsStateWithLifecycle()
-    val importChoiceUri by commandDeckViewModel.importChoiceUri.collectAsStateWithLifecycle()
-    val exportChoiceVisible by commandDeckViewModel.exportChoiceVisible.collectAsStateWithLifecycle()
-    val syncUiState by commandDeckViewModel.syncUiState.collectAsStateWithLifecycle()
-    val showWifiImportDialog by commandDeckViewModel.showWifiImportDialog.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    val contextUiState by contextHierarchyViewModel.uiState.collectAsStateWithLifecycle()
+    val dayManagementViewModel: DayManagementViewModel = hiltViewModel()
+    val dayPlanViewModel: DayPlanViewModel = hiltViewModel()
+    val dayManagementUiState by dayManagementViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val userAwarenessViewModel: UserAwarenessViewModel = hiltViewModel()
+    val aiInsightsViewModel: AiInsightsViewModel = hiltViewModel()
+    val focusContextsViewModel: FocusContextsViewModel = hiltViewModel()
+    val tacticalMissionViewModel: TacticalMissionViewModel = hiltViewModel()
     val activeUserAwarenessState by userAwarenessViewModel.activeState.collectAsStateWithLifecycle()
     var showAboutDialog by remember { mutableStateOf(false) }
     var showStateSwitchDialog by remember { mutableStateOf(false) }
@@ -166,14 +169,17 @@ fun MainScreenLayout(
         }
     }
 
+    LaunchedEffect(dayManagementUiState.dayPlanId) {
+        dayManagementUiState.dayPlanId?.let(dayPlanViewModel::loadDataForPlan)
+    }
+
     val headerModifier =
         Modifier.clickable(
             interactionSource = remember { MutableInteractionSource() },
             indication = null,
         ) { commandDeckViewModel.openContextInput() }
 
-    val selectedTabIndex = (pagerState.currentPage % tabs.size + tabs.size) % tabs.size
-    var horizontalDragAccum by remember { mutableStateOf(0f) }
+    val selectedTabIndex = pagerState.currentPage
     val titleStateBadge: @Composable (() -> Unit) = {
         UserAwarenessHeaderBadge(
             activeState = activeUserAwarenessState,
@@ -255,204 +261,36 @@ fun MainScreenLayout(
                 }
             },
             bottomBar = {
-                when (currentRoute) {
-                        MAIN_SCREEN_DASHBOARD_ROUTE ->
-                            DashboardBottomPanel(
-                                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
-                                onShowContextMarkersSheet = { showContextMarkersSheet = true },
-                                onNavigateToPresets = onNavigateToPresets,
-                                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
-                                onNavigateToSettings = onNavigateToSettings,
-                                onNavigateToInbox = onNavigateToInbox,
-                                onNavigateToTracker = onNavigateToTracker,
-                                onNavigateToReminders = onNavigateToReminders,
-                                onNavigateToAiChat = onNavigateToAiChat,
-                                onNavigateToAiInsights = onNavigateToAiInsights,
-                                onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
-                                onExportToFile = onExportToFile,
-                                onImportFromFileRequest = onImportFromFileRequest,
-                                onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
-                                onExportAttachments = onExportAttachments,
-                                onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
-                                onWifiPush = onWifiPush,
-                                onShowWifiServer = onShowWifiServer,
-                                onShowWifiImport = onShowWifiImport,
-                                onNavigateToAttachments = onNavigateToAttachments,
-                                onNavigateToScripts = onNavigateToScripts,
-                                onShowAbout = { showAboutDialog = true },
-                                featureToggles = contextUiState.featureToggles,
-                                onNavigateToRecentItem = onNavigateToRecentItem,
-                                recentViewModel = recentViewModel,
-                            )
-                        MAIN_SCREEN_TODAY_ROUTE ->
-                            TodayBottomPanel(
-                                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
-                                onShowContextMarkersSheet = { showContextMarkersSheet = true },
-                                onNavigateToPresets = onNavigateToPresets,
-                                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
-                                onNavigateToSettings = onNavigateToSettings,
-                                onNavigateToInbox = onNavigateToInbox,
-                                onNavigateToTracker = onNavigateToTracker,
-                                onNavigateToReminders = onNavigateToReminders,
-                                onNavigateToAiChat = onNavigateToAiChat,
-                                onNavigateToAiInsights = onNavigateToAiInsights,
-                                onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
-                                onExportToFile = onExportToFile,
-                                onImportFromFileRequest = onImportFromFileRequest,
-                                onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
-                                onExportAttachments = onExportAttachments,
-                                onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
-                                onWifiPush = onWifiPush,
-                                onShowWifiServer = onShowWifiServer,
-                                onShowWifiImport = onShowWifiImport,
-                                onNavigateToAttachments = onNavigateToAttachments,
-                                onNavigateToScripts = onNavigateToScripts,
-                                onShowAbout = { showAboutDialog = true },
-                                featureToggles = contextUiState.featureToggles,
-                                onNavigateToRecentItem = onNavigateToRecentItem,
-                                recentViewModel = recentViewModel,
-                            )
-                        MAIN_SCREEN_TACTICS_ROUTE ->
-                            TacticsBottomPanel(
-                                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
-                                onShowContextMarkersSheet = { showContextMarkersSheet = true },
-                                onNavigateToPresets = onNavigateToPresets,
-                                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
-                                onNavigateToSettings = onNavigateToSettings,
-                                onNavigateToInbox = onNavigateToInbox,
-                                onNavigateToTracker = onNavigateToTracker,
-                                onNavigateToReminders = onNavigateToReminders,
-                                onNavigateToAiChat = onNavigateToAiChat,
-                                onNavigateToAiInsights = onNavigateToAiInsights,
-                                onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
-                                onExportToFile = onExportToFile,
-                                onImportFromFileRequest = onImportFromFileRequest,
-                                onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
-                                onExportAttachments = onExportAttachments,
-                                onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
-                                onWifiPush = onWifiPush,
-                                onShowWifiServer = onShowWifiServer,
-                                onShowWifiImport = onShowWifiImport,
-                                onNavigateToAttachments = onNavigateToAttachments,
-                                onNavigateToScripts = onNavigateToScripts,
-                                onShowAbout = { showAboutDialog = true },
-                                featureToggles = contextUiState.featureToggles,
-                                onNavigateToRecentItem = onNavigateToRecentItem,
-                                recentViewModel = recentViewModel,
-                            )
-                        MAIN_SCREEN_STRATEGIC_ARC_ROUTE ->
-                            StrategicArcBottomPanel(
-                                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
-                                onShowContextMarkersSheet = { showContextMarkersSheet = true },
-                                onNavigateToPresets = onNavigateToPresets,
-                                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
-                                onNavigateToSettings = onNavigateToSettings,
-                                onNavigateToInbox = onNavigateToInbox,
-                                onNavigateToTracker = onNavigateToTracker,
-                                onNavigateToReminders = onNavigateToReminders,
-                                onNavigateToAiChat = onNavigateToAiChat,
-                                onNavigateToAiInsights = onNavigateToAiInsights,
-                                onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
-                                onExportToFile = onExportToFile,
-                                onImportFromFileRequest = onImportFromFileRequest,
-                                onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
-                                onExportAttachments = onExportAttachments,
-                                onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
-                                onWifiPush = onWifiPush,
-                                onShowWifiServer = onShowWifiServer,
-                                onShowWifiImport = onShowWifiImport,
-                                onNavigateToAttachments = onNavigateToAttachments,
-                                onNavigateToScripts = onNavigateToScripts,
-                                onShowAbout = { showAboutDialog = true },
-                                featureToggles = contextUiState.featureToggles,
-                                onNavigateToRecentItem = onNavigateToRecentItem,
-                                recentViewModel = recentViewModel,
-                            )
-                        STRATEGIC_MANAGEMENT_ROUTE -> // Strategy
-                            StrategyBottomPanel(
-                                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
-                                onShowContextMarkersSheet = { showContextMarkersSheet = true },
-                                onNavigateToPresets = onNavigateToPresets,
-                                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
-                                onNavigateToSettings = onNavigateToSettings,
-                                onNavigateToInbox = onNavigateToInbox,
-                                onNavigateToTracker = onNavigateToTracker,
-                                onNavigateToReminders = onNavigateToReminders,
-                                onNavigateToAiChat = onNavigateToAiChat,
-                                onNavigateToAiInsights = onNavigateToAiInsights,
-                                onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
-                                onExportToFile = onExportToFile,
-                                onImportFromFileRequest = onImportFromFileRequest,
-                                onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
-                                onExportAttachments = onExportAttachments,
-                                onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
-                                onWifiPush = onWifiPush,
-                                onShowWifiServer = onShowWifiServer,
-                                onShowWifiImport = onShowWifiImport,
-                                onNavigateToAttachments = onNavigateToAttachments,
-                                onNavigateToScripts = onNavigateToScripts,
-                                onShowAbout = { showAboutDialog = true },
-                                featureToggles = contextUiState.featureToggles,
-                                onNavigateToRecentItem = onNavigateToRecentItem,
-                                recentViewModel = recentViewModel,
-                            )
-                        MAIN_SCREEN_CORE_ROUTE ->
-                            CoreBottomPanel(
-                                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
-                                onShowContextMarkersSheet = { showContextMarkersSheet = true },
-                                onNavigateToPresets = onNavigateToPresets,
-                                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
-                                onNavigateToSettings = onNavigateToSettings,
-                                onNavigateToInbox = onNavigateToInbox,
-                                onNavigateToTracker = onNavigateToTracker,
-                                onNavigateToReminders = onNavigateToReminders,
-                                onNavigateToAiChat = onNavigateToAiChat,
-                                onNavigateToAiInsights = onNavigateToAiInsights,
-                                onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
-                                onExportToFile = onExportToFile,
-                                onImportFromFileRequest = onImportFromFileRequest,
-                                onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
-                                onExportAttachments = onExportAttachments,
-                                onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
-                                onWifiPush = onWifiPush,
-                                onShowWifiServer = onShowWifiServer,
-                                onShowWifiImport = onShowWifiImport,
-                                onNavigateToAttachments = onNavigateToAttachments,
-                                onNavigateToScripts = onNavigateToScripts,
-                                onShowAbout = { showAboutDialog = true },
-                                featureToggles = contextUiState.featureToggles,
-                                onNavigateToRecentItem = onNavigateToRecentItem,
-                                recentViewModel = recentViewModel,
-                            )
-                        else ->
-                            DashboardBottomPanel( // Fallback to Dashboard for unknown routes
-                                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
-                                onShowContextMarkersSheet = { showContextMarkersSheet = true },
-                                onNavigateToPresets = onNavigateToPresets,
-                                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
-                                onNavigateToSettings = onNavigateToSettings,
-                                onNavigateToInbox = onNavigateToInbox,
-                                onNavigateToTracker = onNavigateToTracker,
-                                onNavigateToReminders = onNavigateToReminders,
-                                onNavigateToAiChat = onNavigateToAiChat,
-                                onNavigateToAiInsights = onNavigateToAiInsights,
-                                onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
-                                onExportToFile = onExportToFile,
-                                onImportFromFileRequest = onImportFromFileRequest,
-                                onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
-                                onExportAttachments = onExportAttachments,
-                                onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
-                                onWifiPush = onWifiPush,
-                                onShowWifiServer = onShowWifiServer,
-                                onShowWifiImport = onShowWifiImport,
-                                onNavigateToAttachments = onNavigateToAttachments,
-                                onNavigateToScripts = onNavigateToScripts,
-                                onShowAbout = { showAboutDialog = true },
-                                featureToggles = contextUiState.featureToggles,
-                                onNavigateToRecentItem = onNavigateToRecentItem,
-                                recentViewModel = recentViewModel,
-                            )
-                    }
+                MainScreenBottomBar(
+                    currentRoute = currentRoute,
+                    contextHierarchyViewModel = contextHierarchyViewModel,
+                    onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                    onShowContextMarkersSheet = { showContextMarkersSheet = true },
+                    onNavigateToPresets = onNavigateToPresets,
+                    onNavigateToGlobalSearch = onNavigateToGlobalSearch,
+                    onNavigateToSettings = onNavigateToSettings,
+                    onNavigateToInbox = onNavigateToInbox,
+                    onNavigateToTracker = onNavigateToTracker,
+                    onNavigateToReminders = onNavigateToReminders,
+                    onNavigateToAiChat = onNavigateToAiChat,
+                    onNavigateToAiInsights = onNavigateToAiInsights,
+                    onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
+                    onExportToFile = onExportToFile,
+                    onImportFromFileRequest = onImportFromFileRequest,
+                    onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
+                    onExportAttachments = onExportAttachments,
+                    onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
+                    onWifiPush = onWifiPush,
+                    onShowWifiServer = onShowWifiServer,
+                    onShowWifiImport = onShowWifiImport,
+                    onNavigateToAttachments = onNavigateToAttachments,
+                    onNavigateToScripts = onNavigateToScripts,
+                    onShowAbout = { showAboutDialog = true },
+                    onNavigateToRecentItem = onNavigateToRecentItem,
+                    recentViewModel = recentViewModel,
+                    dayPlanViewModel = dayPlanViewModel,
+                    tacticalMissionViewModel = tacticalMissionViewModel,
+                )
             },
         ) { paddingValues ->
             Column(
@@ -469,14 +307,7 @@ fun MainScreenLayout(
                     selectedTabIndex = selectedTabIndex,
                     onTabSelected = { index ->
                         scope.launch {
-                            val currentRealIndex = (pagerState.currentPage % tabs.size + tabs.size) % tabs.size
-                            val diff = shortestCircularTabDelta(
-                                currentIndex = currentRealIndex,
-                                targetIndex = index,
-                                tabCount = tabs.size,
-                            )
-                            val targetInfinitePage = pagerState.currentPage + diff
-                            pagerState.animateScrollToPage(targetInfinitePage)
+                            pagerState.scrollToPage(index)
                         }
                     },
                 )
@@ -489,175 +320,22 @@ fun MainScreenLayout(
                     Spacer(Modifier.height(16.dp))
                 }
 
-                HorizontalPager(
-                    state = pagerState,
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .pointerInput(tabs.size) {
-                                detectHorizontalDragGestures(
-                                    onDragStart = { horizontalDragAccum = 0f },
-                                    onHorizontalDrag = { _, dragAmount ->
-                                        horizontalDragAccum += dragAmount
-                                    },
-                                    onDragCancel = { horizontalDragAccum = 0f },
-                                    onDragEnd = {
-                                        val dragDelta = horizontalDragAccum
-                                        horizontalDragAccum = 0f
-                                        if (abs(dragDelta) < TAB_SWIPE_THRESHOLD_PX) {
-                                            return@detectHorizontalDragGestures
-                                        }
-
-                                        scope.launch {
-                                            val pageDelta = if (dragDelta < 0f) 1 else -1
-                                            pagerState.animateScrollToPage(
-                                                pagerState.currentPage + pageDelta,
-                                            )
-                                        }
-                                    },
-                                )
-                            },
-                    userScrollEnabled = false,
-                ) { page ->
-                    val actualTabIndex = (page % tabs.size + tabs.size) % tabs.size
-                    when (tabs[actualTabIndex]) {
-                        CommandDeckTab.Dashboard -> {
-                            DashboardContent(
-                                modifier = Modifier.fillMaxSize(),
-                                onOpenFocusedContext = { contextId ->
-                                    navigationManager.navigateOrFallback(
-                                        navController = navController,
-                                        target = NavTarget.ContextDetail(contextId = contextId),
-                                        recordInHistory = true,
-                                    )
-                                },
-                            )
-                        }
-                        CommandDeckTab.Strategy -> {
-                            StrategicManagementScreen(
-                                navController = navController,
-                                navigationManager = navigationManager,
-                            )
-                        }
-                        CommandDeckTab.Core -> {
-                            CoreLevelScreen(
-                                navController = navController,
-                                navigationManager = navigationManager,
-                            )
-                        }
-                        CommandDeckTab.StrategicArc -> {
-                            StrategicArcScreen(
-                                navController = navController,
-                                navigationManager = navigationManager,
-                            )
-                        }
-                        CommandDeckTab.Tactics -> {
-                            TacticalManagementScreen(
-                                showFabMenu = false,
-                                onLinkedProjectClick = { projectId ->
-                                    navigationManager.navigateOrFallback(
-                                        navController = navController,
-                                        target = NavTarget.ContextHierarchy(projectIdToReveal = projectId),
-                                    ) {
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
-                                onLinkedAttachmentClick = { attachment ->
-                                    when {
-                                        attachment.attachmentType == "NOTE_DOCUMENT" &&
-                                            !attachment.entityId.isNullOrBlank() ->
-                                            navigationManager.navigateOrFallback(
-                                                navController = navController,
-                                                target = NavTarget.NoteDocument(id = attachment.entityId),
-                                            )
-                                        attachment.attachmentType == "MUSIC_NOTE" &&
-                                            !attachment.entityId.isNullOrBlank() ->
-                                            navigationManager.navigateOrFallback(
-                                                navController = navController,
-                                                target = NavTarget.MusicNote(id = attachment.entityId),
-                                            )
-                                        attachment.attachmentType == "CHECKLIST" &&
-                                            !attachment.entityId.isNullOrBlank() ->
-                                            navigationManager.navigateOrFallback(
-                                                navController = navController,
-                                                target = NavTarget.Checklist(id = attachment.entityId),
-                                            )
-                                        attachment.linkType == LinkType.CONTEXT &&
-                                            !attachment.target.isNullOrBlank() ->
-                                            navigationManager.navigateOrFallback(
-                                                navController = navController,
-                                                target = NavTarget.ContextDetail(contextId = attachment.target),
-                                                recordInHistory = true,
-                                            )
-                                        (
-                                            attachment.linkType == LinkType.URL ||
-                                                attachment.linkType == LinkType.OBSIDIAN
-                                        ) && !attachment.target.isNullOrBlank() -> {
-                                            val resolvedTarget =
-                                                buildExternalTarget(
-                                                    attachment.linkType,
-                                                    attachment.target,
-                                                )
-                                            runCatching {
-                                                context.startActivity(
-                                                    Intent(Intent.ACTION_VIEW, Uri.parse(resolvedTarget)).apply {
-                                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                                    },
-                                                )
-                                            }.onFailure {
-                                                navigationManager.navigateOrFallback(
-                                                    navController = navController,
-                                                    target = NavTarget.AttachmentsLibrary,
-                                                ) {
-                                                    launchSingleTop = true
-                                                    restoreState = true
-                                                }
-                                                runCatching {
-                                                    navController.getBackStackEntry("attachments_library_screen")
-                                                        .savedStateHandle["attachment_library_query"] = attachment.id
-                                                }
-                                            }
-                                        }
-                                        else -> {
-                                            navigationManager.navigateOrFallback(
-                                                navController = navController,
-                                                target = NavTarget.AttachmentsLibrary,
-                                            ) {
-                                                launchSingleTop = true
-                                                restoreState = true
-                                            }
-                                            runCatching {
-                                                navController.getBackStackEntry("attachments_library_screen")
-                                                    .savedStateHandle["attachment_library_query"] = attachment.id
-                                            }
-                                        }
-                                    }
-                                },
-                            )
-                        }
-                        CommandDeckTab.Today -> {
-                            DayManagementScreen(
-                                mainNavController = navController,
-                                navigationManager = navigationManager,
-                                startTab = "PLAN",
-                                showFabMenu = false,
-                            )
-                        }
-                    }
-                }
+                MainScreenPagerContent(
+                    tabs = tabs,
+                    pagerState = pagerState,
+                    navController = navController,
+                    navigationManager = navigationManager,
+                    context = context,
+                    aiInsightsViewModel = aiInsightsViewModel,
+                    focusContextsViewModel = focusContextsViewModel,
+                    tacticalMissionViewModel = tacticalMissionViewModel,
+                    dayManagementViewModel = dayManagementViewModel,
+                    dayPlanViewModel = dayPlanViewModel,
+                )
             }
         }
 
-        ContextInputOverlay(
-            visible = isContextInputVisible,
-            text = contextInputText,
-            onTextChange = commandDeckViewModel::onContextInputChange,
-            onSend = commandDeckViewModel::submitContextInput,
-            onTrack = commandDeckViewModel::startContextTracking,
-            onClear = commandDeckViewModel::clearContextInput,
-            onDismiss = commandDeckViewModel::closeContextInput,
-        )
+        MainScreenCommandDeckTransientUi(commandDeckViewModel = commandDeckViewModel)
 
         if (showStateSwitchDialog) {
             UserAwarenessQuickSwitchDialog(
@@ -669,12 +347,13 @@ fun MainScreenLayout(
             )
         }
 
-        ContextMarkersSheet(
+        MainScreenContextMarkersSheet(
             showSheet = showContextMarkersSheet,
             onDismiss = { showContextMarkersSheet = false },
-            contextMarkers = contextUiState.allContextMarkers,
-            contextMarkerToEmojiMap = contextUiState.contextMarkerToEmojiMap,
+            contextHierarchyViewModel = contextHierarchyViewModel,
             onManageContextMarkers = onNavigateToManageContextMarkers,
+            navigationManager = navigationManager,
+            navController = navController,
             onContextSelected = { contextMarkerName, tag ->
                 showContextMarkersSheet = false
                 scope.launch {
@@ -707,76 +386,12 @@ fun MainScreenLayout(
             },
         )
 
-        if (importChoiceUri != null) {
-            AlertDialog(
-                onDismissRequest = commandDeckViewModel::onImportChoiceDismiss,
-                title = { Text("Choose Import Version") },
-                text = { Text("Would you like to import a V1 (legacy) or V2 (snapshot) backup file?") },
-                confirmButton = {
-                    Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                        Button(onClick = { commandDeckViewModel.confirmImportV1(importChoiceUri!!) }) {
-                            Text("Import V1")
-                        }
-                        Spacer(Modifier.width(8.dp))
-                        Button(onClick = { commandDeckViewModel.confirmImportV2(importChoiceUri!!) }) {
-                            Text("Import V2")
-                        }
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = commandDeckViewModel::onImportChoiceDismiss) {
-                        Text("Cancel")
-                    }
-                },
-            )
-        }
-
-        if (exportChoiceVisible) {
-            AlertDialog(
-                onDismissRequest = commandDeckViewModel::onExportChoiceDismiss,
-                title = { Text("Choose Export Version") },
-                text = { Text("Would you like to export a V1 (legacy) or V2 (snapshot) backup file?") },
-                confirmButton = {
-                    Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                        Button(onClick = commandDeckViewModel::confirmExportV1) {
-                            Text("Export V1")
-                        }
-                        Spacer(Modifier.width(8.dp))
-                        Button(onClick = commandDeckViewModel::confirmExportV2) {
-                            Text("Export V2")
-                        }
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = commandDeckViewModel::onExportChoiceDismiss) {
-                        Text("Cancel")
-                    }
-                },
-            )
-        }
-
-        if (syncUiState.showWifiServerDialog) {
-            WifiServerDialog(
-                address = syncUiState.wifiServerAddress,
-                onDismiss = commandDeckViewModel::onDismissWifiServerDialog,
-            )
-        }
-
-        if (showWifiImportDialog) {
-            WifiImportDialog(
-                desktopAddress = syncUiState.desktopAddress,
-                onAddressChange = commandDeckViewModel::onWifiImportAddressChange,
-                onDismiss = commandDeckViewModel::onDismissWifiImportDialog,
-                onConfirm = commandDeckViewModel::onWifiImportConfirm,
-            )
-        }
-
-        if (showAboutDialog) {
-            com.romankozak.forwardappmobile.ui.dialogs.AboutAppDialog(
-                stats = contextUiState.appStatistics,
-                onDismiss = { showAboutDialog = false },
-            )
-        }
+        MainScreenCommandDeckDialogs(commandDeckViewModel = commandDeckViewModel)
+        MainScreenAboutDialog(
+            showDialog = showAboutDialog,
+            onDismiss = { showAboutDialog = false },
+            contextHierarchyViewModel = contextHierarchyViewModel,
+        )
     }
 }
 
@@ -791,12 +406,548 @@ private fun buildExternalTarget(
     return trimmed
 }
 
-private fun shortestCircularTabDelta(
-    currentIndex: Int,
-    targetIndex: Int,
-    tabCount: Int,
-): Int {
-    val forward = (targetIndex - currentIndex + tabCount) % tabCount
-    val backward = forward - tabCount
-    return if (forward <= tabCount / 2) forward else backward
+@Composable
+private fun MainScreenBottomBar(
+    currentRoute: String,
+    contextHierarchyViewModel: ContextHierarchyScreenViewModel,
+    onNavigateToProjectHierarchy: () -> Unit,
+    onShowContextMarkersSheet: () -> Unit,
+    onNavigateToPresets: () -> Unit,
+    onNavigateToGlobalSearch: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToInbox: () -> Unit,
+    onNavigateToTracker: () -> Unit,
+    onNavigateToReminders: () -> Unit,
+    onNavigateToAiChat: () -> Unit,
+    onNavigateToAiInsights: () -> Unit,
+    onNavigateToAiLifeManagement: () -> Unit,
+    onExportToFile: () -> Unit,
+    onImportFromFileRequest: (Uri) -> Unit,
+    onSelectiveImportFromFileRequest: (Uri) -> Unit,
+    onExportAttachments: () -> Unit,
+    onImportAttachmentsFromFileRequest: (Uri) -> Unit,
+    onWifiPush: (String) -> Unit,
+    onShowWifiServer: () -> Unit,
+    onShowWifiImport: () -> Unit,
+    onNavigateToAttachments: () -> Unit,
+    onNavigateToScripts: () -> Unit,
+    onShowAbout: () -> Unit,
+    onNavigateToRecentItem: (RecentItem) -> Unit,
+    recentViewModel: RecentViewModel,
+    dayPlanViewModel: DayPlanViewModel,
+    tacticalMissionViewModel: TacticalMissionViewModel,
+) {
+    val contextUiState by contextHierarchyViewModel.uiState.collectAsStateWithLifecycle()
+
+    when (currentRoute) {
+        MAIN_SCREEN_DASHBOARD_ROUTE ->
+            DashboardBottomPanel(
+                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                onShowContextMarkersSheet = onShowContextMarkersSheet,
+                onNavigateToPresets = onNavigateToPresets,
+                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
+                onNavigateToSettings = onNavigateToSettings,
+                onNavigateToInbox = onNavigateToInbox,
+                onNavigateToTracker = onNavigateToTracker,
+                onNavigateToReminders = onNavigateToReminders,
+                onNavigateToAiChat = onNavigateToAiChat,
+                onNavigateToAiInsights = onNavigateToAiInsights,
+                onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
+                onExportToFile = onExportToFile,
+                onImportFromFileRequest = onImportFromFileRequest,
+                onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
+                onExportAttachments = onExportAttachments,
+                onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
+                onWifiPush = onWifiPush,
+                onShowWifiServer = onShowWifiServer,
+                onShowWifiImport = onShowWifiImport,
+                onNavigateToAttachments = onNavigateToAttachments,
+                onNavigateToScripts = onNavigateToScripts,
+                onShowAbout = onShowAbout,
+                featureToggles = contextUiState.featureToggles,
+                onNavigateToRecentItem = onNavigateToRecentItem,
+                recentViewModel = recentViewModel,
+            )
+        MAIN_SCREEN_TODAY_ROUTE ->
+            TodayBottomPanel(
+                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                onShowContextMarkersSheet = onShowContextMarkersSheet,
+                onNavigateToPresets = onNavigateToPresets,
+                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
+                onNavigateToSettings = onNavigateToSettings,
+                onNavigateToInbox = onNavigateToInbox,
+                onNavigateToTracker = onNavigateToTracker,
+                onNavigateToReminders = onNavigateToReminders,
+                onNavigateToAiChat = onNavigateToAiChat,
+                onNavigateToAiInsights = onNavigateToAiInsights,
+                onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
+                onExportToFile = onExportToFile,
+                onImportFromFileRequest = onImportFromFileRequest,
+                onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
+                onExportAttachments = onExportAttachments,
+                onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
+                onWifiPush = onWifiPush,
+                onShowWifiServer = onShowWifiServer,
+                onShowWifiImport = onShowWifiImport,
+                onNavigateToAttachments = onNavigateToAttachments,
+                onNavigateToScripts = onNavigateToScripts,
+                onShowAbout = onShowAbout,
+                featureToggles = contextUiState.featureToggles,
+                onNavigateToRecentItem = onNavigateToRecentItem,
+                recentViewModel = recentViewModel,
+                dayPlanViewModel = dayPlanViewModel,
+            )
+        MAIN_SCREEN_TACTICS_ROUTE ->
+            TacticsBottomPanel(
+                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                onShowContextMarkersSheet = onShowContextMarkersSheet,
+                onNavigateToPresets = onNavigateToPresets,
+                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
+                onNavigateToSettings = onNavigateToSettings,
+                onNavigateToInbox = onNavigateToInbox,
+                onNavigateToTracker = onNavigateToTracker,
+                onNavigateToReminders = onNavigateToReminders,
+                onNavigateToAiChat = onNavigateToAiChat,
+                onNavigateToAiInsights = onNavigateToAiInsights,
+                onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
+                onExportToFile = onExportToFile,
+                onImportFromFileRequest = onImportFromFileRequest,
+                onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
+                onExportAttachments = onExportAttachments,
+                onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
+                onWifiPush = onWifiPush,
+                onShowWifiServer = onShowWifiServer,
+                onShowWifiImport = onShowWifiImport,
+                onNavigateToAttachments = onNavigateToAttachments,
+                onNavigateToScripts = onNavigateToScripts,
+                onShowAbout = onShowAbout,
+                featureToggles = contextUiState.featureToggles,
+                onNavigateToRecentItem = onNavigateToRecentItem,
+                recentViewModel = recentViewModel,
+                viewModel = tacticalMissionViewModel,
+            )
+        MAIN_SCREEN_STRATEGIC_ARC_ROUTE ->
+            StrategicArcBottomPanel(
+                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                onShowContextMarkersSheet = onShowContextMarkersSheet,
+                onNavigateToPresets = onNavigateToPresets,
+                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
+                onNavigateToSettings = onNavigateToSettings,
+                onNavigateToInbox = onNavigateToInbox,
+                onNavigateToTracker = onNavigateToTracker,
+                onNavigateToReminders = onNavigateToReminders,
+                onNavigateToAiChat = onNavigateToAiChat,
+                onNavigateToAiInsights = onNavigateToAiInsights,
+                onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
+                onExportToFile = onExportToFile,
+                onImportFromFileRequest = onImportFromFileRequest,
+                onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
+                onExportAttachments = onExportAttachments,
+                onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
+                onWifiPush = onWifiPush,
+                onShowWifiServer = onShowWifiServer,
+                onShowWifiImport = onShowWifiImport,
+                onNavigateToAttachments = onNavigateToAttachments,
+                onNavigateToScripts = onNavigateToScripts,
+                onShowAbout = onShowAbout,
+                featureToggles = contextUiState.featureToggles,
+                onNavigateToRecentItem = onNavigateToRecentItem,
+                recentViewModel = recentViewModel,
+            )
+        STRATEGIC_MANAGEMENT_ROUTE ->
+            StrategyBottomPanel(
+                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                onShowContextMarkersSheet = onShowContextMarkersSheet,
+                onNavigateToPresets = onNavigateToPresets,
+                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
+                onNavigateToSettings = onNavigateToSettings,
+                onNavigateToInbox = onNavigateToInbox,
+                onNavigateToTracker = onNavigateToTracker,
+                onNavigateToReminders = onNavigateToReminders,
+                onNavigateToAiChat = onNavigateToAiChat,
+                onNavigateToAiInsights = onNavigateToAiInsights,
+                onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
+                onExportToFile = onExportToFile,
+                onImportFromFileRequest = onImportFromFileRequest,
+                onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
+                onExportAttachments = onExportAttachments,
+                onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
+                onWifiPush = onWifiPush,
+                onShowWifiServer = onShowWifiServer,
+                onShowWifiImport = onShowWifiImport,
+                onNavigateToAttachments = onNavigateToAttachments,
+                onNavigateToScripts = onNavigateToScripts,
+                onShowAbout = onShowAbout,
+                featureToggles = contextUiState.featureToggles,
+                onNavigateToRecentItem = onNavigateToRecentItem,
+                recentViewModel = recentViewModel,
+            )
+        MAIN_SCREEN_CORE_ROUTE ->
+            CoreBottomPanel(
+                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                onShowContextMarkersSheet = onShowContextMarkersSheet,
+                onNavigateToPresets = onNavigateToPresets,
+                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
+                onNavigateToSettings = onNavigateToSettings,
+                onNavigateToInbox = onNavigateToInbox,
+                onNavigateToTracker = onNavigateToTracker,
+                onNavigateToReminders = onNavigateToReminders,
+                onNavigateToAiChat = onNavigateToAiChat,
+                onNavigateToAiInsights = onNavigateToAiInsights,
+                onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
+                onExportToFile = onExportToFile,
+                onImportFromFileRequest = onImportFromFileRequest,
+                onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
+                onExportAttachments = onExportAttachments,
+                onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
+                onWifiPush = onWifiPush,
+                onShowWifiServer = onShowWifiServer,
+                onShowWifiImport = onShowWifiImport,
+                onNavigateToAttachments = onNavigateToAttachments,
+                onNavigateToScripts = onNavigateToScripts,
+                onShowAbout = onShowAbout,
+                featureToggles = contextUiState.featureToggles,
+                onNavigateToRecentItem = onNavigateToRecentItem,
+                recentViewModel = recentViewModel,
+            )
+        else ->
+            DashboardBottomPanel(
+                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                onShowContextMarkersSheet = onShowContextMarkersSheet,
+                onNavigateToPresets = onNavigateToPresets,
+                onNavigateToGlobalSearch = onNavigateToGlobalSearch,
+                onNavigateToSettings = onNavigateToSettings,
+                onNavigateToInbox = onNavigateToInbox,
+                onNavigateToTracker = onNavigateToTracker,
+                onNavigateToReminders = onNavigateToReminders,
+                onNavigateToAiChat = onNavigateToAiChat,
+                onNavigateToAiInsights = onNavigateToAiInsights,
+                onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
+                onExportToFile = onExportToFile,
+                onImportFromFileRequest = onImportFromFileRequest,
+                onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
+                onExportAttachments = onExportAttachments,
+                onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
+                onWifiPush = onWifiPush,
+                onShowWifiServer = onShowWifiServer,
+                onShowWifiImport = onShowWifiImport,
+                onNavigateToAttachments = onNavigateToAttachments,
+                onNavigateToScripts = onNavigateToScripts,
+                onShowAbout = onShowAbout,
+                featureToggles = contextUiState.featureToggles,
+                onNavigateToRecentItem = onNavigateToRecentItem,
+                recentViewModel = recentViewModel,
+            )
+    }
+}
+
+@Composable
+private fun MainScreenPagerContent(
+    tabs: List<CommandDeckTab>,
+    pagerState: androidx.compose.foundation.pager.PagerState,
+    navController: NavController,
+    navigationManager: EnhancedNavigationManager?,
+    context: android.content.Context,
+    aiInsightsViewModel: AiInsightsViewModel,
+    focusContextsViewModel: FocusContextsViewModel,
+    tacticalMissionViewModel: TacticalMissionViewModel,
+    dayManagementViewModel: DayManagementViewModel,
+    dayPlanViewModel: DayPlanViewModel,
+) {
+    val scope = rememberCoroutineScope()
+
+    HorizontalPager(
+        state = pagerState,
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .pointerInput(tabs.size, pagerState.currentPage) {
+                    var horizontalDragAccum = 0f
+                    detectHorizontalDragGestures(
+                        onDragStart = { horizontalDragAccum = 0f },
+                        onHorizontalDrag = { _, dragAmount ->
+                            horizontalDragAccum += dragAmount
+                        },
+                        onDragCancel = { horizontalDragAccum = 0f },
+                        onDragEnd = {
+                            val dragDelta = horizontalDragAccum
+                            horizontalDragAccum = 0f
+                            if (abs(dragDelta) < TAB_SWIPE_THRESHOLD_PX) return@detectHorizontalDragGestures
+
+                            val targetPage =
+                                when {
+                                    dragDelta < 0f ->
+                                        if (pagerState.currentPage < tabs.lastIndex) {
+                                            pagerState.currentPage + 1
+                                        } else {
+                                            0
+                                        }
+                                    dragDelta > 0f ->
+                                        if (pagerState.currentPage > 0) {
+                                            pagerState.currentPage - 1
+                                        } else {
+                                            tabs.lastIndex
+                                        }
+                                    else -> null
+                                }
+
+                            targetPage?.let { page ->
+                                scope.launch {
+                                    pagerState.scrollToPage(page)
+                                }
+                            }
+                        },
+                    )
+                },
+        beyondViewportPageCount = 1,
+        userScrollEnabled = false,
+    ) { page ->
+        when (tabs[page]) {
+            CommandDeckTab.Dashboard ->
+                DashboardContent(
+                    modifier = Modifier.fillMaxSize(),
+                    onOpenFocusedContext = { contextId ->
+                        navigationManager.navigateOrFallback(
+                            navController = navController,
+                            target = NavTarget.ContextDetail(contextId = contextId),
+                            recordInHistory = true,
+                        )
+                    },
+                    aiInsightsViewModel = aiInsightsViewModel,
+                    focusContextsViewModel = focusContextsViewModel,
+                )
+            CommandDeckTab.Strategy ->
+                StrategicManagementScreen(
+                    navController = navController,
+                    navigationManager = navigationManager,
+                )
+            CommandDeckTab.Core ->
+                CoreLevelScreen(
+                    navController = navController,
+                    navigationManager = navigationManager,
+                )
+            CommandDeckTab.StrategicArc ->
+                StrategicArcScreen(
+                    navController = navController,
+                    navigationManager = navigationManager,
+                )
+            CommandDeckTab.Tactics ->
+                TacticalManagementScreen(
+                    showFabMenu = false,
+                    viewModel = tacticalMissionViewModel,
+                    onLinkedProjectClick = { projectId ->
+                        navigationManager.navigateOrFallback(
+                            navController = navController,
+                            target = NavTarget.ContextDetail(contextId = projectId),
+                        ) {
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onLinkedAttachmentClick = { attachment ->
+                        when {
+                            attachment.attachmentType == "NOTE_DOCUMENT" &&
+                                !attachment.entityId.isNullOrBlank() ->
+                                navigationManager.navigateOrFallback(
+                                    navController = navController,
+                                    target = NavTarget.NoteDocument(id = attachment.entityId),
+                                )
+                            attachment.attachmentType == "MUSIC_NOTE" &&
+                                !attachment.entityId.isNullOrBlank() ->
+                                navigationManager.navigateOrFallback(
+                                    navController = navController,
+                                    target = NavTarget.MusicNote(id = attachment.entityId),
+                                )
+                            attachment.attachmentType == "CHECKLIST" &&
+                                !attachment.entityId.isNullOrBlank() ->
+                                navigationManager.navigateOrFallback(
+                                    navController = navController,
+                                    target = NavTarget.Checklist(id = attachment.entityId),
+                                )
+                            attachment.linkType == LinkType.CONTEXT &&
+                                !attachment.target.isNullOrBlank() ->
+                                navigationManager.navigateOrFallback(
+                                    navController = navController,
+                                    target = NavTarget.ContextDetail(contextId = attachment.target),
+                                    recordInHistory = true,
+                                )
+                            (
+                                attachment.linkType == LinkType.URL ||
+                                    attachment.linkType == LinkType.OBSIDIAN
+                            ) && !attachment.target.isNullOrBlank() -> {
+                                val resolvedTarget = buildExternalTarget(attachment.linkType, attachment.target)
+                                runCatching {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse(resolvedTarget)).apply {
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        },
+                                    )
+                                }.onFailure {
+                                    navigationManager.navigateOrFallback(
+                                        navController = navController,
+                                        target = NavTarget.AttachmentsLibrary,
+                                    ) {
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                    runCatching {
+                                        navController.getBackStackEntry("attachments_library_screen")
+                                            .savedStateHandle["attachment_library_query"] = attachment.id
+                                    }
+                                }
+                            }
+                            else -> {
+                                navigationManager.navigateOrFallback(
+                                    navController = navController,
+                                    target = NavTarget.AttachmentsLibrary,
+                                ) {
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                                runCatching {
+                                    navController.getBackStackEntry("attachments_library_screen")
+                                        .savedStateHandle["attachment_library_query"] = attachment.id
+                                }
+                            }
+                        }
+                    },
+                )
+            CommandDeckTab.Today ->
+                DayManagementScreen(
+                    mainNavController = navController,
+                    navigationManager = navigationManager,
+                    viewModel = dayManagementViewModel,
+                    dayPlanViewModel = dayPlanViewModel,
+                    startTab = "PLAN",
+                    showFabMenu = false,
+                )
+        }
+    }
+}
+
+@Composable
+private fun MainScreenCommandDeckTransientUi(commandDeckViewModel: CommandDeckViewModel) {
+    val isContextInputVisible by commandDeckViewModel.isContextInputVisible.collectAsStateWithLifecycle()
+    val contextInputText by commandDeckViewModel.contextInputText.collectAsStateWithLifecycle()
+
+    ContextInputOverlay(
+        visible = isContextInputVisible,
+        text = contextInputText,
+        onTextChange = commandDeckViewModel::onContextInputChange,
+        onSend = commandDeckViewModel::submitContextInput,
+        onTrack = commandDeckViewModel::startContextTracking,
+        onClear = commandDeckViewModel::clearContextInput,
+        onDismiss = commandDeckViewModel::closeContextInput,
+    )
+}
+
+@Composable
+private fun MainScreenCommandDeckDialogs(commandDeckViewModel: CommandDeckViewModel) {
+    val importChoiceUri by commandDeckViewModel.importChoiceUri.collectAsStateWithLifecycle()
+    val exportChoiceVisible by commandDeckViewModel.exportChoiceVisible.collectAsStateWithLifecycle()
+    val syncUiState by commandDeckViewModel.syncUiState.collectAsStateWithLifecycle()
+    val showWifiImportDialog by commandDeckViewModel.showWifiImportDialog.collectAsStateWithLifecycle()
+
+    if (importChoiceUri != null) {
+        AlertDialog(
+            onDismissRequest = commandDeckViewModel::onImportChoiceDismiss,
+            title = { Text("Choose Import Version") },
+            text = { Text("Would you like to import a V1 (legacy) or V2 (snapshot) backup file?") },
+            confirmButton = {
+                Row(horizontalArrangement = Arrangement.SpaceBetween) {
+                    Button(onClick = { commandDeckViewModel.confirmImportV1(importChoiceUri!!) }) {
+                        Text("Import V1")
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Button(onClick = { commandDeckViewModel.confirmImportV2(importChoiceUri!!) }) {
+                        Text("Import V2")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = commandDeckViewModel::onImportChoiceDismiss) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
+
+    if (exportChoiceVisible) {
+        AlertDialog(
+            onDismissRequest = commandDeckViewModel::onExportChoiceDismiss,
+            title = { Text("Choose Export Version") },
+            text = { Text("Would you like to export a V1 (legacy) or V2 (snapshot) backup file?") },
+            confirmButton = {
+                Row(horizontalArrangement = Arrangement.SpaceBetween) {
+                    Button(onClick = commandDeckViewModel::confirmExportV1) {
+                        Text("Export V1")
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Button(onClick = commandDeckViewModel::confirmExportV2) {
+                        Text("Export V2")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = commandDeckViewModel::onExportChoiceDismiss) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
+
+    if (syncUiState.showWifiServerDialog) {
+        WifiServerDialog(
+            address = syncUiState.wifiServerAddress,
+            onDismiss = commandDeckViewModel::onDismissWifiServerDialog,
+        )
+    }
+
+    if (showWifiImportDialog) {
+        WifiImportDialog(
+            desktopAddress = syncUiState.desktopAddress,
+            onAddressChange = commandDeckViewModel::onWifiImportAddressChange,
+            onDismiss = commandDeckViewModel::onDismissWifiImportDialog,
+            onConfirm = commandDeckViewModel::onWifiImportConfirm,
+        )
+    }
+}
+
+@Composable
+private fun MainScreenContextMarkersSheet(
+    showSheet: Boolean,
+    onDismiss: () -> Unit,
+    contextHierarchyViewModel: ContextHierarchyScreenViewModel,
+    onManageContextMarkers: () -> Unit,
+    navigationManager: EnhancedNavigationManager?,
+    navController: NavController,
+    onContextSelected: (String, String?) -> Unit,
+) {
+    val contextUiState by contextHierarchyViewModel.uiState.collectAsStateWithLifecycle()
+
+    ContextMarkersSheet(
+        showSheet = showSheet,
+        onDismiss = onDismiss,
+        contextMarkers = contextUiState.allContextMarkers,
+        contextMarkerToEmojiMap = contextUiState.contextMarkerToEmojiMap,
+        onManageContextMarkers = onManageContextMarkers,
+        onContextSelected = onContextSelected,
+    )
+}
+
+@Composable
+private fun MainScreenAboutDialog(
+    showDialog: Boolean,
+    onDismiss: () -> Unit,
+    contextHierarchyViewModel: ContextHierarchyScreenViewModel,
+) {
+    if (!showDialog) {
+        return
+    }
+
+    val contextUiState by contextHierarchyViewModel.uiState.collectAsStateWithLifecycle()
+    com.romankozak.forwardappmobile.ui.dialogs.AboutAppDialog(
+        stats = contextUiState.appStatistics,
+        onDismiss = onDismiss,
+    )
 }

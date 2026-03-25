@@ -11,7 +11,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,7 +44,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.hierarchy.ProjectHierarchyView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
 
@@ -163,16 +161,6 @@ fun ProjectHierarchyScreenContent(
                     CircularProgressIndicator()
                 }
             } else if (isListEmpty) {
-                val emptyText =
-                    remember(uiState.planningMode, uiState.planningSettings) {
-                        when (uiState.planningMode) {
-                            PlanningMode.Today -> "No contexts with tag '#${uiState.planningSettings.dailyTag}'"
-                            PlanningMode.Medium -> "No contexts with tag '#${uiState.planningSettings.mediumTag}'"
-                            PlanningMode.Long -> "No contexts with tag '#${uiState.planningSettings.longTag}'"
-                            else -> "Create your first context"
-                        }
-                    }
-
                 Box(
                     modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 20.dp),
                     contentAlignment = Alignment.Center,
@@ -183,7 +171,7 @@ fun ProjectHierarchyScreenContent(
                         tonalElevation = 1.dp,
                     ) {
                         Text(
-                            text = emptyText,
+                            text = "Create your first context",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
@@ -208,7 +196,6 @@ fun ProjectHierarchyScreenContent(
                     highlightedProjectId = null,
                     searchQuery = searchQuery,
                     isSearchActive = isSearchActive,
-                    planningMode = uiState.planningMode,
                     hierarchySettings = HierarchyDisplaySettings(),
                     listState = listState,
                     longDescendantsMap = uiState.longDescendantsMap,
@@ -216,7 +203,6 @@ fun ProjectHierarchyScreenContent(
                     sharedTransitionScope = sharedTransitionScope,
                     animatedVisibilityScope = animatedVisibilityScope,
                     onProjectClicked = { onEvent(ContextHierarchyScreenEvent.ContextClick(it)) },
-                    onToggleExpanded = { onEvent(ContextHierarchyScreenEvent.ToggleContextExpanded(it)) },
                     onMenuRequested = { onEvent(ContextHierarchyScreenEvent.ContextMenuRequest(it)) },
                     onProjectReorder = { from, to, pos ->
                         onEvent(ContextHierarchyScreenEvent.ContextReorder(from, to, pos))
@@ -304,8 +290,6 @@ private fun StableHomeButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-
     ModernBottomNavButton(
         text = "Home",
         icon = Icons.Outlined.Home,
@@ -318,9 +302,6 @@ internal fun OptimizedExpandingProjectHierarchyBottomNav(
     onToggleSearch: (Boolean) -> Unit,
     onGlobalSearchClick: () -> Unit,
     onShowCommandDeck: () -> Unit,
-    currentMode: PlanningMode,
-    onPlanningModeChange: (PlanningMode) -> Unit,
-    planningModesEnabled: Boolean,
     onRecentsClick: () -> Unit,
     onDayPlanClick: () -> Unit,
     onHomeClick: () -> Unit,
@@ -342,9 +323,6 @@ internal fun OptimizedExpandingProjectHierarchyBottomNav(
         onToggleSearch = stableOnToggleSearch,
         onGlobalSearchClick = onGlobalSearchClick,
         onShowCommandDeck = stableOnShowCommandDeck,
-        currentMode = currentMode,
-        onPlanningModeChange = onPlanningModeChange,
-        planningModesEnabled = planningModesEnabled,
         onRecentsClick = stableOnRecentsClick,
         onDayPlanClick = stableOnDayPlanClick,
         onHomeClick = stableOnHomeClick,

@@ -91,7 +91,7 @@ class AiInsightsViewModel
         val messages: StateFlow<List<AiMessage>> =
             aiInsightRepository.observeInsights()
                 .map { entities -> entities.map { it.toUi() } }
-                .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+                .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
         init {
             viewModelScope.launch {

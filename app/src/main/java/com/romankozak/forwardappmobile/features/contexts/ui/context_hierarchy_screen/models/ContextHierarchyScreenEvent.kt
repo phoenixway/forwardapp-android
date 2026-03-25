@@ -31,8 +31,6 @@ sealed interface ContextHierarchyScreenEvent {
 
     data class ContextMenuRequest(val project: Context) : ContextHierarchyScreenEvent
 
-    data class ToggleContextExpanded(val project: Context) : ContextHierarchyScreenEvent
-
     data class ContextReorder(
         val fromId: String,
         val toId: String,
@@ -42,8 +40,6 @@ sealed interface ContextHierarchyScreenEvent {
     data class BreadcrumbNavigation(val breadcrumb: BreadcrumbItem) : ContextHierarchyScreenEvent
 
     data object ClearBreadcrumbNavigation : ContextHierarchyScreenEvent
-
-    data class PlanningModeChange(val mode: PlanningMode) : ContextHierarchyScreenEvent
 
     data object DismissDialog : ContextHierarchyScreenEvent
 

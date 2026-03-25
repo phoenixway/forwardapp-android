@@ -31,7 +31,6 @@ import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
@@ -277,8 +276,6 @@ class ContextHierarchyScreenViewModel
             forceFocusMode: Boolean = false,
         ) {
             Log.d("ProjectRevealDebug", "Attempting to reveal projectId: $projectId")
-            planningUseCase.onPlanningModeChange(PlanningMode.All)
-
             when (val result = searchUseCase.revealProjectInHierarchy(projectId)) {
                 is RevealResult.Success -> {
                     Log.d(
@@ -404,7 +401,6 @@ class ContextHierarchyScreenViewModel
                     val canPaste = canPasteContextInto(event.project.id)
                     dialogUseCase.onMenuRequested(event.project, canPaste)
                 }
-                is ContextHierarchyScreenEvent.ToggleContextExpanded -> onToggleExpanded(event.project)
                 is ContextHierarchyScreenEvent.ContextReorder -> {
                     viewModelScope.launch {
                         contextActionsUseCase.onProjectReorder(
@@ -419,12 +415,6 @@ class ContextHierarchyScreenViewModel
 
                 is ContextHierarchyScreenEvent.BreadcrumbNavigation -> searchUseCase.navigateToBreadcrumb(event.breadcrumb)
                 is ContextHierarchyScreenEvent.ClearBreadcrumbNavigation -> searchUseCase.clearNavigation()
-
-                is ContextHierarchyScreenEvent.PlanningModeChange -> {
-                    if (uiState.value.featureToggles[FeatureFlag.PlanningModes] == true) {
-                        planningUseCase.onPlanningModeChange(event.mode)
-                    }
-                }
 
                 is ContextHierarchyScreenEvent.DismissDialog -> dialogUseCase.dismissDialog()
                 is ContextHierarchyScreenEvent.AddNewContextRequest -> {
@@ -663,11 +653,6 @@ class ContextHierarchyScreenViewModel
                                         parentId = event.project.id,
                                         roleCode = source.roleCode,
                                     )
-                                    allProjects.firstOrNull { it.id == event.project.id }
-                                        ?.takeIf { !it.isExpanded }
-                                        ?.let { parent ->
-                                            contextRepository.updateContext(parent.copy(isExpanded = true))
-                                        }
                                 }
                                 dialogUseCase.dismissDialog()
                                 _uiEventChannel.send(ProjectUiEvent.ShowToast("Контекст скопійовано в обраний контекст"))
@@ -801,7 +786,6 @@ class ContextHierarchyScreenViewModel
                             name = event.name,
                             parentId = event.parentId,
                             roleCode = event.roleCode,
-                            allProjects = _allProjectsFlat.value,
                         )
                     }
                     dialogUseCase.dismissDialog()
@@ -866,8 +850,6 @@ class ContextHierarchyScreenViewModel
         private fun handleBackNavigation() {
             searchUseCase.handleBackNavigation(
                 currentHierarchy = uiState.value.projectHierarchy,
-                areAnyProjectsExpanded = uiState.value.areAnyProjectsExpanded,
-                collapseAllProjects = { viewModelScope.launch { contextActionsUseCase.collapseAllProjects(_allProjectsFlat.value) } },
                 goBack = { enhancedNavigationManager?.goBack() },
             )
         }
@@ -884,16 +866,6 @@ class ContextHierarchyScreenViewModel
 
         private fun onHomeClicked() {
             navigationUseCase.onNavigateHome(viewModelScope)
-        }
-
-        private fun onToggleExpanded(project: Context) {
-            viewModelScope.launch {
-                if (uiState.value.planningMode == PlanningMode.All) {
-                    contextActionsUseCase.onToggleExpanded(project)
-                } else {
-                    planningUseCase.toggleExpandedInPlanningMode(project)
-                }
-            }
         }
 
         private fun onBottomNavExpandedChange(isExpanded: Boolean) {

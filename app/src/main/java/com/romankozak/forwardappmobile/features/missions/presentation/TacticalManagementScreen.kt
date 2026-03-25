@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -49,7 +50,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -57,6 +57,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckFabDefaults
@@ -81,15 +82,16 @@ fun TacticalManagementScreen(
     viewModel: TacticalMissionViewModel = hiltViewModel(),
     showFabMenu: Boolean = true,
 ) {
-    val missions by viewModel.missions.collectAsState()
-    val attachmentOptions by viewModel.attachmentOptions.collectAsState()
-    val projectOptions by viewModel.projectOptions.collectAsState()
-    val boardLinkedProjectIds by viewModel.boardLinkedProjectIds.collectAsState()
-    val boardLinkedAttachmentIds by viewModel.boardLinkedAttachmentIds.collectAsState()
-    val connectionsOrder by viewModel.connectionsOrder.collectAsState()
-    val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsState()
+    val missions by viewModel.missions.collectAsStateWithLifecycle()
+    val attachmentOptions by viewModel.attachmentOptions.collectAsStateWithLifecycle()
+    val projectOptions by viewModel.projectOptions.collectAsStateWithLifecycle()
+    val boardLinkedProjectIds by viewModel.boardLinkedProjectIds.collectAsStateWithLifecycle()
+    val boardLinkedAttachmentIds by viewModel.boardLinkedAttachmentIds.collectAsStateWithLifecycle()
+    val connectionsOrder by viewModel.connectionsOrder.collectAsStateWithLifecycle()
+    val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
-    val showAddDialog by viewModel.isAddMissionDialogOpen.collectAsState()
+    val showAddDialog by viewModel.isAddMissionDialogOpen.collectAsStateWithLifecycle()
+    val pendingScrollToMissionId by viewModel.pendingScrollToMissionId.collectAsStateWithLifecycle()
     var editingMission by remember { mutableStateOf<TacticalMission?>(null) }
     var actionMenuMission by remember { mutableStateOf<TacticalMission?>(null) }
     var activeLinkPickerTab by remember { mutableStateOf<LinkPickerTab?>(null) }
@@ -99,11 +101,21 @@ fun TacticalManagementScreen(
     var selectedMissionIds by remember { mutableStateOf(setOf<Long>()) }
     var statusMenuExpanded by remember { mutableStateOf(false) }
     var isFabMenuExpanded by remember { mutableStateOf(false) }
+    val missionListState = rememberLazyListState()
     val selectionMode = selectedMissionIds.isNotEmpty()
 
     LaunchedEffect(missions) {
         val existingIds = missions.map { it.id }.toSet()
         selectedMissionIds = selectedMissionIds.filter { it in existingIds }.toSet()
+    }
+
+    LaunchedEffect(pendingScrollToMissionId, missions) {
+        val targetId = pendingScrollToMissionId ?: return@LaunchedEffect
+        val targetIndex = missions.indexOfFirst { it.id == targetId }
+        if (targetIndex >= 0) {
+            missionListState.animateScrollToItem(targetIndex)
+            viewModel.consumePendingScrollToMission()
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -251,6 +263,7 @@ fun TacticalManagementScreen(
                         },
                         onMissionsReordered = viewModel::reorderMissions,
                     ),
+                listState = missionListState,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -347,6 +360,29 @@ fun TacticalManagementScreen(
                     text = "Додати місію в план дня",
                     onClick = {
                         viewModel.addMissionToTodayPlan(mission)
+                        actionMenuMission = null
+                    },
+                )
+                SubtleActionDivider()
+                MissionActionSheetItem(
+                    icon = Icons.Outlined.Today,
+                    text = "Postpone",
+                    onClick = {
+                        viewModel.updateMission(mission.copy(status = MissionStatus.INACTIVE))
+                        actionMenuMission = null
+                    },
+                )
+                SubtleActionDivider()
+                MissionActionSheetItem(
+                    icon = Icons.Outlined.Today,
+                    text = "Продовжити",
+                    onClick = {
+                        val oneWeekMs = 7L * 24L * 60L * 60L * 1000L
+                        viewModel.updateMission(
+                            mission.copy(
+                                deadline = System.currentTimeMillis() + oneWeekMs,
+                            ),
+                        )
                         actionMenuMission = null
                     },
                 )

@@ -149,10 +149,8 @@ class ClearAndNavigateHomeUseCase
                 Log.d(TAG, "Resetting planning mode to default")
                 context.planningUseCase?.let {
                     it.onPlanningModeChange(ProjectHierarchyScreenPlanningMode.All)
-                    it.planningModeManager.resetExpansionStates()
                 } ?: context.planningModeManager?.let {
                     it.changeMode(ProjectHierarchyScreenPlanningMode.All)
-                    it.resetExpansionStates()
                 }
             }
         }

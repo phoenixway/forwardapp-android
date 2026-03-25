@@ -76,6 +76,7 @@ fun DayManagementScreen(
     mainNavController: NavController,
     navigationManager: EnhancedNavigationManager? = null,
     viewModel: DayManagementViewModel = hiltViewModel(),
+    dayPlanViewModel: DayPlanViewModel = hiltViewModel(),
     modifier: Modifier = Modifier,
     startTab: String? = null,
     showFabMenu: Boolean = true,
@@ -90,8 +91,6 @@ fun DayManagementScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var addTaskTrigger by remember { mutableStateOf(0) }
 
-    // Instantiate DayPlanViewModel here, scoped to the COMMAND_DECK_TODAY_ROUTE
-    val dayPlanViewModel: DayPlanViewModel = hiltViewModel()
     var isFabMenuExpanded by remember { mutableStateOf(false) }
 
     DayManagementNavigationEffects(

@@ -18,7 +18,6 @@ import com.mohamedrejeb.compose.dnd.drop.dropTarget
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.shouldShowHierarchyFocusButton
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -29,7 +28,6 @@ fun LegacySmartHierarchyView(
     level: Int,
     dragAndDropState: DragAndDropState<Context>,
     isSearchActive: Boolean,
-    planningMode: PlanningMode,
     highlightedProjectId: String?,
     settings: HierarchyDisplaySettings,
     searchQuery: String,
@@ -71,7 +69,7 @@ fun LegacySmartHierarchyView(
             state = dragAndDropState,
             key = project.id,
             data = project,
-            dragAfterLongPress = true,
+            dragAfterLongPress = false,
         ) {
             val draggedItemData = dragAndDropState.draggedItem?.data
             val isDropAllowed =
@@ -94,16 +92,14 @@ fun LegacySmartHierarchyView(
                     project = project,
                     level = level,
                     hasChildren = hasChildren,
+                    childCount = children.size,
                     onProjectClick = onProjectClick,
-                    onToggleExpanded = onToggleExpanded,
-                    onMenuRequested = onMenuRequested,
+                    onProjectFocus = { onNavigateToProject(it.id) },
                     isCurrentlyDragging = isDragging,
                     isHovered = isHovered,
                     isDraggingDown = isDraggingDown,
                     isHighlighted = project.id == highlightedProjectId,
                     displayName = displayName,
-                    showFocusButton = shouldShowFocusButton,
-                    onFocusRequested = { onNavigateToProject(it.id) },
                     isFocused = isFocused,
                 )
 
@@ -138,7 +134,6 @@ fun LegacySmartHierarchyView(
                         level = level + 1,
                         dragAndDropState = dragAndDropState,
                         isSearchActive = isSearchActive,
-                        planningMode = planningMode,
                         highlightedProjectId = highlightedProjectId,
                         settings = settings,
                         searchQuery = searchQuery,

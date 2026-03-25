@@ -116,25 +116,7 @@ fun flattenHierarchyWithLevels(
     expandedIds: Set<String>? = null,
     level: Int = 0,
 ): List<FlatHierarchyItem> {
-    val result = mutableListOf<FlatHierarchyItem>()
-
-    fun traverse(
-        current: List<Context>,
-        currentLevel: Int,
-    ) {
-        val sortedProjects = current.sortedBy { it.order }
-        for (project in sortedProjects) {
-            result.add(FlatHierarchyItem(project = project, level = currentLevel))
-            val isExpanded = expandedIds?.contains(project.id) ?: project.isExpanded
-            if (isExpanded) {
-                val children = childMap[project.id].orEmpty()
-                if (children.isNotEmpty()) {
-                    traverse(children, currentLevel + 1)
-                }
-            }
-        }
-    }
-
-    traverse(projects, level)
-    return result
+    return projects
+        .sortedBy { it.order }
+        .map { project -> FlatHierarchyItem(project = project, level = level) }
 }

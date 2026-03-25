@@ -1,17 +1,15 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.hierarchy
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -62,8 +60,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.shouldShowHierarchyFocusButton
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -154,15 +150,14 @@ fun ProjectRow(
     project: Context,
     level: Int,
     hasChildren: Boolean,
+    childCount: Int,
     onProjectClick: (String) -> Unit,
-    onToggleExpanded: (project: Context) -> Unit,
-    onMenuRequested: (project: Context) -> Unit,
+    onProjectFocus: (Context) -> Unit,
     isCurrentlyDragging: Boolean,
     isHovered: Boolean,
     isDraggingDown: Boolean,
     isHighlighted: Boolean,
-    showFocusButton: Boolean,
-    onFocusRequested: (project: Context) -> Unit,
+    dragHandle: @Composable (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     displayName: AnnotatedString? = null,
     isFocused: Boolean = false,
@@ -196,12 +191,13 @@ fun ProjectRow(
         }
 
     val indentation = (level * 18).dp
+    val rowStartPadding = 14.dp
 
     Column(
         modifier =
             modifier
                 .fillMaxWidth()
-                .padding(start = indentation)
+                .padding(start = indentation + rowStartPadding)
                 .clip(RoundedCornerShape(16.dp))
                 .background(containerColor)
                 .border(width = 0.8.dp, color = borderColor, shape = RoundedCornerShape(16.dp)),
@@ -218,104 +214,61 @@ fun ProjectRow(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .clickable { onProjectClick(project.id) }
                     .alpha(if (isCurrentlyDragging) 0.6f else 1f)
                     .padding(vertical = 8.dp, horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(modifier = Modifier.size(36.dp), contentAlignment = Alignment.Center) {
-                if (hasChildren && !showFocusButton) {
-                    IconButton(
-                        onClick = { onToggleExpanded(project) },
-                        modifier = Modifier.size(30.dp),
-                    ) {
-                        Icon(
-                            imageVector = if (project.isExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-                            contentDescription = "Згорнути/Розгорнути",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                } else {
-                    Spacer(modifier = Modifier.size(32.dp))
-                }
-            }
-
-            Icon(
-                imageVector = if (hasChildren) Icons.Outlined.AccountTree else Icons.Outlined.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary.copy(alpha = if (hasChildren) 0.9f else 0.45f),
-                modifier = Modifier.size(if (hasChildren) 16.dp else 14.dp),
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            ReservedRoleBadge(
-                roleCode = project.roleCode,
-                modifier = Modifier.padding(end = 8.dp),
-            )
-            Text(
-                text = displayName ?: AnnotatedString(project.name),
+            Row(
                 modifier =
                     Modifier
                         .weight(1f)
-                        .padding(start = 2.dp),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                style =
-                    MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Normal,
-                    ),
-                color =
-                    if (isFocused) {
-                        MaterialTheme.colorScheme.onSecondaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onBackground
-                    },
-            )
-
-            AnimatedVisibility(
-                visible = showFocusButton,
-                enter = fadeIn(),
-                exit = fadeOut(),
-            ) {
-                Surface(
-                    onClick = { onFocusRequested(project) },
-                    modifier = Modifier.padding(start = 4.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color =
-                        if (isFocused) {
-                            MaterialTheme.colorScheme.primaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.surfaceContainerHigh
-                        },
-                    tonalElevation = 0.dp,
-                ) {
-                    Box(
-                        modifier = Modifier.size(34.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.FilterCenterFocus,
-                            contentDescription = "Сфокусувати гілку",
-                            tint =
-                                if (isFocused) {
-                                    MaterialTheme.colorScheme.onPrimaryContainer
+                        .combinedClickable(
+                            onClick = {
+                                if (hasChildren) {
+                                    onProjectFocus(project)
                                 } else {
-                                    MaterialTheme.colorScheme.primary
-                                },
-                            modifier = Modifier.size(18.dp),
+                                    onProjectClick(project.id)
+                                }
+                            },
+                            onLongClick = { onProjectClick(project.id) },
+                        ),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (hasChildren) {
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.72f),
+                        tonalElevation = 0.dp,
+                        modifier = Modifier.padding(end = 8.dp),
+                    ) {
+                        Text(
+                            text = childCount.toString(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
                         )
                     }
                 }
-            }
-
-            IconButton(
-                onClick = { onMenuRequested(project) },
-                modifier = Modifier.size(36.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Дії з проектом",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                Text(
+                    text = displayName ?: AnnotatedString(project.name),
+                    modifier = Modifier.padding(start = 2.dp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style =
+                        MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Normal,
+                        ),
+                    color =
+                        if (isFocused) {
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onBackground
+                        },
                 )
+            }
+            dragHandle?.invoke()
+            if (dragHandle == null) {
+                Spacer(modifier = Modifier.size(36.dp))
             }
         }
 
@@ -334,15 +287,14 @@ fun SwipeableProjectRow(
     project: Context,
     level: Int,
     hasChildren: Boolean,
+    childCount: Int,
     onProjectClick: (String) -> Unit,
-    onToggleExpanded: (project: Context) -> Unit,
-    onMenuRequested: (project: Context) -> Unit,
+    onProjectFocus: (Context) -> Unit,
     isCurrentlyDragging: Boolean,
     isHovered: Boolean,
     isDraggingDown: Boolean,
     isHighlighted: Boolean,
-    showFocusButton: Boolean,
-    onFocusRequested: (project: Context) -> Unit,
+    dragHandle: @Composable (() -> Unit)? = null,
     onAddSubproject: (project: Context) -> Unit,
     onDelete: (project: Context) -> Unit,
     onEdit: (project: Context) -> Unit,
@@ -431,7 +383,7 @@ fun SwipeableProjectRow(
                         contentDescription = "Фокус",
                         color = MaterialTheme.colorScheme.primary,
                     ) {
-                        onFocusRequested(project)
+                        onProjectFocus(project)
                         resetSwipe()
                     }
                     ProjectSwipeActionButton(
@@ -491,15 +443,14 @@ fun SwipeableProjectRow(
             project = project,
             level = level,
             hasChildren = hasChildren,
+            childCount = childCount,
             onProjectClick = onProjectClick,
-            onToggleExpanded = onToggleExpanded,
-            onMenuRequested = onMenuRequested,
+            onProjectFocus = onProjectFocus,
             isCurrentlyDragging = isCurrentlyDragging,
             isHovered = isHovered,
             isDraggingDown = isDraggingDown,
             isHighlighted = isHighlighted,
-            showFocusButton = showFocusButton,
-            onFocusRequested = onFocusRequested,
+            dragHandle = dragHandle,
             modifier = Modifier.offset { IntOffset(offsetX.roundToInt(), 0) },
             displayName = displayName,
             isFocused = isFocused,
@@ -631,36 +582,8 @@ internal fun buildVisibleHierarchy(
     flattenedHierarchy: List<FlatHierarchyItem>,
     childMap: Map<String, List<Context>>,
     longDescendantsMap: Map<String, Boolean>,
-): List<FlatHierarchyItem> {
-    val visibleItems = mutableListOf<FlatHierarchyItem>()
-    var skipLevel: Int? = null
+): List<FlatHierarchyItem> = flattenedHierarchy
 
-    flattenedHierarchy.forEach { item ->
-        if (skipLevel != null) {
-            if (item.level > skipLevel!!) return@forEach
-            skipLevel = null
-        }
-
-        val hasChildren = childMap[item.project.id]?.isNotEmpty() == true
-        val hasLongDescendants = longDescendantsMap[item.project.id] ?: false
-        val shouldShowFocusButton =
-            shouldShowHierarchyFocusButton(
-                hasChildren = hasChildren,
-                level = item.level,
-                hasOverflowingDescendants = hasLongDescendants,
-            )
-
-        if (shouldShowFocusButton) {
-            skipLevel = item.level
-        }
-
-        visibleItems.add(item)
-    }
-
-    return visibleItems
-}
-
-@Suppress("UNUSED_PARAMETER")
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun HierarchyListItem(
@@ -668,14 +591,12 @@ fun HierarchyListItem(
     childMap: Map<String, List<Context>>,
     dragAndDropState: DragAndDropState<Context>,
     isSearchActive: Boolean,
-    planningMode: PlanningMode,
     highlightedProjectId: String?,
     settings: HierarchyDisplaySettings,
     searchQuery: String,
     focusedProjectId: String?,
     longDescendantsMap: Map<String, Boolean>,
     onProjectClick: (String) -> Unit,
-    onToggleExpanded: (Context) -> Unit,
     onMenuRequested: (Context) -> Unit,
     onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
     onFocusProject: (Context) -> Unit,
@@ -688,6 +609,8 @@ fun HierarchyListItem(
     val project = item.project
     val children = childMap[project.id].orEmpty()
     val hasChildren = children.isNotEmpty()
+    val draggedProject = dragAndDropState.draggedItem?.data
+    val isCurrentlyDragging = draggedProject?.id == project.id
 
     val displayName =
         if (isSearchActive && searchQuery.isNotEmpty()) {
@@ -700,78 +623,80 @@ fun HierarchyListItem(
             AnnotatedString(project.name)
         }
 
-    val hasLongDescendants = longDescendantsMap[project.id] ?: false
-    val shouldShowFocusButton =
-        shouldShowHierarchyFocusButton(
-            hasChildren = hasChildren,
-            level = item.level,
-            hasOverflowingDescendants = hasLongDescendants,
-        )
     val isFocused = project.id == focusedProjectId
 
     with(sharedTransitionScope) {
-        DraggableItem(
-            state = dragAndDropState,
-            key = project.id,
-            data = project,
-            dragAfterLongPress = true,
-        ) {
-            val draggedItemData = dragAndDropState.draggedItem?.data
-            val isDropAllowed =
-                remember(draggedItemData, project) {
-                    draggedItemData == null || draggedItemData.id != project.id
-                }
+        val isDropAllowed =
+            remember(draggedProject, project) {
+                draggedProject == null || draggedProject.id != project.id
+            }
 
-            val hoveredDropTargetKey = dragAndDropState.hoveredDropTargetKey
-            val isHovered =
-                remember(hoveredDropTargetKey, project.id) {
-                    isDropAllowed && (hoveredDropTargetKey == "before-${project.id}" || hoveredDropTargetKey == "after-${project.id}")
-                }
-            val isDraggingDown =
-                remember(hoveredDropTargetKey, project.id) {
-                    isDropAllowed && hoveredDropTargetKey == "after-${project.id}"
-                }
+        val hoveredDropTargetKey = dragAndDropState.hoveredDropTargetKey
+        val isHovered =
+            remember(hoveredDropTargetKey, project.id, isDropAllowed) {
+                isDropAllowed && (hoveredDropTargetKey == "before-${project.id}" || hoveredDropTargetKey == "after-${project.id}")
+            }
+        val isDraggingDown =
+            remember(hoveredDropTargetKey, project.id, isDropAllowed) {
+                isDropAllowed && hoveredDropTargetKey == "after-${project.id}"
+            }
 
-            Box(modifier = Modifier.fillMaxWidth()) {
-                SwipeableProjectRow(
-                    project = project,
-                    level = item.level,
-                    hasChildren = hasChildren,
-                    onProjectClick = onProjectClick,
-                    onToggleExpanded = onToggleExpanded,
-                    onMenuRequested = onMenuRequested,
-                    isCurrentlyDragging = isDragging,
-                    isHovered = isHovered,
-                    isDraggingDown = isDraggingDown,
-                    isHighlighted = project.id == highlightedProjectId,
-                    displayName = displayName,
-                    showFocusButton = shouldShowFocusButton,
-                    onFocusRequested = onFocusProject,
-                    onAddSubproject = onAddSubproject,
-                    onDelete = onDeleteProject,
-                    onEdit = onEditProject,
-                    isFocused = isFocused,
-                )
-
-                if (!isDragging) {
-                    Column(modifier = Modifier.matchParentSize()) {
-                        val dropModifier = { position: DropPosition ->
-                            Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                                .then(
-                                    if (isDropAllowed) {
-                                        Modifier.dropTarget(state = dragAndDropState, key = "$position-${project.id}") {
-                                            onProjectReorder(it.data.id, project.id, position)
-                                        }
-                                    } else {
-                                        Modifier
-                                    },
-                                )
+        Box(modifier = Modifier.fillMaxWidth()) {
+            SwipeableProjectRow(
+                project = project,
+                level = item.level,
+                hasChildren = hasChildren,
+                childCount = children.size,
+                onProjectClick = onProjectClick,
+                onProjectFocus = onFocusProject,
+                isCurrentlyDragging = isCurrentlyDragging,
+                isHovered = isHovered,
+                isDraggingDown = isDraggingDown,
+                isHighlighted = project.id == highlightedProjectId,
+                displayName = displayName,
+                dragHandle = {
+                    DraggableItem(
+                        state = dragAndDropState,
+                        key = project.id,
+                        data = project,
+                        dragAfterLongPress = true,
+                    ) {
+                        IconButton(
+                            onClick = { onMenuRequested(project) },
+                            modifier = Modifier.padding(start = 2.dp).size(36.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Дії з контекстом",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
-                        Box(modifier = dropModifier(DropPosition.BEFORE))
-                        Box(modifier = dropModifier(DropPosition.AFTER))
                     }
+                },
+                onAddSubproject = onAddSubproject,
+                onDelete = onDeleteProject,
+                onEdit = onEditProject,
+                isFocused = isFocused,
+            )
+
+            if (!isCurrentlyDragging) {
+                Column(modifier = Modifier.matchParentSize()) {
+                    val dropModifier = { position: DropPosition ->
+                        Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .then(
+                                if (isDropAllowed) {
+                                    Modifier.dropTarget(state = dragAndDropState, key = "$position-${project.id}") {
+                                        onProjectReorder(it.data.id, project.id, position)
+                                    }
+                                } else {
+                                    Modifier
+                                },
+                            )
+                    }
+                    Box(modifier = dropModifier(DropPosition.BEFORE))
+                    Box(modifier = dropModifier(DropPosition.AFTER))
                 }
             }
         }

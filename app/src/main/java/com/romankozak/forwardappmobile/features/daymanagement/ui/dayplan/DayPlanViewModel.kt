@@ -103,6 +103,16 @@ data class DayPlanUiState(
     val bestCompletedPoints: Int = 0,
 )
 
+private data class ProjectOptionsSnapshot(
+    val options: List<LinkOption> = emptyList(),
+    val titlesById: Map<String, String> = emptyMap(),
+)
+
+private data class AttachmentOptionsSnapshot(
+    val options: List<LinkOption> = emptyList(),
+    val titlesById: Map<String, String> = emptyMap(),
+)
+
 sealed class DayPlanUiEvent {
     data class NavigateToEditTask(val taskId: String) : DayPlanUiEvent()
 }
@@ -152,6 +162,22 @@ class DayPlanViewModel
         val connectionsOrder: StateFlow<List<String>> = _connectionsOrder.asStateFlow()
         val contextMarkerToEmojiMap: StateFlow<Map<String, String>> = contextRepository.contextMarkerToEmojiMap
         val contextMarkerNames: StateFlow<List<String>> = contextRepository.contextMarkerNamesFlow
+        private val allContextsFlow =
+            contextDao
+                .getAllContextsFlow()
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.Eagerly,
+                    initialValue = emptyList(),
+                )
+        private val attachmentLibraryFlow =
+            attachmentsRepository
+                .getAttachmentLibraryItems()
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.Eagerly,
+                    initialValue = emptyList(),
+                )
         val allTags: StateFlow<List<String>> =
             contextRepository
                 .getAllContextsFlow()
@@ -181,6 +207,66 @@ class DayPlanViewModel
                 .onEach { order -> _connectionsOrder.value = order }
                 .launchIn(viewModelScope)
         }
+
+        private val availableProjectsSnapshot =
+            allContextsFlow
+                .map { contexts ->
+                    val titlesById =
+                        contexts.associate { context ->
+                            context.id to context.name.ifBlank { compactId(context.id) }
+                        }
+                    val options =
+                        contexts
+                            .asSequence()
+                            .map { LinkOption(it.id, titlesById.getValue(it.id)) }
+                            .sortedBy { it.name.lowercase() }
+                            .toList()
+                    ProjectOptionsSnapshot(
+                        options = options,
+                        titlesById = titlesById,
+                    )
+                }.stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.Eagerly,
+                    initialValue = ProjectOptionsSnapshot(),
+                )
+
+        private val availableAttachmentsSnapshot =
+            attachmentLibraryFlow
+                .map { attachments ->
+                    val titlesById =
+                        attachments
+                            .asSequence()
+                            .mapNotNull { result ->
+                                val relatedLink = parseRelatedLink(result.linkDisplayName)
+                                resolveAttachmentTitle(result, relatedLink)?.let { result.id to it }
+                            }.toMap()
+                    val options =
+                        attachments
+                            .asSequence()
+                            .mapNotNull { result ->
+                                val relatedLink = parseRelatedLink(result.linkDisplayName)
+                                titlesById[result.id]?.let { title ->
+                                    LinkOption(
+                                        id = result.id,
+                                        name = title,
+                                        linkType = relatedLink?.type,
+                                        attachmentType = result.attachmentType,
+                                        entityId = result.entityId,
+                                        target = relatedLink?.target,
+                                    )
+                                }
+                            }.sortedBy { it.name.lowercase() }
+                            .toList()
+                    AttachmentOptionsSnapshot(
+                        options = options,
+                        titlesById = titlesById,
+                    )
+                }.stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.Eagerly,
+                    initialValue = AttachmentOptionsSnapshot(),
+                )
 
         @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
         val uiState: StateFlow<DayPlanUiState> =
@@ -271,8 +357,6 @@ class DayPlanViewModel
                                 }
                             }
 
-                    val contextsFlow = contextDao.getAllContextsFlow()
-                    val attachmentLibraryFlow = attachmentsRepository.getAttachmentLibraryItems()
                     val scopeContextsExpandedFlow = settingsRepository.dayScopeContextsExpandedFlow
                     val scopeAttachmentsExpandedFlow = settingsRepository.dayScopeAttachmentsExpandedFlow
                     val scopeExpansionFlow =
@@ -286,14 +370,14 @@ class DayPlanViewModel
                     combine(
                         dayPlanFlow,
                         tasksFlow,
-                        contextsFlow,
-                        attachmentLibraryFlow,
+                        availableProjectsSnapshot,
+                        availableAttachmentsSnapshot,
                         scopeExpansionFlow,
                     ) {
                             dayPlan: DayPlan?,
                             tasks: List<DayTaskWithReminder>,
-                            contexts: List<Context>,
-                            attachments: List<AttachmentLibraryQueryResult>,
+                            projectSnapshot: ProjectOptionsSnapshot,
+                            attachmentSnapshot: AttachmentOptionsSnapshot,
                             scopeExpansion: Pair<Boolean, Boolean>,
                         ->
                         val (scopeContextsExpanded, scopeAttachmentsExpanded) = scopeExpansion
@@ -319,51 +403,19 @@ class DayPlanViewModel
                             )
                                 .toSet()
                         val linkedProjectTitles =
-                            contexts
-                                .asSequence()
-                                .filter { it.id in linkedProjectIds }
-                                .associate { it.id to it.name.ifBlank { compactId(it.id) } }
-                        val availableProjects =
-                            contexts
-                                .asSequence()
-                                .map { LinkOption(it.id, it.name.ifBlank { compactId(it.id) }) }
-                                .sortedBy { it.name.lowercase() }
-                                .toList()
-                        val availableAttachments =
-                            attachments
-                                .asSequence()
-                                .mapNotNull { result ->
-                                    val relatedLink = parseRelatedLink(result.linkDisplayName)
-                                    resolveAttachmentTitle(result, relatedLink)?.let { title ->
-                                        LinkOption(
-                                            id = result.id,
-                                            name = title,
-                                            linkType = relatedLink?.type,
-                                            attachmentType = result.attachmentType,
-                                            entityId = result.entityId,
-                                            target = relatedLink?.target,
-                                        )
-                                    }
-                                }
-                                .sortedBy { it.name.lowercase() }
-                                .toList()
+                            linkedProjectIds.associateWith { projectId ->
+                                projectSnapshot.titlesById[projectId] ?: compactId(projectId)
+                            }
                         val linkedAttachmentTitles =
-                            attachments
-                                .asSequence()
-                                .filter { it.id in linkedAttachmentIds }
-                                .mapNotNull { result ->
-                                    val relatedLink = parseRelatedLink(result.linkDisplayName)
-                                    resolveAttachmentTitle(result, relatedLink)?.let { title ->
-                                        result.id to title
-                                    }
-                                }
-                                .toMap()
+                            linkedAttachmentIds.associateWith { attachmentId ->
+                                attachmentSnapshot.titlesById[attachmentId] ?: compactId(attachmentId)
+                            }
                         val highestCompletedPoints = dayManagementRepository.getHighestCompletedPointsAcrossPlans()
                         DayPlanUiState(
                             dayPlan = dayPlan,
                             tasks = sortTasksWithOrder(tasks),
-                            availableProjects = availableProjects,
-                            availableAttachments = availableAttachments,
+                            availableProjects = projectSnapshot.options,
+                            availableAttachments = attachmentSnapshot.options,
                             linkedProjectTitles = linkedProjectTitles,
                             linkedAttachmentTitles = linkedAttachmentTitles,
                             scopeContextsExpanded = scopeContextsExpanded,
@@ -382,7 +434,7 @@ class DayPlanViewModel
                 }
                 .stateIn(
                     scope = viewModelScope,
-                    started = SharingStarted.WhileSubscribed(UI_STATE_STOP_TIMEOUT_MILLIS),
+                    started = SharingStarted.Eagerly,
                     initialValue = DayPlanUiState(isLoading = true),
                 )
 
@@ -633,6 +685,8 @@ class DayPlanViewModel
             priority: TaskPriority,
             recurrenceRule: RecurrenceRule?,
             points: Int,
+            projectId: String? = null,
+            linkedProjectIds: List<String>? = null,
         ) {
             viewModelScope.launch(Dispatchers.IO) {
                 try {
@@ -664,11 +718,13 @@ class DayPlanViewModel
                                 dayPlanId = dayPlanId,
                                 title = trimmedTitle,
                                 description = description.trim().takeIf { it.isNotEmpty() },
+                                projectId = projectId,
                                 estimatedDurationMinutes =
                                     duration?.takeIf { it > 0 && it <= MAX_DURATION_MINUTES },
                                 priority = priority,
                                 order = topOrder,
                                 points = points,
+                                linkedProjectIds = linkedProjectIds,
                             ),
                         )
                     }
@@ -677,6 +733,26 @@ class DayPlanViewModel
                     Log.e("DayPlanViewModel", "Error adding task", e)
                 }
             }
+        }
+
+        fun addTaskFromContext(contextId: String) {
+            val dayPlanId = uiState.value.dayPlan?.id ?: return
+            val sourceContext =
+                allContextsFlow.value.firstOrNull { it.id == contextId }
+                    ?: return
+            val title = sourceContext.name.trim().ifBlank { compactId(sourceContext.id) }
+
+            addTask(
+                dayPlanId = dayPlanId,
+                title = title,
+                description = "",
+                duration = null,
+                priority = TaskPriority.MEDIUM,
+                recurrenceRule = null,
+                points = 0,
+                projectId = sourceContext.id,
+                linkedProjectIds = listOf(sourceContext.id),
+            )
         }
 
         fun addGoalAsRecurringTask(

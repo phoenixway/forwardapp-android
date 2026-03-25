@@ -27,17 +27,18 @@ import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.util.UUID
-import javax.inject.Inject
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.NewTaskParameters
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionPriority
+import java.util.UUID
+import javax.inject.Inject
 
 @HiltViewModel
 class TacticalMissionViewModel
@@ -59,15 +60,50 @@ class TacticalMissionViewModel
     ) : ViewModel() {
         private val _missions = MutableStateFlow<List<TacticalMission>>(emptyList())
         val missions: StateFlow<List<TacticalMission>> = _missions.asStateFlow()
-
-        private val _projectOptions = MutableStateFlow<List<ProjectOption>>(emptyList())
-        val projectOptions: StateFlow<List<ProjectOption>> = _projectOptions.asStateFlow()
-
-        private val _attachmentOptions = MutableStateFlow<List<AttachmentOption>>(emptyList())
-        val attachmentOptions: StateFlow<List<AttachmentOption>> = _attachmentOptions.asStateFlow()
+        private val allContexts =
+            contextRepository
+                .getAllContextsFlow()
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.Eagerly,
+                    initialValue = emptyList(),
+                )
+        private val allAttachmentLibraryItems =
+            attachmentsRepository
+                .getAttachmentLibraryItems()
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.Eagerly,
+                    initialValue = emptyList(),
+                )
+        val projectOptions: StateFlow<List<ProjectOption>> =
+            allContexts
+                .map { projects ->
+                    projects.map {
+                        ProjectOption(
+                            id = it.id,
+                            name = it.name,
+                            parentId = it.parentId,
+                        )
+                    }
+                }.stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.Eagerly,
+                    initialValue = emptyList(),
+                )
+        val attachmentOptions: StateFlow<List<AttachmentOption>> =
+            allAttachmentLibraryItems
+                .map { results -> results.mapNotNull { it.toAttachmentOption() } }
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.Eagerly,
+                    initialValue = emptyList(),
+                )
 
         private val _isAddMissionDialogOpen = MutableStateFlow(false)
         val isAddMissionDialogOpen: StateFlow<Boolean> = _isAddMissionDialogOpen.asStateFlow()
+        private val _pendingScrollToMissionId = MutableStateFlow<Long?>(null)
+        val pendingScrollToMissionId: StateFlow<Long?> = _pendingScrollToMissionId.asStateFlow()
 
         private val _boardLinkedProjectIds = MutableStateFlow<List<String>>(emptyList())
         val boardLinkedProjectIds: StateFlow<List<String>> = _boardLinkedProjectIds.asStateFlow()
@@ -84,8 +120,7 @@ class TacticalMissionViewModel
         val connectionsOrder: StateFlow<List<String>> = _connectionsOrder.asStateFlow()
         val contextMarkerNames: StateFlow<List<String>> = contextRepository.contextMarkerNamesFlow
         val allTags: StateFlow<List<String>> =
-            contextRepository
-                .getAllContextsFlow()
+            allContexts
                 .map { contexts ->
                     contexts
                         .flatMap { it.tags.orEmpty() }
@@ -95,7 +130,7 @@ class TacticalMissionViewModel
                         .sorted()
                 }.stateIn(
                     scope = viewModelScope,
-                    started = SharingStarted.WhileSubscribed(5000),
+                    started = SharingStarted.Eagerly,
                     initialValue = emptyList(),
                 )
 
@@ -112,29 +147,6 @@ class TacticalMissionViewModel
 
         init {
             loadMissions()
-
-            // Завантаження доступних проектів для вибору
-            contextRepository.getAllContextsFlow()
-                .onEach { projects ->
-                    _projectOptions.value =
-                        projects.map {
-                            ProjectOption(
-                                id = it.id,
-                                name = it.name,
-                                parentId = it.parentId,
-                            )
-                        }
-                }
-                .launchIn(viewModelScope)
-
-            // Завантаження вкладень (нотатки, чеклисти, лінки) для прив'язки до місії
-            // Якщо приходить Flow<List<AttachmentLibraryQueryResult>>
-            attachmentsRepository.getAttachmentLibraryItems()
-                .onEach { results ->
-                    _attachmentOptions.value = results.mapNotNull { it.toAttachmentOption() }
-                    // Переконайтеся, що toAttachmentOption() визначено для AttachmentLibraryQueryResult
-                }
-                .launchIn(viewModelScope)
 
             settingsRepository.tacticalLinkedProjectIdsFlow
                 .onEach { ids -> _boardLinkedProjectIds.value = ids.toList() }
@@ -189,6 +201,7 @@ class TacticalMissionViewModel
         fun addMission(mission: TacticalMission) {
             viewModelScope.launch {
                 val id = missionRepository.insertMissionWithAutoOrder(mission)
+                _pendingScrollToMissionId.value = id
                 // Прив'язуємо вкладення до створеної місії
                 missionRepository.setAttachments(id, mission.linkedAttachmentIds ?: emptyList())
             }
@@ -208,6 +221,29 @@ class TacticalMissionViewModel
                     linkedAttachmentIds = emptyList(),
                 ),
             )
+        }
+
+        fun addWeeklyMissionFromContext(contextId: String) {
+            val context = allContexts.value.firstOrNull { it.id == contextId } ?: return
+            val now = System.currentTimeMillis()
+            val oneWeekMs = 7L * 24L * 60L * 60L * 1000L
+            addMission(
+                TacticalMission(
+                    title = context.name,
+                    description = null,
+                    startTime = now,
+                    deadline = now + oneWeekMs,
+                    status = MissionStatus.ACTIVE,
+                    priority = MissionPriority.MEDIUM,
+                    projectId = context.id,
+                    linkedProjectIds = listOf(context.id),
+                    linkedAttachmentIds = emptyList(),
+                ),
+            )
+        }
+
+        fun consumePendingScrollToMission() {
+            _pendingScrollToMissionId.value = null
         }
 
         fun addMissionToTodayPlan(mission: TacticalMission) {

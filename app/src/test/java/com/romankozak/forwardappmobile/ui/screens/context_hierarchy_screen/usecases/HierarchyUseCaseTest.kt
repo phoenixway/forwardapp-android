@@ -62,6 +62,44 @@ class HierarchyUseCaseTest {
         assertTrue(hierarchy.childMap["root"]?.any { it.id == "other" } != true)
     }
 
+    @Test
+    fun regularHierarchyKeepsOrphanBranchNestedUnderFirstVisibleOrphan() {
+        val orphanParentId = "missing-parent"
+        val orphan =
+            project(
+                id = "orphan",
+                parentId = orphanParentId,
+                order = 0,
+            )
+        val orphanChild =
+            project(
+                id = "orphan-child",
+                parentId = "orphan",
+                order = 1,
+            )
+
+        val filterState =
+            FilterState(
+                flatList = listOf(orphan, orphanChild),
+                query = "",
+                searchActive = false,
+                mode = PlanningMode.All,
+                settings = PlanningSettingsState(),
+                isReady = true,
+            )
+
+        val hierarchy =
+            useCase.createProjectHierarchy(
+                filterState = filterState,
+                expandedDaily = null,
+                expandedMedium = null,
+                expandedLong = null,
+            )
+
+        assertEquals(listOf("orphan"), hierarchy.topLevelProjects.map { it.id })
+        assertEquals(listOf("orphan-child"), hierarchy.childMap["orphan"]?.map { it.id })
+    }
+
     private fun project(
         id: String,
         parentId: String? = null,

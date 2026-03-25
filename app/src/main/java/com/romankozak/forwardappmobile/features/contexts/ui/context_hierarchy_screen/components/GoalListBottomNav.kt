@@ -8,11 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.List
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.UnfoldLess
 import androidx.compose.material.icons.outlined.*
-import androidx.compose.material.icons.outlined.TrackChanges
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,117 +22,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
-
-@Composable
-private fun PlanningModeSelector(
-    currentMode: PlanningMode,
-    onPlanningModeChange: (PlanningMode) -> Unit,
-) {
-    var isMenuExpanded by remember { mutableStateOf(false) }
-
-    val planningModes =
-        remember {
-            listOf(
-                "All" to (Icons.AutoMirrored.Outlined.List to PlanningMode.All),
-                "Today" to (Icons.Outlined.Today to PlanningMode.Today),
-                "Medium" to (Icons.Outlined.QueryStats to PlanningMode.Medium),
-                "Long" to (Icons.Outlined.TrackChanges to PlanningMode.Long),
-            )
-        }
-
-    val (currentText, currentData) = planningModes.first { it.second.second == currentMode }
-    val (currentIcon, _) = currentData
-
-    Box {
-        val backgroundColor = if (isMenuExpanded) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f) else Color.Transparent
-        val contentColor =
-            if (isMenuExpanded) {
-                MaterialTheme.colorScheme.onPrimaryContainer
-            } else {
-                MaterialTheme.colorScheme.onSurface.copy(
-                    alpha = 0.8f,
-                )
-            }
-
-        Column(
-            modifier =
-                Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(backgroundColor)
-                    .clickable { isMenuExpanded = true }
-                    .padding(horizontal = 6.dp, vertical = 4.dp)
-                    .widthIn(min = 50.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                Icon(
-                    imageVector = currentIcon,
-                    contentDescription = currentText,
-                    tint = contentColor,
-                    modifier = Modifier.size(18.dp),
-                )
-                Icon(
-                    imageVector = Icons.Default.ArrowDropDown,
-                    contentDescription = "Expand",
-                    tint = contentColor.copy(alpha = 0.7f),
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = currentText,
-                fontSize = 9.sp,
-                fontWeight = if (isMenuExpanded) FontWeight.SemiBold else FontWeight.Normal,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = contentColor,
-            )
-        }
-
-        DropdownMenu(
-            expanded = isMenuExpanded,
-            onDismissRequest = { isMenuExpanded = false },
-        ) {
-            Column {
-                Text(
-                    text = "Режим планування",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                )
-                HorizontalDivider()
-            }
-            planningModes.forEach { (text, data) ->
-                val (icon, mode) = data
-                DropdownMenuItem(
-                    text = { Text(text) },
-                    leadingIcon = { Icon(icon, contentDescription = text) },
-                    onClick = {
-                        onPlanningModeChange(mode)
-                        isMenuExpanded = false
-                    },
-                )
-            }
-        }
-    }
-}
 
 @Composable
 internal fun ExpandingProjectHierarchyBottomNav(
     onToggleSearch: (Boolean) -> Unit,
     onGlobalSearchClick: () -> Unit,
     onShowCommandDeck: () -> Unit,
-    currentMode: PlanningMode,
-    onPlanningModeChange: (PlanningMode) -> Unit,
-    planningModesEnabled: Boolean,
     onRecentsClick: () -> Unit,
     onDayPlanClick: () -> Unit,
     onHomeClick: () -> Unit,

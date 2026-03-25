@@ -77,12 +77,11 @@ fun ProjectHierarchyScreenScaffold(
     val listState = rememberLazyListState()
     var showSearchHistorySheet by remember { mutableStateOf(false) }
 
-    val backHandlerEnabled by remember(uiState.subStateStack, uiState.currentBreadcrumbs, uiState.areAnyProjectsExpanded) {
+    val backHandlerEnabled by remember(uiState.subStateStack, uiState.currentBreadcrumbs) {
         derivedStateOf {
             val enabled =
                 uiState.subStateStack.size > 1 ||
-                    uiState.currentBreadcrumbs.isNotEmpty() ||
-                    uiState.areAnyProjectsExpanded
+                    uiState.currentBreadcrumbs.isNotEmpty()
             Log.d(UI_TAG, "BackHandler enabled = $enabled")
             enabled
         }
@@ -98,49 +97,14 @@ fun ProjectHierarchyScreenScaffold(
     Scaffold(
         modifier = Modifier.imePadding(),
         topBar = {
-            val isSearchActive = uiState.subStateStack.any { it is ProjectHierarchyScreenSubState.LocalSearch }
-            val isFocusMode =
-                rememberHierarchyFocusMode(
-                    breadcrumbs = uiState.currentBreadcrumbs,
-                    hasFocusedProject = uiState.currentSubState is ProjectHierarchyScreenSubState.ProjectFocused,
-                )
-            val focusedProjectId =
-                if (isFocusMode) {
-                    (uiState.currentSubState as? ProjectHierarchyScreenSubState.ProjectFocused)?.projectId
-                } else {
-                    null
-                }
-            val focusedProjectTitle =
-                focusedProjectId?.let { id ->
-                    uiState.projectHierarchy.allProjects.find { it.id == id }?.name
-                        ?: uiState.currentBreadcrumbs.lastOrNull()?.name
-                }
-
             ProjectHierarchyScreenTopAppBar(
-                isSearchActive = isSearchActive,
-                isFocusMode = isFocusMode,
-                focusedProjectTitle = focusedProjectTitle,
-                focusedProjectMenuClick =
-                    focusedProjectId?.let { id ->
-                        {
-                            uiState.projectHierarchy.allProjects.find { it.id == id }?.let {
-                                onEvent(ContextHierarchyScreenEvent.ContextMenuRequest(it))
-                            }
-                        }
-                    },
-                focusedProjectOpenClick =
-                    focusedProjectId?.let { id ->
-                        { onEvent(ContextHierarchyScreenEvent.ContextClick(id)) }
-                    },
-                canGoBack = uiState.canGoBack,
-                canGoForward = uiState.canGoForward,
-                onGoBack = { onEvent(ContextHierarchyScreenEvent.BackClick) },
-                onGoForward = { onEvent(ContextHierarchyScreenEvent.ForwardClick) },
-                onShowHistory = { onEvent(ContextHierarchyScreenEvent.HistoryClick) },
-                onShowReminders = { onEvent(ContextHierarchyScreenEvent.GoToReminders) },
-                syncStatus = uiState.syncStatus,
-                onSyncIndicatorClick = { },
-                featureToggles = uiState.featureToggles,
+                onBackClick = {
+                    if (backHandlerEnabled) {
+                        onEvent(ContextHierarchyScreenEvent.BackClick)
+                    } else {
+                        enhancedNavigationManager.goBack()
+                    }
+                },
             )
         },
         bottomBar = {
@@ -186,9 +150,6 @@ fun ProjectHierarchyScreenScaffold(
                             },
                             onGlobalSearchClick = { onEvent(ContextHierarchyScreenEvent.ShowSearchDialog) },
                             onShowCommandDeck = { onEvent(ContextHierarchyScreenEvent.CommandDeckClick) },
-                            currentMode = uiState.planningMode,
-                            planningModesEnabled = uiState.featureToggles[FeatureFlag.PlanningModes] == true,
-                            onPlanningModeChange = { mode -> onEvent(ContextHierarchyScreenEvent.PlanningModeChange(mode)) },
                             onRecentsClick = { onEvent(ContextHierarchyScreenEvent.ShowRecentLists) },
                             onDayPlanClick = { onEvent(ContextHierarchyScreenEvent.DayPlanClick) },
                             onHomeClick = { onEvent(ContextHierarchyScreenEvent.HomeClick) },

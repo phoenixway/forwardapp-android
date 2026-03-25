@@ -11,7 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -83,10 +85,11 @@ fun TacticalMissionList(
     lookups: TacticalMissionListLookups,
     selectionState: TacticalMissionSelectionState,
     callbacks: TacticalMissionListCallbacks,
+    listState: LazyListState? = null,
     modifier: Modifier = Modifier,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
-    var internalMissions by remember(missions) { mutableStateOf(missions) }
+    var internalMissions by remember(missions) { mutableStateOf(sectionOrderedMissions(missions)) }
     val projectNameById =
         remember(lookups.projectOptions) {
             lookups.projectOptions.associate { it.id to it.name }
@@ -95,9 +98,15 @@ fun TacticalMissionList(
         remember(lookups.attachmentOptions) {
             lookups.attachmentOptions.associate { it.id to it.name }
         }
-    val lazyListState = rememberLazyListState()
+    val lazyListState = listState ?: rememberLazyListState()
     val reorderableState =
         rememberReorderableLazyListState(lazyListState) { from, to ->
+            val fromMission = internalMissions.getOrNull(from.index) ?: return@rememberReorderableLazyListState
+            val toMission = internalMissions.getOrNull(to.index) ?: return@rememberReorderableLazyListState
+            if (missionSection(fromMission) != missionSection(toMission)) {
+                return@rememberReorderableLazyListState
+            }
+
             internalMissions =
                 internalMissions.toMutableList().apply {
                     add(to.index, removeAt(from.index))
@@ -111,31 +120,94 @@ fun TacticalMissionList(
         modifier = modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(UnifiedListItemTokens.OuterVerticalSpacing * 2),
     ) {
-        items(internalMissions, key = { it.id }) { mission ->
-            ReorderableItem(reorderableState, key = mission.id) {
-                TacticalMissionCard(
-                    mission = mission,
-                    selectionState = selectionState,
-                    lookups =
-                        TacticalMissionCardLookups(
-                            projectNameById = projectNameById,
-                            attachmentNameById = attachmentNameById,
-                        ),
-                    actions =
-                        TacticalMissionCardActions(
-                            onMissionToggled = { callbacks.onMissionToggled(mission) },
-                            onMissionSelectionToggle = { callbacks.onMissionSelectionToggle(mission) },
-                            onMissionClick = { callbacks.onMissionClick(mission) },
-                            onMissionLongPress = { callbacks.onMissionLongPress(mission) },
-                            onMissionMoreClick = { callbacks.onMissionMoreClick(mission) },
-                            onLinkedContextClick = callbacks.onLinkedContextClick,
-                            onLinkedAttachmentClick = callbacks.onLinkedAttachmentClick,
-                        ),
-                    checkboxDragHandleModifier = Modifier.draggableHandle(),
-                )
+        itemsIndexed(internalMissions, key = { _, mission -> mission.id }) { index, mission ->
+            val previousMission = internalMissions.getOrNull(index - 1)
+            val headerTitle =
+                if (previousMission == null || missionSection(previousMission) != missionSection(mission)) {
+                    missionSectionTitle(mission)
+                } else {
+                    null
+                }
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (headerTitle != null) {
+                    Text(
+                        text = headerTitle,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+                    )
+                }
+
+                ReorderableItem(reorderableState, key = mission.id) {
+                    TacticalMissionCard(
+                        mission = mission,
+                        selectionState = selectionState,
+                        lookups =
+                            TacticalMissionCardLookups(
+                                projectNameById = projectNameById,
+                                attachmentNameById = attachmentNameById,
+                            ),
+                        actions =
+                            TacticalMissionCardActions(
+                                onMissionToggled = { callbacks.onMissionToggled(mission) },
+                                onMissionSelectionToggle = { callbacks.onMissionSelectionToggle(mission) },
+                                onMissionClick = { callbacks.onMissionClick(mission) },
+                                onMissionLongPress = { callbacks.onMissionLongPress(mission) },
+                                onMissionMoreClick = { callbacks.onMissionMoreClick(mission) },
+                                onLinkedContextClick = callbacks.onLinkedContextClick,
+                                onLinkedAttachmentClick = callbacks.onLinkedAttachmentClick,
+                            ),
+                        checkboxDragHandleModifier =
+                            with(this@ReorderableItem) {
+                                Modifier.longPressDraggableHandle(
+                                    onDragStarted = {
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    },
+                                )
+                            },
+                    )
+                }
             }
         }
     }
+}
+
+private enum class TacticalMissionSection {
+    ACTIVE,
+    INACTIVE,
+    COMPLETED,
+}
+
+private fun missionSection(mission: TacticalMission): TacticalMissionSection =
+    when (mission.status) {
+        MissionStatus.ACTIVE -> TacticalMissionSection.ACTIVE
+        MissionStatus.COMPLETED -> TacticalMissionSection.COMPLETED
+        else -> TacticalMissionSection.INACTIVE
+    }
+
+private fun missionSectionTitle(mission: TacticalMission): String =
+    when (missionSection(mission)) {
+        TacticalMissionSection.ACTIVE -> "Активні"
+        TacticalMissionSection.INACTIVE -> "Неактивні"
+        TacticalMissionSection.COMPLETED -> "Завершені"
+    }
+
+private fun sectionOrderedMissions(missions: List<TacticalMission>): List<TacticalMission> {
+    val active = mutableListOf<TacticalMission>()
+    val inactive = mutableListOf<TacticalMission>()
+    val completed = mutableListOf<TacticalMission>()
+
+    missions.forEach { mission ->
+        when (missionSection(mission)) {
+            TacticalMissionSection.ACTIVE -> active += mission
+            TacticalMissionSection.INACTIVE -> inactive += mission
+            TacticalMissionSection.COMPLETED -> completed += mission
+        }
+    }
+
+    return active + inactive + completed
 }
 
 @Composable
@@ -183,6 +255,7 @@ private fun TacticalMissionCard(
                 visualState = visualState,
                 onSurface = onSurface,
                 actions = actions,
+                checkboxDragHandleModifier = checkboxDragHandleModifier,
             )
 
             Spacer(Modifier.width(8.dp))
@@ -212,6 +285,7 @@ private fun TacticalMissionSelectionCheckbox(
     visualState: TacticalMissionVisualState,
     onSurface: Color,
     actions: TacticalMissionCardActions,
+    checkboxDragHandleModifier: Modifier,
 ) {
     UnifiedItemCheckbox(
         checked =
@@ -228,6 +302,7 @@ private fun TacticalMissionSelectionCheckbox(
             }
         },
         style = UnifiedCheckboxStyle.Round,
+        modifier = checkboxDragHandleModifier,
         colors =
             unifiedCheckboxColors(
                 checked = MaterialTheme.colorScheme.primary,

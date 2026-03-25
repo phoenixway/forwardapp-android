@@ -59,6 +59,9 @@ import com.romankozak.forwardappmobile.core.theme.LocalInputPanelColors
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.InputSuggestionActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.AutocompleteSuggestions
+import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
+import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTargetsPickerDialog
+import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
 import java.text.SimpleDateFormat
@@ -131,8 +134,8 @@ fun TodayBottomPanel(
     featureToggles: Map<FeatureFlag, Boolean>,
     onNavigateToRecentItem: (RecentItem) -> Unit,
     recentViewModel: RecentViewModel = hiltViewModel(),
+    dayPlanViewModel: DayPlanViewModel = hiltViewModel(),
 ) {
-    val dayPlanViewModel: DayPlanViewModel = hiltViewModel()
     val dayPlanUiState by dayPlanViewModel.uiState.collectAsStateWithLifecycle()
     val allTags by dayPlanViewModel.allTags.collectAsStateWithLifecycle()
     val contextMarkerNames by dayPlanViewModel.contextMarkerNames.collectAsStateWithLifecycle()
@@ -146,6 +149,7 @@ fun TodayBottomPanel(
             colorScheme.surfaceContainerHigh
         }
     var inputValue by remember { mutableStateOf(TextFieldValue("")) }
+    var showContextPicker by remember { mutableStateOf(false) }
     val autocompleteSuggestions =
         remember(inputValue, allTags, contextMarkerNames) {
             inputSuggestionActions.buildSuggestions(
@@ -154,6 +158,16 @@ fun TodayBottomPanel(
                 contextMarkerNames = contextMarkerNames,
                 tags = allTags,
             )
+        }
+    val contextOptions =
+        remember(dayPlanUiState.availableProjects) {
+            dayPlanUiState.availableProjects.map { option ->
+                ProjectOption(
+                    id = option.id,
+                    name = option.name,
+                    parentId = null,
+                )
+            }
         }
     val dateLabel =
         remember(dayPlanUiState.dayPlan?.date, dayPlanUiState.isToday) {
@@ -205,7 +219,7 @@ fun TodayBottomPanel(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(
-                        onClick = { dayPlanViewModel.openAddTaskDialog() },
+                        onClick = { showContextPicker = true },
                         modifier = Modifier.size(38.dp),
                         colors =
                             IconButtonDefaults.iconButtonColors(
@@ -384,5 +398,24 @@ fun TodayBottomPanel(
                 }
             }
         }
+    }
+
+    if (showContextPicker) {
+        LinkedTargetsPickerDialog(
+            contextOptions = contextOptions,
+            attachmentOptions = emptyList(),
+            preselectedContextIds = emptySet(),
+            preselectedAttachmentIds = emptySet(),
+            initialTab = LinkPickerTab.CONTEXTS,
+            allowedTabs = setOf(LinkPickerTab.CONTEXTS),
+            onDismiss = { showContextPicker = false },
+            onContextSelected = { contextId ->
+                dayPlanViewModel.addTaskFromContext(contextId)
+                showContextPicker = false
+            },
+            onAttachmentSelected = {},
+            onCreateRootContext = null,
+            onCreateDocument = null,
+        )
     }
 }

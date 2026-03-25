@@ -8,23 +8,17 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResult
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.buildPathToProject
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.createHierarchyDescendantOverflowMap
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.displayParentId
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.findAncestorsRecursive
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.fuzzyMatch
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.normalizedParentId
 import javax.inject.Inject
 
 class HierarchyUseCase
     @Inject
     constructor() {
-        private fun String?.normalizedParentId(): String? =
-            this
-                ?.trim()
-                ?.takeIf { it.isNotEmpty() && !it.equals("null", ignoreCase = true) }
-
         fun createProjectHierarchy(
             filterState: FilterState,
-            expandedDaily: Set<String>?,
-            expandedMedium: Set<String>?,
-            expandedLong: Set<String>?,
         ): ContextHierarchyData {
             HierarchyDebugLogger.d {
                 "createProjectHierarchy: flatSize=${filterState.flatList.size}, mode=${filterState.mode}, searchActive=${filterState.searchActive}"
@@ -42,9 +36,6 @@ class HierarchyUseCase
                                 flatList,
                                 mode,
                                 settings,
-                                expandedDaily,
-                                expandedMedium,
-                                expandedLong,
                             )
                         }
                     HierarchyDebugLogger.d {
@@ -74,12 +65,12 @@ class HierarchyUseCase
             var orphanCount = 0
 
             flatList.forEach { project ->
-                if (hasValidParent(project, projectsById)) {
-                    val parentId = project.parentId.normalizedParentId()!!
+                val parentId = project.displayParentId(projectsById)
+                if (parentId != null) {
                     childMap.getOrPut(parentId) { mutableListOf() }.add(project)
                 } else {
-                    val parentId = project.parentId.normalizedParentId()
-                    if (parentId != null && !projectsById.containsKey(parentId)) {
+                    val originalParentId = project.parentId.normalizedParentId()
+                    if (originalParentId != null && !projectsById.containsKey(originalParentId)) {
                         orphanCount++
                     }
                     topLevel.add(project)
@@ -101,9 +92,6 @@ class HierarchyUseCase
             flatList: List<Context>,
             mode: PlanningMode,
             settings: PlanningSettingsState,
-            expandedDaily: Set<String>?,
-            expandedMedium: Set<String>?,
-            expandedLong: Set<String>?,
         ): ContextHierarchyData {
             val projectLookup = flatList.associateBy { it.id }
 
@@ -145,30 +133,16 @@ class HierarchyUseCase
 
             val visibleIds = ancestorIds + matchingProjects.map { it.id } + descendantIds
 
-            val currentExpandedState =
-                when (mode) {
-                    PlanningMode.Today -> expandedDaily
-                    PlanningMode.Medium -> expandedMedium
-                    PlanningMode.Long -> expandedLong
-                    else -> null
-                }
-
-            val shouldInitialize = currentExpandedState == null && matchingProjects.isNotEmpty()
-            val currentExpandedIds = if (shouldInitialize) ancestorIds else (currentExpandedState ?: emptySet())
-
             val visibleProjects = flatList.filter { it.id in visibleIds }
-            val displayProjects =
-                visibleProjects.map { project ->
-                    project.copy(isExpanded = currentExpandedIds.contains(project.id))
-                }
+            val displayProjects = visibleProjects
 
             val projectsById = displayProjects.associateBy { it.id }
             val topLevel = mutableListOf<Context>()
             val childMap = mutableMapOf<String, MutableList<Context>>()
 
             displayProjects.forEach { project ->
-                if (hasValidParent(project, projectsById)) {
-                    val parentId = project.parentId.normalizedParentId()!!
+                val parentId = project.displayParentId(projectsById)
+                if (parentId != null) {
                     childMap.getOrPut(parentId) { mutableListOf() }.add(project)
                 } else {
                     topLevel.add(project)
@@ -228,34 +202,24 @@ class HierarchyUseCase
                     allProjects.filter {
                         it.name.contains(filterText, ignoreCase = true) ||
                             fuzzyMatch(filterText, it.name)
-                    }
+                }
                 }
 
-            val topLevel = filteredProjects.filter { it.parentId == null }.sortedBy { it.order }
-            val childMap = filteredProjects.filter { it.parentId != null }.groupBy { it.parentId!! }
+            val projectsById = filteredProjects.associateBy { it.id }
+            val topLevel = filteredProjects.filter { it.displayParentId(projectsById) == null }.sortedBy { it.order }
+            val childMap =
+                filteredProjects
+                    .mapNotNull { project ->
+                        project.displayParentId(projectsById)?.let { parentId -> parentId to project }
+                    }.groupBy(
+                        keySelector = { it.first },
+                        valueTransform = { it.second },
+                    )
 
             return ContextHierarchyData(
                 allProjects = filteredProjects,
                 topLevelProjects = topLevel,
                 childMap = childMap,
             )
-        }
-
-        private fun hasValidParent(
-            project: Context,
-            projectsById: Map<String, Context>,
-        ): Boolean {
-            val firstParentId = project.parentId.normalizedParentId() ?: return false
-            if (firstParentId == project.id) return false
-            var currentParentId = firstParentId
-            val visited = mutableSetOf(project.id)
-
-            while (true) {
-                if (!visited.add(currentParentId)) return false
-                val parentProject = projectsById[currentParentId] ?: return false
-                val nextParentId = parentProject.parentId.normalizedParentId() ?: return true
-                if (nextParentId == currentParentId) return false
-                currentParentId = nextParentId
-            }
         }
     }

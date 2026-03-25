@@ -172,10 +172,6 @@ class PlanningUseCase
             }
             planningModeManager.changeMode(mode)
         }
-
-        fun toggleExpandedInPlanningMode(project: Context) {
-            planningModeManager.toggleExpandedInPlanningMode(project)
-        }
     }
 
 typealias ProjectHierarchyScreenPlanningUseCase = PlanningUseCase

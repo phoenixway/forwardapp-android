@@ -178,8 +178,8 @@ private fun RowScope.DayTaskCardContent(
         DayPlanMarkdownText(
             text = parsedTitle.mainText,
             style =
-                MaterialTheme.typography.bodyLarge.copy(
-                    fontWeight = FontWeight.Medium,
+                MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha),
                 ),
             isCompleted = task.completed,

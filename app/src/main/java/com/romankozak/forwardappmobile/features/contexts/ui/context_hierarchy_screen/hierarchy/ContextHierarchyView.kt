@@ -23,7 +23,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -36,13 +35,11 @@ fun ProjectHierarchyView(
     highlightedProjectId: String?,
     searchQuery: String,
     isSearchActive: Boolean,
-    planningMode: PlanningMode,
     hierarchySettings: HierarchyDisplaySettings,
     listState: LazyListState,
     longDescendantsMap: Map<String, Boolean>,
     onEvent: (ContextHierarchyScreenEvent) -> Unit,
     onProjectClicked: (String) -> Unit,
-    onToggleExpanded: (Context) -> Unit,
     onMenuRequested: (Context) -> Unit,
     onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
     onFocusProject: (Context) -> Unit,
@@ -66,14 +63,12 @@ fun ProjectHierarchyView(
                 breadcrumbs = breadcrumbs,
                 dragAndDropState = dragAndDropState,
                 isSearchActive = isSearchActive,
-                planningMode = planningMode,
                 highlightedProjectId = highlightedProjectId,
                 settings = hierarchySettings,
                 searchQuery = searchQuery,
                 longDescendantsMap = longDescendantsMap,
                 onEvent = onEvent,
                 onProjectClick = onProjectClicked,
-                onToggleExpanded = onToggleExpanded,
                 onMenuRequested = onMenuRequested,
                 onProjectReorder = onProjectReorder,
                 onFocusProject = onFocusProject,
@@ -104,14 +99,12 @@ fun ProjectHierarchyView(
                         childMap = hierarchy.childMap,
                         dragAndDropState = dragAndDropState,
                         isSearchActive = isSearchActive,
-                        planningMode = planningMode,
                         highlightedProjectId = highlightedProjectId,
                         settings = hierarchySettings,
                         searchQuery = searchQuery,
                         focusedProjectId = focusedProjectId,
                         longDescendantsMap = longDescendantsMap,
                         onProjectClick = onProjectClicked,
-                        onToggleExpanded = onToggleExpanded,
                         onMenuRequested = onMenuRequested,
                         onProjectReorder = onProjectReorder,
                         onFocusProject = onFocusProject,

@@ -45,7 +45,7 @@ class FocusContextsViewModel
                 }
             }.stateIn(
                 scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS),
+                started = SharingStarted.Eagerly,
                 initialValue = emptyList(),
             )
 
