@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -36,6 +37,8 @@ data class GlobalSearchUiState(
     val mode: OmniboxMode = OmniboxMode.DataSearch,
     val isLoading: Boolean = false,
     val searchHistory: List<String> = emptyList(),
+    val modeDisplayPrefs: OmniboxModeDisplayPrefsState = OmniboxModeDisplayPrefsState(),
+    val recentModeInputs: Map<OmniboxMode, List<String>> = emptyMap(),
 )
 
 enum class OmniboxMode {
@@ -265,6 +268,27 @@ class GlobalSearchViewModel
                     )
                 }
             }
+            viewModelScope.launch {
+                combine(
+                    settingsRepository.globalSearchModeDisplayPrefsFlow,
+                    combine(
+                        OmniboxMode.entries.map { mode ->
+                            settingsRepository.globalSearchRecentInputsFlow(mode)
+                        },
+                    ) { inputLists ->
+                        OmniboxMode.entries.zip(inputLists.toList()).toMap()
+                    },
+                ) { prefs, recentInputs ->
+                    prefs to recentInputs
+                }.collect { (prefs, recentInputs) ->
+                    _uiState.update {
+                        it.copy(
+                            modeDisplayPrefs = prefs,
+                            recentModeInputs = recentInputs,
+                        )
+                    }
+                }
+            }
             if (initialQuery.isNotBlank()) {
                 performSearch(initialQuery)
             }
@@ -338,12 +362,22 @@ class GlobalSearchViewModel
                 OmniboxMode.Command -> {
                     val commands = findCommandResults(query)
                     if (commands.isNotEmpty()) {
+                        rememberRecentInput(OmniboxMode.Command, query)
                         executeCommand(commands.first().id)
                     }
                 }
-                OmniboxMode.QuickCatchInbox -> submitQuickCatch(query)
-                OmniboxMode.StartActivity -> submitStartActivity(query)
-                OmniboxMode.AddActivityEvent -> submitAddActivityEvent(query)
+                OmniboxMode.QuickCatchInbox -> {
+                    rememberRecentInput(OmniboxMode.QuickCatchInbox, query)
+                    submitQuickCatch(query)
+                }
+                OmniboxMode.StartActivity -> {
+                    rememberRecentInput(OmniboxMode.StartActivity, query)
+                    submitStartActivity(query)
+                }
+                OmniboxMode.AddActivityEvent -> {
+                    rememberRecentInput(OmniboxMode.AddActivityEvent, query)
+                    submitAddActivityEvent(query)
+                }
             }
         }
 
@@ -458,6 +492,84 @@ class GlobalSearchViewModel
         fun clearSearchHistory() {
             _uiState.update { it.copy(searchHistory = emptyList()) }
             savedStateHandle[SEARCH_HISTORY_KEY] = emptyList<String>()
+        }
+
+        fun toggleCurrentModePreview() {
+            val mode = _uiState.value.mode
+            val updatedPrefs =
+                _uiState.value.modeDisplayPrefs.updated(mode) { prefs ->
+                    prefs.copy(showPreview = !prefs.showPreview)
+                }
+            _uiState.update { it.copy(modeDisplayPrefs = updatedPrefs) }
+            viewModelScope.launch {
+                settingsRepository.saveGlobalSearchModePreview(mode, updatedPrefs[mode].showPreview)
+            }
+        }
+
+        fun setModePreview(
+            mode: OmniboxMode,
+            enabled: Boolean,
+        ) {
+            val updatedPrefs =
+                _uiState.value.modeDisplayPrefs.updated(mode) { prefs ->
+                    prefs.copy(showPreview = enabled)
+                }
+            _uiState.update { it.copy(modeDisplayPrefs = updatedPrefs) }
+            viewModelScope.launch {
+                settingsRepository.saveGlobalSearchModePreview(mode, enabled)
+            }
+        }
+
+        fun toggleCurrentModeRecents() {
+            val mode = _uiState.value.mode
+            val updatedPrefs =
+                _uiState.value.modeDisplayPrefs.updated(mode) { prefs ->
+                    prefs.copy(showRecents = !prefs.showRecents)
+                }
+            _uiState.update { it.copy(modeDisplayPrefs = updatedPrefs) }
+            viewModelScope.launch {
+                settingsRepository.saveGlobalSearchModeRecents(mode, updatedPrefs[mode].showRecents)
+            }
+        }
+
+        fun setModeRecents(
+            mode: OmniboxMode,
+            enabled: Boolean,
+        ) {
+            val updatedPrefs =
+                _uiState.value.modeDisplayPrefs.updated(mode) { prefs ->
+                    prefs.copy(showRecents = enabled)
+                }
+            _uiState.update { it.copy(modeDisplayPrefs = updatedPrefs) }
+            viewModelScope.launch {
+                settingsRepository.saveGlobalSearchModeRecents(mode, enabled)
+            }
+        }
+
+        fun applyRecentInputForMode(
+            mode: OmniboxMode,
+            value: String,
+        ) {
+            setMode(mode)
+            onQueryChange(value)
+        }
+
+        fun removeRecentInput(
+            mode: OmniboxMode,
+            value: String,
+        ) {
+            val updated = _uiState.value.recentModeInputs[mode].orEmpty().filterNot { it.equals(value, ignoreCase = true) }
+            _uiState.update { it.copy(recentModeInputs = it.recentModeInputs + (mode to updated)) }
+            viewModelScope.launch {
+                settingsRepository.saveGlobalSearchRecentInputs(mode, updated)
+            }
+        }
+
+        fun clearRecentInputs(mode: OmniboxMode) {
+            _uiState.update { it.copy(recentModeInputs = it.recentModeInputs + (mode to emptyList())) }
+            viewModelScope.launch {
+                settingsRepository.saveGlobalSearchRecentInputs(mode, emptyList())
+            }
         }
 
         private fun performSearch(rawQuery: String) {
@@ -928,6 +1040,20 @@ class GlobalSearchViewModel
             val updated = (listOf(commandId) + currentHistory.filterNot { it == commandId }).take(MAX_COMMAND_HISTORY)
             _uiState.update { it.copy(recentCommands = updated) }
             savedStateHandle[COMMAND_HISTORY_KEY] = updated.map { it.name }
+        }
+
+        private fun rememberRecentInput(
+            mode: OmniboxMode,
+            value: String,
+        ) {
+            val normalized = value.trim()
+            if (normalized.isBlank()) return
+            val current = _uiState.value.recentModeInputs[mode].orEmpty()
+            val updated = (listOf(normalized) + current.filterNot { it.equals(normalized, ignoreCase = true) }).take(MAX_SEARCH_HISTORY)
+            _uiState.update { it.copy(recentModeInputs = it.recentModeInputs + (mode to updated)) }
+            viewModelScope.launch {
+                settingsRepository.saveGlobalSearchRecentInputs(mode, updated)
+            }
         }
 
         private fun trimUsageMap(usage: MutableMap<String, Int>) {

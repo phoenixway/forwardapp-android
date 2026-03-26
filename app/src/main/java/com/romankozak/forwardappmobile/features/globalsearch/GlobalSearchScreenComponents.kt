@@ -65,6 +65,8 @@ internal data class CommandResultsArgs(
     val results: List<OmniboxCommandResult>,
     val query: String,
     val recentCommands: List<OmniboxCommandId>,
+    val showPreview: Boolean,
+    val showRecents: Boolean,
     val selectedCommandIndex: Int?,
     val onCommandClick: (OmniboxCommandId) -> Unit,
     val accentColor: Color,
@@ -88,13 +90,23 @@ internal data class EmptyDataSearchArgs(
     val actions: EmptyDataSearchActions,
 )
 
+internal data class ModeRecentInputsArgs(
+    val mode: OmniboxMode,
+    val recents: List<String>,
+    val showPreview: Boolean,
+    val showRecents: Boolean,
+    val onRecentClick: (String) -> Unit,
+    val onRemoveRecentEntry: (String) -> Unit,
+    val onClearRecentEntries: () -> Unit,
+)
+
 @Composable
 internal fun CommandResultsContent(
     args: CommandResultsArgs,
     modifier: Modifier = Modifier,
 ) {
     if (args.results.isEmpty()) {
-        EmptySearchContent(query = args.query, modifier = modifier)
+        CommandStartContent(args = args, modifier = modifier)
         return
     }
     LazyColumn(
@@ -159,7 +171,7 @@ internal fun CommandResultsContent(
 }
 
 private fun androidx.compose.foundation.lazy.LazyListScope.recentCommandsSection(args: CommandResultsArgs) {
-    if (args.query.isNotBlank() || args.recentCommands.isEmpty()) return
+    if (!args.showRecents || args.query.isNotBlank() || args.recentCommands.isEmpty()) return
 
     item("recent_commands_label") {
         Text(
@@ -186,6 +198,65 @@ private fun androidx.compose.foundation.lazy.LazyListScope.recentCommandsSection
                     },
                 )
             }
+        }
+    }
+}
+
+@Composable
+internal fun CommandStartContent(
+    args: CommandResultsArgs,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        if (args.showPreview) {
+            ModePreviewCard(
+                title = "Командний режим",
+                description = "Вводьте навігаційні й швидкі команди. Виконання тільки через кнопку send або тап по картці.",
+                accentColor = args.accentColor,
+                icon = Icons.Default.Tune,
+            )
+        }
+        if (args.showRecents && args.recentCommands.isNotEmpty()) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Text(
+                        text = "Нещодавні команди",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        args.recentCommands.take(RECENT_COMMANDS_LIMIT).forEach { commandId ->
+                            AssistChip(
+                                onClick = { args.onCommandClick(commandId) },
+                                label = { Text(commandTitle(commandId)) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = commandIcon(commandId),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        if (!args.showPreview && (!args.showRecents || args.recentCommands.isEmpty())) {
+            EmptySearchContent(query = args.query, modifier = Modifier.fillMaxWidth().weight(1f, fill = false))
         }
     }
 }
@@ -414,20 +485,21 @@ internal fun EmptySearchContent(
     query: String,
     modifier: Modifier = Modifier,
 ) {
+    val isBlankQuery = query.isBlank()
     Box(
         modifier = modifier,
-        contentAlignment = Alignment.Center,
+        contentAlignment = if (isBlankQuery) Alignment.TopCenter else Alignment.Center,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(32.dp),
+            verticalArrangement = Arrangement.spacedBy(if (isBlankQuery) 10.dp else 16.dp),
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = if (isBlankQuery) 16.dp else 32.dp),
         ) {
             Box(
                 modifier =
                     Modifier
-                        .size(80.dp)
-                        .clip(RoundedCornerShape(20.dp))
+                        .size(if (isBlankQuery) 56.dp else 80.dp)
+                        .clip(RoundedCornerShape(if (isBlankQuery) 16.dp else 20.dp))
                         .background(
                             brush =
                                 Brush.verticalGradient(
@@ -443,29 +515,39 @@ internal fun EmptySearchContent(
                 Icon(
                     imageVector = Icons.Default.SearchOff,
                     contentDescription = "Нічого не знайдено",
-                    modifier = Modifier.size(40.dp),
+                    modifier = Modifier.size(if (isBlankQuery) 26.dp else 40.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
             Text(
-                text = if (query.isBlank()) "Введіть запит" else "Нічого не знайдено",
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                text = if (isBlankQuery) "Введіть запит" else "Нічого не знайдено",
+                style =
+                    if (isBlankQuery) {
+                        MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                    } else {
+                        MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+                    },
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
             )
 
             Text(
                 text =
-                    if (query.isBlank()) {
-                        "Search everywhere шукає по контекстах, цілях, активностях, інбоксу та вкладеннях."
+                    if (isBlankQuery) {
+                        "Пошук по контекстах, цілях, активностях, inbox і вкладеннях."
                     } else {
                         "За запитом \"$query\" результатів не знайдено.\nСпробуйте змінити пошуковий запит."
                     },
-                style = MaterialTheme.typography.bodyMedium,
+                style = if (isBlankQuery) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
-                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.2,
+                lineHeight =
+                    if (isBlankQuery) {
+                        MaterialTheme.typography.bodySmall.lineHeight * 1.15
+                    } else {
+                        MaterialTheme.typography.bodyMedium.lineHeight * 1.2
+                    },
             )
         }
     }
@@ -475,6 +557,8 @@ internal fun EmptySearchContent(
 @Composable
 internal fun SearchStartContent(
     history: List<String>,
+    showPreview: Boolean,
+    showRecents: Boolean,
     onHistoryClick: (String) -> Unit,
     onRemoveHistoryEntry: (String) -> Unit,
     onClearHistory: () -> Unit,
@@ -484,7 +568,15 @@ internal fun SearchStartContent(
         modifier = modifier.padding(horizontal = 4.dp).padding(top = 8.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        if (history.isNotEmpty()) {
+        if (showPreview) {
+            ModePreviewCard(
+                title = "Глобальний пошук",
+                description = "Пошук по контекстах, цілях, активностях, inbox і вкладеннях. Enter більше не запускає пошук, тільки кнопка send.",
+                accentColor = MaterialTheme.colorScheme.primary,
+                icon = Icons.Default.Search,
+            )
+        }
+        if (showRecents && history.isNotEmpty()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -525,8 +617,147 @@ internal fun SearchStartContent(
                 }
             }
         }
+        if (!showPreview && (!showRecents || history.isEmpty())) {
+            EmptySearchContent(query = "", modifier = Modifier.fillMaxWidth().weight(1f, fill = false))
+        }
     }
 }
+
+@Composable
+internal fun ModeRecentInputsContent(
+    args: ModeRecentInputsArgs,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.padding(horizontal = 4.dp).padding(top = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        if (args.showPreview) {
+            ModePreviewCard(
+                title = modeStartTitle(args.mode),
+                description = modeStartDescription(args.mode),
+                accentColor = MaterialTheme.colorScheme.secondary,
+                icon = modeStartIcon(args.mode),
+            )
+        }
+        if (args.showRecents && args.recents.isNotEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Нещодавні записи",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                TextButton(onClick = args.onClearRecentEntries) {
+                    Text("Очистити все")
+                }
+            }
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                args.recents.forEach { value ->
+                    InputChip(
+                        selected = false,
+                        onClick = { args.onRecentClick(value) },
+                        label = { Text(value, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { args.onRemoveRecentEntry(value) },
+                                modifier = Modifier.size(20.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "Видалити запис",
+                                    modifier = Modifier.size(12.dp),
+                                )
+                            }
+                        },
+                    )
+                }
+            }
+        }
+        if (!args.showPreview && (!args.showRecents || args.recents.isEmpty())) {
+            EmptySearchContent(query = "", modifier = Modifier.fillMaxWidth().weight(1f, fill = false))
+        }
+    }
+}
+
+@Composable
+internal fun ModePreviewCard(
+    title: String,
+    description: String,
+    accentColor: Color,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = 0.18f)),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = accentColor.copy(alpha = 0.12f),
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.padding(10.dp).size(18.dp),
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+private fun modeStartTitle(mode: OmniboxMode): String =
+    when (mode) {
+        OmniboxMode.Command -> "Команди"
+        OmniboxMode.DataSearch -> "Пошук"
+        OmniboxMode.QuickCatchInbox -> "Quick catch"
+        OmniboxMode.StartActivity -> "Старт активності"
+        OmniboxMode.AddActivityEvent -> "Подія активності"
+    }
+
+private fun modeStartDescription(mode: OmniboxMode): String =
+    when (mode) {
+        OmniboxMode.Command -> "Швидкий запуск екрану або дії."
+        OmniboxMode.DataSearch -> "Глобальний пошук по даних застосунку."
+        OmniboxMode.QuickCatchInbox -> "Швидко скиньте думку або нотатку в inbox."
+        OmniboxMode.StartActivity -> "Створіть нову поточну активність із цього поля."
+        OmniboxMode.AddActivityEvent -> "Додайте коротку подію в activity tracker."
+    }
+
+private fun modeStartIcon(mode: OmniboxMode): ImageVector =
+    when (mode) {
+        OmniboxMode.Command -> Icons.Default.Tune
+        OmniboxMode.DataSearch -> Icons.Default.Search
+        OmniboxMode.QuickCatchInbox -> Icons.Default.Add
+        OmniboxMode.StartActivity -> Icons.Default.History
+        OmniboxMode.AddActivityEvent -> Icons.Default.Check
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

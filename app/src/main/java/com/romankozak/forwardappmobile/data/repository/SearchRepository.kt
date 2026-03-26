@@ -15,6 +15,19 @@ import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
+internal fun buildSafeActivityFtsQuery(query: String): String? {
+    val sanitizedQuery = query.removePrefix("%").removeSuffix("%").trim()
+    if (sanitizedQuery.isBlank()) return null
+
+    val tokens =
+        Regex("[\\p{L}\\p{N}_]+")
+            .findAll(sanitizedQuery)
+            .map { match -> "\"${match.value}\"" }
+            .toList()
+
+    return tokens.takeIf { it.isNotEmpty() }?.joinToString(" ")
+}
+
 private val GlobalSearchResultItem.typeOrder: Int
     get() =
         when (this) {
@@ -40,6 +53,7 @@ class SearchRepository
     ) {
         suspend fun searchGlobal(query: String): List<GlobalSearchResultItem> {
             val sanitizedQuery = query.removePrefix("%").removeSuffix("%").trim()
+            val activityQuery = buildSafeActivityFtsQuery(query)
             val goalResults =
                 goalDao.searchGoalsGlobal(query).mapNotNull { searchResult ->
                     val listItem = listItemDao.getListItemByEntityId(searchResult.goal.id)
@@ -65,9 +79,13 @@ class SearchRepository
                     GlobalSearchResultItem.ContextItem(it)
                 }
             val activityResults =
-                activityRepository.searchActivities(query).map {
-                    GlobalSearchResultItem.ActivityItem(it)
-                }
+                activityQuery
+                    ?.let { safeQuery ->
+                        activityRepository.searchActivities(safeQuery).map {
+                            GlobalSearchResultItem.ActivityItem(it)
+                        }
+                    }
+                    ?: emptyList()
             val inboxResults =
                 inboxRecordDao.searchInboxRecordsGlobal(query).map {
                     GlobalSearchResultItem.InboxItem(it)

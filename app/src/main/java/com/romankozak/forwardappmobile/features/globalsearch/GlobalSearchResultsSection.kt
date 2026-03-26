@@ -86,8 +86,10 @@ enum class GlobalSearchType(
     val label: String,
     val icon: ImageVector,
 ) {
+    Actions("Дії", Icons.Default.Tune),
     Attachments("Вкладення", Icons.Default.Description),
     Contexts("Контексти", Icons.Default.AccountTree),
+    Subcontexts("Підконтексти", Icons.Default.AccountTree),
     Goals("Цілі", Icons.Default.Flag),
     Links("Посилання", Icons.Default.Link),
     Activity("Активності", Icons.Default.History),
@@ -96,8 +98,10 @@ enum class GlobalSearchType(
 
     fun matches(item: GlobalSearchResultItem): Boolean =
         when (this) {
+            Actions -> false
             Attachments -> item is GlobalSearchResultItem.AttachmentItem
-            Contexts -> item is GlobalSearchResultItem.ContextItem || item is GlobalSearchResultItem.SubcontextItem
+            Contexts -> item is GlobalSearchResultItem.ContextItem
+            Subcontexts -> item is GlobalSearchResultItem.SubcontextItem
             Goals -> item is GlobalSearchResultItem.GoalItem
             Links -> item is GlobalSearchResultItem.LinkItem
             Activity -> item is GlobalSearchResultItem.ActivityItem

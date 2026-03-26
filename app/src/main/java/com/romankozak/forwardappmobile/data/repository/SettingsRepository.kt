@@ -19,6 +19,9 @@ import com.romankozak.forwardappmobile.core.theme.ThemeSettings
 import com.romankozak.forwardappmobile.domain.reminders.RingtoneType
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.PlanningSettingsProvider
 import com.romankozak.forwardappmobile.features.globalsearch.GlobalSearchType
+import com.romankozak.forwardappmobile.features.globalsearch.OmniboxMode
+import com.romankozak.forwardappmobile.features.globalsearch.OmniboxModeDisplayPrefs
+import com.romankozak.forwardappmobile.features.globalsearch.OmniboxModeDisplayPrefsState
 import com.romankozak.forwardappmobile.ui.dialogs.UiContextMarker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -817,6 +820,15 @@ class SettingsRepository
                 .filter { it.isNotBlank() }
                 .joinToString(separator = "\n")
 
+        private fun globalSearchModePreviewKey(mode: OmniboxMode) =
+            booleanPreferencesKey("global_search_${mode.name.lowercase()}_preview_enabled")
+
+        private fun globalSearchModeRecentsKey(mode: OmniboxMode) =
+            booleanPreferencesKey("global_search_${mode.name.lowercase()}_recents_enabled")
+
+        private fun globalSearchModeRecentInputsKey(mode: OmniboxMode) =
+            stringPreferencesKey("global_search_${mode.name.lowercase()}_recent_inputs")
+
         val rolesFolderUriFlow: Flow<String> =
             context.dataStore.data
                 .map { preferences -> preferences[ROLES_FOLDER_URI_KEY] ?: "" }
@@ -855,6 +867,61 @@ class SettingsRepository
         suspend fun saveGlobalSearchSelectedTypes(types: Set<GlobalSearchType>) {
             context.dataStore.edit { settings ->
                 settings[globalSearchSelectedTypesKey] = types.mapTo(linkedSetOf()) { it.name }
+            }
+        }
+
+        val globalSearchModeDisplayPrefsFlow: Flow<OmniboxModeDisplayPrefsState> =
+            context.dataStore.data.map { preferences ->
+                OmniboxModeDisplayPrefsState(
+                    values =
+                        OmniboxMode.entries.associateWith { mode ->
+                            OmniboxModeDisplayPrefs(
+                                showPreview =
+                                    try {
+                                        preferences[globalSearchModePreviewKey(mode)] ?: true
+                                    } catch (e: ClassCastException) {
+                                        preferences[stringPreferencesKey(globalSearchModePreviewKey(mode).name)]?.toBoolean() ?: true
+                                    },
+                                showRecents =
+                                    try {
+                                        preferences[globalSearchModeRecentsKey(mode)] ?: true
+                                    } catch (e: ClassCastException) {
+                                        preferences[stringPreferencesKey(globalSearchModeRecentsKey(mode).name)]?.toBoolean() ?: true
+                                    },
+                            )
+                        },
+                )
+            }
+
+        suspend fun saveGlobalSearchModePreview(
+            mode: OmniboxMode,
+            enabled: Boolean,
+        ) {
+            context.dataStore.edit { settings ->
+                settings[globalSearchModePreviewKey(mode)] = enabled
+            }
+        }
+
+        suspend fun saveGlobalSearchModeRecents(
+            mode: OmniboxMode,
+            enabled: Boolean,
+        ) {
+            context.dataStore.edit { settings ->
+                settings[globalSearchModeRecentsKey(mode)] = enabled
+            }
+        }
+
+        fun globalSearchRecentInputsFlow(mode: OmniboxMode): Flow<List<String>> =
+            context.dataStore.data.map { preferences ->
+                parseOrderedList(preferences[globalSearchModeRecentInputsKey(mode)])
+            }
+
+        suspend fun saveGlobalSearchRecentInputs(
+            mode: OmniboxMode,
+            inputs: List<String>,
+        ) {
+            context.dataStore.edit { settings ->
+                settings[globalSearchModeRecentInputsKey(mode)] = serializeOrderedList(inputs)
             }
         }
 
