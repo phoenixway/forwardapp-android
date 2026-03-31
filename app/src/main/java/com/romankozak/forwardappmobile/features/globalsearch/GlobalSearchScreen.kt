@@ -110,6 +110,17 @@ fun GlobalSearchScreen(
                 }
         }
     }
+    val firstResultsSectionHeaderIndex by remember(visibleHybridCommandResults, filteredResults) {
+        derivedStateOf {
+            if (filteredResults.isEmpty()) {
+                0
+            } else if (visibleHybridCommandResults.isNotEmpty()) {
+                visibleHybridCommandResults.size + 2
+            } else {
+                0
+            }
+        }
+    }
 
     val loadingScale by animateFloatAsState(
         targetValue = if (uiState.isLoading) 1f else 0.8f,
@@ -160,6 +171,12 @@ fun GlobalSearchScreen(
                 selectedDataIndex = null
                 selectionArea = OmniboxSelectionArea.None
             }
+        }
+    }
+
+    LaunchedEffect(currentMode, uiState.query, filteredResults, visibleHybridCommandResults) {
+        if (currentMode == OmniboxMode.DataSearch && uiState.query.isNotBlank() && filteredResults.isNotEmpty()) {
+            listState.scrollToItem(firstResultsSectionHeaderIndex)
         }
     }
 

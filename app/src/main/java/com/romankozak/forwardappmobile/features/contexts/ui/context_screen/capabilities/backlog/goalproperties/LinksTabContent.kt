@@ -14,9 +14,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.outlined.LinkOff
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -37,6 +39,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 fun LinksTabContent(
     links: List<RelatedLink>,
     onAddProjectLink: () -> Unit,
+    onAddDocumentLink: () -> Unit,
     onAddWebLink: () -> Unit,
     onAddObsidianLink: () -> Unit,
     onRemoveLink: (String) -> Unit,
@@ -51,6 +54,19 @@ fun LinksTabContent(
                 Spacer(Modifier.size(4.dp))
                 Text("Context")
             }
+            FilledTonalButton(onClick = onAddDocumentLink, modifier = Modifier.weight(1f)) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(Modifier.size(4.dp))
+                Text("Doc")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             FilledTonalButton(onClick = onAddWebLink, modifier = Modifier.weight(1f)) {
                 Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.size(4.dp))
@@ -135,6 +151,9 @@ private fun LinkItem(
 private fun getIconForLinkType(type: LinkType?): ImageVector {
     return when (type) {
         LinkType.CONTEXT -> Icons.Default.AccountTree
+        LinkType.NOTE_DOCUMENT -> Icons.Default.Description
+        LinkType.CHECKLIST -> Icons.Default.Checklist
+        LinkType.MUSIC_NOTE -> Icons.Default.MusicNote
         LinkType.URL -> Icons.Default.Language
         LinkType.OBSIDIAN -> Icons.Default.Description
         else -> Icons.Outlined.LinkOff

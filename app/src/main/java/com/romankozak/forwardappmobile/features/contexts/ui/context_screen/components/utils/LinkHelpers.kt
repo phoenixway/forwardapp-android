@@ -9,6 +9,7 @@ import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.R
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.core.navigation.routes.NavigationRoutes
 import java.net.URLEncoder
 
 fun handleRelatedLinkClick(
@@ -25,6 +26,15 @@ fun handleRelatedLinkClick(
             }
             LinkType.CONTEXT -> {
                 navController.navigate("project_detail_screen/${link.target}")
+            }
+            LinkType.NOTE_DOCUMENT -> {
+                navController.navigate(NavigationRoutes.noteDocument(link.target, false))
+            }
+            LinkType.CHECKLIST -> {
+                navController.navigate("checklist_screen?checklistId=${link.target}")
+            }
+            LinkType.MUSIC_NOTE -> {
+                navController.navigate("music_note_screen/${link.target}")
             }
             LinkType.OBSIDIAN -> {
                 if (obsidianVaultName.isNotBlank()) {

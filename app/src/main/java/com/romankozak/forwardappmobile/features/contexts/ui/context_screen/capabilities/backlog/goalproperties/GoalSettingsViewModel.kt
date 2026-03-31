@@ -5,6 +5,8 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.gson.Gson
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
@@ -12,19 +14,31 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusVa
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.logic.GoalScoringManager
+import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
+import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.ContextSettingsEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.utils.TagUtils
+import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
+import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
+import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
+import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
+import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabActions
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabActions
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -39,10 +53,21 @@ class GoalSettingsViewModel
         private val contextRepository: ContextRepository,
         private val contextMarkerHandler: ContextMarkerHandler,
         private val reminderRepository: ReminderRepository,
+        private val attachmentsRepository: AttachmentsRepository,
+        private val noteDocumentRepository: NoteDocumentRepository,
+        private val musicNoteRepository: MusicNoteRepository,
+        private val checklistRepository: ChecklistRepository,
+        private val listItemDao: ListItemDao,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel(), EvaluationTabActions, RemindersTabActions {
         private val goalId: String? = savedStateHandle["goalId"]
         private val initialProjectId: String? = savedStateHandle["projectId"]
+        private val allContexts =
+            contextRepository.getAllContextsFlow()
+                .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        private val allAttachmentOptions =
+            attachmentsRepository.getAttachmentLibraryItems()
+                .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
         private val _uiState = MutableStateFlow(GoalSettingsUiState())
         val uiState: StateFlow<GoalSettingsUiState> = _uiState.asStateFlow()
@@ -71,6 +96,25 @@ class GoalSettingsViewModel
                     }
                 } else {
                     createNewGoal()
+                }
+            }
+
+            viewModelScope.launch {
+                combine(allContexts, allAttachmentOptions, uiState) { contexts, attachments, state ->
+                    Triple(contexts, attachments, state.relatedLinks)
+                }.collect { (contexts, attachments, relatedLinks) ->
+                    val contextOptions =
+                        contexts.map { context ->
+                            ProjectOption(id = context.id, name = context.name, parentId = context.parentId)
+                        }
+                    val attachmentOptions = attachments.mapNotNull { it.toAttachmentOption() }.filterNot { it.linkType == LinkType.CONTEXT }
+                    _uiState.update {
+                        it.copy(
+                            availableContexts = contextOptions,
+                            availableAttachments = attachmentOptions,
+                            selectedAttachmentIds = resolveSelectedAttachmentIds(relatedLinks, attachmentOptions),
+                        )
+                    }
                 }
             }
         }
@@ -275,7 +319,24 @@ class GoalSettingsViewModel
 
         fun onRemoveLinkAssociation(targetToRemove: String) {
             _uiState.update {
-                it.copy(relatedLinks = it.relatedLinks.filterNot { link -> link.target == targetToRemove })
+                it.copy(
+                    relatedLinks =
+                        it.relatedLinks.filterNot { link ->
+                            link.target == targetToRemove || relatedLinkIdentity(link) == targetToRemove
+                        },
+                )
+            }
+        }
+
+        fun onAttachmentSelected(attachmentId: String) {
+            val option = _uiState.value.availableAttachments.firstOrNull { it.id == attachmentId } ?: return
+            val newLink = option.toRelatedLink() ?: return
+            _uiState.update { state ->
+                if (state.relatedLinks.any { relatedLinkIdentity(it) == relatedLinkIdentity(newLink) }) {
+                    state
+                } else {
+                    state.copy(relatedLinks = state.relatedLinks + newLink)
+                }
             }
         }
 
@@ -293,15 +354,43 @@ class GoalSettingsViewModel
         }
 
         fun onAddWebLinkRequest() {
-            viewModelScope.launch {
-                _events.send(ContextSettingsEvent.NavigateBack("Додавання веб-посилань буде реалізовано пізніше"))
+        }
+
+        suspend fun createAttachmentForPicker(request: NewDocumentDraft): String? {
+            val contextId = resolveOwnerContextId() ?: return null
+            return when (request) {
+                is NewDocumentDraft.Note -> {
+                    val documentId = noteDocumentRepository.createDocument(name = request.name.ifBlank { "Нова нотатка" }, contextId = contextId)
+                    attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)?.id
+                }
+                is NewDocumentDraft.MusicNote -> {
+                    val musicNoteId = musicNoteRepository.create(name = request.name.ifBlank { "Нові ноти" }, contextId = contextId)
+                    attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.MUSIC_NOTE, musicNoteId)?.id
+                }
+                is NewDocumentDraft.Checklist -> {
+                    val checklistId = checklistRepository.createChecklist(name = request.name.ifBlank { "Новий чекліст" }, contextId = contextId)
+                    attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.CHECKLIST, checklistId)?.id
+                }
+                is NewDocumentDraft.WebLink -> {
+                    val target = request.url.trim()
+                    target.takeIf { it.isNotBlank() }?.let {
+                        val link = RelatedLink(type = LinkType.URL, target = it, displayName = request.name.trim().ifBlank { it })
+                        addRelatedLink(link)
+                        relatedLinkIdentity(link)
+                    }
+                }
+                is NewDocumentDraft.Obsidian -> {
+                    val target = request.noteName.trim()
+                    target.takeIf { it.isNotBlank() }?.let {
+                        val link = RelatedLink(type = LinkType.OBSIDIAN, target = it, displayName = request.displayName.trim().ifBlank { it })
+                        addRelatedLink(link)
+                        relatedLinkIdentity(link)
+                    }
+                }
             }
         }
 
         fun onAddObsidianLinkRequest() {
-            viewModelScope.launch {
-                _events.send(ContextSettingsEvent.NavigateBack("Додавання Obsidian посилань буде реалізовано пізніше"))
-            }
         }
 
         fun onTabSelected(index: Int) {
@@ -337,4 +426,66 @@ class GoalSettingsViewModel
                 }
             }
         }
+
+        private suspend fun resolveOwnerContextId(): String? = initialProjectId ?: goalId?.let { listItemDao.findContextIdForGoal(it) }
+
+        private fun addRelatedLink(link: RelatedLink) {
+            _uiState.update { state ->
+                if (state.relatedLinks.any { relatedLinkIdentity(it) == relatedLinkIdentity(link) }) state else state.copy(relatedLinks = state.relatedLinks + link)
+            }
+        }
+
+        private fun resolveSelectedAttachmentIds(
+            relatedLinks: List<RelatedLink>,
+            options: List<AttachmentOption>,
+        ): Set<String> {
+            val linkKeys = relatedLinks.map(::relatedLinkIdentity).toSet()
+            return options.filter { option ->
+                option.toRelatedLink()?.let(::relatedLinkIdentity) in linkKeys
+            }.mapTo(mutableSetOf()) { it.id }
+        }
+
+        private fun AttachmentOption.toRelatedLink(): RelatedLink? =
+            when {
+                linkType == LinkType.URL && !target.isNullOrBlank() ->
+                    RelatedLink(type = LinkType.URL, target = target, displayName = name)
+                linkType == LinkType.OBSIDIAN && !target.isNullOrBlank() ->
+                    RelatedLink(type = LinkType.OBSIDIAN, target = target, displayName = name)
+                attachmentType == BacklogItemTypeValues.NOTE_DOCUMENT && !entityId.isNullOrBlank() ->
+                    RelatedLink(type = LinkType.NOTE_DOCUMENT, target = entityId, displayName = name)
+                attachmentType == BacklogItemTypeValues.CHECKLIST && !entityId.isNullOrBlank() ->
+                    RelatedLink(type = LinkType.CHECKLIST, target = entityId, displayName = name)
+                attachmentType == BacklogItemTypeValues.MUSIC_NOTE && !entityId.isNullOrBlank() ->
+                    RelatedLink(type = LinkType.MUSIC_NOTE, target = entityId, displayName = name)
+                else -> null
+            }
     }
+
+private fun AttachmentLibraryQueryResult.toAttachmentOption(): AttachmentOption {
+    val relatedLink =
+        linkDisplayName?.let { json ->
+            runCatching { Gson().fromJson(json, RelatedLink::class.java) }.getOrNull()
+        }
+    val linkLabel =
+        relatedLink?.displayName?.takeIf { it.isNotBlank() }
+            ?: relatedLink?.target?.takeIf { it.isNotBlank() }
+    val label =
+        noteName?.takeIf { it.isNotBlank() }
+            ?: musicNoteName?.takeIf { it.isNotBlank() }
+            ?: checklistName?.takeIf { it.isNotBlank() }
+            ?: scriptName?.takeIf { it.isNotBlank() }
+            ?: linkLabel
+            ?: contextName
+            ?: "Attachment ${id.takeLast(4)}"
+
+    return AttachmentOption(
+        id = id,
+        name = label,
+        linkType = relatedLink?.type,
+        attachmentType = attachmentType,
+        entityId = entityId,
+        target = relatedLink?.target,
+    )
+}
+
+private fun relatedLinkIdentity(link: RelatedLink): String = "${link.type}:${link.target}"

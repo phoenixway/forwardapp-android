@@ -250,6 +250,45 @@ private fun getLinkDisplayData(
     onOpenUrl: () -> Unit,
 ): LinkDisplayData =
     when (linkType) {
+        LinkType.NOTE_DOCUMENT ->
+            LinkDisplayData(
+                icon = Icons.AutoMirrored.Filled.Note,
+                colors =
+                    LinkColors(
+                        primary = MaterialTheme.colorScheme.tertiary,
+                        container = MaterialTheme.colorScheme.tertiaryContainer,
+                        onContainer = MaterialTheme.colorScheme.onTertiaryContainer,
+                    ),
+                actionHandler = onGoToTargetProject,
+                actionIcon = Icons.AutoMirrored.Filled.OpenInNew,
+                actionDescription = "Відкрити документ",
+            )
+        LinkType.CHECKLIST ->
+            LinkDisplayData(
+                icon = Icons.AutoMirrored.Filled.ListAlt,
+                colors =
+                    LinkColors(
+                        primary = MaterialTheme.colorScheme.tertiary,
+                        container = MaterialTheme.colorScheme.tertiaryContainer,
+                        onContainer = MaterialTheme.colorScheme.onTertiaryContainer,
+                    ),
+                actionHandler = onGoToTargetProject,
+                actionIcon = Icons.AutoMirrored.Filled.OpenInNew,
+                actionDescription = "Відкрити чекліст",
+            )
+        LinkType.MUSIC_NOTE ->
+            LinkDisplayData(
+                icon = Icons.AutoMirrored.Filled.Note,
+                colors =
+                    LinkColors(
+                        primary = MaterialTheme.colorScheme.tertiary,
+                        container = MaterialTheme.colorScheme.tertiaryContainer,
+                        onContainer = MaterialTheme.colorScheme.onTertiaryContainer,
+                    ),
+                actionHandler = onGoToTargetProject,
+                actionIcon = Icons.AutoMirrored.Filled.OpenInNew,
+                actionDescription = "Відкрити музичні ноти",
+            )
         LinkType.URL ->
             LinkDisplayData(
                 icon = Icons.Default.Language,
@@ -309,6 +348,9 @@ private fun getLinkTypeLabel(linkType: LinkType?): String =
         LinkType.URL -> "Attachment: web-url"
         LinkType.OBSIDIAN -> "Attachment: Obsidian note"
         LinkType.CONTEXT -> "Attachment: link to project"
+        LinkType.NOTE_DOCUMENT -> "Attachment: note document"
+        LinkType.CHECKLIST -> "Attachment: checklist"
+        LinkType.MUSIC_NOTE -> "Attachment: music note"
         null -> "Attachment: Unknown"
     }
 

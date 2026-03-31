@@ -44,6 +44,8 @@ class ItemActionHandler
 
             fun requestNavigation(route: String)
 
+            fun handleRelatedLink(link: RelatedLink)
+
             fun openGoalInlineEditor(goal: Goal)
 
             fun setPendingAction(
@@ -482,7 +484,7 @@ class ItemActionHandler
                 item is BacklogItemContent.ChecklistItem
 
         fun onRelatedLinkClick(link: RelatedLink) {
-            resultListener.requestNavigation(ContextScreenViewModel.HANDLE_LINK_CLICK_ROUTE + "/${link.target}")
+            resultListener.handleRelatedLink(link)
         }
 
         fun onItemActionSelected(

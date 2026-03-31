@@ -7,8 +7,8 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -77,30 +77,30 @@ fun EnhancedScoreStatusBadge(
                         modifier =
                             Modifier.semantics {
                                 contentDescription = "Оцінка: $displayScore з 100"
-                            }.heightIn(min = 24.dp),
+                            }.height(24.dp),
                         ) {
                             Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ElectricBolt,
-                                contentDescription = null,
-                                tint = animatedColor,
-                                modifier = Modifier.size(12.dp),
-                            )
-                            Text(
-                                text = "$displayScore/100",
-                                style =
-                                    MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 0.1.sp,
-                                    ),
-                                color = animatedColor,
-                            )
+                                modifier = Modifier.padding(horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ElectricBolt,
+                                    contentDescription = null,
+                                    tint = animatedColor,
+                                    modifier = Modifier.size(12.dp),
+                                )
+                                Text(
+                                    text = "$displayScore/100",
+                                    style =
+                                        MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = 0.1.sp,
+                                        ),
+                                    color = animatedColor,
+                                )
+                            }
                         }
-                    }
                 }
             }
         }
@@ -112,7 +112,8 @@ fun EnhancedScoreStatusBadge(
                     Modifier
                         .semantics {
                             contentDescription = "Неможливо оцінити"
-                        },
+                        }
+                        .height(24.dp),
             ) {
                 Icon(
                     imageVector = Icons.Default.FlashOff,
@@ -121,7 +122,7 @@ fun EnhancedScoreStatusBadge(
                     modifier =
                         Modifier
                             .size(16.dp)
-                            .padding(3.dp),
+                            .padding(horizontal = 4.dp),
                 )
             }
         }

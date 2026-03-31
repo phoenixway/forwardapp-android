@@ -159,6 +159,7 @@ class SearchRepository
             return when (relatedLink.type) {
                 LinkType.URL, LinkType.OBSIDIAN -> relatedLink.target
                 LinkType.CONTEXT -> relatedLink.displayName ?: relatedLink.target
+                LinkType.NOTE_DOCUMENT, LinkType.CHECKLIST, LinkType.MUSIC_NOTE -> relatedLink.displayName ?: relatedLink.target
                 null -> relatedLink.target
             }
         }

@@ -837,6 +837,13 @@ class ContextScreenViewModel
                 dispatchNavigationEffects(navigationEventActions.fromRouteOutcome(outcome))
             }
         }
+
+        override fun handleRelatedLink(link: RelatedLink) {
+            viewModelScope.launch {
+                val result = navigationActions.resolveLinkItemClick(link)
+                dispatchNavigationEffects(navigationEventActions.fromLinkClickResult(result))
+            }
+        }
         override fun openGoalInlineEditor(goal: Goal) {
             stateManager.setGoalToEditInline(goal)
         }

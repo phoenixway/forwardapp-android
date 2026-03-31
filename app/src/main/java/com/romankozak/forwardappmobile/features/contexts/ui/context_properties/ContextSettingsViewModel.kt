@@ -4,26 +4,42 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
+import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
 import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.capability.settings.CapabilitySettingsEntry
 import com.romankozak.forwardappmobile.core.navigation.capability.settings.CapabilitySettingsRegistry
+import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
+import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
+import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.domain.structure.StructurePresetService
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
+import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
+import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
+import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
+import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
+import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.EvaluationTabActions
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabActions
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -41,8 +57,18 @@ class ContextSettingsViewModel
         private val contextStructureRepository: ContextStructureRepository,
         private val structurePresetService: StructurePresetService,
         private val capabilitySettingsRegistry: CapabilitySettingsRegistry,
+        private val attachmentsRepository: AttachmentsRepository,
+        private val noteDocumentRepository: NoteDocumentRepository,
+        private val musicNoteRepository: MusicNoteRepository,
+        private val checklistRepository: ChecklistRepository,
     ) : ViewModel(), EvaluationTabActions, RemindersTabActions {
         private val projectId: String? = savedStateHandle["projectId"]
+        private val allContexts =
+            contextRepository.getAllContextsFlow()
+                .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        private val allAttachmentOptions =
+            attachmentsRepository.getAttachmentLibraryItems()
+                .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
         private val _uiState = MutableStateFlow(ContextSettingsUiState())
         val uiState: StateFlow<ContextSettingsUiState> = _uiState.asStateFlow()
@@ -67,6 +93,25 @@ class ContextSettingsViewModel
                 contextStructureRepository.ensureReservedBaseRolePresets()
                 structurePresetDao.getAll().collect { presets ->
                     _uiState.update { it.copy(availablePresets = presets) }
+                }
+            }
+
+            viewModelScope.launch {
+                combine(allContexts, allAttachmentOptions, uiState) { contexts, attachments, state ->
+                    Triple(contexts, attachments, state.relatedLinks)
+                }.collect { (contexts, attachments, relatedLinks) ->
+                    val contextOptions =
+                        contexts.map { context ->
+                            ProjectOption(id = context.id, name = context.name, parentId = context.parentId)
+                        }
+                    val attachmentOptions = attachments.mapNotNull { it.toAttachmentOption() }.filterNot { it.linkType == LinkType.CONTEXT }
+                    _uiState.update {
+                        it.copy(
+                            availableContexts = contextOptions,
+                            availableAttachments = attachmentOptions,
+                            selectedAttachmentIds = resolveSelectedAttachmentIds(relatedLinks, attachmentOptions),
+                        )
+                    }
                 }
             }
         }
@@ -103,6 +148,7 @@ class ContextSettingsViewModel
                         // Метадані проекту
                         title = state.title.copy(project.name),
                         description = state.description.copy(project.description ?: ""),
+                        relatedLinks = project.relatedLinks ?: emptyList(),
                         tags = project.tags ?: emptyList(),
                         isReady = true,
                         isNewProject = false,
@@ -190,6 +236,7 @@ class ContextSettingsViewModel
                 project.copy(
                     name = _uiState.value.title.text,
                     description = _uiState.value.description.text.ifEmpty { null },
+                    relatedLinks = _uiState.value.relatedLinks,
                     tags = _uiState.value.tags,
                     showCheckboxes = _uiState.value.showCheckboxes,
                     isContextManagementEnabled = _uiState.value.isProjectManagementEnabled,
@@ -258,6 +305,69 @@ class ContextSettingsViewModel
         fun onAddTag(tag: String) = _uiState.update { it.copy(tags = it.tags + tag) }
 
         fun onRemoveTag(tag: String) = _uiState.update { it.copy(tags = it.tags - tag) }
+
+        fun onAddContextLink(contextId: String) {
+            viewModelScope.launch {
+                val context = contextRepository.getContextById(contextId) ?: return@launch
+                addRelatedLink(
+                    RelatedLink(
+                        type = LinkType.CONTEXT,
+                        target = context.id,
+                        displayName = context.name,
+                    ),
+                )
+            }
+        }
+
+        fun onAttachmentSelected(attachmentId: String) {
+            val option = _uiState.value.availableAttachments.firstOrNull { it.id == attachmentId } ?: return
+            option.toRelatedLink()?.let(::addRelatedLink)
+        }
+
+        fun onRemoveLinkAssociation(targetToRemove: String) {
+            _uiState.update {
+                it.copy(
+                    relatedLinks =
+                        it.relatedLinks.filterNot { link ->
+                            link.target == targetToRemove || relatedLinkIdentity(link) == targetToRemove
+                        },
+                )
+            }
+        }
+
+        suspend fun createAttachmentForPicker(request: NewDocumentDraft): String? {
+            val contextId = projectId ?: return null
+            return when (request) {
+                is NewDocumentDraft.Note -> {
+                    val documentId = noteDocumentRepository.createDocument(name = request.name.ifBlank { "Нова нотатка" }, contextId = contextId)
+                    attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)?.id
+                }
+                is NewDocumentDraft.MusicNote -> {
+                    val musicNoteId = musicNoteRepository.create(name = request.name.ifBlank { "Нові ноти" }, contextId = contextId)
+                    attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.MUSIC_NOTE, musicNoteId)?.id
+                }
+                is NewDocumentDraft.Checklist -> {
+                    val checklistId = checklistRepository.createChecklist(name = request.name.ifBlank { "Новий чекліст" }, contextId = contextId)
+                    attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.CHECKLIST, checklistId)?.id
+                }
+                is NewDocumentDraft.WebLink -> {
+                    val target = request.url.trim()
+                    target.takeIf { it.isNotBlank() }?.let {
+                        val link = RelatedLink(type = LinkType.URL, target = it, displayName = request.name.trim().ifBlank { it })
+                        addRelatedLink(link)
+                        relatedLinkIdentity(link)
+                    }
+                }
+                is NewDocumentDraft.Obsidian -> {
+                    val target = request.noteName.trim()
+                    target.takeIf { it.isNotBlank() }?.let {
+                        val link = RelatedLink(type = LinkType.OBSIDIAN, target = it, displayName = request.displayName.trim().ifBlank { it })
+                        addRelatedLink(link)
+                        relatedLinkIdentity(link)
+                    }
+                }
+            }
+        }
 
         fun onProjectManagementChange(enabled: Boolean) {
             _uiState.update { it.copy(isProjectManagementEnabled = enabled) }
@@ -462,4 +572,64 @@ class ContextSettingsViewModel
                 }
             }
         }
+
+        private fun addRelatedLink(link: RelatedLink) {
+            _uiState.update { state ->
+                if (state.relatedLinks.any { relatedLinkIdentity(it) == relatedLinkIdentity(link) }) state else state.copy(relatedLinks = state.relatedLinks + link)
+            }
+        }
+
+        private fun resolveSelectedAttachmentIds(
+            relatedLinks: List<RelatedLink>,
+            options: List<AttachmentOption>,
+        ): Set<String> {
+            val linkKeys = relatedLinks.map(::relatedLinkIdentity).toSet()
+            return options.filter { option ->
+                option.toRelatedLink()?.let(::relatedLinkIdentity) in linkKeys
+            }.mapTo(mutableSetOf()) { it.id }
+        }
+
+        private fun AttachmentOption.toRelatedLink(): RelatedLink? =
+            when {
+                linkType == LinkType.URL && !target.isNullOrBlank() ->
+                    RelatedLink(type = LinkType.URL, target = target, displayName = name)
+                linkType == LinkType.OBSIDIAN && !target.isNullOrBlank() ->
+                    RelatedLink(type = LinkType.OBSIDIAN, target = target, displayName = name)
+                attachmentType == BacklogItemTypeValues.NOTE_DOCUMENT && !entityId.isNullOrBlank() ->
+                    RelatedLink(type = LinkType.NOTE_DOCUMENT, target = entityId, displayName = name)
+                attachmentType == BacklogItemTypeValues.CHECKLIST && !entityId.isNullOrBlank() ->
+                    RelatedLink(type = LinkType.CHECKLIST, target = entityId, displayName = name)
+                attachmentType == BacklogItemTypeValues.MUSIC_NOTE && !entityId.isNullOrBlank() ->
+                    RelatedLink(type = LinkType.MUSIC_NOTE, target = entityId, displayName = name)
+                else -> null
+            }
     }
+
+private fun AttachmentLibraryQueryResult.toAttachmentOption(): AttachmentOption {
+    val relatedLink =
+        linkDisplayName?.let { json ->
+            runCatching { Gson().fromJson(json, RelatedLink::class.java) }.getOrNull()
+        }
+    val linkLabel =
+        relatedLink?.displayName?.takeIf { it.isNotBlank() }
+            ?: relatedLink?.target?.takeIf { it.isNotBlank() }
+    val label =
+        noteName?.takeIf { it.isNotBlank() }
+            ?: musicNoteName?.takeIf { it.isNotBlank() }
+            ?: checklistName?.takeIf { it.isNotBlank() }
+            ?: scriptName?.takeIf { it.isNotBlank() }
+            ?: linkLabel
+            ?: contextName
+            ?: "Attachment ${id.takeLast(4)}"
+
+    return AttachmentOption(
+        id = id,
+        name = label,
+        linkType = relatedLink?.type,
+        attachmentType = attachmentType,
+        entityId = entityId,
+        target = relatedLink?.target,
+    )
+}
+
+private fun relatedLinkIdentity(link: RelatedLink): String = "${link.type}:${link.target}"

@@ -78,7 +78,6 @@ internal fun SearchResultsContent(
             commandsExpanded = commandsExpanded,
             onCommandsExpandedChange = { commandsExpanded = it },
         )
-        SearchResultsTopOverlay(modifier = Modifier.align(androidx.compose.ui.Alignment.TopCenter))
     }
 }
 
@@ -213,7 +212,8 @@ private fun SearchResultsEffects(
     }
     LaunchedEffect(selectedResultUniqueId, listItemIndexByResultId) {
         val targetIndex = selectedResultUniqueId?.let { id -> listItemIndexByResultId[id] } ?: return@LaunchedEffect
-        if (targetIndex > 0) {
+        val isTargetVisible = listState.layoutInfo.visibleItemsInfo.any { it.index == targetIndex }
+        if (targetIndex > 0 && !isTargetVisible) {
             listState.animateScrollToItem(targetIndex)
         }
     }
@@ -258,7 +258,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.commandResultsSection
 ) {
     if (args.commandResults.isEmpty()) return
 
-    stickyHeader(key = "header_commands") {
+    item(key = "header_commands") {
         SearchResultGroupHeader(
             presentation =
                 ResultTypePresentation(
@@ -272,6 +272,9 @@ private fun androidx.compose.foundation.lazy.LazyListScope.commandResultsSection
         )
     }
     if (commandsExpanded) {
+        item(key = "header_commands_spacing") {
+            Spacer(modifier = Modifier.height(6.dp))
+        }
         itemsIndexed(
             items = args.commandResults,
             key = { _, item -> "command_${item.id.name}" },
@@ -296,7 +299,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.groupedResultsSection
 ) {
     groupedResults.forEach { group ->
         val isExpanded = groupExpandedState[group.key] != false
-        stickyHeader(key = "header_${group.key}") {
+        item(key = "header_${group.key}") {
             SearchResultGroupHeader(
                 presentation = group.presentation,
                 count = group.items.size,
@@ -306,6 +309,9 @@ private fun androidx.compose.foundation.lazy.LazyListScope.groupedResultsSection
         }
 
         if (isExpanded) {
+            item(key = "header_${group.key}_spacing") {
+                Spacer(modifier = Modifier.height(6.dp))
+            }
             itemsIndexed(
                 items = group.items,
                 key = { _, result -> result.uniqueId },

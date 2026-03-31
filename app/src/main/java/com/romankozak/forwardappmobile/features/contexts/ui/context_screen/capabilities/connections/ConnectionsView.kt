@@ -231,6 +231,9 @@ private fun BacklogItemContent.connectionType(): ConnectionType =
         is BacklogItemContent.LinkItem ->
             when (link.linkData.type) {
                 LinkType.CONTEXT -> ConnectionType.CONTEXT
+                LinkType.NOTE_DOCUMENT -> ConnectionType.NOTE_DOCUMENT
+                LinkType.CHECKLIST -> ConnectionType.CHECKLIST
+                LinkType.MUSIC_NOTE -> ConnectionType.MUSIC_NOTE
                 LinkType.URL -> ConnectionType.URL
                 LinkType.OBSIDIAN -> ConnectionType.OBSIDIAN_NOTE
                 null -> ConnectionType.ATTACHMENT

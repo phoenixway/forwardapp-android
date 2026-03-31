@@ -899,6 +899,9 @@ private fun attachmentIcon(type: LinkType?) =
         LinkType.URL -> Icons.Default.Link
         LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Notes
         LinkType.CONTEXT -> Icons.Default.Folder
+        LinkType.NOTE_DOCUMENT,
+        LinkType.CHECKLIST,
+        LinkType.MUSIC_NOTE,
         null -> Icons.AutoMirrored.Filled.InsertDriveFile
     }
 

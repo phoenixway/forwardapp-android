@@ -164,6 +164,9 @@ private fun linkCardSpec(
                     renderContext.viewModel.navigateToProjectForResult(linkData.target, null)
                 }
             }
+            LinkType.NOTE_DOCUMENT,
+            LinkType.CHECKLIST,
+            LinkType.MUSIC_NOTE,
             LinkType.URL,
             LinkType.OBSIDIAN,
             -> {

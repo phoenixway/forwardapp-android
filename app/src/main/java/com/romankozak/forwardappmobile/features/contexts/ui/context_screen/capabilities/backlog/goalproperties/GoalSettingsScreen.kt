@@ -12,6 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -22,6 +25,9 @@ import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.ContextSettingsEvent
+import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
+import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTargetsPickerDialog
+import com.romankozak.forwardappmobile.features.missions.presentation.PickerCreateAction
 import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
 import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreenActions
 import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreen
@@ -41,6 +47,8 @@ fun GoalSettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+    var activePickerTab by remember { mutableStateOf<LinkPickerTab?>(null) }
+    var pendingCreateAction by remember { mutableStateOf<PickerCreateAction?>(null) }
 
     GoalSettingsNavigationEffect(
         navController = navController,
@@ -55,11 +63,42 @@ fun GoalSettingsScreen(
         navController = navController,
         uiState = uiState,
         viewModel = viewModel,
+        onOpenPicker = { tab, createAction ->
+            activePickerTab = tab
+            pendingCreateAction = createAction
+        },
     )
     GoalSettingsDescriptionEditor(
         uiState = uiState,
         viewModel = viewModel,
     )
+
+    activePickerTab?.let { initialTab ->
+        LinkedTargetsPickerDialog(
+            contextOptions = uiState.availableContexts,
+            attachmentOptions = uiState.availableAttachments,
+            preselectedContextIds = uiState.relatedLinks.filter { it.type == com.romankozak.forwardappmobile.core.data.models.entities.LinkType.CONTEXT }.mapTo(mutableSetOf()) { it.target },
+            preselectedAttachmentIds = uiState.selectedAttachmentIds,
+            initialTab = initialTab,
+            initialCreateAction = pendingCreateAction,
+            onDismiss = {
+                activePickerTab = null
+                pendingCreateAction = null
+            },
+            onContextSelected = { id ->
+                viewModel.onListChooserResult(id)
+                activePickerTab = null
+                pendingCreateAction = null
+            },
+            onAttachmentSelected = { id ->
+                viewModel.onAttachmentSelected(id)
+                activePickerTab = null
+                pendingCreateAction = null
+            },
+            onCreateRootContext = null,
+            onCreateDocument = { draft -> viewModel.createAttachmentForPicker(draft) },
+        )
+    }
 }
 
 @Composable
@@ -109,6 +148,7 @@ private fun GoalSettingsContent(
     navController: NavController,
     uiState: GoalSettingsUiState,
     viewModel: GoalSettingsViewModel,
+    onOpenPicker: (LinkPickerTab, PickerCreateAction?) -> Unit,
 ) {
     val tabs = goalSettingsTabs()
     SettingsScreen(
@@ -131,6 +171,7 @@ private fun GoalSettingsContent(
             selectedTab = tabs[it],
             uiState = uiState,
             viewModel = viewModel,
+            onOpenPicker = onOpenPicker,
         )
     }
 }
@@ -154,6 +195,7 @@ private fun GoalSettingsTabContent(
     selectedTab: String,
     uiState: GoalSettingsUiState,
     viewModel: GoalSettingsViewModel,
+    onOpenPicker: (LinkPickerTab, PickerCreateAction?) -> Unit,
 ) {
     when (selectedTab) {
         "General" ->
@@ -197,9 +239,10 @@ private fun GoalSettingsTabContent(
         "Links" ->
             LinksTabContent(
                 links = uiState.relatedLinks,
-                onAddProjectLink = viewModel::onAddLinkRequest,
-                onAddWebLink = viewModel::onAddWebLinkRequest,
-                onAddObsidianLink = viewModel::onAddObsidianLinkRequest,
+                onAddProjectLink = { onOpenPicker(LinkPickerTab.CONTEXTS, null) },
+                onAddDocumentLink = { onOpenPicker(LinkPickerTab.ATTACHMENTS, null) },
+                onAddWebLink = { onOpenPicker(LinkPickerTab.ATTACHMENTS, PickerCreateAction.WEB_LINK) },
+                onAddObsidianLink = { onOpenPicker(LinkPickerTab.ATTACHMENTS, PickerCreateAction.OBSIDIAN) },
                 onRemoveLink = viewModel::onRemoveLinkAssociation,
             )
     }

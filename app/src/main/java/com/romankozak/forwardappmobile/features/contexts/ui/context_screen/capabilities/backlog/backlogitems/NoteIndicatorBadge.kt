@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -29,8 +29,8 @@ internal fun NoteIndicatorBadge(modifier: Modifier = Modifier) {
         Box(
             modifier =
                 Modifier
-                    .heightIn(min = 24.dp)
-                    .padding(6.dp)
+                    .height(24.dp)
+                    .padding(horizontal = 6.dp)
                     .semantics {
                         contentDescription = "Містить нотатку"
                     },

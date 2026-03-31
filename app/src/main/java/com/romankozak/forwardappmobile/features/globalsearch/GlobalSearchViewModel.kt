@@ -12,8 +12,6 @@ import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.InboxRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -98,7 +96,6 @@ class GlobalSearchViewModel
             private const val MAX_COMMAND_HISTORY = 12
             private const val MAX_USAGE_ITEMS = 200
             private const val SEARCH_CANDIDATES_CACHE_TTL_MS = 15_000L
-            private const val SEARCH_DEBOUNCE_MILLIS = 280L
             private const val HYBRID_COMMANDS_LIMIT = 4
             private const val MIN_FUZZY_DATA_SCORE = 10
             private const val MAX_FUZZY_RESULTS = 120
@@ -227,7 +224,6 @@ class GlobalSearchViewModel
             runCatching { URLDecoder.decode(initialQueryRaw, "UTF-8") }.getOrDefault(initialQueryRaw)
         private val _uiState = MutableStateFlow(GlobalSearchUiState())
         val uiState: StateFlow<GlobalSearchUiState> = _uiState.asStateFlow()
-        private var searchJob: Job? = null
         private var allSearchCandidatesCache: List<GlobalSearchResultItem>? = null
         private var allSearchCandidatesCacheUpdatedAt: Long = 0L
         private var latestUnfilteredResults: List<GlobalSearchResultItem> = emptyList()
@@ -317,7 +313,6 @@ class GlobalSearchViewModel
                 setMode(prefixedMode)
             }
             _uiState.update { it.copy(query = strippedQuery) }
-            searchJob?.cancel()
             if (_uiState.value.mode == OmniboxMode.Command) {
                 latestUnfilteredResults = emptyList()
                 val commandResults = findCommandResults(strippedQuery)
@@ -343,13 +338,15 @@ class GlobalSearchViewModel
                 }
                 return
             }
-            val hybridCommands = findCommandResults(strippedQuery).take(HYBRID_COMMANDS_LIMIT)
-            _uiState.update { it.copy(hybridCommandResults = hybridCommands, commandResults = emptyList()) }
-            searchJob =
-                viewModelScope.launch {
-                    delay(SEARCH_DEBOUNCE_MILLIS)
-                    performSearch(strippedQuery)
-                }
+            latestUnfilteredResults = emptyList()
+            _uiState.update {
+                it.copy(
+                    results = emptyList(),
+                    commandResults = emptyList(),
+                    hybridCommandResults = emptyList(),
+                    isLoading = false,
+                )
+            }
         }
 
         fun onSubmitSearch() {
@@ -418,9 +415,6 @@ class GlobalSearchViewModel
                             emptyList()
                         },
                 )
-            }
-            if (mode == OmniboxMode.DataSearch && _uiState.value.query.isNotBlank()) {
-                performSearch(_uiState.value.query)
             }
         }
 

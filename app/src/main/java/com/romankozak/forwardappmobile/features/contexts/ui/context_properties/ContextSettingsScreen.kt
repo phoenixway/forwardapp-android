@@ -65,6 +65,10 @@ import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.capability.settings.CapabilitySettingsEntry
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.goalproperties.LinksTabContent
+import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
+import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTargetsPickerDialog
+import com.romankozak.forwardappmobile.features.missions.presentation.PickerCreateAction
 import com.romankozak.forwardappmobile.ui.components.notesEditors.FullScreenMarkdownEditor
 import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreenActions
 import com.romankozak.forwardappmobile.ui.screens.common.SettingsScreen
@@ -87,6 +91,8 @@ fun ProjectSettingsScreen(
     val context = LocalContext.current
     var showPresetDialog by remember { mutableStateOf(false) }
     var showPresetPicker by remember { mutableStateOf(false) }
+    var activePickerTab by remember { mutableStateOf<LinkPickerTab?>(null) }
+    var pendingCreateAction by remember { mutableStateOf<PickerCreateAction?>(null) }
     val capabilitySettingsTabs =
         remember(uiState.enabledCapabilityIds) { viewModel.getAvailableCapabilitySettingsTabs(uiState.enabledCapabilityIds) }
 
@@ -112,9 +118,9 @@ fun ProjectSettingsScreen(
         }
     }
 
-    val baseTabs = listOf("General", "Display", "Features", "Evaluation", "Reminders")
+    val baseTabs = listOf("General", "Display", "Features", "Evaluation", "Reminders", "Links")
     val baseTabIcons =
-        listOf(Icons.Default.Settings, Icons.Default.Style, Icons.Default.Build, Icons.Default.BarChart, Icons.Default.Notifications)
+        listOf(Icons.Default.Settings, Icons.Default.Style, Icons.Default.Build, Icons.Default.BarChart, Icons.Default.Notifications, Icons.Default.Edit)
     val tabs = baseTabs + capabilitySettingsTabs.map { it.descriptor.tabTitle }
     val tabIcons = baseTabIcons + List(capabilitySettingsTabs.size) { Icons.Default.Build }
     val selectedTabIndex = uiState.selectedTabIndex.coerceIn(0, (tabs.size - 1).coerceAtLeast(0))
@@ -220,6 +226,15 @@ fun ProjectSettingsScreen(
                         reminderTime = uiState.reminderTime,
                         onViewModelAction = viewModel,
                     )
+                "Links" ->
+                    LinksTabContent(
+                        links = uiState.relatedLinks,
+                        onAddProjectLink = { activePickerTab = LinkPickerTab.CONTEXTS; pendingCreateAction = null },
+                        onAddDocumentLink = { activePickerTab = LinkPickerTab.ATTACHMENTS; pendingCreateAction = null },
+                        onAddWebLink = { activePickerTab = LinkPickerTab.ATTACHMENTS; pendingCreateAction = PickerCreateAction.WEB_LINK },
+                        onAddObsidianLink = { activePickerTab = LinkPickerTab.ATTACHMENTS; pendingCreateAction = PickerCreateAction.OBSIDIAN },
+                        onRemoveLink = viewModel::onRemoveLinkAssociation,
+                    )
                 else -> {
                     val settingsTabIndex = tabIndex - baseTabs.size
                     val tab = capabilitySettingsTabs.getOrNull(settingsTabIndex)
@@ -265,6 +280,33 @@ fun ProjectSettingsScreen(
             initialValue = uiState.description,
             onDismiss = { viewModel.closeDescriptionEditor() },
             onSave = { newText -> viewModel.onDescriptionChangeAndCloseEditor(newText) },
+        )
+    }
+
+    activePickerTab?.let { initialTab ->
+        LinkedTargetsPickerDialog(
+            contextOptions = uiState.availableContexts,
+            attachmentOptions = uiState.availableAttachments,
+            preselectedContextIds = uiState.relatedLinks.filter { it.type == com.romankozak.forwardappmobile.core.data.models.entities.LinkType.CONTEXT }.mapTo(mutableSetOf()) { it.target },
+            preselectedAttachmentIds = uiState.selectedAttachmentIds,
+            initialTab = initialTab,
+            initialCreateAction = pendingCreateAction,
+            onDismiss = {
+                activePickerTab = null
+                pendingCreateAction = null
+            },
+            onContextSelected = { id ->
+                viewModel.onAddContextLink(id)
+                activePickerTab = null
+                pendingCreateAction = null
+            },
+            onAttachmentSelected = { id ->
+                viewModel.onAttachmentSelected(id)
+                activePickerTab = null
+                pendingCreateAction = null
+            },
+            onCreateRootContext = null,
+            onCreateDocument = { draft -> viewModel.createAttachmentForPicker(draft) },
         )
     }
 }

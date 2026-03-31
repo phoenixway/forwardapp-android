@@ -74,7 +74,14 @@ enum class ContextViewMode {
     VET_CASE,
 }
 
-enum class LinkType { CONTEXT, URL, OBSIDIAN }
+enum class LinkType {
+    CONTEXT,
+    NOTE_DOCUMENT,
+    CHECKLIST,
+    MUSIC_NOTE,
+    URL,
+    OBSIDIAN,
+}
 
 enum class DayStatus { PLANNED, IN_PROGRESS, COMPLETED, MISSED, ARCHIVED }
 

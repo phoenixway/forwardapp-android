@@ -234,6 +234,15 @@ class AttachmentsViewModel
                             ),
                         )
                     }
+                    LinkType.NOTE_DOCUMENT -> {
+                        _uiEventFlow.send(UiEvent.Navigate(NavTarget.NoteDocument(id = link.target, startEdit = false)))
+                    }
+                    LinkType.CHECKLIST -> {
+                        _uiEventFlow.send(UiEvent.Navigate(NavTarget.Checklist(id = link.target)))
+                    }
+                    LinkType.MUSIC_NOTE -> {
+                        _uiEventFlow.send(UiEvent.Navigate(NavTarget.MusicNote(id = link.target, startEdit = false)))
+                    }
                     LinkType.URL -> {
                         _uiEventFlow.send(UiEvent.OpenUri(link.target))
                     }

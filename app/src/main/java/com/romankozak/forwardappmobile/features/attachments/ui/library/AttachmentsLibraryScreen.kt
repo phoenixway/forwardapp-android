@@ -217,6 +217,21 @@ fun AttachmentsLibraryScreen(
                                                         target = NavTarget.ContextDetail(contextId = linkData.target),
                                                         recordInHistory = true,
                                                     )
+                                                LinkType.NOTE_DOCUMENT ->
+                                                    navigationManager.navigateOrFallback(
+                                                        navController = navController,
+                                                        target = NavTarget.NoteDocument(id = linkData.target, startEdit = false),
+                                                    )
+                                                LinkType.CHECKLIST ->
+                                                    navigationManager.navigateOrFallback(
+                                                        navController = navController,
+                                                        target = NavTarget.Checklist(id = linkData.target),
+                                                    )
+                                                LinkType.MUSIC_NOTE ->
+                                                    navigationManager.navigateOrFallback(
+                                                        navController = navController,
+                                                        target = NavTarget.MusicNote(id = linkData.target, startEdit = false),
+                                                    )
                                                 LinkType.URL, null ->
                                                     openExternalLink(context, linkData.target)
                                                 LinkType.OBSIDIAN ->
