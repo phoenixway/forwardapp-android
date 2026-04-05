@@ -156,6 +156,11 @@ class RecentItemsRepository
         }
 
         suspend fun syncProjectRecentItemsWithContexts(allProjects: List<Context>) {
+            if (allProjects.isEmpty()) {
+                Log.d("Recents_Debug", "Skipping project recents sync because contexts list is empty")
+                return
+            }
+
             val contextsById = allProjects.associateBy { it.id }
             val projectRecents = recentItemDao.getAllSync().filter { it.type == RecentItemType.PROJECT }
 
