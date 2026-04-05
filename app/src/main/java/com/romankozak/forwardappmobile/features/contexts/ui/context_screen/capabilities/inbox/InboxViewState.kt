@@ -7,4 +7,7 @@ data class InboxViewState(
     val inboxRecords: List<InboxRecord>,
     val listState: LazyListState,
     val highlightedRecordId: String?,
+    val isSelectionMode: Boolean,
+    val selectedRecordIds: Set<String>,
+    val canPaste: Boolean,
 )

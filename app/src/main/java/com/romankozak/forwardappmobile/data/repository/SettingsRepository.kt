@@ -80,6 +80,8 @@ class SettingsRepository
         private val wifiSyncServerEnabledKey = booleanPreferencesKey("wifi_sync_server_enabled")
         private val desktopSyncAddressKey = stringPreferencesKey("desktop_sync_address")
         private val globalSearchSelectedTypesKey = stringSetPreferencesKey("global_search_selected_types")
+        private val goalBeaconProgressExpandedKey = booleanPreferencesKey("goal_beacon_progress_expanded")
+        private val goalRelativeSizeExpandedKey = booleanPreferencesKey("goal_relative_size_expanded")
 
         val serverIpConfigurationModeFlow: Flow<String> =
             context.dataStore.data.map {
@@ -863,6 +865,36 @@ class SettingsRepository
                         parseSet(preferences[stringPreferencesKey(globalSearchSelectedTypesKey.name)])
                     }
                 }
+
+        val goalBeaconProgressExpandedFlow: Flow<Boolean> =
+            context.dataStore.data.map { preferences ->
+                try {
+                    preferences[goalBeaconProgressExpandedKey] ?: true
+                } catch (e: ClassCastException) {
+                    preferences[stringPreferencesKey(goalBeaconProgressExpandedKey.name)]?.toBoolean() ?: true
+                }
+            }
+
+        suspend fun saveGoalBeaconProgressExpanded(isExpanded: Boolean) {
+            context.dataStore.edit { settings ->
+                settings[goalBeaconProgressExpandedKey] = isExpanded
+            }
+        }
+
+        val goalRelativeSizeExpandedFlow: Flow<Boolean> =
+            context.dataStore.data.map { preferences ->
+                try {
+                    preferences[goalRelativeSizeExpandedKey] ?: true
+                } catch (e: ClassCastException) {
+                    preferences[stringPreferencesKey(goalRelativeSizeExpandedKey.name)]?.toBoolean() ?: true
+                }
+            }
+
+        suspend fun saveGoalRelativeSizeExpanded(isExpanded: Boolean) {
+            context.dataStore.edit { settings ->
+                settings[goalRelativeSizeExpandedKey] = isExpanded
+            }
+        }
 
         suspend fun saveGlobalSearchSelectedTypes(types: Set<GlobalSearchType>) {
             context.dataStore.edit { settings ->

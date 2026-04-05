@@ -7,13 +7,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.Surface
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
@@ -24,14 +29,11 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,33 +46,44 @@ import kotlinx.coroutines.launch
 private const val BALANCE_POSITIVE_THRESHOLD = 0.2
 private const val BALANCE_NEUTRAL_THRESHOLD = -0.2
 private const val DISABLED_CONTENT_ALPHA = 0.5f
+private const val MAX_RELATIVE_SIZE = 5
 
 @Composable
 fun EvaluationTabContent(
     uiState: EvaluationTabUiState,
     onViewModelAction: EvaluationTabActions,
 ) {
-    var isExpanded by remember { mutableStateOf(true) }
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        BeaconProgressSection(
+            uiState = uiState,
+            onViewModelAction = onViewModelAction,
+        )
+        if (uiState.showRelativeSizeSection) {
+            RelativeSizeSection(
+                uiState = uiState,
+                onViewModelAction = onViewModelAction,
+            )
+        }
+    }
+}
 
-    OutlinedCard(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+@Composable
+private fun BeaconProgressSection(
+    uiState: EvaluationTabUiState,
+    onViewModelAction: EvaluationTabActions,
+) {
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column {
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable { isExpanded = !isExpanded }
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text("Оцінка", style = MaterialTheme.typography.titleLarge)
-                Icon(
-                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (isExpanded) "Згорнути" else "Розгорнути",
-                )
-            }
+            SectionHeader(
+                title = "Beacon progress",
+                isExpanded = uiState.isBeaconProgressExpanded,
+                onToggle = { onViewModelAction.onBeaconProgressExpandedChange(!uiState.isBeaconProgressExpanded) },
+            )
 
-            AnimatedVisibility(visible = isExpanded) {
+            AnimatedVisibility(visible = uiState.isBeaconProgressExpanded) {
                 Column {
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                     Column(
@@ -112,6 +125,148 @@ fun EvaluationTabContent(
         }
     }
 }
+
+@Composable
+private fun RelativeSizeSection(
+    uiState: EvaluationTabUiState,
+    onViewModelAction: EvaluationTabActions,
+) {
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Column {
+            SectionHeader(
+                title = "Relative size",
+                isExpanded = uiState.isRelativeSizeExpanded,
+                onToggle = { onViewModelAction.onRelativeSizeExpandedChange(!uiState.isRelativeSizeExpanded) },
+            )
+
+            AnimatedVisibility(visible = uiState.isRelativeSizeExpanded) {
+                Column {
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Text(
+                            text = "Умовні одиниці масштабу. 0 = не задано, 1..5 = від малої до великої цілі.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        RelativeSizePicker(
+                            value = uiState.relativeSize,
+                            onValueChange = onViewModelAction::onRelativeSizeChange,
+                        )
+                        Text(
+                            text = relativeSizeLabel(uiState.relativeSize),
+                            style = MaterialTheme.typography.labelLarge,
+                            color =
+                                if (uiState.relativeSize == 0) {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(
+    title: String,
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onToggle)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(title, style = MaterialTheme.typography.titleLarge)
+        Icon(
+            imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+            contentDescription = if (isExpanded) "Згорнути" else "Розгорнути",
+        )
+    }
+}
+
+@Composable
+private fun RelativeSizePicker(
+    value: Int,
+    onValueChange: (Int) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            for (index in 1..MAX_RELATIVE_SIZE) {
+                IconButton(
+                    onClick = {
+                        onValueChange(if (value == index) 0 else index)
+                    },
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    DiamondGlyph(
+                        filled = index <= value,
+                        tint =
+                            if (index <= value) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.outline
+                            },
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+        }
+
+        Text(
+            text = if (value == 0) "Unset" else "$value/$MAX_RELATIVE_SIZE",
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.width(56.dp),
+            color =
+                if (value == 0) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.primary
+                },
+        )
+    }
+}
+
+@Composable
+private fun DiamondGlyph(
+    filled: Boolean,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.rotate(45f),
+        shape = RoundedCornerShape(3.dp),
+        color = if (filled) tint else Color.Transparent,
+        border = androidx.compose.foundation.BorderStroke(1.4.dp, tint),
+    ) {}
+}
+
+private fun relativeSizeLabel(value: Int): String =
+    when (value) {
+        0 -> "Unset"
+        1 -> "1/5 · Дуже мала"
+        2 -> "2/5 · Мала"
+        3 -> "3/5 · Середня"
+        4 -> "4/5 · Велика"
+        else -> "5/5 · Дуже велика"
+    }
 
 @Composable
 fun EvaluationTabs(

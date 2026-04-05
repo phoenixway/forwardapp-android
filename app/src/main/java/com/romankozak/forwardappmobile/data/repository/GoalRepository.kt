@@ -45,22 +45,33 @@ class GoalRepository
                     createdAt = currentTime,
                     updatedAt = currentTime,
                 )
-            goalDao.insertGoal(newGoal)
+            return addGoalToContext(newGoal, contextId)
+        }
+
+        suspend fun addGoalToContext(
+            goal: Goal,
+            contextId: String,
+        ): String {
+            val goalToInsert =
+                goal.copy(
+                    updatedAt = goal.updatedAt ?: System.currentTimeMillis(),
+                )
+            goalDao.insertGoal(goalToInsert)
 
             // Тепер ContextTextAction буде знайдено
-            syncContextMarker(newGoal.id, contextId, ContextTextAction.ADD)
+            syncContextMarker(goalToInsert.id, contextId, ContextTextAction.ADD)
 
             val newBacklogItem =
                 BacklogItem(
                     id = UUID.randomUUID().toString(),
                     contextId = contextId,
                     itemType = BacklogItemTypeValues.GOAL,
-                    entityId = newGoal.id,
-                    order = -currentTime,
+                    entityId = goalToInsert.id,
+                    order = -(goalToInsert.updatedAt ?: goalToInsert.createdAt),
                 )
             listItemDao.insertItem(newBacklogItem)
 
-            val finalGoalState = goalDao.getGoalById(newGoal.id)!!
+            val finalGoalState = goalDao.getGoalById(goalToInsert.id)!!
             contextMarkerHandler.handleContextsOnCreate(finalGoalState)
             return newBacklogItem.id
         }

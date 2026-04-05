@@ -12,6 +12,10 @@ data class EvaluationTabUiState(
     val rawScore: Float,
     val scoringStatus: String,
     val isScoringEnabled: Boolean,
+    val relativeSize: Int,
+    val isBeaconProgressExpanded: Boolean,
+    val isRelativeSizeExpanded: Boolean,
+    val showRelativeSizeSection: Boolean,
 )
 
 interface EvaluationTabActions {
@@ -32,4 +36,10 @@ interface EvaluationTabActions {
     fun onWeightRiskChange(value: Float)
 
     fun onScoringStatusChange(newStatus: String)
+
+    fun onRelativeSizeChange(value: Int)
+
+    fun onBeaconProgressExpandedChange(isExpanded: Boolean)
+
+    fun onRelativeSizeExpandedChange(isExpanded: Boolean)
 }

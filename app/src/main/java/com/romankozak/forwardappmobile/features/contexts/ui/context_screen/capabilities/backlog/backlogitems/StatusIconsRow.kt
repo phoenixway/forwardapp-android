@@ -36,6 +36,7 @@ private fun InternalStatusIconsRow(
     relatedLinks: List<RelatedLink>?,
     scoringStatus: String,
     displayScore: Int,
+    relativeSize: Int,
     description: String?,
     parsedData: ParsedTextData,
     reminder: Reminder?,
@@ -63,6 +64,8 @@ private fun InternalStatusIconsRow(
             scoringStatus = scoringStatus,
             displayScore = displayScore,
         )
+
+        RelativeSizeBadge(relativeSize = relativeSize)
 
         parsedData.icons
             .filterNot { icon -> icon == emojiToHide }
@@ -149,6 +152,7 @@ fun StatusIconsRow(
         relatedLinks = visibleLinks,
         scoringStatus = goal.scoringStatus,
         displayScore = goal.displayScore,
+        relativeSize = goal.relativeSize,
         description = goal.description,
         parsedData = parsedData,
         reminder = reminder,
@@ -171,6 +175,7 @@ fun StatusIconsRow(
         relatedLinks = project.relatedLinks,
         scoringStatus = project.scoringStatus,
         displayScore = project.displayScore,
+        relativeSize = 0,
         description = project.description,
         parsedData = parsedData,
         reminder = reminder,

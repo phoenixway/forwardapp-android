@@ -1,10 +1,6 @@
-ContextHierarchyScreen.kt
-ContextHierarchyScreenContent.kt
-MainScreenScaffold.kt
-MainScreenTopAppBar.kt
-GoalListBottomNav.kt
-ContextHierarchyView.kt
-HierarchyComponents.kt
-FocusedContextView.kt
-FocusedContextHeader.kt
+app/src/main/java/com/romankozak/forwardappmobile/ui/components/listitem/UnifiedStatusChipSpec.kt
+app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/backlogitems/Badges.kt
+app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/backlogitems/StatusIconsRow.kt
+app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/backlogitems/GoalItem.kt
+app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/BacklogItem.kt
 

@@ -228,6 +228,10 @@ private fun GoalSettingsTabContent(
                         rawScore = uiState.rawScore,
                         scoringStatus = uiState.scoringStatus,
                         isScoringEnabled = uiState.isScoringEnabled,
+                        relativeSize = uiState.relativeSize,
+                        isBeaconProgressExpanded = uiState.isBeaconProgressExpanded,
+                        isRelativeSizeExpanded = uiState.isRelativeSizeExpanded,
+                        showRelativeSizeSection = true,
                     ),
                 onViewModelAction = viewModel,
             )

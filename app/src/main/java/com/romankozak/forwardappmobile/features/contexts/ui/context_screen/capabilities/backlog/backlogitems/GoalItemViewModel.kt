@@ -20,6 +20,7 @@ class GoalItemViewModel(
     init {
         _shouldShowStatusIcons.value = (
             (goal.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
+                (goal.relativeSize > 0) ||
                 (reminder != null) ||
                 (parsedData.icons.isNotEmpty()) ||
                 (!goal.description.isNullOrBlank()) ||

@@ -1,2449 +1,1278 @@
 TABLE OF CONTENTS
 ================================================================================
 
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/ContextHierarchyScreen.kt](##<<FILE_1>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/ContextHierarchyScreenContent.kt](##<<FILE_2>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/components/MainScreenScaffold.kt](##<<FILE_3>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/components/MainScreenTopAppBar.kt](##<<FILE_4>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/components/GoalListBottomNav.kt](##<<FILE_5>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/hierarchy/ContextHierarchyView.kt](##<<FILE_6>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/hierarchy/HierarchyComponents.kt](##<<FILE_7>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/hierarchy/FocusedContextView.kt](##<<FILE_8>>)
-- [/home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/hierarchy/FocusedContextHeader.kt](##<<FILE_9>>)
+- [/home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/listitem/UnifiedStatusChipSpec.kt](##<<FILE_1>>)
+- [/home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/backlogitems/Badges.kt](##<<FILE_2>>)
+- [/home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/backlogitems/StatusIconsRow.kt](##<<FILE_3>>)
+- [/home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/backlogitems/GoalItem.kt](##<<FILE_4>>)
+- [/home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/BacklogItem.kt](##<<FILE_5>>)
 
 ================================================================================
 
 ## <<FILE_1>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/ContextHierarchyScreen.kt (ID: FILE_1)
+BEGIN FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/listitem/UnifiedStatusChipSpec.kt (ID: FILE_1)
 ================================================================================
 
-package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen
+package com.romankozak.forwardappmobile.ui.components.listitem
 
-import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.core.net.toUri
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavController
-import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
-import com.romankozak.forwardappmobile.core.navigation.NavTarget
-import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.ProjectHierarchyScreenScaffold
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
-import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
-import kotlinx.coroutines.flow.collectLatest
-import java.net.URLEncoder
-
-private const val UI_TAG = "ProjectHierarchyScreenUI_DEBUG"
-
-@OptIn(ExperimentalSharedTransitionApi::class)
-@Composable
-fun ProjectHierarchyScreen(
-    navController: NavController,
-    syncDataViewModel: SyncDataViewModel,
-    viewModel: ContextHierarchyScreenViewModel = hiltViewModel(),
-    navigationManager: EnhancedNavigationManager? = null,
-    projectIdToReveal: String? = null,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
-) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val lastOngoingActivity by viewModel.lastOngoingActivity.collectAsStateWithLifecycle()
-    val focusedContextIds by viewModel.focusedContextIds.collectAsStateWithLifecycle()
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val focusManager = LocalFocusManager.current
-
-    LaunchedEffect(Unit) {
-        viewModel.uiEventFlow.collectLatest { event ->
-            when (event) {
-                is ProjectUiEvent.NavigateToSyncScreenWithData -> {
-                    syncDataViewModel.jsonString = event.json
-                    navigationManager.navigateOrFallback(
-                        navController = navController,
-                        target = NavTarget.Sync,
-                    )
-                }
-                is ProjectUiEvent.NavigateToDetails ->
-                    navigationManager.navigateOrFallback(
-                        navController = navController,
-                        target = NavTarget.ContextDetail(contextId = event.projectId),
-                        recordInHistory = true,
-                    )
-                is ProjectUiEvent.ShowToast -> Toast.makeText(navController.context, event.message, Toast.LENGTH_LONG).show()
-                is ProjectUiEvent.NavigateToGlobalSearch -> {
-                    val encoded = URLEncoder.encode(event.query, "UTF-8")
-                    navigationManager.navigateOrFallback(
-                        navController = navController,
-                        target = NavTarget.GlobalSearch(query = encoded),
-                        recordInHistory = true,
-                    )
-                }
-                is ProjectUiEvent.NavigateToSettings ->
-                    navigationManager.navigateOrFallback(
-                        navController = navController,
-                        target = NavTarget.Settings,
-                    )
-                is ProjectUiEvent.NavigateToEditProjectScreen ->
-                    navigationManager.navigateOrFallback(
-                        navController = navController,
-                        target = NavTarget.ProjectSettings(projectId = event.projectId),
-                    )
-                is ProjectUiEvent.Navigate ->
-                    navigationManager.navigateOrFallback(
-                        navController = navController,
-                        target = event.target,
-                    )
-                is ProjectUiEvent.NavigateToDayPlan ->
-                    navigationManager.navigateOrFallback(
-                        navController = navController,
-                        target = NavTarget.DayManagement(date = event.date, startTab = event.startTab),
-                    )
-                is ProjectUiEvent.NavigateToStrategicManagement ->
-                    navigationManager.navigateOrFallback(
-                        navController = navController,
-                        target = NavTarget.StrategicManagement,
-                    )
-                is ProjectUiEvent.FocusSearchField -> {
-                }
-                is ProjectUiEvent.HideKeyboard -> {
-                    focusManager.clearFocus()
-                }
-                is ProjectUiEvent.OpenUri -> {
-                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, event.uri.toUri())
-                    navController.context.startActivity(intent)
-                }
-                is ProjectUiEvent.ScrollToIndex -> { }
-            }
-        }
-    }
-
-    LaunchedEffect(projectIdToReveal) {
-        projectIdToReveal?.let {
-            viewModel.onEvent(
-                ContextHierarchyScreenEvent.RevealContextInHierarchy(projectId = it),
-            )
-        }
-    }
-
-    DisposableEffect(navController, lifecycleOwner, viewModel) {
-        val observer =
-            LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_RESUME) {
-                    android.util.Log.d("ProjectRevealDebug", "ProjectHierarchyScreen ON_RESUME")
-                    navController.currentBackStackEntry
-                        ?.savedStateHandle
-                        ?.remove<String?>("list_chooser_result")
-                        ?.let { result ->
-                            viewModel.onEvent(ContextHierarchyScreenEvent.ListChooserResult(result))
-                        }
-
-                    navController.currentBackStackEntry
-                        ?.savedStateHandle
-                        ?.remove<Boolean>("open_search_dialog")
-                        ?.let { shouldOpen ->
-                            if (shouldOpen == true) {
-                                viewModel.onEvent(ContextHierarchyScreenEvent.ShowSearchDialog)
-                            }
-                        }
-
-                    val projectIdToReveal =
-                        navController.currentBackStackEntry
-                            ?.savedStateHandle
-                            ?.remove<String>("projectIdToReveal")
-                            ?: viewModel.consumePendingProjectToReveal()
-
-                    projectIdToReveal?.let { projectId ->
-                        android.util.Log.d("ProjectRevealDebug", "Retrieved projectIdToReveal: $projectId")
-                        android.util.Log.d("ProjectRevealDebug", "Calling RevealProjectInHierarchy event")
-                        viewModel.onEvent(
-                            ContextHierarchyScreenEvent.RevealContextInHierarchy(
-                                projectId = projectId,
-                            ),
-                        )
-                    }
-                }
-            }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
-
-    viewModel.enhancedNavigationManager?.let { navManager ->
-        ProjectHierarchyScreenScaffold(
-            uiState = uiState,
-            focusedContextIds = focusedContextIds,
-            onEvent = viewModel::onEvent,
-            enhancedNavigationManager = navManager,
-            lastOngoingActivity = lastOngoingActivity,
-            viewModel = viewModel,
-            sharedTransitionScope = sharedTransitionScope,
-            animatedVisibilityScope = animatedVisibilityScope,
-        )
-    } ?: Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
-        CircularProgressIndicator()
-    }
-}
-
-
-================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/ContextHierarchyScreen.kt
-================================================================================
-
-## <<FILE_2>>
-================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/ContextHierarchyScreenContent.kt (ID: FILE_2)
-================================================================================
-
-package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen
-
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.FlowRowScope
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.ExpandingProjectHierarchyBottomNav
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.ModernBottomNavButton
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.SearchResultsView
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.rememberHierarchyFocusMode
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.hierarchy.BreadcrumbNavigation
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.hierarchy.ProjectHierarchyView
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
-@Composable
-fun ProjectHierarchyScreenContent(
-    modifier: Modifier = Modifier,
-    uiState: ProjectHierarchyScreenUiState,
-    onEvent: (ContextHierarchyScreenEvent) -> Unit,
-    listState: LazyListState,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
-) {
-    val currentSubState =
-        remember(uiState.subStateStack) {
-            uiState.currentSubState
-        }
-
-    val isSearchActive =
-        remember(currentSubState) {
-            currentSubState is ProjectHierarchyScreenSubState.LocalSearch
-        }
-
-    val searchQuery =
-        remember(uiState.searchQuery) {
-            uiState.searchQuery.text
-        }
-
-    val isFocusMode =
-        rememberHierarchyFocusMode(
-            breadcrumbs = uiState.currentBreadcrumbs,
-            hasFocusedProject = currentSubState is ProjectHierarchyScreenSubState.ProjectFocused,
-        )
-
-    Column(
-        modifier =
-            modifier
-                .fillMaxSize()
-                .background(
-                    brush =
-                        Brush.verticalGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.surface,
-                                MaterialTheme.colorScheme.surfaceContainerLowest,
-                                MaterialTheme.colorScheme.surface,
-                            ),
-                        ),
-                ),
-    ) {
-        if (isSearchActive) {
-            when {
-                searchQuery.isBlank() -> {
-                    SearchStartState(
-                        history = uiState.searchHistory,
-                        onSuggestionClick = {
-                            onEvent(ContextHierarchyScreenEvent.SearchFromHistory(it))
-                        },
-                    )
-                }
-                !uiState.isReadyForFiltering -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                }
-                else -> {
-                    SearchResultsView(
-                        results = uiState.searchResults,
-                        query = searchQuery,
-                        selectedFilter = uiState.searchResultFilter,
-                        selectedSort = uiState.searchResultSort,
-                        onFilterChange = { onEvent(ContextHierarchyScreenEvent.SearchFilterChanged(it)) },
-                        onSortChange = { onEvent(ContextHierarchyScreenEvent.SearchSortChanged(it)) },
-                        onRevealClick = { onEvent(ContextHierarchyScreenEvent.SearchResultClick(it)) },
-                        onOpenClick = { onEvent(ContextHierarchyScreenEvent.ContextClick(it)) },
-                        onPerformGlobalSearch = { onEvent(ContextHierarchyScreenEvent.GlobalSearchPerform(it)) },
-                    )
-                }
-            }
-        } else {
-            val showBreadcrumbs =
-                remember(uiState.currentBreadcrumbs) {
-                    uiState.currentBreadcrumbs.isNotEmpty()
-                }
-
-            AnimatedVisibility(
-                visible = showBreadcrumbs && !isFocusMode,
-                enter = expandVertically(tween(200)) + fadeIn(tween(200)),
-                exit = shrinkVertically(tween(150)) + fadeOut(tween(150)),
-            ) {
-                BreadcrumbNavigation(
-                    breadcrumbs = uiState.currentBreadcrumbs,
-                    onNavigate = { onEvent(ContextHierarchyScreenEvent.BreadcrumbNavigation(it)) },
-                    onClearNavigation = { onEvent(ContextHierarchyScreenEvent.ClearBreadcrumbNavigation) },
-                    onFocusedListMenuClick = { projectId ->
-                        uiState.projectHierarchy.allProjects.find { it.id == projectId }
-                            ?.let { onEvent(ContextHierarchyScreenEvent.ContextMenuRequest(it)) }
-                    },
-                )
-            }
-
-            val isListEmpty =
-                remember(uiState.projectHierarchy) {
-                    uiState.projectHierarchy.topLevelProjects.isEmpty() &&
-                        uiState.projectHierarchy.childMap.isEmpty()
-                }
-
-            if (!uiState.isReadyForFiltering && isListEmpty) {
-                Box(
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else if (isListEmpty) {
-                val emptyText =
-                    remember(uiState.planningMode, uiState.planningSettings) {
-                        when (uiState.planningMode) {
-                            PlanningMode.Today -> "No contexts with tag '#${uiState.planningSettings.dailyTag}'"
-                            PlanningMode.Medium -> "No contexts with tag '#${uiState.planningSettings.mediumTag}'"
-                            PlanningMode.Long -> "No contexts with tag '#${uiState.planningSettings.longTag}'"
-                            else -> "Create your first context"
-                        }
-                    }
-
-                Box(
-                    modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 20.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Surface(
-                        shape = MaterialTheme.shapes.large,
-                        color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        tonalElevation = 1.dp,
-                    ) {
-                        Text(
-                            text = emptyText,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
-                        )
-                    }
-                }
-            } else {
-                ProjectHierarchyView(
-                    modifier = Modifier.weight(1f),
-                    hierarchy = uiState.projectHierarchy,
-                    flattenedHierarchy = uiState.flattenedHierarchy,
-                    breadcrumbs = uiState.currentBreadcrumbs,
-                    focusedProjectId =
-                        if (isFocusMode) {
-                            when (currentSubState) {
-                                is ProjectHierarchyScreenSubState.ProjectFocused -> currentSubState.projectId
-                                else -> null
-                            }
-                        } else {
-                            null
-                        },
-                    highlightedProjectId = null,
-                    searchQuery = searchQuery,
-                    isSearchActive = isSearchActive,
-                    planningMode = uiState.planningMode,
-                    hierarchySettings = HierarchyDisplaySettings(),
-                    listState = listState,
-                    longDescendantsMap = uiState.longDescendantsMap,
-                    onEvent = onEvent,
-                    sharedTransitionScope = sharedTransitionScope,
-                    animatedVisibilityScope = animatedVisibilityScope,
-                    onProjectClicked = { onEvent(ContextHierarchyScreenEvent.ContextClick(it)) },
-                    onToggleExpanded = { onEvent(ContextHierarchyScreenEvent.ToggleContextExpanded(it)) },
-                    onMenuRequested = { onEvent(ContextHierarchyScreenEvent.ContextMenuRequest(it)) },
-                    onProjectReorder = { from, to, pos ->
-                        onEvent(ContextHierarchyScreenEvent.ContextReorder(from, to, pos))
-                    },
-                    onFocusProject = { onEvent(ContextHierarchyScreenEvent.FocusContext(it)) },
-                    onAddSubproject = { onEvent(ContextHierarchyScreenEvent.AddSubprojectRequest(it)) },
-                    onDeleteProject = { onEvent(ContextHierarchyScreenEvent.DeleteRequest(it)) },
-                    onEditProject = { onEvent(ContextHierarchyScreenEvent.EditRequest(it)) },
-                )
-            }
-        }
-    }
-}
+data class UnifiedStatusChipSpec(
+    val text: String,
+    val icon: ImageVector? = null,
+    val contentColor: Color? = null,
+    val onClick: (() -> Unit)? = null,
+)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun SearchStartState(
-    history: List<String>,
-    onSuggestionClick: (String) -> Unit,
+fun UnifiedStatusRow(
+    modifier: Modifier = Modifier,
+    content: @Composable FlowRowScope.() -> Unit,
 ) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Surface(
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            tonalElevation = 1.dp,
-        ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                androidx.compose.material3.Icon(
-                    imageVector = Icons.Outlined.Search,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = "Start typing to search contexts",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = "You can search by context name, tag, or a part of text.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+    FlowRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        content = content,
+    )
+}
 
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f))
-
-        if (history.isNotEmpty()) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                androidx.compose.material3.Icon(
-                    imageVector = Icons.Outlined.History,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = "Recent searches",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    history.take(8).forEach { query ->
-                        FilterChip(
-                            selected = false,
-                            onClick = { onSuggestionClick(query) },
-                            label = { Text(query) },
-                        )
-                    }
-                }
-            }
+@Composable
+fun UnifiedStatusRow(
+    items: List<UnifiedStatusChipSpec>,
+    modifier: Modifier = Modifier,
+    defaultContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+) {
+    UnifiedStatusRow(modifier = modifier) {
+        items.forEach { item ->
+            UnifiedMetaChip(
+                text = item.text,
+                icon = item.icon,
+                contentColor = item.contentColor ?: defaultContentColor,
+                onClick = item.onClick,
+            )
         }
     }
 }
 
 @Composable
-private fun StableHomeButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
+fun UnifiedMetaChip(
+    text: String,
+    icon: ImageVector? = null,
+    contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    onClick: (() -> Unit)? = null,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-
-    ModernBottomNavButton(
-        text = "Home",
-        icon = Icons.Outlined.Home,
-        onClick = onClick,
-    )
-}
-
-@Composable
-internal fun OptimizedExpandingProjectHierarchyBottomNav(
-    onToggleSearch: (Boolean) -> Unit,
-    onGlobalSearchClick: () -> Unit,
-    onShowCommandDeck: () -> Unit,
-    currentMode: PlanningMode,
-    onPlanningModeChange: (PlanningMode) -> Unit,
-    planningModesEnabled: Boolean,
-    onRecentsClick: () -> Unit,
-    onDayPlanClick: () -> Unit,
-    onHomeClick: () -> Unit,
-    onStrManagementClick: () -> Unit,
-    strategicManagementEnabled: Boolean,
-    isExpanded: Boolean,
-    onExpandedChange: (Boolean) -> Unit,
-    onActivityTrackerClick: () -> Unit,
-    onEvent: (ContextHierarchyScreenEvent) -> Unit,
-) {
-    val stableOnHomeClick = remember { { onHomeClick() } }
-    val stableOnDayPlanClick = remember { { onDayPlanClick() } }
-    val stableOnToggleSearch = remember { onToggleSearch }
-    val stableOnRecentsClick = remember { { onRecentsClick() } }
-    val stableOnActivityTrackerClick = remember { { onActivityTrackerClick() } }
-    val stableOnShowCommandDeck = remember { { onShowCommandDeck() } }
-
-    ExpandingProjectHierarchyBottomNav(
-        onToggleSearch = stableOnToggleSearch,
-        onGlobalSearchClick = onGlobalSearchClick,
-        onShowCommandDeck = stableOnShowCommandDeck,
-        currentMode = currentMode,
-        onPlanningModeChange = onPlanningModeChange,
-        planningModesEnabled = planningModesEnabled,
-        onRecentsClick = stableOnRecentsClick,
-        onDayPlanClick = stableOnDayPlanClick,
-        onHomeClick = stableOnHomeClick,
-        onStrManagementClick = onStrManagementClick,
-        strategicManagementEnabled = strategicManagementEnabled,
-        isExpanded = isExpanded,
-        onExpandedChange = onExpandedChange,
-        onActivityTrackerClick = stableOnActivityTrackerClick,
-        onEvent = onEvent,
-    )
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.68f),
+        border = null,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        onClick = onClick ?: {},
+        enabled = onClick != null,
+    ) {
+        Row(
+            modifier =
+                if (text.isBlank()) {
+                    Modifier
+                        .height(24.dp)
+                        .heightIn(min = 24.dp)
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                } else {
+                    Modifier
+                        .height(24.dp)
+                        .heightIn(min = 24.dp)
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = contentColor,
+                )
+            }
+            if (text.isNotBlank()) {
+                Text(
+                    text = text,
+                    color = contentColor,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
 }
 
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/ContextHierarchyScreenContent.kt
+END FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/listitem/UnifiedStatusChipSpec.kt
+================================================================================
+
+## <<FILE_2>>
+================================================================================
+BEGIN FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/backlogitems/Badges.kt (ID: FILE_2)
+================================================================================
+
+package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ElectricBolt
+import androidx.compose.material.icons.filled.FlashOff
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
+
+@Composable
+fun EnhancedScoreStatusBadge(
+    scoringStatus: String,
+    displayScore: Int,
+) {
+    when (scoringStatus) {
+        ScoringStatusValues.ASSESSED -> {
+            if (displayScore > 0) {
+                val animatedColor by animateColorAsState(
+                    targetValue =
+                        when {
+                            displayScore >= 80 -> Color(0xFF4CAF50)
+                            displayScore >= 60 -> Color(0xFFFF9800)
+                            displayScore >= 40 -> Color(0xFFFFEB3B)
+                            else -> Color(0xFFE91E63)
+                        },
+                    label = "score_color",
+                )
+
+                var isVisible by remember { mutableStateOf(value = false) }
+
+                LaunchedEffect(Unit) {
+                    isVisible = true
+                }
+
+                AnimatedVisibility(
+                    visible = isVisible,
+                    enter =
+                        slideInHorizontally(
+                            initialOffsetX = { fullWidth -> -fullWidth },
+                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                        ) + fadeIn(),
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = animatedColor.copy(alpha = 0.15f),
+                        border = BorderStroke(0.6.dp, animatedColor.copy(alpha = 0.3f)),
+                        modifier =
+                            Modifier.semantics {
+                                contentDescription = "Оцінка: $displayScore з 100"
+                            }.height(24.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ElectricBolt,
+                                    contentDescription = null,
+                                    tint = animatedColor,
+                                    modifier = Modifier.size(12.dp),
+                                )
+                                Text(
+                                    text = "$displayScore/100",
+                                    style =
+                                        MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = 0.1.sp,
+                                        ),
+                                    color = animatedColor,
+                                )
+                            }
+                        }
+                }
+            }
+        }
+        ScoringStatusValues.IMPOSSIBLE_TO_ASSESS -> {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                modifier =
+                    Modifier
+                        .semantics {
+                            contentDescription = "Неможливо оцінити"
+                        }
+                        .height(24.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.FlashOff,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier =
+                        Modifier
+                            .size(16.dp)
+                            .padding(horizontal = 4.dp),
+                )
+            }
+        }
+        ScoringStatusValues.NOT_ASSESSED -> {
+        }
+    }
+}
+
+@Composable
+fun RelativeSizeBadge(relativeSize: Int) {
+    if (relativeSize <= 0) return
+
+    val tint = MaterialTheme.colorScheme.secondary
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = tint.copy(alpha = 0.14f),
+        border = BorderStroke(0.6.dp, tint.copy(alpha = 0.28f)),
+        modifier =
+            Modifier.semantics {
+                contentDescription = "Відносний розмір: $relativeSize з 5"
+            }.height(24.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            DiamondBadgeGlyph(
+                tint = tint,
+                modifier = Modifier.size(8.dp),
+            )
+            Text(
+                text = "$relativeSize/5",
+                style =
+                    MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.1.sp,
+                    ),
+                color = tint,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DiamondBadgeGlyph(
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.rotate(45f),
+        shape = RoundedCornerShape(2.dp),
+        color = tint,
+        border = null,
+    ) {}
+}
+
+
+================================================================================
+END FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/backlogitems/Badges.kt
 ================================================================================
 
 ## <<FILE_3>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/components/MainScreenScaffold.kt (ID: FILE_3)
+BEGIN FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/backlogitems/StatusIconsRow.kt (ID: FILE_3)
 ================================================================================
 
-package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components
+package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems
 
-import android.util.Log
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.core.config.FeatureFlag
-import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.Goal
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
+import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
-import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
-import com.romankozak.forwardappmobile.core.navigation.NavigationHistoryMenu
-import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
-import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
-import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenuItem
-import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.OptimizedExpandingProjectHierarchyBottomNav
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreenContent
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.SearchProjectHierarchyBottomBar
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
-import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
-import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
-import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
-import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.EnhancedRelatedLinkChip
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.NoteIndicatorBadge
+import com.romankozak.forwardappmobile.ui.common.ParsedTextData
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedMetaChip
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusRow
+import kotlinx.coroutines.delay
 
-private const val UI_TAG = "ProjectHierarchyScreenUI_DEBUG"
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ProjectHierarchyScreenScaffold(
-    uiState: ProjectHierarchyScreenUiState,
-    focusedContextIds: Set<String>,
-    onEvent: (ContextHierarchyScreenEvent) -> Unit,
-    enhancedNavigationManager: EnhancedNavigationManager,
-    lastOngoingActivity: ActivityRecord?,
-    viewModel: ContextHierarchyScreenViewModel,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
+private fun InternalStatusIconsRow(
+    relatedLinks: List<RelatedLink>?,
+    scoringStatus: String,
+    displayScore: Int,
+    relativeSize: Int,
+    description: String?,
+    parsedData: ParsedTextData,
+    reminder: Reminder?,
+    emojiToHide: String?,
+    leadingChips: List<UnifiedStatusChipSpec>,
+    onRelatedLinkClick: (RelatedLink) -> Unit,
 ) {
-    val holdMenuController = rememberHoldMenu2()
-    val listState = rememberLazyListState()
-    var showSearchHistorySheet by remember { mutableStateOf(false) }
+    UnifiedStatusRow(modifier = Modifier.fillMaxWidth()) {
+        leadingChips.forEach { chip ->
+            UnifiedMetaChip(
+                text = chip.text,
+                icon = chip.icon,
+                contentColor = chip.contentColor ?: androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                onClick = chip.onClick,
+            )
+        }
 
-    val backHandlerEnabled by remember(uiState.subStateStack, uiState.currentBreadcrumbs, uiState.areAnyProjectsExpanded) {
-        derivedStateOf {
-            val enabled =
-                uiState.subStateStack.size > 1 ||
-                    uiState.currentBreadcrumbs.isNotEmpty() ||
-                    uiState.areAnyProjectsExpanded
-            Log.d(UI_TAG, "BackHandler enabled = $enabled")
-            enabled
+        if (reminder != null) {
+            EnhancedReminderBadge(
+                reminder = reminder,
+            )
+        }
+
+        EnhancedScoreStatusBadge(
+            scoringStatus = scoringStatus,
+            displayScore = displayScore,
+        )
+
+        RelativeSizeBadge(relativeSize = relativeSize)
+
+        parsedData.icons
+            .filterNot { icon -> icon == emojiToHide }
+            .forEachIndexed { index, icon ->
+                key(icon) {
+                    var delayedVisible by remember { mutableStateOf(false) }
+                    LaunchedEffect(Unit) {
+                        delay(index * 50L)
+                        delayedVisible = true
+                    }
+                    AnimatedVisibility(
+                        visible = delayedVisible,
+                        enter = scaleIn(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(),
+                    ) {
+                        AnimatedContextEmoji(
+                            emoji = icon,
+                            modifier = Modifier.align(Alignment.CenterVertically),
+                        )
+                    }
+                }
+            }
+
+        if (!description.isNullOrBlank()) {
+            NoteIndicatorBadge(modifier = Modifier.align(Alignment.CenterVertically))
+        }
+
+        parsedData.contextMarkers.forEachIndexed { index, marker ->
+            key(marker) {
+                var delayedVisible by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    delay((parsedData.icons.size + index) * 50L)
+                    delayedVisible = true
+                }
+                AnimatedVisibility(
+                    visible = delayedVisible,
+                    enter = slideInHorizontally(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) { fullWidth -> fullWidth } + fadeIn(),
+                ) {
+                    UnifiedMetaChip(
+                        text = marker,
+                    )
+                }
+            }
+        }
+
+        relatedLinks?.filter { it.type != null }?.forEachIndexed { index, link ->
+            key(link.target + link.type?.name) {
+                var delayedVisible by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    delay((parsedData.icons.size + parsedData.contextMarkers.size + index) * 50L)
+                    delayedVisible = true
+                }
+                AnimatedVisibility(
+                    visible = delayedVisible,
+                    enter = slideInHorizontally(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) { fullWidth -> fullWidth } + fadeIn(),
+                ) {
+                    EnhancedRelatedLinkChip(
+                        link = link,
+                        onClick = { onRelatedLinkClick(link) },
+                    )
+                }
+            }
         }
     }
+}
 
-    BackHandler(enabled = backHandlerEnabled) {
-        Log.i(UI_TAG, "Custom BackHandler INVOKED")
-        onEvent(ContextHierarchyScreenEvent.BackClick)
-    }
-
-    val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = false) }
-
-    Scaffold(
-        modifier = Modifier.imePadding(),
-        topBar = {
-            val isSearchActive = uiState.subStateStack.any { it is ProjectHierarchyScreenSubState.LocalSearch }
-            val isFocusMode =
-                rememberHierarchyFocusMode(
-                    breadcrumbs = uiState.currentBreadcrumbs,
-                    hasFocusedProject = uiState.currentSubState is ProjectHierarchyScreenSubState.ProjectFocused,
-                )
-            val focusedProjectId =
-                if (isFocusMode) {
-                    (uiState.currentSubState as? ProjectHierarchyScreenSubState.ProjectFocused)?.projectId
-                } else {
-                    null
-                }
-            val focusedProjectTitle =
-                focusedProjectId?.let { id ->
-                    uiState.projectHierarchy.allProjects.find { it.id == id }?.name
-                        ?: uiState.currentBreadcrumbs.lastOrNull()?.name
-                }
-
-            ProjectHierarchyScreenTopAppBar(
-                isSearchActive = isSearchActive,
-                isFocusMode = isFocusMode,
-                focusedProjectTitle = focusedProjectTitle,
-                focusedProjectMenuClick =
-                    focusedProjectId?.let { id ->
-                        {
-                            uiState.projectHierarchy.allProjects.find { it.id == id }?.let {
-                                onEvent(ContextHierarchyScreenEvent.ContextMenuRequest(it))
-                            }
-                        }
-                    },
-                focusedProjectOpenClick =
-                    focusedProjectId?.let { id ->
-                        { onEvent(ContextHierarchyScreenEvent.ContextClick(id)) }
-                    },
-                canGoBack = uiState.canGoBack,
-                canGoForward = uiState.canGoForward,
-                onGoBack = { onEvent(ContextHierarchyScreenEvent.BackClick) },
-                onGoForward = { onEvent(ContextHierarchyScreenEvent.ForwardClick) },
-                onShowHistory = { onEvent(ContextHierarchyScreenEvent.HistoryClick) },
-                onShowReminders = { onEvent(ContextHierarchyScreenEvent.GoToReminders) },
-                syncStatus = uiState.syncStatus,
-                onSyncIndicatorClick = { },
-                featureToggles = uiState.featureToggles,
-            )
-        },
-        bottomBar = {
-            Column {
-                InProgressIndicator(
-                    ongoingActivity = lastOngoingActivity,
-                    onStopClick = { viewModel.stopOngoingActivity() },
-                    onReminderClick = { viewModel.setReminderForOngoingActivity() },
-                    onIndicatorClick = { onEvent(ContextHierarchyScreenEvent.NavigateToActivityTracker) },
-                    indicatorState = indicatorState,
-                )
-                val isSearchActive = uiState.subStateStack.any { it is ProjectHierarchyScreenSubState.LocalSearch }
-
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(
-                                horizontal = if (isSearchActive) 8.dp else 16.dp,
-                                vertical = if (isSearchActive) 8.dp else 12.dp,
-                            )
-                            .clip(RoundedCornerShape(20.dp))
-                            .then(CommandDeckBackgroundModifier())
-                            .padding(
-                                horizontal = if (isSearchActive) 4.dp else 22.dp,
-                                vertical = if (isSearchActive) 4.dp else 12.dp,
-                            ),
-                ) {
-                    if (isSearchActive) {
-                        SearchProjectHierarchyBottomBar(
-                            searchQuery = uiState.searchQuery,
-                            onQueryChange = { onEvent(ContextHierarchyScreenEvent.SearchQueryChanged(it)) },
-                            onCloseSearch = {
-                                onEvent(ContextHierarchyScreenEvent.CloseSearch)
-                            },
-                            onPerformGlobalSearch = { onEvent(ContextHierarchyScreenEvent.GlobalSearchPerform(it)) },
-                            onShowSearchHistory = { showSearchHistorySheet = true },
-                        )
-                    } else {
-                        OptimizedExpandingProjectHierarchyBottomNav(
-                            onToggleSearch = { _ ->
-                                onEvent(ContextHierarchyScreenEvent.SearchQueryChanged(TextFieldValue("")))
-                            },
-                            onGlobalSearchClick = { onEvent(ContextHierarchyScreenEvent.ShowSearchDialog) },
-                            onShowCommandDeck = { onEvent(ContextHierarchyScreenEvent.CommandDeckClick) },
-                            currentMode = uiState.planningMode,
-                            planningModesEnabled = uiState.featureToggles[FeatureFlag.PlanningModes] == true,
-                            onPlanningModeChange = { mode -> onEvent(ContextHierarchyScreenEvent.PlanningModeChange(mode)) },
-                            onRecentsClick = { onEvent(ContextHierarchyScreenEvent.ShowRecentLists) },
-                            onDayPlanClick = { onEvent(ContextHierarchyScreenEvent.DayPlanClick) },
-                            onHomeClick = { onEvent(ContextHierarchyScreenEvent.HomeClick) },
-                            onStrManagementClick = { onEvent(ContextHierarchyScreenEvent.NavigateToStrategicManagement) },
-                            strategicManagementEnabled = uiState.featureToggles[FeatureFlag.StrategicManagement] == true,
-                            isExpanded = uiState.isBottomNavExpanded,
-                            onExpandedChange = { expanded -> onEvent(ContextHierarchyScreenEvent.BottomNavExpandedChange(expanded)) },
-                            onActivityTrackerClick = { onEvent(ContextHierarchyScreenEvent.NavigateToActivityTracker) },
-                            onEvent = onEvent,
-                        )
-                    }
-                }
+@Composable
+fun StatusIconsRow(
+    goal: Goal,
+    currentContextId: String? = null,
+    parsedData: ParsedTextData,
+    reminder: Reminder?,
+    emojiToHide: String?,
+    leadingChips: List<UnifiedStatusChipSpec> = emptyList(),
+    onRelatedLinkClick: (RelatedLink) -> Unit,
+) {
+    val visibleLinks =
+        goal.relatedLinks
+            ?.filterNot { link ->
+                link.type == LinkType.CONTEXT &&
+                    currentContextId != null &&
+                    link.target == currentContextId
             }
-        },
-        floatingActionButton = {
-            val isSearchActiveFab = uiState.subStateStack.any { it is ProjectHierarchyScreenSubState.LocalSearch }
-            var showAddMenu by remember { mutableStateOf(false) }
-
-            AnimatedVisibility(visible = !isSearchActiveFab) {
-                val scriptsEnabled = uiState.featureToggles[FeatureFlag.ScriptsLibrary] == true
-                val menuItems =
-                    buildList {
-                        add(
-                            HoldMenuItem(
-                                label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_project),
-                                icon = Icons.Default.FolderOpen,
-                            ),
-                        )
-                        add(
-                            HoldMenuItem(
-                                label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_note),
-                                icon = Icons.Default.Description,
-                            ),
-                        )
-                        add(
-                            HoldMenuItem(
-                                label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_checklist),
-                                icon = Icons.AutoMirrored.Filled.FormatListBulleted,
-                            ),
-                        )
-                        if (scriptsEnabled) {
-                            add(
-                                HoldMenuItem(
-                                    label = "Скрипт",
-                                    icon = Icons.Default.Code,
-                                ),
-                            )
-                        }
-                    }
-                HoldMenu2Button(
-                    items = menuItems,
-                    controller = holdMenuController,
-                    onSelect = { index ->
-                        when (index) {
-                            0 -> onEvent(ContextHierarchyScreenEvent.AddNewContextRequest)
-                            1 -> onEvent(ContextHierarchyScreenEvent.AddNoteDocumentRequest)
-                            2 -> onEvent(ContextHierarchyScreenEvent.AddChecklistRequest)
-                            3 -> onEvent(ContextHierarchyScreenEvent.AddScriptRequest)
-                        }
-                    },
-                    onTap = { showAddMenu = !showAddMenu },
-                    menuAlignment = com.romankozak.forwardappmobile.features.common.components.holdmenu2.MenuAlignment.END,
-                    iconPosition = com.romankozak.forwardappmobile.features.common.components.holdmenu2.IconPosition.END,
-                ) {
-                    Box {
-                        FloatingActionButton(onClick = { showAddMenu = !showAddMenu }) {
-                            Icon(Icons.Default.Add, contentDescription = "Додати")
-                        }
-                        DropdownMenu(
-                            expanded = showAddMenu,
-                            onDismissRequest = { showAddMenu = false },
-                        ) {
-                            DropdownMenuItem(
-                                leadingIcon = { Icon(Icons.Default.FolderOpen, contentDescription = null) },
-                                text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_project)) },
-                                onClick = {
-                                    showAddMenu = false
-                                    onEvent(ContextHierarchyScreenEvent.AddNewContextRequest)
-                                },
-                            )
-                            DropdownMenuItem(
-                                leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
-                                text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_note)) },
-                                onClick = {
-                                    showAddMenu = false
-                                    onEvent(ContextHierarchyScreenEvent.AddNoteDocumentRequest)
-                                },
-                            )
-                            DropdownMenuItem(
-                                leadingIcon = { Icon(Icons.AutoMirrored.Filled.FormatListBulleted, contentDescription = null) },
-                                text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_checklist)) },
-                                onClick = {
-                                    showAddMenu = false
-                                    onEvent(ContextHierarchyScreenEvent.AddChecklistRequest)
-                                },
-                            )
-                            if (scriptsEnabled) {
-                                DropdownMenuItem(
-                                    leadingIcon = { Icon(Icons.Default.Code, contentDescription = null) },
-                                    text = { Text(text = "Скрипт") },
-                                    onClick = {
-                                        showAddMenu = false
-                                        onEvent(ContextHierarchyScreenEvent.AddScriptRequest)
-                                    },
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        },
-    ) { paddingValues ->
-        ProjectHierarchyScreenContent(
-            modifier = Modifier.padding(paddingValues),
-            uiState = uiState,
-            onEvent = onEvent,
-            listState = listState,
-            sharedTransitionScope = sharedTransitionScope,
-            animatedVisibilityScope = animatedVisibilityScope,
-        )
-    }
-
-    if (uiState.showNavigationMenu) {
-        NavigationHistoryMenu(
-            navManager = enhancedNavigationManager,
-            onDismiss = { onEvent(ContextHierarchyScreenEvent.HideHistory) },
-        )
-    }
-
-    SearchHistoryBottomSheet(
-        showSheet = showSearchHistorySheet,
-        onDismiss = { showSearchHistorySheet = false },
-        searchHistory = uiState.searchHistory,
-        onHistoryClick = {
-            onEvent(ContextHierarchyScreenEvent.SearchFromHistory(it))
-            showSearchHistorySheet = false
-        },
-        onRemoveHistoryEntry = { onEvent(ContextHierarchyScreenEvent.RemoveSearchHistoryEntry(it)) },
-        onClearAllHistory = { onEvent(ContextHierarchyScreenEvent.ClearSearchHistory) },
+    InternalStatusIconsRow(
+        relatedLinks = visibleLinks,
+        scoringStatus = goal.scoringStatus,
+        displayScore = goal.displayScore,
+        relativeSize = goal.relativeSize,
+        description = goal.description,
+        parsedData = parsedData,
+        reminder = reminder,
+        emojiToHide = emojiToHide,
+        leadingChips = leadingChips,
+        onRelatedLinkClick = onRelatedLinkClick,
     )
+}
 
-    NewRecentListsSheet(
-        showSheet = uiState.showRecentListsSheet,
-        recentItems = uiState.recentItems,
-        onDismiss = { onEvent(ContextHierarchyScreenEvent.DismissRecentLists) },
-        onItemClick = { onEvent(ContextHierarchyScreenEvent.RecentItemSelected(it)) },
-        onPinClick = { onEvent(ContextHierarchyScreenEvent.RecentItemPinClick(it)) },
+@Composable
+fun StatusIconsRow(
+    project: Context,
+    parsedData: ParsedTextData,
+    reminder: Reminder?,
+    emojiToHide: String?,
+    leadingChips: List<UnifiedStatusChipSpec> = emptyList(),
+    onRelatedLinkClick: (RelatedLink) -> Unit,
+) {
+    InternalStatusIconsRow(
+        relatedLinks = project.relatedLinks,
+        scoringStatus = project.scoringStatus,
+        displayScore = project.displayScore,
+        relativeSize = 0,
+        description = project.description,
+        parsedData = parsedData,
+        reminder = reminder,
+        emojiToHide = emojiToHide,
+        leadingChips = leadingChips,
+        onRelatedLinkClick = onRelatedLinkClick,
     )
-
-    HandleProjectHierarchyDialogs(
-        uiState = uiState,
-        focusedContextIds = focusedContextIds,
-        onEvent = onEvent,
-    )
-
-    uiState.recordForReminderDialog?.let { record ->
-        ReminderPropertiesDialog(
-            onDismiss = { viewModel.onReminderDialogDismiss() },
-            onSetReminder = { timestamp -> viewModel.onSetReminder(timestamp) },
-            onRemoveReminder =
-                if (record.reminderTime != null) {
-                    { _: String -> viewModel.onClearReminder() }
-                } else {
-                    null
-                },
-            currentReminders =
-                listOfNotNull(record.reminderTime).map {
-                    Reminder(
-                        entityId = record.id,
-                        entityType = "TASK",
-                        reminderTime = it,
-                        status = "SCHEDULED",
-                        creationTime = System.currentTimeMillis(),
-                    )
-                },
-        )
-    }
-
-    HoldMenu2Overlay(controller = holdMenuController)
 }
 
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/components/MainScreenScaffold.kt
+END FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/backlogitems/StatusIconsRow.kt
 ================================================================================
 
 ## <<FILE_4>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/components/MainScreenTopAppBar.kt (ID: FILE_4)
+BEGIN FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/backlogitems/GoalItem.kt (ID: FILE_4)
 ================================================================================
 
-package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components
+package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.ArrowForward
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.NorthEast
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.R
-import com.romankozak.forwardappmobile.core.config.FeatureFlag
-import com.romankozak.forwardappmobile.features.sync.WifiSyncStatus
-import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.romankozak.forwardappmobile.core.data.models.entities.Goal
+import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownText
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownTextActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownTextState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.GoalItemViewModelFactory
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.GoalItemViewModel
+import com.romankozak.forwardappmobile.ui.common.rememberParsedText
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurfaceLayout
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTokens
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
-fun ProjectHierarchyScreenTopAppBar(
-    isSearchActive: Boolean,
-    isFocusMode: Boolean,
-    focusedProjectTitle: String?,
-    focusedProjectMenuClick: (() -> Unit)?,
-    focusedProjectOpenClick: (() -> Unit)?,
-    canGoBack: Boolean,
-    canGoForward: Boolean,
-    onGoBack: () -> Unit,
-    onGoForward: () -> Unit,
-    onShowHistory: () -> Unit,
-    onShowReminders: () -> Unit,
-    syncStatus: WifiSyncStatus,
-    onSyncIndicatorClick: () -> Unit,
-    featureToggles: Map<FeatureFlag, Boolean>,
+fun GoalItem(
+    goal: Goal,
+    obsidianVaultName: String,
+    onCheckedChange: (Boolean) -> Unit,
+    onItemClick: () -> Unit,
+    onLongClick: () -> Unit,
+    onTagClick: (String) -> Unit,
+    onRelatedLinkClick: (RelatedLink) -> Unit,
+    modifier: Modifier = Modifier,
+    showCheckbox: Boolean = false,
+    emojiToHide: String? = null,
+    contextMarkerToEmojiMap: Map<String, String>,
+    isSelected: Boolean,
+    reminders: List<Reminder> = emptyList(),
+    endAction: @Composable () -> Unit = {},
 ) {
-    var swipeState by remember { mutableStateOf(0f) }
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Spacer(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(WindowInsets.statusBars.asPaddingValues().calculateTopPadding()),
-        )
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp, start = 16.dp, end = 16.dp, bottom = 4.dp),
-        ) {
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp))
-                        .then(CommandDeckBackgroundModifier())
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                        .pointerInput(Unit) {
-                            detectHorizontalDragGestures(
-                                onHorizontalDrag = { change, dragAmount ->
-                                    change.consume()
-                                    swipeState += dragAmount
-                                },
-                                onDragEnd = {
-                                    if (swipeState > 50) {
-                                        onGoBack()
-                                    } else if (swipeState < -50) {
-                                        onGoForward()
-                                    }
-                                    swipeState = 0f
-                                },
-                            )
-                        },
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (isFocusMode && focusedProjectTitle != null) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f, fill = false),
-                    ) {
-                        Text(
-                            text = focusedProjectTitle,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier =
-                                Modifier
-                                    .weight(1f, fill = false)
-                                    .let { base ->
-                                        if (focusedProjectOpenClick != null) {
-                                            base.clickable(onClick = focusedProjectOpenClick)
-                                        } else {
-                                            base
-                                        }
-                                    },
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        if (focusedProjectOpenClick != null) {
-                            IconButton(
-                                onClick = focusedProjectOpenClick,
-                                modifier = Modifier.size(36.dp).padding(start = 4.dp),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.NorthEast,
-                                    contentDescription = "Open project",
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                )
-                            }
-                        }
-                    }
-                } else {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(
-                            text = "Contexts",
-                            style =
-                                MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                ),
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                }
+    val reminder = reminders.firstOrNull()
+    val parsedData = rememberParsedText(goal.text, contextMarkerToEmojiMap)
+    val viewModel: GoalItemViewModel =
+        viewModel(key = goal.hashCode().toString(), factory = GoalItemViewModelFactory(goal, parsedData, reminder))
+    val shouldShowStatusIcons by viewModel.shouldShowStatusIcons.collectAsState()
 
-                if (!isSearchActive) {
-                    if (isFocusMode && focusedProjectMenuClick != null) {
-                        IconButton(onClick = focusedProjectMenuClick) {
-                            Icon(Icons.Default.MoreVert, stringResource(id = R.string.more_options))
-                        }
-                    } else {
-                        if (featureToggles[FeatureFlag.WifiSync] == true) {
-                            SyncStatusIndicator(
-                                status = syncStatus,
-                                onClick = onSyncIndicatorClick,
+    UnifiedListItemSurface(
+        isSelected = isSelected,
+        layout =
+            UnifiedListItemSurfaceLayout(
+                modifier =
+                    modifier
+                        .fillMaxWidth()
+                        .padding(
+                            vertical = UnifiedListItemTokens.OuterVerticalSpacing,
+                            horizontal = UnifiedListItemTokens.OuterHorizontalSpacing,
+                        ),
+                contentPadding = PaddingValues(0.dp),
+            ),
+    ) {
+        Box(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (showCheckbox) {
+                    Checkbox(
+                        checked = goal.completed,
+                        onCheckedChange = onCheckedChange,
+                        modifier = Modifier.size(24.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Icon(
+                    imageVector = Icons.Default.Flag,
+                    contentDescription = "Goal",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp),
+                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Column(
+                    modifier =
+                        Modifier
+                            .padding(end = 48.dp) // Reserve space for the handle
+                            .pointerInput(onItemClick, onLongClick) {
+                                detectTapGestures(
+                                    onLongPress = { onLongClick() },
+                                    onTap = { onItemClick() },
+                                )
+                            },
+                ) {
+                    MarkdownText(
+                        state =
+                            MarkdownTextState(
+                                text = parsedData.mainText,
+                                style =
+                                    MaterialTheme.typography.bodySmall.copy(
+                                        lineHeight = 16.sp,
+                                        letterSpacing = 0.1.sp,
+                                        fontSize = 12.sp,
+                                        fontWeight = if (goal.completed) FontWeight.Normal else FontWeight.Medium,
+                                    ),
+                                isCompleted = goal.completed,
+                                obsidianVaultName = obsidianVaultName,
+                                maxLines = 4,
+                            ),
+                        actions =
+                            MarkdownTextActions(
+                                onTagClick = onTagClick,
+                                onTextClick = onItemClick,
+                                onLongClick = onLongClick,
+                            ),
+                    )
+
+                    AnimatedVisibility(
+                        visible = shouldShowStatusIcons,
+                        enter =
+                            slideInVertically(
+                                initialOffsetY = { height -> -height },
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                            ) + fadeIn(),
+                    ) {
+                        Column {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            StatusIconsRow(
+                                goal = goal,
+                                parsedData = parsedData,
+                                reminder = reminder,
+                                emojiToHide = emojiToHide,
+                                onRelatedLinkClick = onRelatedLinkClick,
                             )
-                        }
-                        AnimatedVisibility(visible = false) {
-                            IconButton(onClick = onGoBack) {
-                                Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(id = R.string.back))
-                            }
-                        }
-                        AnimatedVisibility(visible = false) {
-                            IconButton(onClick = onGoForward) {
-                                Icon(Icons.AutoMirrored.Outlined.ArrowForward, stringResource(id = R.string.forward))
-                            }
                         }
                     }
                 }
+            }
+            Box(modifier = Modifier.align(Alignment.CenterEnd)) {
+                endAction()
             }
         }
     }
 }
 
-@Composable
-private fun SyncStatusIndicator(
-    status: WifiSyncStatus,
-    onClick: () -> Unit,
-) {
-    val baseColor =
-        when (status) {
-            WifiSyncStatus.Syncing -> MaterialTheme.colorScheme.primary
-            is WifiSyncStatus.Error -> MaterialTheme.colorScheme.error
-            WifiSyncStatus.Offline -> MaterialTheme.colorScheme.outline
-            is WifiSyncStatus.ServerRunning -> MaterialTheme.colorScheme.tertiary
-            WifiSyncStatus.Idle -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-            WifiSyncStatus.Disabled -> MaterialTheme.colorScheme.onSurfaceVariant
-        }
-    val infiniteTransition = rememberInfiniteTransition(label = "sync_indicator_transition")
-    val pulse =
-        if (status is WifiSyncStatus.Syncing) {
-            infiniteTransition.animateFloat(
-                initialValue = 0.85f,
-                targetValue = 1.15f,
-                animationSpec =
-                    infiniteRepeatable(
-                        animation = tween(durationMillis = 650),
-                        repeatMode = RepeatMode.Reverse,
-                    ),
-                label = "sync_indicator_pulse",
-            ).value
-        } else {
-            1f
-        }
-
-    Box(
-        modifier =
-            Modifier
-                .padding(end = 8.dp)
-                .size(18.dp)
-                .graphicsLayer(
-                    scaleX = pulse,
-                    scaleY = pulse,
-                )
-                .clip(CircleShape)
-                .background(baseColor)
-                .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) { }
-}
-
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/components/MainScreenTopAppBar.kt
+END FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/backlogitems/GoalItem.kt
 ================================================================================
 
 ## <<FILE_5>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/components/GoalListBottomNav.kt (ID: FILE_5)
+BEGIN FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/BacklogItem.kt (ID: FILE_5)
 ================================================================================
 
-package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components
+package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog
 
+import android.util.Log
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.List
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.UnfoldLess
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material.icons.outlined.TrackChanges
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
-
-@Composable
-private fun PlanningModeSelector(
-    currentMode: PlanningMode,
-    onPlanningModeChange: (PlanningMode) -> Unit,
-) {
-    var isMenuExpanded by remember { mutableStateOf(false) }
-
-    val planningModes =
-        remember {
-            listOf(
-                "All" to (Icons.AutoMirrored.Outlined.List to PlanningMode.All),
-                "Today" to (Icons.Outlined.Today to PlanningMode.Today),
-                "Medium" to (Icons.Outlined.QueryStats to PlanningMode.Medium),
-                "Long" to (Icons.Outlined.TrackChanges to PlanningMode.Long),
-            )
-        }
-
-    val (currentText, currentData) = planningModes.first { it.second.second == currentMode }
-    val (currentIcon, _) = currentData
-
-    Box {
-        val backgroundColor = if (isMenuExpanded) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f) else Color.Transparent
-        val contentColor =
-            if (isMenuExpanded) {
-                MaterialTheme.colorScheme.onPrimaryContainer
-            } else {
-                MaterialTheme.colorScheme.onSurface.copy(
-                    alpha = 0.8f,
-                )
-            }
-
-        Column(
-            modifier =
-                Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(backgroundColor)
-                    .clickable { isMenuExpanded = true }
-                    .padding(horizontal = 6.dp, vertical = 4.dp)
-                    .widthIn(min = 50.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                Icon(
-                    imageVector = currentIcon,
-                    contentDescription = currentText,
-                    tint = contentColor,
-                    modifier = Modifier.size(18.dp),
-                )
-                Icon(
-                    imageVector = Icons.Default.ArrowDropDown,
-                    contentDescription = "Expand",
-                    tint = contentColor.copy(alpha = 0.7f),
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = currentText,
-                fontSize = 9.sp,
-                fontWeight = if (isMenuExpanded) FontWeight.SemiBold else FontWeight.Normal,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = contentColor,
-            )
-        }
-
-        DropdownMenu(
-            expanded = isMenuExpanded,
-            onDismissRequest = { isMenuExpanded = false },
-        ) {
-            Column {
-                Text(
-                    text = "Режим планування",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                )
-                HorizontalDivider()
-            }
-            planningModes.forEach { (text, data) ->
-                val (icon, mode) = data
-                DropdownMenuItem(
-                    text = { Text(text) },
-                    leadingIcon = { Icon(icon, contentDescription = text) },
-                    onClick = {
-                        onPlanningModeChange(mode)
-                        isMenuExpanded = false
-                    },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-internal fun ExpandingProjectHierarchyBottomNav(
-    onToggleSearch: (Boolean) -> Unit,
-    onGlobalSearchClick: () -> Unit,
-    onShowCommandDeck: () -> Unit,
-    currentMode: PlanningMode,
-    onPlanningModeChange: (PlanningMode) -> Unit,
-    planningModesEnabled: Boolean,
-    onRecentsClick: () -> Unit,
-    onDayPlanClick: () -> Unit,
-    onHomeClick: () -> Unit,
-    onStrManagementClick: () -> Unit,
-    strategicManagementEnabled: Boolean,
-    isExpanded: Boolean,
-    onExpandedChange: (Boolean) -> Unit,
-    onActivityTrackerClick: () -> Unit,
-    onEvent: (ContextHierarchyScreenEvent) -> Unit,
-) {
-    Surface(
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        modifier = Modifier.fillMaxWidth(),
-        color = Color.Transparent,
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceAround,
-            ) {
-                ModernBottomNavButton(text = "Search", icon = Icons.Outlined.Search, isSelected = false, onClick = { onToggleSearch(true) })
-                ModernBottomNavButton(text = "Згорнути", icon = Icons.Filled.UnfoldLess, onClick = onHomeClick)
-                CommandDeckNavButton(onClick = onShowCommandDeck)
-                ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)
-            }
-        }
-    }
-}
-
-@Composable
-fun ModernBottomNavButton(
-    text: String,
-    icon: ImageVector,
-    isSelected: Boolean = false,
-    onClick: () -> Unit,
-) {
-    val primary = MaterialTheme.colorScheme.primary
-    val interactionSource = remember { MutableInteractionSource() }
-    val fillAlpha = if (isSelected) 0.10f else 0.10f
-    val borderAlpha = if (isSelected) 0.22f else 0.22f
-
-    Column(
-        modifier =
-            Modifier
-                .clip(RoundedCornerShape(14.dp))
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onClick,
-                )
-                .padding(6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(primary.copy(alpha = fillAlpha))
-                    .border(
-                        width = 1.dp,
-                        color = primary.copy(alpha = borderAlpha),
-                        shape = CircleShape,
-                    ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = text,
-                tint = primary.copy(alpha = 0.9f),
-                modifier = Modifier.size(24.dp),
-            )
-        }
-    }
-}
-
-@Composable
-fun CommandDeckNavButton(onClick: () -> Unit) {
-    val primary = MaterialTheme.colorScheme.primary
-    val interactionSource = remember { MutableInteractionSource() }
-
-    Column(
-        modifier =
-            Modifier
-                .clip(RoundedCornerShape(14.dp))
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onClick,
-                )
-                .padding(6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(primary.copy(alpha = 0.10f))
-                    .border(
-                        width = 1.dp,
-                        color = primary.copy(alpha = 0.22f),
-                        shape = CircleShape,
-                    ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = "⌬",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = primary.copy(alpha = 0.9f),
-            )
-        }
-    }
-}
-
-@Composable
-private fun SmallBottomNavButton(
-    text: String,
-    icon: ImageVector,
-    isSelected: Boolean = false,
-    onClick: () -> Unit,
-) {
-    val backgroundColor =
-        if (isSelected) {
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f)
-        } else {
-            Color.Transparent
-        }
-
-    val contentColor =
-        if (isSelected) {
-            MaterialTheme.colorScheme.onPrimaryContainer
-        } else {
-            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-        }
-
-    Column(
-        modifier =
-            Modifier
-                .clip(RoundedCornerShape(10.dp))
-                .background(backgroundColor)
-                .clickable(onClick = onClick)
-                .padding(horizontal = 6.dp, vertical = 4.dp)
-                .widthIn(min = 50.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = text,
-            tint = contentColor,
-            modifier = Modifier.size(18.dp),
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            text = text,
-            fontSize = 9.sp,
-            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            color = contentColor,
-        )
-    }
-}
-
-
-================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/components/GoalListBottomNav.kt
-================================================================================
-
-## <<FILE_6>>
-================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/hierarchy/ContextHierarchyView.kt (ID: FILE_6)
-================================================================================
-
-package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.hierarchy
-
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.mohamedrejeb.compose.dnd.DragAndDropContainer
-import com.mohamedrejeb.compose.dnd.rememberDragAndDropState
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyItem
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
-
-@OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
-@Composable
-fun ProjectHierarchyView(
-    modifier: Modifier = Modifier,
-    hierarchy: ContextHierarchyData,
-    flattenedHierarchy: List<FlatHierarchyItem>,
-    breadcrumbs: List<BreadcrumbItem>,
-    focusedProjectId: String?,
-    highlightedProjectId: String?,
-    searchQuery: String,
-    isSearchActive: Boolean,
-    planningMode: PlanningMode,
-    hierarchySettings: HierarchyDisplaySettings,
-    listState: LazyListState,
-    longDescendantsMap: Map<String, Boolean>,
-    onEvent: (ContextHierarchyScreenEvent) -> Unit,
-    onProjectClicked: (String) -> Unit,
-    onToggleExpanded: (Context) -> Unit,
-    onMenuRequested: (Context) -> Unit,
-    onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
-    onFocusProject: (Context) -> Unit,
-    onAddSubproject: (Context) -> Unit,
-    onDeleteProject: (Context) -> Unit,
-    onEditProject: (Context) -> Unit,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
-) {
-    val dragAndDropState = rememberDragAndDropState<Context>()
-
-    DragAndDropContainer(
-        state = dragAndDropState,
-        enabled = !isSearchActive,
-        modifier = modifier,
-    ) {
-        if (focusedProjectId != null) {
-            FocusedProjectView(
-                focusedProjectId = focusedProjectId,
-                hierarchy = hierarchy,
-                breadcrumbs = breadcrumbs,
-                dragAndDropState = dragAndDropState,
-                isSearchActive = isSearchActive,
-                planningMode = planningMode,
-                highlightedProjectId = highlightedProjectId,
-                settings = hierarchySettings,
-                searchQuery = searchQuery,
-                longDescendantsMap = longDescendantsMap,
-                onEvent = onEvent,
-                onProjectClick = onProjectClicked,
-                onToggleExpanded = onToggleExpanded,
-                onMenuRequested = onMenuRequested,
-                onProjectReorder = onProjectReorder,
-                onFocusProject = onFocusProject,
-                onAddSubproject = onAddSubproject,
-                onDeleteProject = onDeleteProject,
-                onEditProject = onEditProject,
-                sharedTransitionScope = sharedTransitionScope,
-                animatedVisibilityScope = animatedVisibilityScope,
-            )
-        } else {
-            val visibleItems =
-                remember(flattenedHierarchy, longDescendantsMap, hierarchy.childMap) {
-                    buildVisibleHierarchy(
-                        flattenedHierarchy,
-                        hierarchy.childMap,
-                        longDescendantsMap,
-                    )
-                }
-
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                items(visibleItems, key = { it.project.id }) { item ->
-                    HierarchyListItem(
-                        item = item,
-                        childMap = hierarchy.childMap,
-                        dragAndDropState = dragAndDropState,
-                        isSearchActive = isSearchActive,
-                        planningMode = planningMode,
-                        highlightedProjectId = highlightedProjectId,
-                        settings = hierarchySettings,
-                        searchQuery = searchQuery,
-                        focusedProjectId = focusedProjectId,
-                        longDescendantsMap = longDescendantsMap,
-                        onProjectClick = onProjectClicked,
-                        onToggleExpanded = onToggleExpanded,
-                        onMenuRequested = onMenuRequested,
-                        onProjectReorder = onProjectReorder,
-                        onFocusProject = onFocusProject,
-                        onAddSubproject = onAddSubproject,
-                        onDeleteProject = onDeleteProject,
-                        onEditProject = onEditProject,
-                        sharedTransitionScope = sharedTransitionScope,
-                        animatedVisibilityScope = animatedVisibilityScope,
-                    )
-                }
-            }
-        }
-    }
-}
-
-
-================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/hierarchy/ContextHierarchyView.kt
-================================================================================
-
-## <<FILE_7>>
-================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/hierarchy/HierarchyComponents.kt (ID: FILE_7)
-================================================================================
-
-package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.hierarchy
-
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.FilterCenterFocus
-import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.*
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.mohamedrejeb.compose.dnd.DragAndDropState
-import com.mohamedrejeb.compose.dnd.drag.DraggableItem
-import com.mohamedrejeb.compose.dnd.drop.dropTarget
-import com.romankozak.forwardappmobile.core.context.ContextId
-import com.romankozak.forwardappmobile.core.context.SystemContexts
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyItem
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.shouldShowHierarchyFocusButton
-import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
+import com.romankozak.forwardappmobile.core.data.models.entities.Goal
+import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
+import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownText
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownTextActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownTextState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.StatusIconsRow
+import com.romankozak.forwardappmobile.ui.common.rememberParsedText
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurfaceLayout
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTokens
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
+import kotlinx.coroutines.delay
+import sh.calvin.reorderable.ReorderableCollectionItemScope
 
-// Remove SharedTransition imports for now - they seem to be causing issues
-// import androidx.compose.animation.ExperimentalSharedTransitionApi
-// import androidx.compose.animation.SharedTransitionScope
-// import androidx.compose.animation.rememberSharedContentState
-// import androidx.compose.runtime.staticCompositionLocalOf
-// import androidx.compose.animation.LocalSharedTransitionScope
-// import androidx.compose.animation.LocalAnimatedVisibilityScope
-
-fun fuzzyMatchAndGetIndices(
-    query: String,
-    text: String,
-): List<Int>? {
-    if (query.isBlank()) return emptyList()
-    if (text.isBlank()) return null
-    val lowerQuery = query.lowercase()
-    val lowerText = text.lowercase()
-    val matchedIndices = mutableListOf<Int>()
-    var queryIndex = 0
-    var textIndex = 0
-    while (queryIndex < lowerQuery.length && textIndex < lowerText.length) {
-        if (lowerQuery[queryIndex] == lowerText[textIndex]) {
-            matchedIndices.add(textIndex)
-            queryIndex++
-        }
-        textIndex++
-    }
-    return if (queryIndex == lowerQuery.length) matchedIndices else null
-}
+private const val BACKLOG_SWIPE_DEBUG_TAG = "BACKLOG_SWIPE_DEBUG"
 
 @Composable
-fun highlightFuzzy(
-    text: String,
-    query: String,
-): AnnotatedString {
-    if (query.isBlank()) return AnnotatedString(text)
-    val matchedIndices = remember(query, text) { fuzzyMatchAndGetIndices(query, text) }
-    if (matchedIndices == null) return AnnotatedString(text)
-
-    return buildAnnotatedString {
-        val indicesSet = matchedIndices.toSet()
-        text.forEachIndexed { index, char ->
-            if (index in indicesSet) {
-                withStyle(
-                    style =
-                        SpanStyle(
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            background = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                        ),
-                ) { append(char) }
-            } else {
-                append(char)
-            }
-        }
-    }
-}
-
-@Composable
-fun highlightSubstring(
-    text: String,
-    query: String,
-): AnnotatedString {
-    if (query.isBlank()) return AnnotatedString(text)
-    val startIdx = text.indexOf(query, ignoreCase = true)
-    if (startIdx == -1) return AnnotatedString(text)
-
-    return buildAnnotatedString {
-        append(text.substring(0, startIdx))
-        withStyle(
-            style =
-                SpanStyle(
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    background = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                ),
-        ) {
-            append(text.substring(startIdx, startIdx + query.length))
-        }
-        append(text.substring(startIdx + query.length))
-    }
-}
-
-@Composable
-fun ProjectRow(
-    project: Context,
-    level: Int,
-    hasChildren: Boolean,
-    onProjectClick: (String) -> Unit,
-    onToggleExpanded: (project: Context) -> Unit,
-    onMenuRequested: (project: Context) -> Unit,
-    isCurrentlyDragging: Boolean,
-    isHovered: Boolean,
-    isDraggingDown: Boolean,
-    isHighlighted: Boolean,
-    showFocusButton: Boolean,
-    onFocusRequested: (project: Context) -> Unit,
+fun BacklogItem(
+    item: BacklogItemContent,
+    reorderableScope: ReorderableCollectionItemScope,
     modifier: Modifier = Modifier,
-    displayName: AnnotatedString? = null,
-    isFocused: Boolean = false,
+    onItemClick: () -> Unit,
+    onLongClick: () -> Unit,
+    onMoreClick: () -> Unit,
+    onCheckedChange: (Boolean) -> Unit,
+    onRelatedLinkClick: (RelatedLink) -> Unit,
+    showCheckbox: Boolean,
+    isSelected: Boolean,
+    contextMarkerToEmojiMap: Map<String, String>,
+    isInlineEditing: Boolean,
+    onInlineEditSave: (String) -> Unit,
+    onInlineEditCancel: () -> Unit,
+    onDragStopped: () -> Unit,
 ) {
-    val highlightColor by animateColorAsState(
-        targetValue =
-            when {
-                isHighlighted -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.56f)
-                isFocused -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.42f)
-                else -> Color.Transparent
-            },
-        animationSpec = tween(durationMillis = 350),
-        label = "Background Animation",
-    )
+    when (item) {
+        is BacklogItemContent.GoalItem -> {
+            InternalGoalItem(
+                goal = item.goal,
+                currentContextId = item.backlogItem.contextId,
+                reminders = item.reminders,
+                reorderableScope = reorderableScope,
+                modifier = modifier,
+                onItemClick = onItemClick,
+                onLongClick = onLongClick,
+                onMoreClick = onMoreClick,
+                onCheckedChange = onCheckedChange,
+                onRelatedLinkClick = onRelatedLinkClick,
+                showCheckbox = showCheckbox,
+                isSelected = isSelected,
+                contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+                isInlineEditing = isInlineEditing,
+                onInlineEditSave = onInlineEditSave,
+                onInlineEditCancel = onInlineEditCancel,
+                onDragStopped = onDragStopped,
+            )
+        }
+        is BacklogItemContent.ContextLinkItem -> {
+            InternalSubprojectItem(
+                subproject = item.project,
+                reminders = item.reminders,
+                reorderableScope = reorderableScope,
+                modifier = modifier,
+                onItemClick = onItemClick,
+                onLongClick = onLongClick,
+                onMoreClick = onMoreClick,
+                onCheckedChange = onCheckedChange,
+                onRelatedLinkClick = onRelatedLinkClick,
+                showCheckbox = showCheckbox,
+                isSelected = isSelected,
+                contextMarkerToEmojiMap = contextMarkerToEmojiMap,
+                onDragStopped = onDragStopped,
+            )
+        }
+        else -> {
+            // Do nothing for other types for now
+        }
+    }
+}
 
-    val baseCardColor =
-        MaterialTheme.colorScheme.surfaceContainerLowest.copy(
-            alpha = (0.86f - (level * 0.06f)).coerceIn(0.64f, 0.9f),
+@Composable
+private fun InternalGoalItem(
+    goal: Goal,
+    currentContextId: String,
+    reminders: List<Reminder>,
+    reorderableScope: ReorderableCollectionItemScope,
+    modifier: Modifier = Modifier,
+    onItemClick: () -> Unit,
+    onLongClick: () -> Unit,
+    onMoreClick: () -> Unit,
+    onCheckedChange: (Boolean) -> Unit,
+    onRelatedLinkClick: (RelatedLink) -> Unit,
+    showCheckbox: Boolean,
+    isSelected: Boolean,
+    contextMarkerToEmojiMap: Map<String, String>,
+    isInlineEditing: Boolean,
+    onInlineEditSave: (String) -> Unit,
+    onInlineEditCancel: () -> Unit,
+    onDragStopped: () -> Unit,
+) {
+    val parsedData = rememberParsedText(goal.text, contextMarkerToEmojiMap)
+    val hapticFeedback = LocalHapticFeedback.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusRequester = remember { FocusRequester() }
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    var textValue by remember(goal.id, isInlineEditing, goal.text) {
+        mutableStateOf(TextFieldValue(goal.text, TextRange(goal.text.length)))
+    }
+
+    LaunchedEffect(isInlineEditing) {
+        if (isInlineEditing) {
+            focusRequester.requestFocus()
+            delay(250)
+            bringIntoViewRequester.bringIntoView()
+        }
+    }
+
+    val completedColors =
+        BacklogCompletedColors(
+            containerStart = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f),
+            containerEnd = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.12f),
+            border = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+            iconTint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+            badgeBackground = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+            badgeText = MaterialTheme.colorScheme.primary,
         )
-    val containerColor =
-        if (highlightColor == Color.Transparent) {
-            baseCardColor
-        } else {
-            highlightColor
-        }
-    val borderColor =
-        when {
-            isHighlighted -> MaterialTheme.colorScheme.primary.copy(alpha = 0.26f)
-            isFocused -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.22f)
-            else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f)
-        }
 
-    val indentation = (level * 18).dp
-
-    Column(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .padding(start = indentation)
-                .clip(RoundedCornerShape(16.dp))
-                .background(containerColor)
-                .border(width = 0.8.dp, color = borderColor, shape = RoundedCornerShape(16.dp)),
-    ) {
-        if (isHovered && !isDraggingDown && !isCurrentlyDragging) {
-            HorizontalDivider(
-                thickness = 2.dp,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 10.dp),
-            )
-        }
-
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clickable { onProjectClick(project.id) }
-                    .alpha(if (isCurrentlyDragging) 0.6f else 1f)
-                    .padding(vertical = 8.dp, horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(modifier = Modifier.size(36.dp), contentAlignment = Alignment.Center) {
-                if (hasChildren && !showFocusButton) {
-                    IconButton(
-                        onClick = { onToggleExpanded(project) },
-                        modifier = Modifier.size(30.dp),
-                    ) {
-                        Icon(
-                            imageVector = if (project.isExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-                            contentDescription = "Згорнути/Розгорнути",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                } else {
-                    Spacer(modifier = Modifier.size(32.dp))
-                }
-            }
-
-            Icon(
-                imageVector = if (hasChildren) Icons.Outlined.AccountTree else Icons.Outlined.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary.copy(alpha = if (hasChildren) 0.9f else 0.45f),
-                modifier = Modifier.size(if (hasChildren) 16.dp else 14.dp),
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            ReservedRoleBadge(
-                roleCode = project.roleCode,
-                modifier = Modifier.padding(end = 8.dp),
-            )
-            Text(
-                text = displayName ?: AnnotatedString(project.name),
+    UnifiedListItemSurface(
+        isSelected = isSelected,
+        layout =
+            UnifiedListItemSurfaceLayout(
                 modifier =
-                    Modifier
-                        .weight(1f)
-                        .padding(start = 2.dp),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                style =
-                    MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Normal,
-                    ),
-                color =
-                    if (isFocused) {
-                        MaterialTheme.colorScheme.onSecondaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onBackground
-                    },
-            )
-
-            AnimatedVisibility(
-                visible = showFocusButton,
-                enter = fadeIn(),
-                exit = fadeOut(),
-            ) {
-                Surface(
-                    onClick = { onFocusRequested(project) },
-                    modifier = Modifier.padding(start = 4.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color =
-                        if (isFocused) {
-                            MaterialTheme.colorScheme.primaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.surfaceContainerHigh
-                        },
-                    tonalElevation = 0.dp,
-                ) {
-                    Box(
-                        modifier = Modifier.size(34.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.FilterCenterFocus,
-                            contentDescription = "Сфокусувати гілку",
-                            tint =
-                                if (isFocused) {
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.primary
-                                },
-                            modifier = Modifier.size(18.dp),
+                    modifier
+                        .fillMaxWidth()
+                        .padding(
+                            vertical = UnifiedListItemTokens.OuterVerticalSpacing,
+                            horizontal = UnifiedListItemTokens.OuterHorizontalSpacing,
                         )
+                        .combinedClickable(
+                            onClick = {
+                                if (!isInlineEditing) {
+                                    onItemClick()
+                                }
+                            },
+                            onLongClick = {
+                                if (!isInlineEditing) {
+                                    onLongClick()
+                                }
+                            },
+                        ),
+                contentPadding = PaddingValues(0.dp),
+            ),
+    ) {
+        Box(
+            modifier =
+                if (goal.completed) {
+                    Modifier
+                        .background(
+                            brush =
+                                Brush.horizontalGradient(
+                                    colors =
+                                        listOf(
+                                            completedColors.containerStart,
+                                            completedColors.containerEnd,
+                                        ),
+                                ),
+                        )
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                } else {
+                    Modifier
+                        .background(Color.Transparent)
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                },
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (showCheckbox) {
+                    Checkbox(
+                        checked = goal.completed,
+                        onCheckedChange = onCheckedChange,
+                        modifier = Modifier.size(24.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+
+                Column(modifier = Modifier.weight(1f)) {
+                    if (isInlineEditing) {
+                        OutlinedTextField(
+                            value = textValue,
+                            onValueChange = { textValue = it },
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .bringIntoViewRequester(bringIntoViewRequester)
+                                    .focusRequester(focusRequester),
+                            minLines = 1,
+                            maxLines = 4,
+                            singleLine = false,
+                            keyboardOptions =
+                                KeyboardOptions(
+                                    capitalization = KeyboardCapitalization.Sentences,
+                                    imeAction = ImeAction.Done,
+                                ),
+                            keyboardActions =
+                                androidx.compose.foundation.text.KeyboardActions(
+                                    onDone = {
+                                        keyboardController?.hide()
+                                        onInlineEditSave(textValue.text)
+                                    },
+                                ),
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Spacer(modifier = Modifier.weight(1f))
+                            IconButton(
+                                onClick = {
+                                    keyboardController?.hide()
+                                    onInlineEditCancel()
+                                },
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Скасувати",
+                                )
+                            }
+                            IconButton(
+                                onClick = {
+                                    keyboardController?.hide()
+                                    onInlineEditSave(textValue.text)
+                                },
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Зберегти",
+                                )
+                            }
+                        }
+                    } else {
+                        Box(modifier = if (goal.completed) Modifier.alpha(0.65f) else Modifier) {
+                            MarkdownText(
+                                state =
+                                    MarkdownTextState(
+                                        text = parsedData.mainText,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        isCompleted = goal.completed,
+                                        maxLines = 4,
+                                    ),
+                                actions =
+                                    MarkdownTextActions(
+                                        onTextClick = onItemClick,
+                                        onLongClick = onLongClick,
+                                    ),
+                            )
+                        }
+                    }
+
+                    val reminder = reminders.firstOrNull()
+                    val shouldShowStatusIcons =
+                        !isInlineEditing && ((goal.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
+                            (goal.relativeSize > 0) ||
+                            (reminder != null) ||
+                            (parsedData.icons.isNotEmpty()) ||
+                            (!goal.description.isNullOrBlank()) ||
+                            (!goal.relatedLinks.isNullOrEmpty()))
+
+                    if (!isInlineEditing) {
+                        Column {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Box(modifier = if (goal.completed) Modifier.alpha(0.6f) else Modifier) {
+                                StatusIconsRow(
+                                    goal = goal,
+                                    currentContextId = currentContextId,
+                                    parsedData = parsedData,
+                                    reminder = reminder,
+                                    emojiToHide = null,
+                                    leadingChips =
+                                        listOf(
+                                            UnifiedStatusChipSpec(
+                                                text = "",
+                                                icon = Icons.Default.Flag,
+                                                contentColor =
+                                                    if (goal.completed) completedColors.iconTint else MaterialTheme.colorScheme.primary,
+                                            ),
+                                        ),
+                                    onRelatedLinkClick = onRelatedLinkClick,
+                                )
+                            }
+                        }
                     }
                 }
-            }
 
-            IconButton(
-                onClick = { onMenuRequested(project) },
-                modifier = Modifier.size(36.dp),
-            ) {
+                if (!isInlineEditing) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More actions",
+                        modifier =
+                            with(reorderableScope) {
+                                Modifier.draggableHandle(
+                                    onDragStarted = {
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    },
+                                        onDragStopped = { onDragStopped() },
+                                    )
+                            }
+                                .size(20.dp)
+                                .alpha(if (goal.completed) 0.5f else 1f)
+                                .clickable(onClick = onMoreClick),
+                    )
+                }
+            }
+        }
+    }
+}
+
+private data class BacklogCompletedColors(
+    val containerStart: Color,
+    val containerEnd: Color,
+    val border: Color,
+    val iconTint: Color,
+    val badgeBackground: Color,
+    val badgeText: Color,
+)
+
+@Composable
+private fun CompletedBadge(
+    backgroundColor: Color,
+    textColor: Color,
+) {
+    // Deprecated badge removed intentionally
+}
+
+@Composable
+private fun InternalSubprojectItem(
+    subproject: Context,
+    reminders: List<Reminder>,
+    reorderableScope: ReorderableCollectionItemScope,
+    modifier: Modifier = Modifier,
+    onItemClick: () -> Unit,
+    onLongClick: () -> Unit,
+    onMoreClick: () -> Unit,
+    onCheckedChange: (Boolean) -> Unit,
+    onRelatedLinkClick: (RelatedLink) -> Unit,
+    showCheckbox: Boolean,
+    isSelected: Boolean,
+    contextMarkerToEmojiMap: Map<String, String>,
+    onDragStopped: () -> Unit,
+) {
+    val parsedData = rememberParsedText(subproject.name, contextMarkerToEmojiMap)
+    val tagContextIcons =
+        remember(subproject.tags, contextMarkerToEmojiMap) {
+            subproject.tags.orEmpty().mapNotNull { rawTag ->
+                val normalized = rawTag.trim().removePrefix("#").removePrefix("@").lowercase()
+                listOf("@$normalized", "#$normalized", normalized).firstNotNullOfOrNull { candidate ->
+                    contextMarkerToEmojiMap[candidate]
+                }
+            }
+        }
+    val enrichedParsedData =
+        remember(parsedData, tagContextIcons) {
+            if (tagContextIcons.isEmpty()) {
+                parsedData
+            } else {
+                parsedData.copy(
+                    icons = (parsedData.icons + tagContextIcons).distinct(),
+                )
+            }
+        }
+    val hapticFeedback = LocalHapticFeedback.current
+
+    val completedColors =
+        BacklogCompletedColors(
+            containerStart = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.15f),
+            containerEnd = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.12f),
+            border = MaterialTheme.colorScheme.secondary.copy(alpha = 0.25f),
+            iconTint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
+            badgeBackground = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f),
+            badgeText = MaterialTheme.colorScheme.secondary,
+        )
+
+    UnifiedListItemSurface(
+        isSelected = isSelected,
+        layout =
+            UnifiedListItemSurfaceLayout(
+                modifier =
+                    modifier
+                        .fillMaxWidth()
+                        .padding(
+                            vertical = UnifiedListItemTokens.OuterVerticalSpacing,
+                            horizontal = UnifiedListItemTokens.OuterHorizontalSpacing,
+                        ),
+                contentPadding = PaddingValues(0.dp),
+            ),
+    ) {
+        Box(
+            modifier =
+                if (subproject.isCompleted) {
+                    Modifier
+                        .background(
+                            brush =
+                                Brush.horizontalGradient(
+                                    colors =
+                                        listOf(
+                                            completedColors.containerStart,
+                                            completedColors.containerEnd,
+                                        ),
+                                ),
+                        )
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                } else {
+                    Modifier
+                        .background(Color.Transparent)
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                },
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (showCheckbox) {
+                    Checkbox(
+                        checked = subproject.isCompleted,
+                        onCheckedChange = {
+                            Log.d(
+                                BACKLOG_SWIPE_DEBUG_TAG,
+                                "subcontextCheckbox itemId=${subproject.id} checked=$it",
+                            )
+                            onCheckedChange(it)
+                        },
+                        modifier = Modifier.size(24.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+
+                Column(
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .combinedClickable(
+                                onClick = {
+                                    Log.d(
+                                        BACKLOG_SWIPE_DEBUG_TAG,
+                                        "subcontextTap itemId=${subproject.id} name=${subproject.name}",
+                                    )
+                                    onItemClick()
+                                },
+                                onLongClick = {
+                                    Log.d(
+                                        BACKLOG_SWIPE_DEBUG_TAG,
+                                        "subcontextLongTap itemId=${subproject.id} name=${subproject.name}",
+                                    )
+                                    onLongClick()
+                                },
+                            ),
+                ) {
+                    if (subproject.isCompleted) {
+                        CompletedBadge(
+                            backgroundColor = completedColors.badgeBackground,
+                            textColor = completedColors.badgeText,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+                    Text(
+                        text = enrichedParsedData.mainText,
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textDecoration = if (subproject.isCompleted) TextDecoration.LineThrough else null,
+                        modifier = if (subproject.isCompleted) Modifier.alpha(0.65f) else Modifier,
+                    )
+
+                    val reminder = reminders.firstOrNull()
+                    Column {
+                        Column {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Box(modifier = if (subproject.isCompleted) Modifier.alpha(0.6f) else Modifier) {
+                                StatusIconsRow(
+                                    project = subproject,
+                                    parsedData = enrichedParsedData,
+                                    reminder = reminder,
+                                    emojiToHide = null,
+                                    leadingChips =
+                                        listOf(
+                                            UnifiedStatusChipSpec(
+                                                text = "",
+                                                icon = Icons.Default.AccountTree,
+                                                contentColor =
+                                                    if (subproject.isCompleted) completedColors.iconTint else MaterialTheme.colorScheme.secondary,
+                                            ),
+                                        ),
+                                    onRelatedLinkClick = onRelatedLinkClick,
+                                )
+                            }
+                        }
+                    }
+                }
+
                 Icon(
                     imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Дії з проектом",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-
-        if (isHovered && isDraggingDown && !isCurrentlyDragging) {
-            HorizontalDivider(
-                thickness = 2.dp,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 10.dp),
-            )
-        }
-    }
-}
-
-@Composable
-fun SwipeableProjectRow(
-    project: Context,
-    level: Int,
-    hasChildren: Boolean,
-    onProjectClick: (String) -> Unit,
-    onToggleExpanded: (project: Context) -> Unit,
-    onMenuRequested: (project: Context) -> Unit,
-    isCurrentlyDragging: Boolean,
-    isHovered: Boolean,
-    isDraggingDown: Boolean,
-    isHighlighted: Boolean,
-    showFocusButton: Boolean,
-    onFocusRequested: (project: Context) -> Unit,
-    onAddSubproject: (project: Context) -> Unit,
-    onDelete: (project: Context) -> Unit,
-    onEdit: (project: Context) -> Unit,
-    modifier: Modifier = Modifier,
-    displayName: AnnotatedString? = null,
-    isFocused: Boolean = false,
-) {
-    val isSystemContext = remember(project.id) { SystemContexts.isSystem(ContextId(project.id)) }
-    val density = LocalDensity.current
-    val coroutineScope = rememberCoroutineScope()
-    val startActionWidth = 120.dp
-    val endActionWidth = 120.dp
-    val startActionWidthPx = with(density) { startActionWidth.toPx() }
-    val endActionWidthPx = with(density) { endActionWidth.toPx() }
-
-    var offsetX by remember { mutableFloatStateOf(0f) }
-
-    val startProgress by remember {
-        derivedStateOf { (offsetX / startActionWidthPx).coerceIn(0f, 1f) }
-    }
-    val endProgress by remember {
-        derivedStateOf { (-offsetX / endActionWidthPx).coerceIn(0f, 1f) }
-    }
-
-    val draggableState =
-        rememberDraggableState { delta ->
-            offsetX = (offsetX + delta).coerceIn(-endActionWidthPx, startActionWidthPx)
-        }
-
-    fun animateTo(target: Float) {
-        coroutineScope.launch {
-            animate(initialValue = offsetX, targetValue = target) { value, _ ->
-                offsetX = value
-            }
-        }
-    }
-
-    Box(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .draggable(
-                    orientation = Orientation.Horizontal,
-                    state = draggableState,
-                    onDragStopped = { velocity ->
-                        val velocityThreshold = 300f
-                        val startThreshold = startActionWidthPx * 0.12f
-                        val endThreshold = endActionWidthPx * 0.12f
-                        when {
-                            offsetX > 0f && velocity < -velocityThreshold -> animateTo(0f)
-                            offsetX < 0f && velocity > velocityThreshold -> animateTo(0f)
-                            offsetX >= 0f && velocity > velocityThreshold -> animateTo(startActionWidthPx)
-                            offsetX <= 0f && velocity < -velocityThreshold -> animateTo(-endActionWidthPx)
-                            offsetX > startThreshold -> animateTo(startActionWidthPx)
-                            offsetX < -endThreshold -> animateTo(-endActionWidthPx)
-                            else -> animateTo(0f)
+                    contentDescription = "More actions",
+                    modifier =
+                        with(reorderableScope) {
+                            Modifier.draggableHandle(
+                                onDragStarted = {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                },
+                                onDragStopped = { onDragStopped() },
+                            )
                         }
-                    },
-                ),
-    ) {
-        fun resetSwipe() = animateTo(0f)
-
-        if (startProgress > 0.02f) {
-            val startBg = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
-            Surface(
-                modifier =
-                    Modifier
-                        .width(startActionWidth)
-                        .align(Alignment.CenterStart)
-                        .padding(start = 14.dp, end = 6.dp)
-                        .alpha(startProgress),
-                tonalElevation = 2.dp,
-                shape = RoundedCornerShape(14.dp),
-                color = startBg,
-            ) {
-                Row(
-                    modifier =
-                        Modifier
-                            .padding(horizontal = 6.dp, vertical = 4.dp)
-                            .alpha(startProgress),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    ProjectSwipeActionButton(
-                        icon = Icons.Default.FilterCenterFocus,
-                        contentDescription = "Фокус",
-                        color = MaterialTheme.colorScheme.primary,
-                    ) {
-                        onFocusRequested(project)
-                        resetSwipe()
-                    }
-                    ProjectSwipeActionButton(
-                        icon = Icons.Default.Add,
-                        contentDescription = "Додати підпроєкт",
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                    ) {
-                        onAddSubproject(project)
-                        resetSwipe()
-                    }
-                }
-            }
-        }
-
-        if (endProgress > 0.02f && !isSystemContext) {
-            val endBg = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f)
-            Surface(
-                modifier =
-                    Modifier
-                        .width(endActionWidth)
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 14.dp, start = 6.dp)
-                        .alpha(endProgress),
-                tonalElevation = 2.dp,
-                shape = RoundedCornerShape(14.dp),
-                color = endBg,
-            ) {
-                Row(
-                    modifier =
-                        Modifier
-                            .padding(horizontal = 6.dp, vertical = 4.dp)
-                            .alpha(endProgress),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    ProjectSwipeActionButton(
-                        icon = Icons.Default.Delete,
-                        contentDescription = "Видалити проєкт",
-                        color = MaterialTheme.colorScheme.error,
-                    ) {
-                        onDelete(project)
-                        resetSwipe()
-                    }
-                    ProjectSwipeActionButton(
-                        icon = Icons.Default.Edit,
-                        contentDescription = "Редагувати проєкт",
-                        color = MaterialTheme.colorScheme.primary,
-                    ) {
-                        onEdit(project)
-                        resetSwipe()
-                    }
-                }
-            }
-        }
-
-        ProjectRow(
-            project = project,
-            level = level,
-            hasChildren = hasChildren,
-            onProjectClick = onProjectClick,
-            onToggleExpanded = onToggleExpanded,
-            onMenuRequested = onMenuRequested,
-            isCurrentlyDragging = isCurrentlyDragging,
-            isHovered = isHovered,
-            isDraggingDown = isDraggingDown,
-            isHighlighted = isHighlighted,
-            showFocusButton = showFocusButton,
-            onFocusRequested = onFocusRequested,
-            modifier = Modifier.offset { IntOffset(offsetX.roundToInt(), 0) },
-            displayName = displayName,
-            isFocused = isFocused,
-        )
-    }
-}
-
-@Composable
-private fun ProjectSwipeActionButton(
-    icon: ImageVector,
-    contentDescription: String,
-    color: Color,
-    onClick: () -> Unit,
-) {
-    Surface(
-        modifier = Modifier.size(44.dp),
-        shape = RoundedCornerShape(12.dp),
-        color = color.copy(alpha = 0.92f),
-        tonalElevation = 0.dp,
-        onClick = onClick,
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = icon,
-                contentDescription = contentDescription,
-                tint = Color.White,
-                modifier = Modifier.size(22.dp),
-            )
-        }
-    }
-}
-
-@Composable
-fun BreadcrumbNavigation(
-    breadcrumbs: List<BreadcrumbItem>,
-    onNavigate: (BreadcrumbItem) -> Unit,
-    onClearNavigation: () -> Unit,
-    onFocusedListMenuClick: (String) -> Unit,
-    onOpenAsProject: ((String) -> Unit)? = null,
-    modifier: Modifier = Modifier,
-) {
-    if (breadcrumbs.isEmpty()) return
-
-    val lazyRowState = rememberLazyListState()
-
-    LaunchedEffect(breadcrumbs) {
-        if (breadcrumbs.isNotEmpty()) {
-            lazyRowState.animateScrollToItem(breadcrumbs.size - 1)
-        }
-    }
-
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 1.dp,
-    ) {
-        LazyRow(
-            state = lazyRowState,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            item {
-                Row(
-                    Modifier.clickable(onClick = onClearNavigation),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Home,
-                        contentDescription = "Home",
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "All",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-                Icon(
-                    imageVector = Icons.Outlined.ChevronRight,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp).padding(start = 4.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            itemsIndexed(breadcrumbs) { index, item ->
-                val isLast = index == breadcrumbs.size - 1
-
-                Surface(
-                    modifier = Modifier.clickable { if (!isLast) onNavigate(item) },
-                    shape = RoundedCornerShape(16.dp),
-                    color = if (isLast) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier =
-                            Modifier.padding(
-                                horizontal = 12.dp,
-                                vertical = 4.dp,
+                            .size(20.dp)
+                            .alpha(if (subproject.isCompleted) 0.5f else 1f)
+                            .clickable(
+                                onClick = {
+                                    Log.d(
+                                        BACKLOG_SWIPE_DEBUG_TAG,
+                                        "subcontextMoreTap itemId=${subproject.id}",
+                                    )
+                                    onMoreClick()
+                                },
                             ),
-                    ) {
-                        Text(
-                            text = item.name,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (isLast) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-
-                if (!isLast) {
-                    Icon(
-                        imageVector = Icons.Outlined.ChevronRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp).padding(horizontal = 4.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-    }
-}
-
-internal fun buildVisibleHierarchy(
-    flattenedHierarchy: List<FlatHierarchyItem>,
-    childMap: Map<String, List<Context>>,
-    longDescendantsMap: Map<String, Boolean>,
-): List<FlatHierarchyItem> {
-    val visibleItems = mutableListOf<FlatHierarchyItem>()
-    var skipLevel: Int? = null
-
-    flattenedHierarchy.forEach { item ->
-        if (skipLevel != null) {
-            if (item.level > skipLevel!!) return@forEach
-            skipLevel = null
-        }
-
-        val hasChildren = childMap[item.project.id]?.isNotEmpty() == true
-        val hasLongDescendants = longDescendantsMap[item.project.id] ?: false
-        val shouldShowFocusButton =
-            shouldShowHierarchyFocusButton(
-                hasChildren = hasChildren,
-                level = item.level,
-                hasOverflowingDescendants = hasLongDescendants,
-            )
-
-        if (shouldShowFocusButton) {
-            skipLevel = item.level
-        }
-
-        visibleItems.add(item)
-    }
-
-    return visibleItems
-}
-
-@Suppress("UNUSED_PARAMETER")
-@OptIn(ExperimentalSharedTransitionApi::class)
-@Composable
-fun HierarchyListItem(
-    item: FlatHierarchyItem,
-    childMap: Map<String, List<Context>>,
-    dragAndDropState: DragAndDropState<Context>,
-    isSearchActive: Boolean,
-    planningMode: PlanningMode,
-    highlightedProjectId: String?,
-    settings: HierarchyDisplaySettings,
-    searchQuery: String,
-    focusedProjectId: String?,
-    longDescendantsMap: Map<String, Boolean>,
-    onProjectClick: (String) -> Unit,
-    onToggleExpanded: (Context) -> Unit,
-    onMenuRequested: (Context) -> Unit,
-    onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
-    onFocusProject: (Context) -> Unit,
-    onAddSubproject: (Context) -> Unit,
-    onDeleteProject: (Context) -> Unit,
-    onEditProject: (Context) -> Unit,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
-) {
-    val project = item.project
-    val children = childMap[project.id].orEmpty()
-    val hasChildren = children.isNotEmpty()
-
-    val displayName =
-        if (isSearchActive && searchQuery.isNotEmpty()) {
-            if (searchQuery.length > 3) {
-                highlightFuzzy(text = project.name, query = searchQuery)
-            } else {
-                highlightSubstring(text = project.name, query = searchQuery)
-            }
-        } else {
-            AnnotatedString(project.name)
-        }
-
-    val hasLongDescendants = longDescendantsMap[project.id] ?: false
-    val shouldShowFocusButton =
-        shouldShowHierarchyFocusButton(
-            hasChildren = hasChildren,
-            level = item.level,
-            hasOverflowingDescendants = hasLongDescendants,
-        )
-    val isFocused = project.id == focusedProjectId
-
-    with(sharedTransitionScope) {
-        DraggableItem(
-            state = dragAndDropState,
-            key = project.id,
-            data = project,
-            dragAfterLongPress = true,
-        ) {
-            val draggedItemData = dragAndDropState.draggedItem?.data
-            val isDropAllowed =
-                remember(draggedItemData, project) {
-                    draggedItemData == null || draggedItemData.id != project.id
-                }
-
-            val hoveredDropTargetKey = dragAndDropState.hoveredDropTargetKey
-            val isHovered =
-                remember(hoveredDropTargetKey, project.id) {
-                    isDropAllowed && (hoveredDropTargetKey == "before-${project.id}" || hoveredDropTargetKey == "after-${project.id}")
-                }
-            val isDraggingDown =
-                remember(hoveredDropTargetKey, project.id) {
-                    isDropAllowed && hoveredDropTargetKey == "after-${project.id}"
-                }
-
-            Box(modifier = Modifier.fillMaxWidth()) {
-                SwipeableProjectRow(
-                    project = project,
-                    level = item.level,
-                    hasChildren = hasChildren,
-                    onProjectClick = onProjectClick,
-                    onToggleExpanded = onToggleExpanded,
-                    onMenuRequested = onMenuRequested,
-                    isCurrentlyDragging = isDragging,
-                    isHovered = isHovered,
-                    isDraggingDown = isDraggingDown,
-                    isHighlighted = project.id == highlightedProjectId,
-                    displayName = displayName,
-                    showFocusButton = shouldShowFocusButton,
-                    onFocusRequested = onFocusProject,
-                    onAddSubproject = onAddSubproject,
-                    onDelete = onDeleteProject,
-                    onEdit = onEditProject,
-                    isFocused = isFocused,
                 )
-
-                if (!isDragging) {
-                    Column(modifier = Modifier.matchParentSize()) {
-                        val dropModifier = { position: DropPosition ->
-                            Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                                .then(
-                                    if (isDropAllowed) {
-                                        Modifier.dropTarget(state = dragAndDropState, key = "$position-${project.id}") {
-                                            onProjectReorder(it.data.id, project.id, position)
-                                        }
-                                    } else {
-                                        Modifier
-                                    },
-                                )
-                        }
-                        Box(modifier = dropModifier(DropPosition.BEFORE))
-                        Box(modifier = dropModifier(DropPosition.AFTER))
-                    }
-                }
             }
         }
     }
@@ -2451,238 +1280,6 @@ fun HierarchyListItem(
 
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/hierarchy/HierarchyComponents.kt
-================================================================================
-
-## <<FILE_8>>
-================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/hierarchy/FocusedContextView.kt (ID: FILE_8)
-================================================================================
-
-package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.hierarchy
-
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Inbox
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.mohamedrejeb.compose.dnd.DragAndDropState
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningMode
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.flattenHierarchyWithLevels
-
-@OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
-@Composable
-fun FocusedProjectView(
-    focusedProjectId: String,
-    hierarchy: ContextHierarchyData,
-    breadcrumbs: List<BreadcrumbItem>,
-    dragAndDropState: DragAndDropState<Context>,
-    isSearchActive: Boolean,
-    planningMode: PlanningMode,
-    highlightedProjectId: String?,
-    settings: HierarchyDisplaySettings,
-    searchQuery: String,
-    longDescendantsMap: Map<String, Boolean>,
-    onEvent: (ContextHierarchyScreenEvent) -> Unit,
-    onFocusProject: (Context) -> Unit,
-    onAddSubproject: (Context) -> Unit,
-    onDeleteProject: (Context) -> Unit,
-    onEditProject: (Context) -> Unit,
-    onProjectClick: (String) -> Unit,
-    onToggleExpanded: (Context) -> Unit,
-    onMenuRequested: (Context) -> Unit,
-    onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
-    sharedTransitionScope: SharedTransitionScope,
-    animatedVisibilityScope: AnimatedVisibilityScope,
-) {
-    val focusedProject = hierarchy.allProjects.find { it.id == focusedProjectId }
-    val children = (hierarchy.childMap[focusedProjectId] ?: emptyList()).sortedBy { it.order }
-
-    if (focusedProject != null) {
-        val flattenedChildren =
-            remember(children, hierarchy.childMap) {
-                flattenHierarchyWithLevels(children, hierarchy.childMap)
-            }
-        val visibleItems =
-            remember(flattenedChildren, longDescendantsMap, hierarchy.childMap) {
-                buildVisibleHierarchy(flattenedChildren, hierarchy.childMap, longDescendantsMap)
-            }
-
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            stickyHeader(key = "focused-project-header") {
-                Column(Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
-                    BreadcrumbNavigation(
-                        breadcrumbs = breadcrumbs,
-                        onNavigate = { onEvent(ContextHierarchyScreenEvent.BreadcrumbNavigation(it)) },
-                        onClearNavigation = { onEvent(ContextHierarchyScreenEvent.ClearBreadcrumbNavigation) },
-                        onFocusedListMenuClick = { projectId ->
-                            hierarchy.allProjects
-                                .find { it.id == projectId }
-                                ?.let { onEvent(ContextHierarchyScreenEvent.ContextMenuRequest(it)) }
-                        },
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                    FocusedProjectHeader(
-                        project = focusedProject,
-                        onMoreActionsClick = { onMenuRequested(focusedProject) },
-                        onProjectClick = { onProjectClick(focusedProject.id) },
-                    )
-                }
-            }
-
-            if (children.isNotEmpty()) {
-                items(visibleItems, key = { it.project.id }) { item ->
-                    HierarchyListItem(
-                        item = item,
-                        childMap = hierarchy.childMap,
-                        dragAndDropState = dragAndDropState,
-                        isSearchActive = isSearchActive,
-                        planningMode = planningMode,
-                        highlightedProjectId = highlightedProjectId,
-                        settings = settings,
-                        searchQuery = searchQuery,
-                        focusedProjectId = focusedProjectId,
-                        longDescendantsMap = longDescendantsMap,
-                        onProjectClick = onProjectClick,
-                        onToggleExpanded = onToggleExpanded,
-                        onMenuRequested = onMenuRequested,
-                        onProjectReorder = onProjectReorder,
-                        onFocusProject = onFocusProject,
-                        onAddSubproject = onAddSubproject,
-                        onDeleteProject = onDeleteProject,
-                        onEditProject = onEditProject,
-                        sharedTransitionScope = sharedTransitionScope,
-                        animatedVisibilityScope = animatedVisibilityScope,
-                    )
-                }
-            } else {
-                item(key = "empty_state") {
-                    Box(
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = Icons.Outlined.Inbox,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "No subcontexts",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    } else {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Focused context not found.")
-        }
-    }
-}
-
-
-================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/hierarchy/FocusedContextView.kt
-================================================================================
-
-## <<FILE_9>>
-================================================================================
-BEGIN FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/hierarchy/FocusedContextHeader.kt (ID: FILE_9)
-================================================================================
-
-package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.hierarchy
-
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
-
-@Composable
-fun FocusedProjectHeader(
-    project: Context,
-    onMoreActionsClick: () -> Unit,
-    onProjectClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Spacer(modifier = Modifier.size(40.dp))
-            ReservedRoleBadge(
-                roleCode = project.roleCode,
-                modifier = Modifier.padding(start = 8.dp, end = 6.dp),
-            )
-            Text(
-                text = project.name,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f).clickable(onClick = onProjectClick),
-            )
-
-            IconButton(onClick = onMoreActionsClick, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.MoreVert, contentDescription = "More actions")
-            }
-        }
-    }
-}
-
-
-================================================================================
-END FILE: /home/romankozak/studio/public/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_hierarchy_screen/hierarchy/FocusedContextHeader.kt
+END FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/BacklogItem.kt
 ================================================================================
 

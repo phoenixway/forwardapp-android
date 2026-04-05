@@ -23,7 +23,6 @@ fun GoalDetailDialogs(viewModel: ContextScreenViewModel) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     val goalActionState by viewModel.itemActionHandler.goalActionDialogState.collectAsStateWithLifecycle()
-    val showGoalTransportMenu by viewModel.itemActionHandler.showGoalTransportMenu.collectAsStateWithLifecycle()
     val showPasteModeDialog by viewModel.itemActionHandler.showPasteModeDialog.collectAsStateWithLifecycle()
     val showAttachmentPasteDialog by viewModel.itemActionHandler.showAttachmentPasteDialog.collectAsStateWithLifecycle()
     val recentItems = uiState.recentItems
@@ -67,13 +66,6 @@ fun GoalDetailDialogs(viewModel: ContextScreenViewModel) {
             )
         }
     }
-
-    GoalTransportMenu(
-        isVisible = showGoalTransportMenu,
-        onDismiss = { viewModel.itemActionHandler.onDismissGoalTransportMenu() },
-        onCopyRequest = { viewModel.itemActionHandler.onTransportCopyRequested() },
-        onCutRequest = { viewModel.itemActionHandler.onTransportCutRequested() },
-    )
 
     if (showPasteModeDialog) {
         var selectedMode by remember { mutableStateOf(BacklogPasteMode.AS_LINK) }

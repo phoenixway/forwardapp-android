@@ -87,6 +87,9 @@ fun GoalDetailContent(
     val listContent by viewModel.listContent.collectAsStateWithLifecycle()
     val attachmentItems by viewModel.attachmentItems.collectAsStateWithLifecycle()
     val inboxRecords by viewModel.inboxHandler.inboxRecords.collectAsStateWithLifecycle()
+    val inboxSelectionMode by viewModel.inboxHandler.isSelectionMode.collectAsStateWithLifecycle()
+    val inboxSelectedRecordIds by viewModel.inboxHandler.selectedRecordIds.collectAsStateWithLifecycle()
+    val canPasteIntoInbox by viewModel.itemActionHandler.canPasteIntoCurrentInbox.collectAsStateWithLifecycle()
     val goalList by viewModel.project.collectAsStateWithLifecycle()
     val projectLogs = uiState.logs
     val projectArtifact by viewModel.contextArtifact.collectAsStateWithLifecycle()
@@ -154,9 +157,8 @@ fun GoalDetailContent(
                         onDeleteEverywhere = { item -> viewModel.onDeleteEverywhere(item) },
                         onAddToDayPlan = { item -> viewModel.addItemToDailyPlan(item) },
                         onStartTracking = { item -> viewModel.onStartTrackingRequest(item) },
-                        onShowGoalTransportMenu = { item ->
-                            viewModel.itemActionHandler.onGoalTransportInitiated(item)
-                        },
+                        onCopyTransport = { item -> viewModel.itemActionHandler.onTransportCopyRequested(item) },
+                        onCutTransport = { item -> viewModel.itemActionHandler.onTransportCutRequested(item) },
                         onRelatedLinkClick = viewModel.itemActionHandler::onRelatedLinkClick,
                         onRemindersClick = onRemindersClick,
                         onCopyContent = viewModel.itemActionHandler::copyContentRequest,
@@ -176,6 +178,9 @@ fun GoalDetailContent(
                         inboxRecords = inboxRecords,
                         listState = inboxListState,
                         highlightedRecordId = uiState.inboxRecordToHighlight,
+                        isSelectionMode = inboxSelectionMode,
+                        selectedRecordIds = inboxSelectedRecordIds,
+                        canPaste = canPasteIntoInbox,
                     ),
                 navigationManager = viewModel.enhancedNavigationManager,
             )

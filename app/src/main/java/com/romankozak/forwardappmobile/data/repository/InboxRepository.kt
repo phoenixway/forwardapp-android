@@ -44,6 +44,12 @@ class InboxRepository
 
         suspend fun getInboxRecordsForContext(contextId: String): List<InboxRecord> = inboxRecordDao.getRecordsForContext(contextId)
 
+        suspend fun getInboxRecordsByIds(recordIds: List<String>): List<InboxRecord> {
+            if (recordIds.isEmpty()) return emptyList()
+            val byId = inboxRecordDao.getAll().associateBy { it.id }
+            return recordIds.mapNotNull(byId::get)
+        }
+
         suspend fun updateInboxRecordsOrder(
             contextId: String,
             orders: Map<String, Long>,
@@ -67,6 +73,12 @@ class InboxRepository
 
         suspend fun deleteInboxRecordById(recordId: String) {
             inboxRecordDao.deleteById(recordId)
+        }
+
+        suspend fun deleteInboxRecordsByIds(recordIds: List<String>): Int {
+            val uniqueIds = recordIds.distinct()
+            uniqueIds.forEach { inboxRecordDao.deleteById(it) }
+            return uniqueIds.size
         }
 
         @Transaction

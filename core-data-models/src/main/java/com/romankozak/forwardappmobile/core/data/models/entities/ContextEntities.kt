@@ -75,6 +75,7 @@ data class Goal(
     @ColumnInfo(defaultValue = "0.0") @SerializedName("rawScore") val rawScore: Float = 0f,
     @ColumnInfo(defaultValue = "0") @SerializedName("displayScore") val displayScore: Int = 0,
     @ColumnInfo(name = "scoring_status") @SerializedName("scoringStatus") val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
+    @ColumnInfo(defaultValue = "0") @SerializedName("relativeSize") val relativeSize: Int = 0,
     @ColumnInfo(defaultValue = "0.0") @SerializedName("parentValueImportance") val parentValueImportance: Float? = null,
     @ColumnInfo(defaultValue = "0.0") @SerializedName("impactOnParentGoal") val impactOnParentGoal: Float? = null,
     @ColumnInfo(defaultValue = "0.0") @SerializedName("timeCost") val timeCost: Float? = null,

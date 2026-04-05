@@ -268,7 +268,11 @@ class ItemActionHandler
         }
 
         fun onTransportCopyRequested() {
-            when (val item = _itemForTransportMenu.value) {
+            onTransportCopyRequested(_itemForTransportMenu.value)
+        }
+
+        fun onTransportCopyRequested(item: BacklogItemContent?) {
+            when (item) {
                 is BacklogItemContent.GoalItem ->
                     backlogClipboardUseCase.copyBacklogGoals(
                         sourceContextId = projectIdFlow.value,
@@ -291,7 +295,10 @@ class ItemActionHandler
         }
 
         fun onTransportCutRequested() {
-            val item = _itemForTransportMenu.value
+            onTransportCutRequested(_itemForTransportMenu.value)
+        }
+
+        fun onTransportCutRequested(item: BacklogItemContent?) {
             val backlogItemId = item?.backlogItem?.id
             if (backlogItemId.isNullOrBlank()) {
                 resultListener.showSnackbar("Для вирізання вибери ціль або посилання на контекст", null)

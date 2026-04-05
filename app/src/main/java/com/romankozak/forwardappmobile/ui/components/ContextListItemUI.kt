@@ -13,7 +13,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
-import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
@@ -96,27 +95,13 @@ fun ProjectRow(
             }
 
             Box(modifier = Modifier.weight(1f)) {
-                var textDidOverflow by remember(displayName) { mutableStateOf(false) }
-
-                if (textDidOverflow) {
-                    Icon(
-                        imageVector = Icons.Default.MoreHoriz,
-                        contentDescription = "Назва задовга: ${displayName?.text ?: list.name}",
-                        modifier = Modifier.padding(start = 4.dp),
-                    )
-                } else {
-                    Text(
-                        text = displayName ?: AnnotatedString(list.name),
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Clip,
-                        style = MaterialTheme.typography.bodyLarge,
-                        onTextLayout = { textLayoutResult ->
-
-                            textDidOverflow = textLayoutResult.didOverflowWidth
-                        },
-                    )
-                }
+                Text(
+                    text = displayName ?: AnnotatedString(list.name),
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
             }
 
             AnimatedVisibility(visible = showFocusButton, enter = fadeIn(), exit = fadeOut()) {

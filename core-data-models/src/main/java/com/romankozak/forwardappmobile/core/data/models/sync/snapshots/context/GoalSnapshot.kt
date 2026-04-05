@@ -27,6 +27,7 @@ data class GoalSnapshot(
     @SerializedName("weightRisk") val weightRisk: Float,
     @SerializedName("rawScore") val rawScore: Double,      // Double для точності
     @SerializedName("displayScore") val displayScore: Double, // Double для точності
+    @SerializedName("relativeSize") val relativeSize: Int = 0,
 
     // Parent Context
     @SerializedName("parentValueImportance") val parentValueImportance: Float?,

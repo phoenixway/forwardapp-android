@@ -30,6 +30,7 @@ fun Goal.toSnapshot(): GoalSnapshot = GoalSnapshot(
     // Double для збереження точності розрахунків
     rawScore = this.rawScore.toDouble(),
     displayScore = this.displayScore.toDouble(),
+    relativeSize = this.relativeSize,
 
     parentValueImportance = this.parentValueImportance,
     impactOnParentGoal = this.impactOnParentGoal,
@@ -67,4 +68,5 @@ fun GoalSnapshot.toEntity(): Goal = Goal(
 
     rawScore = this.rawScore.toFloat(),
     displayScore = this.displayScore.toInt(), // Конвертація Double назад в Int
+    relativeSize = this.relativeSize,
 )

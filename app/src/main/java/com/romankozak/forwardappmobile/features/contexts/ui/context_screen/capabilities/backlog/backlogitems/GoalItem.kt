@@ -5,8 +5,6 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
@@ -80,18 +78,10 @@ fun GoalItem(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                Icon(
-                    imageVector = Icons.Default.Flag,
-                    contentDescription = "Goal",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp),
-                )
-
-                Spacer(modifier = Modifier.width(16.dp))
-
                 Column(
                     modifier =
                         Modifier
+                            .weight(1f)
                             .padding(end = 48.dp) // Reserve space for the handle
                             .pointerInput(onItemClick, onLongClick) {
                                 detectTapGestures(

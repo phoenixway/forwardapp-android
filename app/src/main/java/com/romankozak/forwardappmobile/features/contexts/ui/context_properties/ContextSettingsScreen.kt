@@ -218,6 +218,10 @@ fun ProjectSettingsScreen(
                                 rawScore = uiState.rawScore,
                                 scoringStatus = uiState.scoringStatus,
                                 isScoringEnabled = uiState.isScoringEnabled,
+                                relativeSize = 0,
+                                isBeaconProgressExpanded = uiState.isBeaconProgressExpanded,
+                                isRelativeSizeExpanded = uiState.isRelativeSizeExpanded,
+                                showRelativeSizeSection = false,
                             ),
                         onViewModelAction = viewModel,
                     )

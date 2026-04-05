@@ -20,6 +20,12 @@ class ContextUtils
             contextMarkerToEmojiMap: Map<String, String>,
         ): ParsedTextData {
             val allMarkersToIcons = mutableMapOf<String, String>()
+            val knownContextMarkerStems =
+                contextMarkerToEmojiMap.keys
+                    .asSequence()
+                    .filter { it.startsWith("@") }
+                    .map { it.removePrefix("@").lowercase() }
+                    .toSet()
             val hardcodedIconsData = iconProvider.getIconMappings()
             hardcodedIconsData.forEach { (icon, markers) ->
                 markers.forEach { marker ->
@@ -27,6 +33,14 @@ class ContextUtils
                 }
             }
             allMarkersToIcons.putAll(contextMarkerToEmojiMap)
+            knownContextMarkerStems.forEach { stem ->
+                val atMarker = "@$stem"
+                val hashMarker = "#$stem"
+                val icon = contextMarkerToEmojiMap[atMarker] ?: contextMarkerToEmojiMap[atMarker.lowercase()]
+                if (icon != null && hashMarker !in allMarkersToIcons) {
+                    allMarkersToIcons[hashMarker] = icon
+                }
+            }
 
             val foundIcons = mutableSetOf<String>()
             val foundContextMarkers = linkedSetOf<String>()
@@ -43,11 +57,13 @@ class ContextUtils
             matches.forEach {
                 val marker = it.groupValues[2]
                 val icon = allMarkersToIcons[marker] ?: allMarkersToIcons[marker.lowercase()]
+                val normalizedStem = marker.removePrefix("@").removePrefix("#").lowercase()
+                val isKnownContextMarker = normalizedStem in knownContextMarkerStems
                 if (icon != null) {
                     foundIcons.add(icon)
                 }
-                if (marker.startsWith("@")) {
-                    foundContextMarkers.add(marker)
+                if (isKnownContextMarker && icon == null) {
+                    foundContextMarkers.add("@$normalizedStem")
                 }
             }
 

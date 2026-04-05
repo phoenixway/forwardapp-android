@@ -196,7 +196,15 @@ class ContextScreenViewModel
                 reminderParser,
                 alarmScheduler,
             )
-        val inboxHandler = InboxHandler(contextRepository, inboxRepository, viewModelScope, contextIdFlow, this)
+        val inboxHandler =
+            InboxHandler(
+                contextRepository = contextRepository,
+                inboxRepository = inboxRepository,
+                backlogClipboardUseCase = backlogClipboardUseCase,
+                scope = viewModelScope,
+                projectIdFlow = contextIdFlow,
+                listener = this,
+            )
         private val inboxMarkdownHandler by lazy {
             InboxMarkdownHandler(
                 scope = viewModelScope, // Тепер Hilt не свариться, ми передаємо scope самі

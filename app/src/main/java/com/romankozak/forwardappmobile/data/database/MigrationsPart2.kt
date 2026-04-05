@@ -734,3 +734,10 @@ val MIGRATION_111_112 =
             )
         }
     }
+
+val MIGRATION_112_113 =
+    object : Migration(112, 113) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `goals` ADD COLUMN `relativeSize` INTEGER NOT NULL DEFAULT 0")
+        }
+    }

@@ -5,6 +5,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,7 +14,14 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.OutlinedFlag
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.CheckBoxOutlineBlank
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.MoveUp
@@ -22,6 +30,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -50,6 +59,16 @@ fun InboxScreen(
     onPromoteToGoal: (InboxRecord) -> Unit,
     onRecordClick: (InboxRecord) -> Unit,
     onCopy: (String) -> Unit,
+    isSelectionMode: Boolean,
+    selectedRecordIds: Set<String>,
+    canPaste: Boolean,
+    onToggleSelection: (String) -> Unit,
+    onLongPress: (String) -> Unit,
+    onClearSelection: () -> Unit,
+    onSelectAll: () -> Unit,
+    onCopySelected: () -> Int,
+    onCutSelected: () -> Int,
+    onPaste: ((Int) -> Unit) -> Unit,
     listState: LazyListState,
     highlightedRecordId: String? = null,
 ) {
@@ -70,6 +89,46 @@ fun InboxScreen(
     }
 
     Scaffold(
+        topBar = {
+            if (isSelectionMode) {
+                InboxSelectionTopBar(
+                    selectedCount = selectedRecordIds.size,
+                    areAllSelected = records.isNotEmpty() && selectedRecordIds.size == records.size,
+                    canPaste = canPaste,
+                    onClearSelection = onClearSelection,
+                    onSelectAll = onSelectAll,
+                    onCopySelected = {
+                        val copied = onCopySelected()
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                if (copied > 0) "Скопійовано записів: $copied" else "Немає вибраних записів",
+                            )
+                        }
+                    },
+                    onCutSelected = {
+                        val cut = onCutSelected()
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                if (cut > 0) "Вирізано записів: $cut" else "Немає вибраних записів",
+                            )
+                        }
+                    },
+                    onPaste = {
+                        onPaste { insertedCount ->
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    if (insertedCount > 0) {
+                                        "Додано записів в інбокс: $insertedCount"
+                                    } else {
+                                        "Немає валідних елементів для вставки"
+                                    },
+                                )
+                            }
+                        }
+                    },
+                )
+            }
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = Modifier.fillMaxSize(),
         containerColor = Color.Transparent,
@@ -136,6 +195,10 @@ fun InboxScreen(
                                 snackbarHostState.showSnackbar("Текст скопійовано")
                             }
                         },
+                        isSelectionMode = isSelectionMode,
+                        isSelected = record.id in selectedRecordIds,
+                        onToggleSelection = { onToggleSelection(record.id) },
+                        onLongPress = { onLongPress(record.id) },
                         listState = listState,
                         index = index,
                         scope = scope,
@@ -160,6 +223,10 @@ fun InboxItemRow(
     onDelete: () -> Unit,
     onPromoteToGoal: () -> Unit,
     onCopy: () -> Unit,
+    isSelectionMode: Boolean,
+    isSelected: Boolean,
+    onToggleSelection: () -> Unit,
+    onLongPress: () -> Unit,
     listState: LazyListState,
     index: Int,
     scope: CoroutineScope,
@@ -195,10 +262,25 @@ fun InboxItemRow(
             Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 6.dp)
+                .combinedClickable(
+                    onClick = {
+                        if (isSelectionMode) {
+                            onToggleSelection()
+                        } else {
+                            onEdit()
+                        }
+                    },
+                    onLongClick = onLongPress,
+                )
                 .animateContentSize()
                 .border(
                     width = 1.dp,
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
+                    color =
+                        if (isSelected) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                        } else {
+                            MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
+                        },
                     shape = MaterialTheme.shapes.medium,
                 )
                 .onGloballyPositioned { layoutCoordinates ->
@@ -216,6 +298,22 @@ fun InboxItemRow(
                     .bringIntoViewRequester(bringIntoViewRequester)
                     .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
+            if (isSelectionMode) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    IconToggleButton(
+                        checked = isSelected,
+                        onCheckedChange = { onToggleSelection() },
+                    ) {
+                        Icon(
+                            imageVector = if (isSelected) Icons.Filled.CheckBox else Icons.Outlined.CheckBoxOutlineBlank,
+                            contentDescription = "Вибрати запис",
+                        )
+                    }
+                }
+            }
             Text(
                 text = record.text,
                 style =
@@ -248,43 +346,127 @@ fun InboxItemRow(
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(top = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SimpleIconButton(
-                        icon = Icons.Outlined.Edit,
-                        contentDescription = "Редагувати запис",
-                        onClick = onEdit,
-                        tint = MaterialTheme.colorScheme.secondary,
-                    )
-                    SimpleIconButton(
-                        icon = Icons.Outlined.MoveUp,
-                        contentDescription = "Перемістити до цілей",
-                        onClick = onPromoteToGoal,
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                }
+            if (!isSelectionMode) {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SimpleIconButton(
+                            icon = Icons.Outlined.Edit,
+                            contentDescription = "Редагувати запис",
+                            onClick = onEdit,
+                            tint = MaterialTheme.colorScheme.secondary,
+                        )
+                        SimpleIconButton(
+                            icon = Icons.Outlined.MoveUp,
+                            contentDescription = "Перемістити до цілей",
+                            onClick = onPromoteToGoal,
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SimpleIconButton(
-                        icon = Icons.Outlined.ContentCopy,
-                        contentDescription = "Скопіювати текст",
-                        onClick = onCopy,
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    SimpleIconButton(
-                        icon = Icons.Outlined.Delete,
-                        contentDescription = "Видалити запис",
-                        onClick = onDelete,
-                        tint = MaterialTheme.colorScheme.error,
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SimpleIconButton(
+                            icon = Icons.Outlined.ContentCopy,
+                            contentDescription = "Скопіювати текст",
+                            onClick = onCopy,
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        SimpleIconButton(
+                            icon = Icons.Outlined.Delete,
+                            contentDescription = "Видалити запис",
+                            onClick = onDelete,
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InboxSelectionTopBar(
+    selectedCount: Int,
+    areAllSelected: Boolean,
+    canPaste: Boolean,
+    onClearSelection: () -> Unit,
+    onSelectAll: () -> Unit,
+    onCopySelected: () -> Unit,
+    onCutSelected: () -> Unit,
+    onPaste: () -> Unit,
+) {
+    Surface(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .shadow(6.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 6.dp,
+    ) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp)
+                    .height(64.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(
+                onClick = onClearSelection,
+                modifier = Modifier.size(48.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = "Закрити режим вибору",
+                )
+            }
+
+            Text(
+                text = "$selectedCount вибрано",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            IconButton(
+                onClick = onSelectAll,
+                enabled = !areAllSelected,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.SelectAll,
+                    contentDescription = "Вибрати все",
+                )
+            }
+
+            IconButton(onClick = onCopySelected) {
+                Icon(
+                    imageVector = Icons.Outlined.ContentCopy,
+                    contentDescription = "Копіювати вибране",
+                )
+            }
+
+            IconButton(onClick = onCutSelected) {
+                Icon(
+                    imageVector = Icons.Filled.ContentCut,
+                    contentDescription = "Вирізати вибране",
+                )
+            }
+
+            IconButton(
+                onClick = onPaste,
+                enabled = canPaste,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.ContentPaste,
+                    contentDescription = "Вставити",
+                )
             }
         }
     }

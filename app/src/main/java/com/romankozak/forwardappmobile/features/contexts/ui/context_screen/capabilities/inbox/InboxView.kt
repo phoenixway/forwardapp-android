@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.ContextScreenViewModel
 
@@ -24,6 +23,16 @@ fun InboxView(
                 navigationManager.navigate("inbox_editor_screen/${record.id}")
             },
             onCopy = { text -> viewModel.copyInboxRecordText(text) },
+            isSelectionMode = state.isSelectionMode,
+            selectedRecordIds = state.selectedRecordIds,
+            canPaste = state.canPaste,
+            onToggleSelection = viewModel.inboxHandler::onToggleRecordSelection,
+            onLongPress = viewModel.inboxHandler::onSelectionLongPress,
+            onClearSelection = viewModel.inboxHandler::onClearSelection,
+            onSelectAll = viewModel.inboxHandler::onSelectAllForSelectionMode,
+            onCopySelected = viewModel.inboxHandler::copySelectedToClipboard,
+            onCutSelected = viewModel.inboxHandler::cutSelectedToClipboard,
+            onPaste = viewModel.inboxHandler::pasteFromClipboard,
             listState = state.listState,
             highlightedRecordId = state.highlightedRecordId,
         )

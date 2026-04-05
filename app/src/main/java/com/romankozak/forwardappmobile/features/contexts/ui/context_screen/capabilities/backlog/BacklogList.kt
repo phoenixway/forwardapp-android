@@ -75,8 +75,21 @@ fun BacklogListScreen(
                 is BacklogItemContent.ContextLinkItem -> selectedItem.project.isCompleted
                 else -> false
             }
+        val itemTitle =
+            when (selectedItem) {
+                is BacklogItemContent.GoalItem -> selectedItem.goal.text
+                is BacklogItemContent.ContextLinkItem -> selectedItem.project.name
+                is BacklogItemContent.LinkItem -> selectedItem.link.linkData.displayName ?: selectedItem.link.linkData.target
+                is BacklogItemContent.NoteItem -> selectedItem.note.title.ifBlank { selectedItem.note.content.take(48) }
+                is BacklogItemContent.NoteDocumentItem -> selectedItem.document.name
+                is BacklogItemContent.MusicNoteItem -> selectedItem.musicNote.name
+                is BacklogItemContent.ChecklistItem -> selectedItem.checklist.name
+            }
+        val canTransport =
+            selectedItem is BacklogItemContent.GoalItem || selectedItem is BacklogItemContent.ContextLinkItem
         BacklogItemActionsBottomSheet(
             onDismiss = { showBottomSheet = false },
+            itemTitle = itemTitle,
             isCompleted = isCompleted,
             onOpenGoalProperties =
                 if (selectedItem is BacklogItemContent.GoalItem) {
@@ -87,7 +100,8 @@ fun BacklogListScreen(
             onRemindersClick = { actions.onRemindersClick(selectedItem) },
             onAddToDayPlan = { actions.onAddToDayPlan(selectedItem) },
             onStartTracking = { actions.onStartTracking(selectedItem) },
-            onMoveOrShare = { actions.onShowGoalTransportMenu(selectedItem) },
+            onCopyTransport = if (canTransport) ({ actions.onCopyTransport(selectedItem) }) else null,
+            onCutTransport = if (canTransport) ({ actions.onCutTransport(selectedItem) }) else null,
             onToggleCompleted = { actions.onCheckedChange(selectedItem, !isCompleted) },
             onCopyContent = { actions.onCopyContent(selectedItem) },
             onDelete = { actions.onDelete(selectedItem) },
@@ -249,7 +263,8 @@ data class BacklogListActions(
     val onDeleteEverywhere: (BacklogItemContent) -> Unit,
     val onAddToDayPlan: (BacklogItemContent) -> Unit,
     val onStartTracking: (BacklogItemContent) -> Unit,
-    val onShowGoalTransportMenu: (BacklogItemContent) -> Unit,
+    val onCopyTransport: (BacklogItemContent) -> Unit,
+    val onCutTransport: (BacklogItemContent) -> Unit,
     val onRelatedLinkClick: (RelatedLink) -> Unit,
     val onRemindersClick: (BacklogItemContent) -> Unit,
     val onCopyContent: (BacklogItemContent) -> Unit,

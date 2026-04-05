@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.StickyNote2
 import androidx.compose.material3.Icon
@@ -21,10 +21,10 @@ import androidx.compose.ui.unit.dp
 internal fun NoteIndicatorBadge(modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier,
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f),
-        shadowElevation = 1.dp,
-        tonalElevation = 2.dp,
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.62f),
+        shadowElevation = 0.dp,
+        tonalElevation = 0.dp,
     ) {
         Box(
             modifier =
@@ -39,7 +39,7 @@ internal fun NoteIndicatorBadge(modifier: Modifier = Modifier) {
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.StickyNote2,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.86f),
                 modifier = Modifier.size(12.dp),
             )
         }

@@ -31,6 +31,8 @@ data class ContextSettingsUiState(
     val scoringStatus: String = ScoringStatusValues.NOT_ASSESSED,
     val rawScore: Float = 0f,
     val displayScore: Int = 0,
+    val isBeaconProgressExpanded: Boolean = true,
+    val isRelativeSizeExpanded: Boolean = true,
     val isDescriptionEditorOpen: Boolean = false,
     val reminderTime: Long? = null,
     val selectedTabIndex: Int = 0,

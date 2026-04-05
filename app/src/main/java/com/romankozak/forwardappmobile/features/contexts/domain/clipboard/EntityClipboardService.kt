@@ -21,6 +21,7 @@ enum class ClipboardEntityType {
     CHECKLIST_ITEM,
     DAY_TASK,
     TACTICAL_MISSION,
+    INBOX_RECORD,
 }
 
 sealed interface ClipboardEntityRef {
@@ -72,6 +73,12 @@ sealed interface ClipboardEntityRef {
         val missionId: Long,
     ) : ClipboardEntityRef {
         override val type: ClipboardEntityType = ClipboardEntityType.TACTICAL_MISSION
+    }
+
+    data class InboxRecord(
+        val recordId: String,
+    ) : ClipboardEntityRef {
+        override val type: ClipboardEntityType = ClipboardEntityType.INBOX_RECORD
     }
 }
 

@@ -20,6 +20,7 @@ import com.romankozak.forwardappmobile.data.repository.GoalRepository
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
+import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.ContextSettingsEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.utils.TagUtils
@@ -57,6 +58,7 @@ class GoalSettingsViewModel
         private val noteDocumentRepository: NoteDocumentRepository,
         private val musicNoteRepository: MusicNoteRepository,
         private val checklistRepository: ChecklistRepository,
+        private val settingsRepository: SettingsRepository,
         private val listItemDao: ListItemDao,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel(), EvaluationTabActions, RemindersTabActions {
@@ -117,6 +119,18 @@ class GoalSettingsViewModel
                     }
                 }
             }
+
+            viewModelScope.launch {
+                settingsRepository.goalBeaconProgressExpandedFlow.collect { isExpanded ->
+                    _uiState.update { it.copy(isBeaconProgressExpanded = isExpanded) }
+                }
+            }
+
+            viewModelScope.launch {
+                settingsRepository.goalRelativeSizeExpandedFlow.collect { isExpanded ->
+                    _uiState.update { it.copy(isRelativeSizeExpanded = isExpanded) }
+                }
+            }
         }
 
         private suspend fun loadAvailableTags() {
@@ -164,6 +178,7 @@ class GoalSettingsViewModel
                         displayScore = goal.displayScore,
                         scoringStatus = goal.scoringStatus,
                         isScoringEnabled = goal.scoringStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS,
+                        relativeSize = goal.relativeSize,
                     )
                 }
             } else {
@@ -207,7 +222,7 @@ class GoalSettingsViewModel
                 contextMarkerHandler.syncContextsOnUpdate(oldGoal = currentGoal!!, newGoal = goalToSave)
             } else {
                 initialProjectId ?: return
-                goalRepository.addGoalToContext(goalToSave.text, initialProjectId)
+                goalRepository.addGoalToContext(goalToSave, initialProjectId)
             }
         }
 
@@ -238,6 +253,7 @@ class GoalSettingsViewModel
                 weightCost = state.weightCost,
                 weightRisk = state.weightRisk,
                 scoringStatus = state.scoringStatus,
+                relativeSize = state.relativeSize,
             )
         }
 
@@ -264,6 +280,24 @@ class GoalSettingsViewModel
         override fun onScoringStatusChange(newStatus: String) {
             _uiState.update { it.copy(scoringStatus = newStatus, isScoringEnabled = newStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS) }
             updateScores()
+        }
+
+        override fun onRelativeSizeChange(value: Int) {
+            _uiState.update { it.copy(relativeSize = value.coerceIn(0, 5)) }
+        }
+
+        override fun onBeaconProgressExpandedChange(isExpanded: Boolean) {
+            _uiState.update { it.copy(isBeaconProgressExpanded = isExpanded) }
+            viewModelScope.launch {
+                settingsRepository.saveGoalBeaconProgressExpanded(isExpanded)
+            }
+        }
+
+        override fun onRelativeSizeExpandedChange(isExpanded: Boolean) {
+            _uiState.update { it.copy(isRelativeSizeExpanded = isExpanded) }
+            viewModelScope.launch {
+                settingsRepository.saveGoalRelativeSizeExpanded(isExpanded)
+            }
         }
 
         private fun onScoringParameterChange(update: (GoalSettingsUiState) -> GoalSettingsUiState) {

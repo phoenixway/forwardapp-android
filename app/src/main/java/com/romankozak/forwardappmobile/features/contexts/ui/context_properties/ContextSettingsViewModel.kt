@@ -285,6 +285,17 @@ class ContextSettingsViewModel
             }
         }
 
+        override fun onRelativeSizeChange(value: Int) {
+        }
+
+        override fun onBeaconProgressExpandedChange(isExpanded: Boolean) {
+            _uiState.update { it.copy(isBeaconProgressExpanded = isExpanded) }
+        }
+
+        override fun onRelativeSizeExpandedChange(isExpanded: Boolean) {
+            _uiState.update { it.copy(isRelativeSizeExpanded = isExpanded) }
+        }
+
         fun openDescriptionEditor() = _uiState.update { it.copy(isDescriptionEditorOpen = true) }
 
         fun closeDescriptionEditor() = _uiState.update { it.copy(isDescriptionEditorOpen = false) }

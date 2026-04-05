@@ -19,10 +19,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
@@ -51,6 +49,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -68,7 +67,6 @@ import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurfaceLayout
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTokens
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
 import kotlinx.coroutines.delay
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 
@@ -317,6 +315,7 @@ private fun InternalGoalItem(
                     val reminder = reminders.firstOrNull()
                     val shouldShowStatusIcons =
                         !isInlineEditing && ((goal.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
+                            (goal.relativeSize > 0) ||
                             (reminder != null) ||
                             (parsedData.icons.isNotEmpty()) ||
                             (!goal.description.isNullOrBlank()) ||
@@ -332,37 +331,28 @@ private fun InternalGoalItem(
                                     parsedData = parsedData,
                                     reminder = reminder,
                                     emojiToHide = null,
-                                    leadingChips =
-                                        listOf(
-                                            UnifiedStatusChipSpec(
-                                                text = "",
-                                                icon = Icons.Default.Flag,
-                                                contentColor =
-                                                    if (goal.completed) completedColors.iconTint else MaterialTheme.colorScheme.primary,
-                                            ),
-                                        ),
                                     onRelatedLinkClick = onRelatedLinkClick,
                                 )
                             }
                         }
                     }
                 }
-
                 if (!isInlineEditing) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
                         contentDescription = "More actions",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
                         modifier =
                             with(reorderableScope) {
                                 Modifier.draggableHandle(
                                     onDragStarted = {
                                         hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                                     },
-                                        onDragStopped = { onDragStopped() },
-                                    )
+                                    onDragStopped = { onDragStopped() },
+                                )
                             }
-                                .size(20.dp)
-                                .alpha(if (goal.completed) 0.5f else 1f)
+                                .size(18.dp)
+                                .alpha(if (goal.completed) 0.42f else 0.78f)
                                 .clickable(onClick = onMoreClick),
                     )
                 }
@@ -518,7 +508,10 @@ private fun InternalSubprojectItem(
 
                     Text(
                         text = enrichedParsedData.mainText,
-                        style = MaterialTheme.typography.bodyLarge,
+                        style =
+                            MaterialTheme.typography.bodyLarge.copy(
+                                fontStyle = FontStyle.Italic,
+                            ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         textDecoration = if (subproject.isCompleted) TextDecoration.LineThrough else null,
@@ -527,33 +520,22 @@ private fun InternalSubprojectItem(
 
                     val reminder = reminders.firstOrNull()
                     Column {
-                        Column {
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Box(modifier = if (subproject.isCompleted) Modifier.alpha(0.6f) else Modifier) {
-                                StatusIconsRow(
-                                    project = subproject,
-                                    parsedData = enrichedParsedData,
-                                    reminder = reminder,
-                                    emojiToHide = null,
-                                    leadingChips =
-                                        listOf(
-                                            UnifiedStatusChipSpec(
-                                                text = "",
-                                                icon = Icons.Default.AccountTree,
-                                                contentColor =
-                                                    if (subproject.isCompleted) completedColors.iconTint else MaterialTheme.colorScheme.secondary,
-                                            ),
-                                        ),
-                                    onRelatedLinkClick = onRelatedLinkClick,
-                                )
-                            }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Box(modifier = if (subproject.isCompleted) Modifier.alpha(0.6f) else Modifier) {
+                            StatusIconsRow(
+                                project = subproject,
+                                parsedData = enrichedParsedData,
+                                reminder = reminder,
+                                emojiToHide = null,
+                                onRelatedLinkClick = onRelatedLinkClick,
+                            )
                         }
                     }
                 }
-
                 Icon(
                     imageVector = Icons.Default.MoreVert,
                     contentDescription = "More actions",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
                     modifier =
                         with(reorderableScope) {
                             Modifier.draggableHandle(
@@ -563,8 +545,8 @@ private fun InternalSubprojectItem(
                                 onDragStopped = { onDragStopped() },
                             )
                         }
-                            .size(20.dp)
-                            .alpha(if (subproject.isCompleted) 0.5f else 1f)
+                            .size(18.dp)
+                            .alpha(if (subproject.isCompleted) 0.42f else 0.78f)
                             .clickable(
                                 onClick = {
                                     Log.d(

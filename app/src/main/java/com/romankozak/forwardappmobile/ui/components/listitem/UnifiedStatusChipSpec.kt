@@ -23,6 +23,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
+private val StatusChipShape = RoundedCornerShape(10.dp)
+private val StatusChipHeight = 24.dp
+private val StatusChipCompactHorizontalPadding = 6.dp
+private val StatusChipHorizontalPadding = 8.dp
+private val StatusChipVerticalPadding = 4.dp
+private val StatusChipIconSize = 12.dp
+
 data class UnifiedStatusChipSpec(
     val text: String,
     val icon: ImageVector? = null,
@@ -40,6 +47,7 @@ fun UnifiedStatusRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
+        itemVerticalAlignment = Alignment.CenterVertically,
         content = content,
     )
 }
@@ -70,8 +78,8 @@ fun UnifiedMetaChip(
     onClick: (() -> Unit)? = null,
 ) {
     Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.68f),
+        shape = StatusChipShape,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.56f),
         border = null,
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
@@ -82,14 +90,14 @@ fun UnifiedMetaChip(
             modifier =
                 if (text.isBlank()) {
                     Modifier
-                        .height(24.dp)
-                        .heightIn(min = 24.dp)
-                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                        .height(StatusChipHeight)
+                        .heightIn(min = StatusChipHeight)
+                        .padding(horizontal = StatusChipCompactHorizontalPadding, vertical = StatusChipVerticalPadding)
                 } else {
                     Modifier
-                        .height(24.dp)
-                        .heightIn(min = 24.dp)
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .height(StatusChipHeight)
+                        .heightIn(min = StatusChipHeight)
+                        .padding(horizontal = StatusChipHorizontalPadding, vertical = StatusChipVerticalPadding)
                 },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -98,7 +106,7 @@ fun UnifiedMetaChip(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    modifier = Modifier.size(12.dp),
+                    modifier = Modifier.size(StatusChipIconSize),
                     tint = contentColor,
                 )
             }

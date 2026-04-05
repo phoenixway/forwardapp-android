@@ -96,7 +96,8 @@ class BacklogClipboardUseCase
                     it is ClipboardEntityRef.BacklogAttachment ||
                     it is ClipboardEntityRef.ChecklistItem ||
                     it is ClipboardEntityRef.DayTask ||
-                    it is ClipboardEntityRef.TacticalMission
+                    it is ClipboardEntityRef.TacticalMission ||
+                    it is ClipboardEntityRef.InboxRecord
             }
 
         fun canPasteIntoBacklog(targetContextId: String): Boolean {
@@ -154,7 +155,8 @@ class BacklogClipboardUseCase
                         it is ClipboardEntityRef.DirectionItem ||
                         it is ClipboardEntityRef.ChecklistItem ||
                         it is ClipboardEntityRef.DayTask ||
-                        it is ClipboardEntityRef.TacticalMission
+                        it is ClipboardEntityRef.TacticalMission ||
+                        it is ClipboardEntityRef.InboxRecord
                 }
             }
         }
@@ -252,6 +254,36 @@ class BacklogClipboardUseCase
             listItemIds: List<String>,
         ) {
             val refs = listItemIds.distinct().map { ClipboardEntityRef.BacklogItem(listItemId = it) }
+            clipboardService.set(
+                EntityClipboardPayload(
+                    sourceContextId = sourceContextId,
+                    operation = ClipboardOperation.CUT,
+                    entities = refs,
+                ),
+            )
+        }
+
+        fun copyInboxRecords(
+            sourceContextId: String,
+            recordIds: List<String>,
+        ) {
+            val refs = recordIds.distinct().map { ClipboardEntityRef.InboxRecord(recordId = it) }
+            if (refs.isEmpty()) return
+            clipboardService.set(
+                EntityClipboardPayload(
+                    sourceContextId = sourceContextId,
+                    operation = ClipboardOperation.COPY,
+                    entities = refs,
+                ),
+            )
+        }
+
+        fun cutInboxRecords(
+            sourceContextId: String,
+            recordIds: List<String>,
+        ) {
+            val refs = recordIds.distinct().map { ClipboardEntityRef.InboxRecord(recordId = it) }
+            if (refs.isEmpty()) return
             clipboardService.set(
                 EntityClipboardPayload(
                     sourceContextId = sourceContextId,
@@ -574,6 +606,7 @@ class BacklogClipboardUseCase
                 backlogGoalRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogGoal>(),
                 backlogItemRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogItem>(),
                 contextRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogContextLink>(),
+                inboxRefs = payload.entities.filterIsInstance<ClipboardEntityRef.InboxRecord>(),
                 operation = payload.operation,
             )
             if (textItems.isEmpty()) return 0
@@ -660,6 +693,7 @@ class BacklogClipboardUseCase
                     backlogGoalRefs = emptyList(),
                     backlogItemRefs = emptyList(),
                     contextRefs = emptyList(),
+                    inboxRefs = emptyList(),
                     operation = ClipboardOperation.COPY,
                 )
 
@@ -820,6 +854,7 @@ class BacklogClipboardUseCase
                     backlogGoalRefs = emptyList(),
                     backlogItemRefs = emptyList(),
                     contextRefs = emptyList(),
+                    inboxRefs = emptyList(),
                     operation = ClipboardOperation.CUT,
                 )
 
@@ -1033,6 +1068,7 @@ class BacklogClipboardUseCase
                     backlogGoalRefs = emptyList(),
                     backlogItemRefs = emptyList(),
                     contextRefs = emptyList(),
+                    inboxRefs = emptyList(),
                     operation = ClipboardOperation.COPY,
                 )
 
@@ -1167,6 +1203,7 @@ class BacklogClipboardUseCase
                     backlogGoalRefs = emptyList(),
                     backlogItemRefs = emptyList(),
                     contextRefs = emptyList(),
+                    inboxRefs = emptyList(),
                     operation = ClipboardOperation.CUT,
                 )
             val checklistItemsToDelete = mutableListOf<String>()
@@ -1553,10 +1590,15 @@ class BacklogClipboardUseCase
                     requestedIds.mapNotNull(byId::get)
                 }
 
+        private suspend fun loadInboxRecords(refs: List<ClipboardEntityRef.InboxRecord>) =
+            refs.map { it.recordId }
+                .let { recordIds -> inboxRepository.getInboxRecordsByIds(recordIds) }
+
         private data class StructuredTextClipboardItem(
             val text: String,
             val dayTaskIdToDelete: String? = null,
             val tacticalMissionIdToDelete: Long? = null,
+            val inboxRecordIdToDelete: String? = null,
         )
 
         private suspend fun resolveStructuredTextClipboardItems(
@@ -1567,11 +1609,13 @@ class BacklogClipboardUseCase
             backlogGoalRefs: List<ClipboardEntityRef.BacklogGoal>,
             backlogItemRefs: List<ClipboardEntityRef.BacklogItem>,
             contextRefs: List<ClipboardEntityRef.BacklogContextLink>,
+            inboxRefs: List<ClipboardEntityRef.InboxRecord> = emptyList(),
             operation: ClipboardOperation,
         ): List<StructuredTextClipboardItem> {
             val result = mutableListOf<StructuredTextClipboardItem>()
             val directionById = loadDirectionItems(directionRefs).associateBy { it.id }
             val checklistById = loadChecklistItems(checklistRefs).associateBy { it.id }
+            val inboxById = loadInboxRecords(inboxRefs).associateBy { it.id }
             val backlogItemsById = listItemRepository.getItemsByIds(backlogItemRefs.map { it.listItemId }).associateBy { it.id }
             val goalTexts = backlogGoalRefs.associate { it.goalId to goalRepository.getGoalById(it.goalId)?.text.orEmpty() }
             val contextNames = contextRefs.associate { it.contextId to contextRepository.getContextById(it.contextId)?.name.orEmpty() }
@@ -1588,6 +1632,13 @@ class BacklogClipboardUseCase
                 val text = mission.title.trim().ifBlank { mission.description?.trim().orEmpty() }
                 if (text.isNotBlank()) {
                     result += StructuredTextClipboardItem(text = text, tacticalMissionIdToDelete = if (operation == ClipboardOperation.CUT) mission.id else null)
+                }
+            }
+            inboxRefs.forEach { ref ->
+                val record = inboxById[ref.recordId] ?: return@forEach
+                val text = record.text.trim()
+                if (text.isNotBlank()) {
+                    result += StructuredTextClipboardItem(text = text, inboxRecordIdToDelete = if (operation == ClipboardOperation.CUT) record.id else null)
                 }
             }
             directionRefs.forEach { ref ->
@@ -1640,6 +1691,10 @@ class BacklogClipboardUseCase
             }
             items.mapNotNull { it.tacticalMissionIdToDelete }.distinct().forEach { missionId ->
                 missionRepository.deleteMissionById(missionId)
+                moved += 1
+            }
+            items.mapNotNull { it.inboxRecordIdToDelete }.distinct().forEach { recordId ->
+                inboxRepository.deleteInboxRecordById(recordId)
                 moved += 1
             }
             return moved

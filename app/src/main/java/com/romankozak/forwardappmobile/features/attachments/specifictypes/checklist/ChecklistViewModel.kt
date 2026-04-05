@@ -11,6 +11,7 @@ import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.DirectionRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.repository.InboxRepository
 import com.romankozak.forwardappmobile.data.repository.ListItemRepository
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
@@ -62,6 +63,7 @@ class ChecklistViewModel
         private val musicNoteRepository: MusicNoteRepository,
         private val contextRepository: ContextRepository,
         private val goalRepository: GoalRepository,
+        private val inboxRepository: InboxRepository,
         private val listItemRepository: ListItemRepository,
         private val directionRepository: DirectionRepository,
         private val dayManagementRepository: DayManagementRepository,
@@ -478,6 +480,9 @@ class ChecklistViewModel
                                 missionRepository.deleteMissionById(missionId)
                             }
                         }
+                        if (resolved.inboxRecordIdsToDelete.isNotEmpty()) {
+                            inboxRepository.deleteInboxRecordsByIds(resolved.inboxRecordIdsToDelete)
+                        }
                         entityClipboardService.clear()
                         onResult("Переміщено елементів: $movedCount")
                     }
@@ -492,6 +497,7 @@ class ChecklistViewModel
             val directionItemIdToDelete: String? = null,
             val dayTaskIdToDelete: String? = null,
             val tacticalMissionIdToDelete: Long? = null,
+            val inboxRecordIdToDelete: String? = null,
         )
 
         private data class ResolvedChecklistPastePayload(
@@ -502,6 +508,7 @@ class ChecklistViewModel
             val directionItemIdsToDelete: List<String>,
             val dayTaskIdsToDelete: List<String>,
             val tacticalMissionIdsToDelete: List<Long>,
+            val inboxRecordIdsToDelete: List<String>,
         )
 
         private suspend fun resolveChecklistPastePayload(
@@ -625,6 +632,18 @@ class ChecklistViewModel
                         }
                     }
 
+                    is ClipboardEntityRef.InboxRecord -> {
+                        val record = inboxRepository.getInboxRecordById(ref.recordId) ?: return@forEach
+                        val text = record.text.trim()
+                        if (text.isNotBlank()) {
+                            itemsToInsert +=
+                                ChecklistPasteSourceItem(
+                                    content = text,
+                                    inboxRecordIdToDelete = if (payload.operation == ClipboardOperation.CUT) record.id else null,
+                                )
+                        }
+                    }
+
                     is ClipboardEntityRef.BacklogAttachment -> Unit
                 }
             }
@@ -637,6 +656,7 @@ class ChecklistViewModel
                 directionItemIdsToDelete = itemsToInsert.mapNotNull { it.directionItemIdToDelete }.distinct(),
                 dayTaskIdsToDelete = itemsToInsert.mapNotNull { it.dayTaskIdToDelete }.distinct(),
                 tacticalMissionIdsToDelete = itemsToInsert.mapNotNull { it.tacticalMissionIdToDelete }.distinct(),
+                inboxRecordIdsToDelete = itemsToInsert.mapNotNull { it.inboxRecordIdToDelete }.distinct(),
             )
         }
 

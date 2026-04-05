@@ -8,11 +8,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ElectricBolt
@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -48,10 +49,10 @@ fun EnhancedScoreStatusBadge(
                 val animatedColor by animateColorAsState(
                     targetValue =
                         when {
-                            displayScore >= 80 -> Color(0xFF4CAF50)
-                            displayScore >= 60 -> Color(0xFFFF9800)
-                            displayScore >= 40 -> Color(0xFFFFEB3B)
-                            else -> Color(0xFFE91E63)
+                            displayScore >= 80 -> MaterialTheme.colorScheme.tertiary
+                            displayScore >= 60 -> MaterialTheme.colorScheme.secondary
+                            displayScore >= 40 -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.error
                         },
                     label = "score_color",
                 )
@@ -106,8 +107,8 @@ fun EnhancedScoreStatusBadge(
         }
         ScoringStatusValues.IMPOSSIBLE_TO_ASSESS -> {
             Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                shape = RoundedCornerShape(10.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.52f),
                 modifier =
                     Modifier
                         .semantics {
@@ -115,18 +116,71 @@ fun EnhancedScoreStatusBadge(
                         }
                         .height(24.dp),
             ) {
-                Icon(
-                    imageVector = Icons.Default.FlashOff,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                Box(
                     modifier =
                         Modifier
-                            .size(16.dp)
-                            .padding(horizontal = 4.dp),
-                )
+                            .padding(horizontal = 6.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FlashOff,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        modifier = Modifier.size(12.dp),
+                    )
+                }
             }
         }
         ScoringStatusValues.NOT_ASSESSED -> {
         }
     }
+}
+
+@Composable
+fun RelativeSizeBadge(relativeSize: Int) {
+    if (relativeSize <= 0) return
+
+    val tint = MaterialTheme.colorScheme.secondary
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = tint.copy(alpha = 0.12f),
+        border = BorderStroke(0.6.dp, tint.copy(alpha = 0.22f)),
+        modifier =
+            Modifier.semantics {
+                contentDescription = "Відносний розмір: $relativeSize з 5"
+            }.height(24.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            DiamondBadgeGlyph(
+                tint = tint,
+                modifier = Modifier.size(8.dp),
+            )
+            Text(
+                text = "$relativeSize/5",
+                style =
+                    MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.1.sp,
+                    ),
+                color = tint,
+            )
+        }
+    }
+}
+
+@Composable
+private fun DiamondBadgeGlyph(
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.rotate(45f),
+        shape = RoundedCornerShape(2.dp),
+        color = tint.copy(alpha = 0.92f),
+        border = BorderStroke(0.5.dp, tint.copy(alpha = 0.7f)),
+    ) {}
 }
