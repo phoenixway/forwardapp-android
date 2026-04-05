@@ -89,6 +89,7 @@ fun TacticalManagementScreen(
     val boardLinkedAttachmentIds by viewModel.boardLinkedAttachmentIds.collectAsStateWithLifecycle()
     val connectionsOrder by viewModel.connectionsOrder.collectAsStateWithLifecycle()
     val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsStateWithLifecycle()
+    val missionReminderTimes by viewModel.missionReminderTimes.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val showAddDialog by viewModel.isAddMissionDialogOpen.collectAsStateWithLifecycle()
     val pendingScrollToMissionId by viewModel.pendingScrollToMissionId.collectAsStateWithLifecycle()
@@ -503,6 +504,13 @@ fun TacticalManagementScreen(
                 mission = mission,
                 attachmentOptions = attachmentOptions,
                 projectOptions = projectOptions,
+                reminderTime = missionReminderTimes[mission.id],
+                onSetReminder = { reminderTime ->
+                    viewModel.setMissionReminder(mission.id, reminderTime)
+                },
+                onClearReminder = {
+                    viewModel.clearMissionReminder(mission.id)
+                },
                 onDismiss = { editingMission = null },
                 onConfirm = { title, desc, deadline, status, projects, attachments ->
                     viewModel.updateMission(

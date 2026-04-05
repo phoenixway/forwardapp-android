@@ -30,6 +30,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Description
@@ -73,6 +74,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
+import com.romankozak.forwardappmobile.features.reminders.components.ReminderSection
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -84,6 +86,9 @@ fun MissionEditorScreen(
     mission: TacticalMission,
     attachmentOptions: List<AttachmentOption>,
     projectOptions: List<ProjectOption>,
+    reminderTime: Long?,
+    onSetReminder: (Long) -> Unit,
+    onClearReminder: () -> Unit,
     onDismiss: () -> Unit,
     onConfirm: (String, String, Long, MissionStatus, List<String>, List<String>) -> Unit,
     onCreateRootContext: (suspend (String) -> String?)? = null,
@@ -425,6 +430,78 @@ fun MissionEditorScreen(
                                     )
                                 }
                             }
+                        }
+                    }
+
+                    Card(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .shadow(
+                                    elevation = 4.dp,
+                                    shape = RoundedCornerShape(20.dp),
+                                    spotColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
+                                ),
+                        shape = RoundedCornerShape(20.dp),
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.22f),
+                            ),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.16f)),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.Notifications,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.secondary,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
+                                Column {
+                                    Text(
+                                        "Нагадування",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    Text(
+                                        "Окреме сповіщення для цієї місії",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+
+                            ReminderSection(
+                                reminderTime = reminderTime,
+                                onSetReminder = { year, month, day, hour, minute ->
+                                    val calendar =
+                                        Calendar.getInstance().apply {
+                                            set(Calendar.YEAR, year)
+                                            set(Calendar.MONTH, month)
+                                            set(Calendar.DAY_OF_MONTH, day)
+                                            set(Calendar.HOUR_OF_DAY, hour)
+                                            set(Calendar.MINUTE, minute)
+                                            set(Calendar.SECOND, 0)
+                                            set(Calendar.MILLISECOND, 0)
+                                        }
+                                    onSetReminder(calendar.timeInMillis)
+                                },
+                                onClearReminder = onClearReminder,
+                            )
                         }
                     }
 

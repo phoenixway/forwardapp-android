@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import com.romankozak.forwardappmobile.BuildConfig
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -21,6 +22,8 @@ import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
+
+private const val TACTICAL_MISSION_REMINDER_TYPE = "TACTICAL_MISSION"
 
 @Singleton
 class AlarmScheduler
@@ -30,9 +33,11 @@ class AlarmScheduler
         private val contextRepositoryProvider: Provider<ContextRepository>,
         private val dayManagementRepository: com.romankozak.forwardappmobile.data.repository.DayManagementRepository,
         private val goalRepositoryProvider: Provider<com.romankozak.forwardappmobile.data.repository.GoalRepository>,
+        private val missionRepositoryProvider: Provider<MissionRepository>,
     ) : AlarmSchedulerInterface {
         private val alarmManager = context.getSystemService(AlarmManager::class.java)
         private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository by lazy { goalRepositoryProvider.get() }
+        private val missionRepository: MissionRepository by lazy { missionRepositoryProvider.get() }
         private val tag = "ReminderFlow"
 
         suspend fun schedule(reminder: Reminder) {
@@ -83,6 +88,10 @@ class AlarmScheduler
                             "TASK" -> {
                                 val task = dayManagementRepository.getTaskById(reminder.entityId)
                                 Triple(task?.title, task?.description, "📅")
+                            }
+                            TACTICAL_MISSION_REMINDER_TYPE -> {
+                                val mission = reminder.entityId.toLongOrNull()?.let { missionRepository.getMissionById(it) }
+                                Triple(mission?.title, mission?.description, "🛰")
                             }
                             else -> Triple("Reminder", "You have a reminder", "🔔")
                         }

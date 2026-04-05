@@ -14,6 +14,7 @@ import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
+import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -57,7 +59,12 @@ class TacticalMissionViewModel
         private val checklistRepository: ChecklistRepository,
         private val settingsRepository: SettingsRepository,
         private val backlogClipboardUseCase: BacklogClipboardUseCase,
+        private val reminderRepository: ReminderRepository,
     ) : ViewModel() {
+        companion object {
+            const val MISSION_REMINDER_ENTITY_TYPE = "TACTICAL_MISSION"
+        }
+
         private val _missions = MutableStateFlow<List<TacticalMission>>(emptyList())
         val missions: StateFlow<List<TacticalMission>> = _missions.asStateFlow()
         private val allContexts =
@@ -132,6 +139,26 @@ class TacticalMissionViewModel
                     scope = viewModelScope,
                     started = SharingStarted.Eagerly,
                     initialValue = emptyList(),
+                )
+        val missionReminderTimes: StateFlow<Map<Long, Long>> =
+            reminderRepository.getAllReminders()
+                .combine(missions) { reminders, currentMissions ->
+                    val existingMissionIds = currentMissions.map { it.id.toString() }.toSet()
+                    reminders
+                        .asSequence()
+                        .filter { it.entityType == MISSION_REMINDER_ENTITY_TYPE }
+                        .filter { it.entityId in existingMissionIds }
+                        .groupBy { it.entityId }
+                        .mapNotNull { (entityId, entityReminders) ->
+                            val reminderTime = entityReminders.minOfOrNull { it.reminderTime } ?: return@mapNotNull null
+                            entityId.toLongOrNull()?.let { missionId ->
+                                missionId to reminderTime
+                            }
+                        }.toMap()
+                }.stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.Eagerly,
+                    initialValue = emptyMap(),
                 )
 
         private val _isScopeLinksSheetVisible = MutableStateFlow(false)
@@ -302,7 +329,29 @@ class TacticalMissionViewModel
 
         fun deleteMission(missionId: Long) {
             viewModelScope.launch {
+                reminderRepository.clearRemindersForEntity(missionId.toString())
                 deleteTacticalMissionUseCase(missionId)
+            }
+        }
+
+        fun setMissionReminder(
+            missionId: Long,
+            reminderTime: Long,
+        ) {
+            val entityId = missionId.toString()
+            viewModelScope.launch {
+                reminderRepository.clearRemindersForEntity(entityId)
+                reminderRepository.createReminder(
+                    entityId = entityId,
+                    entityType = MISSION_REMINDER_ENTITY_TYPE,
+                    reminderTime = reminderTime,
+                )
+            }
+        }
+
+        fun clearMissionReminder(missionId: Long) {
+            viewModelScope.launch {
+                reminderRepository.clearRemindersForEntity(missionId.toString())
             }
         }
 
