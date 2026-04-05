@@ -55,8 +55,6 @@ class ItemActionHandler
             )
         }
 
-        private var recentlyDeletedItems: List<BacklogItemContent>? = null
-
         private val _goalActionDialogState = MutableStateFlow<GoalActionDialogState>(GoalActionDialogState.Hidden)
         val goalActionDialogState = _goalActionDialogState.asStateFlow()
 
@@ -169,7 +167,6 @@ class ItemActionHandler
 
         fun deleteItem(item: BacklogItemContent) {
             scope.launch {
-                recentlyDeletedItems = listOf(item)
                 val currentProjectId = projectIdFlow.value
                 val isAttachment =
                     item is BacklogItemContent.LinkItem ||
@@ -181,6 +178,7 @@ class ItemActionHandler
                     resultListener.forceRefresh()
                     resultListener.showSnackbar("Вкладення видалено з проєкту", null)
                 } else {
+                    resultListener.applyOptimisticDeletion(listOf(item))
                     contextRepository.deleteListItemsFromContext(currentProjectId, listOf(item.backlogItem.id))
                     resultListener.showSnackbar("Елемент видалено", "Скасувати")
                 }
@@ -527,16 +525,5 @@ class ItemActionHandler
                 }
             }
             onDismissGoalActionDialogs()
-        }
-
-        fun undoDelete() {
-            scope.launch {
-                recentlyDeletedItems?.let { itemsToRestore ->
-                    val listItemsToRestore = itemsToRestore.map { it.backlogItem }
-                    contextRepository.restoreListItems(listItemsToRestore)
-                    resultListener.forceRefresh()
-                }
-                recentlyDeletedItems = null
-            }
         }
     }

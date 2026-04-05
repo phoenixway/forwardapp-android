@@ -6,6 +6,8 @@ interface BaseHandlerResultListener {
         action: String?,
     )
 
+    fun applyOptimisticDeletion(items: List<com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent>)
+
     fun forceRefresh()
 
     fun copyToClipboard(

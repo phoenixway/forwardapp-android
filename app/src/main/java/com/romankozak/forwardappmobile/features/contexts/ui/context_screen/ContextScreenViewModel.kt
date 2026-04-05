@@ -163,6 +163,14 @@ class ContextScreenViewModel
         val listContent: StateFlow<List<BacklogItemContent>> = _listContent.asStateFlow()
         private val _attachmentItems = MutableStateFlow<List<BacklogItemContent>>(emptyList())
         val attachmentItems: StateFlow<List<BacklogItemContent>> = _attachmentItems.asStateFlow()
+        private val pendingDeletedItemIds = MutableStateFlow<Set<String>>(emptySet())
+        private var pendingDeletedSnapshot: PendingDeletedSnapshot? = null
+
+        private data class PendingDeletedSnapshot(
+            val items: List<BacklogItemContent>,
+            val listContent: List<BacklogItemContent>,
+            val attachmentItems: List<BacklogItemContent>,
+        )
         val itemActionHandler =
             ItemActionHandler(
                 contextRepository = contextRepository,
@@ -598,9 +606,10 @@ class ContextScreenViewModel
                                 contextDataApplyActions.applyLoaded(
                                     data = data,
                                     setListContent = { observed ->
-                                        _listContent.value = backlogDndCoordinator.applyObserved(observed, _listContent.value)
+                                        val filteredObserved = filterPendingDeleted(observed)
+                                        _listContent.value = backlogDndCoordinator.applyObserved(filteredObserved, _listContent.value)
                                     },
-                                    setAttachmentItems = { _attachmentItems.value = it },
+                                    setAttachmentItems = { _attachmentItems.value = filterPendingDeleted(it) },
                                 )
                             is ContextData.Empty ->
                                 contextDataApplyActions.applyEmpty(
@@ -613,6 +622,12 @@ class ContextScreenViewModel
                         }
                     }
             }
+        }
+
+        private fun filterPendingDeleted(items: List<BacklogItemContent>): List<BacklogItemContent> {
+            val pendingIds = pendingDeletedItemIds.value
+            if (pendingIds.isEmpty()) return items
+            return items.filterNot { it.backlogItem.id in pendingIds }
         }
 
         override fun onBackPressed(): Boolean {
@@ -658,7 +673,33 @@ class ContextScreenViewModel
             viewModelScope.launch { uiEventActions.emit(UiEvent.ShowSnackbar(message, actionLabel)) }
         }
 
+        override fun applyOptimisticDeletion(items: List<BacklogItemContent>) {
+            if (items.isEmpty()) return
+            val deletedIds = items.map { it.backlogItem.id }.toSet()
+            pendingDeletedSnapshot =
+                PendingDeletedSnapshot(
+                    items = items,
+                    listContent = _listContent.value,
+                    attachmentItems = _attachmentItems.value,
+                )
+            pendingDeletedItemIds.value = deletedIds
+            _listContent.value = _listContent.value.filterNot { it.backlogItem.id in deletedIds }
+            _attachmentItems.value = _attachmentItems.value.filterNot { it.backlogItem.id in deletedIds }
+        }
+
         override fun showSnackbar(message: String) = showSnackbar(message, null)
+
+        fun undoDelete() {
+            val snapshot = pendingDeletedSnapshot ?: return
+            pendingDeletedSnapshot = null
+            pendingDeletedItemIds.value = emptySet()
+            _listContent.value = snapshot.listContent
+            _attachmentItems.value = snapshot.attachmentItems
+            viewModelScope.launch {
+                contextRepository.restoreListItems(snapshot.items.map { it.backlogItem })
+                forceRefresh()
+            }
+        }
 
         override fun scrollToListEnd() {
             viewModelScope.launch { uiEventActions.tryEmit(UiEvent.ScrollToLatestInboxRecord) }

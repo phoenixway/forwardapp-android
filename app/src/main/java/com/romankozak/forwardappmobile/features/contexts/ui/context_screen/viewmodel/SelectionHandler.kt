@@ -186,9 +186,14 @@ class SelectionHandler(
         if (selectedIds.isEmpty()) return
         Log.d(TAG, "ДІЯ: deleteSelectedItems для ${selectedIds.size} елементів.")
 
+        val itemsToDelete =
+            listContentFlow.value
+                .filter { it.backlogItem.id in selectedIds }
+
         clearSelection()
 
         scope.launch {
+            resultListener.applyOptimisticDeletion(itemsToDelete)
             contextRepository.deleteListItemsFromContext(projectIdFlow.value, selectedIds.toList())
             resultListener.showSnackbar("Видалено елементів: ${selectedIds.size}", "Скасувати")
         }

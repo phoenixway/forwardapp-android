@@ -185,7 +185,7 @@ private fun ContextScreenUiEventsEffect(
                         if (result == SnackbarResult.ActionPerformed) {
                             when (event.action) {
                                 "Обмежити в часі" -> viewModel.onLimitLastActivityRequested()
-                                else -> viewModel.itemActionHandler.undoDelete()
+                                else -> viewModel.undoDelete()
                             }
                         }
                     }
