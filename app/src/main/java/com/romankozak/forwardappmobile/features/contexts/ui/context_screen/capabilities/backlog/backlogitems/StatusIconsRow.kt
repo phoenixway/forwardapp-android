@@ -37,6 +37,7 @@ private fun InternalStatusIconsRow(
     scoringStatus: String,
     displayScore: Int,
     relativeSize: Int,
+    goalStatus: String? = null,
     description: String?,
     parsedData: ParsedTextData,
     reminder: Reminder?,
@@ -64,6 +65,8 @@ private fun InternalStatusIconsRow(
             scoringStatus = scoringStatus,
             displayScore = displayScore,
         )
+
+        goalStatus?.let { GoalStatusBadge(status = it) }
 
         RelativeSizeBadge(relativeSize = relativeSize)
 
@@ -153,6 +156,7 @@ fun StatusIconsRow(
         scoringStatus = goal.scoringStatus,
         displayScore = goal.displayScore,
         relativeSize = goal.relativeSize,
+        goalStatus = goal.goalStatus,
         description = goal.description,
         parsedData = parsedData,
         reminder = reminder,
@@ -176,6 +180,7 @@ fun StatusIconsRow(
         scoringStatus = project.scoringStatus,
         displayScore = project.displayScore,
         relativeSize = 0,
+        goalStatus = null,
         description = project.description,
         parsedData = parsedData,
         reminder = reminder,

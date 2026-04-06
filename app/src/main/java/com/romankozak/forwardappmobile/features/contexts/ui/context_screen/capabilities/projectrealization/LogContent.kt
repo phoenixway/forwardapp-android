@@ -45,6 +45,7 @@ import kotlin.math.abs
 
 @Composable
 fun LogContent(
+    modifier: Modifier = Modifier,
     logs: List<ContextLog>,
     isManagementEnabled: Boolean,
     onEditLog: (ContextLog) -> Unit,
@@ -79,7 +80,7 @@ fun LogContent(
             .sortedByDescending { it.timestamp }
 
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
     ) {
         AnimatedVisibility(visible = showSearch) {
             FilterPanel(
@@ -404,6 +405,11 @@ private fun LogContentPreview() {
             ),
         )
     MaterialTheme {
-        LogContent(sample, true, {}, {})
+        LogContent(
+            logs = sample,
+            isManagementEnabled = true,
+            onEditLog = {},
+            onDeleteLog = {},
+        )
     }
 }

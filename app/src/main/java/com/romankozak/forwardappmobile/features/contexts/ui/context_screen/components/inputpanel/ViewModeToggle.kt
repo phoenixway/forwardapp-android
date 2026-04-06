@@ -102,21 +102,23 @@ private fun ContextViewMode.toIcon(): ImageVector =
     when (this) {
         ContextViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.ListAlt
         ContextViewMode.INBOX -> Icons.AutoMirrored.Outlined.Notes
-        ContextViewMode.ADVANCED -> Icons.Outlined.Dashboard
         ContextViewMode.CONNECTIONS -> Icons.Default.Attachment
         ContextViewMode.DASHBOARD -> Icons.Outlined.ViewModule
         ContextViewMode.DIRECTION -> Icons.Outlined.Explore
-        ContextViewMode.NOTES -> Icons.Outlined.Description
-        ContextViewMode.VET_CASE -> Icons.Default.MedicalServices
         ContextViewMode.LOG -> Icons.Outlined.History
         ContextViewMode.ARTIFACT -> Icons.Outlined.Inventory2
         ContextViewMode.KEY_PROBLEMS -> Icons.Outlined.Description
+        ContextViewMode.ADVANCED,
+        ContextViewMode.NOTES,
+        ContextViewMode.VET_CASE,
+        -> Icons.Outlined.Description
     }
 
 private fun ContextViewMode.getDefaultInputMode() =
     when (this) {
-        ContextViewMode.INBOX, ContextViewMode.ADVANCED -> InputMode.AddQuickRecord
+        ContextViewMode.INBOX -> InputMode.AddQuickRecord
         ContextViewMode.CONNECTIONS -> InputMode.AddConnectionNote
         ContextViewMode.DIRECTION -> InputMode.AddDirection
+        ContextViewMode.LOG -> InputMode.AddProjectLog
         else -> InputMode.AddGoal
     }

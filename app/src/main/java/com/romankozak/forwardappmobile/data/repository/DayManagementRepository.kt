@@ -639,6 +639,8 @@ class DayManagementRepository
                 val dayPlan = dayPlanDao.getPlanForDateSync(date)
                 if (dayPlan != null) {
                     val recurringTasks = recurringTaskDao.getAll()
+                    val tasksToGenerate = mutableListOf<Pair<String, NewTaskParameters>>()
+
                     recurringTasks.forEach { recurringTask ->
                         if (shouldGenerateTaskForDate(recurringTask, date)) {
                             val existingTask = dayTaskDao.findByRecurringIdAndDate(recurringTask.id, dayPlan.id)
@@ -686,10 +688,25 @@ class DayManagementRepository
                                         taskType = resolvedTaskType,
                                         points = points,
                                     )
-                                addTaskToDayPlan(taskParams).copy(recurringTaskId = recurringTask.id).also { dayTaskDao.update(it) }
+                                tasksToGenerate += recurringTask.id to taskParams
                             }
                         }
                     }
+
+                    if (tasksToGenerate.isEmpty()) return@withContext
+
+                    val startingOrder = (dayTaskDao.getMinOrderForDayPlan(dayPlan.id) ?: 0L) - tasksToGenerate.size
+
+                    tasksToGenerate
+                        .sortedWith(
+                            compareByDescending<Pair<String, NewTaskParameters>> { priorityRank(it.second.priority) }
+                                .thenBy { it.second.title.lowercase() },
+                        )
+                        .forEachIndexed { index, (recurringTaskId, params) ->
+                            addTaskToDayPlan(params.copy(order = startingOrder + index))
+                                .copy(recurringTaskId = recurringTaskId)
+                                .also { dayTaskDao.update(it) }
+                        }
                 }
             }
         }
@@ -853,6 +870,15 @@ class DayManagementRepository
                 else -> TaskPriority.LOW
             }
         }
+
+        private fun priorityRank(priority: TaskPriority): Int =
+            when (priority) {
+                TaskPriority.CRITICAL -> 4
+                TaskPriority.HIGH -> 3
+                TaskPriority.MEDIUM -> 2
+                TaskPriority.LOW -> 1
+                TaskPriority.NONE -> 0
+            }
 
         suspend fun deleteTask(taskId: String) =
             withContext(ioDispatcher) {

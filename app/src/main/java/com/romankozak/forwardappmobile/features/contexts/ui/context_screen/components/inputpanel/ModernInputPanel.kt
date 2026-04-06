@@ -101,11 +101,10 @@ fun ModernInputPanel(
                 // 1. Додаємо старі прапорці (Legacy/UI)
                 if (enableInbox) add(CapabilityId("inbox"))
                 if (enableLog) add(CapabilityId("log"))
-                if (enableArtifact) add(CapabilityId("advanced"))
+                if (enableArtifact) add(CapabilityId("artifact"))
                 if (enableBacklog) add(CapabilityId("backlog"))
                 if (enableDashboard) add(CapabilityId("dashboard"))
                 if (enableAttachments) add(CapabilityId("connections"))
-                if (isProjectManagementEnabled) add(CapabilityId("advanced"))
 
                 // 2. Додаємо всі динамічні фічі (Ветеринар, Нотатки і т.д.), ігноруючи пошкоджені значення
                 experimentalCapabilityIds.forEach { id ->
@@ -174,12 +173,7 @@ fun ModernInputPanel(
     val panelColors = getPanelColors(inputMode, LocalInputPanelColors.current)
     val swipeInputModes =
         remember(currentView) {
-            val baseMode = defaultInputModeForView(currentView)
-            if (supportsLocalSearchForView(currentView)) {
-                listOf(baseMode, InputMode.SearchInList)
-            } else {
-                listOf(baseMode)
-            }
+            supportedInputModesForView(currentView)
         }
 
     Surface(
@@ -252,10 +246,24 @@ fun ModernInputPanel(
 
 private fun defaultInputModeForView(view: ContextViewMode): InputMode =
     when (view) {
-        ContextViewMode.INBOX, ContextViewMode.ADVANCED -> InputMode.AddQuickRecord
+        ContextViewMode.INBOX -> InputMode.AddQuickRecord
         ContextViewMode.CONNECTIONS -> InputMode.AddConnectionNote
         ContextViewMode.DIRECTION -> InputMode.AddDirection
+        ContextViewMode.LOG -> InputMode.AddProjectLog
         else -> InputMode.AddGoal
+    }
+
+private fun supportedInputModesForView(view: ContextViewMode): List<InputMode> =
+    when (view) {
+        ContextViewMode.LOG -> listOf(InputMode.AddProjectLog, InputMode.AddMilestone)
+        else -> {
+            val baseMode = defaultInputModeForView(view)
+            if (supportsLocalSearchForView(view)) {
+                listOf(baseMode, InputMode.SearchInList)
+            } else {
+                listOf(baseMode)
+            }
+        }
     }
 
 private fun supportsLocalSearchForView(view: ContextViewMode): Boolean =

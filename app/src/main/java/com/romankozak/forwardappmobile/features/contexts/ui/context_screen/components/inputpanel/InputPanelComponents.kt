@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.PostAdd
 import androidx.compose.material.icons.outlined.TravelExplore
@@ -121,6 +122,8 @@ internal fun InputTextField(
                                         InputMode.AddConnectionNote -> "add note.."
                                         InputMode.AddDirection -> stringResource(R.string.hint_add_direction)
                                         InputMode.AddQuickRecord -> stringResource(R.string.hint_add_quick_record)
+                                        InputMode.AddProjectLog -> "Додати запис у лог"
+                                        InputMode.AddMilestone -> "Додати віху"
                                         InputMode.SearchInList -> "Search in backlog.."
                                         else -> "Додати..."
                                     },
@@ -164,10 +167,17 @@ internal fun ModeSelectorButton(
     val modes =
         remember(isProjectManagementEnabled, currentView) {
             listOfNotNull(
-                if (currentView == ContextViewMode.CONNECTIONS) InputMode.AddConnectionNote else InputMode.AddGoal,
+                when (currentView) {
+                    ContextViewMode.CONNECTIONS -> InputMode.AddConnectionNote
+                    ContextViewMode.DIRECTION -> InputMode.AddDirection
+                    ContextViewMode.INBOX -> InputMode.AddQuickRecord
+                    ContextViewMode.LOG -> InputMode.AddProjectLog
+                    else -> InputMode.AddGoal
+                },
                 if (currentView == ContextViewMode.DIRECTION) InputMode.AddDirection else null,
-                InputMode.AddQuickRecord,
-                if (isProjectManagementEnabled) InputMode.AddProjectLog else null,
+                if (currentView == ContextViewMode.LOG) InputMode.AddMilestone else null,
+                if (currentView != ContextViewMode.LOG) InputMode.AddQuickRecord else null,
+                if (isProjectManagementEnabled && currentView != ContextViewMode.LOG) InputMode.AddProjectLog else null,
                 InputMode.SearchGlobal,
             )
         }
@@ -198,6 +208,7 @@ internal fun ModeSelectorButton(
                         InputMode.AddConnectionNote -> Icons.Outlined.Description
                         InputMode.AddDirection -> Icons.Outlined.Explore
                         InputMode.AddQuickRecord -> Icons.Outlined.Inbox
+                        InputMode.AddMilestone -> Icons.Outlined.Flag
                         InputMode.SearchGlobal -> Icons.Outlined.TravelExplore
                         else -> Icons.Outlined.PostAdd
                     },

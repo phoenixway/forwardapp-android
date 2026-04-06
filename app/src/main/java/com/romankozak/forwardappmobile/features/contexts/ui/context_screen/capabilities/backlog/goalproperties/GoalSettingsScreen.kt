@@ -2,12 +2,20 @@
 
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.goalproperties
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -15,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -22,6 +31,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.core.data.models.entities.GoalStatusValues
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.ContextSettingsEvent
@@ -38,6 +48,7 @@ import com.romankozak.forwardappmobile.ui.screens.common.tabs.GeneralTabActions
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.GeneralTabContent
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.GeneralTabState
 import com.romankozak.forwardappmobile.ui.screens.common.tabs.RemindersTabContent
+import androidx.compose.ui.unit.dp
 
 @Composable
 fun GoalSettingsScreen(
@@ -212,6 +223,12 @@ private fun GoalSettingsTabContent(
                         onExpandDescriptionClick = viewModel::openDescriptionEditor,
                     ),
                 titleLabel = "Назва цілі",
+                extraContent = {
+                    GoalStatusSection(
+                        selectedStatus = uiState.goalStatus,
+                        onStatusSelected = viewModel::onGoalStatusChange,
+                    )
+                },
             )
         "Evaluation" ->
             EvaluationTabContent(
@@ -261,3 +278,29 @@ private fun goalSettingsTabIcons() =
         Icons.Default.Notifications,
         Icons.Default.Link,
     )
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun GoalStatusSection(
+    selectedStatus: String,
+    onStatusSelected: (String) -> Unit,
+) {
+    FlowRow(
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        GoalStatusValues.all.forEach { status ->
+            FilterChip(
+                selected = selectedStatus == status,
+                onClick = { onStatusSelected(status) },
+                label = {
+                    Text(
+                        text = GoalStatusValues.getDisplayName(status),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                },
+            )
+        }
+    }
+}

@@ -37,8 +37,8 @@ fun ProjectDashboardView(
             ContextManagementTab.values().filter { tab ->
                 when (tab) {
                     ContextManagementTab.Dashboard -> enableDashboard
-                    ContextManagementTab.Log -> enableLog
-                    ContextManagementTab.Artifact -> enableArtifact
+                    ContextManagementTab.Log -> false
+                    ContextManagementTab.Artifact -> false
                     else -> true
                 }
             }
@@ -79,21 +79,8 @@ fun ProjectDashboardView(
                     onRecalculateTime = onRecalculateTime,
                     contextTimeMetrics = contextTimeMetrics,
                 )
-            ContextManagementTab.Artifact -> {
-                ArtifactContent(
-                    artifact = contextArtifact,
-                    isManagementEnabled = project.isContextManagementEnabled == true,
-                    onEditArtifact = onEditArtifact,
-                    onSaveArtifact = { onSaveArtifact("") },
-                )
-            }
-            ContextManagementTab.Log ->
-                LogContent(
-                    logs = projectLogs,
-                    isManagementEnabled = project.isContextManagementEnabled == true,
-                    onEditLog = onEditLog,
-                    onDeleteLog = onDeleteLog,
-                )
+            ContextManagementTab.Artifact -> Unit
+            ContextManagementTab.Log -> Unit
             ContextManagementTab.Insights ->
                 InsightsContent(isManagementEnabled = project.isContextManagementEnabled == true)
         }

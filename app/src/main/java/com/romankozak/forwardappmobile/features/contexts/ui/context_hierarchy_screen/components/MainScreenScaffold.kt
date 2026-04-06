@@ -97,13 +97,27 @@ fun ProjectHierarchyScreenScaffold(
     Scaffold(
         modifier = Modifier.imePadding(),
         topBar = {
+            val focusedProject =
+                (uiState.currentSubState as? ProjectHierarchyScreenSubState.ProjectFocused)
+                    ?.projectId
+                    ?.let { focusedId -> uiState.projectHierarchy.allProjects.find { it.id == focusedId } }
             ProjectHierarchyScreenTopAppBar(
                 onBackClick = {
-                    if (backHandlerEnabled) {
+                    if (uiState.isSelectionMode) {
+                        onEvent(ContextHierarchyScreenEvent.ClearContextSelection)
+                    } else if (backHandlerEnabled) {
                         onEvent(ContextHierarchyScreenEvent.BackClick)
                     } else {
                         enhancedNavigationManager.goBack()
                     }
+                },
+                isSelectionMode = uiState.isSelectionMode,
+                selectedCount = uiState.selectedContextIds.size,
+                canPasteToFocusedContext = focusedProject != null && uiState.clipboardContextIds.isNotEmpty(),
+                onCopySelection = { onEvent(ContextHierarchyScreenEvent.CopySelectedContexts) },
+                onCutSelection = { onEvent(ContextHierarchyScreenEvent.CutSelectedContexts) },
+                onPasteToFocusedContext = {
+                    focusedProject?.let { onEvent(ContextHierarchyScreenEvent.PasteContextLink(it)) }
                 },
             )
         },
@@ -168,7 +182,7 @@ fun ProjectHierarchyScreenScaffold(
             val isSearchActiveFab = uiState.subStateStack.any { it is ProjectHierarchyScreenSubState.LocalSearch }
             var showAddMenu by remember { mutableStateOf(false) }
 
-            AnimatedVisibility(visible = !isSearchActiveFab) {
+            AnimatedVisibility(visible = !isSearchActiveFab && !uiState.isSelectionMode) {
                 val scriptsEnabled = uiState.featureToggles[FeatureFlag.ScriptsLibrary] == true
                 val menuItems =
                     buildList {

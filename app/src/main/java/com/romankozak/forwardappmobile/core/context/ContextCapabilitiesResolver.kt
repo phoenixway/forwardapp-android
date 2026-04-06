@@ -32,11 +32,7 @@ class ContextCapabilitiesResolver {
                         .getOrNull()
                         ?.takeIf { it.isNotEmpty() }
                         ?: return@forEach
-                if (normalized == "artifact") {
-                    add(CapabilityId("advanced"))
-                } else {
-                    add(CapabilityId(normalized))
-                }
+                add(CapabilityId(normalized))
             }
         }
     }
@@ -51,6 +47,7 @@ class ContextCapabilitiesResolver {
         // - explicit overrides in config still win.
         addIfEnabled(roleCapabilities, "inbox", config.enableInbox)
         addIfEnabled(roleCapabilities, "log", config.enableLog)
+        addIfEnabled(roleCapabilities, "artifact", config.enableArtifact)
         addIfEnabled(
             roleCapabilities = roleCapabilities,
             capabilityRaw = "dashboard",
@@ -68,7 +65,6 @@ class ContextCapabilitiesResolver {
         ) {
             add(CapabilityId("connections"))
         }
-        addIfEnabled(roleCapabilities, "advanced", config.enableAdvanced)
     }
 
     private fun MutableSet<CapabilityId>.addIfEnabled(
@@ -122,11 +118,11 @@ class ContextCapabilitiesResolver {
             setOf(
                 "inbox",
                 "log",
+                "artifact",
                 "dashboard",
                 "backlog",
                 "attachments",
                 "connections",
-                "advanced",
             )
     }
 }

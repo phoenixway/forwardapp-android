@@ -741,3 +741,11 @@ val MIGRATION_112_113 =
             db.execSQL("ALTER TABLE `goals` ADD COLUMN `relativeSize` INTEGER NOT NULL DEFAULT 0")
         }
     }
+
+val MIGRATION_113_114 =
+    object : Migration(113, 114) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `goals` ADD COLUMN `goal_status` TEXT NOT NULL DEFAULT 'ACTIVE'")
+            db.execSQL("UPDATE `goals` SET `goal_status` = 'DONE' WHERE `completed` = 1")
+        }
+    }

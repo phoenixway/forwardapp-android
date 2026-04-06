@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.view
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
+import com.romankozak.forwardappmobile.core.data.models.entities.GoalStatusValues
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
@@ -209,7 +210,19 @@ class ItemActionHandler
             isChecked: Boolean,
         ) {
             scope.launch {
-                val updatedGoal = goal.copy(completed = isChecked, updatedAt = System.currentTimeMillis())
+                val updatedGoal =
+                    goal.copy(
+                        completed = isChecked,
+                        goalStatus =
+                            if (isChecked) {
+                                GoalStatusValues.DONE
+                            } else if (GoalStatusValues.isTerminal(goal.goalStatus)) {
+                                GoalStatusValues.ACTIVE
+                            } else {
+                                GoalStatusValues.normalize(goal.goalStatus)
+                            },
+                        updatedAt = System.currentTimeMillis(),
+                    )
                 goalRepository.updateGoal(updatedGoal)
                 delay(100)
                 resultListener.forceRefresh()

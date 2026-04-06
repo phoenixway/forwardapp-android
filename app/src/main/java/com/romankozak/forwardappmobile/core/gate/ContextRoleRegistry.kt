@@ -35,7 +35,7 @@ object ContextRoleRegistry {
                 capabilities =
                     setOf(
                         CapabilityId("backlog"),
-                        CapabilityId("advanced"),
+                        CapabilityId("artifact"),
                     ),
             ),
             ReservedBaseRoleDefinition(
@@ -45,7 +45,7 @@ object ContextRoleRegistry {
                 capabilities =
                     setOf(
                         CapabilityId("direction"),
-                        CapabilityId("advanced"),
+                        CapabilityId("artifact"),
                     ),
             ),
             ReservedBaseRoleDefinition(
@@ -85,7 +85,7 @@ object ContextRoleRegistry {
                         CapabilityId("direction"),
                         CapabilityId("backlog"),
                         CapabilityId("inbox"),
-                        CapabilityId("advanced"),
+                        CapabilityId("artifact"),
                         CapabilityId("log"),
                         CapabilityId("key_problems"),
                     ),
@@ -98,15 +98,9 @@ object ContextRoleRegistry {
     // Явно вказуємо типи Map<String, Set<CapabilityId>>, щоб допомогти компілятору
     private val customRoleCapabilities: Map<String, Set<CapabilityId>> =
         mapOf(
-            ROLE_VET_PATIENT to
-                setOf(
-                    CapabilityId("notes"),
-                    CapabilityId("treatment_plan"),
-                    CapabilityId("connections"),
-                ),
+            ROLE_VET_PATIENT to setOf(CapabilityId("connections")),
             ROLE_DEVELOPMENT to
                 setOf(
-                    CapabilityId("code_index"),
                     CapabilityId("log"),
                     CapabilityId("backlog"),
                 ),
@@ -152,10 +146,9 @@ object ContextRoleRegistry {
             // Додаємо можливості, які можуть не входити в жодну роль за замовчуванням,
             // але є частиною загальної системи або legacy-прапорців.
             // inbox, log, backlog, connections вже покриті ролями або іншими джерелами.
-            add(CapabilityId("advanced"))
+            add(CapabilityId("artifact"))
             add(CapabilityId("dashboard"))
             add(CapabilityId("direction"))
-            add(CapabilityId("vet_case")) // Додано вручну, якщо не покривається ролями
             add(CapabilityId("key_problems"))
             add(CapabilityId("inbox_sorting"))
             add(CapabilityId("connections"))

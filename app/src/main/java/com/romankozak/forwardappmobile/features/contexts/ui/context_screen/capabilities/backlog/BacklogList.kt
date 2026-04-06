@@ -61,7 +61,7 @@ fun BacklogListScreen(
         }
     var showBottomSheet by remember { mutableStateOf(false) }
     var selectedItemForActions by remember { mutableStateOf<BacklogItemContent?>(null) }
-    val completedStartIndex = remember(uiItems.toList()) { uiItems.indexOfFirst { it.isCompleted() } }
+    val completedStartIndex = remember(uiItems.toList()) { uiItems.indexOfFirst { it.isGroupedAtEnd() } }
     val completedCount =
         remember(uiItems.toList()) {
             if (completedStartIndex == -1) 0 else uiItems.size - completedStartIndex
@@ -231,7 +231,7 @@ private fun CompletedSectionHeader(completedCount: Int) {
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = "Виконані",
+            text = "Завершені та неактивні",
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.primary,
         )

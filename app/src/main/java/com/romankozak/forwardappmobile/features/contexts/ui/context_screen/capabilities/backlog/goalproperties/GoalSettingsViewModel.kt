@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
+import com.romankozak.forwardappmobile.core.data.models.entities.GoalStatusValues
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
@@ -179,6 +180,7 @@ class GoalSettingsViewModel
                         scoringStatus = goal.scoringStatus,
                         isScoringEnabled = goal.scoringStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS,
                         relativeSize = goal.relativeSize,
+                        goalStatus = GoalStatusValues.normalize(goal.goalStatus),
                     )
                 }
             } else {
@@ -193,6 +195,7 @@ class GoalSettingsViewModel
                     isNewGoal = true,
                     scoringStatus = ScoringStatusValues.NOT_ASSESSED,
                     isScoringEnabled = true,
+                    goalStatus = GoalStatusValues.ACTIVE,
                 )
             }
             updateScores()
@@ -235,6 +238,7 @@ class GoalSettingsViewModel
                     id = UUID.randomUUID().toString(),
                     text = "",
                     completed = false,
+                    goalStatus = GoalStatusValues.ACTIVE,
                     createdAt = currentTime,
                     updatedAt = currentTime,
                 )
@@ -242,6 +246,8 @@ class GoalSettingsViewModel
             return baseGoal.copy(
                 text = state.title.text,
                 description = descriptionToSave,
+                completed = GoalStatusValues.isTerminal(state.goalStatus),
+                goalStatus = GoalStatusValues.normalize(state.goalStatus),
                 updatedAt = currentTime,
                 relatedLinks = state.relatedLinks,
                 valueImportance = state.valueImportance,
@@ -260,6 +266,10 @@ class GoalSettingsViewModel
         fun onTextChange(newValue: TextFieldValue) = _uiState.update { it.copy(title = newValue) }
 
         fun onDescriptionChange(newValue: TextFieldValue) = _uiState.update { it.copy(description = newValue) }
+
+        fun onGoalStatusChange(status: String) {
+            _uiState.update { it.copy(goalStatus = GoalStatusValues.normalize(status)) }
+        }
 
         override fun onValueImportanceChange(value: Float) = onScoringParameterChange { it.copy(valueImportance = value) }
 

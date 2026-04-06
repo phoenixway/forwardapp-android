@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.romankozak.forwardappmobile.core.data.models.entities.GoalStatusValues
 import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
 
 @Composable
@@ -161,6 +162,48 @@ fun RelativeSizeBadge(relativeSize: Int) {
             )
             Text(
                 text = "$relativeSize/5",
+                style =
+                    MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.1.sp,
+                    ),
+                color = tint,
+            )
+        }
+    }
+}
+
+@Composable
+fun GoalStatusBadge(status: String) {
+    val normalizedStatus = GoalStatusValues.normalize(status)
+    if (normalizedStatus == GoalStatusValues.ACTIVE) return
+
+    val tint =
+        when (normalizedStatus) {
+            GoalStatusValues.IN_WORK -> MaterialTheme.colorScheme.primary
+            GoalStatusValues.PAUSED -> MaterialTheme.colorScheme.secondary
+            GoalStatusValues.UNSURE -> MaterialTheme.colorScheme.tertiary
+            GoalStatusValues.DONE -> MaterialTheme.colorScheme.primary
+            GoalStatusValues.CANCELED -> MaterialTheme.colorScheme.error
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
+        }
+
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = tint.copy(alpha = 0.12f),
+        border = BorderStroke(0.6.dp, tint.copy(alpha = 0.22f)),
+        modifier =
+            Modifier.semantics {
+                contentDescription = "Статус цілі: ${GoalStatusValues.getDisplayName(normalizedStatus)}"
+            }.height(24.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = GoalStatusValues.getDisplayName(normalizedStatus),
                 style =
                     MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.SemiBold,

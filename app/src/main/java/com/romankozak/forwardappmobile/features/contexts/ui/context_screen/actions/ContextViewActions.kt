@@ -21,8 +21,9 @@ class ContextViewActions(
 
 private fun ContextViewMode.defaultInputMode(): InputMode =
     when (this) {
-        ContextViewMode.INBOX, ContextViewMode.ADVANCED -> InputMode.AddQuickRecord
+        ContextViewMode.INBOX -> InputMode.AddQuickRecord
         ContextViewMode.CONNECTIONS -> InputMode.AddConnectionNote
         ContextViewMode.DIRECTION -> InputMode.AddDirection
+        ContextViewMode.LOG -> InputMode.AddProjectLog
         else -> InputMode.AddGoal
     }

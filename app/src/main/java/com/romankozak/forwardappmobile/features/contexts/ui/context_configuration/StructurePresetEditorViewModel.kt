@@ -34,6 +34,7 @@ data class StructurePresetEditorUiState(
     val description: String = "",
     val enableInbox: Boolean = true,
     val enableLog: Boolean = true,
+    val enableArtifact: Boolean = false,
     val enableAdvanced: Boolean = false,
     val enableDashboard: Boolean = true,
     val enableBacklog: Boolean = true,
@@ -86,6 +87,7 @@ class StructurePresetEditorViewModel
                     description = preset.description ?: "",
                     enableInbox = preset.enableInbox ?: true,
                     enableLog = preset.enableLog ?: true,
+                    enableArtifact = preset.enableArtifact ?: false,
                     enableAdvanced = preset.enableAdvanced ?: false,
                     enableDashboard = preset.enableDashboard ?: true,
                     enableBacklog = preset.enableBacklog ?: true,
@@ -144,7 +146,7 @@ class StructurePresetEditorViewModel
                         description = state.description.ifBlank { null },
                         enableInbox = state.enableInbox,
                         enableLog = state.enableLog,
-                        enableArtifact = state.enableAdvanced,
+                        enableArtifact = state.enableArtifact,
                         enableAdvanced = state.enableAdvanced,
                         enableDashboard = state.enableDashboard,
                         enableBacklog = state.enableBacklog,
@@ -173,6 +175,7 @@ class StructurePresetEditorViewModel
 enum class PresetToggle {
     INBOX,
     LOG,
+    ARTIFACT,
     ADVANCED,
     DASHBOARD,
     BACKLOG,
@@ -187,6 +190,7 @@ enum class PresetToggle {
         return when (this) {
             INBOX -> state.copy(enableInbox = value)
             LOG -> state.copy(enableLog = value)
+            ARTIFACT -> state.copy(enableArtifact = value)
             ADVANCED -> state.copy(enableAdvanced = value)
             DASHBOARD -> state.copy(enableDashboard = value)
             BACKLOG -> state.copy(enableBacklog = value)

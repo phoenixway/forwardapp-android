@@ -51,7 +51,18 @@ data class ProjectHierarchyScreenUiState(
     val contextMarkerToEmojiMap: Map<String, String> = emptyMap(),
     val availableContextRoles: List<ContextRoleOption> = emptyList(),
     val featureToggles: Map<FeatureFlag, Boolean> = emptyMap(),
+    val selectedContextIds: Set<String> = emptySet(),
+    val clipboardContextIds: Set<String> = emptySet(),
+    val clipboardOperation: ContextClipboardOperationUi? = null,
 ) {
     val currentSubState: MainSubState
         get() = subStateStack.last()
+
+    val isSelectionMode: Boolean
+        get() = selectedContextIds.isNotEmpty()
+}
+
+enum class ContextClipboardOperationUi {
+    COPY,
+    CUT,
 }

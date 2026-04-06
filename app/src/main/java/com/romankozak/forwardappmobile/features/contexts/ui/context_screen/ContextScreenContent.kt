@@ -49,7 +49,9 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxViewState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.keyproblems.KeyProblemsView
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ArtifactContent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.LogContent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ProjectDashboardView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextUiState
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
@@ -185,30 +187,7 @@ fun GoalDetailContent(
                 navigationManager = viewModel.enhancedNavigationManager,
             )
         }
-        ContextViewMode.ADVANCED -> {
-            ProjectDashboardView(
-                modifier = modifier,
-                project = goalList,
-                projectLogs = projectLogs,
-                contextArtifact = projectArtifact,
-                onToggleProjectManagement = viewModel::onToggleProjectManagement,
-                onStatusUpdate = viewModel::onProjectStatusUpdate,
-                contextTimeMetrics = uiState.contextTimeMetrics,
-                onRecalculateTime = viewModel::onRecalculateTime,
-                onEditLog = onEditLog,
-                onDeleteLog = onDeleteLog,
-                onSaveArtifact = {
-                        content ->
-                    viewModel.onSaveArtifact(content)
-                }, // Явно вказуємо один параметр                onEditArtifact = onEditArtifact,
-                selectedTab = uiState.currentTab,
-                onTabSelected = viewModel::onDashboardTabSelected,
-                enableDashboard = uiState.enableDashboard,
-                enableLog = uiState.enableLog,
-                enableArtifact = uiState.enableArtifact,
-                onEditArtifact = onEditArtifact,
-            )
-        }
+        ContextViewMode.ADVANCED -> Unit
         ContextViewMode.CONNECTIONS -> {
             ConnectionsView(
                 modifier = modifier,
@@ -253,45 +232,31 @@ fun GoalDetailContent(
             )
         }
         ContextViewMode.LOG -> {
-            ProjectDashboardView(
+            LogContent(
                 modifier = modifier,
-                project = goalList,
-                projectLogs = projectLogs,
-                contextArtifact = projectArtifact,
-                onToggleProjectManagement = viewModel::onToggleProjectManagement,
-                onStatusUpdate = viewModel::onProjectStatusUpdate,
-                contextTimeMetrics = uiState.contextTimeMetrics,
-                onRecalculateTime = viewModel::onRecalculateTime,
+                logs = projectLogs,
+                isManagementEnabled = true,
                 onEditLog = onEditLog,
                 onDeleteLog = onDeleteLog,
-                onSaveArtifact = { content -> viewModel.onSaveArtifact(content) },
-                onEditArtifact = onEditArtifact,
-                selectedTab = ContextManagementTab.Log,
-                onTabSelected = viewModel::onDashboardTabSelected,
-                enableDashboard = uiState.enableDashboard,
-                enableLog = uiState.enableLog,
-                enableArtifact = uiState.enableArtifact,
             )
         }
         ContextViewMode.ARTIFACT -> {
-            ProjectDashboardView(
+            val editableArtifact =
+                projectArtifact
+                    ?: goalList?.id?.let { contextId ->
+                        ContextArtifact(
+                            id = "draft-artifact-$contextId",
+                            contextId = contextId,
+                            content = "",
+                            createdAt = System.currentTimeMillis(),
+                            updatedAt = System.currentTimeMillis(),
+                        )
+                    }
+            ArtifactContent(
                 modifier = modifier,
-                project = goalList,
-                projectLogs = projectLogs,
-                contextArtifact = projectArtifact,
-                onToggleProjectManagement = viewModel::onToggleProjectManagement,
-                onStatusUpdate = viewModel::onProjectStatusUpdate,
-                contextTimeMetrics = uiState.contextTimeMetrics,
-                onRecalculateTime = viewModel::onRecalculateTime,
-                onEditLog = onEditLog,
-                onDeleteLog = onDeleteLog,
-                onSaveArtifact = { content -> viewModel.onSaveArtifact(content) },
+                artifact = editableArtifact,
+                isManagementEnabled = true,
                 onEditArtifact = onEditArtifact,
-                selectedTab = ContextManagementTab.Artifact,
-                onTabSelected = viewModel::onDashboardTabSelected,
-                enableDashboard = uiState.enableDashboard,
-                enableLog = uiState.enableLog,
-                enableArtifact = uiState.enableArtifact,
             )
         }
         ContextViewMode.KEY_PROBLEMS -> {
@@ -319,19 +284,7 @@ fun GoalDetailContent(
                 onRemoveFocusContext = viewModel::removeKeyProblemsFocusContext,
             )
         }
-        ContextViewMode.NOTES, ContextViewMode.VET_CASE -> {
-            Column(
-                modifier = modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = "${currentViewMode.displayName()} View - Coming Soon!",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+        ContextViewMode.NOTES, ContextViewMode.VET_CASE -> Unit
     }
 }
 
@@ -564,9 +517,10 @@ private fun ContextViewMode.dashboardLabel(): String =
         ContextViewMode.LOG -> "Лог"
         ContextViewMode.ARTIFACT -> "Артефакт"
         ContextViewMode.KEY_PROBLEMS -> "Ключові проблеми"
-        ContextViewMode.ADVANCED -> "Розширений"
-        ContextViewMode.NOTES -> "Нотатки"
-        ContextViewMode.VET_CASE -> "Вет кейс"
+        ContextViewMode.ADVANCED,
+        ContextViewMode.NOTES,
+        ContextViewMode.VET_CASE,
+        -> "Недоступно"
     }
 
 private fun ContextViewMode.dashboardLabelWithCount(count: Int?): String {
@@ -584,9 +538,10 @@ private fun ContextViewMode.dashboardIcon(): ImageVector =
         ContextViewMode.LOG -> Icons.Outlined.History
         ContextViewMode.ARTIFACT -> Icons.Outlined.Inventory2
         ContextViewMode.KEY_PROBLEMS -> Icons.Outlined.Checklist
-        ContextViewMode.ADVANCED -> Icons.Default.Dashboard
-        ContextViewMode.NOTES -> Icons.Outlined.Description
-        ContextViewMode.VET_CASE -> Icons.Outlined.Description
+        ContextViewMode.ADVANCED,
+        ContextViewMode.NOTES,
+        ContextViewMode.VET_CASE,
+        -> Icons.Outlined.Description
     }
 
 private fun String?.toRoleBadgeText(): String? {

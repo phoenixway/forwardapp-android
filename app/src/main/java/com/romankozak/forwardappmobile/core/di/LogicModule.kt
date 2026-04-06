@@ -107,26 +107,7 @@ object LogicModule {
 
     @Provides
     @Singleton
-    fun provideExperimentalRoles(): Map<String, ContextRole> =
-        mapOf(
-            "vet_case" to
-                ContextRole(
-                    code = "vet_case",
-                    label = "Ветеринарний кейс",
-                    defaultCapabilities =
-                        setOf(CapabilityId("notes"), CapabilityId("treatment_plan")),
-                    availableViews = setOf(ViewId("summary"), ViewId("history")),
-                    startView = ViewId("summary"),
-                ),
-            "dev_task" to
-                ContextRole(
-                    code = "dev_task",
-                    label = "Розробка",
-                    defaultCapabilities = setOf(CapabilityId("notes"), CapabilityId("code_index")),
-                    availableViews = setOf(ViewId("kanban")),
-                    startView = ViewId("kanban"),
-                ),
-        )
+    fun provideExperimentalRoles(): Map<String, ContextRole> = emptyMap()
 
     @Provides
     @Singleton

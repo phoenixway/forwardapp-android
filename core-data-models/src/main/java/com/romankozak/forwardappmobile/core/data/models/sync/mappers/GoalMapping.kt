@@ -8,6 +8,7 @@ fun Goal.toSnapshot(): GoalSnapshot = GoalSnapshot(
     text = this.text,
     description = this.description,
     isCompleted = this.completed, // Entity: completed -> Snapshot: isCompleted
+    goalStatus = this.goalStatus,
     createdAt = this.createdAt,
     // Використовуємо логіку пріоритетності часових міток
     updatedAt = this.updatedAt ?: this.createdAt,
@@ -43,6 +44,7 @@ fun GoalSnapshot.toEntity(): Goal = Goal(
     text = this.text,
     description = this.description,
     completed = this.isCompleted,
+    goalStatus = this.goalStatus,
     createdAt = this.createdAt,
     updatedAt = this.updatedAt,
     version = this.version,

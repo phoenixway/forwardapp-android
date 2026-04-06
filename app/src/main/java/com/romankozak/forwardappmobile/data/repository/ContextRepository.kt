@@ -611,7 +611,7 @@ class ContextRepository
                     enableInbox = preset?.enableInbox,
                     enableLog = preset?.enableLog,
                     enableArtifact = preset?.enableArtifact,
-                    enableAdvanced = preset?.enableAdvanced ?: preset?.enableArtifact,
+                    enableAdvanced = preset?.enableAdvanced,
                     enableDashboard = preset?.enableDashboard,
                     enableBacklog = preset?.enableBacklog,
                     enableAttachments = preset?.enableAttachments,

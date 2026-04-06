@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.data.repository
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
+import com.romankozak.forwardappmobile.core.data.models.entities.GoalStatusValues
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
@@ -42,6 +43,7 @@ class GoalRepository
                     id = UUID.randomUUID().toString(),
                     text = title,
                     completed = completed,
+                    goalStatus = if (completed) GoalStatusValues.DONE else GoalStatusValues.ACTIVE,
                     createdAt = currentTime,
                     updatedAt = currentTime,
                 )
@@ -53,7 +55,7 @@ class GoalRepository
             contextId: String,
         ): String {
             val goalToInsert =
-                goal.copy(
+                normalizeGoalState(goal).copy(
                     updatedAt = goal.updatedAt ?: System.currentTimeMillis(),
                 )
             goalDao.insertGoal(goalToInsert)
@@ -88,6 +90,7 @@ class GoalRepository
                     id = UUID.randomUUID().toString(),
                     text = title,
                     completed = false,
+                    goalStatus = GoalStatusValues.ACTIVE,
                     createdAt = currentTime,
                     updatedAt = currentTime,
                 )
@@ -112,13 +115,13 @@ class GoalRepository
 
         suspend fun updateGoal(goal: Goal) {
             val now = System.currentTimeMillis()
-            goalDao.updateGoal(goal.bumpSync(now))
+            goalDao.updateGoal(normalizeGoalState(goal).bumpSync(now))
         }
 
         suspend fun updateGoals(goals: List<Goal>) {
             if (goals.isNotEmpty()) {
                 val now = System.currentTimeMillis()
-                goalDao.updateGoals(goals.map { it.bumpSync(now) })
+                goalDao.updateGoals(goals.map { normalizeGoalState(it).bumpSync(now) })
             }
         }
 
@@ -243,5 +246,19 @@ class GoalRepository
 
         fun getGoalsByContextIdFlow(contextId: String): Flow<List<Goal>> {
             return goalDao.getGoalsByContextIdFlow(contextId)
+        }
+
+        private fun normalizeGoalState(goal: Goal): Goal {
+            val normalizedStatus =
+                when {
+                    goal.completed -> GoalStatusValues.DONE
+                    GoalStatusValues.isTerminal(goal.goalStatus) -> GoalStatusValues.ACTIVE
+                    else -> GoalStatusValues.normalize(goal.goalStatus)
+                }
+
+            return goal.copy(
+                completed = normalizedStatus == GoalStatusValues.DONE,
+                goalStatus = normalizedStatus,
+            )
         }
     }

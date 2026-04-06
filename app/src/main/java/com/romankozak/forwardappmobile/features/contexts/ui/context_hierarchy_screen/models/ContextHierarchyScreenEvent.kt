@@ -118,6 +118,16 @@ sealed interface ContextHierarchyScreenEvent {
         val mode: BacklogPasteMode = BacklogPasteMode.AS_LINK,
     ) : ContextHierarchyScreenEvent
 
+    data class ToggleContextSelection(val projectId: String) : ContextHierarchyScreenEvent
+
+    data class StartContextSelection(val projectId: String) : ContextHierarchyScreenEvent
+
+    data object ClearContextSelection : ContextHierarchyScreenEvent
+
+    data object CopySelectedContexts : ContextHierarchyScreenEvent
+
+    data object CutSelectedContexts : ContextHierarchyScreenEvent
+
     data object GoToSettings : ContextHierarchyScreenEvent
 
     data object ShowSearchDialog : ContextHierarchyScreenEvent

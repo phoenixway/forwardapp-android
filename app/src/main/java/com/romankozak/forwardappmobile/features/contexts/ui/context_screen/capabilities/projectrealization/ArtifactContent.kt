@@ -25,10 +25,10 @@ import com.romankozak.forwardappmobile.ui.components.notesEditors.WebViewMarkdow
 
 @Composable
 fun ArtifactContent(
+    modifier: Modifier = Modifier,
     artifact: ContextArtifact?,
     isManagementEnabled: Boolean,
     onEditArtifact: (ContextArtifact) -> Unit,
-    onSaveArtifact: (String) -> Unit,
 ) {
     if (!isManagementEnabled) {
         PlaceholderContent(text = "Увімкніть підтримку реалізації на Дашборді, щоб бачити артефакти.")
@@ -37,7 +37,7 @@ fun ArtifactContent(
 
     Column(
         modifier =
-            Modifier
+            modifier
                 .fillMaxSize()
                 .padding(16.dp),
     ) {
@@ -72,14 +72,10 @@ fun ArtifactContent(
         Box(modifier = Modifier.fillMaxWidth()) {
             IconButton(
                 onClick = {
-                    if (artifact != null) {
-                        onEditArtifact(artifact)
-                    } else {
-                        onSaveArtifact(artifact?.content ?: "")
-                    }
+                    artifact?.let(onEditArtifact)
                 },
                 modifier = Modifier.align(Alignment.CenterEnd),
-                enabled = isManagementEnabled,
+                enabled = isManagementEnabled && artifact != null,
             ) {
                 Icon(
                     imageVector = Icons.Default.Edit,

@@ -111,15 +111,16 @@ internal fun getViewModeText(viewMode: ContextViewMode): String =
     when (viewMode) {
         ContextViewMode.BACKLOG -> "Backlog"
         ContextViewMode.INBOX -> "Inbox"
-        ContextViewMode.ADVANCED -> "Advanced View"
         ContextViewMode.CONNECTIONS -> "Connections"
         ContextViewMode.DASHBOARD -> "Dashboard"
         ContextViewMode.DIRECTION -> "Directions"
         ContextViewMode.LOG -> "Log"
         ContextViewMode.ARTIFACT -> "Artifacts"
         ContextViewMode.KEY_PROBLEMS -> "Key Problems"
-        ContextViewMode.NOTES -> "Notes"
-        ContextViewMode.VET_CASE -> "Vet Case"
+        ContextViewMode.ADVANCED,
+        ContextViewMode.NOTES,
+        ContextViewMode.VET_CASE,
+        -> "Unavailable"
     }
 
 @Composable
@@ -176,11 +177,6 @@ private fun ViewModeIndicator(
                     ViewModeInboxBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),
                     ViewModeInboxFg.copy(alpha = VIEW_MODE_TEXT_ALPHA),
                 )
-            ContextViewMode.ADVANCED ->
-                Pair(
-                    ViewModeAdvancedBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),
-                    ViewModeAdvancedFg.copy(alpha = VIEW_MODE_TEXT_ALPHA),
-                )
             ContextViewMode.CONNECTIONS ->
                 Pair(
                     ViewModeConnectionsBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),
@@ -211,15 +207,12 @@ private fun ViewModeIndicator(
                     ViewModeProblemsBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),
                     ViewModeProblemsFg.copy(alpha = VIEW_MODE_TEXT_ALPHA),
                 )
-            ContextViewMode.NOTES ->
-                Pair(
-                    ViewModeNotesBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),
-                    ViewModeNotesFg.copy(alpha = VIEW_MODE_TEXT_ALPHA),
-                )
+            ContextViewMode.ADVANCED,
+            ContextViewMode.NOTES,
             ContextViewMode.VET_CASE ->
                 Pair(
-                    ViewModeVetCaseBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),
-                    ViewModeVetCaseFg.copy(alpha = VIEW_MODE_TEXT_ALPHA),
+                    ViewModeAdvancedBg.copy(alpha = VIEW_MODE_BACKGROUND_ALPHA),
+                    ViewModeAdvancedFg.copy(alpha = VIEW_MODE_TEXT_ALPHA),
                 )
         }
 

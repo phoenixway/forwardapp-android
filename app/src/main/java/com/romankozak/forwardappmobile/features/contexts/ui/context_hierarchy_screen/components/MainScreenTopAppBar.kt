@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -19,6 +22,12 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun ProjectHierarchyScreenTopAppBar(
     onBackClick: () -> Unit,
+    isSelectionMode: Boolean,
+    selectedCount: Int,
+    canPasteToFocusedContext: Boolean,
+    onCopySelection: () -> Unit,
+    onCutSelection: () -> Unit,
+    onPasteToFocusedContext: () -> Unit,
 ) {
     Row(
         modifier =
@@ -37,9 +46,34 @@ fun ProjectHierarchyScreenTopAppBar(
             )
         }
         Text(
-            text = "Context Hierarchy",
+            text = if (isSelectionMode) "Вибрано: $selectedCount" else "Context Hierarchy",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
         )
+        if (isSelectionMode) {
+            IconButton(onClick = onCopySelection, enabled = selectedCount > 0) {
+                Icon(
+                    imageVector = Icons.Default.ContentCopy,
+                    contentDescription = "Копіювати вибране",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            IconButton(onClick = onCutSelection, enabled = selectedCount > 0) {
+                Icon(
+                    imageVector = Icons.Default.ContentCut,
+                    contentDescription = "Вирізати вибране",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        } else if (canPasteToFocusedContext) {
+            IconButton(onClick = onPasteToFocusedContext) {
+                Icon(
+                    imageVector = Icons.Default.ContentPaste,
+                    contentDescription = "Вставити у вибраний контекст",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
     }
 }

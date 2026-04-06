@@ -7,6 +7,7 @@ data class GoalSnapshot(
     @SerializedName("text") val text: String,
     @SerializedName("description") val description: String?,
     @SerializedName("isCompleted") val isCompleted: Boolean,
+    @SerializedName("goalStatus") val goalStatus: String = "ACTIVE",
     @SerializedName("createdAt") val createdAt: Long,
     @SerializedName("updatedAt") val updatedAt: Long,
     @SerializedName("version") val version: Long,

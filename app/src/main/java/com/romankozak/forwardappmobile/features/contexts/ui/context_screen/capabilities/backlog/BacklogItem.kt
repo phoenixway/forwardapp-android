@@ -26,6 +26,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -56,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
+import com.romankozak.forwardappmobile.core.data.models.entities.GoalStatusValues
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
@@ -181,6 +183,16 @@ private fun InternalGoalItem(
             badgeBackground = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
             badgeText = MaterialTheme.colorScheme.primary,
         )
+    val inWorkColors =
+        BacklogCompletedColors(
+            containerStart = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.74f),
+            containerEnd = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.52f),
+            border = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.96f),
+            iconTint = MaterialTheme.colorScheme.tertiary,
+            badgeBackground = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.28f),
+            badgeText = MaterialTheme.colorScheme.tertiary,
+        )
+    val isInWork = goal.goalStatus == GoalStatusValues.IN_WORK
 
     UnifiedListItemSurface(
         isSelected = isSelected,
@@ -223,6 +235,23 @@ private fun InternalGoalItem(
                                 ),
                         )
                         .padding(horizontal = 16.dp, vertical = 14.dp)
+                } else if (isInWork) {
+                    Modifier
+                        .background(
+                            brush =
+                                Brush.horizontalGradient(
+                                    colors =
+                                        listOf(
+                                            inWorkColors.containerStart,
+                                            inWorkColors.containerEnd,
+                                            inWorkColors.containerStart.copy(alpha = 0.34f),
+                                        ),
+                                ),
+                        )
+                        .background(
+                            color = inWorkColors.border.copy(alpha = 0.08f),
+                        )
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
                 } else {
                     Modifier
                         .background(Color.Transparent)
@@ -241,6 +270,49 @@ private fun InternalGoalItem(
 
                 Column(modifier = Modifier.weight(1f)) {
                     if (isInlineEditing) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.72f),
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                shape = MaterialTheme.shapes.small,
+                            ) {
+                                Text(
+                                    text = "Редагування",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                )
+                            }
+                            Spacer(modifier = Modifier.weight(1f))
+                            IconButton(
+                                onClick = {
+                                    keyboardController?.hide()
+                                    onInlineEditCancel()
+                                },
+                                modifier = Modifier.size(36.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Скасувати",
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
+                            IconButton(
+                                onClick = {
+                                    keyboardController?.hide()
+                                    onInlineEditSave(textValue.text)
+                                },
+                                modifier = Modifier.size(36.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Зберегти",
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
+                        }
                         OutlinedTextField(
                             value = textValue,
                             onValueChange = { textValue = it },
@@ -265,41 +337,26 @@ private fun InternalGoalItem(
                                     },
                                 ),
                         )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Spacer(modifier = Modifier.weight(1f))
-                            IconButton(
-                                onClick = {
-                                    keyboardController?.hide()
-                                    onInlineEditCancel()
-                                },
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Скасувати",
-                                )
-                            }
-                            IconButton(
-                                onClick = {
-                                    keyboardController?.hide()
-                                    onInlineEditSave(textValue.text)
-                                },
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = "Зберегти",
-                                )
-                            }
-                        }
                     } else {
-                        Box(modifier = if (goal.completed) Modifier.alpha(0.65f) else Modifier) {
+                        Box(
+                            modifier =
+                                when {
+                                    goal.completed -> Modifier.alpha(0.65f)
+                                    else -> Modifier
+                                },
+                        ) {
                             MarkdownText(
                                 state =
                                     MarkdownTextState(
                                         text = parsedData.mainText,
-                                        style = MaterialTheme.typography.bodyLarge,
+                                        style =
+                                            if (isInWork) {
+                                                MaterialTheme.typography.bodyLarge.copy(
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                )
+                                            } else {
+                                                MaterialTheme.typography.bodyLarge
+                                            },
                                         isCompleted = goal.completed,
                                         maxLines = 4,
                                     ),
@@ -324,7 +381,13 @@ private fun InternalGoalItem(
                     if (!isInlineEditing) {
                         Column {
                             Spacer(modifier = Modifier.height(6.dp))
-                            Box(modifier = if (goal.completed) Modifier.alpha(0.6f) else Modifier) {
+                            Box(
+                                modifier =
+                                    when {
+                                        goal.completed -> Modifier.alpha(0.6f)
+                                        else -> Modifier
+                                    },
+                            ) {
                                 StatusIconsRow(
                                     goal = goal,
                                     currentContextId = currentContextId,
@@ -352,7 +415,13 @@ private fun InternalGoalItem(
                                 )
                             }
                                 .size(18.dp)
-                                .alpha(if (goal.completed) 0.42f else 0.78f)
+                                .alpha(
+                                    when {
+                                        goal.completed -> 0.42f
+                                        isInWork -> 0.96f
+                                        else -> 0.78f
+                                    },
+                                )
                                 .clickable(onClick = onMoreClick),
                     )
                 }

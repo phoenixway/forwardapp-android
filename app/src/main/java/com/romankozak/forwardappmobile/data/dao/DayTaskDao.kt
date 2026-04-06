@@ -98,6 +98,9 @@ interface DayTaskDao {
     @Query("SELECT MAX(`order`) FROM day_tasks WHERE dayPlanId = :dayPlanId")
     suspend fun getMaxOrderForDayPlan(dayPlanId: String): Long?
 
+    @Query("SELECT MIN(`order`) FROM day_tasks WHERE dayPlanId = :dayPlanId")
+    suspend fun getMinOrderForDayPlan(dayPlanId: String): Long?
+
     @Query(
         """
         UPDATE day_tasks

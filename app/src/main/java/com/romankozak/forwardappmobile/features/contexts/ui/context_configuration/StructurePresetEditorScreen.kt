@@ -129,8 +129,8 @@ fun StructurePresetEditorScreen(
                     onInboxChange = { viewModel.updateToggle(PresetToggle.INBOX, it) },
                     enableLog = uiState.enableLog,
                     onLogChange = { viewModel.updateToggle(PresetToggle.LOG, it) },
-                    enableAdvanced = uiState.enableAdvanced,
-                    onAdvancedChange = { viewModel.updateToggle(PresetToggle.ADVANCED, it) },
+                    enableArtifact = uiState.enableArtifact,
+                    onArtifactChange = { viewModel.updateToggle(PresetToggle.ARTIFACT, it) },
                     enableDashboard = uiState.enableDashboard,
                     onDashboardChange = { viewModel.updateToggle(PresetToggle.DASHBOARD, it) },
                     enableBacklog = uiState.enableBacklog,
@@ -190,8 +190,8 @@ private fun FeatureToggles(
     onInboxChange: (Boolean) -> Unit,
     enableLog: Boolean,
     onLogChange: (Boolean) -> Unit,
-    enableAdvanced: Boolean,
-    onAdvancedChange: (Boolean) -> Unit,
+    enableArtifact: Boolean,
+    onArtifactChange: (Boolean) -> Unit,
     enableDashboard: Boolean,
     onDashboardChange: (Boolean) -> Unit,
     enableBacklog: Boolean,
@@ -212,7 +212,7 @@ private fun FeatureToggles(
         Text("Фіче-флаги", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         FeatureToggleRow("Inbox", enableInbox, onInboxChange)
         FeatureToggleRow("Log", enableLog, onLogChange)
-        FeatureToggleRow("Advanced mode", enableAdvanced, onAdvancedChange)
+        FeatureToggleRow("Artifact", enableArtifact, onArtifactChange)
         FeatureToggleRow("Dashboard view", enableDashboard, onDashboardChange)
         FeatureToggleRow("Backlog view", enableBacklog, onBacklogChange)
         FeatureToggleRow("Connections view", enableAttachments, onAttachmentsChange)

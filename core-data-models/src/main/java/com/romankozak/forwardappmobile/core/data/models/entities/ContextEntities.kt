@@ -57,6 +57,7 @@ data class Goal(
     @SerializedName("text") val text: String,
     @SerializedName("description") val description: String? = null,
     @SerializedName("completed") val completed: Boolean,
+    @ColumnInfo(name = "goal_status", defaultValue = "'ACTIVE'") @SerializedName("goalStatus") val goalStatus: String = GoalStatusValues.ACTIVE,
     @SerializedName("createdAt") val createdAt: Long,
     @SerializedName("updatedAt") val updatedAt: Long?,
     @ColumnInfo(name = "synced_at") @SerializedName("syncedAt") val syncedAt: Long? = null,

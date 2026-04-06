@@ -175,7 +175,7 @@ class ContextSettingsViewModel
                         features = structureFeatures,
                         // Синхронізація ключових прапорців для UI-логіки
                         autoLinkSubprojects = structure?.enableAutoLinkSubprojects ?: true,
-                        isProjectManagementEnabled = structureFeatures["Advanced"] == true,
+                        isProjectManagementEnabled = project.isContextManagementEnabled == true,
                     )
                 }
             } else {
@@ -192,7 +192,7 @@ class ContextSettingsViewModel
             config: ContextConfiguration?,
         ): Boolean {
             if (id.raw == "dashboard") return true
-            if (config == null) return id.raw != "advanced" // дефолтні налаштування для порожнього конфігу
+            if (config == null) return true
 
             // Перевірка через роль
             val useRoleDefaults = !config.applyMode.equals(APPLY_MODE_OVERRIDE, ignoreCase = true)
@@ -204,8 +204,7 @@ class ContextSettingsViewModel
                 when (id.raw) {
                     "inbox" -> config.enableInbox ?: enabledByRole
                     "log" -> config.enableLog ?: enabledByRole
-                    "artifact" -> config.enableAdvanced ?: enabledByRole
-                    "advanced" -> config.enableAdvanced ?: enabledByRole
+                    "artifact" -> config.enableArtifact ?: enabledByRole
                     "dashboard" -> config.enableDashboard ?: enabledByRole
                     "backlog" -> config.enableBacklog ?: enabledByRole
                     "attachments" -> config.enableAttachments ?: enabledByRole
@@ -406,7 +405,7 @@ class ContextSettingsViewModel
                     setOf(
                         "inbox",
                         "log",
-                        "advanced",
+                        "artifact",
                         "dashboard",
                         "backlog",
                         "attachments",
@@ -416,6 +415,7 @@ class ContextSettingsViewModel
 
                 // 4. Оновлюємо конфігурацію в БД, щоб прапорці відповідали пресету
                 val structure = contextStructureRepository.ensureStructure(pid)
+                val preset = structurePresetDao.getByCode(code)
                 val updatedStructure =
                     structure.copy(
                         basePresetCode = code,
@@ -423,8 +423,8 @@ class ContextSettingsViewModel
                         // Оновлення legacy-прапорців
                         enableInbox = presetCapabilities.contains(CapabilityId("inbox")),
                         enableLog = presetCapabilities.contains(CapabilityId("log")),
-                        enableArtifact = presetCapabilities.contains(CapabilityId("advanced")),
-                        enableAdvanced = presetCapabilities.contains(CapabilityId("advanced")),
+                        enableArtifact = preset?.enableArtifact ?: presetCapabilities.contains(CapabilityId("artifact")),
+                        enableAdvanced = preset?.enableAdvanced,
                         enableDashboard = true,
                         enableBacklog = presetCapabilities.contains(CapabilityId("backlog")),
                         enableAttachments =
@@ -476,12 +476,7 @@ class ContextSettingsViewModel
                     // Оновлюємо список для майбутнього persistFeatureFlags()
                     experimentalCapabilityIds = updatedExperimentalIds,
                     // Синхронізуємо спеціальні прапорці стану
-                    isProjectManagementEnabled =
-                        if (capabilityId.raw == "advanced") {
-                            enabled
-                        } else {
-                            state.isProjectManagementEnabled
-                        },
+                    isProjectManagementEnabled = state.isProjectManagementEnabled,
                 )
             }
         }
@@ -490,7 +485,7 @@ class ContextSettingsViewModel
             when (label) {
                 "Inbox" -> CapabilityId("inbox")
                 "Log" -> CapabilityId("log")
-                "Advanced" -> CapabilityId("advanced")
+                "Artifact" -> CapabilityId("artifact")
                 "Dashboard" -> CapabilityId("dashboard")
                 "Backlog" -> CapabilityId("backlog")
                 "Attachments", "Connections" -> CapabilityId("connections")
@@ -518,8 +513,8 @@ class ContextSettingsViewModel
                     // Підтримка legacy-колонок (для сумісності)
                     enableInbox = currentState.features["Inbox"] == true,
                     enableLog = currentState.features["Log"] == true,
-                    enableArtifact = currentState.features["Advanced"] == true,
-                    enableAdvanced = currentState.features["Advanced"] == true,
+                    enableArtifact = currentState.features["Artifact"] == true,
+                    enableAdvanced = currentState.isProjectManagementEnabled,
                     enableDashboard = currentState.features["Dashboard"] == true,
                     enableBacklog = currentState.features["Backlog"] == true,
                     enableAttachments = currentState.features["Connections"] ?: currentState.features["Attachments"] == true,
@@ -535,7 +530,7 @@ class ContextSettingsViewModel
             // 4. Оновлюємо внутрішній стан UI для миттєвої реакції екрана
             _uiState.update { state ->
                 state.copy(
-                    isProjectManagementEnabled = updated.enableAdvanced == true,
+                    isProjectManagementEnabled = currentState.isProjectManagementEnabled,
                     autoLinkSubprojects = updated.enableAutoLinkSubprojects == true,
                 )
             }

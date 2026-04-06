@@ -17,7 +17,7 @@ class ContextArtifactRepository
         }
 
         suspend fun updateContextArtifact(artifact: ContextArtifact) {
-            contextArtifactDao.update(artifact)
+            contextArtifactDao.insert(artifact)
         }
 
         suspend fun createContextArtifact(artifact: ContextArtifact) {

@@ -806,11 +806,7 @@ class ContextScreenViewModel
             }
         }
 
-        private fun capabilityForView(viewMode: ContextViewMode): CapabilityId =
-            when (viewMode) {
-                ContextViewMode.ADVANCED, ContextViewMode.ARTIFACT -> CapabilityId("advanced")
-                else -> CapabilityId(viewMode.name.lowercase())
-            }
+        private fun capabilityForView(viewMode: ContextViewMode): CapabilityId = CapabilityId(viewMode.name.lowercase())
 
         fun onExportBacklogToMarkdown() = markdownActions.onExportBacklogToMarkdown(_listContent.value)
 

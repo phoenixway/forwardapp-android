@@ -199,10 +199,14 @@ fun ProjectHierarchyScreenContent(
                     hierarchySettings = HierarchyDisplaySettings(),
                     listState = listState,
                     longDescendantsMap = uiState.longDescendantsMap,
+                    selectedContextIds = uiState.selectedContextIds,
+                    isSelectionMode = uiState.isSelectionMode,
                     onEvent = onEvent,
                     sharedTransitionScope = sharedTransitionScope,
                     animatedVisibilityScope = animatedVisibilityScope,
                     onProjectClicked = { onEvent(ContextHierarchyScreenEvent.ContextClick(it)) },
+                    onToggleSelection = { onEvent(ContextHierarchyScreenEvent.ToggleContextSelection(it)) },
+                    onStartSelection = { onEvent(ContextHierarchyScreenEvent.StartContextSelection(it)) },
                     onMenuRequested = { onEvent(ContextHierarchyScreenEvent.ContextMenuRequest(it)) },
                     onProjectReorder = { from, to, pos ->
                         onEvent(ContextHierarchyScreenEvent.ContextReorder(from, to, pos))

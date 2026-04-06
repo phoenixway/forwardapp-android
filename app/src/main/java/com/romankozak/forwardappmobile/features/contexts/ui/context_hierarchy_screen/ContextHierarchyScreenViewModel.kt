@@ -31,6 +31,7 @@ import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextClipboardOperationUi
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
@@ -107,7 +108,7 @@ class ContextHierarchyScreenViewModel
         }
 
         private data class ContextClipboardPayload(
-            val contextId: String,
+            val contextIds: Set<String>,
             val operation: ContextClipboardOperation,
         )
 
@@ -176,6 +177,7 @@ class ContextHierarchyScreenViewModel
         private val _isBottomNavExpanded = MutableStateFlow(false)
         private val _showSearchDialog = MutableStateFlow(false)
         private val contextClipboard = MutableStateFlow<ContextClipboardPayload?>(null)
+        private val selectedContextIds = MutableStateFlow<Set<String>>(emptySet())
         private val pendingChooserAction = MutableStateFlow<PendingChooserAction?>(null)
         private val projectBeingMovedId =
             savedStateHandle.getStateFlow<String?>(PROJECT_BEING_MOVED_ID_KEY, null)
@@ -202,11 +204,32 @@ class ContextHierarchyScreenViewModel
                 isBottomNavExpanded = _isBottomNavExpanded,
                 showSearchDialog = _showSearchDialog,
                 navigationSnapshot = navigationSnapshot,
+                selectedContextIds = selectedContextIds,
+                clipboardState =
+                    contextClipboard
+                        .map { payload ->
+                            payload?.let {
+                                it.contextIds to
+                                    when (it.operation) {
+                                        ContextClipboardOperation.COPY -> ContextClipboardOperationUi.COPY
+                                        ContextClipboardOperation.CUT -> ContextClipboardOperationUi.CUT
+                                    }
+                            } ?: (emptySet<String>() to null)
+                        }.stateIn(
+                            scope = viewModelScope,
+                            started = SharingStarted.Eagerly,
+                            initialValue = emptySet<String>() to null,
+                        ),
             )
             initializeAndCollectStates()
             viewModelScope.launch {
                 _allProjectsFlat.collect { projects ->
                     HierarchyDebugLogger.d { "_allProjectsFlat size=${projects.size}" }
+                    val existingIds = projects.mapTo(linkedSetOf()) { it.id }
+                    selectedContextIds.update { it.intersect(existingIds) }
+                    contextClipboard.update { payload ->
+                        payload?.copy(contextIds = payload.contextIds.intersect(existingIds))?.takeIf { it.contextIds.isNotEmpty() }
+                    }
                     withContext(ioDispatcher) {
                         recentItemsRepository.syncProjectRecentItemsWithContexts(projects)
                     }
@@ -396,7 +419,26 @@ class ContextHierarchyScreenViewModel
                         uiState.value.projectHierarchy,
                     )
 
-                is ContextHierarchyScreenEvent.ContextClick -> onProjectClicked(event.projectId)
+                is ContextHierarchyScreenEvent.ContextClick -> {
+                    if (selectedContextIds.value.isNotEmpty()) {
+                        selectedContextIds.update { current ->
+                            if (event.projectId in current) current - event.projectId else current + event.projectId
+                        }
+                    } else {
+                        onProjectClicked(event.projectId)
+                    }
+                }
+                is ContextHierarchyScreenEvent.StartContextSelection -> {
+                    selectedContextIds.update { current -> current + event.projectId }
+                }
+                is ContextHierarchyScreenEvent.ToggleContextSelection -> {
+                    selectedContextIds.update { current ->
+                        if (event.projectId in current) current - event.projectId else current + event.projectId
+                    }
+                }
+                is ContextHierarchyScreenEvent.ClearContextSelection -> {
+                    selectedContextIds.value = emptySet()
+                }
                 is ContextHierarchyScreenEvent.ContextMenuRequest -> {
                     val canPaste = canPasteContextInto(event.project.id)
                     dialogUseCase.onMenuRequested(event.project, canPaste)
@@ -582,7 +624,7 @@ class ContextHierarchyScreenViewModel
                 is ContextHierarchyScreenEvent.CopyContextLink -> {
                     contextClipboard.value =
                         ContextClipboardPayload(
-                            contextId = event.project.id,
+                            contextIds = setOf(event.project.id),
                             operation = ContextClipboardOperation.COPY,
                         )
                     dialogUseCase.dismissDialog()
@@ -593,7 +635,7 @@ class ContextHierarchyScreenViewModel
                 is ContextHierarchyScreenEvent.CutContextLink -> {
                     contextClipboard.value =
                         ContextClipboardPayload(
-                            contextId = event.project.id,
+                            contextIds = setOf(event.project.id),
                             operation = ContextClipboardOperation.CUT,
                         )
                     dialogUseCase.dismissDialog()
@@ -611,8 +653,8 @@ class ContextHierarchyScreenViewModel
                         }
 
                         val allProjects = _allProjectsFlat.value
-                        val source = allProjects.firstOrNull { it.id == payload.contextId }
-                        if (source == null) {
+                        val sources = resolveClipboardContexts(allProjects, payload)
+                        if (sources.isEmpty()) {
                             contextClipboard.value = null
                             dialogUseCase.dismissDialog()
                             _uiEventChannel.send(ProjectUiEvent.ShowToast("Контекст у буфері більше не існує"))
@@ -628,36 +670,82 @@ class ContextHierarchyScreenViewModel
                         when (payload.operation) {
                             ContextClipboardOperation.CUT -> {
                                 withContext(ioDispatcher) {
-                                    contextRepository.moveContext(
-                                        contextToMove = source,
-                                        newParentId = event.project.id,
-                                        allowSystemMoves = true,
-                                    )
+                                    sources.forEach { source ->
+                                        contextRepository.moveContext(
+                                            contextToMove = source,
+                                            newParentId = event.project.id,
+                                            allowSystemMoves = true,
+                                        )
+                                    }
                                 }
                                 contextClipboard.value = null
                                 dialogUseCase.dismissDialog()
-                                _uiEventChannel.send(ProjectUiEvent.ShowToast("Контекст переміщено"))
+                                _uiEventChannel.send(
+                                    ProjectUiEvent.ShowToast(
+                                        if (sources.size == 1) "Контекст переміщено" else "Контексти переміщено: ${sources.size}",
+                                    ),
+                                )
                             }
 
                             ContextClipboardOperation.COPY -> {
-                                val copiedName =
-                                    generateCopiedContextName(
-                                        baseName = source.name,
-                                        targetParentId = event.project.id,
-                                        allProjects = allProjects,
-                                    )
                                 withContext(ioDispatcher) {
-                                    contextRepository.createContextWithId(
-                                        id = UUID.randomUUID().toString(),
-                                        name = copiedName,
-                                        parentId = event.project.id,
-                                        roleCode = source.roleCode,
-                                    )
+                                    val siblingNames =
+                                        allProjects
+                                            .filter { it.parentId == event.project.id }
+                                            .mapTo(mutableSetOf()) { it.name }
+                                    sources.forEach { source ->
+                                        val copiedName =
+                                            generateCopiedContextName(
+                                                baseName = source.name,
+                                                existingSiblingNames = siblingNames,
+                                            )
+                                        siblingNames += copiedName
+                                        contextRepository.createContextWithId(
+                                            id = UUID.randomUUID().toString(),
+                                            name = copiedName,
+                                            parentId = event.project.id,
+                                            roleCode = source.roleCode,
+                                        )
+                                    }
                                 }
                                 dialogUseCase.dismissDialog()
-                                _uiEventChannel.send(ProjectUiEvent.ShowToast("Контекст скопійовано в обраний контекст"))
+                                _uiEventChannel.send(
+                                    ProjectUiEvent.ShowToast(
+                                        if (sources.size == 1) {
+                                            "Контекст скопійовано в обраний контекст"
+                                        } else {
+                                            "Контексти скопійовано: ${sources.size}"
+                                        },
+                                    ),
+                                )
                             }
                         }
+                    }
+                }
+                is ContextHierarchyScreenEvent.CopySelectedContexts -> {
+                    val selectedIds = selectedContextIds.value
+                    if (selectedIds.isEmpty()) return
+                    contextClipboard.value =
+                        ContextClipboardPayload(
+                            contextIds = selectedIds,
+                            operation = ContextClipboardOperation.COPY,
+                        )
+                    selectedContextIds.value = emptySet()
+                    viewModelScope.launch {
+                        _uiEventChannel.send(ProjectUiEvent.ShowToast("Контексти скопійовано: ${selectedIds.size}"))
+                    }
+                }
+                is ContextHierarchyScreenEvent.CutSelectedContexts -> {
+                    val selectedIds = selectedContextIds.value
+                    if (selectedIds.isEmpty()) return
+                    contextClipboard.value =
+                        ContextClipboardPayload(
+                            contextIds = selectedIds,
+                            operation = ContextClipboardOperation.CUT,
+                        )
+                    selectedContextIds.value = emptySet()
+                    viewModelScope.launch {
+                        _uiEventChannel.send(ProjectUiEvent.ShowToast("Контексти вирізано: ${selectedIds.size}"))
                     }
                 }
                 is ContextHierarchyScreenEvent.GoToSettings -> {
@@ -1071,19 +1159,41 @@ class ContextHierarchyScreenViewModel
             payload: ContextClipboardPayload,
         ): Boolean {
             if (targetContextId.isBlank()) return false
-            val source = allProjects.firstOrNull { it.id == payload.contextId } ?: return false
             val target = allProjects.firstOrNull { it.id == targetContextId } ?: return false
+            val sources = resolveClipboardContexts(allProjects, payload)
+            if (sources.isEmpty()) return false
 
             return when (payload.operation) {
-                ContextClipboardOperation.COPY -> source.id != target.id
+                ContextClipboardOperation.COPY -> sources.none { it.id == target.id }
                 ContextClipboardOperation.CUT ->
-                    source.id != target.id &&
-                        !isDescendantOrSelf(
-                            candidateDescendantId = target.id,
-                            ancestorId = source.id,
-                            allProjects = allProjects,
-                        )
+                    sources.none { it.id == target.id } &&
+                        sources.none { source ->
+                            isDescendantOrSelf(
+                                candidateDescendantId = target.id,
+                                ancestorId = source.id,
+                                allProjects = allProjects,
+                            )
+                        }
             }
+        }
+
+        private fun resolveClipboardContexts(
+            allProjects: List<Context>,
+            payload: ContextClipboardPayload,
+        ): List<Context> {
+            val contextsById = allProjects.associateBy { it.id }
+            return payload.contextIds
+                .mapNotNull(contextsById::get)
+                .filterNot { candidate ->
+                    payload.contextIds.any { otherId ->
+                        otherId != candidate.id &&
+                            isDescendantOrSelf(
+                                candidateDescendantId = candidate.id,
+                                ancestorId = otherId,
+                                allProjects = allProjects,
+                            )
+                    }
+                }
         }
 
         private fun isDescendantOrSelf(
@@ -1103,16 +1213,14 @@ class ContextHierarchyScreenViewModel
 
         private fun generateCopiedContextName(
             baseName: String,
-            targetParentId: String,
-            allProjects: List<Context>,
+            existingSiblingNames: Set<String>,
         ): String {
-            val siblingNames = allProjects.filter { it.parentId == targetParentId }.map { it.name }.toSet()
             val firstCandidate = "$baseName (копія)"
-            if (firstCandidate !in siblingNames) return firstCandidate
+            if (firstCandidate !in existingSiblingNames) return firstCandidate
             var index = 2
             while (true) {
                 val candidate = "$baseName (копія $index)"
-                if (candidate !in siblingNames) return candidate
+                if (candidate !in existingSiblingNames) return candidate
                 index += 1
             }
         }

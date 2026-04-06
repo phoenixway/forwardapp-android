@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.view
 
 import android.util.Log
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
+import com.romankozak.forwardappmobile.core.data.models.entities.GoalStatusValues
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionType
@@ -72,7 +73,14 @@ class SelectionHandler(
 
         if (goalsToUpdate.isNotEmpty()) {
             scope.launch {
-                val updatedGoals = goalsToUpdate.map { it.copy(completed = true, updatedAt = System.currentTimeMillis()) }
+                val updatedGoals =
+                    goalsToUpdate.map {
+                        it.copy(
+                            completed = true,
+                            goalStatus = GoalStatusValues.DONE,
+                            updatedAt = System.currentTimeMillis(),
+                        )
+                    }
                 goalRepository.updateGoals(updatedGoals)
                 resultListener.showSnackbar("Позначено як виконані: ${goalsToUpdate.size}", null)
                 resultListener.forceRefresh()
@@ -95,7 +103,19 @@ class SelectionHandler(
 
         if (goalsToUpdate.isNotEmpty()) {
             scope.launch {
-                val updatedGoals = goalsToUpdate.map { it.copy(completed = false, updatedAt = System.currentTimeMillis()) }
+                val updatedGoals =
+                    goalsToUpdate.map {
+                        it.copy(
+                            completed = false,
+                            goalStatus =
+                                if (GoalStatusValues.isTerminal(it.goalStatus)) {
+                                    GoalStatusValues.ACTIVE
+                                } else {
+                                    GoalStatusValues.normalize(it.goalStatus)
+                                },
+                            updatedAt = System.currentTimeMillis(),
+                        )
+                    }
                 goalRepository.updateGoals(updatedGoals)
                 resultListener.showSnackbar("Знято позначку виконання: ${goalsToUpdate.size}", null)
                 resultListener.forceRefresh()

@@ -62,6 +62,7 @@ fun GeneralTabContent(
     state: GeneralTabState,
     actions: GeneralTabActions,
     titleLabel: String,
+    extraContent: @Composable (() -> Unit)? = null,
 ) {
     LazyColumn(
         modifier =
@@ -111,6 +112,12 @@ fun GeneralTabContent(
                     onAddTag = actions.onAddTag,
                     onRemoveTag = actions.onRemoveTag,
                 )
+            }
+        }
+
+        if (extraContent != null) {
+            item {
+                extraContent()
             }
         }
     }

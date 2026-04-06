@@ -161,6 +161,10 @@ fun ProjectRow(
     modifier: Modifier = Modifier,
     displayName: AnnotatedString? = null,
     isFocused: Boolean = false,
+    isSelectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onToggleSelection: ((String) -> Unit)? = null,
+    onStartSelection: ((String) -> Unit)? = null,
 ) {
     val highlightColor by animateColorAsState(
         targetValue =
@@ -224,16 +228,33 @@ fun ProjectRow(
                         .weight(1f)
                         .combinedClickable(
                             onClick = {
-                                if (hasChildren) {
-                                    onProjectFocus(project)
+                                if (isSelectionMode) {
+                                    onToggleSelection?.invoke(project.id)
                                 } else {
-                                    onProjectClick(project.id)
+                                    if (hasChildren) {
+                                        onProjectFocus(project)
+                                    } else {
+                                        onProjectClick(project.id)
+                                    }
                                 }
                             },
-                            onLongClick = { onProjectClick(project.id) },
+                            onLongClick = {
+                                if (isSelectionMode) {
+                                    onToggleSelection?.invoke(project.id)
+                                } else {
+                                    onStartSelection?.invoke(project.id)
+                                }
+                            },
                         ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                if (isSelectionMode) {
+                    Checkbox(
+                        checked = isSelected,
+                        onCheckedChange = { onToggleSelection?.invoke(project.id) },
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
                 if (hasChildren) {
                     Surface(
                         shape = RoundedCornerShape(999.dp),
@@ -301,6 +322,10 @@ fun SwipeableProjectRow(
     modifier: Modifier = Modifier,
     displayName: AnnotatedString? = null,
     isFocused: Boolean = false,
+    isSelectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onToggleSelection: ((String) -> Unit)? = null,
+    onStartSelection: ((String) -> Unit)? = null,
 ) {
     val isSystemContext = remember(project.id) { SystemContexts.isSystem(ContextId(project.id)) }
     val density = LocalDensity.current
@@ -339,6 +364,7 @@ fun SwipeableProjectRow(
                 .draggable(
                     orientation = Orientation.Horizontal,
                     state = draggableState,
+                    enabled = !isSelectionMode,
                     onDragStopped = { velocity ->
                         val velocityThreshold = 300f
                         val startThreshold = startActionWidthPx * 0.12f
@@ -454,6 +480,10 @@ fun SwipeableProjectRow(
             modifier = Modifier.offset { IntOffset(offsetX.roundToInt(), 0) },
             displayName = displayName,
             isFocused = isFocused,
+            isSelectionMode = isSelectionMode,
+            isSelected = isSelected,
+            onToggleSelection = onToggleSelection,
+            onStartSelection = onStartSelection,
         )
     }
 }
@@ -596,7 +626,11 @@ fun HierarchyListItem(
     searchQuery: String,
     focusedProjectId: String?,
     longDescendantsMap: Map<String, Boolean>,
+    isSelectionMode: Boolean,
+    selectedContextIds: Set<String>,
     onProjectClick: (String) -> Unit,
+    onToggleSelection: (String) -> Unit,
+    onStartSelection: (String) -> Unit,
     onMenuRequested: (Context) -> Unit,
     onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
     onFocusProject: (Context) -> Unit,
@@ -624,6 +658,7 @@ fun HierarchyListItem(
         }
 
     val isFocused = project.id == focusedProjectId
+    val isSelected = project.id in selectedContextIds
 
     with(sharedTransitionScope) {
         val isDropAllowed =
@@ -654,32 +689,41 @@ fun HierarchyListItem(
                 isDraggingDown = isDraggingDown,
                 isHighlighted = project.id == highlightedProjectId,
                 displayName = displayName,
-                dragHandle = {
-                    DraggableItem(
-                        state = dragAndDropState,
-                        key = project.id,
-                        data = project,
-                        dragAfterLongPress = true,
-                    ) {
-                        IconButton(
-                            onClick = { onMenuRequested(project) },
-                            modifier = Modifier.padding(start = 2.dp).size(36.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "Дії з контекстом",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                dragHandle =
+                    if (isSelectionMode) {
+                        null
+                    } else {
+                        {
+                            DraggableItem(
+                                state = dragAndDropState,
+                                key = project.id,
+                                data = project,
+                                dragAfterLongPress = true,
+                            ) {
+                                IconButton(
+                                    onClick = { onMenuRequested(project) },
+                                    modifier = Modifier.padding(start = 2.dp).size(36.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.MoreVert,
+                                        contentDescription = "Дії з контекстом",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
                         }
-                    }
-                },
+                    },
                 onAddSubproject = onAddSubproject,
                 onDelete = onDeleteProject,
                 onEdit = onEditProject,
                 isFocused = isFocused,
+                isSelectionMode = isSelectionMode,
+                isSelected = isSelected,
+                onToggleSelection = onToggleSelection,
+                onStartSelection = onStartSelection,
             )
 
-            if (!isCurrentlyDragging) {
+            if (!isCurrentlyDragging && !isSelectionMode) {
                 Column(modifier = Modifier.matchParentSize()) {
                     val dropModifier = { position: DropPosition ->
                         Modifier

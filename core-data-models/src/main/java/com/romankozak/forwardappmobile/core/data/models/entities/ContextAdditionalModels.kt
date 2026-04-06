@@ -105,3 +105,45 @@ enum class TaskPriority {
 }
 
 enum class TaskStatus { NOT_STARTED, IN_PROGRESS, COMPLETED, CANCELLED, DEFERRED}
+
+object GoalStatusValues {
+    const val ACTIVE = "ACTIVE"
+    const val IN_WORK = "IN_WORK"
+    const val PAUSED = "PAUSED"
+    const val UNSURE = "UNSURE"
+    const val DONE = "DONE"
+    const val CANCELED = "CANCELED"
+
+    val all: List<String> =
+        listOf(
+            ACTIVE,
+            IN_WORK,
+            PAUSED,
+            UNSURE,
+            DONE,
+            CANCELED,
+        )
+
+    fun getDisplayName(status: String?): String =
+        when (normalize(status)) {
+            IN_WORK -> "В роботі"
+            PAUSED -> "На паузі"
+            UNSURE -> "Під питанням"
+            DONE -> "Виконано"
+            CANCELED -> "Скасовано"
+            else -> "Активна"
+        }
+
+    fun isTerminal(status: String?): Boolean = normalize(status) == DONE
+
+    fun isGroupedAtEnd(status: String?): Boolean =
+        when (normalize(status)) {
+            PAUSED, UNSURE, DONE, CANCELED -> true
+            else -> false
+        }
+
+    fun normalize(status: String?): String =
+        status
+            ?.takeIf { it in all }
+            ?: ACTIVE
+}

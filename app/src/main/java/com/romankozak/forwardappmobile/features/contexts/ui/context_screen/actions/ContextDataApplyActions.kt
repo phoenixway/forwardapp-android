@@ -18,7 +18,8 @@ private typealias BacklogItemSetter =
 private fun fallbackInputMode(currentViewMode: ContextViewMode): InputMode =
     when (currentViewMode) {
         ContextViewMode.DIRECTION -> InputMode.AddDirection
-        ContextViewMode.INBOX, ContextViewMode.ADVANCED -> InputMode.AddQuickRecord
+        ContextViewMode.INBOX -> InputMode.AddQuickRecord
+        ContextViewMode.LOG -> InputMode.AddProjectLog
         else -> InputMode.AddGoal
     }
 
@@ -26,8 +27,18 @@ private fun defaultInputMode(currentViewMode: ContextViewMode): InputMode =
     when (currentViewMode) {
         ContextViewMode.CONNECTIONS -> InputMode.AddConnectionNote
         ContextViewMode.DIRECTION -> InputMode.AddDirection
-        ContextViewMode.INBOX, ContextViewMode.ADVANCED -> InputMode.AddQuickRecord
+        ContextViewMode.INBOX -> InputMode.AddQuickRecord
+        ContextViewMode.LOG -> InputMode.AddProjectLog
         else -> InputMode.AddGoal
+    }
+
+private fun allowedInputModes(currentViewMode: ContextViewMode): Set<InputMode> =
+    when (currentViewMode) {
+        ContextViewMode.LOG -> setOf(InputMode.AddProjectLog, InputMode.AddMilestone)
+        ContextViewMode.CONNECTIONS -> setOf(InputMode.AddConnectionNote, InputMode.SearchInList)
+        ContextViewMode.DIRECTION -> setOf(InputMode.AddDirection, InputMode.SearchInList)
+        ContextViewMode.INBOX -> setOf(InputMode.AddQuickRecord, InputMode.SearchInList)
+        else -> setOf(InputMode.AddGoal)
     }
 
 class ContextDataApplyActions(
@@ -137,11 +148,11 @@ class ContextDataApplyActions(
         CapabilityState(
             enableInbox = enabledCapabilities.contains(CapabilityId("inbox")),
             enableLog = enabledCapabilities.contains(CapabilityId("log")),
-            enableArtifact = enabledCapabilities.contains(CapabilityId("advanced")),
+            enableArtifact = enabledCapabilities.contains(CapabilityId("artifact")),
             enableBacklog = enabledCapabilities.contains(CapabilityId("backlog")),
             enableDashboard = enabledCapabilities.contains(CapabilityId("dashboard")),
             enableAttachments = enabledCapabilities.contains(CapabilityId("connections")),
-            isProjectManagementEnabled = enabledCapabilities.contains(CapabilityId("advanced")),
+            isProjectManagementEnabled = false,
         )
 
     private fun resolveInputMode(
@@ -149,11 +160,17 @@ class ContextDataApplyActions(
         currentViewMode: ContextViewMode,
     ): InputMode =
         when {
-            currentState.inputMode == InputMode.AddConnectionNote &&
-                currentViewMode != ContextViewMode.CONNECTIONS -> {
+            currentState.inputMode in allowedInputModes(currentViewMode) -> currentState.inputMode
+            currentState.inputMode == InputMode.SearchInList &&
+                currentViewMode != ContextViewMode.BACKLOG &&
+                currentViewMode != ContextViewMode.INBOX &&
+                currentViewMode != ContextViewMode.DIRECTION -> {
                 fallbackInputMode(currentViewMode)
             }
-            currentState.inputMode != InputMode.AddGoal -> currentState.inputMode
+            currentState.inputMode != InputMode.AddGoal &&
+                currentState.inputMode != InputMode.SearchInList -> {
+                fallbackInputMode(currentViewMode)
+            }
             else -> defaultInputMode(currentViewMode)
         }
 

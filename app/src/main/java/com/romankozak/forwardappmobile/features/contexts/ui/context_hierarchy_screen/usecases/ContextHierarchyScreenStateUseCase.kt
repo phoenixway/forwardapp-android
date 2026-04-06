@@ -16,6 +16,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePrese
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.AppStatistics
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextRoleOption
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextClipboardOperationUi
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DialogState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FilterState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyItem
@@ -81,6 +82,8 @@ class ProjectHierarchyScreenStateUseCase
             isBottomNavExpanded: StateFlow<Boolean>,
             showSearchDialog: StateFlow<Boolean>,
             navigationSnapshot: StateFlow<NavigationSnapshot>,
+            selectedContextIds: StateFlow<Set<String>>,
+            clipboardState: StateFlow<Pair<Set<String>, ContextClipboardOperationUi?>>,
         ) {
             if (isInitialized) return
 
@@ -210,6 +213,8 @@ class ProjectHierarchyScreenStateUseCase
                     contextMarkerHandler.contextMarkerToEmojiMap,
                     availableContextRolesFlow,
                     FeatureToggles.overrides,
+                    selectedContextIds,
+                    clipboardState,
                 ) { values ->
                     val coreState = values[0] as CoreUiState
                     val dialogState = values[1] as DialogUiState
@@ -237,6 +242,10 @@ class ProjectHierarchyScreenStateUseCase
 
                     @Suppress("UNCHECKED_CAST")
                     val featureToggles = values[14] as Map<FeatureFlag, Boolean>
+                    @Suppress("UNCHECKED_CAST")
+                    val selectedIds = values[15] as Set<String>
+                    @Suppress("UNCHECKED_CAST")
+                    val clipboard = values[16] as Pair<Set<String>, ContextClipboardOperationUi?>
 
                     ProjectHierarchyScreenUiState(
                         subStateStack = coreState.subStateStack,
@@ -272,6 +281,9 @@ class ProjectHierarchyScreenStateUseCase
                         contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                         availableContextRoles = availableContextRoles,
                         featureToggles = featureToggles,
+                        selectedContextIds = selectedIds,
+                        clipboardContextIds = clipboard.first,
+                        clipboardOperation = clipboard.second,
                     )
                 }
                     .stateIn(scope, SharingStarted.Eagerly, MainScreenUiState())
