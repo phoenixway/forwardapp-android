@@ -141,7 +141,7 @@ class GlobalSearchViewModel
                 ),
                 OmniboxCommandDefinition(
                     id = OmniboxCommandId.OpenTracker,
-                    title = "Відкрити Activity Tracker",
+                    title = "Відкрити Life Journal",
                     subtitle = "Екран активностей",
                     keywords = listOf("tracker", "activity", "активності", "трекер"),
                 ),

@@ -227,7 +227,7 @@ private fun ActivityTrackerTopAppBar(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     TopAppBar(
-        title = { Text("Трекер Активності") },
+        title = { Text("Life Journal") },
         navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад") } },
         actions = {
             IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Default.MoreVert, "Меню") }

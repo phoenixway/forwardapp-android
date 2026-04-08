@@ -747,7 +747,7 @@ private fun modeStartDescription(mode: OmniboxMode): String =
         OmniboxMode.DataSearch -> "Глобальний пошук по даних застосунку."
         OmniboxMode.QuickCatchInbox -> "Швидко скиньте думку або нотатку в inbox."
         OmniboxMode.StartActivity -> "Створіть нову поточну активність із цього поля."
-        OmniboxMode.AddActivityEvent -> "Додайте коротку подію в activity tracker."
+        OmniboxMode.AddActivityEvent -> "Додайте короткий запис у Life Journal."
     }
 
 private fun modeStartIcon(mode: OmniboxMode): ImageVector =
