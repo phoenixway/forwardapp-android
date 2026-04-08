@@ -100,8 +100,11 @@ class CommandDeckViewModel
             }
         }
 
-        fun isCategoryExpanded(categoryTitle: String): Boolean {
-            return sharedPreferences.getBoolean(categoryTitle, false)
+        fun isCategoryExpanded(
+            categoryTitle: String,
+            defaultValue: Boolean = false,
+        ): Boolean {
+            return sharedPreferences.getBoolean(categoryTitle, defaultValue)
         }
 
         fun setCategoryExpanded(

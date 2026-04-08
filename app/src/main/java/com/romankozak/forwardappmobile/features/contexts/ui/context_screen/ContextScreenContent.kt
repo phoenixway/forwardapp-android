@@ -97,6 +97,7 @@ fun GoalDetailContent(
     val projectArtifact by viewModel.contextArtifact.collectAsStateWithLifecycle()
     val keyProblemsData by viewModel.keyProblemsData.collectAsStateWithLifecycle()
     val allContexts by viewModel.allContextsForPicker.collectAsStateWithLifecycle()
+    val pickerAttachmentOptions by viewModel.pickerAttachmentOptions.collectAsStateWithLifecycle()
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val enableKeyProblems = uiState.experimentalCapabilityIds.contains(CapabilityId("key_problems"))
 
@@ -158,6 +159,7 @@ fun GoalDetailContent(
                         onDelete = { item -> viewModel.itemActionHandler.deleteItem(item) },
                         onDeleteEverywhere = { item -> viewModel.onDeleteEverywhere(item) },
                         onAddToDayPlan = { item -> viewModel.addItemToDailyPlan(item) },
+                        onAddAsMission = { item -> viewModel.addItemAsMission(item) },
                         onStartTracking = { item -> viewModel.onStartTrackingRequest(item) },
                         onCopyTransport = { item -> viewModel.itemActionHandler.onTransportCopyRequested(item) },
                         onCutTransport = { item -> viewModel.itemActionHandler.onTransportCutRequested(item) },
@@ -260,10 +262,6 @@ fun GoalDetailContent(
             )
         }
         ContextViewMode.KEY_PROBLEMS -> {
-            val focusContexts =
-                allContexts.filter { context ->
-                    keyProblemsData.focusContextIds.contains(context.id)
-                }
             val pickerContextOptions =
                 allContexts
                     .filter { it.id != uiState.context?.id }
@@ -276,12 +274,13 @@ fun GoalDetailContent(
                     }
             KeyProblemsView(
                 modifier = modifier,
-                description = keyProblemsData.description,
-                focusContexts = focusContexts,
+                issues = keyProblemsData.issues,
+                allContexts = allContexts,
                 pickerContextOptions = pickerContextOptions,
-                onDescriptionChange = viewModel::onKeyProblemsDescriptionChanged,
-                onAddFocusContext = viewModel::addKeyProblemsFocusContext,
-                onRemoveFocusContext = viewModel::removeKeyProblemsFocusContext,
+                pickerAttachmentOptions = pickerAttachmentOptions,
+                onSaveIssue = viewModel::saveIssueTrackerIssue,
+                onDeleteIssue = viewModel::deleteIssueTrackerIssue,
+                onReorderIssues = viewModel::reorderIssueTrackerIssues,
             )
         }
         ContextViewMode.NOTES, ContextViewMode.VET_CASE -> Unit
@@ -516,7 +515,7 @@ private fun ContextViewMode.dashboardLabel(): String =
         ContextViewMode.DASHBOARD -> "Дашборд"
         ContextViewMode.LOG -> "Лог"
         ContextViewMode.ARTIFACT -> "Артефакт"
-        ContextViewMode.KEY_PROBLEMS -> "Ключові проблеми"
+        ContextViewMode.KEY_PROBLEMS -> "Issue tracker"
         ContextViewMode.ADVANCED,
         ContextViewMode.NOTES,
         ContextViewMode.VET_CASE,

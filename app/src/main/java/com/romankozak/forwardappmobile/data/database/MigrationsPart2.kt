@@ -800,3 +800,23 @@ val MIGRATION_114_115 =
             }
         }
     }
+
+val MIGRATION_115_116 =
+    object : Migration(115, 116) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `life_management_level_statuses` (
+                    `levelId` TEXT NOT NULL,
+                    `generalStatus` TEXT NOT NULL,
+                    `transferStatus` TEXT NOT NULL,
+                    `freshnessStatus` TEXT NOT NULL,
+                    `blockerText` TEXT,
+                    `nextActionText` TEXT,
+                    `updatedAt` INTEGER NOT NULL,
+                    PRIMARY KEY(`levelId`)
+                )
+                """.trimIndent(),
+            )
+        }
+    }

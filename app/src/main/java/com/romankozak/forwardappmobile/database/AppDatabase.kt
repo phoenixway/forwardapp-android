@@ -29,6 +29,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.GoalFts
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteFts
+import com.romankozak.forwardappmobile.core.data.models.entities.LifeManagementLevelStatusEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.LifeSystemStateEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.MusicNoteEntity
@@ -59,6 +60,7 @@ import com.romankozak.forwardappmobile.data.dao.DayPlanDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
 import com.romankozak.forwardappmobile.data.dao.FocusContextIntervalDao
 import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
+import com.romankozak.forwardappmobile.data.dao.LifeManagementLevelStatusDao
 import com.romankozak.forwardappmobile.data.dao.LifeSystemStateDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
 import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
@@ -128,6 +130,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         TacticalMission::class,
         TacticalMissionAttachmentCrossRef::class,
         AiEventEntity::class,
+        LifeManagementLevelStatusEntity::class,
         LifeSystemStateEntity::class,
         UserStateIntervalEntity::class,
         AiInsightEntity::class,
@@ -137,7 +140,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 115,
+    version = 116,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -203,6 +206,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun systemAppDao(): SystemAppDao
 
     abstract fun aiEventDao(): AiEventDao
+
+    abstract fun lifeManagementLevelStatusDao(): LifeManagementLevelStatusDao
 
     abstract fun lifeSystemStateDao(): LifeSystemStateDao
 

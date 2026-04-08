@@ -101,6 +101,8 @@ class InputHandler(
 
         fun addQuickRecord(text: String)
 
+        fun addIssue(text: String)
+
         fun addProjectComment(text: String)
 
         fun addMilestone(text: String)
@@ -115,7 +117,7 @@ class InputHandler(
         currentInputMode: InputMode,
     ) {
         resultListener.updateInputState(inputValue = newValue)
-        if (currentInputMode == InputMode.AddGoal) {
+        if (currentInputMode == InputMode.AddGoal || currentInputMode == InputMode.AddIssue) {
             if (newValue.text.trim().isNotEmpty()) {
                 nerJob =
                     smartDebouncer.debounce(scope) {
@@ -217,6 +219,13 @@ class InputHandler(
                         Log.e(TAG, "Submit error: ${e.message}", e)
                     }
                 }
+            }
+            InputMode.AddIssue -> {
+                resultListener.updateInputState(
+                    inputValue = TextFieldValue(""),
+                    clearDetectedReminder = true,
+                )
+                resultListener.addIssue(originalText)
             }
             InputMode.AddQuickRecord -> {
                 resultListener.updateInputState(inputValue = TextFieldValue(""))

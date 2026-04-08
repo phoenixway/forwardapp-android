@@ -102,6 +102,10 @@ object DatabaseModule {
 
     @Provides
     @Singleton
+    fun provideLifeManagementLevelStatusDao(appDatabase: AppDatabase) = appDatabase.lifeManagementLevelStatusDao()
+
+    @Provides
+    @Singleton
     fun provideLifeSystemStateDao(appDatabase: AppDatabase) = appDatabase.lifeSystemStateDao()
 
     @Provides

@@ -140,6 +140,7 @@ fun QuickActionsRow(
                         text =
                             when (mode) {
                                 InputMode.AddGoal -> "Ціль"
+                                InputMode.AddIssue -> "Issue"
                                 InputMode.AddConnectionNote -> "add note.."
                                 InputMode.AddDirection -> "Напрям"
                                 InputMode.AddQuickRecord -> "Запис"
@@ -176,6 +177,7 @@ fun InputStatusIndicator(
                 hasText ->
                     when (mode) {
                         InputMode.AddGoal -> MaterialTheme.colorScheme.primary
+                        InputMode.AddIssue -> MaterialTheme.colorScheme.error
                         InputMode.AddConnectionNote -> MaterialTheme.colorScheme.primary
                         InputMode.AddDirection -> MaterialTheme.colorScheme.primary
                         InputMode.AddQuickRecord -> MaterialTheme.colorScheme.primary
@@ -215,6 +217,7 @@ object InputModeUtils {
                 InputMode.SearchInList,
                 InputMode.SearchGlobal,
                 InputMode.AddGoal,
+                InputMode.AddIssue,
                 InputMode.AddConnectionNote,
                 InputMode.AddDirection,
                 InputMode.AddQuickRecord,
@@ -229,6 +232,7 @@ object InputModeUtils {
                 InputMode.SearchInList,
                 InputMode.SearchGlobal,
                 InputMode.AddGoal,
+                InputMode.AddIssue,
                 InputMode.AddConnectionNote,
                 InputMode.AddDirection,
                 InputMode.AddQuickRecord,
@@ -240,6 +244,7 @@ object InputModeUtils {
     fun getModeIcon(mode: InputMode) =
         when (mode) {
             InputMode.AddGoal -> Icons.Outlined.Add
+            InputMode.AddIssue -> Icons.Outlined.Description
             InputMode.AddConnectionNote -> Icons.Outlined.Description
             InputMode.AddDirection -> Icons.Outlined.Explore
             InputMode.AddQuickRecord -> Icons.Outlined.Inbox
@@ -254,6 +259,7 @@ object InputModeUtils {
         colorScheme: ColorScheme,
     ) = when (mode) {
         InputMode.AddGoal -> colorScheme.primary
+        InputMode.AddIssue -> colorScheme.error
         InputMode.AddConnectionNote -> colorScheme.primary
         InputMode.AddDirection -> colorScheme.primary
         InputMode.AddQuickRecord -> colorScheme.primary

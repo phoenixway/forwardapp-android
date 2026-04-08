@@ -48,12 +48,12 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.features.ai.insights.AiInsightsViewModel
 import com.romankozak.forwardappmobile.features.ai.insights.AiMessage
 import com.romankozak.forwardappmobile.features.ai.insights.MessageType
+import com.romankozak.forwardappmobile.features.mainscreen.lifemanagement.LifeManagementStatusPanelSection
 import com.romankozak.forwardappmobile.features.mainscreen.session.SessionMode
 import com.romankozak.forwardappmobile.features.mainscreen.session.SessionModeDashboard
 import com.romankozak.forwardappmobile.features.mainscreen.session.SessionModeState
@@ -66,6 +66,7 @@ private const val INSIGHT_DISMISS_BACKGROUND_ALPHA = 0.6f
 private const val FOCUS_CONTEXTS_LIST_MAX_HEIGHT_DP = 420
 private const val FOCUS_CONTEXTS_EXPANDED_KEY = "dashboard_focus_contexts_expanded"
 private const val AI_INSIGHTS_EXPANDED_KEY = "dashboard_ai_insights_expanded"
+private const val LIFE_MANAGEMENT_STATUS_EXPANDED_KEY = "dashboard_life_management_status_expanded"
 
 @Composable
 fun DashboardContent(
@@ -116,6 +117,9 @@ private fun AnimatedCommandDeck(
     var focusContextsExpanded by remember {
         mutableStateOf(commandDeckViewModel.isCategoryExpanded(FOCUS_CONTEXTS_EXPANDED_KEY))
     }
+    var lifeManagementStatusExpanded by remember {
+        mutableStateOf(commandDeckViewModel.isCategoryExpanded(LIFE_MANAGEMENT_STATUS_EXPANDED_KEY, defaultValue = true))
+    }
 
     Column(
         modifier =
@@ -141,6 +145,17 @@ private fun AnimatedCommandDeck(
                 onExpandedChange = onSessionModeCardExpandedChange,
                 onOpenModeContext = { contextId ->
                     commandDeckViewModel.openSystemContext(contextId, onOpenSessionContext)
+                },
+            )
+
+            LifeManagementStatusPanelSection(
+                isExpanded = lifeManagementStatusExpanded,
+                onToggleExpanded = {
+                    lifeManagementStatusExpanded = !lifeManagementStatusExpanded
+                    commandDeckViewModel.setCategoryExpanded(
+                        LIFE_MANAGEMENT_STATUS_EXPANDED_KEY,
+                        lifeManagementStatusExpanded,
+                    )
                 },
             )
 
@@ -182,7 +197,7 @@ private fun DashboardFocusContextsSection(
     val focusedContexts by focusContextsViewModel.focusedContexts.collectAsStateWithLifecycle()
 
     SectionHeader(
-        title = "Фокус-контексти",
+        title = "Focus Contexts",
         subtitle =
             if (isExpanded) {
                 if (focusedContexts.isEmpty()) "Поки порожньо" else "${focusedContexts.size} активних"
@@ -279,7 +294,7 @@ private fun SectionHeader(
             Column(modifier = Modifier.padding(end = 12.dp)) {
                 Text(
                     text = title,
-                    fontSize = 20.sp,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )

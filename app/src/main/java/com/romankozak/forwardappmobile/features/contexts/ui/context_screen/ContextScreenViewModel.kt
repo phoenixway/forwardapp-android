@@ -73,6 +73,9 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.useca
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.usecases.ContextScreenDataObserver
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.usecases.ContextScreenDataObserverDependencies
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.*
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
+import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
 import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
@@ -107,6 +110,7 @@ class ContextScreenViewModel
         private val clearAndNavigateHomeUseCase: ClearAndNavigateHomeUseCase,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
         private val goalRepository: GoalRepository,
+        private val missionRepository: MissionRepository,
         private val listItemRepository: ListItemRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
         private val musicNoteRepository: MusicNoteRepository,
@@ -862,6 +866,17 @@ class ContextScreenViewModel
 
         override fun addQuickRecord(text: String) = inboxHandler.addQuickRecord(text)
 
+        override fun addIssue(text: String) {
+            val currentContextId = contextIdFlow.value
+            if (currentContextId.isBlank()) return
+            viewModelScope.launch(ioDispatcher) {
+                contextKeyProblemsRepository.addIssue(
+                    contextId = currentContextId,
+                    title = text,
+                )
+            }
+        }
+
         override fun addProjectComment(text: String) = logHandler.addProjectComment(text, contextIdFlow.value)
 
         override fun addMilestone(text: String) = logHandler.addMilestone(text, contextIdFlow.value)
@@ -1117,27 +1132,33 @@ class ContextScreenViewModel
                 )
             }
 
-        fun onKeyProblemsDescriptionChanged(description: String) =
+        fun saveIssueTrackerIssue(issue: ContextKeyProblemsRepository.IssueItem) =
             viewModelScope.launch(ioDispatcher) {
-                contextPickerActions.onKeyProblemsDescriptionChanged(
-                    currentContextId = contextIdFlow.value,
-                    description = description,
+                val currentContextId = contextIdFlow.value
+                if (currentContextId.isBlank()) return@launch
+                contextKeyProblemsRepository.updateIssue(
+                    contextId = currentContextId,
+                    issue = issue,
                 )
             }
 
-        fun addKeyProblemsFocusContext(targetContextId: String) =
+        fun deleteIssueTrackerIssue(issueId: String) =
             viewModelScope.launch(ioDispatcher) {
-                contextPickerActions.addKeyProblemsFocusContext(
-                    currentContextId = contextIdFlow.value,
-                    targetContextId = targetContextId,
+                val currentContextId = contextIdFlow.value
+                if (currentContextId.isBlank()) return@launch
+                contextKeyProblemsRepository.deleteIssue(
+                    contextId = currentContextId,
+                    issueId = issueId,
                 )
             }
 
-        fun removeKeyProblemsFocusContext(targetContextId: String) =
+        fun reorderIssueTrackerIssues(issueIds: List<String>) =
             viewModelScope.launch(ioDispatcher) {
-                contextPickerActions.removeKeyProblemsFocusContext(
-                    currentContextId = contextIdFlow.value,
-                    targetContextId = targetContextId,
+                val currentContextId = contextIdFlow.value
+                if (currentContextId.isBlank()) return@launch
+                contextKeyProblemsRepository.reorderIssues(
+                    contextId = currentContextId,
+                    issueIds = issueIds,
                 )
             }
 
@@ -1416,6 +1437,14 @@ class ContextScreenViewModel
                 showSnackbar(backlogItemActions.addItemToDailyPlan(item), null)
             }
 
+        fun addItemAsMission(item: BacklogItemContent) =
+            viewModelScope.launch(ioDispatcher) {
+                val mission = item.toTacticalMission()
+                val missionId = missionRepository.insertMissionWithAutoOrder(mission)
+                missionRepository.setAttachments(missionId, mission.linkedAttachmentIds.orEmpty())
+                showSnackbar("Додано як місію. Перевір на головному екрані у вкладці Тактики.", null)
+            }
+
         fun onStartTrackingRequest(item: BacklogItemContent) =
             viewModelScope.launch {
                 showSnackbar(backlogItemActions.startTracking(item), null)
@@ -1520,6 +1549,89 @@ class ContextScreenViewModel
             markdownActions.onImportFromMarkdownConfirm(markdownText, contextIdFlow.value)
 
         fun copyInboxRecordText(text: String) = markdownActions.copyInboxRecordText(text)
+
+        private fun BacklogItemContent.toTacticalMission(): TacticalMission {
+            val fallbackContextId = backlogItem.contextId.takeIf { it.isNotBlank() }
+            val now = System.currentTimeMillis()
+            return when (this) {
+                is BacklogItemContent.GoalItem ->
+                    TacticalMission(
+                        title = goal.text.trim(),
+                        description = null,
+                        deadline = now,
+                        status = MissionStatus.ACTIVE,
+                        projectId = fallbackContextId,
+                        linkedProjectIds = listOfNotNull(fallbackContextId),
+                        linkedAttachmentIds = emptyList(),
+                    )
+
+                is BacklogItemContent.ContextLinkItem ->
+                    TacticalMission(
+                        title = project.name.trim(),
+                        description = null,
+                        deadline = now,
+                        status = MissionStatus.ACTIVE,
+                        projectId = project.id,
+                        linkedProjectIds = listOf(project.id),
+                        linkedAttachmentIds = emptyList(),
+                    )
+
+                is BacklogItemContent.LinkItem ->
+                    TacticalMission(
+                        title = (link.linkData.displayName ?: link.linkData.target).trim(),
+                        description = link.linkData.target,
+                        deadline = now,
+                        status = MissionStatus.ACTIVE,
+                        projectId = fallbackContextId,
+                        linkedProjectIds = listOfNotNull(fallbackContextId),
+                        linkedAttachmentIds = emptyList(),
+                    )
+
+                is BacklogItemContent.NoteItem ->
+                    TacticalMission(
+                        title = note.title.ifBlank { note.content.take(80) }.trim(),
+                        description = null,
+                        deadline = now,
+                        status = MissionStatus.ACTIVE,
+                        projectId = fallbackContextId,
+                        linkedProjectIds = listOfNotNull(fallbackContextId),
+                        linkedAttachmentIds = emptyList(),
+                    )
+
+                is BacklogItemContent.NoteDocumentItem ->
+                    TacticalMission(
+                        title = document.name.trim(),
+                        description = null,
+                        deadline = now,
+                        status = MissionStatus.ACTIVE,
+                        projectId = fallbackContextId,
+                        linkedProjectIds = listOfNotNull(fallbackContextId),
+                        linkedAttachmentIds = emptyList(),
+                    )
+
+                is BacklogItemContent.ChecklistItem ->
+                    TacticalMission(
+                        title = checklist.name.trim(),
+                        description = null,
+                        deadline = now,
+                        status = MissionStatus.ACTIVE,
+                        projectId = fallbackContextId,
+                        linkedProjectIds = listOfNotNull(fallbackContextId),
+                        linkedAttachmentIds = emptyList(),
+                    )
+
+                is BacklogItemContent.MusicNoteItem ->
+                    TacticalMission(
+                        title = musicNote.name.trim(),
+                        description = null,
+                        deadline = now,
+                        status = MissionStatus.ACTIVE,
+                        projectId = fallbackContextId,
+                        linkedProjectIds = listOfNotNull(fallbackContextId),
+                        linkedAttachmentIds = emptyList(),
+                    )
+            }
+        }
     }
 
 private fun AttachmentLibraryQueryResult.toAttachmentOption(): AttachmentOption {

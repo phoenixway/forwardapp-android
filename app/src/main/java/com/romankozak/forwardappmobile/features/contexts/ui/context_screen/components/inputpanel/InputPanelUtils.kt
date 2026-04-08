@@ -26,6 +26,7 @@ internal fun getPanelColors(
     val style =
         when (mode) {
             InputMode.AddGoal -> theme.addGoal
+            InputMode.AddIssue -> theme.addProjectLog
             InputMode.AddConnectionNote -> theme.addQuickRecord
             InputMode.AddDirection -> theme.addGoal
             InputMode.AddQuickRecord -> theme.addQuickRecord

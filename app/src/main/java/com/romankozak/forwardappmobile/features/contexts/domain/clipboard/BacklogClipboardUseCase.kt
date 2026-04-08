@@ -4,6 +4,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
@@ -45,6 +47,24 @@ data class BacklogPasteReport(
         if (createdDirectionItems > 0) parts += "додано елементів напрямку: $createdDirectionItems"
         if (createdAttachments > 0) parts += "додано вкладень: $createdAttachments"
         if (skippedDuplicates > 0) parts += "дублікати пропущено: $skippedDuplicates"
+        if (skippedInvalid > 0) parts += "некоректних пропущено: $skippedInvalid"
+        return if (parts.isEmpty()) "Немає змін" else parts.joinToString(", ")
+    }
+}
+
+data class TacticalMissionPasteReport(
+    val totalRequested: Int,
+    val createdMissions: Int = 0,
+    val moved: Int = 0,
+    val skippedInvalid: Int = 0,
+) {
+    val changedCount: Int
+        get() = createdMissions + moved
+
+    fun toUserMessage(): String {
+        val parts = mutableListOf<String>()
+        if (createdMissions > 0) parts += "створено місій: $createdMissions"
+        if (moved > 0) parts += "переміщено з джерела: $moved"
         if (skippedInvalid > 0) parts += "некоректних пропущено: $skippedInvalid"
         return if (parts.isEmpty()) "Немає змін" else parts.joinToString(", ")
     }
@@ -175,6 +195,18 @@ class BacklogClipboardUseCase
                 }
             }
         }
+
+        fun canPasteIntoTacticalMissions(): Boolean =
+            clipboardService.payload.value?.entities?.any {
+                it is ClipboardEntityRef.BacklogGoal ||
+                    it is ClipboardEntityRef.BacklogItem ||
+                    it is ClipboardEntityRef.BacklogContextLink ||
+                    it is ClipboardEntityRef.DirectionItem ||
+                    it is ClipboardEntityRef.ChecklistItem ||
+                    it is ClipboardEntityRef.DayTask ||
+                    it is ClipboardEntityRef.TacticalMission ||
+                    it is ClipboardEntityRef.InboxRecord
+            } == true
 
         fun hasAttachmentRefsInClipboard(): Boolean {
             return clipboardService.payload.value?.entities?.any { it is ClipboardEntityRef.BacklogAttachment } == true
@@ -477,6 +509,251 @@ class BacklogClipboardUseCase
                     }
                 }
             }
+        }
+
+        suspend fun pasteIntoTacticalMissions(): TacticalMissionPasteReport {
+            val payload = clipboardService.payload.value ?: return TacticalMissionPasteReport(totalRequested = 0, skippedInvalid = 1)
+            val now = System.currentTimeMillis()
+            val missionsToInsert = mutableListOf<TacticalMission>()
+            val backlogItemsToDelete = mutableListOf<String>()
+            val directionItemsToDelete = mutableListOf<String>()
+            val checklistItemsToDelete = mutableListOf<String>()
+            val dayTaskIdsToDelete = mutableListOf<String>()
+            val missionIdsToDelete = mutableListOf<Long>()
+            val inboxRecordIdsToDelete = mutableListOf<String>()
+            var skippedInvalid = 0
+
+            val copiedGoalRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogGoal>()
+            copiedGoalRefs.forEach { ref ->
+                val goal = goalRepository.getGoalById(ref.goalId)
+                val title = goal?.text?.trim().orEmpty()
+                if (title.isBlank()) {
+                    skippedInvalid += 1
+                } else {
+                    missionsToInsert +=
+                        TacticalMission(
+                            title = title,
+                            description = null,
+                            deadline = now,
+                            status = MissionStatus.ACTIVE,
+                            projectId = payload.sourceContextId.ifBlank { null },
+                            linkedProjectIds = payload.sourceContextId.takeIf { it.isNotBlank() }?.let(::listOf) ?: emptyList(),
+                            linkedAttachmentIds = emptyList(),
+                        )
+                }
+            }
+
+            val contextRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogContextLink>()
+            contextRefs.forEach { ref ->
+                val context = contextRepository.getContextById(ref.contextId)
+                val title = context?.name?.trim().orEmpty()
+                if (title.isBlank()) {
+                    skippedInvalid += 1
+                } else {
+                    missionsToInsert +=
+                        TacticalMission(
+                            title = title,
+                            description = null,
+                            deadline = now,
+                            status = MissionStatus.ACTIVE,
+                            projectId = ref.contextId,
+                            linkedProjectIds = listOf(ref.contextId),
+                            linkedAttachmentIds = emptyList(),
+                        )
+                }
+            }
+
+            val directionRefs = payload.entities.filterIsInstance<ClipboardEntityRef.DirectionItem>()
+            val directionItems = loadDirectionItems(directionRefs)
+            skippedInvalid += directionRefs.size - directionItems.size
+            directionItems.forEach { item ->
+                val title = item.text.trim()
+                if (title.isBlank()) {
+                    skippedInvalid += 1
+                } else {
+                    missionsToInsert +=
+                        TacticalMission(
+                            title = title,
+                            description = null,
+                            deadline = now,
+                            status = MissionStatus.ACTIVE,
+                            projectId = item.linkedContextId,
+                            linkedProjectIds = item.linkedContextId?.let(::listOf) ?: emptyList(),
+                            linkedAttachmentIds = emptyList(),
+                        )
+                    if (payload.operation == ClipboardOperation.CUT) {
+                        directionItemsToDelete += item.id
+                    }
+                }
+            }
+
+            val checklistRefs = payload.entities.filterIsInstance<ClipboardEntityRef.ChecklistItem>()
+            val checklistItems = loadChecklistItems(checklistRefs)
+            skippedInvalid += checklistRefs.size - checklistItems.size
+            checklistItems.forEach { item ->
+                val title = item.content.trim()
+                if (title.isBlank()) {
+                    skippedInvalid += 1
+                } else {
+                    missionsToInsert +=
+                        TacticalMission(
+                            title = title,
+                            description = null,
+                            deadline = now,
+                            status = MissionStatus.ACTIVE,
+                            projectId = payload.sourceContextId.ifBlank { null },
+                            linkedProjectIds = payload.sourceContextId.takeIf { it.isNotBlank() }?.let(::listOf) ?: emptyList(),
+                            linkedAttachmentIds = emptyList(),
+                        )
+                    if (payload.operation == ClipboardOperation.CUT) {
+                        checklistItemsToDelete += item.id
+                    }
+                }
+            }
+
+            val dayTaskRefs = payload.entities.filterIsInstance<ClipboardEntityRef.DayTask>()
+            dayTaskRefs.forEach { ref ->
+                val task = dayManagementRepository.getTaskById(ref.taskId)
+                val title = task?.title?.trim().orEmpty().ifBlank { task?.description?.trim().orEmpty() }
+                if (title.isBlank()) {
+                    skippedInvalid += 1
+                } else {
+                    missionsToInsert +=
+                        TacticalMission(
+                            title = title,
+                            description = task?.description?.takeIf { !it.isNullOrBlank() },
+                            deadline = now,
+                            status = MissionStatus.ACTIVE,
+                            projectId = task?.projectId,
+                            linkedProjectIds = task?.linkedProjectIds.orEmpty(),
+                            linkedAttachmentIds = emptyList(),
+                        )
+                    if (payload.operation == ClipboardOperation.CUT) {
+                        dayTaskIdsToDelete += ref.taskId
+                    }
+                }
+            }
+
+            val missionRefs = payload.entities.filterIsInstance<ClipboardEntityRef.TacticalMission>()
+            missionRefs.forEach { ref ->
+                val mission = missionRepository.getMissionById(ref.missionId)
+                if (mission == null) {
+                    skippedInvalid += 1
+                } else {
+                    missionsToInsert +=
+                        mission.copy(
+                            id = 0,
+                            order = 0L,
+                        )
+                    if (payload.operation == ClipboardOperation.CUT) {
+                        missionIdsToDelete += mission.id
+                    }
+                }
+            }
+
+            val inboxRefs = payload.entities.filterIsInstance<ClipboardEntityRef.InboxRecord>()
+            loadInboxRecords(inboxRefs).forEach { record ->
+                val title = record.text.trim()
+                if (title.isBlank()) {
+                    skippedInvalid += 1
+                } else {
+                    missionsToInsert +=
+                        TacticalMission(
+                            title = title,
+                            description = null,
+                            deadline = now,
+                            status = MissionStatus.ACTIVE,
+                            projectId = payload.sourceContextId.ifBlank { null },
+                            linkedProjectIds = payload.sourceContextId.takeIf { it.isNotBlank() }?.let(::listOf) ?: emptyList(),
+                            linkedAttachmentIds = emptyList(),
+                        )
+                    if (payload.operation == ClipboardOperation.CUT) {
+                        inboxRecordIdsToDelete += record.id
+                    }
+                }
+            }
+
+            val backlogItemRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogItem>()
+            val backlogItemsById = listItemRepository.getItemsByIds(backlogItemRefs.map { it.listItemId }).associateBy { it.id }
+            backlogItemRefs.forEach { ref ->
+                val item = backlogItemsById[ref.listItemId]
+                if (item == null) {
+                    skippedInvalid += 1
+                    return@forEach
+                }
+                val title =
+                    when (item.itemType) {
+                        BacklogItemTypeValues.GOAL -> goalRepository.getGoalById(item.entityId)?.text?.trim().orEmpty()
+                        BacklogItemTypeValues.SUBLIST -> contextRepository.getContextById(item.entityId)?.name?.trim().orEmpty()
+                        else -> ""
+                    }
+                if (title.isBlank()) {
+                    skippedInvalid += 1
+                } else {
+                    val projectId =
+                        if (item.itemType == BacklogItemTypeValues.SUBLIST) {
+                            item.entityId
+                        } else {
+                            item.contextId.takeIf { it.isNotBlank() }
+                        }
+                    missionsToInsert +=
+                        TacticalMission(
+                            title = title,
+                            description = null,
+                            deadline = now,
+                            status = MissionStatus.ACTIVE,
+                            projectId = projectId,
+                            linkedProjectIds = projectId?.let(::listOf) ?: emptyList(),
+                            linkedAttachmentIds = emptyList(),
+                        )
+                    if (payload.operation == ClipboardOperation.CUT) {
+                        backlogItemsToDelete += item.id
+                    }
+                }
+            }
+
+            var createdMissions = 0
+            missionsToInsert.forEach { mission ->
+                val insertedId = missionRepository.insertMissionWithAutoOrder(mission)
+                missionRepository.setAttachments(insertedId, mission.linkedAttachmentIds.orEmpty())
+                createdMissions += 1
+            }
+
+            var moved = 0
+            if (payload.operation == ClipboardOperation.CUT && createdMissions > 0) {
+                if (backlogItemsToDelete.isNotEmpty()) {
+                    listItemRepository.deleteListItems(backlogItemsToDelete.distinct())
+                    moved += backlogItemsToDelete.distinct().size
+                }
+                if (directionItemsToDelete.isNotEmpty()) {
+                    directionRepository.deleteDirectionItems(directionItemsToDelete.distinct())
+                    moved += directionItemsToDelete.distinct().size
+                }
+                if (checklistItemsToDelete.isNotEmpty()) {
+                    checklistRepository.deleteItems(checklistItemsToDelete.distinct())
+                    moved += checklistItemsToDelete.distinct().size
+                }
+                dayTaskIdsToDelete.distinct().forEach { taskId ->
+                    dayManagementRepository.deleteTask(taskId)
+                    moved += 1
+                }
+                missionIdsToDelete.distinct().forEach { missionId ->
+                    missionRepository.deleteMissionById(missionId)
+                    moved += 1
+                }
+                inboxRecordIdsToDelete.distinct().forEach { recordId ->
+                    inboxRepository.deleteInboxRecordById(recordId)
+                    moved += 1
+                }
+                clipboardService.clear()
+            }
+
+            return TacticalMissionPasteReport(
+                totalRequested = payload.entities.size,
+                createdMissions = createdMissions,
+                moved = moved,
+                skippedInvalid = skippedInvalid,
+            )
         }
 
         suspend fun pasteIntoDirection(

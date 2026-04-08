@@ -49,6 +49,14 @@ class DayManagementRepository
         private val aiEventRepository: AiEventRepository,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) {
+        private companion object {
+            const val PRIORITY_RANK_CRITICAL = 0
+            const val PRIORITY_RANK_HIGH = 1
+            const val PRIORITY_RANK_MEDIUM = 2
+            const val PRIORITY_RANK_LOW = 3
+            const val PRIORITY_RANK_NONE = 4
+        }
+
         @Volatile
         private var cachedBestCompletedPoints: Int? = null
 
@@ -229,6 +237,7 @@ class DayManagementRepository
                         version = 1,
                     )
                 dayTaskDao.insert(task)
+                reorderTasksByPriority(params.dayPlanId)
                 aiEventRepository.emit(
                     TaskCreatedEvent(
                         timestamp = java.time.Instant.ofEpochMilli(System.currentTimeMillis()),
@@ -339,6 +348,7 @@ class DayManagementRepository
                         version = taskToMove.version + 1,
                     )
                 dayTaskDao.update(updatedTask)
+                reorderTasksByPriority(tomorrowsPlan.id)
 
                 // Recalculate metrics for both days
                 calculateAndSaveDailyMetrics(currentPlan.id)
@@ -436,6 +446,7 @@ class DayManagementRepository
                     version = task.version + 1,
                 )
             dayTaskDao.update(updatedTask)
+            reorderTasksByPriority(task.dayPlanId)
         }
 
         suspend fun updateRecurringTaskTemplate(
@@ -710,6 +721,39 @@ class DayManagementRepository
                 }
             }
         }
+
+        private suspend fun reorderTasksByPriority(dayPlanId: String) {
+            val tasks = dayTaskDao.getTasksForDaySync(dayPlanId)
+            if (tasks.isEmpty()) return
+
+            val reordered =
+                tasks.sortedWith(
+                    compareBy<DayTask> { it.completed }
+                        .thenBy { taskPriorityRank(it.priority) }
+                        .thenBy { it.dueTime ?: Long.MAX_VALUE }
+                        .thenBy { it.order }
+                        .thenBy { it.title.lowercase() },
+                )
+
+            reordered.forEachIndexed { index, task ->
+                if (task.order != index.toLong()) {
+                    dayTaskDao.updateTaskOrder(
+                        taskId = task.id,
+                        newOrder = index.toLong(),
+                        updatedAt = System.currentTimeMillis(),
+                    )
+                }
+            }
+        }
+
+        private fun taskPriorityRank(priority: TaskPriority): Int =
+            when (priority) {
+                TaskPriority.CRITICAL -> PRIORITY_RANK_CRITICAL
+                TaskPriority.HIGH -> PRIORITY_RANK_HIGH
+                TaskPriority.MEDIUM -> PRIORITY_RANK_MEDIUM
+                TaskPriority.LOW -> PRIORITY_RANK_LOW
+                TaskPriority.NONE -> PRIORITY_RANK_NONE
+            }
 
         private fun shouldGenerateTaskForDate(
             recurringTask: RecurringTask,

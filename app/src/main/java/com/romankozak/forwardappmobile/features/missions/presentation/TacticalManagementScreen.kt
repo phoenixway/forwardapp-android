@@ -40,6 +40,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -104,6 +106,8 @@ fun TacticalManagementScreen(
     var isFabMenuExpanded by remember { mutableStateOf(false) }
     val missionListState = rememberLazyListState()
     val selectionMode = selectedMissionIds.isNotEmpty()
+    val canPasteAsMissions by viewModel.canPasteAsMissions.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(missions) {
         val existingIds = missions.map { it.id }.toSet()
@@ -116,6 +120,12 @@ fun TacticalManagementScreen(
         if (targetIndex >= 0) {
             missionListState.animateScrollToItem(targetIndex)
             viewModel.consumePendingScrollToMission()
+        }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.uiMessages.collect { message ->
+            snackbarHostState.showSnackbar(message)
         }
     }
 
@@ -168,6 +178,24 @@ fun TacticalManagementScreen(
                                     )
                                 }
                             }
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.copyMissionsToEntityClipboard(selectedMissionIds)
+                                selectedMissionIds = emptySet()
+                            },
+                        ) {
+                            Text("Копіювати")
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.cutMissionsToEntityClipboard(selectedMissionIds)
+                                selectedMissionIds = emptySet()
+                            },
+                        ) {
+                            Text("Вирізати")
                         }
 
                         OutlinedButton(
@@ -289,6 +317,15 @@ fun TacticalManagementScreen(
                         ),
                 ) {
                     DropdownMenuItem(
+                        text = { Text("Вставити з буфера") },
+                        leadingIcon = { Icon(Icons.Outlined.ContentCopy, contentDescription = null) },
+                        enabled = canPasteAsMissions,
+                        onClick = {
+                            isFabMenuExpanded = false
+                            viewModel.pasteClipboardAsMissions()
+                        },
+                    )
+                    DropdownMenuItem(
                         text = { Text("Додати місію") },
                         leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
                         onClick = {
@@ -307,6 +344,14 @@ fun TacticalManagementScreen(
                 }
             }
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 16.dp, vertical = 24.dp),
+        )
     }
 
     actionMenuMission?.let { mission ->

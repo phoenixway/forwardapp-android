@@ -30,7 +30,7 @@ object KeyProblemsCapability : Capability {
     override val descriptor =
         object : CapabilityDescriptor {
             override val id = CapabilityId("key_problems")
-            override val label = "Ключові проблеми"
+            override val label = "Issue tracker"
             override val iconRes: Int? = null
             override val navRoute = "key_problems"
             override val supportedViews: Set<ViewId> = setOf(ViewId("key_problems"))

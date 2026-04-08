@@ -62,6 +62,7 @@ fun BacklogItemActionsBottomSheet(
     onOpenGoalProperties: (() -> Unit)? = null,
     onRemindersClick: () -> Unit,
     onAddToDayPlan: () -> Unit,
+    onAddAsMission: () -> Unit,
     onStartTracking: () -> Unit,
     onCopyTransport: (() -> Unit)? = null,
     onCutTransport: (() -> Unit)? = null,
@@ -108,6 +109,13 @@ fun BacklogItemActionsBottomSheet(
                                 icon = Icons.Default.AddCircle,
                                 tint = colorScheme.secondary,
                                 onClick = onAddToDayPlan,
+                            ),
+                            BacklogActionItem(
+                                title = "Додати як місію",
+                                subtitle = "Головний екран -> Тактики",
+                                icon = Icons.Default.AddCircle,
+                                tint = colorScheme.secondary,
+                                onClick = onAddAsMission,
                             ),
                             BacklogActionItem(
                                 title = "Почати трекінг",

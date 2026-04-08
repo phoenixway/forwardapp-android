@@ -119,6 +119,7 @@ internal fun InputTextField(
                                 text =
                                     when (inputMode) {
                                         InputMode.AddGoal -> stringResource(R.string.hint_add_goal)
+                                        InputMode.AddIssue -> "Додати issue"
                                         InputMode.AddConnectionNote -> "add note.."
                                         InputMode.AddDirection -> stringResource(R.string.hint_add_direction)
                                         InputMode.AddQuickRecord -> stringResource(R.string.hint_add_quick_record)
@@ -172,6 +173,7 @@ internal fun ModeSelectorButton(
                     ContextViewMode.DIRECTION -> InputMode.AddDirection
                     ContextViewMode.INBOX -> InputMode.AddQuickRecord
                     ContextViewMode.LOG -> InputMode.AddProjectLog
+                    ContextViewMode.KEY_PROBLEMS -> InputMode.AddIssue
                     else -> InputMode.AddGoal
                 },
                 if (currentView == ContextViewMode.DIRECTION) InputMode.AddDirection else null,
@@ -205,6 +207,7 @@ internal fun ModeSelectorButton(
                 imageVector =
                     when (inputMode) {
                         InputMode.AddGoal -> Icons.Outlined.Add
+                        InputMode.AddIssue -> Icons.Outlined.Description
                         InputMode.AddConnectionNote -> Icons.Outlined.Description
                         InputMode.AddDirection -> Icons.Outlined.Explore
                         InputMode.AddQuickRecord -> Icons.Outlined.Inbox

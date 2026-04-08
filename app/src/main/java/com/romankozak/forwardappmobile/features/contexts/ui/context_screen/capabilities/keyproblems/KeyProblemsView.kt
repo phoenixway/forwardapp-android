@@ -1,161 +1,686 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.keyproblems
 
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.data.repository.ContextKeyProblemsRepository
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTargetsPickerDialog
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemState
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemColors
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurfaceLayout
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTokens
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusRow
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedTrailingActionButton
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
+import java.util.UUID
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
+private val issueDateTimeFormatter = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun KeyProblemsView(
     modifier: Modifier = Modifier,
-    description: String,
-    focusContexts: List<Context>,
+    issues: List<ContextKeyProblemsRepository.IssueItem>,
+    allContexts: List<Context>,
     pickerContextOptions: List<ProjectOption>,
-    onDescriptionChange: (String) -> Unit,
-    onAddFocusContext: (String) -> Unit,
-    onRemoveFocusContext: (String) -> Unit,
+    pickerAttachmentOptions: List<AttachmentOption>,
+    onSaveIssue: (ContextKeyProblemsRepository.IssueItem) -> Unit,
+    onDeleteIssue: (String) -> Unit,
+    onReorderIssues: (List<String>) -> Unit,
 ) {
-    var showContextPicker by remember { mutableStateOf(false) }
-    var descriptionValue by remember { mutableStateOf(TextFieldValue(description)) }
+    val hapticFeedback = LocalHapticFeedback.current
+    var uiItems by remember(issues) { mutableStateOf(issues.sortedBy { it.order }) }
+    val lazyListState = rememberLazyListState()
+    var editingIssue by remember { mutableStateOf<ContextKeyProblemsRepository.IssueItem?>(null) }
 
-    LaunchedEffect(description) {
-        if (description != descriptionValue.text) {
-            descriptionValue = TextFieldValue(text = description, selection = TextRange(description.length))
+    val reorderableState =
+        rememberReorderableLazyListState(lazyListState) { from, to ->
+            if (uiItems.isEmpty()) return@rememberReorderableLazyListState
+            val safeFromIndex = from.index.coerceIn(0, uiItems.lastIndex)
+            val safeToIndex = to.index.coerceIn(0, uiItems.lastIndex)
+            if (safeFromIndex == safeToIndex) return@rememberReorderableLazyListState
+            uiItems =
+                uiItems.toMutableList().apply {
+                    add(safeToIndex, removeAt(safeFromIndex))
+                }
+            onReorderIssues(uiItems.map { it.id })
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
         }
-    }
 
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        ElevatedCard(
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+            OutlinedButton(
+                onClick = {
+                    val now = System.currentTimeMillis()
+                    editingIssue =
+                        ContextKeyProblemsRepository.IssueItem(
+                            id = UUID.randomUUID().toString(),
+                            title = "",
+                            dateTime = now,
+                            createdAt = now,
+                            updatedAt = now,
+                        )
+                },
             ) {
-                Text(
-                    text = "Опис ключових проблем",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                OutlinedTextField(
-                    value = descriptionValue,
-                    onValueChange = {
-                        descriptionValue = it
-                        onDescriptionChange(it.text)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 5,
-                    placeholder = { Text("Що зараз є головною проблемою?") },
-                )
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Нова issue")
             }
         }
 
-        ElevatedCard(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+        if (uiItems.isEmpty()) {
+            ElevatedCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Text(
-                        text = "Контексти для фокусу",
+                        text = "Issues ще немає",
                         style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.SemiBold,
                     )
-                    IconButton(onClick = { showContextPicker = true }) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Додати контекст",
-                        )
-                    }
-                }
-
-                if (focusContexts.isEmpty()) {
                     Text(
-                        text = "Контексти ще не вибрано",
+                        text = "Додай першу issue і опиши контексти, документи, дату та поточний статус.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        focusContexts.forEach { context ->
-                            AssistChip(
-                                onClick = {},
-                                label = { Text(context.name) },
-                                trailingIcon = {
-                                    IconButton(onClick = { onRemoveFocusContext(context.id) }) {
-                                        Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = "Прибрати",
-                                        )
-                                    }
+                }
+            }
+        } else {
+            LazyColumn(
+                state = lazyListState,
+                verticalArrangement = Arrangement.spacedBy(UnifiedListItemTokens.OuterVerticalSpacing * 2),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 24.dp),
+            ) {
+                items(uiItems, key = { it.id }) { issue ->
+                    ReorderableItem(reorderableState, key = issue.id) {
+                        IssueCard(
+                            issue = issue,
+                            contextNames = allContexts.associate { it.id to it.name },
+                            attachmentNames = pickerAttachmentOptions.associate { it.id to it.name },
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth(),
+                            dragHandleModifier =
+                                with(this@ReorderableItem) {
+                                    Modifier.longPressDraggableHandle(
+                                        onDragStarted = {
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        },
+                                    )
                                 },
-                            )
-                        }
+                            onEdit = { editingIssue = issue },
+                            onDelete = { onDeleteIssue(issue.id) },
+                        )
                     }
                 }
             }
         }
     }
 
+    editingIssue?.let { issue ->
+        IssueEditorSheet(
+            issue = issue,
+            contextOptions = pickerContextOptions,
+            attachmentOptions = pickerAttachmentOptions,
+            allContexts = allContexts,
+            onDismiss = { editingIssue = null },
+            onSave = { updatedIssue ->
+                onSaveIssue(updatedIssue)
+                editingIssue = null
+            },
+            onDelete = {
+                if (issues.any { existing -> existing.id == issue.id }) {
+                    onDeleteIssue(issue.id)
+                }
+                editingIssue = null
+            },
+        )
+    }
+}
+
+@Composable
+private fun IssueCard(
+    issue: ContextKeyProblemsRepository.IssueItem,
+    contextNames: Map<String, String>,
+    attachmentNames: Map<String, String>,
+    modifier: Modifier = Modifier,
+    dragHandleModifier: Modifier = Modifier,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    val visualState = rememberIssueVisualState(issue)
+    UnifiedListItemSurface(
+        isSelected = false,
+        state = visualState.itemState,
+        layout =
+            UnifiedListItemSurfaceLayout(
+                modifier =
+                    modifier.combinedClickable(
+                        onClick = onEdit,
+                        onLongClick = onEdit,
+                    ),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+            ),
+        colors =
+            UnifiedListItemColors(
+                container = visualState.containerColor,
+                border = visualState.borderColor,
+            ),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+        ) {
+            UnifiedTrailingActionButton(
+                icon = Icons.Default.DragHandle,
+                contentDescription = "Перетягнути",
+                onClick = {},
+                modifier = dragHandleModifier,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = issue.title.ifBlank { "Без назви" },
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
+                    color = visualState.titleColor,
+                    textDecoration = if (visualState.itemState == UnifiedItemState.COMPLETED) TextDecoration.LineThrough else null,
+                )
+                issue.description
+                    .takeIf { it.isNotBlank() }
+                    ?.let { description ->
+                        Text(
+                            text = description,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            textDecoration = if (visualState.itemState == UnifiedItemState.COMPLETED) TextDecoration.LineThrough else null,
+                        )
+                    }
+                UnifiedStatusRow(
+                    items =
+                        buildIssueMetaItems(
+                            issue = issue,
+                            contextNames = contextNames,
+                            attachmentNames = attachmentNames,
+                        ),
+                )
+            }
+            UnifiedTrailingActionButton(
+                icon = Icons.Default.Delete,
+                contentDescription = "Видалити issue",
+                onClick = onDelete,
+                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.9f),
+            )
+        }
+    }
+}
+
+private data class IssueVisualState(
+    val itemState: UnifiedItemState,
+    val containerColor: Color,
+    val borderColor: Color,
+    val titleColor: Color,
+)
+
+@Composable
+private fun rememberIssueVisualState(issue: ContextKeyProblemsRepository.IssueItem): IssueVisualState {
+    val colorScheme = MaterialTheme.colorScheme
+    val itemState =
+        when (issue.status) {
+            ContextKeyProblemsRepository.IssueStatus.CLOSED,
+            ContextKeyProblemsRepository.IssueStatus.RESOLVED,
+            -> UnifiedItemState.COMPLETED
+            ContextKeyProblemsRepository.IssueStatus.BLOCKED -> UnifiedItemState.OVERDUE
+            else -> UnifiedItemState.DEFAULT
+        }
+    val borderColor =
+        when (issue.status) {
+            ContextKeyProblemsRepository.IssueStatus.OPEN -> colorScheme.primary.copy(alpha = 0.42f)
+            ContextKeyProblemsRepository.IssueStatus.IN_PROGRESS -> colorScheme.tertiary.copy(alpha = 0.48f)
+            ContextKeyProblemsRepository.IssueStatus.BLOCKED -> colorScheme.error.copy(alpha = 0.52f)
+            ContextKeyProblemsRepository.IssueStatus.RESOLVED -> colorScheme.secondary.copy(alpha = 0.42f)
+            ContextKeyProblemsRepository.IssueStatus.CLOSED -> colorScheme.outline.copy(alpha = 0.34f)
+        }
+    val containerColor =
+        when (itemState) {
+            UnifiedItemState.COMPLETED -> borderColor.copy(alpha = 0.08f)
+            UnifiedItemState.OVERDUE -> borderColor.copy(alpha = 0.12f)
+            else -> borderColor.copy(alpha = 0.10f)
+        }
+    val titleColor =
+        when (itemState) {
+            UnifiedItemState.COMPLETED -> colorScheme.onSurface.copy(alpha = 0.45f)
+            UnifiedItemState.OVERDUE -> colorScheme.error
+            else -> colorScheme.onSurface
+        }
+
+    return IssueVisualState(
+        itemState = itemState,
+        containerColor = containerColor,
+        borderColor = borderColor,
+        titleColor = titleColor,
+    )
+}
+
+@Composable
+private fun buildIssueMetaItems(
+    issue: ContextKeyProblemsRepository.IssueItem,
+    contextNames: Map<String, String>,
+    attachmentNames: Map<String, String>,
+): List<UnifiedStatusChipSpec> =
+    buildList {
+        add(
+            UnifiedStatusChipSpec(
+                icon =
+                    if (issue.status == ContextKeyProblemsRepository.IssueStatus.BLOCKED) {
+                        Icons.Outlined.Warning
+                    } else {
+                        Icons.Outlined.Schedule
+                    },
+                text = issueStatusLabel(issue.status),
+                contentColor = issueStatusColor(issue.status),
+            ),
+        )
+        issue.dateTime?.let {
+            add(
+                UnifiedStatusChipSpec(
+                    icon = Icons.Outlined.Schedule,
+                    text = issueDateTimeFormatter.format(it),
+                ),
+            )
+        }
+        issue.relatedContextIds
+            .take(2)
+            .forEach { id ->
+                add(
+                    UnifiedStatusChipSpec(
+                        icon = Icons.Outlined.AccountTree,
+                        text = contextNames[id] ?: id,
+                    ),
+                )
+            }
+        issue.relatedAttachmentIds
+            .take(2)
+            .forEach { id ->
+                add(
+                    UnifiedStatusChipSpec(
+                        icon = Icons.Outlined.AttachFile,
+                        text = attachmentNames[id] ?: id,
+                    ),
+                )
+            }
+        val remainingLinks = (issue.relatedContextIds.size - 2).coerceAtLeast(0) + (issue.relatedAttachmentIds.size - 2).coerceAtLeast(0)
+        if (remainingLinks > 0) {
+            add(UnifiedStatusChipSpec(text = "+$remainingLinks ще"))
+        }
+    }
+
+private fun issueStatusLabel(status: ContextKeyProblemsRepository.IssueStatus): String =
+    when (status) {
+        ContextKeyProblemsRepository.IssueStatus.OPEN -> "Open"
+        ContextKeyProblemsRepository.IssueStatus.IN_PROGRESS -> "In progress"
+        ContextKeyProblemsRepository.IssueStatus.BLOCKED -> "Blocked"
+        ContextKeyProblemsRepository.IssueStatus.RESOLVED -> "Resolved"
+        ContextKeyProblemsRepository.IssueStatus.CLOSED -> "Closed"
+    }
+
+@Composable
+private fun issueStatusColor(status: ContextKeyProblemsRepository.IssueStatus): Color {
+    val colorScheme = MaterialTheme.colorScheme
+    return when (status) {
+        ContextKeyProblemsRepository.IssueStatus.OPEN -> colorScheme.primary
+        ContextKeyProblemsRepository.IssueStatus.IN_PROGRESS -> colorScheme.tertiary
+        ContextKeyProblemsRepository.IssueStatus.BLOCKED -> colorScheme.error
+        ContextKeyProblemsRepository.IssueStatus.RESOLVED -> colorScheme.secondary
+        ContextKeyProblemsRepository.IssueStatus.CLOSED -> colorScheme.onSurfaceVariant
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun IssueEditorSheet(
+    issue: ContextKeyProblemsRepository.IssueItem,
+    contextOptions: List<ProjectOption>,
+    attachmentOptions: List<AttachmentOption>,
+    allContexts: List<Context>,
+    onDismiss: () -> Unit,
+    onSave: (ContextKeyProblemsRepository.IssueItem) -> Unit,
+    onDelete: () -> Unit,
+) {
+    val context = LocalContext.current
+    var draft by remember(issue.id) { mutableStateOf(issue) }
+    var showContextPicker by remember { mutableStateOf(false) }
+    var showAttachmentPicker by remember { mutableStateOf(false) }
+    val attachmentNames = remember(attachmentOptions) { attachmentOptions.associate { it.id to it.name } }
+    val contextNames = remember(allContexts) { allContexts.associate { it.id to it.name } }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = if (issue.title.isBlank()) "Нова issue" else "Редагування issue",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+
+            OutlinedTextField(
+                value = draft.title,
+                onValueChange = { draft = draft.copy(title = it) },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Title") },
+                placeholder = { Text("Коротка назва проблеми") },
+            )
+
+            OutlinedTextField(
+                value = draft.description,
+                onValueChange = { draft = draft.copy(description = it) },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Description") },
+                minLines = 4,
+                placeholder = { Text("Деталі, симптоми, контекст, next steps") },
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "Status",
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    ContextKeyProblemsRepository.IssueStatus.entries.forEach { status ->
+                        FilterChip(
+                            selected = draft.status == status,
+                            onClick = { draft = draft.copy(status = status) },
+                            label = { Text(status.name.replace('_', ' ')) },
+                        )
+                    }
+                }
+            }
+
+            OutlinedButton(
+                onClick = {
+                    val calendar = Calendar.getInstance().apply {
+                        timeInMillis = draft.dateTime ?: System.currentTimeMillis()
+                    }
+                    DatePickerDialog(
+                        context,
+                        { _, year, month, dayOfMonth ->
+                            calendar.set(Calendar.YEAR, year)
+                            calendar.set(Calendar.MONTH, month)
+                            calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                            TimePickerDialog(
+                                context,
+                                { _, hour, minute ->
+                                    calendar.set(Calendar.HOUR_OF_DAY, hour)
+                                    calendar.set(Calendar.MINUTE, minute)
+                                    calendar.set(Calendar.SECOND, 0)
+                                    draft = draft.copy(dateTime = calendar.timeInMillis)
+                                },
+                                calendar.get(Calendar.HOUR_OF_DAY),
+                                calendar.get(Calendar.MINUTE),
+                                true,
+                            ).show()
+                        },
+                        calendar.get(Calendar.YEAR),
+                        calendar.get(Calendar.MONTH),
+                        calendar.get(Calendar.DAY_OF_MONTH),
+                    ).show()
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(Icons.Outlined.Schedule, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    if (draft.dateTime != null) {
+                        "Datetime: ${issueDateTimeFormatter.format(draft.dateTime!!)}"
+                    } else {
+                        "Встановити datetime"
+                    },
+                )
+            }
+
+            HorizontalDivider()
+
+            IssueLinksEditorSection(
+                title = "Related contexts",
+                values = draft.relatedContextIds,
+                labels = contextNames,
+                onAdd = { showContextPicker = true },
+                onRemove = { contextId ->
+                    draft = draft.copy(relatedContextIds = draft.relatedContextIds.filterNot { it == contextId })
+                },
+            )
+
+            IssueLinksEditorSection(
+                title = "Related documents",
+                values = draft.relatedAttachmentIds,
+                labels = attachmentNames,
+                onAdd = { showAttachmentPicker = true },
+                onRemove = { attachmentId ->
+                    draft = draft.copy(relatedAttachmentIds = draft.relatedAttachmentIds.filterNot { it == attachmentId })
+                },
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                OutlinedButton(
+                    onClick = onDelete,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Видалити")
+                }
+                Button(
+                    onClick = {
+                        onSave(
+                            draft.copy(
+                                updatedAt = System.currentTimeMillis(),
+                            ),
+                        )
+                    },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Зберегти")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+    }
+
     if (showContextPicker) {
         LinkedTargetsPickerDialog(
-            contextOptions = pickerContextOptions,
-            attachmentOptions = emptyList<AttachmentOption>(),
-            preselectedContextIds = focusContexts.map { it.id }.toSet(),
+            contextOptions = contextOptions,
+            attachmentOptions = emptyList(),
+            preselectedContextIds = draft.relatedContextIds.toSet(),
             preselectedAttachmentIds = emptySet(),
             initialTab = LinkPickerTab.CONTEXTS,
             allowedTabs = setOf(LinkPickerTab.CONTEXTS),
             onDismiss = { showContextPicker = false },
             onContextSelected = { id ->
-                onAddFocusContext(id)
+                draft = draft.copy(relatedContextIds = (draft.relatedContextIds + id).distinct())
                 showContextPicker = false
             },
             onAttachmentSelected = {},
             onCreateRootContext = null,
             onCreateDocument = null,
         )
+    }
+
+    if (showAttachmentPicker) {
+        LinkedTargetsPickerDialog(
+            contextOptions = emptyList(),
+            attachmentOptions = attachmentOptions,
+            preselectedContextIds = emptySet(),
+            preselectedAttachmentIds = draft.relatedAttachmentIds.toSet(),
+            initialTab = LinkPickerTab.ATTACHMENTS,
+            allowedTabs = setOf(LinkPickerTab.ATTACHMENTS),
+            onDismiss = { showAttachmentPicker = false },
+            onContextSelected = {},
+            onAttachmentSelected = { id ->
+                draft = draft.copy(relatedAttachmentIds = (draft.relatedAttachmentIds + id).distinct())
+                showAttachmentPicker = false
+            },
+            onCreateRootContext = null,
+            onCreateDocument = null,
+        )
+    }
+}
+
+@Composable
+private fun IssueLinksEditorSection(
+    title: String,
+    values: List<String>,
+    labels: Map<String, String>,
+    onAdd: () -> Unit,
+    onRemove: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = title, style = MaterialTheme.typography.labelLarge)
+            IconButton(onClick = onAdd) {
+                Icon(Icons.Default.Add, contentDescription = null)
+            }
+        }
+        if (values.isEmpty()) {
+            Text(
+                text = "Ще не додано",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                values.forEach { id ->
+                    AssistChip(
+                        onClick = {},
+                        label = {
+                            Text(
+                                text = labels[id] ?: id,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        },
+                        trailingIcon = {
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .size(20.dp)
+                                        .background(Color.Transparent)
+                                        .clickable { onRemove(id) },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(Icons.Default.Close, contentDescription = "Прибрати")
+                            }
+                        },
+                    )
+                }
+            }
+        }
     }
 }

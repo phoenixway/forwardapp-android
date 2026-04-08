@@ -27,9 +27,11 @@ import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -111,6 +113,10 @@ class TacticalMissionViewModel
         val isAddMissionDialogOpen: StateFlow<Boolean> = _isAddMissionDialogOpen.asStateFlow()
         private val _pendingScrollToMissionId = MutableStateFlow<Long?>(null)
         val pendingScrollToMissionId: StateFlow<Long?> = _pendingScrollToMissionId.asStateFlow()
+        private val _canPasteAsMissions = MutableStateFlow(false)
+        val canPasteAsMissions: StateFlow<Boolean> = _canPasteAsMissions.asStateFlow()
+        private val _uiMessages = MutableSharedFlow<String>(extraBufferCapacity = 4)
+        val uiMessages = _uiMessages.asSharedFlow()
 
         private val _boardLinkedProjectIds = MutableStateFlow<List<String>>(emptyList())
         val boardLinkedProjectIds: StateFlow<List<String>> = _boardLinkedProjectIds.asStateFlow()
@@ -193,6 +199,10 @@ class TacticalMissionViewModel
 
             settingsRepository.tacticalConnectionsOrderFlow
                 .onEach { order -> _connectionsOrder.value = order }
+                .launchIn(viewModelScope)
+
+            backlogClipboardUseCase.clipboardPayload
+                .onEach { _canPasteAsMissions.value = backlogClipboardUseCase.canPasteIntoTacticalMissions() }
                 .launchIn(viewModelScope)
         }
 
@@ -367,6 +377,37 @@ class TacticalMissionViewModel
                 sourceContextId = mission.projectId.orEmpty(),
                 missionIds = listOf(mission.id),
             )
+        }
+
+        fun copyMissionsToEntityClipboard(missionIds: Set<Long>) {
+            val ids = missionIds.toList()
+            if (ids.isEmpty()) return
+            backlogClipboardUseCase.copyTacticalMissions(
+                sourceContextId = "",
+                missionIds = ids,
+            )
+            _uiMessages.tryEmit("Скопійовано місії. Можна вставити у Тактики або беклог.")
+        }
+
+        fun cutMissionsToEntityClipboard(missionIds: Set<Long>) {
+            val ids = missionIds.toList()
+            if (ids.isEmpty()) return
+            backlogClipboardUseCase.cutTacticalMissions(
+                sourceContextId = "",
+                missionIds = ids,
+            )
+            _uiMessages.tryEmit("Вирізано місії. Можна вставити у Тактики або беклог.")
+        }
+
+        fun pasteClipboardAsMissions() {
+            if (!backlogClipboardUseCase.canPasteIntoTacticalMissions()) {
+                _uiMessages.tryEmit("Буфер не містить елементів для вставки як місій")
+                return
+            }
+            viewModelScope.launch {
+                val report = backlogClipboardUseCase.pasteIntoTacticalMissions()
+                _uiMessages.emit(report.toUserMessage())
+            }
         }
 
         fun toggleMissionCompleted(mission: TacticalMission) {
