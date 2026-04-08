@@ -5,6 +5,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
 import com.romankozak.forwardappmobile.data.repository.ContextLogRepository
 import com.romankozak.forwardappmobile.domain.lifecontext.StartContextTrackingUseCase
 import com.romankozak.forwardappmobile.domain.lifecontext.SubmitContextInputUseCase
@@ -39,6 +40,7 @@ class CommandDeckViewModel
         private val submitContextInputUseCase: SubmitContextInputUseCase,
         private val startContextTrackingUseCase: StartContextTrackingUseCase,
         private val sessionModeRepository: SessionModeRepository,
+        private val systemContextEnsurer: SystemContextEnsurer,
         private val contextLogRepository: ContextLogRepository,
         private val importExportHandler: CommandDeckImportExportHandler,
     ) : ViewModel() {
@@ -93,6 +95,9 @@ class CommandDeckViewModel
                 scope = viewModelScope,
                 application = application,
             )
+            viewModelScope.launch {
+                systemContextEnsurer.ensureAllSystemContextsExist()
+            }
         }
 
         fun isCategoryExpanded(categoryTitle: String): Boolean {
@@ -251,6 +256,16 @@ class CommandDeckViewModel
                         newMode = result.newMode,
                     ),
                 )
+            }
+        }
+
+        fun openSystemContext(
+            contextId: String,
+            onOpen: (String) -> Unit,
+        ) {
+            viewModelScope.launch {
+                systemContextEnsurer.ensureAllSystemContextsExist()
+                onOpen(contextId)
             }
         }
 

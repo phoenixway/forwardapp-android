@@ -69,6 +69,11 @@ class DatabaseInitializer
         ): List<SystemProjectDefinition> =
             listOf(
                 SystemProjectDefinition(
+                    id = SystemContexts.ABOUT_MODES.raw,
+                    name = "mode-about",
+                    parentId = personalManagementProjectId,
+                ),
+                SystemProjectDefinition(
                     id = SystemContexts.SESSION_IMPROVE.raw,
                     name = "mode-improve",
                     parentId = personalManagementProjectId,

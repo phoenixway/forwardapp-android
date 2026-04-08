@@ -139,7 +139,9 @@ private fun AnimatedCommandDeck(
                 onModeSelected = onSessionModeSelected,
                 isExpanded = isSessionModeCardExpanded,
                 onExpandedChange = onSessionModeCardExpandedChange,
-                onOpenModeContext = onOpenSessionContext,
+                onOpenModeContext = { contextId ->
+                    commandDeckViewModel.openSystemContext(contextId, onOpenSessionContext)
+                },
             )
 
             DashboardFocusContextsSection(

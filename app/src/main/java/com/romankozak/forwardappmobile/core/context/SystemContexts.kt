@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.core.context
 
 object SystemContexts {
     val PERSONAL_MANAGEMENT = ContextId("sys_personal-management")
+    val ABOUT_MODES = ContextId("sys_mode-about")
     val SESSION_IMPROVE = ContextId("sys_mode-improve")
     val SESSION_EXECUTION = ContextId("sys_mode-execution")
     val SESSION_CONTROL = ContextId("sys_mode-control")
@@ -23,6 +24,7 @@ object SystemContexts {
     private val RESERVED =
         setOf(
             PERSONAL_MANAGEMENT,
+            ABOUT_MODES,
             SESSION_IMPROVE,
             SESSION_EXECUTION,
             SESSION_CONTROL,

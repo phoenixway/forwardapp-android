@@ -3,6 +3,8 @@ package com.romankozak.forwardappmobile.features.ai.insights
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.AiInsightEntity
 import com.romankozak.forwardappmobile.domain.userawareness.UserAwarenessStateType
+import com.romankozak.forwardappmobile.features.mainscreen.session.SessionMode
+import com.romankozak.forwardappmobile.features.mainscreen.session.SessionModeState
 import java.util.Calendar
 import javax.inject.Inject
 import kotlin.math.max
@@ -25,6 +27,7 @@ class InsightPolicyEngine
             activeStateType: UserAwarenessStateType,
             hasFocusedContexts: Boolean,
             planBaseline: PlanBaseline,
+            sessionModeState: SessionModeState,
             now: Long = System.currentTimeMillis(),
         ): InsightEvaluationResult {
             val todayStart = startOfDay(now)
@@ -86,6 +89,19 @@ class InsightPolicyEngine
                 )
             } else {
                 staleIds.add(CRISIS_NO_FOCUS_CONTEXT_INSIGHT_ID)
+            }
+            if (shouldWarnAboutLongImprove(sessionModeState = sessionModeState, now = now)) {
+                messages.add(
+                    AiInsightEntity(
+                        id = IMPROVE_TOO_LONG_INSIGHT_ID,
+                        text = "Режим IMPROVE триває вже понад 2 дні. Це схоже на затяжне уточнення без переходу до виконання або контролю.",
+                        type = MessageType.WARNING.name,
+                        timestamp = now,
+                        isRead = false,
+                    ),
+                )
+            } else {
+                staleIds.add(IMPROVE_TOO_LONG_INSIGHT_ID)
             }
             if (lastSevenDays.size < TRACKER_USAGE_MIN_RECORDS_PER_WEEK) {
                 messages.add(
@@ -188,6 +204,15 @@ class InsightPolicyEngine
 
         private fun durationMinutes(record: ActivityRecord): Long = record.durationInMillis?.let { max(1L, it / 60_000) } ?: 1L
 
+        private fun shouldWarnAboutLongImprove(
+            sessionModeState: SessionModeState,
+            now: Long,
+        ): Boolean {
+            if (sessionModeState.mode != SessionMode.IMPROVE) return false
+            val startedAt = sessionModeState.startedAt ?: return false
+            return now - startedAt >= IMPROVE_MODE_WARNING_THRESHOLD_MS
+        }
+
         private fun startOfDay(timestamp: Long): Long {
             val cal = Calendar.getInstance()
             cal.timeInMillis = timestamp
@@ -206,8 +231,10 @@ class InsightPolicyEngine
             private const val DAY_PLAN_MISSING_INSIGHT_ID = "day_plan_missing"
             private const val YESTERDAY_LOW_ACTIVITY_INSIGHT_ID = "yesterday_low_activity"
             private const val KEEP_IT_UP_INSIGHT_ID = "keep_it_up"
+            private const val IMPROVE_MODE_WARNING_THRESHOLD_MS = 2L * 24L * 60L * 60L * 1000L
             const val CRISIS_NO_FOCUS_CONTEXT_INSIGHT_ID = "crisis_no_focus_context"
             const val TRACKER_UNDERUSED_INSIGHT_ID = "tracker_underused"
+            const val IMPROVE_TOO_LONG_INSIGHT_ID = "improve_too_long"
 
             private val DAILY_SCALE_INSIGHT_IDS =
                 setOf(

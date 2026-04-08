@@ -44,6 +44,7 @@ import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.FocusContextRepository
 import com.romankozak.forwardappmobile.data.repository.UserAwarenessRepository
 import com.romankozak.forwardappmobile.features.ai.data.repository.AiInsightRepository
+import com.romankozak.forwardappmobile.features.mainscreen.session.SessionModeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
@@ -87,6 +88,7 @@ class AiInsightsViewModel
         private val insightPolicyEngine: InsightPolicyEngine,
         userAwarenessRepository: UserAwarenessRepository,
         focusContextRepository: FocusContextRepository,
+        sessionModeRepository: SessionModeRepository,
     ) : ViewModel() {
         val messages: StateFlow<List<AiMessage>> =
             aiInsightRepository.observeInsights()
@@ -99,13 +101,15 @@ class AiInsightsViewModel
                     activityRepository.getLogStream(),
                     userAwarenessRepository.observeActiveState(),
                     focusContextRepository.observeActiveFocusContextIds(),
+                    sessionModeRepository.sessionModeState,
                     tickerFlow(INSIGHTS_REEVALUATION_PERIOD_MS),
-                ) { records, activeState, focusedContextIds, _ ->
+                ) { records, activeState, focusedContextIds, sessionModeState, _ ->
                     insightPolicyEngine.evaluate(
                         records = records,
                         activeStateType = activeState.type,
                         hasFocusedContexts = focusedContextIds.isNotEmpty(),
                         planBaseline = ensureTodayPlanBaseline(startOfDay(System.currentTimeMillis())),
+                        sessionModeState = sessionModeState,
                     )
                 }.collect { evaluation ->
                     val generated = evaluation.insights

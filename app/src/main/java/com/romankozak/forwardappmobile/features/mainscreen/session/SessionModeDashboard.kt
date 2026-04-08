@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import java.util.concurrent.TimeUnit
 
 @Composable
@@ -208,12 +209,25 @@ private fun SessionModeCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedButton(onClick = { onOpenModeContext(SystemContexts.ABOUT_MODES.raw) }) {
+                        Icon(Icons.Outlined.OpenInNew, contentDescription = null)
+                        Text("About modes", modifier = Modifier.padding(start = 8.dp))
+                    }
+                }
             } else {
                 currentMode.systemContextId?.let { contextId ->
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
+                        OutlinedButton(onClick = { onOpenModeContext(SystemContexts.ABOUT_MODES.raw) }) {
+                            Icon(Icons.Outlined.OpenInNew, contentDescription = null)
+                            Text("About modes", modifier = Modifier.padding(start = 8.dp))
+                        }
                         androidx.compose.material3.Button(onClick = { onOpenModeContext(contextId) }) {
                             Icon(Icons.Outlined.OpenInNew, contentDescription = null)
                             Text("Контекст", modifier = Modifier.padding(start = 8.dp))
