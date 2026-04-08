@@ -515,7 +515,7 @@ private fun ContextViewMode.dashboardLabel(): String =
         ContextViewMode.DASHBOARD -> "Дашборд"
         ContextViewMode.LOG -> "Лог"
         ContextViewMode.ARTIFACT -> "Артефакт"
-        ContextViewMode.KEY_PROBLEMS -> "Issue tracker"
+        ContextViewMode.KEY_PROBLEMS -> "Issues"
         ContextViewMode.ADVANCED,
         ContextViewMode.NOTES,
         ContextViewMode.VET_CASE,

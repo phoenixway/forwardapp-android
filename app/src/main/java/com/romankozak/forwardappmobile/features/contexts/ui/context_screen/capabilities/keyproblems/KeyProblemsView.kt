@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Schedule
@@ -82,7 +83,6 @@ import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedTrailingAct
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
-import java.util.UUID
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -104,6 +104,7 @@ fun KeyProblemsView(
     var uiItems by remember(issues) { mutableStateOf(issues.sortedBy { it.order }) }
     val lazyListState = rememberLazyListState()
     var editingIssue by remember { mutableStateOf<ContextKeyProblemsRepository.IssueItem?>(null) }
+    var issueForActions by remember { mutableStateOf<ContextKeyProblemsRepository.IssueItem?>(null) }
 
     val reorderableState =
         rememberReorderableLazyListState(lazyListState) { from, to ->
@@ -123,30 +124,6 @@ fun KeyProblemsView(
         modifier = modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OutlinedButton(
-                onClick = {
-                    val now = System.currentTimeMillis()
-                    editingIssue =
-                        ContextKeyProblemsRepository.IssueItem(
-                            id = UUID.randomUUID().toString(),
-                            title = "",
-                            dateTime = now,
-                            createdAt = now,
-                            updatedAt = now,
-                        )
-                },
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Нова issue")
-            }
-        }
-
         if (uiItems.isEmpty()) {
             ElevatedCard(
                 modifier = Modifier.fillMaxWidth(),
@@ -194,7 +171,7 @@ fun KeyProblemsView(
                                     )
                                 },
                             onEdit = { editingIssue = issue },
-                            onDelete = { onDeleteIssue(issue.id) },
+                            onMoreClick = { issueForActions = issue },
                         )
                     }
                 }
@@ -221,6 +198,17 @@ fun KeyProblemsView(
             },
         )
     }
+
+    issueForActions?.let { issue ->
+        IssueActionsBottomSheet(
+            issueTitle = issue.title.ifBlank { "Без назви" },
+            onDismiss = { issueForActions = null },
+            onDelete = {
+                onDeleteIssue(issue.id)
+                issueForActions = null
+            },
+        )
+    }
 }
 
 @Composable
@@ -231,7 +219,7 @@ private fun IssueCard(
     modifier: Modifier = Modifier,
     dragHandleModifier: Modifier = Modifier,
     onEdit: () -> Unit,
-    onDelete: () -> Unit,
+    onMoreClick: () -> Unit,
 ) {
     val visualState = rememberIssueVisualState(issue)
     UnifiedListItemSurface(
@@ -244,7 +232,7 @@ private fun IssueCard(
                         onClick = onEdit,
                         onLongClick = onEdit,
                     ),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
             ),
         colors =
             UnifiedListItemColors(
@@ -254,7 +242,7 @@ private fun IssueCard(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             UnifiedTrailingActionButton(
                 icon = Icons.Default.DragHandle,
@@ -263,16 +251,16 @@ private fun IssueCard(
                 modifier = dragHandleModifier,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp))
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
                     text = issue.title.ifBlank { "Без назви" },
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    maxLines = 4,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     color = visualState.titleColor,
                     textDecoration = if (visualState.itemState == UnifiedItemState.COMPLETED) TextDecoration.LineThrough else null,
@@ -284,7 +272,7 @@ private fun IssueCard(
                             text = description,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
+                            maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             textDecoration = if (visualState.itemState == UnifiedItemState.COMPLETED) TextDecoration.LineThrough else null,
                         )
@@ -296,14 +284,72 @@ private fun IssueCard(
                             contextNames = contextNames,
                             attachmentNames = attachmentNames,
                         ),
+                    modifier = Modifier.padding(top = 1.dp),
                 )
             }
             UnifiedTrailingActionButton(
-                icon = Icons.Default.Delete,
-                contentDescription = "Видалити issue",
-                onClick = onDelete,
-                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.9f),
+                icon = Icons.Default.MoreVert,
+                contentDescription = "Дії",
+                onClick = onMoreClick,
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun IssueActionsBottomSheet(
+    issueTitle: String,
+    onDismiss: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = "Дії з issue",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = issueTitle,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Surface(
+                modifier = Modifier.fillMaxWidth().clickable(onClick = onDelete),
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.42f),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                    Text(
+                        text = "Видалити",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

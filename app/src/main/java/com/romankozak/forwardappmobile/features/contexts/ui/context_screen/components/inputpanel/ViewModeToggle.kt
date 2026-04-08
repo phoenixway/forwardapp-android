@@ -93,6 +93,7 @@ fun ViewModeToggle(
 // --- HELPERS (Мапінг станів на системні ID та ресурси) ---
 
 private fun ContextViewMode.displayName(): String {
+    if (this == ContextViewMode.KEY_PROBLEMS) return "Issues"
     return this.name.lowercase(Locale.ROOT)
         .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
         .replace("_", " ")

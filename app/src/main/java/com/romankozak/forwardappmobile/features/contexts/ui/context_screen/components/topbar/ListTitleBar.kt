@@ -116,7 +116,7 @@ internal fun getViewModeText(viewMode: ContextViewMode): String =
         ContextViewMode.DIRECTION -> "Directions"
         ContextViewMode.LOG -> "Log"
         ContextViewMode.ARTIFACT -> "Artifacts"
-        ContextViewMode.KEY_PROBLEMS -> "Issue tracker"
+        ContextViewMode.KEY_PROBLEMS -> "Issues"
         ContextViewMode.ADVANCED,
         ContextViewMode.NOTES,
         ContextViewMode.VET_CASE,
