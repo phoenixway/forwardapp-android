@@ -54,6 +54,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.features.ai.insights.AiInsightsViewModel
 import com.romankozak.forwardappmobile.features.ai.insights.AiMessage
 import com.romankozak.forwardappmobile.features.ai.insights.MessageType
+import com.romankozak.forwardappmobile.features.mainscreen.session.SessionMode
+import com.romankozak.forwardappmobile.features.mainscreen.session.SessionModeDashboard
+import com.romankozak.forwardappmobile.features.mainscreen.session.SessionModeState
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -61,19 +64,35 @@ private const val DASHBOARD_INSIGHTS_LIMIT = 3
 private const val FOCUS_CARD_BACKGROUND_ALPHA = 0.35f
 private const val INSIGHT_DISMISS_BACKGROUND_ALPHA = 0.6f
 private const val FOCUS_CONTEXTS_LIST_MAX_HEIGHT_DP = 420
+private const val FOCUS_CONTEXTS_EXPANDED_KEY = "dashboard_focus_contexts_expanded"
+private const val AI_INSIGHTS_EXPANDED_KEY = "dashboard_ai_insights_expanded"
 
 @Composable
 fun DashboardContent(
     modifier: Modifier = Modifier,
     onOpenFocusedContext: (String) -> Unit = {},
+    sessionModeState: SessionModeState = SessionModeState(),
+    latestSessionReason: String? = null,
+    onSessionModeSelected: (SessionMode) -> Unit = {},
+    isSessionModeCardExpanded: Boolean = true,
+    onSessionModeCardExpandedChange: (Boolean) -> Unit = {},
+    onOpenSessionContext: (String) -> Unit = {},
     aiInsightsViewModel: AiInsightsViewModel = hiltViewModel(),
     focusContextsViewModel: FocusContextsViewModel = hiltViewModel(),
+    commandDeckViewModel: CommandDeckViewModel = hiltViewModel(),
 ) {
     AnimatedCommandDeck(
         modifier = modifier,
         onOpenFocusedContext = onOpenFocusedContext,
+        sessionModeState = sessionModeState,
+        latestSessionReason = latestSessionReason,
+        onSessionModeSelected = onSessionModeSelected,
+        isSessionModeCardExpanded = isSessionModeCardExpanded,
+        onSessionModeCardExpandedChange = onSessionModeCardExpandedChange,
+        onOpenSessionContext = onOpenSessionContext,
         aiInsightsViewModel = aiInsightsViewModel,
         focusContextsViewModel = focusContextsViewModel,
+        commandDeckViewModel = commandDeckViewModel,
     )
 }
 
@@ -81,11 +100,22 @@ fun DashboardContent(
 private fun AnimatedCommandDeck(
     modifier: Modifier = Modifier,
     onOpenFocusedContext: (String) -> Unit,
+    sessionModeState: SessionModeState,
+    latestSessionReason: String?,
+    onSessionModeSelected: (SessionMode) -> Unit,
+    isSessionModeCardExpanded: Boolean,
+    onSessionModeCardExpandedChange: (Boolean) -> Unit,
+    onOpenSessionContext: (String) -> Unit,
     aiInsightsViewModel: AiInsightsViewModel,
     focusContextsViewModel: FocusContextsViewModel,
+    commandDeckViewModel: CommandDeckViewModel,
 ) {
-    var aiInsightsExpanded by remember { mutableStateOf(false) }
-    var focusContextsExpanded by remember { mutableStateOf(true) }
+    var aiInsightsExpanded by remember {
+        mutableStateOf(commandDeckViewModel.isCategoryExpanded(AI_INSIGHTS_EXPANDED_KEY))
+    }
+    var focusContextsExpanded by remember {
+        mutableStateOf(commandDeckViewModel.isCategoryExpanded(FOCUS_CONTEXTS_EXPANDED_KEY))
+    }
 
     Column(
         modifier =
@@ -103,16 +133,37 @@ private fun AnimatedCommandDeck(
             modifier = Modifier.padding(bottom = 18.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            SessionModeDashboard(
+                state = sessionModeState,
+                latestSessionReason = latestSessionReason,
+                onModeSelected = onSessionModeSelected,
+                isExpanded = isSessionModeCardExpanded,
+                onExpandedChange = onSessionModeCardExpandedChange,
+                onOpenModeContext = onOpenSessionContext,
+            )
+
             DashboardFocusContextsSection(
                 isExpanded = focusContextsExpanded,
-                onToggleExpanded = { focusContextsExpanded = !focusContextsExpanded },
+                onToggleExpanded = {
+                    focusContextsExpanded = !focusContextsExpanded
+                    commandDeckViewModel.setCategoryExpanded(
+                        FOCUS_CONTEXTS_EXPANDED_KEY,
+                        focusContextsExpanded,
+                    )
+                },
                 onOpenFocusedContext = onOpenFocusedContext,
                 focusContextsViewModel = focusContextsViewModel,
             )
 
             DashboardAiInsightsSection(
                 isExpanded = aiInsightsExpanded,
-                onToggleExpanded = { aiInsightsExpanded = !aiInsightsExpanded },
+                onToggleExpanded = {
+                    aiInsightsExpanded = !aiInsightsExpanded
+                    commandDeckViewModel.setCategoryExpanded(
+                        AI_INSIGHTS_EXPANDED_KEY,
+                        aiInsightsExpanded,
+                    )
+                },
                 aiInsightsViewModel = aiInsightsViewModel,
             )
         }

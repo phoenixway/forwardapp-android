@@ -23,8 +23,10 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -63,6 +65,7 @@ import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.TacticsB
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.TodayBottomPanel
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalMissionViewModel
+import com.romankozak.forwardappmobile.features.mainscreen.session.SessionModeState
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.features.strategicmanagement.StrategicManagementScreen
 import com.romankozak.forwardappmobile.features.userawareness.UserAwarenessHeaderBadge
@@ -155,16 +158,53 @@ fun MainScreenLayout(
     val focusContextsViewModel: FocusContextsViewModel = hiltViewModel()
     val tacticalMissionViewModel: TacticalMissionViewModel = hiltViewModel()
     val activeUserAwarenessState by userAwarenessViewModel.activeState.collectAsStateWithLifecycle()
+    val sessionModeState by commandDeckViewModel.sessionModeState.collectAsStateWithLifecycle()
+    val latestSessionReason by commandDeckViewModel.latestSessionReason.collectAsStateWithLifecycle()
+    var isSessionModeCardExpanded by remember { mutableStateOf(commandDeckViewModel.isSessionModeCardExpanded()) }
     var showAboutDialog by remember { mutableStateOf(false) }
     var showStateSwitchDialog by remember { mutableStateOf(false) }
     var showContextMarkersSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(commandDeckViewModel) {
-        commandDeckViewModel.uiEvents.collect { message ->
+        commandDeckViewModel.importExportUiEvents.collect { message ->
             when (message) {
                 is CommandDeckUiEvent.ShowMessage -> snackbarHostState.showSnackbar(message.message)
+                is CommandDeckUiEvent.ShowSessionModeChanged -> Unit
                 is CommandDeckUiEvent.NavigateToSyncScreenWithData ->
                     onNavigateToSyncScreenWithData(message.json)
+            }
+        }
+    }
+
+    LaunchedEffect(commandDeckViewModel) {
+        commandDeckViewModel.uiEvents.collect { event ->
+            when (event) {
+                is CommandDeckUiEvent.ShowMessage -> snackbarHostState.showSnackbar(event.message)
+                is CommandDeckUiEvent.ShowSessionModeChanged -> {
+                    val primaryResult =
+                        snackbarHostState.showSnackbar(
+                            message = event.message,
+                            actionLabel = "Report why mode changed",
+                            duration = SnackbarDuration.Short,
+                        )
+                    if (primaryResult == SnackbarResult.ActionPerformed) {
+                        commandDeckViewModel.prepareModeChangeReason(event.newMode)
+                    }
+
+                    if (event.previousMode != null) {
+                        val secondaryResult =
+                            snackbarHostState.showSnackbar(
+                                message = "Попередній режим ${event.previousMode.title} завершено",
+                                actionLabel = "Report prev mode results",
+                                duration = SnackbarDuration.Short,
+                            )
+                        if (secondaryResult == SnackbarResult.ActionPerformed) {
+                            commandDeckViewModel.preparePreviousSessionResult(event.previousMode)
+                        }
+                    }
+                }
+                is CommandDeckUiEvent.NavigateToSyncScreenWithData ->
+                    onNavigateToSyncScreenWithData(event.json)
             }
         }
     }
@@ -331,6 +371,14 @@ fun MainScreenLayout(
                     tacticalMissionViewModel = tacticalMissionViewModel,
                     dayManagementViewModel = dayManagementViewModel,
                     dayPlanViewModel = dayPlanViewModel,
+                    sessionModeState = sessionModeState,
+                    latestSessionReason = latestSessionReason,
+                    onSessionModeSelected = commandDeckViewModel::setSessionMode,
+                    isSessionModeCardExpanded = isSessionModeCardExpanded,
+                    onSessionModeCardExpandedChange = { expanded ->
+                        isSessionModeCardExpanded = expanded
+                        commandDeckViewModel.setSessionModeCardExpanded(expanded)
+                    },
                 )
             }
         }
@@ -653,6 +701,11 @@ private fun MainScreenPagerContent(
     tacticalMissionViewModel: TacticalMissionViewModel,
     dayManagementViewModel: DayManagementViewModel,
     dayPlanViewModel: DayPlanViewModel,
+    sessionModeState: SessionModeState,
+    latestSessionReason: String?,
+    onSessionModeSelected: (com.romankozak.forwardappmobile.features.mainscreen.session.SessionMode) -> Unit,
+    isSessionModeCardExpanded: Boolean,
+    onSessionModeCardExpandedChange: (Boolean) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
 
@@ -707,6 +760,18 @@ private fun MainScreenPagerContent(
                 DashboardContent(
                     modifier = Modifier.fillMaxSize(),
                     onOpenFocusedContext = { contextId ->
+                        navigationManager.navigateOrFallback(
+                            navController = navController,
+                            target = NavTarget.ContextDetail(contextId = contextId),
+                            recordInHistory = true,
+                        )
+                    },
+                    sessionModeState = sessionModeState,
+                    latestSessionReason = latestSessionReason,
+                    onSessionModeSelected = onSessionModeSelected,
+                    isSessionModeCardExpanded = isSessionModeCardExpanded,
+                    onSessionModeCardExpandedChange = onSessionModeCardExpandedChange,
+                    onOpenSessionContext = { contextId ->
                         navigationManager.navigateOrFallback(
                             navController = navController,
                             target = NavTarget.ContextDetail(contextId = contextId),

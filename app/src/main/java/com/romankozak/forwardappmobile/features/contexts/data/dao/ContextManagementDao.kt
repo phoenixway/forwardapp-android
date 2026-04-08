@@ -37,4 +37,20 @@ interface ContextManagementDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLogs(logs: List<ContextLog>)
+
+    @Query(
+        """
+        DELETE FROM context_execution_logs
+        WHERE id IN (
+            SELECT id FROM context_execution_logs
+            WHERE contextId = :contextId AND is_deleted = 0
+            ORDER BY timestamp DESC
+            LIMIT -1 OFFSET :keepCount
+        )
+        """,
+    )
+    suspend fun deleteLogsForContextKeepingNewest(
+        contextId: String,
+        keepCount: Int,
+    )
 }

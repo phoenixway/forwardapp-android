@@ -16,6 +16,10 @@ class ContextLogRepository
     constructor(
         private val contextManagementDao: ContextManagementDao,
     ) {
+        companion object {
+            private const val DEFAULT_CONTEXT_LOG_KEEP_COUNT = 40
+        }
+
         fun getContextLogsStream(contextId: String): Flow<List<ContextLog>> = contextManagementDao.getLogsForContextStream(contextId)
 
         suspend fun addToggleContextManagementLog(
@@ -74,8 +78,12 @@ class ContextLogRepository
                     updatedAt = now,
                     syncedAt = null,
                     version = 1,
-                )
+            )
             contextManagementDao.insertLog(logEntry)
+            contextManagementDao.deleteLogsForContextKeepingNewest(
+                contextId = contextId,
+                keepCount = DEFAULT_CONTEXT_LOG_KEEP_COUNT,
+            )
         }
 
         suspend fun updateContextExecutionLog(log: ContextLog) {

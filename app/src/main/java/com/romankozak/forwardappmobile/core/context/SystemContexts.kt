@@ -2,6 +2,11 @@ package com.romankozak.forwardappmobile.core.context
 
 object SystemContexts {
     val PERSONAL_MANAGEMENT = ContextId("sys_personal-management")
+    val SESSION_IMPROVE = ContextId("sys_mode-improve")
+    val SESSION_EXECUTION = ContextId("sys_mode-execution")
+    val SESSION_CONTROL = ContextId("sys_mode-control")
+    val SESSION_RECOVERY = ContextId("sys_mode-recovery")
+    val SESSION_EMERGENCY = ContextId("sys_mode-emergency")
     val STRATEGIC = ContextId("sys_strategic")
     val MISSION = ContextId("sys_mission")
     val LONG_TERM_STRATEGY = ContextId("sys_long-term-strategy")
@@ -18,6 +23,11 @@ object SystemContexts {
     private val RESERVED =
         setOf(
             PERSONAL_MANAGEMENT,
+            SESSION_IMPROVE,
+            SESSION_EXECUTION,
+            SESSION_CONTROL,
+            SESSION_RECOVERY,
+            SESSION_EMERGENCY,
             STRATEGIC,
             MISSION,
             LONG_TERM_STRATEGY,

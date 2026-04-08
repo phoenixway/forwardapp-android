@@ -749,3 +749,54 @@ val MIGRATION_113_114 =
             db.execSQL("UPDATE `goals` SET `goal_status` = 'DONE' WHERE `completed` = 1")
         }
     }
+
+val MIGRATION_114_115 =
+    object : Migration(114, 115) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            val idMappings =
+                listOf(
+                    "sys_session-improve" to "sys_mode-improve",
+                    "sys_session-execution" to "sys_mode-execution",
+                    "sys_session-control" to "sys_mode-control",
+                    "sys_session-recovery" to "sys_mode-recovery",
+                    "sys_session-emergency" to "sys_mode-emergency",
+                )
+
+            db.execSQL("PRAGMA foreign_keys=OFF")
+            db.beginTransaction()
+            try {
+                idMappings.forEach { (oldId, newId) ->
+                    db.execSQL("UPDATE `contexts` SET `parentId` = '$newId' WHERE `parentId` = '$oldId'")
+                    db.execSQL("UPDATE `context_execution_logs` SET `contextId` = '$newId' WHERE `contextId` = '$oldId'")
+                    db.execSQL("UPDATE `inbox_records` SET `contextId` = '$newId' WHERE `contextId` = '$oldId'")
+                    db.execSQL("UPDATE `list_items` SET `context_id` = '$newId' WHERE `context_id` = '$oldId'")
+                    db.execSQL("UPDATE `activity_records` SET `context_id` = '$newId' WHERE `context_id` = '$oldId'")
+                    db.execSQL("UPDATE `notes` SET `contextId` = '$newId' WHERE `contextId` = '$oldId'")
+                    db.execSQL("UPDATE `note_documents` SET `contextId` = '$newId' WHERE `contextId` = '$oldId'")
+                    db.execSQL("UPDATE `music_notes` SET `contextId` = '$newId' WHERE `contextId` = '$oldId'")
+                    db.execSQL("UPDATE `checklists` SET `contextId` = '$newId' WHERE `contextId` = '$oldId'")
+                    db.execSQL("UPDATE `context_inbox_sorting` SET `context_id` = '$newId' WHERE `context_id` = '$oldId'")
+                    db.execSQL("UPDATE `context_key_problems` SET `context_id` = '$newId' WHERE `context_id` = '$oldId'")
+                    db.execSQL("UPDATE `context_structures` SET `contextId` = '$newId' WHERE `contextId` = '$oldId'")
+                    db.execSQL("UPDATE `context_artifacts` SET `contextId` = '$newId' WHERE `contextId` = '$oldId'")
+                    db.execSQL("UPDATE `focus_context_intervals` SET `contextId` = '$newId' WHERE `contextId` = '$oldId'")
+                    db.execSQL("UPDATE `direction_items` SET `contextId` = '$newId' WHERE `contextId` = '$oldId'")
+                    db.execSQL("UPDATE `system_apps` SET `context_id` = '$newId' WHERE `context_id` = '$oldId'")
+                    db.execSQL("UPDATE `scripts` SET `contextId` = '$newId' WHERE `contextId` = '$oldId'")
+                    db.execSQL("UPDATE `attachments` SET `owner_context_id` = '$newId' WHERE `owner_context_id` = '$oldId'")
+                    db.execSQL("UPDATE `context_attachment_cross_ref` SET `context_id` = '$newId' WHERE `context_id` = '$oldId'")
+                    db.execSQL("UPDATE `recent_items` SET `target` = '$newId' WHERE `target` = '$oldId'")
+                    db.execSQL("UPDATE `context_structures` SET `id` = 'default_config_$newId' WHERE `id` = 'default_config_$oldId'")
+                    db.execSQL(
+                        "UPDATE `context_structure_items` SET `contextStructureId` = 'default_config_$newId' WHERE `contextStructureId` = 'default_config_$oldId'",
+                    )
+                    db.execSQL("UPDATE `contexts` SET `id` = '$newId' WHERE `id` = '$oldId'")
+                }
+
+                db.setTransactionSuccessful()
+            } finally {
+                db.endTransaction()
+                db.execSQL("PRAGMA foreign_keys=ON")
+            }
+        }
+    }

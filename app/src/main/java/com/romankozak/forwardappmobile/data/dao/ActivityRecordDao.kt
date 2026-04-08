@@ -79,6 +79,22 @@ interface ActivityRecordDao {
     @Query("DELETE FROM activity_records WHERE id = :recordId")
     suspend fun deleteById(recordId: String)
 
+    @Query(
+        """
+        DELETE FROM activity_records
+        WHERE id IN (
+            SELECT id FROM activity_records
+            WHERE target_type = :targetType
+            ORDER BY createdAt DESC
+            LIMIT -1 OFFSET :keepCount
+        )
+        """,
+    )
+    suspend fun deleteByTargetTypeKeepingNewest(
+        targetType: String,
+        keepCount: Int,
+    )
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(records: List<ActivityRecord>)
 

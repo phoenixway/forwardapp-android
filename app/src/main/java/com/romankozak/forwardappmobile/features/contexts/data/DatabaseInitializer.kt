@@ -69,6 +69,31 @@ class DatabaseInitializer
         ): List<SystemProjectDefinition> =
             listOf(
                 SystemProjectDefinition(
+                    id = SystemContexts.SESSION_IMPROVE.raw,
+                    name = "mode-improve",
+                    parentId = personalManagementProjectId,
+                ),
+                SystemProjectDefinition(
+                    id = SystemContexts.SESSION_EXECUTION.raw,
+                    name = "mode-execution",
+                    parentId = personalManagementProjectId,
+                ),
+                SystemProjectDefinition(
+                    id = SystemContexts.SESSION_CONTROL.raw,
+                    name = "mode-control",
+                    parentId = personalManagementProjectId,
+                ),
+                SystemProjectDefinition(
+                    id = SystemContexts.SESSION_RECOVERY.raw,
+                    name = "mode-recovery",
+                    parentId = personalManagementProjectId,
+                ),
+                SystemProjectDefinition(
+                    id = SystemContexts.SESSION_EMERGENCY.raw,
+                    name = "mode-emergency",
+                    parentId = personalManagementProjectId,
+                ),
+                SystemProjectDefinition(
                     id = SystemContexts.MAIN_BEACONS.raw,
                     name = "main-beacons",
                     parentId = personalManagementProjectId,
@@ -137,6 +162,15 @@ class DatabaseInitializer
         ): String {
             val existingProject = contextDao.getContextById(id)
             if (existingProject != null) {
+                if (existingProject.name != name || existingProject.parentId != parentId) {
+                    contextDao.update(
+                        existingProject.copy(
+                            name = name,
+                            parentId = parentId,
+                            updatedAt = System.currentTimeMillis(),
+                        ),
+                    )
+                }
                 return existingProject.id
             }
 
