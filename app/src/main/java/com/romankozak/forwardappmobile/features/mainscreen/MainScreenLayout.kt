@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.features.mainscreen
 
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -220,6 +221,12 @@ fun MainScreenLayout(
         ) { commandDeckViewModel.openContextInput() }
 
     val selectedTabIndex = pagerState.currentPage
+    val dashboardTabIndex = tabs.indexOf(CommandDeckTab.Dashboard)
+    BackHandler(enabled = selectedTabIndex != dashboardTabIndex) {
+        scope.launch {
+            pagerState.scrollToPage(dashboardTabIndex)
+        }
+    }
     val titleStateBadge: @Composable (() -> Unit) = {
         UserAwarenessHeaderBadge(
             activeState = activeUserAwarenessState,
