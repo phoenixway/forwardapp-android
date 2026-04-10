@@ -6,28 +6,39 @@ import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconCardUi
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconEditorState
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconRepository
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconWithRelations
+import com.romankozak.forwardappmobile.features.mainscreen.core.deriveMainBeaconCompactCardSummary
+import com.romankozak.forwardappmobile.features.mainscreen.core.displayLabel
+import com.romankozak.forwardappmobile.features.mainscreen.core.toEditorState
 import com.romankozak.forwardappmobile.features.mainscreen.scopelinks.ScopeAttachmentOption
 import com.romankozak.forwardappmobile.features.mainscreen.scopelinks.toScopeAttachmentOption
 import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.util.UUID
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.util.UUID
-import javax.inject.Inject
 
 private val CORE_TAGS = setOf("core", "main-beacons")
 private const val FLOW_STOP_TIMEOUT_MILLIS = 5000L
@@ -35,6 +46,7 @@ private const val FLOW_STOP_TIMEOUT_MILLIS = 5000L
 data class CoreLevelUiState(
     val allProjects: List<Context> = emptyList(),
     val projects: List<Context> = emptyList(),
+    val beacons: List<MainBeaconCardUi> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
 )
@@ -49,24 +61,53 @@ class CoreLevelViewModel
         private val noteDocumentRepository: NoteDocumentRepository,
         private val musicNoteRepository: MusicNoteRepository,
         private val checklistRepository: ChecklistRepository,
+        private val mainBeaconRepository: MainBeaconRepository,
     ) : ViewModel() {
-        val uiState: StateFlow<CoreLevelUiState> =
+        private val allContexts =
             contextRepository.getAllContextsFlow()
-                .map { projects ->
-                    val coreProjects =
-                        projects.filter {
-                            it.tags?.contains("main-beacons") == true || it.tags?.contains("core") == true
-                        }
-                    CoreLevelUiState(
-                        allProjects = projects,
-                        projects = coreProjects,
-                    )
-                }
                 .stateIn(
                     scope = viewModelScope,
                     started = SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS),
-                    initialValue = CoreLevelUiState(isLoading = true),
+                    initialValue = emptyList(),
                 )
+
+        val mainBeaconDetails: StateFlow<List<MainBeaconWithRelations>> =
+            mainBeaconRepository.observeMainBeaconDetails()
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS),
+                    initialValue = emptyList(),
+                )
+
+        val uiState: StateFlow<CoreLevelUiState> =
+            combine(allContexts, mainBeaconDetails) { projects, beacons ->
+                val coreProjects =
+                    projects.filter {
+                        it.tags?.contains("main-beacons") == true || it.tags?.contains("core") == true
+                    }
+                CoreLevelUiState(
+                    allProjects = projects,
+                    projects = coreProjects,
+                    beacons =
+                        beacons.map { details ->
+                            val compactSummary = deriveMainBeaconCompactCardSummary(details.levelStatuses)
+                            MainBeaconCardUi(
+                                id = details.beacon.id,
+                                title = details.beacon.title,
+                                readinessStatus = details.beacon.readinessStatus,
+                                highestCompletedLevel = compactSummary.highestCompletedLevel,
+                                breakPointLevel = compactSummary.breakPointLevel,
+                                blockReason = compactSummary.blockReason,
+                                nextRequiredAction = compactSummary.nextRequiredAction,
+                            )
+                        },
+                )
+            }.stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS),
+                initialValue = CoreLevelUiState(isLoading = true),
+            )
+
         private val _attachmentOptions = MutableStateFlow<List<ScopeAttachmentOption>>(emptyList())
         val attachmentOptions: StateFlow<List<ScopeAttachmentOption>> = _attachmentOptions.asStateFlow()
 
@@ -83,8 +124,7 @@ class CoreLevelViewModel
             attachmentsRepository.getAttachmentLibraryItems()
                 .onEach { results ->
                     _attachmentOptions.value = results.mapNotNull { it.toScopeAttachmentOption() }
-                }
-                .launchIn(viewModelScope)
+                }.launchIn(viewModelScope)
 
             settingsRepository.coreLinkedAttachmentIdsFlow
                 .onEach { ids -> _linkedAttachmentIds.value = ids.toList() }
@@ -93,6 +133,107 @@ class CoreLevelViewModel
             settingsRepository.coreConnectionsOrderFlow
                 .onEach { order -> _connectionsOrder.value = order }
                 .launchIn(viewModelScope)
+        }
+
+        fun buildEditorState(beaconId: String?): MainBeaconEditorState {
+            if (beaconId == null) {
+                return MainBeaconEditorState(
+                    levelStatuses =
+                        MainBeaconRepository.DefaultLevels.map { levelType ->
+                            MainBeaconLevelStatus(
+                                mainBeaconId = "",
+                                levelType = levelType,
+                                syncStatus = MainBeaconRepository.defaultSyncStatus(levelType),
+                            ).toEditorState()
+                        },
+                )
+            }
+            val details = mainBeaconDetails.value.firstOrNull { it.beacon.id == beaconId } ?: return MainBeaconEditorState()
+            return MainBeaconEditorState(
+                id = details.beacon.id,
+                title = details.beacon.title,
+                description = details.beacon.description.orEmpty(),
+                whyItMatters = details.beacon.whyItMatters.orEmpty(),
+                successShape = details.beacon.successShape.orEmpty(),
+                failureShape = details.beacon.failureShape.orEmpty(),
+                antiGoal = details.beacon.antiGoal.orEmpty(),
+                decisionImpact = details.beacon.decisionImpact.orEmpty(),
+                readinessStatus = details.beacon.readinessStatus,
+                blockerText = details.beacon.blockerText.orEmpty(),
+                nextActionText = details.beacon.nextActionText.orEmpty(),
+                relatedContextIds = details.relatedContexts.mapTo(linkedSetOf()) { it.id },
+                relatedAttachmentIds = details.relatedAttachments.mapTo(linkedSetOf()) { it.id },
+                levelStatuses = details.levelStatuses.map { it.toEditorState() },
+                createdAt = details.beacon.createdAt,
+                updatedAt = details.beacon.updatedAt,
+                isNew = false,
+            )
+        }
+
+        fun saveBeacon(editor: MainBeaconEditorState) {
+            val title = editor.title.trim()
+            if (title.isBlank()) return
+            viewModelScope.launch {
+                val now = System.currentTimeMillis()
+                val existing = editor.id?.let { id -> mainBeaconDetails.value.firstOrNull { it.beacon.id == id }?.beacon }
+                val beacon =
+                    MainBeacon(
+                        id = existing?.id ?: editor.id ?: UUID.randomUUID().toString(),
+                        title = title,
+                        description = editor.description.trim().ifBlank { null },
+                        whyItMatters = editor.whyItMatters.trim().ifBlank { null },
+                        successShape = editor.successShape.trim().ifBlank { null },
+                        failureShape = editor.failureShape.trim().ifBlank { null },
+                        antiGoal = editor.antiGoal.trim().ifBlank { null },
+                        decisionImpact = editor.decisionImpact.trim().ifBlank { null },
+                        readinessStatus = editor.readinessStatus,
+                        blockerText = editor.blockerText.trim().ifBlank { null },
+                        nextActionText = editor.nextActionText.trim().ifBlank { null },
+                        order = existing?.order ?: 0L,
+                        updatedAt = now,
+                        createdAt = existing?.createdAt ?: now,
+                    )
+                val levelStatuses =
+                    editor.levelStatuses.map { level ->
+                        MainBeaconLevelStatus(
+                            mainBeaconId = beacon.id,
+                            levelType = level.levelType,
+                            generalStatus = level.generalStatus,
+                            syncStatus = level.syncStatus,
+                            blockerText = level.blockerText.trim().ifBlank { null },
+                            nextActionText = level.nextActionText.trim().ifBlank { null },
+                            updatedAt = now,
+                        )
+                    }
+
+                if (existing == null) {
+                    mainBeaconRepository.createBeacon(
+                        beacon = beacon,
+                        relatedContextIds = editor.relatedContextIds,
+                        relatedAttachmentIds = editor.relatedAttachmentIds,
+                        levelStatuses = levelStatuses,
+                    )
+                } else {
+                    mainBeaconRepository.updateBeacon(
+                        beacon = beacon,
+                        relatedContextIds = editor.relatedContextIds,
+                        relatedAttachmentIds = editor.relatedAttachmentIds,
+                        levelStatuses = levelStatuses,
+                    )
+                }
+            }
+        }
+
+        fun deleteBeacon(beaconId: String) {
+            viewModelScope.launch {
+                mainBeaconRepository.deleteBeacon(beaconId)
+            }
+        }
+
+        fun reorderBeacons(beaconIdsInOrder: List<String>) {
+            viewModelScope.launch {
+                mainBeaconRepository.reorderBeacons(beaconIdsInOrder)
+            }
         }
 
         fun addCoreLink(contextId: String) {
@@ -196,20 +337,18 @@ class CoreLevelViewModel
                     attachmentsRepository.findAttachmentByEntity(BacklogItemTypeValues.CHECKLIST, checklistId)?.id
                 }
                 is NewDocumentDraft.WebLink -> {
-                    val target = request.url.trim()
                     createLinkAttachmentOrNull(
                         type = LinkType.URL,
-                        target = target,
-                        displayName = request.name.trim().ifBlank { target },
+                        target = request.url.trim(),
+                        displayName = request.name.trim().ifBlank { request.url.trim() },
                         contextId = SystemContexts.MAIN_BEACONS.raw,
                     )
                 }
                 is NewDocumentDraft.Obsidian -> {
-                    val target = request.noteName.trim()
                     createLinkAttachmentOrNull(
                         type = LinkType.OBSIDIAN,
-                        target = target,
-                        displayName = request.displayName.trim().ifBlank { target },
+                        target = request.noteName.trim(),
+                        displayName = request.displayName.trim().ifBlank { request.noteName.trim() },
                         contextId = SystemContexts.MAIN_BEACONS.raw,
                     )
                 }
@@ -256,18 +395,10 @@ class CoreLevelViewModel
             displayName: String,
             contextId: String,
         ): String? {
-            if (target.isBlank()) {
-                return null
-            }
-
+            if (target.isBlank()) return null
             return attachmentsRepository.createLinkAttachment(
                 contextId = contextId,
-                link =
-                    RelatedLink(
-                        type = type,
-                        target = target,
-                        displayName = displayName,
-                    ),
+                link = RelatedLink(type = type, target = target, displayName = displayName),
             )
         }
     }

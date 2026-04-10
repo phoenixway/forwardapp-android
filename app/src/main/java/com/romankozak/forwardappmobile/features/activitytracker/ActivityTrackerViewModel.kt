@@ -33,6 +33,11 @@ class ActivityTrackerViewModel
         private val savedStateHandle: SavedStateHandle,
         private val slashCommandParser: StateSlashCommandParser,
     ) : ViewModel() {
+        private companion object {
+            const val INITIAL_RECENT_RECORDS = 320
+            const val OLDER_RECORDS_PAGE_SIZE = 220
+        }
+
         private val _inputText = MutableStateFlow("")
         val inputText = _inputText.asStateFlow()
 
@@ -49,11 +54,23 @@ class ActivityTrackerViewModel
         val recordForReminder = _recordForReminder.asStateFlow()
         private val _snackbarEvents = MutableSharedFlow<String>()
         val snackbarEvents = _snackbarEvents.asSharedFlow()
+        private val _loadedOlderRecords = MutableStateFlow<List<ActivityRecord>>(emptyList())
+        private val _isLoadingOlderRecords = MutableStateFlow(false)
+        val isLoadingOlderRecords = _isLoadingOlderRecords.asStateFlow()
+        private val _hasMoreOlderRecords = MutableStateFlow(true)
+        val hasMoreOlderRecords = _hasMoreOlderRecords.asStateFlow()
+
+        private val recentActivityLog: StateFlow<List<ActivityRecord>> =
+            repository
+                .getRecentLogStream(INITIAL_RECENT_RECORDS)
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
         val activityLog: StateFlow<List<ActivityRecord>> =
-            repository
-                .getLogStream()
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+            combine(recentActivityLog, _loadedOlderRecords) { recentRecords, olderRecords ->
+                (olderRecords + recentRecords)
+                    .distinctBy { it.id }
+                    .sortedBy { it.createdAt }
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
         val groupedActivityLog: StateFlow<Map<String, List<ActivityRecord>>> =
             activityLog.map { log ->
@@ -61,13 +78,53 @@ class ActivityTrackerViewModel
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
         val lastOngoingActivity: StateFlow<ActivityRecord?> =
-            activityLog
-                .map { log ->
-                    log.firstOrNull { it.isOngoing }
-                }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+            repository
+                .findLastOngoingActivityFlow()
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
         fun onInputTextChanged(text: String) {
             _inputText.value = text
+        }
+
+        fun loadOlderRecords() {
+            if (_isLoadingOlderRecords.value || !_hasMoreOlderRecords.value) return
+
+            viewModelScope.launch {
+                _isLoadingOlderRecords.value = true
+                try {
+                    val oldestLoadedRecord =
+                        listOfNotNull(
+                            _loadedOlderRecords.value.firstOrNull(),
+                            recentActivityLog.value.firstOrNull(),
+                        ).minByOrNull { it.createdAt }
+
+                    val beforeCreatedAt = oldestLoadedRecord?.createdAt ?: run {
+                        _hasMoreOlderRecords.value = false
+                        return@launch
+                    }
+
+                    val olderRecords =
+                        repository.getOlderLogRecords(
+                            beforeCreatedAt = beforeCreatedAt,
+                            limit = OLDER_RECORDS_PAGE_SIZE,
+                        )
+
+                    if (olderRecords.isEmpty()) {
+                        _hasMoreOlderRecords.value = false
+                    } else {
+                        _loadedOlderRecords.update { loaded ->
+                            (olderRecords + loaded)
+                                .distinctBy { it.id }
+                                .sortedBy { it.createdAt }
+                        }
+                        if (olderRecords.size < OLDER_RECORDS_PAGE_SIZE) {
+                            _hasMoreOlderRecords.value = false
+                        }
+                    }
+                } finally {
+                    _isLoadingOlderRecords.value = false
+                }
+            }
         }
 
         private fun clearInput() {
@@ -75,15 +132,23 @@ class ActivityTrackerViewModel
         }
 
         init {
+            viewModelScope.launch {
+                recentActivityLog.collect { recentRecords ->
+                    if (recentRecords.isEmpty()) {
+                        _loadedOlderRecords.value = emptyList()
+                        _hasMoreOlderRecords.value = false
+                    } else if (_loadedOlderRecords.value.isEmpty()) {
+                        _hasMoreOlderRecords.value = recentRecords.size >= INITIAL_RECENT_RECORDS
+                    }
+                }
+            }
+
             savedStateHandle.get<String>("recordIdToEdit")?.let { recordId ->
                 viewModelScope.launch {
-                    activityLog
-                        .mapNotNull { log -> log.find { it.id == recordId } }
-                        .first()
-                        .let { record ->
-                            onEditRequest(record)
-                            savedStateHandle.remove<String>("recordIdToEdit")
-                        }
+                    repository.getActivityRecordById(recordId)?.let { record ->
+                        onEditRequest(record)
+                        savedStateHandle.remove<String>("recordIdToEdit")
+                    }
                 }
             }
         }
@@ -183,6 +248,11 @@ class ActivityTrackerViewModel
                             antyXp = antyXp,
                         )
                     repository.updateRecord(updatedRecord)
+                    _loadedOlderRecords.update { records ->
+                        records.map { existing ->
+                            if (existing.id == updatedRecord.id) updatedRecord else existing
+                        }
+                    }
                 }
             }
             onEditDialogDismiss()
@@ -217,6 +287,7 @@ class ActivityTrackerViewModel
             viewModelScope.launch {
                 _recordToDelete.value?.let {
                     repository.deleteRecord(it)
+                    _loadedOlderRecords.update { records -> records.filterNot { record -> record.id == it.id } }
                 }
                 onDeleteDismiss()
             }
@@ -228,6 +299,8 @@ class ActivityTrackerViewModel
         fun onClearLogConfirm() =
             viewModelScope.launch {
                 repository.clearLog()
+                _loadedOlderRecords.value = emptyList()
+                _hasMoreOlderRecords.value = false
             }
 
         fun onSetReminder(record: ActivityRecord) {
@@ -246,6 +319,11 @@ class ActivityTrackerViewModel
 
                 val updatedRecord = record.copy(reminderTime = timestamp)
                 repository.updateRecord(updatedRecord)
+                _loadedOlderRecords.update { records ->
+                    records.map { existing ->
+                        if (existing.id == updatedRecord.id) updatedRecord else existing
+                    }
+                }
 
                 alarmScheduler.scheduleForActivityRecord(updatedRecord)
                 onReminderDialogDismiss()
@@ -257,6 +335,11 @@ class ActivityTrackerViewModel
                 if (record != null) {
                     val updatedRecord = record.copy(reminderTime = null)
                     repository.updateRecord(updatedRecord)
+                    _loadedOlderRecords.update { records ->
+                        records.map { existing ->
+                            if (existing.id == updatedRecord.id) updatedRecord else existing
+                        }
+                    }
                     alarmScheduler.cancelForActivityRecord(record)
                 }
                 onReminderDialogDismiss()

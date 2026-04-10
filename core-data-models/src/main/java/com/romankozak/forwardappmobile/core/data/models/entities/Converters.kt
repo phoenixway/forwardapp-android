@@ -5,6 +5,9 @@ import com.google.gson.Gson
 import com.google.gson.JsonParser
 import com.google.gson.reflect.TypeToken
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelType
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadinessStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconSyncStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 
@@ -135,5 +138,35 @@ class Converters {
     @TypeConverter
     fun toMissionPriority(priority: String?): MissionPriority? {
         return priority?.let { MissionPriority.valueOf(it) }
+    }
+
+    @TypeConverter
+    fun fromMainBeaconReadinessStatus(status: MainBeaconReadinessStatus?): String? {
+        return status?.name
+    }
+
+    @TypeConverter
+    fun toMainBeaconReadinessStatus(status: String?): MainBeaconReadinessStatus? {
+        return status?.let { MainBeaconReadinessStatus.valueOf(it) }
+    }
+
+    @TypeConverter
+    fun fromMainBeaconLevelType(levelType: MainBeaconLevelType?): String? {
+        return levelType?.name
+    }
+
+    @TypeConverter
+    fun toMainBeaconLevelType(levelType: String?): MainBeaconLevelType? {
+        return levelType?.let { MainBeaconLevelType.valueOf(it) }
+    }
+
+    @TypeConverter
+    fun fromMainBeaconSyncStatus(status: MainBeaconSyncStatus?): String? {
+        return status?.name
+    }
+
+    @TypeConverter
+    fun toMainBeaconSyncStatus(status: String?): MainBeaconSyncStatus? {
+        return status?.let { MainBeaconSyncStatus.valueOf(it) }
     }
 }

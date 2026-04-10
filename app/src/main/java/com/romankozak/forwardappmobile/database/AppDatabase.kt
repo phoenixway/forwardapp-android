@@ -32,6 +32,10 @@ import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteFts
 import com.romankozak.forwardappmobile.core.data.models.entities.LifeManagementLevelStatusEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.LifeSystemStateEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconContextCrossRef
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.MusicNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
@@ -88,6 +92,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.MusicNoteDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconDao
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 
 @Database(
@@ -100,6 +105,10 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         BacklogOrder::class,
         ActivityRecord::class,
         LinkItemEntity::class,
+        MainBeacon::class,
+        MainBeaconContextCrossRef::class,
+        MainBeaconAttachmentCrossRef::class,
+        MainBeaconLevelStatus::class,
         AttachmentEntity::class,
         InboxRecord::class,
         ChatMessageEntity::class,
@@ -140,7 +149,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 116,
+    version = 119,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -154,6 +163,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun backlogOrderDao(): BacklogOrderDao
 
     abstract fun linkItemDao(): LinkItemDao
+
+    abstract fun mainBeaconDao(): MainBeaconDao
 
     abstract fun directionDao(): DirectionDao
 

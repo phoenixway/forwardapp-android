@@ -43,6 +43,13 @@ class ActivityRepository
     ) {
         fun getLogStream(): Flow<List<ActivityRecord>> = activityRecordDao.getAllRecordsStream()
 
+        fun getRecentLogStream(limit: Int): Flow<List<ActivityRecord>> = activityRecordDao.getRecentRecordsStream(limit)
+
+        suspend fun getOlderLogRecords(
+            beforeCreatedAt: Long,
+            limit: Int,
+        ): List<ActivityRecord> = activityRecordDao.getOlderRecordsBefore(beforeCreatedAt, limit).asReversed()
+
         suspend fun addTimelessRecord(
             text: String,
             timestamp: Long = System.currentTimeMillis(),

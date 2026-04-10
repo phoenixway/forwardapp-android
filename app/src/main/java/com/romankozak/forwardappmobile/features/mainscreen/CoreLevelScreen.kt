@@ -3,65 +3,105 @@ package com.romankozak.forwardappmobile.features.mainscreen
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.DragIndicator
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadinessStatus
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.features.attachments.ui.AddObsidianLinkDialog
 import com.romankozak.forwardappmobile.features.attachments.ui.AddWebLinkDialog
+import com.romankozak.forwardappmobile.features.mainscreen.core.CoreScopeLinksSheet
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconEditorSheet
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconEditorState
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconCardUi
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconLevelStatusSheet
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconMultiSelectDialog
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconSelectableItem
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentChooserScreen
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
+import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTargetsPickerDialog
 import com.romankozak.forwardappmobile.features.missions.presentation.PickerCreateAction
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
 import com.romankozak.forwardappmobile.ui.components.AddConnectionType
 import com.romankozak.forwardappmobile.ui.components.ConnectionItemUi
 import com.romankozak.forwardappmobile.ui.components.ConnectionType
-import com.romankozak.forwardappmobile.ui.components.ConnectionsPanel
 import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
 import com.romankozak.forwardappmobile.ui.components.orderToken
-import com.romankozak.forwardappmobile.ui.components.sortConnectionsByOrder
+import java.net.URLEncoder
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.net.URLEncoder
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 private const val ATTACHMENT_ID_PREVIEW_LENGTH = 8
 private const val PICKER_OPEN_DELAY_MILLIS = 160L
-private const val SHEET_BOTTOM_SPACER_DP = 12
+
+private enum class MainBeaconLinkActionTarget {
+    CORE_SCOPE,
+    EDITOR,
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,12 +117,34 @@ fun CoreLevelScreen(
     val connectionsOrder by viewModel.connectionsOrder.collectAsState()
     val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsState()
     val scope = rememberCoroutineScope()
+    val hapticFeedback = LocalHapticFeedback.current
+
     var showAttachmentChooser by remember { mutableStateOf(false) }
     var activeLinkPickerTab by remember { mutableStateOf<LinkPickerTab?>(null) }
     var pendingCreateAction by remember { mutableStateOf<PickerCreateAction?>(null) }
     var showAddUrlDialog by remember { mutableStateOf(false) }
     var showAddObsidianDialog by remember { mutableStateOf(false) }
     var isFabMenuExpanded by remember { mutableStateOf(false) }
+    var editingBeacon by remember { mutableStateOf<MainBeaconEditorState?>(null) }
+    var showContextPicker by remember { mutableStateOf(false) }
+    var showDocumentPicker by remember { mutableStateOf(false) }
+    var beaconPendingDeleteId by remember { mutableStateOf<String?>(null) }
+    var editingLevelIndex by remember { mutableStateOf<Int?>(null) }
+    var linkActionTarget by remember { mutableStateOf(MainBeaconLinkActionTarget.CORE_SCOPE) }
+    val beaconListState = rememberLazyListState()
+    val internalBeacons = remember { mutableStateListOf<MainBeaconCardUi>() }
+    val beaconReorderState =
+        rememberReorderableLazyListState(beaconListState) { from, to ->
+            internalBeacons.add(to.index, internalBeacons.removeAt(from.index))
+            viewModel.reorderBeacons(internalBeacons.map { it.id })
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+
+    LaunchedEffect(uiState.beacons) {
+        internalBeacons.clear()
+        internalBeacons.addAll(uiState.beacons)
+    }
+
     val openTarget: (NavTarget, Boolean) -> Unit = { target, recordInHistory ->
         navigationManager.navigateOrFallback(
             navController = navController,
@@ -90,6 +152,7 @@ fun CoreLevelScreen(
             recordInHistory = recordInHistory,
         )
     }
+
     val navigateToCoreChooser: () -> Unit = {
         val disabledIds = uiState.projects.joinToString(",") { it.id }.ifBlank { null }
         openTarget(
@@ -117,56 +180,29 @@ fun CoreLevelScreen(
 
     val availableAttachmentById = attachmentOptions.associateBy { it.id }
     val validAttachmentIds = linkedAttachmentIds.filter { it in availableAttachmentById.keys }
-    val urlIds = validAttachmentIds.filter { id -> availableAttachmentById[id]?.linkType == LinkType.URL }
-    val obsidianIds = validAttachmentIds.filter { id -> availableAttachmentById[id]?.linkType == LinkType.OBSIDIAN }
-    val generalAttachmentIds =
-        validAttachmentIds.filter { id ->
-            availableAttachmentById[id]?.linkType !in setOf(LinkType.URL, LinkType.OBSIDIAN)
-        }
-    val items =
+    val connectionItems =
         buildList {
             addAll(uiState.projects.map { ConnectionItemUi(it.id, it.name, ConnectionType.CONTEXT) })
             addAll(
-                generalAttachmentIds.map { id ->
+                validAttachmentIds.map { id ->
                     val option = availableAttachmentById[id]
                     ConnectionItemUi(
                         id = id,
                         title = option?.name ?: "Вкладення ${id.take(ATTACHMENT_ID_PREVIEW_LENGTH)}",
                         type =
-                            when (option?.attachmentType) {
-                                "NOTE_DOCUMENT" -> ConnectionType.NOTE_DOCUMENT
-                                "MUSIC_NOTE" -> ConnectionType.MUSIC_NOTE
-                                "CHECKLIST" -> ConnectionType.CHECKLIST
-                                "SCRIPT" -> ConnectionType.SCRIPT
+                            when {
+                                option?.linkType == LinkType.URL -> ConnectionType.URL
+                                option?.linkType == LinkType.OBSIDIAN -> ConnectionType.OBSIDIAN_NOTE
+                                option?.attachmentType == "NOTE_DOCUMENT" -> ConnectionType.NOTE_DOCUMENT
+                                option?.attachmentType == "MUSIC_NOTE" -> ConnectionType.MUSIC_NOTE
+                                option?.attachmentType == "CHECKLIST" -> ConnectionType.CHECKLIST
+                                option?.attachmentType == "SCRIPT" -> ConnectionType.SCRIPT
                                 else -> ConnectionType.ATTACHMENT
                             },
                     )
                 },
             )
-            addAll(
-                urlIds.map { id ->
-                    ConnectionItemUi(
-                        id = id,
-                        title =
-                            availableAttachmentById[id]?.name
-                                ?: "URL ${id.take(ATTACHMENT_ID_PREVIEW_LENGTH)}",
-                        type = ConnectionType.URL,
-                    )
-                },
-            )
-            addAll(
-                obsidianIds.map { id ->
-                    ConnectionItemUi(
-                        id = id,
-                        title =
-                            availableAttachmentById[id]?.name
-                                ?: "Obsidian ${id.take(ATTACHMENT_ID_PREVIEW_LENGTH)}",
-                        type = ConnectionType.OBSIDIAN_NOTE,
-                    )
-                },
-            )
         }
-    val sortedItems = sortConnectionsByOrder(items, connectionsOrder)
 
     val onConnectionClick: (ConnectionItemUi) -> Unit = { item ->
         if (item.type == ConnectionType.CONTEXT) {
@@ -191,18 +227,6 @@ fun CoreLevelScreen(
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             },
                         )
-                    }.onFailure {
-                        navigationManager.navigateOrFallback(
-                            navController = navController,
-                            target = NavTarget.AttachmentsLibrary,
-                        ) {
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                        runCatching {
-                            navController.getBackStackEntry("attachments_library_screen")
-                                .savedStateHandle["attachment_library_query"] = item.id
-                        }
                     }
                 }
                 else -> {
@@ -213,192 +237,408 @@ fun CoreLevelScreen(
                         launchSingleTop = true
                         restoreState = true
                     }
-                    runCatching {
-                        navController.getBackStackEntry("attachments_library_screen")
-                            .savedStateHandle["attachment_library_query"] = item.id
+                }
+            }
+        }
+    }
+
+    val allContextOptions =
+        remember(uiState.allProjects) {
+            uiState.allProjects.map { contextItem ->
+                MainBeaconSelectableItem(id = contextItem.id, label = contextItem.name)
+            }
+        }
+    val allDocumentOptions =
+        remember(attachmentOptions) {
+            attachmentOptions.map { option ->
+                MainBeaconSelectableItem(id = option.id, label = option.name)
+            }
+        }
+    val selectedContextLabels =
+        remember(editingBeacon, allContextOptions) {
+            allContextOptions.filter { it.id in editingBeacon?.relatedContextIds.orEmpty() }.map { it.label }
+        }
+    val selectedDocumentLabels =
+        remember(editingBeacon, allDocumentOptions) {
+            allDocumentOptions.filter { it.id in editingBeacon?.relatedAttachmentIds.orEmpty() }.map { it.label }
+        }
+
+    Scaffold(
+        containerColor = Color.Transparent,
+        floatingActionButton = {
+            if (!uiState.isLoading && uiState.error == null) {
+                Box(modifier = Modifier.padding(bottom = CommandDeckFabDefaults.BottomPadding)) {
+                    FloatingActionButton(onClick = { isFabMenuExpanded = !isFabMenuExpanded }) {
+                        Icon(Icons.Default.Menu, contentDescription = "Меню дій ядра")
+                    }
+                    DropdownMenu(
+                        expanded = isFabMenuExpanded,
+                        onDismissRequest = { isFabMenuExpanded = false },
+                        modifier =
+                            Modifier.background(
+                                color = MaterialTheme.colorScheme.surface,
+                                shape = RoundedCornerShape(16.dp),
+                            ),
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Новий MainBeacon") },
+                            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                            onClick = {
+                                isFabMenuExpanded = false
+                                editingBeacon = viewModel.buildEditorState(null)
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Connections") },
+                            leadingIcon = { Icon(Icons.Outlined.Link, contentDescription = null) },
+                            onClick = {
+                                isFabMenuExpanded = false
+                                viewModel.toggleScopeLinksSheet()
+                            },
+                        )
+                    }
+                }
+            }
+        },
+    ) { innerPadding ->
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+        ) {
+            when {
+                uiState.isLoading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+                uiState.error != null -> {
+                    Text(
+                        text = uiState.error ?: "",
+                        modifier = Modifier.align(Alignment.Center),
+                    )
+                }
+                else -> {
+                    if (uiState.beacons.isEmpty()) {
+                        Column(
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Text(
+                                text = "У core ще немає MainBeacon",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                text = "Створи перший через FAB. Connections залишаються доступними окремо.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            state = beaconListState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                start = 16.dp,
+                                end = 16.dp,
+                                top = 4.dp,
+                                bottom = 120.dp,
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            items(internalBeacons, key = { it.id }) { beacon ->
+                                ReorderableItem(beaconReorderState, key = beacon.id) {
+                                    MainBeaconCard(
+                                        title = beacon.title,
+                                        readinessStatus = beacon.readinessStatus,
+                                        highestCompletedLevel = beacon.highestCompletedLevel,
+                                        breakPointLevel = beacon.breakPointLevel,
+                                        blockReason = beacon.blockReason,
+                                        nextRequiredAction = beacon.nextRequiredAction,
+                                        onClick = { editingBeacon = viewModel.buildEditorState(beacon.id) },
+                                        dragHandleModifier =
+                                            with(this@ReorderableItem) {
+                                                Modifier
+                                                    .clip(CircleShape)
+                                                    .longPressDraggableHandle(
+                                                        onDragStarted = {
+                                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                        },
+                                                    )
+                                            },
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (uiState.isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+    editingBeacon?.let { editor ->
+        val contextSummary = summarizeSelection(editor.relatedContextIds, allContextOptions)
+        val documentSummary = summarizeSelection(editor.relatedAttachmentIds, allDocumentOptions)
+        val editorConnectionItems =
+            buildList {
+                addAll(
+                    editor.relatedContextIds.mapNotNull { id ->
+                        uiState.allProjects.firstOrNull { it.id == id }?.let {
+                            ConnectionItemUi(id = it.id, title = it.name, type = ConnectionType.CONTEXT)
+                        }
+                    },
+                )
+                addAll(
+                    editor.relatedAttachmentIds.mapNotNull { id ->
+                        attachmentOptions.firstOrNull { it.id == id }?.let { option ->
+                            ConnectionItemUi(
+                                id = option.id,
+                                title = option.name,
+                                type =
+                                    when {
+                                        option.linkType == LinkType.URL -> ConnectionType.URL
+                                        option.linkType == LinkType.OBSIDIAN -> ConnectionType.OBSIDIAN_NOTE
+                                        option.attachmentType == "NOTE_DOCUMENT" -> ConnectionType.NOTE_DOCUMENT
+                                        option.attachmentType == "MUSIC_NOTE" -> ConnectionType.MUSIC_NOTE
+                                        option.attachmentType == "CHECKLIST" -> ConnectionType.CHECKLIST
+                                        option.attachmentType == "SCRIPT" -> ConnectionType.SCRIPT
+                                        else -> ConnectionType.ATTACHMENT
+                                    },
+                            )
+                        }
+                    },
+                )
             }
-        } else if (uiState.error != null) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = uiState.error!!)
-            }
-        } else {
-            ConnectionsPanel(
-                items = sortedItems,
-                onConnectionClick = onConnectionClick,
-                onConnectionRemove = { item ->
+        MainBeaconEditorSheet(
+            state = editor,
+            selectedContextSummary = contextSummary,
+            selectedDocumentSummary = documentSummary,
+            selectedContextLabels = selectedContextLabels,
+            selectedDocumentLabels = selectedDocumentLabels,
+            connectionItems = editorConnectionItems,
+            onDismiss = { editingBeacon = null },
+            onStateChange = { editingBeacon = it },
+            onPickContexts = { showContextPicker = true },
+            onPickDocuments = { showDocumentPicker = true },
+            onConnectionClick = { item ->
+                if (item.type == ConnectionType.CONTEXT) {
+                    openTarget(NavTarget.ContextDetail(contextId = item.id), true)
+                } else {
+                    editorConnectionItems.firstOrNull { it.id == item.id }?.let(onConnectionClick)
+                }
+            },
+            onConnectionRemove = { item ->
+                editingBeacon =
                     if (item.type == ConnectionType.CONTEXT) {
-                        viewModel.removeCoreLink(item.id)
+                        editingBeacon?.copy(relatedContextIds = editingBeacon?.relatedContextIds.orEmpty() - item.id)
                     } else {
-                        viewModel.removeAttachmentLink(item.id)
+                        editingBeacon?.copy(relatedAttachmentIds = editingBeacon?.relatedAttachmentIds.orEmpty() - item.id)
                     }
-                },
-                onAddButtonClick = {
-                    pendingCreateAction = null
-                    activeLinkPickerTab = LinkPickerTab.CONTEXTS
-                },
-                onAddConnection = { type ->
-                    when (type) {
-                        AddConnectionType.CONTEXT -> {
-                            navigateToCoreChooser()
-                        }
-
-                        AddConnectionType.ATTACHMENT -> {
-                            pendingCreateAction = null
-                            showAttachmentChooser = true
-                        }
-                        AddConnectionType.EXTERNAL_LINK -> showAddUrlDialog = true
-                        AddConnectionType.OBSIDIAN_NOTE -> showAddObsidianDialog = true
-                    }
-                },
-                onCreateConnection = { type ->
-                    pendingCreateAction = type.toPickerCreateAction()
+            },
+            onAddConnection = { type ->
+                linkActionTarget = MainBeaconLinkActionTarget.EDITOR
+                when (type) {
+                    AddConnectionType.CONTEXT -> showContextPicker = true
+                    AddConnectionType.ATTACHMENT -> showDocumentPicker = true
+                    AddConnectionType.EXTERNAL_LINK -> showAddUrlDialog = true
+                    AddConnectionType.OBSIDIAN_NOTE -> showAddObsidianDialog = true
+                }
+            },
+            onCreateConnection = { type ->
+                linkActionTarget = MainBeaconLinkActionTarget.EDITOR
+                pendingCreateAction = type.toPickerCreateAction()
+                scope.launch {
+                    delay(PICKER_OPEN_DELAY_MILLIS)
                     activeLinkPickerTab =
                         if (type == CreateConnectionType.CONTEXT) {
                             LinkPickerTab.CONTEXTS
                         } else {
                             LinkPickerTab.ATTACHMENTS
                         }
-                },
-                preferActionsBesideTitleWhenWide = true,
-                onConnectionsReordered = { reordered ->
-                    viewModel.updateConnectionsOrder(reordered.map { it.orderToken() })
-                },
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-            )
-        }
-
-        if (!uiState.isLoading && uiState.error == null) {
-            Box(
-                modifier =
-                    Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(end = 16.dp, bottom = CommandDeckFabDefaults.BottomPadding),
-            ) {
-                FloatingActionButton(onClick = { isFabMenuExpanded = !isFabMenuExpanded }) {
-                    Icon(Icons.Default.Menu, contentDescription = "Меню дій ядра")
                 }
-                DropdownMenu(
-                    expanded = isFabMenuExpanded,
-                    onDismissRequest = { isFabMenuExpanded = false },
-                    modifier =
-                        Modifier.background(
-                            color = MaterialTheme.colorScheme.surface,
-                            shape = RoundedCornerShape(16.dp),
-                        ),
+            },
+            onEditLevel = { index -> editingLevelIndex = index },
+            onSave = {
+                viewModel.saveBeacon(editor)
+                editingBeacon = null
+            },
+            onDuplicate = {
+                editingBeacon =
+                    editor.copy(
+                        id = null,
+                        title = "${editor.title} copy".trim(),
+                        createdAt = null,
+                        updatedAt = null,
+                        isNew = true,
+                    )
+                editingLevelIndex = null
+            },
+            onDelete =
+                editor.id?.let { beaconId ->
+                    {
+                        beaconPendingDeleteId = beaconId
+                    }
+                },
+        )
+    }
+
+    val activeLevelIndex = editingLevelIndex
+    if (editingBeacon != null && activeLevelIndex != null && activeLevelIndex in editingBeacon!!.levelStatuses.indices) {
+        val levelState = editingBeacon!!.levelStatuses[activeLevelIndex]
+        MainBeaconLevelStatusSheet(
+            state = levelState,
+            onDismiss = { editingLevelIndex = null },
+            onStateChange = { updated ->
+                editingBeacon =
+                    editingBeacon?.copy(
+                        levelStatuses =
+                            editingBeacon!!.levelStatuses.toMutableList().apply {
+                                this[activeLevelIndex] = updated
+                            },
+                    )
+            },
+            onSave = { editingLevelIndex = null },
+        )
+    }
+
+    if (showContextPicker && editingBeacon != null) {
+        MainBeaconMultiSelectDialog(
+            title = "Пов’язані contexts",
+            options = allContextOptions,
+            selectedIds = editingBeacon?.relatedContextIds.orEmpty(),
+            onDismiss = { showContextPicker = false },
+            onConfirm = { selected ->
+                editingBeacon = editingBeacon?.copy(relatedContextIds = selected)
+                showContextPicker = false
+            },
+        )
+    }
+
+    if (showDocumentPicker && editingBeacon != null) {
+        MainBeaconMultiSelectDialog(
+            title = "Пов’язані documents",
+            options = allDocumentOptions,
+            selectedIds = editingBeacon?.relatedAttachmentIds.orEmpty(),
+            onDismiss = { showDocumentPicker = false },
+            onConfirm = { selected ->
+                editingBeacon = editingBeacon?.copy(relatedAttachmentIds = selected)
+                showDocumentPicker = false
+            },
+        )
+    }
+
+    beaconPendingDeleteId?.let { beaconId ->
+        AlertDialog(
+            onDismissRequest = { beaconPendingDeleteId = null },
+            title = { Text("Видалити MainBeacon?") },
+            text = { Text("Цю дію не буде скасовано.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteBeacon(beaconId)
+                        editingBeacon = null
+                        beaconPendingDeleteId = null
+                    },
                 ) {
-                    DropdownMenuItem(
-                        text = { Text("Додати посилання") },
-                        leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
-                        onClick = {
-                            isFabMenuExpanded = false
-                            navigateToCoreChooser()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Показати зв'язки") },
-                        leadingIcon = { Icon(Icons.Outlined.Link, contentDescription = null) },
-                        onClick = {
-                            isFabMenuExpanded = false
-                            viewModel.toggleScopeLinksSheet()
-                        },
-                    )
+                    Text("Видалити")
                 }
+            },
+            dismissButton = {
+                TextButton(onClick = { beaconPendingDeleteId = null }) {
+                    Text("Скасувати")
+                }
+            },
+        )
+    }
+
+    CoreScopeLinksSheet(
+        isVisible = isScopeLinksSheetVisible,
+        projectOptions = uiState.allProjects.map { ProjectOption(id = it.id, name = it.name, parentId = it.parentId) },
+        attachmentOptions = attachmentOptions,
+        linkedProjectIds = uiState.projects.map { it.id },
+        linkedAttachmentIds = linkedAttachmentIds,
+        onDismiss = viewModel::dismissScopeLinksSheet,
+        onAddContextClick = {
+            linkActionTarget = MainBeaconLinkActionTarget.CORE_SCOPE
+            viewModel.dismissScopeLinksSheet()
+            navigateToCoreChooser()
+        },
+        onAddAttachmentClick = {
+            linkActionTarget = MainBeaconLinkActionTarget.CORE_SCOPE
+            viewModel.dismissScopeLinksSheet()
+            pendingCreateAction = null
+            scope.launch {
+                delay(PICKER_OPEN_DELAY_MILLIS)
+                showAttachmentChooser = true
             }
-        }
-    }
-
-    if (isScopeLinksSheetVisible) {
-        ModalBottomSheet(onDismissRequest = viewModel::dismissScopeLinksSheet) {
-            ConnectionsPanel(
-                items = sortedItems,
-                onConnectionClick = onConnectionClick,
-                onConnectionRemove = { item ->
-                    if (item.type == ConnectionType.CONTEXT) {
-                        viewModel.removeCoreLink(item.id)
+        },
+        onAddExternalClick = {
+            linkActionTarget = MainBeaconLinkActionTarget.CORE_SCOPE
+            viewModel.dismissScopeLinksSheet()
+            showAddUrlDialog = true
+        },
+        onAddObsidianClick = {
+            linkActionTarget = MainBeaconLinkActionTarget.CORE_SCOPE
+            viewModel.dismissScopeLinksSheet()
+            showAddObsidianDialog = true
+        },
+        onCreateConnectionClick = { type ->
+            linkActionTarget = MainBeaconLinkActionTarget.CORE_SCOPE
+            viewModel.dismissScopeLinksSheet()
+            pendingCreateAction = type.toPickerCreateAction()
+            scope.launch {
+                delay(PICKER_OPEN_DELAY_MILLIS)
+                activeLinkPickerTab =
+                    if (type == CreateConnectionType.CONTEXT) {
+                        LinkPickerTab.CONTEXTS
                     } else {
-                        viewModel.removeAttachmentLink(item.id)
+                        LinkPickerTab.ATTACHMENTS
                     }
-                },
-                onAddButtonClick = {
-                    viewModel.dismissScopeLinksSheet()
-                    pendingCreateAction = null
-                    scope.launch {
-                        delay(PICKER_OPEN_DELAY_MILLIS)
-                        activeLinkPickerTab = LinkPickerTab.CONTEXTS
-                    }
-                },
-                onAddConnection = { type ->
-                    when (type) {
-                        AddConnectionType.CONTEXT -> {
-                            navigateToCoreChooser()
-                        }
-
-                        AddConnectionType.ATTACHMENT -> {
-                            viewModel.dismissScopeLinksSheet()
-                            pendingCreateAction = null
-                            scope.launch {
-                                delay(PICKER_OPEN_DELAY_MILLIS)
-                                showAttachmentChooser = true
-                            }
-                        }
-                        AddConnectionType.EXTERNAL_LINK -> showAddUrlDialog = true
-                        AddConnectionType.OBSIDIAN_NOTE -> showAddObsidianDialog = true
-                    }
-                },
-                onCreateConnection = { type ->
-                    viewModel.dismissScopeLinksSheet()
-                    pendingCreateAction = type.toPickerCreateAction()
-                    scope.launch {
-                        delay(PICKER_OPEN_DELAY_MILLIS)
-                        activeLinkPickerTab =
-                            if (type == CreateConnectionType.CONTEXT) {
-                                LinkPickerTab.CONTEXTS
-                            } else {
-                                LinkPickerTab.ATTACHMENTS
-                            }
-                    }
-                },
-                preferActionsBesideTitleWhenWide = true,
-                onConnectionsReordered = { reordered ->
-                    viewModel.updateConnectionsOrder(reordered.map { it.orderToken() })
-                },
-            )
-            Spacer(modifier = Modifier.height(SHEET_BOTTOM_SPACER_DP.dp))
-        }
-    }
+            }
+        },
+        onContextClick = { id -> openTarget(NavTarget.ContextDetail(contextId = id), true) },
+        onAttachmentClick = { id ->
+            connectionItems.firstOrNull { it.id == id }?.let(onConnectionClick)
+        },
+        onContextRemove = viewModel::removeCoreLink,
+        onAttachmentRemove = viewModel::removeAttachmentLink,
+        connectionOrder = connectionsOrder,
+        onConnectionsReordered = { reordered ->
+            viewModel.updateConnectionsOrder(reordered.map { it.orderToken() })
+        },
+    )
 
     if (showAttachmentChooser) {
         AttachmentChooserScreen(
             options = attachmentOptions.map { AttachmentOption(id = it.id, name = it.name, linkType = it.linkType) },
             preselected = linkedAttachmentIds.toSet(),
-            onDismiss = { showAttachmentChooser = false },
-            onConfirm = { selected ->
-                selected.forEach(viewModel::addAttachmentLink)
+            onDismiss = {
                 showAttachmentChooser = false
+                linkActionTarget = MainBeaconLinkActionTarget.CORE_SCOPE
+            },
+            onConfirm = { selected ->
+                if (linkActionTarget == MainBeaconLinkActionTarget.EDITOR) {
+                    editingBeacon =
+                        editingBeacon?.copy(
+                            relatedAttachmentIds = (editingBeacon?.relatedAttachmentIds.orEmpty() + selected).toSet(),
+                        )
+                } else {
+                    selected.forEach(viewModel::addAttachmentLink)
+                }
+                showAttachmentChooser = false
+                linkActionTarget = MainBeaconLinkActionTarget.CORE_SCOPE
             },
         )
     }
 
     activeLinkPickerTab?.let { initialTab ->
-        val availableAttachmentIds = attachmentOptions.map { it.id }.toSet()
         LinkedTargetsPickerDialog(
-            contextOptions =
-                uiState.allProjects.map {
-                    ProjectOption(id = it.id, name = it.name, parentId = it.parentId)
-                },
+            contextOptions = uiState.allProjects.map { ProjectOption(id = it.id, name = it.name, parentId = it.parentId) },
             attachmentOptions =
                 attachmentOptions.map {
                     AttachmentOption(
@@ -411,22 +651,39 @@ fun CoreLevelScreen(
                     )
                 },
             preselectedContextIds = uiState.projects.map { it.id }.toSet(),
-            preselectedAttachmentIds = linkedAttachmentIds.filter { it in availableAttachmentIds }.toSet(),
+            preselectedAttachmentIds = linkedAttachmentIds.toSet(),
             initialTab = initialTab,
             initialCreateAction = pendingCreateAction,
             onDismiss = {
                 activeLinkPickerTab = null
                 pendingCreateAction = null
+                linkActionTarget = MainBeaconLinkActionTarget.CORE_SCOPE
             },
             onContextSelected = { id ->
-                viewModel.addCoreLink(id)
+                if (linkActionTarget == MainBeaconLinkActionTarget.EDITOR) {
+                    editingBeacon =
+                        editingBeacon?.copy(
+                            relatedContextIds = editingBeacon?.relatedContextIds.orEmpty() + id,
+                        )
+                } else {
+                    viewModel.addCoreLink(id)
+                }
                 activeLinkPickerTab = null
                 pendingCreateAction = null
+                linkActionTarget = MainBeaconLinkActionTarget.CORE_SCOPE
             },
             onAttachmentSelected = { id ->
-                viewModel.addAttachmentLink(id)
+                if (linkActionTarget == MainBeaconLinkActionTarget.EDITOR) {
+                    editingBeacon =
+                        editingBeacon?.copy(
+                            relatedAttachmentIds = editingBeacon?.relatedAttachmentIds.orEmpty() + id,
+                        )
+                } else {
+                    viewModel.addAttachmentLink(id)
+                }
                 activeLinkPickerTab = null
                 pendingCreateAction = null
+                linkActionTarget = MainBeaconLinkActionTarget.CORE_SCOPE
             },
             onCreateRootContext = { name -> viewModel.createRootContextForPicker(name) },
             onCreateDocument = { draft -> viewModel.createCoreDocumentForPicker(draft) },
@@ -435,22 +692,290 @@ fun CoreLevelScreen(
 
     if (showAddUrlDialog) {
         AddWebLinkDialog(
-            onDismiss = { showAddUrlDialog = false },
-            onConfirm = { url, name ->
-                viewModel.addUrlLink(url, name)
+            onDismiss = {
                 showAddUrlDialog = false
+                linkActionTarget = MainBeaconLinkActionTarget.CORE_SCOPE
+            },
+            onConfirm = { url, name ->
+                if (linkActionTarget == MainBeaconLinkActionTarget.EDITOR) {
+                    scope.launch {
+                        val attachmentId =
+                            viewModel.createCoreDocumentForPicker(NewDocumentDraft.WebLink(url = url, name = name))
+                        if (attachmentId != null) {
+                            editingBeacon =
+                                editingBeacon?.copy(
+                                    relatedAttachmentIds = editingBeacon?.relatedAttachmentIds.orEmpty() + attachmentId,
+                                )
+                        }
+                    }
+                } else {
+                    viewModel.addUrlLink(url, name)
+                }
+                showAddUrlDialog = false
+                linkActionTarget = MainBeaconLinkActionTarget.CORE_SCOPE
             },
         )
     }
 
     if (showAddObsidianDialog) {
         AddObsidianLinkDialog(
-            onDismiss = { showAddObsidianDialog = false },
-            onConfirm = { noteName, displayName ->
-                viewModel.addObsidianLink(noteName, displayName)
+            onDismiss = {
                 showAddObsidianDialog = false
+                linkActionTarget = MainBeaconLinkActionTarget.CORE_SCOPE
+            },
+            onConfirm = { noteName, displayName ->
+                if (linkActionTarget == MainBeaconLinkActionTarget.EDITOR) {
+                    scope.launch {
+                        val attachmentId =
+                            viewModel.createCoreDocumentForPicker(
+                                NewDocumentDraft.Obsidian(
+                                    noteName = noteName,
+                                    displayName = displayName,
+                                ),
+                            )
+                        if (attachmentId != null) {
+                            editingBeacon =
+                                editingBeacon?.copy(
+                                    relatedAttachmentIds = editingBeacon?.relatedAttachmentIds.orEmpty() + attachmentId,
+                                )
+                        }
+                    }
+                } else {
+                    viewModel.addObsidianLink(noteName, displayName)
+                }
+                showAddObsidianDialog = false
+                linkActionTarget = MainBeaconLinkActionTarget.CORE_SCOPE
             },
         )
+    }
+}
+
+@Composable
+private fun MainBeaconCard(
+    title: String,
+    readinessStatus: MainBeaconReadinessStatus,
+    highestCompletedLevel: String,
+    breakPointLevel: String,
+    blockReason: String,
+    nextRequiredAction: String,
+    onClick: () -> Unit,
+    dragHandleModifier: Modifier = Modifier,
+) {
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors =
+            CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            ),
+    ) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onClick),
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .padding(start = 8.dp, top = 12.dp, bottom = 12.dp)
+                        .width(3.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(readinessStatus.statusAccentColor()),
+            )
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(start = 11.dp, end = 14.dp, top = 11.dp, bottom = 11.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    DragHandle(modifier = dragHandleModifier)
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    MainBeaconStatusChip(status = readinessStatus)
+                }
+
+                CompactSummaryRow(
+                    label = "Break point",
+                    value = breakPointLevel,
+                    priority = CompactSummaryPriority.PRIMARY,
+                )
+                CompactSummaryRow(
+                    label = "Next",
+                    value = nextRequiredAction,
+                    priority = CompactSummaryPriority.PRIMARY,
+                )
+                CompactSummaryRow(
+                    label = "Why",
+                    value = blockReason,
+                    priority = CompactSummaryPriority.SECONDARY,
+                )
+                CompactSummaryRow(
+                    label = "Highest completed",
+                    value = highestCompletedLevel,
+                    priority = CompactSummaryPriority.QUIET,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DragHandle(modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.size(32.dp),
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Outlined.DragIndicator,
+                contentDescription = "Перетягнути картку",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun MainBeaconStatusChip(status: MainBeaconReadinessStatus) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = status.statusContainerColor(),
+    ) {
+        Text(
+            text = status.mainStatusChipLabel(),
+            color = status.statusColor(),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+        )
+    }
+}
+
+@Composable
+private fun CompactSummaryRow(
+    label: String,
+    value: String,
+    priority: CompactSummaryPriority,
+) {
+    val resolvedValue = value.ifBlank { "—" }
+    val labelColor =
+        when (priority) {
+            CompactSummaryPriority.PRIMARY -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
+            CompactSummaryPriority.SECONDARY -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.76f)
+            CompactSummaryPriority.QUIET -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.68f)
+        }
+    val valueColor =
+        when {
+            resolvedValue == "—" -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
+            priority == CompactSummaryPriority.PRIMARY -> MaterialTheme.colorScheme.onSurface
+            priority == CompactSummaryPriority.SECONDARY -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+            else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.92f)
+        }
+    val valueWeight =
+        when {
+            resolvedValue == "—" -> FontWeight.Normal
+            priority == CompactSummaryPriority.PRIMARY -> FontWeight.SemiBold
+            priority == CompactSummaryPriority.SECONDARY -> FontWeight.Normal
+            else -> FontWeight.Normal
+        }
+
+    Text(
+        text =
+            buildAnnotatedString {
+                withStyle(
+                    SpanStyle(
+                        color = labelColor,
+                        fontWeight = FontWeight.Medium,
+                    ),
+                ) {
+                    append("$label: ")
+                }
+                withStyle(
+                    SpanStyle(
+                        color = valueColor,
+                        fontWeight = valueWeight,
+                    ),
+                ) {
+                    append(resolvedValue)
+                }
+            },
+        style = if (priority == CompactSummaryPriority.PRIMARY) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodySmall,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
+
+private enum class CompactSummaryPriority {
+    PRIMARY,
+    SECONDARY,
+    QUIET,
+}
+
+@Composable
+private fun MainBeaconReadinessStatus.statusAccentColor(): Color =
+    when (this) {
+        MainBeaconReadinessStatus.READY -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.72f)
+        MainBeaconReadinessStatus.CONDITIONAL -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.66f)
+        MainBeaconReadinessStatus.BLOCKED -> MaterialTheme.colorScheme.error.copy(alpha = 0.74f)
+        MainBeaconReadinessStatus.DEFECTED -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.56f)
+    }
+
+@Composable
+private fun MainBeaconReadinessStatus.statusContainerColor(): Color =
+    when (this) {
+        MainBeaconReadinessStatus.READY ->
+            MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.62f)
+        MainBeaconReadinessStatus.CONDITIONAL ->
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.92f)
+        MainBeaconReadinessStatus.BLOCKED ->
+            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.72f)
+        MainBeaconReadinessStatus.DEFECTED ->
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.82f)
+    }
+
+@Composable
+private fun MainBeaconReadinessStatus.statusColor(): Color =
+    when (this) {
+        MainBeaconReadinessStatus.READY -> MaterialTheme.colorScheme.onTertiaryContainer
+        MainBeaconReadinessStatus.CONDITIONAL -> MaterialTheme.colorScheme.onSurfaceVariant
+        MainBeaconReadinessStatus.BLOCKED -> MaterialTheme.colorScheme.error
+        MainBeaconReadinessStatus.DEFECTED -> MaterialTheme.colorScheme.onSurface
+    }
+
+private fun MainBeaconReadinessStatus.mainStatusChipLabel(): String =
+    when (this) {
+        MainBeaconReadinessStatus.READY -> "Ready"
+        MainBeaconReadinessStatus.CONDITIONAL -> "Conditional"
+        MainBeaconReadinessStatus.BLOCKED -> "Blocked"
+        MainBeaconReadinessStatus.DEFECTED -> "Defected"
+    }
+
+
+private fun summarizeSelection(
+    selectedIds: Set<String>,
+    options: List<MainBeaconSelectableItem>,
+): String {
+    if (selectedIds.isEmpty()) return "0"
+    val labels = options.filter { it.id in selectedIds }.map { it.label }
+    if (labels.isEmpty()) return selectedIds.size.toString()
+    return if (labels.size <= 2) {
+        labels.joinToString(", ")
+    } else {
+        "${labels.take(2).joinToString(", ")} +${labels.size - 2}"
     }
 }
 

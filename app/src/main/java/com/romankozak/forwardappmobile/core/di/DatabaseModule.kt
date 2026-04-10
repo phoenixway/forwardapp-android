@@ -27,6 +27,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.MusicNoteDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconDao
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import dagger.Module
 import dagger.Provides
@@ -123,6 +124,10 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideLinkItemDao(appDatabase: AppDatabase): LinkItemDao = appDatabase.linkItemDao()
+
+    @Provides
+    @Singleton
+    fun provideMainBeaconDao(appDatabase: AppDatabase): MainBeaconDao = appDatabase.mainBeaconDao()
 
     @Provides
     @Singleton

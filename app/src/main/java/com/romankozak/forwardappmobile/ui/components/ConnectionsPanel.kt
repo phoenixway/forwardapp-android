@@ -135,6 +135,7 @@ fun ConnectionsPanel(
     mode: ConnectionPanelMode = ConnectionPanelMode.COMPACT,
     preferActionsBesideTitleWhenWide: Boolean = false,
     wrapContentHeight: Boolean = false,
+    showTitle: Boolean = true,
     onConnectionsReordered: (List<ConnectionItemUi>) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -167,12 +168,16 @@ fun ConnectionsPanel(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = "Connections",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f),
-            )
+            if (showTitle) {
+                Text(
+                    text = "Connections",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                )
+            } else {
+                Spacer(modifier = Modifier.weight(1f))
+            }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (onCreateConnection != null) {

@@ -23,6 +23,32 @@ interface ActivityRecordDao {
     @Query(
         """
         SELECT * FROM activity_records
+        WHERE id IN (
+            SELECT id FROM activity_records
+            ORDER BY createdAt DESC
+            LIMIT :limit
+        )
+        ORDER BY createdAt ASC
+        """,
+    )
+    fun getRecentRecordsStream(limit: Int): Flow<List<ActivityRecord>>
+
+    @Query(
+        """
+        SELECT * FROM activity_records
+        WHERE createdAt < :beforeCreatedAt
+        ORDER BY createdAt DESC
+        LIMIT :limit
+        """,
+    )
+    suspend fun getOlderRecordsBefore(
+        beforeCreatedAt: Long,
+        limit: Int,
+    ): List<ActivityRecord>
+
+    @Query(
+        """
+        SELECT * FROM activity_records
         WHERE endTime IS NULL
           AND startTime IS NOT NULL
         ORDER BY startTime DESC

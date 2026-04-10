@@ -820,3 +820,136 @@ val MIGRATION_115_116 =
             )
         }
     }
+
+val MIGRATION_116_117 =
+    object : Migration(116, 117) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `main_beacons` (
+                    `id` TEXT NOT NULL,
+                    `title` TEXT NOT NULL,
+                    `description` TEXT,
+                    `why_it_matters` TEXT,
+                    `success_shape` TEXT,
+                    `failure_shape` TEXT,
+                    `anti_goal` TEXT,
+                    `decision_impact` TEXT,
+                    `readiness_status` TEXT NOT NULL,
+                    `blocker_text` TEXT,
+                    `next_action_text` TEXT,
+                    `updatedAt` INTEGER NOT NULL,
+                    `createdAt` INTEGER NOT NULL,
+                    PRIMARY KEY(`id`)
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_main_beacons_readiness_status` ON `main_beacons` (`readiness_status`)",
+            )
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `main_beacon_context_cross_ref` (
+                    `beacon_id` TEXT NOT NULL,
+                    `context_id` TEXT NOT NULL,
+                    PRIMARY KEY(`beacon_id`, `context_id`),
+                    FOREIGN KEY(`beacon_id`) REFERENCES `main_beacons`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(`context_id`) REFERENCES `contexts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_main_beacon_context_cross_ref_context_id` ON `main_beacon_context_cross_ref` (`context_id`)",
+            )
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `main_beacon_attachment_cross_ref` (
+                    `beacon_id` TEXT NOT NULL,
+                    `attachment_id` TEXT NOT NULL,
+                    PRIMARY KEY(`beacon_id`, `attachment_id`),
+                    FOREIGN KEY(`beacon_id`) REFERENCES `main_beacons`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(`attachment_id`) REFERENCES `attachments`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_main_beacon_attachment_cross_ref_attachment_id` ON `main_beacon_attachment_cross_ref` (`attachment_id`)",
+            )
+        }
+    }
+
+val MIGRATION_117_118 =
+    object : Migration(117, 118) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `main_beacon_level_statuses` (
+                    `id` TEXT NOT NULL,
+                    `main_beacon_id` TEXT NOT NULL,
+                    `level_type` TEXT NOT NULL,
+                    `general_status` TEXT NOT NULL,
+                    `sync_status` TEXT NOT NULL,
+                    `blocker_text` TEXT,
+                    `next_action_text` TEXT,
+                    `updatedAt` INTEGER NOT NULL,
+                    PRIMARY KEY(`id`),
+                    FOREIGN KEY(`main_beacon_id`) REFERENCES `main_beacons`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_main_beacon_level_statuses_main_beacon_id` ON `main_beacon_level_statuses` (`main_beacon_id`)",
+            )
+            db.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS `index_main_beacon_level_statuses_main_beacon_id_level_type` ON `main_beacon_level_statuses` (`main_beacon_id`, `level_type`)",
+            )
+
+            val now = System.currentTimeMillis()
+            val levels =
+                listOf(
+                    "MAIN_BEACON",
+                    "REALIZATION_MODEL_OF_MAIN_BEACON",
+                    "MANDATORY_CORE_OF_MAIN_BEACON",
+                    "STRATEGIC_PROJECTING_OF_MAIN_BEACON",
+                    "LONG_TERM_STRATEGY",
+                    "MEDIUM_TERM_PROGRAM",
+                    "WEEK",
+                    "DAY",
+                )
+            val cursor = db.query("SELECT id FROM main_beacons")
+            if (cursor.moveToFirst()) {
+                do {
+                    val beaconId = cursor.getString(0)
+                    levels.forEachIndexed { index, level ->
+                        db.execSQL(
+                            """
+                            INSERT INTO `main_beacon_level_statuses`
+                            (`id`, `main_beacon_id`, `level_type`, `general_status`, `sync_status`, `blocker_text`, `next_action_text`, `updatedAt`)
+                            VALUES (?, ?, ?, 'CONDITIONAL', 'IN_SYNC', NULL, NULL, ?)
+                            """.trimIndent(),
+                            arrayOf("${beaconId}_$index", beaconId, level, now),
+                        )
+                    }
+                } while (cursor.moveToNext())
+            }
+            cursor.close()
+        }
+    }
+
+val MIGRATION_118_119 =
+    object : Migration(118, 119) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE main_beacons ADD COLUMN beacon_order INTEGER NOT NULL DEFAULT 0")
+            db.execSQL(
+                """
+                UPDATE main_beacons
+                SET beacon_order = (
+                    SELECT COUNT(*)
+                    FROM main_beacons AS ordered
+                    WHERE ordered.createdAt < main_beacons.createdAt
+                        OR (ordered.createdAt = main_beacons.createdAt AND ordered.id <= main_beacons.id)
+                ) - 1
+                """.trimIndent(),
+            )
+        }
+    }
