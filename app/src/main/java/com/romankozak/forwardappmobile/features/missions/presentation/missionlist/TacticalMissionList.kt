@@ -19,7 +19,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,8 +37,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.hasDeadline
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.InlineTagChip
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.TagType
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.utils.TagUtils
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedCheckboxStyle
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemColors
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurfaceLayout
@@ -51,6 +54,7 @@ import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTok
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusRow
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedTrailingActionButton
+import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedMetaChip
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 private data class TacticalMissionCardLookups(
@@ -318,7 +322,7 @@ private fun rememberTacticalMissionVisualState(
 ): TacticalMissionVisualState {
     val isInactive = mission.status == MissionStatus.INACTIVE
     val isPaused = mission.status == MissionStatus.PAUSED
-    val overdue = mission.status == MissionStatus.ACTIVE && System.currentTimeMillis() > mission.deadline
+    val overdue = mission.status == MissionStatus.ACTIVE && mission.hasDeadline() && System.currentTimeMillis() > mission.deadline
     val itemState = missionItemState(mission.status, overdue)
     val containerColor = missionContainerColor(itemState = itemState, isInactive = isInactive, isPaused = isPaused)
     val borderColor = missionBorderColor(itemState = itemState, isInactive = isInactive, isPaused = isPaused)
@@ -327,7 +331,6 @@ private fun rememberTacticalMissionVisualState(
             mission.status == MissionStatus.COMPLETED -> onSurface.copy(alpha = 0.4f)
             isInactive -> onSurface.copy(alpha = 0.58f)
             isPaused -> onSurface.copy(alpha = 0.74f)
-            overdue -> MissionTitleOverdueColor
             else -> onSurface
         }
     val titleColor by animateColorAsState(targetTitleColor, label = "mission_title_color")
@@ -359,15 +362,30 @@ private fun TacticalMissionContent(
             titleColor = visualState.titleColor,
             onSurface = onSurface,
         )
-        UnifiedStatusRow(
-            items = missionStatusItems(mission = mission, visualState = visualState, onSurface = onSurface),
-            modifier = Modifier.padding(top = 2.dp),
-        )
-        missionLinkedItems(mission = mission, lookups = lookups, actions = actions, onSurface = onSurface)
-            .takeIf { it.isNotEmpty() }
-            ?.let { linkedItems ->
-                UnifiedStatusRow(items = linkedItems, modifier = Modifier.padding(top = 2.dp))
+        UnifiedStatusRow(modifier = Modifier.padding(top = 4.dp)) {
+            missionStatusItems(mission = mission, visualState = visualState, onSurface = onSurface).forEach { item ->
+                UnifiedMetaChip(
+                    text = item.text,
+                    icon = item.icon,
+                    contentColor = item.contentColor ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                    onClick = item.onClick,
+                )
             }
+            missionTextTags(mission).forEach { tag ->
+                InlineTagChip(
+                    text = tag.fullTag,
+                    tagType = tag.type,
+                )
+            }
+            missionLinkedItems(mission = mission, lookups = lookups, actions = actions, onSurface = onSurface).forEach { item ->
+                UnifiedMetaChip(
+                    text = item.text,
+                    icon = item.icon,
+                    contentColor = item.contentColor ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                    onClick = item.onClick,
+                )
+            }
+        }
     }
 }
 
@@ -378,12 +396,15 @@ private fun TacticalMissionTitle(
     onSurface: Color,
 ) {
     androidx.compose.material3.Text(
-    mission.title,
-    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-    color = titleColor,
-    maxLines = 4,
-    overflow = TextOverflow.Clip,
-    textDecoration = if (mission.status == MissionStatus.COMPLETED) TextDecoration.LineThrough else null,
+        mission.title,
+        style =
+            MaterialTheme.typography.titleSmall.copy(
+                fontWeight = FontWeight.SemiBold,
+            ),
+        color = titleColor,
+        maxLines = 4,
+        overflow = TextOverflow.Clip,
+        textDecoration = if (mission.status == MissionStatus.COMPLETED) TextDecoration.LineThrough else null,
     )
 
     mission.description?.takeIf { it.isNotBlank() }?.let { description ->
@@ -422,14 +443,32 @@ private fun missionStatusItems(
                 ),
             )
         }
+        if (visualState.overdue) {
+            add(
+                UnifiedStatusChipSpec(
+                    text = "Прострочено",
+                    contentColor = missionOverdueChipColor(),
+                ),
+            )
+        }
         add(
             UnifiedStatusChipSpec(
-                icon = if (visualState.overdue) Icons.Outlined.Warning else Icons.Outlined.Schedule,
+                icon = Icons.Outlined.Schedule,
                 text = formatMissionDate(mission.deadline),
-                contentColor = if (visualState.overdue) missionOverdueChipColor() else onSurface.copy(alpha = 0.75f),
+                contentColor = onSurface.copy(alpha = 0.75f),
             ),
         )
     }
+
+private fun missionTextTags(mission: TacticalMission) =
+    buildString {
+        append(mission.title)
+        mission.description?.takeIf { it.isNotBlank() }?.let {
+            append(' ')
+            append(it)
+        }
+    }.let(TagUtils::extractTags)
+        .distinctBy { it.fullTag }
 
 private fun missionLinkedItems(
     mission: TacticalMission,

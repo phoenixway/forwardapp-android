@@ -13,10 +13,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import java.text.SimpleDateFormat
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.NO_DEADLINE
 import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -97,6 +95,25 @@ fun TimePickerDialog(
 }
 
 internal fun missionDialogFormatDate(ts: Long): String {
-    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-    return sdf.format(Date(ts))
+    if (ts == NO_DEADLINE) return "Без дедлайну"
+    val months =
+        listOf(
+            "січ",
+            "лют",
+            "бер",
+            "квіт",
+            "трав",
+            "черв",
+            "лип",
+            "серп",
+            "вер",
+            "жовт",
+            "лист",
+            "груд",
+        )
+    val calendar = Calendar.getInstance().apply { timeInMillis = ts }
+    val monthLabel = months[calendar.get(Calendar.MONTH)]
+    val day = calendar.get(Calendar.DAY_OF_MONTH)
+    val year = calendar.get(Calendar.YEAR)
+    return "$day $monthLabel $year"
 }

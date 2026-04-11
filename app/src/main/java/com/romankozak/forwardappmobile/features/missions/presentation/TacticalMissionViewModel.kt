@@ -43,6 +43,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionPriority
 import java.util.UUID
 import javax.inject.Inject
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.NO_DEADLINE
 
 @HiltViewModel
 class TacticalMissionViewModel
@@ -251,7 +252,7 @@ class TacticalMissionViewModel
                 TacticalMission(
                     title = trimmedTitle,
                     description = null,
-                    deadline = System.currentTimeMillis(),
+                    deadline = NO_DEADLINE,
                     status = MissionStatus.ACTIVE,
                     projectId = null,
                     linkedProjectIds = emptyList(),

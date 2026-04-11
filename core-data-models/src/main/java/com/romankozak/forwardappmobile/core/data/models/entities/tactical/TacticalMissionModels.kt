@@ -11,6 +11,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntit
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.Converters
 
+const val NO_DEADLINE = Long.MAX_VALUE
+
 @Entity(
     tableName = "tactical_missions",
     foreignKeys = [
@@ -47,6 +49,8 @@ data class TacticalMission(
     @SerializedName("order")
     val order: Long = 0L,
 )
+
+fun TacticalMission.hasDeadline(): Boolean = deadline != NO_DEADLINE
 
 @Entity(
     tableName = "tactical_mission_attachment_cross_ref",

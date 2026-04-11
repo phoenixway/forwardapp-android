@@ -13,6 +13,13 @@ data class MainBeaconCardUi(
     val breakPointLevel: String,
     val blockReason: String,
     val nextRequiredAction: String,
+    val relatedContextIds: List<String>,
+    val relatedAttachmentIds: List<String>,
+)
+
+data class MainBeaconCardLinkUi(
+    val id: String,
+    val title: String,
 )
 
 data class MainBeaconEditorState(

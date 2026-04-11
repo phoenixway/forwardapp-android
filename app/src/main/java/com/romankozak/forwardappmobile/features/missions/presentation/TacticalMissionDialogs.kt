@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
@@ -35,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.NO_DEADLINE
 
 private data class MissionDialogUiState(
     val titleField: String,
@@ -48,6 +50,7 @@ private data class MissionDialogCallbacks(
     val onTitleChange: (String) -> Unit,
     val onDescriptionChange: (String) -> Unit,
     val onDeadlineClick: () -> Unit,
+    val onDeadlineClear: () -> Unit,
     val onStatusChange: (MissionStatus) -> Unit,
     val onRemoveAttachment: (String) -> Unit,
     val onAddAttachmentClick: () -> Unit,
@@ -78,7 +81,7 @@ fun AddMissionDialog(
                 title = "Create Tactical Mission",
                 initialTitle = "",
                 initialDescription = "",
-                initialDeadline = System.currentTimeMillis().toString(),
+                initialDeadline = NO_DEADLINE.toString(),
                 initialProjectLinks = emptyList(),
                 initialAttachmentLinks = emptyList(),
                 attachmentOptions = attachmentOptions,
@@ -116,6 +119,7 @@ fun MissionDialog(
             onTitleChange = { titleField = it },
             onDescriptionChange = { descField = it },
             onDeadlineClick = { showDeadlinePicker = true },
+            onDeadlineClear = { deadlineLong = NO_DEADLINE },
             onStatusChange = { statusField = it },
             onRemoveAttachment = { attachmentLinks.remove(it) },
             onAddAttachmentClick = { showAttachmentChooser = true },
@@ -214,8 +218,20 @@ private fun MissionDialogContent(
             label = { Text("Description") },
             modifier = Modifier.fillMaxWidth(),
         )
-        Button(onClick = callbacks.onDeadlineClick, modifier = Modifier.fillMaxWidth()) {
-            Text("Select Deadline: ${missionDialogFormatDate(uiState.deadlineLong)}")
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Button(onClick = callbacks.onDeadlineClick, modifier = Modifier.weight(1f)) {
+                Text("Deadline: ${missionDialogFormatDate(uiState.deadlineLong)}")
+            }
+            IconButton(onClick = callbacks.onDeadlineClear) {
+                Icon(
+                    imageVector = Icons.Outlined.EventBusy,
+                    contentDescription = "Очистити дедлайн",
+                )
+            }
         }
         MissionStatusSection(
             statusField = uiState.statusField,
@@ -240,7 +256,7 @@ private fun MissionDialogOverlays(
 ) {
     if (state.showDeadlinePicker) {
         DeadlinePickerDialog(
-            initialTime = state.deadlineLong,
+            initialTime = if (state.deadlineLong == NO_DEADLINE) System.currentTimeMillis() else state.deadlineLong,
             onDismiss = onDeadlineDismiss,
             onConfirm = onDeadlineConfirm,
         )

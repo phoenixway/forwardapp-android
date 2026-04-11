@@ -34,6 +34,7 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -73,9 +74,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.NO_DEADLINE
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.features.reminders.components.ReminderSection
-import java.text.SimpleDateFormat
 import java.util.*
 
 private data class TabSpec(val title: String, val icon: ImageVector)
@@ -427,6 +428,13 @@ fun MissionEditorScreen(
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.tertiary,
+                                    )
+                                }
+                                IconButton(onClick = { deadlineLong = NO_DEADLINE }) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.EventBusy,
+                                        contentDescription = "Очистити дедлайн",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                             }
@@ -885,7 +893,7 @@ fun MissionEditorScreen(
 
     if (showDeadlinePicker) {
         DeadlinePickerDialog(
-            initialTime = deadlineLong,
+            initialTime = if (deadlineLong == NO_DEADLINE) System.currentTimeMillis() else deadlineLong,
             onDismiss = { showDeadlinePicker = false },
             onConfirm = {
                 deadlineLong = it
@@ -935,6 +943,25 @@ private fun missionFieldColors() =
     )
 
 private fun formatDate(ts: Long): String {
-    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-    return sdf.format(Date(ts))
+    if (ts == NO_DEADLINE) return "Без дедлайну"
+    val months =
+        listOf(
+            "січ",
+            "лют",
+            "бер",
+            "квіт",
+            "трав",
+            "черв",
+            "лип",
+            "серп",
+            "вер",
+            "жовт",
+            "лист",
+            "груд",
+        )
+    val calendar = Calendar.getInstance().apply { timeInMillis = ts }
+    val monthLabel = months[calendar.get(Calendar.MONTH)]
+    val day = calendar.get(Calendar.DAY_OF_MONTH)
+    val year = calendar.get(Calendar.YEAR)
+    return "$day $monthLabel $year"
 }

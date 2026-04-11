@@ -59,10 +59,10 @@ import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
 
 private enum class MainBeaconEditorTab(val title: String) {
     IDENTITY("Identity"),
+    READINESS("Readiness"),
     CONTROL("Control"),
-    LINKS("Links"),
     LEVELS("Levels"),
-    META("Meta"),
+    LINKS("Links"),
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -158,6 +158,37 @@ fun MainBeaconEditorSheet(
                                     onValueChange = { onStateChange(state.copy(whyItMatters = it)) },
                                     supportingText = "Why this belongs among the main beacons",
                                 )
+                                HorizontalDivider()
+                                Text(
+                                    text = "Created: ${formatTimestamp(state.createdAt)}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                                Text(
+                                    text = "Updated: ${formatTimestamp(state.updatedAt)}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
+                        }
+                    }
+
+                    MainBeaconEditorTab.READINESS -> {
+                        item {
+                            SectionCard(title = "Current control") {
+                                ReadinessSelector(
+                                    selected = state.readinessStatus,
+                                    onSelected = { onStateChange(state.copy(readinessStatus = it)) },
+                                    label = "General readiness status",
+                                )
+                                MainBeaconTextField(
+                                    label = "Blocker",
+                                    value = state.blockerText,
+                                    onValueChange = { onStateChange(state.copy(blockerText = it)) },
+                                )
+                                MainBeaconTextField(
+                                    label = "Next action",
+                                    value = state.nextActionText,
+                                    onValueChange = { onStateChange(state.copy(nextActionText = it)) },
+                                )
                             }
                         }
                     }
@@ -187,42 +218,6 @@ fun MainBeaconEditorSheet(
                                 )
                             }
                         }
-                        item {
-                            SectionCard(title = "Current control") {
-                                ReadinessSelector(
-                                    selected = state.readinessStatus,
-                                    onSelected = { onStateChange(state.copy(readinessStatus = it)) },
-                                    label = "General readiness status",
-                                )
-                                MainBeaconTextField(
-                                    label = "Blocker",
-                                    value = state.blockerText,
-                                    onValueChange = { onStateChange(state.copy(blockerText = it)) },
-                                )
-                                MainBeaconTextField(
-                                    label = "Next action",
-                                    value = state.nextActionText,
-                                    onValueChange = { onStateChange(state.copy(nextActionText = it)) },
-                                )
-                            }
-                        }
-                    }
-
-                    MainBeaconEditorTab.LINKS -> {
-                        item {
-                            ConnectionsPanel(
-                                items = connectionItems,
-                                onConnectionClick = onConnectionClick,
-                                onConnectionRemove = onConnectionRemove,
-                                onAddConnection = onAddConnection,
-                                onCreateConnection = onCreateConnection,
-                                mode = ConnectionPanelMode.COMPACT,
-                                preferActionsBesideTitleWhenWide = true,
-                                wrapContentHeight = true,
-                                showTitle = false,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
                     }
 
                     MainBeaconEditorTab.LEVELS -> {
@@ -241,18 +236,20 @@ fun MainBeaconEditorSheet(
                         }
                     }
 
-                    MainBeaconEditorTab.META -> {
+                    MainBeaconEditorTab.LINKS -> {
                         item {
-                            SectionCard(title = "Meta") {
-                                Text(
-                                    text = "Created: ${formatTimestamp(state.createdAt)}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                                Text(
-                                    text = "Updated: ${formatTimestamp(state.updatedAt)}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                            }
+                            ConnectionsPanel(
+                                items = connectionItems,
+                                onConnectionClick = onConnectionClick,
+                                onConnectionRemove = onConnectionRemove,
+                                onAddConnection = onAddConnection,
+                                onCreateConnection = onCreateConnection,
+                                mode = ConnectionPanelMode.COMPACT,
+                                preferActionsBesideTitleWhenWide = true,
+                                wrapContentHeight = true,
+                                showTitle = false,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
                         }
                     }
                 }

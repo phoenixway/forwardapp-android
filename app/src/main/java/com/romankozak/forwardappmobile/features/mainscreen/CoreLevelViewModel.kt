@@ -99,6 +99,8 @@ class CoreLevelViewModel
                                 breakPointLevel = compactSummary.breakPointLevel,
                                 blockReason = compactSummary.blockReason,
                                 nextRequiredAction = compactSummary.nextRequiredAction,
+                                relatedContextIds = details.relatedContexts.map { it.id },
+                                relatedAttachmentIds = details.relatedAttachments.map { it.id },
                             )
                         },
                 )

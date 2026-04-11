@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +23,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.DragIndicator
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material3.CardDefaults
@@ -32,6 +37,7 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +50,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -58,6 +65,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -74,6 +82,7 @@ import com.romankozak.forwardappmobile.features.mainscreen.core.CoreScopeLinksSh
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconEditorSheet
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconEditorState
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconCardUi
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconCardLinkUi
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconLevelStatusSheet
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconMultiSelectDialog
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconSelectableItem
@@ -133,6 +142,7 @@ fun CoreLevelScreen(
     var linkActionTarget by remember { mutableStateOf(MainBeaconLinkActionTarget.CORE_SCOPE) }
     val beaconListState = rememberLazyListState()
     val internalBeacons = remember { mutableStateListOf<MainBeaconCardUi>() }
+    val expandedBeaconIds = remember { mutableStateMapOf<String, Boolean>() }
     val beaconReorderState =
         rememberReorderableLazyListState(beaconListState) { from, to ->
             internalBeacons.add(to.index, internalBeacons.removeAt(from.index))
@@ -143,6 +153,10 @@ fun CoreLevelScreen(
     LaunchedEffect(uiState.beacons) {
         internalBeacons.clear()
         internalBeacons.addAll(uiState.beacons)
+        val validIds = uiState.beacons.mapTo(mutableSetOf()) { it.id }
+        expandedBeaconIds.keys.toList().forEach { beaconId ->
+            if (beaconId !in validIds) expandedBeaconIds.remove(beaconId)
+        }
     }
 
     val openTarget: (NavTarget, Boolean) -> Unit = { target, recordInHistory ->
@@ -353,6 +367,24 @@ fun CoreLevelScreen(
                         ) {
                             items(internalBeacons, key = { it.id }) { beacon ->
                                 ReorderableItem(beaconReorderState, key = beacon.id) {
+                                    val relatedContexts =
+                                        beacon.relatedContextIds.mapNotNull { relatedId ->
+                                            uiState.allProjects.firstOrNull { it.id == relatedId }?.let { contextItem ->
+                                                MainBeaconCardLinkUi(
+                                                    id = contextItem.id,
+                                                    title = contextItem.name,
+                                                )
+                                            }
+                                        }
+                                    val relatedDocuments =
+                                        beacon.relatedAttachmentIds.mapNotNull { relatedId ->
+                                            attachmentOptions.firstOrNull { it.id == relatedId }?.let { option ->
+                                                MainBeaconCardLinkUi(
+                                                    id = option.id,
+                                                    title = option.name,
+                                                )
+                                            }
+                                        }
                                     MainBeaconCard(
                                         title = beacon.title,
                                         readinessStatus = beacon.readinessStatus,
@@ -360,7 +392,37 @@ fun CoreLevelScreen(
                                         breakPointLevel = beacon.breakPointLevel,
                                         blockReason = beacon.blockReason,
                                         nextRequiredAction = beacon.nextRequiredAction,
-                                        onClick = { editingBeacon = viewModel.buildEditorState(beacon.id) },
+                                        isExpanded = expandedBeaconIds[beacon.id] == true,
+                                        relatedContexts = relatedContexts,
+                                        relatedDocuments = relatedDocuments,
+                                        onToggleExpanded = {
+                                            expandedBeaconIds[beacon.id] = expandedBeaconIds[beacon.id] != true
+                                        },
+                                        onEditClick = { editingBeacon = viewModel.buildEditorState(beacon.id) },
+                                        onContextClick = { contextId ->
+                                            openTarget(NavTarget.ContextDetail(contextId = contextId), true)
+                                        },
+                                        onDocumentClick = { attachmentId ->
+                                            connectionItems.firstOrNull { it.id == attachmentId }?.let(onConnectionClick)
+                                                ?: attachmentOptions.firstOrNull { it.id == attachmentId }?.let { option ->
+                                                    onConnectionClick(
+                                                        ConnectionItemUi(
+                                                            id = option.id,
+                                                            title = option.name,
+                                                            type =
+                                                                when {
+                                                                    option.linkType == LinkType.URL -> ConnectionType.URL
+                                                                    option.linkType == LinkType.OBSIDIAN -> ConnectionType.OBSIDIAN_NOTE
+                                                                    option.attachmentType == "NOTE_DOCUMENT" -> ConnectionType.NOTE_DOCUMENT
+                                                                    option.attachmentType == "MUSIC_NOTE" -> ConnectionType.MUSIC_NOTE
+                                                                    option.attachmentType == "CHECKLIST" -> ConnectionType.CHECKLIST
+                                                                    option.attachmentType == "SCRIPT" -> ConnectionType.SCRIPT
+                                                                    else -> ConnectionType.ATTACHMENT
+                                                                },
+                                                        ),
+                                                    )
+                                                }
+                                        },
                                         dragHandleModifier =
                                             with(this@ReorderableItem) {
                                                 Modifier
@@ -750,6 +812,7 @@ fun CoreLevelScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MainBeaconCard(
     title: String,
@@ -758,7 +821,13 @@ private fun MainBeaconCard(
     breakPointLevel: String,
     blockReason: String,
     nextRequiredAction: String,
-    onClick: () -> Unit,
+    isExpanded: Boolean,
+    relatedContexts: List<MainBeaconCardLinkUi>,
+    relatedDocuments: List<MainBeaconCardLinkUi>,
+    onToggleExpanded: () -> Unit,
+    onEditClick: () -> Unit,
+    onContextClick: (String) -> Unit,
+    onDocumentClick: (String) -> Unit,
     dragHandleModifier: Modifier = Modifier,
 ) {
     ElevatedCard(
@@ -770,10 +839,7 @@ private fun MainBeaconCard(
             ),
     ) {
         Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onClick),
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Box(
                 modifier =
@@ -796,14 +862,25 @@ private fun MainBeaconCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     DragHandle(modifier = dragHandleModifier)
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    Row(
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable(onClick = onToggleExpanded)
+                                .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                     MainBeaconStatusChip(status = readinessStatus)
                 }
 
@@ -827,6 +904,99 @@ private fun MainBeaconCard(
                     value = highestCompletedLevel,
                     priority = CompactSummaryPriority.QUIET,
                 )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    IconButton(onClick = onEditClick) {
+                        Icon(
+                            imageVector = Icons.Outlined.Edit,
+                            contentDescription = "Редагувати орієнтир",
+                        )
+                    }
+                    IconButton(onClick = onToggleExpanded) {
+                        Icon(
+                            imageVector =
+                                if (isExpanded) {
+                                    Icons.Outlined.ExpandLess
+                                } else {
+                                    Icons.Outlined.ExpandMore
+                                },
+                            contentDescription =
+                                if (isExpanded) {
+                                    "Згорнути картку орієнтиру"
+                                } else {
+                                    "Розгорнути картку орієнтиру"
+                                },
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
+                if (isExpanded) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(top = 6.dp),
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f),
+                    )
+                    MainBeaconLinksSection(
+                        title = "Контексти",
+                        items = relatedContexts,
+                        emptyLabel = "Немає зв’язаних контекстів",
+                        onItemClick = onContextClick,
+                    )
+                    MainBeaconLinksSection(
+                        title = "Документи",
+                        items = relatedDocuments,
+                        emptyLabel = "Немає зв’язаних документів",
+                        onItemClick = onDocumentClick,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MainBeaconLinksSection(
+    title: String,
+    items: List<MainBeaconCardLinkUi>,
+    emptyLabel: String,
+    onItemClick: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (items.isEmpty()) {
+            Text(
+                text = emptyLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                items.forEach { item ->
+                    Text(
+                        text = item.title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        textDecoration = TextDecoration.Underline,
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { onItemClick(item.id) }
+                                .padding(vertical = 2.dp),
+                    )
+                }
             }
         }
     }
