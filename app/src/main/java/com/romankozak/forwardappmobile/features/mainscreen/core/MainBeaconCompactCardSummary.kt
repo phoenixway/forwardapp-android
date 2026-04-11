@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.features.mainscreen.core
 
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelType
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadinessStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconSyncStatus
 
@@ -65,55 +66,51 @@ fun deriveMainBeaconCompactCardSummary(
 private fun MainBeaconLevelStatus?.toChainState(): MainBeaconChainState =
     when {
         this == null -> MainBeaconChainState.NOT_STARTED
-        levelType == com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelType.MAIN_BEACON &&
+        levelType == MainBeaconLevelType.MAIN_BEACON &&
             generalStatus == MainBeaconReadinessStatus.CONDITIONAL &&
             syncStatus == MainBeaconSyncStatus.UNSET -> MainBeaconChainState.USABLE
-        levelType == com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelType.MAIN_BEACON &&
+        levelType == MainBeaconLevelType.MAIN_BEACON &&
             generalStatus == MainBeaconReadinessStatus.READY &&
             syncStatus == MainBeaconSyncStatus.UNSET -> MainBeaconChainState.READY
-        levelType == com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelType.MAIN_BEACON &&
+        levelType == MainBeaconLevelType.MAIN_BEACON &&
             syncStatus == MainBeaconSyncStatus.UNSET -> MainBeaconChainState.ROOT_UNSET
-        generalStatus == MainBeaconReadinessStatus.CONDITIONAL && syncStatus == MainBeaconSyncStatus.IN_SYNC -> MainBeaconChainState.USABLE
-        generalStatus == MainBeaconReadinessStatus.READY && syncStatus == MainBeaconSyncStatus.IN_SYNC -> MainBeaconChainState.READY
+        generalStatus == MainBeaconReadinessStatus.CONDITIONAL &&
+            syncStatus == MainBeaconSyncStatus.IN_SYNC -> MainBeaconChainState.USABLE
+        generalStatus == MainBeaconReadinessStatus.READY &&
+            syncStatus == MainBeaconSyncStatus.IN_SYNC -> MainBeaconChainState.READY
         syncStatus == MainBeaconSyncStatus.IN_PROCESS -> MainBeaconChainState.IN_PROCESS
-        generalStatus == MainBeaconReadinessStatus.READY && syncStatus == MainBeaconSyncStatus.OUTDATED_BY_PARENT -> MainBeaconChainState.OUTDATED
-        generalStatus == MainBeaconReadinessStatus.READY && syncStatus == MainBeaconSyncStatus.NEEDS_REVIEW -> MainBeaconChainState.NEEDS_REVIEW
+        generalStatus == MainBeaconReadinessStatus.READY &&
+            syncStatus == MainBeaconSyncStatus.OUTDATED_BY_PARENT -> MainBeaconChainState.OUTDATED
+        generalStatus == MainBeaconReadinessStatus.READY &&
+            syncStatus == MainBeaconSyncStatus.NEEDS_REVIEW -> MainBeaconChainState.NEEDS_REVIEW
         generalStatus == MainBeaconReadinessStatus.CONDITIONAL -> MainBeaconChainState.CONDITIONAL
         generalStatus == MainBeaconReadinessStatus.BLOCKED -> MainBeaconChainState.BLOCKED
         generalStatus == MainBeaconReadinessStatus.DEFECTED -> MainBeaconChainState.DEFECTED
         else -> MainBeaconChainState.NOT_STARTED
     }
 
-private fun MainBeaconLevelStatus?.deriveWhy(): String {
-    this ?: return ""
-    blockerText?.takeIf { it.isNotBlank() }?.let { return it }
-    return when (toChainState()) {
-        MainBeaconChainState.USABLE -> ""
-        MainBeaconChainState.ROOT_UNSET -> ""
-        MainBeaconChainState.IN_PROCESS -> "level is in process"
-        MainBeaconChainState.CONDITIONAL -> "level is incomplete"
-        MainBeaconChainState.BLOCKED -> "level is blocked"
-        MainBeaconChainState.OUTDATED -> "level is outdated"
-        MainBeaconChainState.DEFECTED -> "level has an open defect"
-        MainBeaconChainState.NOT_STARTED -> "level is not started"
-        MainBeaconChainState.NEEDS_REVIEW -> "level needs review"
-        MainBeaconChainState.READY -> ""
-    }
-}
+private fun MainBeaconLevelStatus?.deriveWhy(): String =
+    this?.blockerText?.takeIf { it.isNotBlank() }
+        ?: when (this?.toChainState()) {
+            MainBeaconChainState.IN_PROCESS -> "level is in process"
+            MainBeaconChainState.CONDITIONAL -> "level is incomplete"
+            MainBeaconChainState.BLOCKED -> "level is blocked"
+            MainBeaconChainState.OUTDATED -> "level is outdated"
+            MainBeaconChainState.DEFECTED -> "level has an open defect"
+            MainBeaconChainState.NOT_STARTED -> "level is not started"
+            MainBeaconChainState.NEEDS_REVIEW -> "level needs review"
+            else -> ""
+        }
 
-private fun MainBeaconLevelStatus?.deriveNext(): String {
-    this ?: return ""
-    nextActionText?.takeIf { it.isNotBlank() }?.let { return it }
-    return when (toChainState()) {
-        MainBeaconChainState.USABLE -> ""
-        MainBeaconChainState.ROOT_UNSET -> ""
-        MainBeaconChainState.IN_PROCESS -> "continue this level"
-        MainBeaconChainState.CONDITIONAL -> "complete this level"
-        MainBeaconChainState.BLOCKED -> "unblock this level"
-        MainBeaconChainState.OUTDATED -> "resync this level from parent"
-        MainBeaconChainState.DEFECTED -> "resolve the defect affecting this level"
-        MainBeaconChainState.NOT_STARTED -> "create this level"
-        MainBeaconChainState.NEEDS_REVIEW -> "review this level"
-        MainBeaconChainState.READY -> ""
-    }
-}
+private fun MainBeaconLevelStatus?.deriveNext(): String =
+    this?.nextActionText?.takeIf { it.isNotBlank() }
+        ?: when (this?.toChainState()) {
+            MainBeaconChainState.IN_PROCESS -> "continue this level"
+            MainBeaconChainState.CONDITIONAL -> "complete this level"
+            MainBeaconChainState.BLOCKED -> "unblock this level"
+            MainBeaconChainState.OUTDATED -> "resync this level from parent"
+            MainBeaconChainState.DEFECTED -> "resolve the defect affecting this level"
+            MainBeaconChainState.NOT_STARTED -> "create this level"
+            MainBeaconChainState.NEEDS_REVIEW -> "review this level"
+            else -> ""
+        }

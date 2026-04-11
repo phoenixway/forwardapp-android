@@ -138,8 +138,12 @@ class CoreLevelViewModel
         }
 
         fun buildEditorState(beaconId: String?): MainBeaconEditorState {
-            if (beaconId == null) {
-                return MainBeaconEditorState(
+            val details = beaconId?.let { id ->
+                mainBeaconDetails.value.firstOrNull { it.beacon.id == id }
+            }
+            return when {
+                beaconId == null ->
+                    MainBeaconEditorState(
                     levelStatuses =
                         MainBeaconRepository.DefaultLevels.map { levelType ->
                             MainBeaconLevelStatus(
@@ -148,28 +152,31 @@ class CoreLevelViewModel
                                 syncStatus = MainBeaconRepository.defaultSyncStatus(levelType),
                             ).toEditorState()
                         },
-                )
+                    )
+                details == null -> MainBeaconEditorState()
+                else ->
+                    MainBeaconEditorState(
+                        id = details.beacon.id,
+                        title = details.beacon.title,
+                        description = details.beacon.description.orEmpty(),
+                        whyItMatters = details.beacon.whyItMatters.orEmpty(),
+                        successShape = details.beacon.successShape.orEmpty(),
+                        failureShape = details.beacon.failureShape.orEmpty(),
+                        antiGoal = details.beacon.antiGoal.orEmpty(),
+                        decisionImpact = details.beacon.decisionImpact.orEmpty(),
+                        readinessStatus = details.beacon.readinessStatus,
+                        blockerText = details.beacon.blockerText.orEmpty(),
+                        nextActionText = details.beacon.nextActionText.orEmpty(),
+                        relatedContextIds =
+                            details.relatedContexts.mapTo(linkedSetOf()) { it.id },
+                        relatedAttachmentIds =
+                            details.relatedAttachments.mapTo(linkedSetOf()) { it.id },
+                        levelStatuses = details.levelStatuses.map { it.toEditorState() },
+                        createdAt = details.beacon.createdAt,
+                        updatedAt = details.beacon.updatedAt,
+                        isNew = false,
+                    )
             }
-            val details = mainBeaconDetails.value.firstOrNull { it.beacon.id == beaconId } ?: return MainBeaconEditorState()
-            return MainBeaconEditorState(
-                id = details.beacon.id,
-                title = details.beacon.title,
-                description = details.beacon.description.orEmpty(),
-                whyItMatters = details.beacon.whyItMatters.orEmpty(),
-                successShape = details.beacon.successShape.orEmpty(),
-                failureShape = details.beacon.failureShape.orEmpty(),
-                antiGoal = details.beacon.antiGoal.orEmpty(),
-                decisionImpact = details.beacon.decisionImpact.orEmpty(),
-                readinessStatus = details.beacon.readinessStatus,
-                blockerText = details.beacon.blockerText.orEmpty(),
-                nextActionText = details.beacon.nextActionText.orEmpty(),
-                relatedContextIds = details.relatedContexts.mapTo(linkedSetOf()) { it.id },
-                relatedAttachmentIds = details.relatedAttachments.mapTo(linkedSetOf()) { it.id },
-                levelStatuses = details.levelStatuses.map { it.toEditorState() },
-                createdAt = details.beacon.createdAt,
-                updatedAt = details.beacon.updatedAt,
-                isNew = false,
-            )
         }
 
         fun saveBeacon(editor: MainBeaconEditorState) {
@@ -177,7 +184,10 @@ class CoreLevelViewModel
             if (title.isBlank()) return
             viewModelScope.launch {
                 val now = System.currentTimeMillis()
-                val existing = editor.id?.let { id -> mainBeaconDetails.value.firstOrNull { it.beacon.id == id }?.beacon }
+                val existing =
+                    editor.id?.let { id ->
+                        mainBeaconDetails.value.firstOrNull { it.beacon.id == id }?.beacon
+                    }
                 val beacon =
                     MainBeacon(
                         id = existing?.id ?: editor.id ?: UUID.randomUUID().toString(),

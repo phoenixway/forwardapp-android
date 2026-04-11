@@ -268,15 +268,6 @@ fun CoreLevelScreen(
                 MainBeaconSelectableItem(id = option.id, label = option.name)
             }
         }
-    val selectedContextLabels =
-        remember(editingBeacon, allContextOptions) {
-            allContextOptions.filter { it.id in editingBeacon?.relatedContextIds.orEmpty() }.map { it.label }
-        }
-    val selectedDocumentLabels =
-        remember(editingBeacon, allDocumentOptions) {
-            allDocumentOptions.filter { it.id in editingBeacon?.relatedAttachmentIds.orEmpty() }.map { it.label }
-        }
-
     Scaffold(
         containerColor = Color.Transparent,
         floatingActionButton = {
@@ -403,25 +394,29 @@ fun CoreLevelScreen(
                                             openTarget(NavTarget.ContextDetail(contextId = contextId), true)
                                         },
                                         onDocumentClick = { attachmentId ->
-                                            connectionItems.firstOrNull { it.id == attachmentId }?.let(onConnectionClick)
-                                                ?: attachmentOptions.firstOrNull { it.id == attachmentId }?.let { option ->
-                                                    onConnectionClick(
-                                                        ConnectionItemUi(
-                                                            id = option.id,
-                                                            title = option.name,
-                                                            type =
-                                                                when {
-                                                                    option.linkType == LinkType.URL -> ConnectionType.URL
-                                                                    option.linkType == LinkType.OBSIDIAN -> ConnectionType.OBSIDIAN_NOTE
-                                                                    option.attachmentType == "NOTE_DOCUMENT" -> ConnectionType.NOTE_DOCUMENT
-                                                                    option.attachmentType == "MUSIC_NOTE" -> ConnectionType.MUSIC_NOTE
-                                                                    option.attachmentType == "CHECKLIST" -> ConnectionType.CHECKLIST
-                                                                    option.attachmentType == "SCRIPT" -> ConnectionType.SCRIPT
-                                                                    else -> ConnectionType.ATTACHMENT
-                                                                },
-                                                        ),
-                                                    )
-                                                }
+                                            connectionItems
+                                                .firstOrNull { it.id == attachmentId }
+                                                ?.let(onConnectionClick)
+                                                ?: attachmentOptions
+                                                    .firstOrNull { it.id == attachmentId }
+                                                    ?.let { option ->
+                                                        onConnectionClick(
+                                                            ConnectionItemUi(
+                                                                id = option.id,
+                                                                title = option.name,
+                                                                type =
+                                                                    when {
+                                                                        option.linkType == LinkType.URL -> ConnectionType.URL
+                                                                        option.linkType == LinkType.OBSIDIAN -> ConnectionType.OBSIDIAN_NOTE
+                                                                        option.attachmentType == "NOTE_DOCUMENT" -> ConnectionType.NOTE_DOCUMENT
+                                                                        option.attachmentType == "MUSIC_NOTE" -> ConnectionType.MUSIC_NOTE
+                                                                        option.attachmentType == "CHECKLIST" -> ConnectionType.CHECKLIST
+                                                                        option.attachmentType == "SCRIPT" -> ConnectionType.SCRIPT
+                                                                        else -> ConnectionType.ATTACHMENT
+                                                                    },
+                                                            ),
+                                                        )
+                                                    }
                                         },
                                         dragHandleModifier =
                                             with(this@ReorderableItem) {
@@ -444,8 +439,6 @@ fun CoreLevelScreen(
     }
 
     editingBeacon?.let { editor ->
-        val contextSummary = summarizeSelection(editor.relatedContextIds, allContextOptions)
-        val documentSummary = summarizeSelection(editor.relatedAttachmentIds, allDocumentOptions)
         val editorConnectionItems =
             buildList {
                 addAll(
@@ -478,15 +471,9 @@ fun CoreLevelScreen(
             }
         MainBeaconEditorSheet(
             state = editor,
-            selectedContextSummary = contextSummary,
-            selectedDocumentSummary = documentSummary,
-            selectedContextLabels = selectedContextLabels,
-            selectedDocumentLabels = selectedDocumentLabels,
             connectionItems = editorConnectionItems,
             onDismiss = { editingBeacon = null },
             onStateChange = { editingBeacon = it },
-            onPickContexts = { showContextPicker = true },
-            onPickDocuments = { showDocumentPicker = true },
             onConnectionClick = { item ->
                 if (item.type == ConnectionType.CONTEXT) {
                     openTarget(NavTarget.ContextDetail(contextId = item.id), true)
@@ -497,9 +484,14 @@ fun CoreLevelScreen(
             onConnectionRemove = { item ->
                 editingBeacon =
                     if (item.type == ConnectionType.CONTEXT) {
-                        editingBeacon?.copy(relatedContextIds = editingBeacon?.relatedContextIds.orEmpty() - item.id)
+                        editingBeacon?.copy(
+                            relatedContextIds = editingBeacon?.relatedContextIds.orEmpty() - item.id,
+                        )
                     } else {
-                        editingBeacon?.copy(relatedAttachmentIds = editingBeacon?.relatedAttachmentIds.orEmpty() - item.id)
+                        editingBeacon?.copy(
+                            relatedAttachmentIds =
+                                editingBeacon?.relatedAttachmentIds.orEmpty() - item.id,
+                        )
                     }
             },
             onAddConnection = { type ->
@@ -550,7 +542,11 @@ fun CoreLevelScreen(
     }
 
     val activeLevelIndex = editingLevelIndex
-    if (editingBeacon != null && activeLevelIndex != null && activeLevelIndex in editingBeacon!!.levelStatuses.indices) {
+    if (
+        editingBeacon != null &&
+        activeLevelIndex != null &&
+        activeLevelIndex in editingBeacon!!.levelStatuses.indices
+    ) {
         val levelState = editingBeacon!!.levelStatuses[activeLevelIndex]
         MainBeaconLevelStatusSheet(
             state = levelState,
@@ -620,7 +616,10 @@ fun CoreLevelScreen(
 
     CoreScopeLinksSheet(
         isVisible = isScopeLinksSheetVisible,
-        projectOptions = uiState.allProjects.map { ProjectOption(id = it.id, name = it.name, parentId = it.parentId) },
+        projectOptions =
+            uiState.allProjects.map {
+                ProjectOption(id = it.id, name = it.name, parentId = it.parentId)
+            },
         attachmentOptions = attachmentOptions,
         linkedProjectIds = uiState.projects.map { it.id },
         linkedAttachmentIds = linkedAttachmentIds,
@@ -677,7 +676,10 @@ fun CoreLevelScreen(
 
     if (showAttachmentChooser) {
         AttachmentChooserScreen(
-            options = attachmentOptions.map { AttachmentOption(id = it.id, name = it.name, linkType = it.linkType) },
+            options =
+                attachmentOptions.map {
+                    AttachmentOption(id = it.id, name = it.name, linkType = it.linkType)
+                },
             preselected = linkedAttachmentIds.toSet(),
             onDismiss = {
                 showAttachmentChooser = false
@@ -700,7 +702,10 @@ fun CoreLevelScreen(
 
     activeLinkPickerTab?.let { initialTab ->
         LinkedTargetsPickerDialog(
-            contextOptions = uiState.allProjects.map { ProjectOption(id = it.id, name = it.name, parentId = it.parentId) },
+            contextOptions =
+                uiState.allProjects.map {
+                    ProjectOption(id = it.id, name = it.name, parentId = it.parentId)
+                },
             attachmentOptions =
                 attachmentOptions.map {
                     AttachmentOption(
@@ -1083,7 +1088,12 @@ private fun CompactSummaryRow(
                     append(resolvedValue)
                 }
             },
-        style = if (priority == CompactSummaryPriority.PRIMARY) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodySmall,
+        style =
+            if (priority == CompactSummaryPriority.PRIMARY) {
+                MaterialTheme.typography.bodyMedium
+            } else {
+                MaterialTheme.typography.bodySmall
+            },
         maxLines = 2,
         overflow = TextOverflow.Ellipsis,
     )
@@ -1139,13 +1149,12 @@ private fun summarizeSelection(
     selectedIds: Set<String>,
     options: List<MainBeaconSelectableItem>,
 ): String {
-    if (selectedIds.isEmpty()) return "0"
     val labels = options.filter { it.id in selectedIds }.map { it.label }
-    if (labels.isEmpty()) return selectedIds.size.toString()
-    return if (labels.size <= 2) {
-        labels.joinToString(", ")
-    } else {
-        "${labels.take(2).joinToString(", ")} +${labels.size - 2}"
+    return when {
+        selectedIds.isEmpty() -> "0"
+        labels.isEmpty() -> selectedIds.size.toString()
+        labels.size <= 2 -> labels.joinToString(", ")
+        else -> "${labels.take(2).joinToString(", ")} +${labels.size - 2}"
     }
 }
 

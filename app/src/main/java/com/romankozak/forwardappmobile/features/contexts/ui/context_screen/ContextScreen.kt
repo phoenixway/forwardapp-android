@@ -609,7 +609,8 @@ private fun ProjectBottomBar(
                 when (uiState.currentViewMode) {
                     ContextViewMode.DIRECTION -> viewModel.onDirectionContextLinkSelected(id)
                     ContextViewMode.BACKLOG -> viewModel.onBacklogContextLinkSelected(id)
-                    else -> viewModel.onBacklogContextLinkSelected(id)
+                    ContextViewMode.CONNECTIONS -> viewModel.onPickerContextSelected(id)
+                    else -> viewModel.onPickerContextSelected(id)
                 }
                 showContextPicker = false
             },

@@ -45,7 +45,11 @@ class MainBeaconRepository
         fun observeMainBeaconDetails(): Flow<List<MainBeaconWithRelations>> =
             mainBeaconDao.observeMainBeacons().map { beacons ->
                 beacons.map { beacon ->
-                    val ensuredStatuses = ensureAllLevelStatuses(beacon.id, mainBeaconDao.getLevelStatusesForBeacon(beacon.id))
+                    val ensuredStatuses =
+                        ensureAllLevelStatuses(
+                            beacon.id,
+                            mainBeaconDao.getLevelStatusesForBeacon(beacon.id),
+                        )
                     MainBeaconWithRelations(
                         beacon = beacon,
                         relatedContexts = mainBeaconDao.getContextsForBeacon(beacon.id),

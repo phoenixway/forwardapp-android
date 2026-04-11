@@ -65,19 +65,18 @@ private enum class MainBeaconEditorTab(val title: String) {
     LINKS("Links"),
 }
 
+private const val READY_COLOR_HEX = 0xFF2E7D32
+private const val CONDITIONAL_COLOR_HEX = 0xFFB26A00
+private const val BLOCKED_COLOR_HEX = 0xFFC62828
+private const val DEFECTED_COLOR_HEX = 0xFF5F6368
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainBeaconEditorSheet(
     state: MainBeaconEditorState,
-    selectedContextSummary: String,
-    selectedDocumentSummary: String,
-    selectedContextLabels: List<String>,
-    selectedDocumentLabels: List<String>,
     connectionItems: List<ConnectionItemUi>,
     onDismiss: () -> Unit,
     onStateChange: (MainBeaconEditorState) -> Unit,
-    onPickContexts: () -> Unit,
-    onPickDocuments: () -> Unit,
     onConnectionClick: (ConnectionItemUi) -> Unit,
     onConnectionRemove: (ConnectionItemUi) -> Unit,
     onAddConnection: (AddConnectionType) -> Unit,
@@ -583,10 +582,10 @@ private fun MainBeaconTextField(
 
 private fun MainBeaconReadinessStatus.statusColor(): Color =
     when (this) {
-        MainBeaconReadinessStatus.READY -> Color(0xFF2E7D32)
-        MainBeaconReadinessStatus.CONDITIONAL -> Color(0xFFB26A00)
-        MainBeaconReadinessStatus.BLOCKED -> Color(0xFFC62828)
-        MainBeaconReadinessStatus.DEFECTED -> Color(0xFF5F6368)
+        MainBeaconReadinessStatus.READY -> Color(READY_COLOR_HEX)
+        MainBeaconReadinessStatus.CONDITIONAL -> Color(CONDITIONAL_COLOR_HEX)
+        MainBeaconReadinessStatus.BLOCKED -> Color(BLOCKED_COLOR_HEX)
+        MainBeaconReadinessStatus.DEFECTED -> Color(DEFECTED_COLOR_HEX)
     }
 
 private fun MainBeaconSyncStatus.compactLabel(): String =

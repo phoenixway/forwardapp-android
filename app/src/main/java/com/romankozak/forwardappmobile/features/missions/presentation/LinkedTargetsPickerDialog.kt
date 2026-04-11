@@ -109,8 +109,34 @@ private data class PickerNode(
     val parentId: String? = null,
 )
 
+private data class LinkedTargetsPickerDialogState(
+    val query: String,
+    val selectedTab: LinkPickerTab,
+    val expandedIds: Set<String>,
+    val showDescendants: Boolean,
+    val showAddContextDialog: Boolean,
+    val newContextName: String,
+    val documentsMenuExpanded: Boolean,
+    val pendingDocumentType: DocumentCreationType?,
+    val documentName: String,
+    val documentTarget: String,
+)
+
+private data class LinkedTargetsPickerDerivedState(
+    val contextsEnabled: Boolean,
+    val attachmentsEnabled: Boolean,
+    val hasContextsTab: Boolean,
+    val hasAttachmentsTab: Boolean,
+    val hasBothTabs: Boolean,
+    val contextNodes: List<PickerNode>,
+    val childMap: Map<String, List<PickerNode>>,
+    val topLevelContexts: List<PickerNode>,
+    val visibleContextIds: Set<String>,
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("LongParameterList")
 fun LinkedTargetsPickerDialog(
     contextOptions: List<ProjectOption>,
     attachmentOptions: List<AttachmentOption>,
@@ -125,10 +151,41 @@ fun LinkedTargetsPickerDialog(
     onCreateRootContext: (suspend (String) -> String?)? = null,
     onCreateDocument: (suspend (NewDocumentDraft) -> String?)? = null,
 ) {
+    LinkedTargetsPickerDialogRoute(
+        contextOptions = contextOptions,
+        attachmentOptions = attachmentOptions,
+        preselectedContextIds = preselectedContextIds,
+        preselectedAttachmentIds = preselectedAttachmentIds,
+        initialTab = initialTab,
+        allowedTabs = allowedTabs,
+        initialCreateAction = initialCreateAction,
+        onDismiss = onDismiss,
+        onContextSelected = onContextSelected,
+        onAttachmentSelected = onAttachmentSelected,
+        onCreateRootContext = onCreateRootContext,
+        onCreateDocument = onCreateDocument,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LinkedTargetsPickerDialogRoute(
+    contextOptions: List<ProjectOption>,
+    attachmentOptions: List<AttachmentOption>,
+    preselectedContextIds: Set<String>,
+    preselectedAttachmentIds: Set<String>,
+    initialTab: LinkPickerTab,
+    allowedTabs: Set<LinkPickerTab>,
+    initialCreateAction: PickerCreateAction?,
+    onDismiss: () -> Unit,
+    onContextSelected: (String) -> Unit,
+    onAttachmentSelected: (String) -> Unit,
+    onCreateRootContext: (suspend (String) -> String?)?,
+    onCreateDocument: (suspend (NewDocumentDraft) -> String?)?,
+) {
     val scope = rememberCoroutineScope()
-    var query by remember { mutableStateOf("") }
-    val contextsEnabled = LinkPickerTab.CONTEXTS in allowedTabs
-    val attachmentsEnabled = LinkPickerTab.ATTACHMENTS in allowedTabs
+    val contextsEnabled = remember(allowedTabs) { LinkPickerTab.CONTEXTS in allowedTabs }
+    val attachmentsEnabled = remember(allowedTabs) { LinkPickerTab.ATTACHMENTS in allowedTabs }
     var selectedTab by remember(initialTab, allowedTabs) {
         mutableStateOf(
             when {
@@ -138,6 +195,7 @@ fun LinkedTargetsPickerDialog(
             },
         )
     }
+    var query by remember { mutableStateOf("") }
     var expandedIds by remember { mutableStateOf(setOf<String>()) }
     var showDescendants by remember { mutableStateOf(false) }
     var showAddContextDialog by remember { mutableStateOf(false) }
@@ -146,15 +204,114 @@ fun LinkedTargetsPickerDialog(
     var pendingDocumentType by remember { mutableStateOf<DocumentCreationType?>(null) }
     var documentName by remember { mutableStateOf("") }
     var documentTarget by remember { mutableStateOf("") }
-    var horizontalDragAccum by remember { mutableStateOf(0f) }
+    val derivedState =
+        rememberLinkedTargetsPickerDerivedState(
+            contextOptions = contextOptions,
+            attachmentOptions = attachmentOptions,
+            allowedTabs = allowedTabs,
+            query = query,
+            showDescendants = showDescendants,
+        )
+    val dialogState =
+        LinkedTargetsPickerDialogState(
+            query = query,
+            selectedTab = selectedTab,
+            expandedIds = expandedIds,
+            showDescendants = showDescendants,
+            showAddContextDialog = showAddContextDialog,
+            newContextName = newContextName,
+            documentsMenuExpanded = documentsMenuExpanded,
+            pendingDocumentType = pendingDocumentType,
+            documentName = documentName,
+            documentTarget = documentTarget,
+        )
 
+    SyncExpandedIdsWithQuery(
+        query = query,
+        contextNodes = derivedState.contextNodes,
+        onExpandedIdsChange = { expandedIds = it },
+    )
+    HandleInitialPickerCreateAction(
+        initialCreateAction = initialCreateAction,
+        hasContextsTab = derivedState.hasContextsTab,
+        hasAttachmentsTab = derivedState.hasAttachmentsTab,
+        onCreateRootContext = onCreateRootContext,
+        onCreateDocument = onCreateDocument,
+        onSelectTab = { selectedTab = it },
+        onOpenContextCreation = {
+            newContextName = ""
+            showAddContextDialog = true
+        },
+        onOpenDocumentCreation = { type ->
+            pendingDocumentType = type
+            documentName = ""
+            documentTarget = ""
+        },
+    )
+
+    LinkedTargetsPickerDialogShell(
+        dialogState = dialogState,
+        derivedState = derivedState,
+        attachmentOptions = attachmentOptions,
+        preselectedContextIds = preselectedContextIds,
+        preselectedAttachmentIds = preselectedAttachmentIds,
+        onDismiss = onDismiss,
+        onQueryChange = { query = it },
+        onTabSelected = { selectedTab = it },
+        onExpandedIdsChange = { expandedIds = it },
+        onToggleDescendants = { showDescendants = !showDescendants },
+        onOpenContextCreation = {
+            newContextName = ""
+            showAddContextDialog = true
+        },
+        onDocumentsMenuExpandedChange = { documentsMenuExpanded = it },
+        onOpenDocumentCreation = { type ->
+            pendingDocumentType = type
+            documentName = ""
+            documentTarget = ""
+        },
+        onContextSelected = onContextSelected,
+        onAttachmentSelected = onAttachmentSelected,
+    )
+
+    ContextCreationOverlay(
+        isVisible = showAddContextDialog,
+        newContextName = newContextName,
+        onNameChange = { newContextName = it },
+        onDismiss = { showAddContextDialog = false },
+        onCreateRootContext = onCreateRootContext,
+        onContextSelected = onContextSelected,
+        onPickerDismiss = onDismiss,
+        scope = scope,
+    )
+    DocumentCreationOverlay(
+        type = pendingDocumentType,
+        name = documentName,
+        target = documentTarget,
+        onNameChange = { documentName = it },
+        onTargetChange = { documentTarget = it },
+        onDismiss = { pendingDocumentType = null },
+        onCreateDocument = onCreateDocument,
+        onAttachmentSelected = onAttachmentSelected,
+        onPickerDismiss = onDismiss,
+        scope = scope,
+    )
+}
+
+@Composable
+private fun rememberLinkedTargetsPickerDerivedState(
+    contextOptions: List<ProjectOption>,
+    attachmentOptions: List<AttachmentOption>,
+    allowedTabs: Set<LinkPickerTab>,
+    query: String,
+    showDescendants: Boolean,
+): LinkedTargetsPickerDerivedState {
     val contextNodes =
         remember(contextOptions) {
             contextOptions
                 .map { PickerNode(id = it.id, title = it.name, parentId = it.parentId) }
                 .distinctBy { it.id }
         }
-
     val childMap =
         remember(contextNodes) {
             contextNodes
@@ -162,200 +319,197 @@ fun LinkedTargetsPickerDialog(
                 .groupBy { it.parentId!! }
                 .mapValues { (_, value) -> value.sortedBy { it.title.lowercase() } }
         }
-
     val topLevelContexts =
         remember(contextNodes) {
             contextNodes
                 .filter { it.parentId.isNullOrBlank() }
                 .sortedBy { it.title.lowercase() }
         }
-
-    val hasContextsTab = contextsEnabled
-    val hasAttachmentsTab = attachmentsEnabled && attachmentOptions.isNotEmpty()
-    val hasBothTabs = hasContextsTab && hasAttachmentsTab
     val contextById = remember(contextNodes) { contextNodes.associateBy { it.id } }
     val visibleContextIds =
-        remember(contextNodes, childMap, query, showDescendants) {
-            if (query.isBlank()) {
-                contextNodes.map { it.id }.toSet()
-            } else {
-                val matchingIds = contextNodes.filter { it.title.contains(query, ignoreCase = true) }.map { it.id }.toSet()
-
-                val ancestorIds = mutableSetOf<String>()
-                matchingIds.forEach { id ->
-                    var parentId = contextById[id]?.parentId
-                    while (parentId != null) {
-                        ancestorIds += parentId
-                        parentId = contextById[parentId]?.parentId
-                    }
-                }
-
-                val descendantIds = mutableSetOf<String>()
-                if (showDescendants) {
-                    val queue = ArrayDeque(matchingIds.toList())
-                    while (queue.isNotEmpty()) {
-                        val current = queue.removeFirst()
-                        val children = childMap[current].orEmpty()
-                        children.forEach { child ->
-                            if (descendantIds.add(child.id)) {
-                                queue.add(child.id)
-                            }
-                        }
-                    }
-                }
-
-                matchingIds + ancestorIds + descendantIds
-            }
+        remember(contextNodes, childMap, contextById, query, showDescendants) {
+            buildVisibleContextIds(
+                contextNodes = contextNodes,
+                childMap = childMap,
+                contextById = contextById,
+                query = query,
+                showDescendants = showDescendants,
+            )
         }
 
-    LaunchedEffect(query, childMap, contextNodes) {
+    return LinkedTargetsPickerDerivedState(
+        contextsEnabled = LinkPickerTab.CONTEXTS in allowedTabs,
+        attachmentsEnabled = LinkPickerTab.ATTACHMENTS in allowedTabs,
+        hasContextsTab = LinkPickerTab.CONTEXTS in allowedTabs,
+        hasAttachmentsTab = LinkPickerTab.ATTACHMENTS in allowedTabs && attachmentOptions.isNotEmpty(),
+        hasBothTabs =
+            LinkPickerTab.CONTEXTS in allowedTabs &&
+                LinkPickerTab.ATTACHMENTS in allowedTabs &&
+                attachmentOptions.isNotEmpty(),
+        contextNodes = contextNodes,
+        childMap = childMap,
+        topLevelContexts = topLevelContexts,
+        visibleContextIds = visibleContextIds,
+    )
+}
+
+private fun buildVisibleContextIds(
+    contextNodes: List<PickerNode>,
+    childMap: Map<String, List<PickerNode>>,
+    contextById: Map<String, PickerNode>,
+    query: String,
+    showDescendants: Boolean,
+): Set<String> {
+    if (query.isBlank()) {
+        return contextNodes.map { it.id }.toSet()
+    }
+
+    val matchingIds = contextNodes.filter { it.title.contains(query, ignoreCase = true) }.map { it.id }.toSet()
+    val ancestorIds = mutableSetOf<String>()
+    matchingIds.forEach { id ->
+        var parentId = contextById[id]?.parentId
+        while (parentId != null) {
+            ancestorIds += parentId
+            parentId = contextById[parentId]?.parentId
+        }
+    }
+
+    val descendantIds = mutableSetOf<String>()
+    if (showDescendants) {
+        val queue = ArrayDeque(matchingIds.toList())
+        while (queue.isNotEmpty()) {
+            val current = queue.removeFirst()
+            childMap[current].orEmpty().forEach { child ->
+                if (descendantIds.add(child.id)) {
+                    queue.add(child.id)
+                }
+            }
+        }
+    }
+
+    return matchingIds + ancestorIds + descendantIds
+}
+
+@Composable
+private fun SyncExpandedIdsWithQuery(
+    query: String,
+    contextNodes: List<PickerNode>,
+    onExpandedIdsChange: (Set<String>) -> Unit,
+) {
+    LaunchedEffect(query, contextNodes) {
         if (query.isBlank()) {
-            expandedIds = emptySet()
+            onExpandedIdsChange(emptySet())
             return@LaunchedEffect
         }
         val byId = contextNodes.associateBy { it.id }
-        val matched = contextNodes.filter { it.title.contains(query, ignoreCase = true) }
         val nextExpanded = mutableSetOf<String>()
-        matched.forEach { node ->
-            var parentId = node.parentId
-            while (parentId != null) {
-                nextExpanded += parentId
-                parentId = byId[parentId]?.parentId
+        contextNodes
+            .filter { it.title.contains(query, ignoreCase = true) }
+            .forEach { node ->
+                var parentId = node.parentId
+                while (parentId != null) {
+                    nextExpanded += parentId
+                    parentId = byId[parentId]?.parentId
+                }
             }
-        }
-        expandedIds = nextExpanded
+        onExpandedIdsChange(nextExpanded)
     }
+}
 
+@Composable
+private fun HandleInitialPickerCreateAction(
+    initialCreateAction: PickerCreateAction?,
+    hasContextsTab: Boolean,
+    hasAttachmentsTab: Boolean,
+    onCreateRootContext: (suspend (String) -> String?)?,
+    onCreateDocument: (suspend (NewDocumentDraft) -> String?)?,
+    onSelectTab: (LinkPickerTab) -> Unit,
+    onOpenContextCreation: () -> Unit,
+    onOpenDocumentCreation: (DocumentCreationType) -> Unit,
+) {
     LaunchedEffect(initialCreateAction) {
         when (initialCreateAction) {
             PickerCreateAction.CONTEXT -> {
-                if (!hasContextsTab || onCreateRootContext == null) return@LaunchedEffect
-                selectedTab = LinkPickerTab.CONTEXTS
-                newContextName = ""
-                showAddContextDialog = true
+                if (hasContextsTab && onCreateRootContext != null) {
+                    onSelectTab(LinkPickerTab.CONTEXTS)
+                    onOpenContextCreation()
+                }
             }
             PickerCreateAction.NOTE -> {
-                if (!hasAttachmentsTab || onCreateDocument == null) return@LaunchedEffect
-                selectedTab = LinkPickerTab.ATTACHMENTS
-                pendingDocumentType = DocumentCreationType.NOTE
-                documentName = ""
-                documentTarget = ""
+                if (hasAttachmentsTab && onCreateDocument != null) {
+                    onSelectTab(LinkPickerTab.ATTACHMENTS)
+                    onOpenDocumentCreation(DocumentCreationType.NOTE)
+                }
             }
             PickerCreateAction.CHECKLIST -> {
-                if (!hasAttachmentsTab || onCreateDocument == null) return@LaunchedEffect
-                selectedTab = LinkPickerTab.ATTACHMENTS
-                pendingDocumentType = DocumentCreationType.CHECKLIST
-                documentName = ""
-                documentTarget = ""
+                if (hasAttachmentsTab && onCreateDocument != null) {
+                    onSelectTab(LinkPickerTab.ATTACHMENTS)
+                    onOpenDocumentCreation(DocumentCreationType.CHECKLIST)
+                }
             }
             PickerCreateAction.MUSIC_NOTE -> {
-                if (!hasAttachmentsTab || onCreateDocument == null) return@LaunchedEffect
-                selectedTab = LinkPickerTab.ATTACHMENTS
-                pendingDocumentType = DocumentCreationType.MUSIC_NOTE
-                documentName = ""
-                documentTarget = ""
+                if (hasAttachmentsTab && onCreateDocument != null) {
+                    onSelectTab(LinkPickerTab.ATTACHMENTS)
+                    onOpenDocumentCreation(DocumentCreationType.MUSIC_NOTE)
+                }
             }
             PickerCreateAction.WEB_LINK -> {
-                if (!hasAttachmentsTab || onCreateDocument == null) return@LaunchedEffect
-                selectedTab = LinkPickerTab.ATTACHMENTS
-                pendingDocumentType = DocumentCreationType.WEB_LINK
-                documentName = ""
-                documentTarget = ""
+                if (hasAttachmentsTab && onCreateDocument != null) {
+                    onSelectTab(LinkPickerTab.ATTACHMENTS)
+                    onOpenDocumentCreation(DocumentCreationType.WEB_LINK)
+                }
             }
             PickerCreateAction.OBSIDIAN -> {
-                if (!hasAttachmentsTab || onCreateDocument == null) return@LaunchedEffect
-                selectedTab = LinkPickerTab.ATTACHMENTS
-                pendingDocumentType = DocumentCreationType.OBSIDIAN
-                documentName = ""
-                documentTarget = ""
+                if (hasAttachmentsTab && onCreateDocument != null) {
+                    onSelectTab(LinkPickerTab.ATTACHMENTS)
+                    onOpenDocumentCreation(DocumentCreationType.OBSIDIAN)
+                }
             }
             null -> Unit
         }
     }
+}
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LinkedTargetsPickerDialogShell(
+    dialogState: LinkedTargetsPickerDialogState,
+    derivedState: LinkedTargetsPickerDerivedState,
+    attachmentOptions: List<AttachmentOption>,
+    preselectedContextIds: Set<String>,
+    preselectedAttachmentIds: Set<String>,
+    onDismiss: () -> Unit,
+    onQueryChange: (String) -> Unit,
+    onTabSelected: (LinkPickerTab) -> Unit,
+    onExpandedIdsChange: (Set<String>) -> Unit,
+    onToggleDescendants: () -> Unit,
+    onOpenContextCreation: () -> Unit,
+    onDocumentsMenuExpandedChange: (Boolean) -> Unit,
+    onOpenDocumentCreation: (DocumentCreationType) -> Unit,
+    onContextSelected: (String) -> Unit,
+    onAttachmentSelected: (String) -> Unit,
+) {
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Surface(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .imePadding(),
+            modifier = Modifier.fillMaxSize().imePadding(),
             color = MaterialTheme.colorScheme.background,
         ) {
             Scaffold(
                 floatingActionButton = {
-                    if (selectedTab == LinkPickerTab.CONTEXTS && hasContextsTab && onCreateRootContext != null) {
-                        FloatingActionButton(
-                            onClick = {
-                                newContextName = ""
-                                showAddContextDialog = true
-                            },
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = null)
-                        }
-                    } else if (selectedTab == LinkPickerTab.ATTACHMENTS && hasAttachmentsTab && onCreateDocument != null) {
-                        Box {
-                            FloatingActionButton(onClick = { documentsMenuExpanded = true }) {
-                                Icon(Icons.Default.Add, contentDescription = null)
-                            }
-                            DropdownMenu(
-                                expanded = documentsMenuExpanded,
-                                onDismissRequest = { documentsMenuExpanded = false },
-                                modifier =
-                                    Modifier
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.attachment_type_notes)) },
-                                    onClick = {
-                                        documentsMenuExpanded = false
-                                        pendingDocumentType = DocumentCreationType.NOTE
-                                        documentName = ""
-                                        documentTarget = ""
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.attachment_type_music_notes)) },
-                                    onClick = {
-                                        documentsMenuExpanded = false
-                                        pendingDocumentType = DocumentCreationType.MUSIC_NOTE
-                                        documentName = ""
-                                        documentTarget = ""
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.attachment_type_checklist)) },
-                                    onClick = {
-                                        documentsMenuExpanded = false
-                                        pendingDocumentType = DocumentCreationType.CHECKLIST
-                                        documentName = ""
-                                        documentTarget = ""
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.attachment_type_web_link)) },
-                                    onClick = {
-                                        documentsMenuExpanded = false
-                                        pendingDocumentType = DocumentCreationType.WEB_LINK
-                                        documentName = ""
-                                        documentTarget = ""
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.attachment_type_obsidian)) },
-                                    onClick = {
-                                        documentsMenuExpanded = false
-                                        pendingDocumentType = DocumentCreationType.OBSIDIAN
-                                        documentName = ""
-                                        documentTarget = ""
-                                    },
-                                )
-                            }
-                        }
-                    }
+                    LinkedTargetsPickerFab(
+                        selectedTab = dialogState.selectedTab,
+                        hasContextsTab = derivedState.hasContextsTab,
+                        hasAttachmentsTab = derivedState.hasAttachmentsTab,
+                        documentsMenuExpanded = dialogState.documentsMenuExpanded,
+                        canCreateContext = derivedState.contextsEnabled,
+                        canCreateDocument = derivedState.attachmentsEnabled,
+                        onOpenContextCreation = onOpenContextCreation,
+                        onDocumentsMenuExpandedChange = onDocumentsMenuExpandedChange,
+                        onOpenDocumentCreation = onOpenDocumentCreation,
+                    )
                 },
                 topBar = {
                     TopAppBar(
@@ -382,91 +536,36 @@ fun LinkedTargetsPickerDialog(
                         Modifier
                             .fillMaxSize()
                             .padding(padding)
-                            .pointerInput(hasBothTabs, selectedTab) {
-                                if (!hasBothTabs) return@pointerInput
-                                detectHorizontalDragGestures(
-                                    onDragStart = { horizontalDragAccum = 0f },
-                                    onHorizontalDrag = { _, dragAmount ->
-                                        horizontalDragAccum += dragAmount
-                                    },
-                                    onDragEnd = {
-                                        if (abs(horizontalDragAccum) >= 60f) {
-                                            selectedTab =
-                                                if (horizontalDragAccum < 0f) {
-                                                    LinkPickerTab.ATTACHMENTS
-                                                } else {
-                                                    LinkPickerTab.CONTEXTS
-                                                }
-                                        }
-                                        horizontalDragAccum = 0f
-                                    },
-                                    onDragCancel = { horizontalDragAccum = 0f },
-                                )
-                            },
+                            .pickerDragGesture(
+                                hasBothTabs = derivedState.hasBothTabs,
+                                selectedTab = dialogState.selectedTab,
+                                onTabSelected = onTabSelected,
+                            ),
                 ) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .background(
-                                    brush =
-                                        Brush.verticalGradient(
-                                            listOf(
-                                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-                                                Color.Transparent,
-                                            ),
-                                        ),
-                                ).padding(horizontal = 16.dp, vertical = 12.dp),
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            if (hasBothTabs) {
-                                CompactTypeTabs(
-                                    selectedTab = selectedTab,
-                                    onTabSelected = { selectedTab = it },
-                                )
-                            }
+                    LinkedTargetsPickerHeader(
+                        selectedTab = dialogState.selectedTab,
+                        query = dialogState.query,
+                        showDescendants = dialogState.showDescendants,
+                        hasBothTabs = derivedState.hasBothTabs,
+                        onQueryChange = onQueryChange,
+                        onTabSelected = onTabSelected,
+                        onToggleDescendants = onToggleDescendants,
+                    )
 
-                            OutlinedTextField(
-                                value = query,
-                                onValueChange = { query = it },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                leadingIcon = {
-                                    Icon(Icons.Default.Search, contentDescription = null)
-                                },
-                                placeholder = {
-                                    Text(
-                                        if (selectedTab == LinkPickerTab.CONTEXTS) {
-                                            stringResource(R.string.picker_search_contexts)
-                                        } else {
-                                            stringResource(R.string.picker_search_documents)
-                                        },
-                                    )
-                                },
-                            )
-
-                            if (selectedTab == LinkPickerTab.CONTEXTS && query.isNotBlank()) {
-                                CompactDescendantsToggle(
-                                    enabled = showDescendants,
-                                    onToggle = { showDescendants = !showDescendants },
-                                )
-                            }
-                        }
-                    }
-
-                    if (selectedTab == LinkPickerTab.CONTEXTS) {
+                    if (dialogState.selectedTab == LinkPickerTab.CONTEXTS) {
                         ContextPickerList(
-                            topLevelContexts = topLevelContexts,
-                            childMap = childMap,
-                            visibleIds = visibleContextIds,
-                            expandedIds = expandedIds,
+                            topLevelContexts = derivedState.topLevelContexts,
+                            childMap = derivedState.childMap,
+                            visibleIds = derivedState.visibleContextIds,
+                            expandedIds = dialogState.expandedIds,
                             onToggleExpanded = { id ->
-                                expandedIds =
-                                    if (id in expandedIds) {
-                                        expandedIds - id
+                                onExpandedIdsChange(
+                                    if (id in dialogState.expandedIds) {
+                                        dialogState.expandedIds - id
                                     } else {
-                                        expandedIds + id
-                                    }
+                                        dialogState.expandedIds + id
+                                    },
+                                )
                             },
                             preselectedIds = preselectedContextIds,
                             onSelect = onContextSelected,
@@ -474,7 +573,7 @@ fun LinkedTargetsPickerDialog(
                     } else {
                         AttachmentPickerList(
                             options = attachmentOptions,
-                            query = query,
+                            query = dialogState.query,
                             preselectedIds = preselectedAttachmentIds,
                             onSelect = onAttachmentSelected,
                         )
@@ -483,83 +582,248 @@ fun LinkedTargetsPickerDialog(
             }
         }
     }
+}
 
-    if (showAddContextDialog && onCreateRootContext != null) {
-        AlertDialog(
-            modifier = Modifier.imePadding(),
-            onDismissRequest = { showAddContextDialog = false },
-            title = { Text(stringResource(R.string.add_action_project)) },
-            text = {
-                OutlinedTextField(
-                    value = newContextName,
-                    onValueChange = { newContextName = it },
-                    singleLine = true,
-                    label = { Text(stringResource(R.string.picker_context_name_label)) },
-                    placeholder = { Text(stringResource(R.string.picker_context_name_placeholder)) },
+@Composable
+private fun LinkedTargetsPickerHeader(
+    selectedTab: LinkPickerTab,
+    query: String,
+    showDescendants: Boolean,
+    hasBothTabs: Boolean,
+    onQueryChange: (String) -> Unit,
+    onTabSelected: (LinkPickerTab) -> Unit,
+    onToggleDescendants: () -> Unit,
+) {
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(
+                    brush =
+                        Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                                Color.Transparent,
+                            ),
+                        ),
+                ).padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (hasBothTabs) {
+                CompactTypeTabs(selectedTab = selectedTab, onTabSelected = onTabSelected)
+            }
+
+            OutlinedTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                placeholder = {
+                    Text(
+                        if (selectedTab == LinkPickerTab.CONTEXTS) {
+                            stringResource(R.string.picker_search_contexts)
+                        } else {
+                            stringResource(R.string.picker_search_documents)
+                        },
+                    )
+                },
+            )
+
+            if (selectedTab == LinkPickerTab.CONTEXTS && query.isNotBlank()) {
+                CompactDescendantsToggle(
+                    enabled = showDescendants,
+                    onToggle = onToggleDescendants,
                 )
-            },
-            confirmButton = {
-                Button(
-                    enabled = newContextName.isNotBlank(),
-                    onClick = {
-                        val name = newContextName.trim()
-                        scope.launch {
-                            val id = onCreateRootContext(name)
-                            if (!id.isNullOrBlank()) {
-                                onContextSelected(id)
-                                onDismiss()
-                            }
-                            showAddContextDialog = false
-                        }
-                    },
-                ) {
-                    Text(stringResource(R.string.create))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAddContextDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-        )
-    }
-
-    pendingDocumentType?.let { type ->
-        DocumentCreationDialog(
-            type = type,
-            name = documentName,
-            target = documentTarget,
-            onNameChange = { documentName = it },
-            onTargetChange = { documentTarget = it },
-            onDismiss = { pendingDocumentType = null },
-            onConfirm = {
-                val request =
-                    when (type) {
-                        DocumentCreationType.NOTE -> NewDocumentDraft.Note(name = documentName.trim().ifBlank { "New note" })
-                        DocumentCreationType.MUSIC_NOTE ->
-                            NewDocumentDraft.MusicNote(
-                                name = documentName.trim().ifBlank { "New music note" },
-                            )
-                        DocumentCreationType.CHECKLIST -> NewDocumentDraft.Checklist(name = documentName.trim().ifBlank { "New checklist" })
-                        DocumentCreationType.WEB_LINK -> NewDocumentDraft.WebLink(url = documentTarget.trim(), name = documentName.trim())
-                        DocumentCreationType.OBSIDIAN ->
-                            NewDocumentDraft.Obsidian(
-                                noteName = documentTarget.trim(),
-                                displayName = documentName.trim(),
-                            )
-                    }
-                scope.launch {
-                    val id = onCreateDocument?.invoke(request)
-                    if (!id.isNullOrBlank()) {
-                        onAttachmentSelected(id)
-                        onDismiss()
-                    }
-                    pendingDocumentType = null
-                }
-            },
-        )
+            }
+        }
     }
 }
+
+@Composable
+private fun LinkedTargetsPickerFab(
+    selectedTab: LinkPickerTab,
+    hasContextsTab: Boolean,
+    hasAttachmentsTab: Boolean,
+    documentsMenuExpanded: Boolean,
+    canCreateContext: Boolean,
+    canCreateDocument: Boolean,
+    onOpenContextCreation: () -> Unit,
+    onDocumentsMenuExpandedChange: (Boolean) -> Unit,
+    onOpenDocumentCreation: (DocumentCreationType) -> Unit,
+) {
+    if (selectedTab == LinkPickerTab.CONTEXTS && hasContextsTab && canCreateContext) {
+        FloatingActionButton(onClick = onOpenContextCreation) {
+            Icon(Icons.Default.Add, contentDescription = null)
+        }
+        return
+    }
+
+    if (selectedTab == LinkPickerTab.ATTACHMENTS && hasAttachmentsTab && canCreateDocument) {
+        Box {
+            FloatingActionButton(onClick = { onDocumentsMenuExpandedChange(true) }) {
+                Icon(Icons.Default.Add, contentDescription = null)
+            }
+            DropdownMenu(
+                expanded = documentsMenuExpanded,
+                onDismissRequest = { onDocumentsMenuExpandedChange(false) },
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            ) {
+                DocumentCreationType.entries.forEach { type ->
+                    DropdownMenuItem(
+                        text = { Text(documentCreationMenuLabel(type)) },
+                        onClick = {
+                            onDocumentsMenuExpandedChange(false)
+                            onOpenDocumentCreation(type)
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun documentCreationMenuLabel(type: DocumentCreationType): Int =
+    when (type) {
+        DocumentCreationType.NOTE -> R.string.attachment_type_notes
+        DocumentCreationType.MUSIC_NOTE -> R.string.attachment_type_music_notes
+        DocumentCreationType.CHECKLIST -> R.string.attachment_type_checklist
+        DocumentCreationType.WEB_LINK -> R.string.attachment_type_web_link
+        DocumentCreationType.OBSIDIAN -> R.string.attachment_type_obsidian
+    }
+
+private fun Modifier.pickerDragGesture(
+    hasBothTabs: Boolean,
+    selectedTab: LinkPickerTab,
+    onTabSelected: (LinkPickerTab) -> Unit,
+): Modifier =
+    pointerInput(hasBothTabs, selectedTab) {
+        if (!hasBothTabs) return@pointerInput
+        var horizontalDragAccum = 0f
+        detectHorizontalDragGestures(
+            onDragStart = { horizontalDragAccum = 0f },
+            onHorizontalDrag = { _, dragAmount ->
+                horizontalDragAccum += dragAmount
+            },
+            onDragEnd = {
+                if (abs(horizontalDragAccum) >= 60f) {
+                    onTabSelected(
+                        if (horizontalDragAccum < 0f) {
+                            LinkPickerTab.ATTACHMENTS
+                        } else {
+                            LinkPickerTab.CONTEXTS
+                        },
+                    )
+                }
+                horizontalDragAccum = 0f
+            },
+            onDragCancel = { horizontalDragAccum = 0f },
+        )
+    }
+
+@Composable
+private fun ContextCreationOverlay(
+    isVisible: Boolean,
+    newContextName: String,
+    onNameChange: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onCreateRootContext: (suspend (String) -> String?)?,
+    onContextSelected: (String) -> Unit,
+    onPickerDismiss: () -> Unit,
+    scope: kotlinx.coroutines.CoroutineScope,
+) {
+    if (!isVisible || onCreateRootContext == null) return
+
+    AlertDialog(
+        modifier = Modifier.imePadding(),
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.add_action_project)) },
+        text = {
+            OutlinedTextField(
+                value = newContextName,
+                onValueChange = onNameChange,
+                singleLine = true,
+                label = { Text(stringResource(R.string.picker_context_name_label)) },
+                placeholder = { Text(stringResource(R.string.picker_context_name_placeholder)) },
+            )
+        },
+        confirmButton = {
+            Button(
+                enabled = newContextName.isNotBlank(),
+                onClick = {
+                    val name = newContextName.trim()
+                    scope.launch {
+                        val id = onCreateRootContext(name)
+                        if (!id.isNullOrBlank()) {
+                            onContextSelected(id)
+                            onPickerDismiss()
+                        }
+                        onDismiss()
+                    }
+                },
+            ) {
+                Text(stringResource(R.string.create))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+    )
+}
+
+@Composable
+private fun DocumentCreationOverlay(
+    type: DocumentCreationType?,
+    name: String,
+    target: String,
+    onNameChange: (String) -> Unit,
+    onTargetChange: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onCreateDocument: (suspend (NewDocumentDraft) -> String?)?,
+    onAttachmentSelected: (String) -> Unit,
+    onPickerDismiss: () -> Unit,
+    scope: kotlinx.coroutines.CoroutineScope,
+) {
+    type ?: return
+
+    DocumentCreationDialog(
+        type = type,
+        name = name,
+        target = target,
+        onNameChange = onNameChange,
+        onTargetChange = onTargetChange,
+        onDismiss = onDismiss,
+        onConfirm = {
+            val request = buildNewDocumentDraft(type = type, name = name, target = target)
+            scope.launch {
+                val id = onCreateDocument?.invoke(request)
+                if (!id.isNullOrBlank()) {
+                    onAttachmentSelected(id)
+                    onPickerDismiss()
+                }
+                onDismiss()
+            }
+        },
+    )
+}
+
+private fun buildNewDocumentDraft(
+    type: DocumentCreationType,
+    name: String,
+    target: String,
+): NewDocumentDraft =
+    when (type) {
+        DocumentCreationType.NOTE -> NewDocumentDraft.Note(name = name.trim().ifBlank { "New note" })
+        DocumentCreationType.MUSIC_NOTE -> NewDocumentDraft.MusicNote(name = name.trim().ifBlank { "New music note" })
+        DocumentCreationType.CHECKLIST -> NewDocumentDraft.Checklist(name = name.trim().ifBlank { "New checklist" })
+        DocumentCreationType.WEB_LINK -> NewDocumentDraft.WebLink(url = target.trim(), name = name.trim())
+        DocumentCreationType.OBSIDIAN -> NewDocumentDraft.Obsidian(noteName = target.trim(), displayName = name.trim())
+    }
 
 @Composable
 private fun ContextPickerList(
