@@ -1,3 +1,5 @@
+@file:Suppress("MaxLineLength", "WildcardImport")
+
 package com.romankozak.forwardappmobile.features.globalsearch
 
 import android.content.res.Configuration
@@ -480,8 +482,6 @@ fun GlobalSearchScreen(
                 currentMode = currentMode,
                 modePalette = modePalette,
                 filteredResults = filteredResults,
-                selectedCommandIndex = selectedCommandIndex,
-                selectionArea = selectionArea,
                 showModeMenu = showModeMenu,
                 onShowModeMenu = { showModeMenu = true },
                 onDismissModeMenu = { showModeMenu = false },
@@ -507,12 +507,6 @@ fun GlobalSearchScreen(
                         onSelectedCommandIndex = { selectedCommandIndex = it },
                         onSelectedDataIndex = { selectedDataIndex = it },
                         onSelectionArea = { selectionArea = it },
-                        onOpenDataResult = { result -> openDataResultPrimary(result) },
-                        onSubmit = { idx ->
-                            viewModel.onSubmitSearch(idx)
-                            keyboardController?.hide()
-                        },
-                        focusRequester = focusRequester,
                     )
                 },
                 focusRequester = focusRequester,
@@ -531,8 +525,6 @@ private fun CompactOmnibox(
     currentMode: OmniboxMode,
     modePalette: OmniboxModePalette,
     filteredResults: List<GlobalSearchResultItem>,
-    selectedCommandIndex: Int?,
-    selectionArea: OmniboxSelectionArea,
     showModeMenu: Boolean,
     onShowModeMenu: () -> Unit,
     onDismissModeMenu: () -> Unit,
@@ -803,6 +795,7 @@ private fun CompactOmnibox(
 
 // ── Key event handler (extracted to keep GlobalSearchScreen readable) ─────────
 
+@Suppress("ReturnCount")
 private fun handleOmniboxKeyEvent(
     keyEvent: androidx.compose.ui.input.key.KeyEvent,
     currentMode: OmniboxMode,
@@ -815,9 +808,6 @@ private fun handleOmniboxKeyEvent(
     onSelectedCommandIndex: (Int?) -> Unit,
     onSelectedDataIndex: (Int?) -> Unit,
     onSelectionArea: (OmniboxSelectionArea) -> Unit,
-    onOpenDataResult: (GlobalSearchResultItem) -> Unit,
-    onSubmit: (Int?) -> Unit,
-    focusRequester: FocusRequester,
 ): Boolean {
     if (keyEvent.type != KeyEventType.KeyDown) return false
     return when (keyEvent.key) {

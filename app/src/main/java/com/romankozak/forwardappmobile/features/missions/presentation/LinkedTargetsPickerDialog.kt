@@ -674,7 +674,7 @@ private fun LinkedTargetsPickerFab(
             ) {
                 DocumentCreationType.entries.forEach { type ->
                     DropdownMenuItem(
-                        text = { Text(documentCreationMenuLabel(type)) },
+                        text = { Text(stringResource(documentCreationMenuLabel(type))) },
                         onClick = {
                             onDocumentsMenuExpandedChange(false)
                             onOpenDocumentCreation(type)

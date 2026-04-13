@@ -45,12 +45,14 @@ dependencies {
     implementation(libs.javax.inject)
     implementation(project(":core-data-interfaces"))
     implementation(project(":core-data-models"))
+    implementation(project(":shared-contracts"))
+    implementation(project(":shared-domain"))
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.gson)
     implementation(libs.ktor.client.logging)
-
-implementation(libs.timber)
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    implementation(libs.timber)
     // Add other sync-specific dependencies here
     // For example:
     // implementation("androidx.room:room-runtime:2.6.1")

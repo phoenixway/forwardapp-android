@@ -45,7 +45,8 @@ firebase-crashlytics-plugin-version = "2.9.9"
 firebase-bom = "33.1.0"
 
 accompanist = "0.34.0"
-jetbrainsKotlinJvm = "2.0.21"
+jetbrainsKotlinJvm = "2.2.20"
+jetbrainsCompose = "1.9.0"
 #foundationDesktop = "1.7.0"
 
 [libraries]
@@ -144,6 +145,7 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrainsKotlinJvm" }
+jetbrains-compose = { id = "org.jetbrains.compose", version.ref = "jetbrainsCompose" }
 google-services-plugin = { id = "com.google.gms.google-services", version.ref = "google-services-plugin-version" }
 firebase-crashlytics-plugin = { id = "com.google.firebase.crashlytics", version.ref = "firebase-crashlytics-plugin-version" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }

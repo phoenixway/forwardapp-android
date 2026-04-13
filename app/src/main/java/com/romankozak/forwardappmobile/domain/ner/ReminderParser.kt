@@ -26,6 +26,19 @@ class ReminderParser
     constructor(
         private val nerManager: NerManager,
     ) {
+        private data class FallbackMatchContext(
+            val pattern: Regex,
+            val match: MatchResult,
+            val suggestionText: String,
+            val calendar: Calendar = Calendar.getInstance(),
+        )
+
+        private data class FallbackParseState(
+            val success: Boolean,
+            val label: String,
+            val calendar: Calendar,
+        )
+
         private val TAG = "ReminderParser"
 
         private val textToNumberMap =
@@ -140,179 +153,170 @@ class ReminderParser
             val cleanText = text.lowercase(Locale.forLanguageTag("uk-UA")).trim()
             Log.d(TAG, "[ReminderParser] Fallback parsing: '$cleanText'")
 
-            val numberWords = textToNumberMap.keys.joinToString("|")
+            for (context in buildFallbackMatchContexts(cleanText)) {
+                val result = parseFallbackMatch(context) ?: continue
+                Log.d(TAG, "[ReminderParser] Fallback successful with pattern: ${context.pattern.pattern}")
+                return buildFallbackParseResult(
+                    originalText = text,
+                    cleanText = cleanText,
+                    context = context,
+                    state = result,
+                )
+            }
 
+            Log.d(TAG, "[ReminderParser] No fallback patterns matched")
+            return null
+        }
+
+        private fun buildFallbackMatchContexts(cleanText: String): List<FallbackMatchContext> {
+            val numberWords = textToNumberMap.keys.joinToString("|")
             val durationPattern =
                 Regex(
                     """(через|за)\s*(\d+|$numberWords)\s*(хвилину|хвилин|годину|годин|день|днів|тиждень|тижні|місяць|місяці|рік|років|хв|год|дн)\b""",
                 )
-
             val patterns =
                 listOf(
                     durationPattern,
                     Regex("""(?:о|в)\s*(\d{1,2})(?:[:.]\s*(\d{2}))?"""),
                     Regex("""(сьогодні|завтра|післязавтра)(?:\s*о?\s*(\d{1,2})(?:[:.]\s*(\d{2}))?)?"""),
                 )
-
-            for (pattern in patterns) {
-                val match = pattern.find(cleanText)
-                if (match != null) {
-                    Log.d(TAG, "[ReminderParser] Found match: '${match.value}' at range ${match.range} in text '$cleanText'")
-
-                    val calendar = Calendar.getInstance()
-                    var success = false
-                    val suggestionText = match.value
-
-                    val isDuration = pattern == durationPattern
-                    if (isDuration) {
-                        val numberString = match.groups[2]?.value ?: continue
-                        val number = textToNumberMap[numberString] ?: numberString.toIntOrNull() ?: continue
-                        val unit = match.groups[3]?.value ?: continue
-
-                        Log.d(
-                            TAG,
-                            "[ReminderParser] Fallback found: number=$number, unit='$unit', match='${match.value}' at ${match.range}",
-                        )
-
-                        success =
-                            when {
-                                unit.startsWith("хв") -> {
-                                    calendar.add(Calendar.MINUTE, number)
-                                    true
-                                }
-                                unit.startsWith("год") -> {
-                                    calendar.add(Calendar.HOUR_OF_DAY, number)
-                                    true
-                                }
-                                unit.startsWith("дн") || unit.startsWith("день") -> {
-                                    calendar.add(Calendar.DAY_OF_YEAR, number)
-                                    true
-                                }
-                                unit.startsWith("тижн") -> {
-                                    calendar.add(Calendar.WEEK_OF_YEAR, number)
-                                    true
-                                }
-                                unit.startsWith("місяць") -> {
-                                    calendar.add(Calendar.MONTH, number)
-                                    true
-                                }
-                                unit.startsWith("рок") -> {
-                                    calendar.add(Calendar.YEAR, number)
-                                    true
-                                }
-                                else -> {
-                                    Log.w(TAG, "[ReminderParser] Unknown time unit: '$unit'")
-                                    false
-                                }
-                            }
-                    } else {
-                        when {
-                            match.groups[1]?.value?.toIntOrNull() != null -> {
-                                val hour = match.groups[1]?.value?.toInt() ?: continue
-                                val minute = match.groups[2]?.value?.toIntOrNull() ?: 0
-                                if (hour in 0..23 && minute in 0..59) {
-                                    calendar.set(Calendar.HOUR_OF_DAY, hour)
-                                    calendar.set(Calendar.MINUTE, minute)
-                                    calendar.set(Calendar.SECOND, 0)
-                                    calendar.set(Calendar.MILLISECOND, 0)
-
-                                    val now = Calendar.getInstance()
-                                    if (calendar.timeInMillis < now.timeInMillis) {
-                                        calendar.add(Calendar.DAY_OF_YEAR, 1)
-                                    }
-                                    success = true
-                                }
-                            }
-                            else -> {
-                                val dateWord = match.groups[1]?.value
-                                when (dateWord) {
-                                    "сьогодні" -> {
-                                        val hour = match.groups[2]?.value?.toIntOrNull()
-                                        val minute = match.groups[3]?.value?.toIntOrNull() ?: 0
-                                        if (hour != null) {
-                                            calendar.set(Calendar.HOUR_OF_DAY, hour)
-                                            calendar.set(Calendar.MINUTE, minute)
-                                        } else {
-                                            calendar.set(Calendar.HOUR_OF_DAY, 9)
-                                            calendar.set(Calendar.MINUTE, 0)
-                                        }
-                                        calendar.set(Calendar.SECOND, 0)
-                                        calendar.set(Calendar.MILLISECOND, 0)
-                                        success = true
-                                    }
-                                    "завтра" -> {
-                                        calendar.add(Calendar.DAY_OF_YEAR, 1)
-                                        val hour = match.groups[2]?.value?.toIntOrNull() ?: 9
-                                        val minute = match.groups[3]?.value?.toIntOrNull() ?: 0
-                                        calendar.set(Calendar.HOUR_OF_DAY, hour)
-                                        calendar.set(Calendar.MINUTE, minute)
-                                        calendar.set(Calendar.SECOND, 0)
-                                        calendar.set(Calendar.MILLISECOND, 0)
-                                        success = true
-                                    }
-                                    "післязавтра" -> {
-                                        calendar.add(Calendar.DAY_OF_YEAR, 2)
-                                        val hour = match.groups[2]?.value?.toIntOrNull() ?: 9
-                                        val minute = match.groups[3]?.value?.toIntOrNull() ?: 0
-                                        calendar.set(Calendar.HOUR_OF_DAY, hour)
-                                        calendar.set(Calendar.MINUTE, minute)
-                                        calendar.set(Calendar.SECOND, 0)
-                                        calendar.set(Calendar.MILLISECOND, 0)
-                                        success = true
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if (success) {
-                        Log.d(TAG, "[ReminderParser] Fallback successful with pattern: ${pattern.pattern}")
-
-                        val matchStart = match.range.first
-                        val matchEnd = match.range.last + 1
-
-                        val beforeMatch = cleanText.substring(0, matchStart).trim()
-                        val afterMatch = cleanText.substring(matchEnd).trim()
-                        val goalText = (beforeMatch + " " + afterMatch).trim()
-
-                        Log.d(TAG, "[ReminderParser] Goal text extracted: '$goalText' (before: '$beforeMatch', after: '$afterMatch')")
-
-                        return ReminderParseResult(
-                            originalText = text,
-                            dateTimeEntities =
-                                listOf(
-                                    DateTimeEntity(
-                                        text = match.value,
-                                        label = if (isDuration) "DURATION" else "TIME",
-                                        start = matchStart,
-                                        end = matchEnd,
-                                        confidence = 0.8f,
-                                    ),
-                                ),
-                            otherEntities =
-                                if (goalText.isNotEmpty()) {
-                                    listOf(
-                                        Entity(
-                                            text = goalText,
-                                            label = "GOAL",
-                                            start = 0,
-                                            end = goalText.length,
-                                        ),
-                                    )
-                                } else {
-                                    emptyList()
-                                },
-                            success = true,
-                            calendar = calendar,
-                            suggestionText = suggestionText,
-                            errorMessage = null,
-                        )
-                    }
-                }
+            return patterns.mapNotNull { pattern ->
+                val match = pattern.find(cleanText) ?: return@mapNotNull null
+                Log.d(TAG, "[ReminderParser] Found match: '${match.value}' at range ${match.range} in text '$cleanText'")
+                FallbackMatchContext(
+                    pattern = pattern,
+                    match = match,
+                    suggestionText = match.value,
+                )
             }
+        }
 
-            Log.d(TAG, "[ReminderParser] No fallback patterns matched")
-            return null
+        private fun parseFallbackMatch(context: FallbackMatchContext): FallbackParseState? {
+            return parseDurationMatch(context)
+                ?: parseClockTimeMatch(context)
+                ?: parseRelativeDateMatch(context)
+        }
+
+        private fun parseDurationMatch(context: FallbackMatchContext): FallbackParseState? {
+            val numberString = context.match.groups[2]?.value ?: return null
+            val unit = context.match.groups[3]?.value ?: return null
+            val number = textToNumberMap[numberString] ?: numberString.toIntOrNull() ?: return null
+            Log.d(
+                TAG,
+                "[ReminderParser] Fallback found: number=$number, unit='$unit', match='${context.match.value}' at ${context.match.range}",
+            )
+            val calendarField =
+                when {
+                    unit.startsWith("хв") -> Calendar.MINUTE
+                    unit.startsWith("год") -> Calendar.HOUR_OF_DAY
+                    unit.startsWith("дн") || unit.startsWith("день") -> Calendar.DAY_OF_YEAR
+                    unit.startsWith("тижн") -> Calendar.WEEK_OF_YEAR
+                    unit.startsWith("місяць") -> Calendar.MONTH
+                    unit.startsWith("рок") -> Calendar.YEAR
+                    else -> null
+                }
+            if (calendarField == null) {
+                Log.w(TAG, "[ReminderParser] Unknown time unit: '$unit'")
+                return null
+            }
+            context.calendar.add(calendarField, number)
+            return FallbackParseState(
+                success = true,
+                label = "DURATION",
+                calendar = context.calendar,
+            )
+        }
+
+        private fun parseClockTimeMatch(context: FallbackMatchContext): FallbackParseState? {
+            val hour = context.match.groups[1]?.value?.toIntOrNull() ?: return null
+            val minute = context.match.groups[2]?.value?.toIntOrNull() ?: 0
+            if (hour !in 0..23 || minute !in 0..59) return null
+            context.calendar.set(Calendar.HOUR_OF_DAY, hour)
+            context.calendar.set(Calendar.MINUTE, minute)
+            context.calendar.set(Calendar.SECOND, 0)
+            context.calendar.set(Calendar.MILLISECOND, 0)
+
+            val now = Calendar.getInstance()
+            if (context.calendar.timeInMillis < now.timeInMillis) {
+                context.calendar.add(Calendar.DAY_OF_YEAR, 1)
+            }
+            return FallbackParseState(
+                success = true,
+                label = "TIME",
+                calendar = context.calendar,
+            )
+        }
+
+        private fun parseRelativeDateMatch(context: FallbackMatchContext): FallbackParseState? {
+            val dateWord = context.match.groups[1]?.value ?: return null
+            val dayOffset =
+                when (dateWord) {
+                    "сьогодні" -> 0
+                    "завтра" -> 1
+                    "післязавтра" -> 2
+                    else -> return null
+                }
+            if (dayOffset > 0) {
+                context.calendar.add(Calendar.DAY_OF_YEAR, dayOffset)
+            }
+            val defaultHour = if (dateWord == "сьогодні") null else 9
+            val hour = context.match.groups[2]?.value?.toIntOrNull() ?: defaultHour ?: 9
+            val minute = context.match.groups[3]?.value?.toIntOrNull() ?: 0
+            context.calendar.set(Calendar.HOUR_OF_DAY, hour)
+            context.calendar.set(Calendar.MINUTE, minute)
+            context.calendar.set(Calendar.SECOND, 0)
+            context.calendar.set(Calendar.MILLISECOND, 0)
+            return FallbackParseState(
+                success = true,
+                label = "TIME",
+                calendar = context.calendar,
+            )
+        }
+
+        private fun buildFallbackParseResult(
+            originalText: String,
+            cleanText: String,
+            context: FallbackMatchContext,
+            state: FallbackParseState,
+        ): ReminderParseResult {
+            val matchStart = context.match.range.first
+            val matchEnd = context.match.range.last + 1
+            val beforeMatch = cleanText.substring(0, matchStart).trim()
+            val afterMatch = cleanText.substring(matchEnd).trim()
+            val goalText = (beforeMatch + " " + afterMatch).trim()
+
+            Log.d(TAG, "[ReminderParser] Goal text extracted: '$goalText' (before: '$beforeMatch', after: '$afterMatch')")
+
+            return ReminderParseResult(
+                originalText = originalText,
+                dateTimeEntities =
+                    listOf(
+                        DateTimeEntity(
+                            text = context.match.value,
+                            label = state.label,
+                            start = matchStart,
+                            end = matchEnd,
+                            confidence = 0.8f,
+                        ),
+                    ),
+                otherEntities =
+                    if (goalText.isNotEmpty()) {
+                        listOf(
+                            Entity(
+                                text = goalText,
+                                label = "GOAL",
+                                start = 0,
+                                end = goalText.length,
+                            ),
+                        )
+                    } else {
+                        emptyList()
+                    },
+                success = state.success,
+                calendar = state.calendar,
+                suggestionText = context.suggestionText,
+                errorMessage = null,
+            )
         }
     }
 

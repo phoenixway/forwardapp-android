@@ -8,8 +8,18 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -214,7 +224,9 @@ internal fun CommandStartContent(
         if (args.showPreview) {
             ModePreviewCard(
                 title = "Командний режим",
-                description = "Вводьте навігаційні й швидкі команди. Виконання тільки через кнопку send або тап по картці.",
+                description =
+                    "Вводьте навігаційні й швидкі команди. " +
+                        "Виконання тільки через кнопку send або тап по картці.",
                 accentColor = args.accentColor,
                 icon = Icons.Default.Tune,
             )
@@ -571,7 +583,9 @@ internal fun SearchStartContent(
         if (showPreview) {
             ModePreviewCard(
                 title = "Глобальний пошук",
-                description = "Пошук по контекстах, цілях, активностях, inbox і вкладеннях. Enter більше не запускає пошук, тільки кнопка send.",
+                description =
+                    "Пошук по контекстах, цілях, активностях, inbox і вкладеннях. " +
+                        "Enter більше не запускає пошук, тільки кнопка send.",
                 accentColor = MaterialTheme.colorScheme.primary,
                 icon = Icons.Default.Search,
             )

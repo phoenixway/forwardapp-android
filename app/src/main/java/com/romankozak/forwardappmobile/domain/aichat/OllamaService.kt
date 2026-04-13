@@ -23,6 +23,11 @@ import javax.inject.Singleton
 
 private val TAG = "AI_CHAT_DEBUG"
 
+private data class ParsedStreamLine(
+    val content: String,
+    val done: Boolean,
+)
+
 @Singleton
 class OllamaService
     @Inject
@@ -135,58 +140,87 @@ class OllamaService
 
                     if (line.isBlank()) continue
 
-                    val jsonElement =
-                        try {
-                            json.parseToJsonElement(line)
-                        } catch (e: Exception) {
-                            Log.w(TAG, "Failed to parse line as JSON: '$line', error: ${e.message}")
-                            continue
-                        }
-
-                    try {
-                        val errorResponse = json.decodeFromString<OllamaErrorResponse>(line)
-                        throw IllegalStateException("Ollama API error: ${errorResponse.error}")
-                    } catch (e: Exception) {
-                    }
-
-                    if (isGenerateEndpoint) {
-                        val ollamaResponse =
-                            try {
-                                json.decodeFromString<OllamaResponse>(line)
-                            } catch (e: Exception) {
-                                Log.w(TAG, "Failed to parse line as OllamaResponse: '$line', error: ${e.message}")
-                                continue
-                            }
-
-                        val content = ollamaResponse.response
-                        if (content.isNotEmpty()) {
-                            emit(content)
-                        }
-
-                        if (ollamaResponse.done) {
-                            shouldContinue = false
-                        }
-                    } else {
-                        val ollamaResponse =
-                            try {
-                                json.decodeFromString<OllamaChatResponse>(line)
-                            } catch (e: Exception) {
-                                Log.w(TAG, "Failed to parse line as OllamaChatResponse: '$line', error: ${e.message}")
-                                continue
-                            }
-
-                        val content = ollamaResponse.message.content
-                        if (content.isNotEmpty()) {
-                            emit(content)
-                        }
-
-                        val done = jsonElement.jsonObject["done"]?.jsonPrimitive?.boolean ?: false
-                        if (done) {
-                            shouldContinue = false
-                        }
-                    }
+                    val parsedLine =
+                        parseStreamingLine(
+                            json = json,
+                            line = line,
+                            isGenerateEndpoint = isGenerateEndpoint,
+                        ) ?: continue
+                    if (parsedLine.content.isNotEmpty()) emit(parsedLine.content)
+                    shouldContinue = !parsedLine.done
                 }
                 Log.d(TAG, "Stream reading completed. Total lines processed: $lineCount")
             }
+        }
+
+        private fun parseStreamingLine(
+            json: Json,
+            line: String,
+            isGenerateEndpoint: Boolean,
+        ): ParsedStreamLine? {
+            val jsonElement =
+                parseStreamJsonElement(json, line) ?: return null
+            throwIfErrorResponse(json, line)
+            return if (isGenerateEndpoint) {
+                parseGenerateStreamLine(json, line)
+            } else {
+                parseChatStreamLine(json, line, jsonElement.jsonObject["done"]?.jsonPrimitive?.boolean ?: false)
+            }
+        }
+
+        private fun parseStreamJsonElement(
+            json: Json,
+            line: String,
+        ) = try {
+            json.parseToJsonElement(line)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to parse line as JSON: '$line', error: ${e.message}")
+            null
+        }
+
+        private fun throwIfErrorResponse(
+            json: Json,
+            line: String,
+        ) {
+            try {
+                val errorResponse = json.decodeFromString<OllamaErrorResponse>(line)
+                throw IllegalStateException("Ollama API error: ${errorResponse.error}")
+            } catch (_: Exception) {
+            }
+        }
+
+        private fun parseGenerateStreamLine(
+            json: Json,
+            line: String,
+        ): ParsedStreamLine? {
+            val ollamaResponse =
+                try {
+                    json.decodeFromString<OllamaResponse>(line)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to parse line as OllamaResponse: '$line', error: ${e.message}")
+                    return null
+                }
+            return ParsedStreamLine(
+                content = ollamaResponse.response,
+                done = ollamaResponse.done,
+            )
+        }
+
+        private fun parseChatStreamLine(
+            json: Json,
+            line: String,
+            done: Boolean,
+        ): ParsedStreamLine? {
+            val ollamaResponse =
+                try {
+                    json.decodeFromString<OllamaChatResponse>(line)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to parse line as OllamaChatResponse: '$line', error: ${e.message}")
+                    return null
+                }
+            return ParsedStreamLine(
+                content = ollamaResponse.message.content,
+                done = done,
+            )
         }
     }

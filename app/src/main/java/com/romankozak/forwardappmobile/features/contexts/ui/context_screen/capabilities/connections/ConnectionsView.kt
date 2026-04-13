@@ -1,3 +1,5 @@
+@file:Suppress("MagicNumber", "PackageNaming", "LongMethod", "CyclomaticComplexMethod")
+
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.connections
 
 import androidx.compose.foundation.layout.Column
@@ -52,11 +54,16 @@ fun ConnectionsView(
                 .filter { it.attachmentType == BacklogItemTypeValues.SCRIPT }
                 .associateBy { it.id }
         }
-    val attachmentNameById = remember(pickerAttachmentOptions) { pickerAttachmentOptions.associateBy({ it.id }, { it.name }) }
+    val attachmentNameById =
+        remember(pickerAttachmentOptions) {
+            pickerAttachmentOptions.associateBy({ it.id }, { it.name })
+        }
     val scriptItems =
         remember(scriptAttachmentById, attachmentNameById) {
             scriptAttachmentById.values.map { attachment ->
-                val title = attachmentNameById[attachment.id] ?: "Script ${attachment.id.takeLast(4)}"
+                val title =
+                    attachmentNameById[attachment.id]
+                        ?: "Script ${attachment.id.takeLast(4)}"
                 ConnectionItemUi(
                     id = connectionIdForAttachment(attachment.id),
                     title = title,
@@ -71,7 +78,11 @@ fun ConnectionsView(
                     val id = item.connectionId()
                     val title = item.connectionTitle()
                     val type = item.connectionType()
-                    if (title.isBlank()) null else ConnectionItemUi(id = id, title = title, type = type)
+                    if (title.isBlank()) {
+                        null
+                    } else {
+                        ConnectionItemUi(id = id, title = title, type = type)
+                    }
                 }
             val baseIds = baseItems.map { it.id }.toSet()
             baseItems + scriptItems.filterNot { it.id in baseIds }
@@ -87,9 +98,18 @@ fun ConnectionsView(
                 .values
                 .flatten()
                 .distinctBy { it.id }
-                .map { context -> ProjectOption(id = context.id, name = context.name, parentId = context.parentId) }
+                .map { context ->
+                    ProjectOption(
+                        id = context.id,
+                        name = context.name,
+                        parentId = context.parentId,
+                    )
+                }
         }
-    val preselectedAttachmentIds = remember(contextAttachments) { contextAttachments.map { it.attachment.id }.toSet() }
+    val preselectedAttachmentIds =
+        remember(contextAttachments) {
+            contextAttachments.map { it.attachment.id }.toSet()
+        }
     val preselectedContextIds =
         remember(attachments) {
             attachments.mapNotNull { it.contextTargetIdOrNull() }.toSet()
@@ -109,13 +129,15 @@ fun ConnectionsView(
                 if (directItem != null) {
                     viewModel.itemActionHandler.onItemClick(directItem)
                 } else {
-                    val attachmentId = attachmentIdFromConnectionId(item.id) ?: return@ConnectionsPanel
+                    val attachmentId =
+                        attachmentIdFromConnectionId(item.id) ?: return@ConnectionsPanel
                     val scriptAttachment = scriptAttachmentById[attachmentId] ?: return@ConnectionsPanel
                     viewModel.openScriptAttachment(scriptAttachment.entityId)
                 }
             },
             onConnectionRemove = { item ->
-                val attachmentId = attachmentIdFromConnectionId(item.id) ?: return@ConnectionsPanel
+                val attachmentId =
+                    attachmentIdFromConnectionId(item.id) ?: return@ConnectionsPanel
                 viewModel.unlinkAttachmentFromCurrentContextById(attachmentId)
             },
             onConnectionDeleteEverywhere = { item ->
@@ -123,7 +145,8 @@ fun ConnectionsView(
                 if (directItem != null) {
                     viewModel.onDeleteEverywhere(directItem)
                 } else {
-                    val attachmentId = attachmentIdFromConnectionId(item.id) ?: return@ConnectionsPanel
+                    val attachmentId =
+                        attachmentIdFromConnectionId(item.id) ?: return@ConnectionsPanel
                     viewModel.deleteAttachmentEverywhereById(attachmentId)
                 }
             },
@@ -132,7 +155,8 @@ fun ConnectionsView(
                 if (directItem != null) {
                     viewModel.itemActionHandler.copyAttachmentItem(directItem)
                 } else {
-                    val attachmentId = attachmentIdFromConnectionId(item.id) ?: return@ConnectionsPanel
+                    val attachmentId =
+                        attachmentIdFromConnectionId(item.id) ?: return@ConnectionsPanel
                     viewModel.itemActionHandler.copyAttachmentById(attachmentId)
                 }
             },
@@ -141,7 +165,8 @@ fun ConnectionsView(
                 if (directItem != null) {
                     viewModel.itemActionHandler.cutAttachmentItem(directItem)
                 } else {
-                    val attachmentId = attachmentIdFromConnectionId(item.id) ?: return@ConnectionsPanel
+                    val attachmentId =
+                        attachmentIdFromConnectionId(item.id) ?: return@ConnectionsPanel
                     viewModel.itemActionHandler.cutAttachmentById(attachmentId)
                 }
             },
@@ -219,7 +244,9 @@ private fun attachmentIdFromConnectionId(connectionId: String): String? =
 
 private fun BacklogItemContent.connectionTitle(): String =
     when (this) {
-        is BacklogItemContent.LinkItem -> link.linkData.displayName?.ifBlank { link.linkData.target } ?: link.linkData.target
+        is BacklogItemContent.LinkItem ->
+            link.linkData.displayName?.ifBlank { link.linkData.target }
+                ?: link.linkData.target
         is BacklogItemContent.NoteDocumentItem -> document.name
         is BacklogItemContent.MusicNoteItem -> musicNote.name
         is BacklogItemContent.ChecklistItem -> checklist.name

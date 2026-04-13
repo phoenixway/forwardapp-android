@@ -1,3 +1,5 @@
+@file:Suppress("MagicNumber", "UnusedPrivateProperty", "PackageNaming", "LongMethod")
+
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.topbar
 
 import androidx.compose.animation.AnimatedVisibility

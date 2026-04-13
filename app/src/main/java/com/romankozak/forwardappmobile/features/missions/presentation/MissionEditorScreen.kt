@@ -335,6 +335,7 @@ private fun MissionEditorContent(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MissionEditorTopBar(
     sheetMode: Boolean,
@@ -1117,6 +1118,7 @@ private fun missionFieldColors() =
 private fun missionStatusLabel(status: MissionStatus): String =
     when (status) {
         MissionStatus.ACTIVE -> "Активна"
+        MissionStatus.COMPLETED -> "Виконана"
         MissionStatus.INACTIVE -> "Неактивна"
         MissionStatus.PAUSED -> "Призупинена"
     }

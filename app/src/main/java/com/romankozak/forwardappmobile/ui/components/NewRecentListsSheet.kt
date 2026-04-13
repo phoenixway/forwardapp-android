@@ -70,6 +70,15 @@ private data class RecentItemCardColors(
     val cardBackground: Color,
 )
 
+private data class RecentItemsSheetState(
+    val displayedRecentItems: List<RecentItem>,
+    val setDisplayedRecentItems: (List<RecentItem>) -> Unit,
+)
+
+private val recentItemsComparator =
+    compareByDescending<RecentItem> { it.lastAccessed }
+        .thenBy { it.id }
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun NewRecentListsSheet(
@@ -79,79 +88,102 @@ fun NewRecentListsSheet(
     onItemClick: (RecentItem) -> Unit,
     onPinClick: (RecentItem) -> Unit,
 ) {
-    if (showSheet) {
-        ModalBottomSheet(
-            onDismissRequest = onDismiss,
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+    if (!showSheet) return
+
+    val sheetState = rememberRecentItemsSheetState(showSheet = showSheet, recentItems = recentItems)
+    val stableRecentItems =
+        remember(sheetState.displayedRecentItems) {
+            sheetState.displayedRecentItems.sortedWith(recentItemsComparator)
+        }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+    ) {
+        RecentItemsSheetContent(
+            stableRecentItems = stableRecentItems,
+            onItemClick = onItemClick,
+            onPinClick = { item ->
+                sheetState.setDisplayedRecentItems(togglePinnedRecentItem(sheetState.displayedRecentItems, item))
+                onPinClick(item)
+            },
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun RecentItemsSheetContent(
+    stableRecentItems: List<RecentItem>,
+    onItemClick: (RecentItem) -> Unit,
+    onPinClick: (RecentItem) -> Unit,
+) {
+    val tabs = listOf("Недавні", "Закріплені")
+    val pagerState = rememberPagerState { tabs.size }
+    val coroutineScope = rememberCoroutineScope()
+
+    Column(Modifier.navigationBarsPadding()) {
+        TabRow(
+            selectedTabIndex = pagerState.currentPage,
+            containerColor = Color.Transparent,
         ) {
-            val tabs = listOf("Недавні", "Закріплені")
-            val pagerState = rememberPagerState { tabs.size }
-            val coroutineScope = rememberCoroutineScope()
-            var displayedRecentItems by remember(showSheet) {
-                mutableStateOf(
-                    recentItems.sortedWith(
-                        compareByDescending<RecentItem> { it.lastAccessed }
-                            .thenBy { it.id },
-                    ),
+            tabs.forEachIndexed { index, title ->
+                Tab(
+                    selected = pagerState.currentPage == index,
+                    onClick = { coroutineScope.launch { pagerState.animateScrollToPage(index) } },
+                    text = { Text(text = title) },
                 )
             }
+        }
 
-            LaunchedEffect(showSheet, recentItems) {
-                displayedRecentItems =
-                    recentItems.sortedWith(
-                        compareByDescending<RecentItem> { it.lastAccessed }
-                            .thenBy { it.id },
-                    )
-            }
-
-            val stableRecentItems =
-                remember(displayedRecentItems) {
-                    displayedRecentItems.sortedWith(
-                        compareByDescending<RecentItem> { it.lastAccessed }
-                            .thenBy { it.id },
-                    )
-                }
-
-            Column(Modifier.navigationBarsPadding()) {
-                TabRow(
-                    selectedTabIndex = pagerState.currentPage,
-                    containerColor = Color.Transparent,
-                ) {
-                    tabs.forEachIndexed { index, title ->
-                        Tab(
-                            selected = pagerState.currentPage == index,
-                            onClick = { coroutineScope.launch { pagerState.animateScrollToPage(index) } },
-                            text = { Text(text = title) },
-                        )
-                    }
-                }
-
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                        page ->
-                    val items = if (page == 0) stableRecentItems else stableRecentItems.filter { it.isPinned }
-                    RecentItemsGrid(
-                        items = items,
-                        onItemClick = onItemClick,
-                        onPinClick = { item ->
-                            displayedRecentItems =
-                                displayedRecentItems.map { existing ->
-                                    if (existing.id == item.id) {
-                                        existing.copy(isPinned = !existing.isPinned)
-                                    } else {
-                                        existing
-                                    }
-                                }
-                            onPinClick(item)
-                        },
-                    )
-                }
-            }
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxWidth(),
+        ) { page ->
+            RecentItemsGrid(
+                items = itemsForRecentItemsPage(page = page, stableRecentItems = stableRecentItems),
+                onItemClick = onItemClick,
+                onPinClick = onPinClick,
+            )
         }
     }
 }
+
+@Composable
+private fun rememberRecentItemsSheetState(
+    showSheet: Boolean,
+    recentItems: List<RecentItem>,
+): RecentItemsSheetState {
+    var displayedRecentItems by remember(showSheet) {
+        mutableStateOf(recentItems.sortedWith(recentItemsComparator))
+    }
+
+    LaunchedEffect(showSheet, recentItems) {
+        displayedRecentItems = recentItems.sortedWith(recentItemsComparator)
+    }
+
+    return RecentItemsSheetState(
+        displayedRecentItems = displayedRecentItems,
+        setDisplayedRecentItems = { displayedRecentItems = it },
+    )
+}
+
+private fun itemsForRecentItemsPage(
+    page: Int,
+    stableRecentItems: List<RecentItem>,
+): List<RecentItem> = if (page == 0) stableRecentItems else stableRecentItems.filter { it.isPinned }
+
+private fun togglePinnedRecentItem(
+    items: List<RecentItem>,
+    item: RecentItem,
+): List<RecentItem> =
+    items.map { existing ->
+        if (existing.id == item.id) {
+            existing.copy(isPinned = !existing.isPinned)
+        } else {
+            existing
+        }
+    }
 
 @Composable
 private fun RecentItemsGrid(

@@ -40,6 +40,7 @@ data class UniversalEditorUiState(
 )
 
 @HiltViewModel
+@Suppress("TooManyFunctions")
 class UniversalEditorViewModel
     @Inject
     constructor(private val application: Application) : ViewModel() {

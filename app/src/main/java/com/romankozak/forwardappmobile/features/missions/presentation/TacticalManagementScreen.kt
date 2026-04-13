@@ -199,7 +199,7 @@ private fun TacticalManagementRoute(
         },
         onCopySelectedMissions = viewModel::copyMissionsToEntityClipboard,
         onCutSelectedMissions = viewModel::cutMissionsToEntityClipboard,
-        onMissionToggle = viewModel::toggleMissionCompleted,
+        onMissionToggle = { mission -> viewModel.toggleMissionCompleted(mission) },
         onMissionsReordered = viewModel::reorderMissions,
     )
 
@@ -329,7 +329,7 @@ private fun TacticalManagementContent(
     onDeleteSelectedMissions: (Set<Long>) -> Unit,
     onCopySelectedMissions: (Set<Long>) -> Unit,
     onCutSelectedMissions: (Set<Long>) -> Unit,
-    onMissionToggle: (Long) -> Unit,
+    onMissionToggle: (TacticalMission) -> Unit,
     onMissionsReordered: (List<TacticalMission>) -> Unit,
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -396,6 +396,10 @@ private fun TacticalManagementContent(
             TacticalFabMenu(
                 expanded = uiState.isFabMenuExpanded,
                 canPasteAsMissions = canPasteAsMissions,
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 16.dp, bottom = CommandDeckFabDefaults.BottomPadding),
                 onExpandedChange = onFabMenuExpandedChange,
                 onPasteMissions = onPasteMissions,
                 onOpenAddMission = onOpenAddMission,
@@ -548,17 +552,13 @@ private fun SelectionStatusMenu(
 private fun TacticalFabMenu(
     expanded: Boolean,
     canPasteAsMissions: Boolean,
+    modifier: Modifier = Modifier,
     onExpandedChange: (Boolean) -> Unit,
     onPasteMissions: () -> Unit,
     onOpenAddMission: () -> Unit,
     onToggleScopeLinksSheet: () -> Unit,
 ) {
-    Box(
-        modifier =
-            Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 16.dp, bottom = CommandDeckFabDefaults.BottomPadding),
-    ) {
+    Box(modifier = modifier) {
         FloatingActionButton(onClick = { onExpandedChange(!expanded) }) {
             Icon(Icons.Default.Menu, contentDescription = "Меню дій тактик")
         }

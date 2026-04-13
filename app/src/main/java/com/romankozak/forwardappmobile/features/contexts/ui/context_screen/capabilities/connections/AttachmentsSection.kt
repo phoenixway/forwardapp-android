@@ -1,3 +1,12 @@
+@file:Suppress(
+    "WildcardImport",
+    "MagicNumber",
+    "LongParameterList",
+    "LongMethod",
+    "MatchingDeclarationName",
+    "PackageNaming",
+)
+
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.connections
 
 import androidx.compose.animation.*
@@ -218,7 +227,11 @@ private fun AttachmentItemCard(
             }
             is BacklogItemContent.MusicNoteItem -> {
                 NoteDocumentItemRow(
-                    noteDocumentItem = BacklogItemContent.NoteDocumentItem(item.musicNote.toNoteDocumentEntity(), item.backlogItem),
+                    noteDocumentItem =
+                        BacklogItemContent.NoteDocumentItem(
+                            item.musicNote.toNoteDocumentEntity(),
+                            item.backlogItem,
+                        ),
                     onClick = { onItemClick(item) },
                     onDelete = { onDeleteItem(item) },
                 )
@@ -257,34 +270,58 @@ private fun AddAttachmentButton(onAddAttachment: (AttachmentType) -> Unit) {
         DropdownMenu(
             expanded = showAddMenu,
             onDismissRequest = { showAddMenu = false },
-            modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface),
+            modifier =
+                Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surface),
         ) {
-            AttachmentTypeMenuItem(R.string.attachment_type_notes, AttachmentType.NOTES) { type ->
+            AttachmentTypeMenuItem(
+                R.string.attachment_type_notes,
+                AttachmentType.NOTES,
+            ) { type ->
                 onAddAttachment(type)
                 showAddMenu = false
             }
-            AttachmentTypeMenuItem(R.string.attachment_type_music_notes, AttachmentType.MUSIC_NOTES) { type ->
+            AttachmentTypeMenuItem(
+                R.string.attachment_type_music_notes,
+                AttachmentType.MUSIC_NOTES,
+            ) { type ->
                 onAddAttachment(type)
                 showAddMenu = false
             }
-            AttachmentTypeMenuItem(R.string.attachment_type_checklist, AttachmentType.CHECKLIST) { type ->
+            AttachmentTypeMenuItem(
+                R.string.attachment_type_checklist,
+                AttachmentType.CHECKLIST,
+            ) { type ->
                 onAddAttachment(type)
                 showAddMenu = false
             }
-            AttachmentTypeMenuItem(R.string.attachment_type_web_link, AttachmentType.WEB_LINK) { type ->
+            AttachmentTypeMenuItem(
+                R.string.attachment_type_web_link,
+                AttachmentType.WEB_LINK,
+            ) { type ->
                 onAddAttachment(type)
                 showAddMenu = false
             }
-            AttachmentTypeMenuItem(R.string.attachment_type_obsidian, AttachmentType.OBSIDIAN_LINK) { type ->
+            AttachmentTypeMenuItem(
+                R.string.attachment_type_obsidian,
+                AttachmentType.OBSIDIAN_LINK,
+            ) { type ->
                 onAddAttachment(type)
                 showAddMenu = false
             }
-            AttachmentTypeMenuItem(R.string.attachment_type_project_link, AttachmentType.PROJECT_LINK) { type ->
+            AttachmentTypeMenuItem(
+                R.string.attachment_type_project_link,
+                AttachmentType.PROJECT_LINK,
+            ) { type ->
                 onAddAttachment(type)
                 showAddMenu = false
             }
             HorizontalDivider()
-            AttachmentTypeMenuItem(R.string.menu_add_project_shortcut, AttachmentType.PROJECT_SHORTCUT) { type ->
+            AttachmentTypeMenuItem(
+                R.string.menu_add_project_shortcut,
+                AttachmentType.PROJECT_SHORTCUT,
+            ) { type ->
                 onAddAttachment(type)
                 showAddMenu = false
             }

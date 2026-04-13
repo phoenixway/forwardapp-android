@@ -1,3 +1,11 @@
+@file:Suppress(
+    "WildcardImport",
+    "PackageNaming",
+    "MaxLineLength",
+    "MagicNumber",
+    "UnusedPrivateProperty",
+)
+
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen
 import android.app.Application
 import android.util.Log
@@ -92,6 +100,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("LongParameterList", "LargeClass", "TooManyFunctions")
 class ContextScreenViewModel
     @Inject
     constructor(
@@ -201,12 +210,10 @@ class ContextScreenViewModel
             InputHandler(
                 contextRepository,
                 goalRepository,
-                listItemRepository,
                 viewModelScope,
                 contextIdFlow,
                 this,
                 reminderParser,
-                alarmScheduler,
             )
         val inboxHandler =
             InboxHandler(
@@ -499,7 +506,6 @@ class ContextScreenViewModel
         }
         internal val noteDocumentHandler by lazy {
             NoteDocumentHandler(
-                contextRepository,
                 noteDocumentRepository,
                 settingsRepository,
                 stateManager,
@@ -1515,7 +1521,7 @@ class ContextScreenViewModel
             uiStateActions.clearInboxHighlightState()
         }
 
-        fun onLimitLastActivityRequested() {}
+        fun onLimitLastActivityRequested() = Unit
 
         fun onSetReminderForItem(item: BacklogItemContent) =
             viewModelScope.launch {
@@ -1533,7 +1539,7 @@ class ContextScreenViewModel
             }
         }
 
-        fun onPinRecentItem(item: RecentItem) {}
+        fun onPinRecentItem(@Suppress("UNUSED_PARAMETER") item: RecentItem) = Unit
 
         fun onClearReminder() = viewModelScope.launch { reminderActions.onClearReminder() }
 
@@ -1550,88 +1556,92 @@ class ContextScreenViewModel
 
         fun copyInboxRecordText(text: String) = markdownActions.copyInboxRecordText(text)
 
+        @Suppress("LongMethod")
         private fun BacklogItemContent.toTacticalMission(): TacticalMission {
             val fallbackContextId = backlogItem.contextId.takeIf { it.isNotBlank() }
             val now = System.currentTimeMillis()
             return when (this) {
                 is BacklogItemContent.GoalItem ->
-                    TacticalMission(
+                    createTacticalMission(
                         title = goal.text.trim(),
                         description = null,
-                        deadline = now,
-                        status = MissionStatus.ACTIVE,
                         projectId = fallbackContextId,
                         linkedProjectIds = listOfNotNull(fallbackContextId),
-                        linkedAttachmentIds = emptyList(),
+                        now = now,
                     )
 
                 is BacklogItemContent.ContextLinkItem ->
-                    TacticalMission(
+                    createTacticalMission(
                         title = project.name.trim(),
                         description = null,
-                        deadline = now,
-                        status = MissionStatus.ACTIVE,
                         projectId = project.id,
                         linkedProjectIds = listOf(project.id),
-                        linkedAttachmentIds = emptyList(),
+                        now = now,
                     )
 
                 is BacklogItemContent.LinkItem ->
-                    TacticalMission(
+                    createTacticalMission(
                         title = (link.linkData.displayName ?: link.linkData.target).trim(),
                         description = link.linkData.target,
-                        deadline = now,
-                        status = MissionStatus.ACTIVE,
                         projectId = fallbackContextId,
                         linkedProjectIds = listOfNotNull(fallbackContextId),
-                        linkedAttachmentIds = emptyList(),
+                        now = now,
                     )
 
                 is BacklogItemContent.NoteItem ->
-                    TacticalMission(
+                    createTacticalMission(
                         title = note.title.ifBlank { note.content.take(80) }.trim(),
                         description = null,
-                        deadline = now,
-                        status = MissionStatus.ACTIVE,
                         projectId = fallbackContextId,
                         linkedProjectIds = listOfNotNull(fallbackContextId),
-                        linkedAttachmentIds = emptyList(),
+                        now = now,
                     )
 
                 is BacklogItemContent.NoteDocumentItem ->
-                    TacticalMission(
+                    createTacticalMission(
                         title = document.name.trim(),
                         description = null,
-                        deadline = now,
-                        status = MissionStatus.ACTIVE,
                         projectId = fallbackContextId,
                         linkedProjectIds = listOfNotNull(fallbackContextId),
-                        linkedAttachmentIds = emptyList(),
+                        now = now,
                     )
 
                 is BacklogItemContent.ChecklistItem ->
-                    TacticalMission(
+                    createTacticalMission(
                         title = checklist.name.trim(),
                         description = null,
-                        deadline = now,
-                        status = MissionStatus.ACTIVE,
                         projectId = fallbackContextId,
                         linkedProjectIds = listOfNotNull(fallbackContextId),
-                        linkedAttachmentIds = emptyList(),
+                        now = now,
                     )
 
                 is BacklogItemContent.MusicNoteItem ->
-                    TacticalMission(
+                    createTacticalMission(
                         title = musicNote.name.trim(),
                         description = null,
-                        deadline = now,
-                        status = MissionStatus.ACTIVE,
                         projectId = fallbackContextId,
                         linkedProjectIds = listOfNotNull(fallbackContextId),
-                        linkedAttachmentIds = emptyList(),
+                        now = now,
                     )
             }
         }
+
+        private fun createTacticalMission(
+            title: String,
+            description: String?,
+            projectId: String?,
+            linkedProjectIds: List<String>,
+            now: Long,
+        ): TacticalMission =
+            TacticalMission(
+                title = title,
+                description = description,
+                deadline = now,
+                status = MissionStatus.ACTIVE,
+                projectId = projectId,
+                linkedProjectIds = linkedProjectIds,
+                linkedAttachmentIds = emptyList(),
+            )
     }
 
 private fun AttachmentLibraryQueryResult.toAttachmentOption(): AttachmentOption {

@@ -7,14 +7,24 @@ import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.SettingsContent
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportDescriptor
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportSourceMode
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSnapshotFormat
+import com.romankozak.forwardappmobile.shared.domain.contexts.WorkspaceSnapshotResolver
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 import timber.log.Timber
+
+data class ResolvedImportBundle(
+    val snapshotBundle: SnapshotBundle,
+    val descriptor: WorkspaceImportDescriptor,
+)
 
 @Singleton
 class SyncFileService @Inject constructor(
@@ -24,6 +34,8 @@ class SyncFileService @Inject constructor(
     private val mergeRepository: MergeRepository,
 ) {
     private val tag = "SyncFileService"
+    private val workspaceSnapshotResolver = WorkspaceSnapshotResolver(Json { ignoreUnknownKeys = true })
+    private val desktopWorkspaceSnapshotSyncAdapter = DesktopWorkspaceSnapshotSyncAdapter()
 
     private val gson = GsonBuilder()
         .registerTypeAdapter(Long::class.java, LongDeserializer())
@@ -104,6 +116,19 @@ class SyncFileService @Inject constructor(
         }
     }
 
+    suspend fun resolveSnapshotBundleForImport(uriString: String): Result<ResolvedImportBundle> = withContext(Dispatchers.IO) {
+        Timber.tag(tag).d("Resolving snapshot bundle for import from URI: $uriString")
+        try {
+            val jsonResult = contentProvider.readText(uriString)
+            val jsonString = jsonResult.getOrThrow()
+            val normalizedJson = sanitizeIncomingBackupJson(jsonString)
+            Result.success(resolveIncomingImportBundle(normalizedJson))
+        } catch (e: Exception) {
+            Timber.tag(tag).e(e, "Failed to resolve snapshot bundle for import")
+            Result.failure(e)
+        }
+    }
+
     // === New Snapshot-based Methods (V2) ===
 
     suspend fun exportFullBackupToFileV2(): Result<String> = withContext(Dispatchers.IO) {
@@ -145,34 +170,8 @@ class SyncFileService @Inject constructor(
             val jsonResult = contentProvider.readText(uriString)
             val jsonString = jsonResult.getOrThrow()
             val normalizedJson = sanitizeIncomingBackupJson(jsonString)
-            val jsonObject = JsonParser.parseString(normalizedJson).asJsonObject
-
             val backupData = gson.fromJson(normalizedJson, FullAppBackup::class.java)
-
-            val snapshotBundleToApply =
-                when {
-                    backupData.snapshotBundle != null -> {
-                        Timber.tag(tag).d("Successfully parsed as FullAppBackup with SnapshotBundle payload.")
-                        backupData.snapshotBundle!!
-                    }
-                    backupData.database != null -> {
-                        Timber.tag(tag).d("Parsed as legacy FullAppBackup format. Migrating to SnapshotBundle...")
-                        legacyMigrationMapper.toSnapshotBundle(backupData.database!!)
-                    }
-                    // Some external exports may store SnapshotBundle as top-level JSON.
-                    hasSnapshotBundleKeys(jsonObject) -> {
-                        Timber.tag(tag).d("Detected raw SnapshotBundle payload.")
-                        gson.fromJson(normalizedJson, SnapshotBundle::class.java)
-                    }
-                    hasDatabaseContentKeys(jsonObject) -> {
-                        Timber.tag(tag).d("Detected raw DatabaseContent payload. Migrating to SnapshotBundle...")
-                        val databaseContent = gson.fromJson(normalizedJson, DatabaseContent::class.java)
-                        legacyMigrationMapper.toSnapshotBundle(databaseContent)
-                    }
-                    else -> {
-                        throw IllegalArgumentException("Unsupported backup format: no recognizable SnapshotBundle or DatabaseContent payload.")
-                    }
-                }
+            val snapshotBundleToApply = resolveIncomingImportBundle(normalizedJson).snapshotBundle
 
             if (isEffectivelyEmpty(snapshotBundleToApply)) {
                 throw IllegalArgumentException("Backup payload is empty. Nothing to import.")
@@ -189,6 +188,72 @@ class SyncFileService @Inject constructor(
         } catch (e: Exception) {
             Timber.tag(tag).e(e, "A critical error occurred during the smart import process.")
             Result.failure(e)
+        }
+    }
+
+    fun legacyImportDescriptor(): WorkspaceImportDescriptor =
+        WorkspaceImportDescriptor(
+            format = WorkspaceSnapshotFormat.AndroidLegacyDatabase,
+            sourceMode = WorkspaceImportSourceMode.LegacyDatabase,
+        )
+
+    private fun resolveIncomingImportBundle(normalizedJson: String): ResolvedImportBundle {
+        val jsonObject = JsonParser.parseString(normalizedJson).asJsonObject
+        val backupData = gson.fromJson(normalizedJson, FullAppBackup::class.java)
+        val resolvedWorkspaceSnapshot = workspaceSnapshotResolver.resolve(normalizedJson)
+
+        return when {
+            backupData.snapshotBundle != null -> {
+                Timber.tag(tag).d("Successfully parsed as FullAppBackup with SnapshotBundle payload.")
+                ResolvedImportBundle(
+                    snapshotBundle = backupData.snapshotBundle!!,
+                    descriptor =
+                        WorkspaceImportDescriptor(
+                            format = WorkspaceSnapshotFormat.AndroidSnapshotBundleV2,
+                            sourceMode = WorkspaceImportSourceMode.SnapshotBundle,
+                        ),
+                )
+            }
+            backupData.database != null -> {
+                Timber.tag(tag).d("Parsed as legacy FullAppBackup format. Migrating to SnapshotBundle...")
+                ResolvedImportBundle(
+                    snapshotBundle = legacyMigrationMapper.toSnapshotBundle(backupData.database!!),
+                    descriptor = legacyImportDescriptor(),
+                )
+            }
+            resolvedWorkspaceSnapshot?.format == WorkspaceSnapshotFormat.Desktop -> {
+                Timber.tag(tag).d("Detected raw DesktopWorkspaceSnapshot payload. Bridging to SnapshotBundle...")
+                ResolvedImportBundle(
+                    snapshotBundle = desktopWorkspaceSnapshotSyncAdapter.toSnapshotBundle(resolvedWorkspaceSnapshot.snapshot),
+                    descriptor =
+                        WorkspaceImportDescriptor(
+                            format = WorkspaceSnapshotFormat.Desktop,
+                            sourceMode = WorkspaceImportSourceMode.DesktopSnapshot,
+                        ),
+                )
+            }
+            hasSnapshotBundleKeys(jsonObject) -> {
+                Timber.tag(tag).d("Detected raw SnapshotBundle payload.")
+                ResolvedImportBundle(
+                    snapshotBundle = gson.fromJson(normalizedJson, SnapshotBundle::class.java),
+                    descriptor =
+                        WorkspaceImportDescriptor(
+                            format = WorkspaceSnapshotFormat.AndroidSnapshotBundleV2,
+                            sourceMode = WorkspaceImportSourceMode.SnapshotBundle,
+                        ),
+                )
+            }
+            hasDatabaseContentKeys(jsonObject) -> {
+                Timber.tag(tag).d("Detected raw DatabaseContent payload. Migrating to SnapshotBundle...")
+                val databaseContent = gson.fromJson(normalizedJson, DatabaseContent::class.java)
+                ResolvedImportBundle(
+                    snapshotBundle = legacyMigrationMapper.toSnapshotBundle(databaseContent),
+                    descriptor = legacyImportDescriptor(),
+                )
+            }
+            else -> {
+                throw IllegalArgumentException("Unsupported backup format: no recognizable SnapshotBundle or DatabaseContent payload.")
+            }
         }
     }
 

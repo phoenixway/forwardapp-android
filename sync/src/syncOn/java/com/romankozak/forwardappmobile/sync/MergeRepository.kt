@@ -142,6 +142,16 @@ suspend fun createSyncReport(bundle: SnapshotBundle): SyncReport {
         }
     }
 
+    suspend fun importSelectedSnapshotBundle(bundle: SnapshotBundle): Result<String> {
+        return try {
+            mergeLocalDataSource.applySnapshotBundle(bundle)
+            Result.success("Вибрані snapshot-дані успішно імпортовано")
+        } catch (e: Exception) {
+            Log.e(TAG, "Selective snapshot import failed", e)
+            Result.failure(e)
+        }
+    }
+
     private fun sanitizeIncomingBackupJson(rawJson: String): String {
         return rawJson.replace(
             Regex("\"experimentalCapabilityIds\"\\s*:\\s*null"),

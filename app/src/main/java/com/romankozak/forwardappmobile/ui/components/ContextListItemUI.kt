@@ -10,14 +10,26 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -28,7 +40,32 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 
+private const val CONTEXT_ROW_INDENT_DP = 24
+private const val DRAGGING_ROW_ALPHA = 0.6f
+
+private data class ProjectRowState(
+    val indentation: androidx.compose.ui.unit.Dp,
+    val backgroundColor: Color,
+)
+
+private data class ProjectRowContentState(
+    val context: Context,
+    val hasChildren: Boolean,
+    val displayName: AnnotatedString?,
+    val showFocusButton: Boolean,
+    val indentation: androidx.compose.ui.unit.Dp,
+    val isCurrentlyDragging: Boolean,
+)
+
+private data class ProjectRowActions(
+    val onListClick: (String) -> Unit,
+    val onToggleExpanded: (Context) -> Unit,
+    val onMenuRequested: (Context) -> Unit,
+    val onFocusRequested: (Context) -> Unit,
+)
+
 @Composable
+@Suppress("LongParameterList")
 fun ProjectRow(
     list: Context,
     level: Int,
@@ -55,75 +92,135 @@ fun ProjectRow(
         animationSpec = tween(durationMillis = 500),
         label = "Highlight Animation",
     )
-
-    val indentation = (level * 24).dp
+    val rowState =
+        remember(level, backgroundColor) {
+            ProjectRowState(
+                indentation = (level * CONTEXT_ROW_INDENT_DP).dp,
+                backgroundColor = backgroundColor,
+            )
+        }
 
     Column(
         modifier =
             modifier
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.medium)
-                .background(backgroundColor),
+                .background(rowState.backgroundColor),
     ) {
-        if (isHovered && !isDraggingDown && !isCurrentlyDragging) {
-            HorizontalDivider(
-                thickness = 2.dp,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = indentation),
+        HoverDivider(
+            isVisible = isHovered && !isDraggingDown && !isCurrentlyDragging,
+            indentation = rowState.indentation,
+        )
+        ProjectRowContent(
+            state =
+                ProjectRowContentState(
+                    context = list,
+                    hasChildren = hasChildren,
+                    displayName = displayName,
+                    showFocusButton = showFocusButton,
+                    indentation = rowState.indentation,
+                    isCurrentlyDragging = isCurrentlyDragging,
+                ),
+            actions =
+                ProjectRowActions(
+                    onListClick = onListClick,
+                    onToggleExpanded = onToggleExpanded,
+                    onMenuRequested = onMenuRequested,
+                    onFocusRequested = onFocusRequested,
+                ),
+        )
+        HoverDivider(
+            isVisible = isHovered && isDraggingDown && !isCurrentlyDragging,
+            indentation = rowState.indentation,
+        )
+    }
+}
+
+@Composable
+private fun HoverDivider(
+    isVisible: Boolean,
+    indentation: androidx.compose.ui.unit.Dp,
+) {
+    if (!isVisible) return
+
+    HorizontalDivider(
+        thickness = 2.dp,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = indentation),
+    )
+}
+
+@Composable
+private fun ProjectRowContent(
+    state: ProjectRowContentState,
+    actions: ProjectRowActions,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable { actions.onListClick(state.context.id) }
+                .alpha(if (state.isCurrentlyDragging) DRAGGING_ROW_ALPHA else 1f)
+                .padding(start = state.indentation)
+                .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        ProjectExpandButton(
+            hasChildren = state.hasChildren,
+            isExpanded = state.context.isExpanded,
+            onToggleExpanded = { actions.onToggleExpanded(state.context) },
+        )
+
+        Box(modifier = Modifier.weight(1f)) {
+            Text(
+                text = state.displayName ?: AnnotatedString(state.context.name),
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodyLarge,
             )
         }
 
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clickable { onListClick(list.id) }
-                    .alpha(if (isCurrentlyDragging) 0.6f else 1f)
-                    .padding(start = indentation)
-                    .padding(vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
-                if (hasChildren) {
-                    IconButton(onClick = { onToggleExpanded(list) }) {
-                        Icon(
-                            imageVector = if (list.isExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-                            contentDescription = "Згорнути/Розгорнути",
-                        )
-                    }
-                }
-            }
+        FocusButton(
+            visible = state.showFocusButton,
+            onClick = { actions.onFocusRequested(state.context) },
+        )
 
-            Box(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = displayName ?: AnnotatedString(list.name),
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodyLarge,
+        IconButton(onClick = { actions.onMenuRequested(state.context) }) {
+            Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Дії зі списком")
+        }
+    }
+}
+
+@Composable
+private fun ProjectExpandButton(
+    hasChildren: Boolean,
+    isExpanded: Boolean,
+    onToggleExpanded: () -> Unit,
+) {
+    Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+        if (hasChildren) {
+            IconButton(onClick = onToggleExpanded) {
+                Icon(
+                    imageVector = if (isExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                    contentDescription = "Згорнути/Розгорнути",
                 )
             }
-
-            AnimatedVisibility(visible = showFocusButton, enter = fadeIn(), exit = fadeOut()) {
-                IconButton(onClick = { onFocusRequested(list) }) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
-                        contentDescription = "Сфокусуватися",
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
-
-            IconButton(onClick = { onMenuRequested(list) }) {
-                Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Дії зі списком")
-            }
         }
+    }
+}
 
-        if (isHovered && isDraggingDown && !isCurrentlyDragging) {
-            HorizontalDivider(
-                thickness = 2.dp,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = indentation),
+@Composable
+private fun FocusButton(
+    visible: Boolean,
+    onClick: () -> Unit,
+) {
+    AnimatedVisibility(visible = visible, enter = fadeIn(), exit = fadeOut()) {
+        IconButton(onClick = onClick) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
+                contentDescription = "Сфокусуватися",
+                tint = MaterialTheme.colorScheme.primary,
             )
         }
     }

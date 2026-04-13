@@ -407,10 +407,14 @@ fun CoreLevelScreen(
                                                                 type =
                                                                     when {
                                                                         option.linkType == LinkType.URL -> ConnectionType.URL
-                                                                        option.linkType == LinkType.OBSIDIAN -> ConnectionType.OBSIDIAN_NOTE
-                                                                        option.attachmentType == "NOTE_DOCUMENT" -> ConnectionType.NOTE_DOCUMENT
-                                                                        option.attachmentType == "MUSIC_NOTE" -> ConnectionType.MUSIC_NOTE
-                                                                        option.attachmentType == "CHECKLIST" -> ConnectionType.CHECKLIST
+                                                                        option.linkType == LinkType.OBSIDIAN ->
+                                                                            ConnectionType.OBSIDIAN_NOTE
+                                                                        option.attachmentType == "NOTE_DOCUMENT" ->
+                                                                            ConnectionType.NOTE_DOCUMENT
+                                                                        option.attachmentType == "MUSIC_NOTE" ->
+                                                                            ConnectionType.MUSIC_NOTE
+                                                                        option.attachmentType == "CHECKLIST" ->
+                                                                            ConnectionType.CHECKLIST
                                                                         option.attachmentType == "SCRIPT" -> ConnectionType.SCRIPT
                                                                         else -> ConnectionType.ATTACHMENT
                                                                     },
@@ -1145,6 +1149,7 @@ private fun MainBeaconReadinessStatus.mainStatusChipLabel(): String =
     }
 
 
+@Suppress("UnusedPrivateMember")
 private fun summarizeSelection(
     selectedIds: Set<String>,
     options: List<MainBeaconSelectableItem>,

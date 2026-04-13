@@ -22,6 +22,7 @@ import javax.inject.Singleton
 @Singleton
 class SyncLocalDataSourceImpl
     @Inject
+    @Suppress("LongParameterList")
     constructor(
         private val db: AppDatabase,
         private val logicHelper: SyncLogicHelper,
@@ -119,200 +120,137 @@ class SyncLocalDataSourceImpl
         override suspend fun getUnsyncedChanges(): DatabaseContent {
             val local = loadLocalDatabaseContent()
 
-            return DatabaseContent(
-                projects = local.projects.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
-                goals = local.goals.filter { logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }) },
+            return local.copy(
+                projects = local.projects.filterUnsynced({ it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
+                goals = local.goals.filterUnsynced({ it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
                 backlogItems =
-                    local.backlogItems.filter {
-                        logicHelper.isUnsynced(
-                            it,
-                            { it.syncedAt },
-                            { it.updatedTs() },
-                            { it.isDeleted },
-                        )
-                    },
+                    local.backlogItems.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedTs() },
+                        isDeleted = { it.isDeleted },
+                    ),
                 backlogOrders =
-                    local.backlogOrders.filter {
-                        logicHelper.isUnsynced(
-                            it,
-                            { it.syncedAt },
-                            { it.updatedTs() },
-                            { it.isDeleted },
-                        )
-                    },
+                    local.backlogOrders.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedTs() },
+                        isDeleted = { it.isDeleted },
+                    ),
                 legacyNotes =
-                    local.legacyNotes.filter {
-                        logicHelper.isUnsynced(
-                            it,
-                            { it.syncedAt },
-                            { it.updatedTs() },
-                            { it.isDeleted },
-                        )
-                    },
+                    local.legacyNotes.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedTs() },
+                        isDeleted = { it.isDeleted },
+                    ),
                 documents =
-                    local.documents.filter {
-                        logicHelper.isUnsynced(
-                            it,
-                            { it.syncedAt },
-                            { it.updatedTs() },
-                            { it.isDeleted },
-                        )
-                    },
+                    local.documents.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedTs() },
+                        isDeleted = { it.isDeleted },
+                    ),
                 musicNotes =
-                    local.musicNotes.filter {
-                        logicHelper.isUnsynced(
-                            it,
-                            { it.syncedAt },
-                            { it.updatedTs() },
-                            { it.isDeleted },
-                        )
-                    },
+                    local.musicNotes.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedTs() },
+                        isDeleted = { it.isDeleted },
+                    ),
                 checklists =
-                    local.checklists.filter {
-                        logicHelper.isUnsynced(
-                            it,
-                            { it.syncedAt },
-                            { it.updatedTs() },
-                            { it.isDeleted },
-                        )
-                    },
+                    local.checklists.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedTs() },
+                        isDeleted = { it.isDeleted },
+                    ),
                 checklistItems =
-                    local.checklistItems.filter {
-                        logicHelper.isUnsynced(
-                            it,
-                            { it.syncedAt },
-                            { it.updatedTs() },
-                            { it.isDeleted },
-                        )
-                    },
+                    local.checklistItems.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedTs() },
+                        isDeleted = { it.isDeleted },
+                    ),
                 activityRecords =
-                    local.activityRecords.filter {
-                        logicHelper.isUnsynced(
-                            it,
-                            { it.syncedAt },
-                            { it.updatedTs() },
-                            { it.isDeleted },
-                        )
-                    },
+                    local.activityRecords.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedTs() },
+                        isDeleted = { it.isDeleted },
+                    ),
                 linkItemEntities =
-                    local.linkItemEntities.filter {
-                        logicHelper.isUnsynced(
-                            it,
-                            { it.syncedAt },
-                            { it.updatedTs() },
-                            { it.isDeleted },
-                        )
-                    },
+                    local.linkItemEntities.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedTs() },
+                        isDeleted = { it.isDeleted },
+                    ),
                 directionItems =
-                    local.directionItems.filter {
-                        logicHelper.isUnsynced(
-                            it,
-                            { it.syncedAt },
-                            { it.updatedTs() },
-                            { it.isDeleted },
-                        )
-                    },
+                    local.directionItems.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedTs() },
+                        isDeleted = { it.isDeleted },
+                    ),
                 inboxRecords =
-                    local.inboxRecords.filter {
-                        logicHelper.isUnsynced(
-                            it,
-                            { it.syncedAt },
-                            { it.updatedTs() },
-                            { it.isDeleted },
-                        )
-                    },
+                    local.inboxRecords.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedTs() },
+                        isDeleted = { it.isDeleted },
+                    ),
                 contextLogs =
-                    local.contextLogs.filter {
-                        logicHelper.isUnsynced(
-                            it,
-                            { it.syncedAt },
-                            { it.updatedTs() },
-                            { it.isDeleted },
-                        )
-                    },
+                    local.contextLogs.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedTs() },
+                        isDeleted = { it.isDeleted },
+                    ),
                 scripts =
-                    local.scripts.filter {
-                        logicHelper.isUnsynced(
-                            it,
-                            { it.syncedAt },
-                            { it.updatedTs() },
-                            { it.isDeleted },
-                        )
-                    },
+                    local.scripts.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedTs() },
+                        isDeleted = { it.isDeleted },
+                    ),
                 attachments =
-                    local.attachments.filter {
-                        logicHelper.isUnsynced(
-                            it,
-                            { it.syncedAt },
-                            { it.updatedTs() },
-                            { it.isDeleted },
-                        )
-                    },
+                    local.attachments.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedTs() },
+                        isDeleted = { it.isDeleted },
+                    ),
                 contextAttachmentCrossRefs =
-                    local.contextAttachmentCrossRefs.filter {
-                        logicHelper.isUnsynced(it, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted })
-                    },
-                contextInboxSortingRules = local.contextInboxSortingRules,
-                contextKeyProblems = local.contextKeyProblems,
-                focusContextIntervals = local.focusContextIntervals,
-                userStateIntervals = local.userStateIntervals,
-                dayPlans = local.dayPlans,
-                dayTasks = local.dayTasks,
-                dailyMetrics = local.dailyMetrics,
-                conversations = local.conversations,
-                chatMessages = local.chatMessages,
-                conversationFolders = local.conversationFolders,
-                reminders = local.reminders,
-                recurringTasks = local.recurringTasks,
-                systemApps = local.systemApps,
-                contextArtifacts = local.contextArtifacts,
-                tacticalMissions = local.tacticalMissions,
-                tacticalMissionAttachments = local.tacticalMissionAttachments,
-                aiEvents = local.aiEvents,
-                aiInsights = local.aiInsights,
-                lifeSystemStates = local.lifeSystemStates,
-                contextRoleProfiles = local.contextRoleProfiles,
-                contextRoleProfileItems = local.contextRoleProfileItems,
-                contextConfigurations = local.contextConfigurations,
-                projectStructureItems = local.projectStructureItems,
+                    local.contextAttachmentCrossRefs.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedTs() },
+                        isDeleted = { it.isDeleted },
+                    ),
             )
         }
 
-        override suspend fun getChangesSince(since: Long): DatabaseContent {
+        override suspend fun getChangesSince(timestamp: Long): DatabaseContent {
             val local = loadLocalDatabaseContent()
             return DatabaseContent(
-                projects = local.projects.filter { it.updatedTs() > since },
-                goals = local.goals.filter { it.updatedTs() > since },
-                backlogItems = local.backlogItems.filter { it.updatedTs() > since },
-                documents = local.documents.filter { it.updatedTs() > since },
-                musicNotes = local.musicNotes.filter { it.updatedTs() > since },
-                attachments = local.attachments.filter { it.updatedTs() > since },
-                contextAttachmentCrossRefs = local.contextAttachmentCrossRefs.filter { it.updatedTs() > since },
-                directionItems = local.directionItems.filter { it.updatedTs() > since },
-                scripts = local.scripts.filter { it.updatedTs() > since },
-                contextInboxSortingRules = local.contextInboxSortingRules.filter { it.updatedAt > since },
-                contextKeyProblems = local.contextKeyProblems.filter { it.updatedAt > since },
-                focusContextIntervals = local.focusContextIntervals.filter { it.startedAt > since || (it.endedAt ?: 0L) > since },
-                userStateIntervals = local.userStateIntervals.filter { it.startedAt > since || (it.endedAt ?: 0L) > since },
-                dayPlans = local.dayPlans.filter { (it.updatedAt ?: it.createdAt) > since },
-                dayTasks = local.dayTasks.filter { (it.updatedAt ?: it.createdAt) > since },
-                dailyMetrics = local.dailyMetrics.filter { (it.updatedAt ?: it.createdAt) > since },
-                conversations = local.conversations.filter { it.creationTimestamp > since },
-                chatMessages = local.chatMessages.filter { it.timestamp > since },
+                projects = local.projects.filter { it.updatedTs() > timestamp },
+                goals = local.goals.filter { it.updatedTs() > timestamp },
+                backlogItems = local.backlogItems.filter { it.updatedTs() > timestamp },
+                documents = local.documents.filter { it.updatedTs() > timestamp },
+                musicNotes = local.musicNotes.filter { it.updatedTs() > timestamp },
+                attachments = local.attachments.filter { it.updatedTs() > timestamp },
+                contextAttachmentCrossRefs = local.contextAttachmentCrossRefs.filter { it.updatedTs() > timestamp },
+                directionItems = local.directionItems.filter { it.updatedTs() > timestamp },
+                scripts = local.scripts.filter { it.updatedTs() > timestamp },
+                contextInboxSortingRules = local.contextInboxSortingRules.filter { it.updatedAt > timestamp },
+                contextKeyProblems = local.contextKeyProblems.filter { it.updatedAt > timestamp },
+                focusContextIntervals = local.focusContextIntervals.filter { it.startedAt > timestamp || (it.endedAt ?: 0L) > timestamp },
+                userStateIntervals = local.userStateIntervals.filter { it.startedAt > timestamp || (it.endedAt ?: 0L) > timestamp },
+                dayPlans = local.dayPlans.filter { (it.updatedAt ?: it.createdAt) > timestamp },
+                dayTasks = local.dayTasks.filter { (it.updatedAt ?: it.createdAt) > timestamp },
+                dailyMetrics = local.dailyMetrics.filter { (it.updatedAt ?: it.createdAt) > timestamp },
+                conversations = local.conversations.filter { it.creationTimestamp > timestamp },
+                chatMessages = local.chatMessages.filter { it.timestamp > timestamp },
                 conversationFolders = local.conversationFolders,
-                reminders = local.reminders.filter { (it.updatedAt ?: it.creationTime) > since },
-                recurringTasks = local.recurringTasks.filter { it.startDate > since || (it.endDate ?: 0L) > since },
-                contextArtifacts = local.contextArtifacts.filter { (it.updatedAt ?: it.createdAt) > since },
-                tacticalMissions = local.tacticalMissions.filter { (it.startTime ?: 0L) > since || it.deadline > since },
+                reminders = local.reminders.filter { (it.updatedAt ?: it.creationTime) > timestamp },
+                recurringTasks = local.recurringTasks.filter { it.startDate > timestamp || (it.endDate ?: 0L) > timestamp },
+                contextArtifacts = local.contextArtifacts.filter { (it.updatedAt ?: it.createdAt) > timestamp },
+                tacticalMissions = local.tacticalMissions.filter { (it.startTime ?: 0L) > timestamp || it.deadline > timestamp },
                 tacticalMissionAttachments = local.tacticalMissionAttachments,
-                systemApps = local.systemApps.filter { (it.updatedAt ?: it.createdAt) > since },
-                aiEvents = local.aiEvents.filter { it.timestamp > since },
-                aiInsights = local.aiInsights.filter { it.timestamp > since },
-                lifeSystemStates = local.lifeSystemStates.filter { it.updatedAt > since },
-                contextRoleProfiles = local.contextRoleProfiles.filter { it.updatedAt > since },
-                contextRoleProfileItems = local.contextRoleProfileItems.filter { it.updatedAt > since },
-                contextConfigurations = local.contextConfigurations.filter { it.updatedAt > since },
-                projectStructureItems = local.projectStructureItems.filter { it.updatedAt > since },
+                systemApps = local.systemApps.filter { (it.updatedAt ?: it.createdAt) > timestamp },
+                aiEvents = local.aiEvents.filter { it.timestamp > timestamp },
+                aiInsights = local.aiInsights.filter { it.timestamp > timestamp },
+                lifeSystemStates = local.lifeSystemStates.filter { it.updatedAt > timestamp },
+                contextRoleProfiles = local.contextRoleProfiles.filter { it.updatedAt > timestamp },
+                contextRoleProfileItems = local.contextRoleProfileItems.filter { it.updatedAt > timestamp },
+                contextConfigurations = local.contextConfigurations.filter { it.updatedAt > timestamp },
+                projectStructureItems = local.projectStructureItems.filter { it.updatedAt > timestamp },
             )
         }
 
@@ -389,4 +327,18 @@ class SyncLocalDataSourceImpl
                 goalDao.deleteAll()
             }
         }
+
+        private fun <T> List<T>.filterUnsynced(
+            syncedAt: (T) -> Long?,
+            updatedAt: (T) -> Long,
+            isDeleted: (T) -> Boolean,
+        ): List<T> =
+            filter {
+                logicHelper.isUnsynced(
+                    item = it,
+                    syncedAtSelector = syncedAt,
+                    updatedSelector = updatedAt,
+                    isDeletedSelector = isDeleted,
+                )
+            }
     }

@@ -13,7 +13,16 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -25,8 +34,15 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FilterCenterFocus
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -63,33 +79,36 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-// Remove SharedTransition imports for now - they seem to be causing issues
-// import androidx.compose.animation.ExperimentalSharedTransitionApi
-// import androidx.compose.animation.SharedTransitionScope
-// import androidx.compose.animation.rememberSharedContentState
-// import androidx.compose.runtime.staticCompositionLocalOf
-// import androidx.compose.animation.LocalSharedTransitionScope
-// import androidx.compose.animation.LocalAnimatedVisibilityScope
+private const val HIERARCHY_LEVEL_INDENT_DP = 18
+private const val DRAGGING_PROJECT_ALPHA = 0.6f
+private const val HIERARCHY_MIN_CARD_ALPHA = 0.64f
+private const val HIERARCHY_MAX_CARD_ALPHA = 0.9f
+private const val SWIPE_ACTION_VISIBILITY_THRESHOLD = 0.02f
+private const val SHORT_QUERY_THRESHOLD = 3
 
 fun fuzzyMatchAndGetIndices(
     query: String,
     text: String,
 ): List<Int>? {
-    if (query.isBlank()) return emptyList()
-    if (text.isBlank()) return null
-    val lowerQuery = query.lowercase()
-    val lowerText = text.lowercase()
-    val matchedIndices = mutableListOf<Int>()
-    var queryIndex = 0
-    var textIndex = 0
-    while (queryIndex < lowerQuery.length && textIndex < lowerText.length) {
-        if (lowerQuery[queryIndex] == lowerText[textIndex]) {
-            matchedIndices.add(textIndex)
-            queryIndex++
+    return when {
+        query.isBlank() -> emptyList()
+        text.isBlank() -> null
+        else -> {
+            val lowerQuery = query.lowercase()
+            val lowerText = text.lowercase()
+            val matchedIndices = mutableListOf<Int>()
+            var queryIndex = 0
+            var textIndex = 0
+            while (queryIndex < lowerQuery.length && textIndex < lowerText.length) {
+                if (lowerQuery[queryIndex] == lowerText[textIndex]) {
+                    matchedIndices.add(textIndex)
+                    queryIndex++
+                }
+                textIndex++
+            }
+            matchedIndices.takeIf { queryIndex == lowerQuery.length }
         }
-        textIndex++
     }
-    return if (queryIndex == lowerQuery.length) matchedIndices else null
 }
 
 @Composable
@@ -97,24 +116,25 @@ fun highlightFuzzy(
     text: String,
     query: String,
 ): AnnotatedString {
-    if (query.isBlank()) return AnnotatedString(text)
     val matchedIndices = remember(query, text) { fuzzyMatchAndGetIndices(query, text) }
-    if (matchedIndices == null) return AnnotatedString(text)
-
-    return buildAnnotatedString {
-        val indicesSet = matchedIndices.toSet()
-        text.forEachIndexed { index, char ->
-            if (index in indicesSet) {
-                withStyle(
-                    style =
-                        SpanStyle(
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            background = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                        ),
-                ) { append(char) }
-            } else {
-                append(char)
+    return if (query.isBlank() || matchedIndices == null) {
+        AnnotatedString(text)
+    } else {
+        buildAnnotatedString {
+            val indicesSet = matchedIndices.toSet()
+            text.forEachIndexed { index, char ->
+                if (index in indicesSet) {
+                    withStyle(
+                        style =
+                            SpanStyle(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                background = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                            ),
+                    ) { append(char) }
+                } else {
+                    append(char)
+                }
             }
         }
     }
@@ -125,23 +145,24 @@ fun highlightSubstring(
     text: String,
     query: String,
 ): AnnotatedString {
-    if (query.isBlank()) return AnnotatedString(text)
     val startIdx = text.indexOf(query, ignoreCase = true)
-    if (startIdx == -1) return AnnotatedString(text)
-
-    return buildAnnotatedString {
-        append(text.substring(0, startIdx))
-        withStyle(
-            style =
-                SpanStyle(
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    background = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                ),
-        ) {
-            append(text.substring(startIdx, startIdx + query.length))
+    return if (query.isBlank() || startIdx == -1) {
+        AnnotatedString(text)
+    } else {
+        buildAnnotatedString {
+            append(text.substring(0, startIdx))
+            withStyle(
+                style =
+                    SpanStyle(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        background = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                    ),
+            ) {
+                append(text.substring(startIdx, startIdx + query.length))
+            }
+            append(text.substring(startIdx + query.length))
         }
-        append(text.substring(startIdx + query.length))
     }
 }
 
@@ -179,7 +200,7 @@ fun ProjectRow(
 
     val baseCardColor =
         MaterialTheme.colorScheme.surfaceContainerLowest.copy(
-            alpha = (0.86f - (level * 0.06f)).coerceIn(0.64f, 0.9f),
+            alpha = (0.86f - (level * 0.06f)).coerceIn(HIERARCHY_MIN_CARD_ALPHA, HIERARCHY_MAX_CARD_ALPHA),
         )
     val containerColor =
         if (highlightColor == Color.Transparent) {
@@ -194,7 +215,7 @@ fun ProjectRow(
             else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f)
         }
 
-    val indentation = (level * 18).dp
+    val indentation = (level * HIERARCHY_LEVEL_INDENT_DP).dp
     val rowStartPadding = 14.dp
 
     Column(
@@ -218,7 +239,7 @@ fun ProjectRow(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .alpha(if (isCurrentlyDragging) 0.6f else 1f)
+                    .alpha(if (isCurrentlyDragging) DRAGGING_PROJECT_ALPHA else 1f)
                     .padding(vertical = 8.dp, horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -383,7 +404,7 @@ fun SwipeableProjectRow(
     ) {
         fun resetSwipe() = animateTo(0f)
 
-        if (startProgress > 0.02f) {
+        if (startProgress > SWIPE_ACTION_VISIBILITY_THRESHOLD) {
             val startBg = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
             Surface(
                 modifier =
@@ -424,7 +445,7 @@ fun SwipeableProjectRow(
             }
         }
 
-        if (endProgress > 0.02f && !isSystemContext) {
+        if (endProgress > SWIPE_ACTION_VISIBILITY_THRESHOLD && !isSystemContext) {
             val endBg = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f)
             Surface(
                 modifier =
@@ -522,6 +543,8 @@ fun BreadcrumbNavigation(
     onOpenAsProject: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
+    @Suppress("UNUSED_VARIABLE")
+    val unusedCallbacks = onFocusedListMenuClick to onOpenAsProject
     if (breadcrumbs.isEmpty()) return
 
     val lazyRowState = rememberLazyListState()
@@ -588,7 +611,12 @@ fun BreadcrumbNavigation(
                         Text(
                             text = item.name,
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (isLast) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color =
+                                if (isLast) {
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -640,6 +668,8 @@ fun HierarchyListItem(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
+    @Suppress("UNUSED_VARIABLE")
+    val unusedInputs = Triple(settings, longDescendantsMap, animatedVisibilityScope)
     val project = item.project
     val children = childMap[project.id].orEmpty()
     val hasChildren = children.isNotEmpty()
@@ -648,7 +678,7 @@ fun HierarchyListItem(
 
     val displayName =
         if (isSearchActive && searchQuery.isNotEmpty()) {
-            if (searchQuery.length > 3) {
+            if (searchQuery.length > SHORT_QUERY_THRESHOLD) {
                 highlightFuzzy(text = project.name, query = searchQuery)
             } else {
                 highlightSubstring(text = project.name, query = searchQuery)
@@ -669,7 +699,11 @@ fun HierarchyListItem(
         val hoveredDropTargetKey = dragAndDropState.hoveredDropTargetKey
         val isHovered =
             remember(hoveredDropTargetKey, project.id, isDropAllowed) {
-                isDropAllowed && (hoveredDropTargetKey == "before-${project.id}" || hoveredDropTargetKey == "after-${project.id}")
+                isDropAllowed &&
+                    (
+                        hoveredDropTargetKey == "before-${project.id}" ||
+                            hoveredDropTargetKey == "after-${project.id}"
+                    )
             }
         val isDraggingDown =
             remember(hoveredDropTargetKey, project.id, isDropAllowed) {

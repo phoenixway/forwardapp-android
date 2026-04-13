@@ -178,58 +178,15 @@ class AiAnalyzerService
                 val root = json.parseToJsonElement(cleaned).jsonObject
                 AiAnalysis(
                     summary = root["summary"]?.jsonPrimitive?.contentOrNull ?: "",
-                    keyProcesses = root["key_processes"]?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull } ?: emptyList(),
+                    keyProcesses = root.stringArray("key_processes"),
                     signals =
                         AiSignals(
-                            positive =
-                                root["signals"]?.jsonObject
-                                    ?.get("positive")
-                                    ?.jsonArray
-                                    ?.mapNotNull { it.jsonPrimitive.contentOrNull }
-                                    ?: emptyList(),
-                            negative =
-                                root["signals"]?.jsonObject
-                                    ?.get("negative")
-                                    ?.jsonArray
-                                    ?.mapNotNull { it.jsonPrimitive.contentOrNull }
-                                    ?: emptyList(),
+                            positive = root.nestedStringArray("signals", "positive"),
+                            negative = root.nestedStringArray("signals", "negative"),
                         ),
-                    risks =
-                        root["risks"]?.jsonArray
-                            ?.mapNotNull { element: JsonElement ->
-                                when {
-                                    element is JsonObject ->
-                                        runCatching { json.decodeFromJsonElement<AiRisk>(element) }.getOrNull()
-                                    element.jsonPrimitive.contentOrNull != null ->
-                                        AiRisk(name = element.jsonPrimitive.content, description = "")
-                                    else -> null
-                                }
-                            }
-                            ?: emptyList(),
-                    opportunities =
-                        root["opportunities"]?.jsonArray
-                            ?.mapNotNull { element: JsonElement ->
-                                when {
-                                    element is JsonObject ->
-                                        runCatching { json.decodeFromJsonElement<AiOpportunity>(element) }.getOrNull()
-                                    element.jsonPrimitive.contentOrNull != null ->
-                                        AiOpportunity(name = element.jsonPrimitive.content, description = "")
-                                    else -> null
-                                }
-                            }
-                            ?: emptyList(),
-                    recommendations =
-                        root["recommendations"]?.jsonArray
-                            ?.mapNotNull { element: JsonElement ->
-                                when {
-                                    element is JsonObject ->
-                                        runCatching { json.decodeFromJsonElement<AiRecommendation>(element) }.getOrNull()
-                                    element.jsonPrimitive.contentOrNull != null ->
-                                        AiRecommendation(title = element.jsonPrimitive.content, message = element.jsonPrimitive.content)
-                                    else -> null
-                                }
-                            }
-                            ?: emptyList(),
+                    risks = root.parseLenientArray("risks", ::parseRiskElement),
+                    opportunities = root.parseLenientArray("opportunities", ::parseOpportunityElement),
+                    recommendations = root.parseLenientArray("recommendations", ::parseRecommendationElement),
                 )
             } catch (fallbackError: Exception) {
                 val preview = cleaned.take(400)
@@ -239,6 +196,45 @@ class AiAnalyzerService
                 )
             }
         }
+
+        private fun JsonObject.stringArray(key: String): List<String> =
+            this[key]?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull } ?: emptyList()
+
+        private fun JsonObject.nestedStringArray(
+            parentKey: String,
+            childKey: String,
+        ): List<String> =
+            this[parentKey]?.jsonObject?.get(childKey)?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull }
+                ?: emptyList()
+
+        private fun <T> JsonObject.parseLenientArray(
+            key: String,
+            parser: (JsonElement) -> T?,
+        ): List<T> = this[key]?.jsonArray?.mapNotNull(parser) ?: emptyList()
+
+        private fun parseRiskElement(element: JsonElement): AiRisk? =
+            when {
+                element is JsonObject -> runCatching { json.decodeFromJsonElement<AiRisk>(element) }.getOrNull()
+                element.jsonPrimitive.contentOrNull != null ->
+                    AiRisk(name = element.jsonPrimitive.content, description = "")
+                else -> null
+            }
+
+        private fun parseOpportunityElement(element: JsonElement): AiOpportunity? =
+            when {
+                element is JsonObject -> runCatching { json.decodeFromJsonElement<AiOpportunity>(element) }.getOrNull()
+                element.jsonPrimitive.contentOrNull != null ->
+                    AiOpportunity(name = element.jsonPrimitive.content, description = "")
+                else -> null
+            }
+
+        private fun parseRecommendationElement(element: JsonElement): AiRecommendation? =
+            when {
+                element is JsonObject -> runCatching { json.decodeFromJsonElement<AiRecommendation>(element) }.getOrNull()
+                element.jsonPrimitive.contentOrNull != null ->
+                    AiRecommendation(title = element.jsonPrimitive.content, message = element.jsonPrimitive.content)
+                else -> null
+            }
     }
 
 private fun ActivityRecord.toLifeStateTrackerEntry(): LifeStateTrackerEntry =

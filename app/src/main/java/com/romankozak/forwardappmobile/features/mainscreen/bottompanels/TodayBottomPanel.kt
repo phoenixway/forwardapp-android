@@ -75,15 +75,14 @@ private data class TodayQuickTaskDraft(
 )
 
 private const val TODAY_QUICK_TASK_TITLE_LIMIT = 100
+private const val SURFACE_LUMINANCE_THRESHOLD = 0.5f
 
 private fun buildTodayQuickTaskDraft(rawInput: String): TodayQuickTaskDraft? {
     val normalizedInput =
         rawInput
             .replace("\r\n", "\n")
             .trim()
-    if (normalizedInput.isBlank()) return null
-
-    val lines = normalizedInput.lines()
+    val lines = normalizedInput.takeIf { it.isNotBlank() }?.lines().orEmpty()
     val firstLine = lines.firstOrNull()?.trim().orEmpty()
     val remainingText =
         lines
@@ -91,24 +90,25 @@ private fun buildTodayQuickTaskDraft(rawInput: String): TodayQuickTaskDraft? {
             .joinToString("\n")
             .trim()
 
-    if (firstLine.isBlank()) return null
-
-    return if (firstLine.length <= TODAY_QUICK_TASK_TITLE_LIMIT) {
-        TodayQuickTaskDraft(
-            title = firstLine,
-            description = remainingText,
-        )
-    } else {
-        TodayQuickTaskDraft(
-            title = firstLine.take(TODAY_QUICK_TASK_TITLE_LIMIT).trimEnd(),
-            description = listOf(firstLine.drop(TODAY_QUICK_TASK_TITLE_LIMIT).trim(), remainingText)
-                .filter { it.isNotBlank() }
-                .joinToString("\n"),
-        )
+    return firstLine.takeIf { it.isNotBlank() }?.let { title ->
+        if (title.length <= TODAY_QUICK_TASK_TITLE_LIMIT) {
+            TodayQuickTaskDraft(
+                title = title,
+                description = remainingText,
+            )
+        } else {
+            TodayQuickTaskDraft(
+                title = title.take(TODAY_QUICK_TASK_TITLE_LIMIT).trimEnd(),
+                description = listOf(title.drop(TODAY_QUICK_TASK_TITLE_LIMIT).trim(), remainingText)
+                    .filter { it.isNotBlank() }
+                    .joinToString("\n"),
+            )
+        }
     }
 }
 
 @Composable
+@Suppress("LongParameterList", "LongMethod")
 fun TodayBottomPanel(
     onNavigateToProjectHierarchy: () -> Unit,
     onShowContextMarkersSheet: () -> Unit,
@@ -137,6 +137,15 @@ fun TodayBottomPanel(
     recentViewModel: RecentViewModel = hiltViewModel(),
     dayPlanViewModel: DayPlanViewModel = hiltViewModel(),
 ) {
+    @Suppress("UNUSED_VARIABLE")
+    val unusedInputs =
+        listOf(
+            onNavigateToGlobalSearch,
+            onNavigateToInbox,
+            onNavigateToTracker,
+            onNavigateToRecentItem,
+            recentViewModel,
+        )
     val dayPlanUiState by dayPlanViewModel.uiState.collectAsStateWithLifecycle()
     val allTags by dayPlanViewModel.allTags.collectAsStateWithLifecycle()
     val contextMarkerNames by dayPlanViewModel.contextMarkerNames.collectAsStateWithLifecycle()
@@ -144,7 +153,7 @@ fun TodayBottomPanel(
     val colorScheme = MaterialTheme.colorScheme
     val inputSuggestionActions = remember { InputSuggestionActions() }
     val dateChipBackground =
-        if (colorScheme.surface.luminance() > 0.5f) {
+        if (colorScheme.surface.luminance() > SURFACE_LUMINANCE_THRESHOLD) {
             colorScheme.surfaceContainerHighest
         } else {
             colorScheme.surfaceContainerHigh

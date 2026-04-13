@@ -705,14 +705,16 @@ class DayPlanViewModel
 
                     if (recurrenceRule != null) {
                         dayManagementRepository.addRecurringTask(
-                            title = trimmedTitle,
-                            description = description.trim().takeIf { it.isNotEmpty() },
-                            duration = duration,
-                            priority = priority,
-                            recurrenceRule = recurrenceRule,
-                            dayPlanId = dayPlanId,
-                            points = points,
-                            order = topOrder,
+                            DayManagementRepository.AddRecurringTaskParams(
+                                title = trimmedTitle,
+                                description = description.trim().takeIf { it.isNotEmpty() },
+                                duration = duration,
+                                priority = priority,
+                                recurrenceRule = recurrenceRule,
+                                dayPlanId = dayPlanId,
+                                points = points,
+                                order = topOrder,
+                            ),
                         )
                     } else {
                         val createdTask =
@@ -773,14 +775,16 @@ class DayPlanViewModel
                     val goal = dayManagementRepository.getGoal(goalId) ?: return@launch
                     val projectId = dayManagementRepository.findProjectIdForGoal(goalId)
                     dayManagementRepository.addRecurringTask(
-                        title = goal.text,
-                        description = goal.description,
-                        duration = null,
-                        priority = TaskPriority.MEDIUM,
-                        recurrenceRule = recurrenceRule,
-                        dayPlanId = dayPlanId,
-                        goalId = goalId,
-                        projectId = projectId,
+                        DayManagementRepository.AddRecurringTaskParams(
+                            title = goal.text,
+                            description = goal.description,
+                            duration = null,
+                            priority = TaskPriority.MEDIUM,
+                            recurrenceRule = recurrenceRule,
+                            dayPlanId = dayPlanId,
+                            goalId = goalId,
+                            projectId = projectId,
+                        ),
                     )
                 } catch (e: Exception) {
                     Log.e("DayPlanViewModel", "Error adding goal as recurring task", e)
@@ -1107,15 +1111,26 @@ class DayPlanViewModel
                 try {
                     if (editingMode == EditingMode.ALL_INSTANCES && task.recurringTaskId != null) {
                         dayManagementRepository.splitRecurringTask(
-                            originalTask = task,
-                            newTitle = title,
-                            newDescription = description,
-                            newPriority = priority,
-                            newDuration = duration,
-                            points = task.points,
+                            DayManagementRepository.SplitRecurringTaskParams(
+                                originalTask = task,
+                                newTitle = title,
+                                newDescription = description,
+                                newPriority = priority,
+                                newDuration = duration,
+                                points = task.points,
+                            ),
                         )
                     } else {
-                        dayManagementRepository.updateTask(taskId, title, description, priority, duration, points)
+                        dayManagementRepository.updateTask(
+                            DayManagementRepository.UpdateTaskParams(
+                                taskId = taskId,
+                                title = title,
+                                description = description,
+                                priority = priority,
+                                duration = duration,
+                                points = points,
+                            ),
+                        )
                     }
                     dismissEditTaskDialog()
                     clearSelectedTask()

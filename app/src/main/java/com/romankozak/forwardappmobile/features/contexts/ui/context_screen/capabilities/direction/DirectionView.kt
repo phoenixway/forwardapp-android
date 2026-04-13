@@ -1,3 +1,5 @@
+@file:Suppress("PackageNaming", "LongParameterList", "LongMethod")
+
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.direction
 
 import androidx.compose.foundation.layout.Arrangement
@@ -92,7 +94,11 @@ fun DirectionView(
             LazyColumn(
                 state = lazyListState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(top = 16.dp, bottom = 8.dp),
+                contentPadding =
+                    androidx.compose.foundation.layout.PaddingValues(
+                        top = 16.dp,
+                        bottom = 8.dp,
+                    ),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 itemsIndexed(items, key = { _, item -> item.id }) { _, item ->
@@ -109,7 +115,9 @@ fun DirectionView(
                                                 .clip(MaterialTheme.shapes.small)
                                                 .longPressDraggableHandle(
                                                     onDragStarted = {
-                                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                        hapticFeedback.performHapticFeedback(
+                                                            HapticFeedbackType.LongPress,
+                                                        )
                                                     },
                                                 )
                                         },

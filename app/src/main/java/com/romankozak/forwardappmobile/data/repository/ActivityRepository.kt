@@ -29,6 +29,8 @@ data class ActivityInputResult(
     val appliedStateChange: UserStateChange? = null,
 )
 
+private const val MINUTES_IN_MILLIS = 60_000L
+
 @Singleton
 class ActivityRepository
     @Inject
@@ -54,66 +56,25 @@ class ActivityRepository
             text: String,
             timestamp: Long = System.currentTimeMillis(),
         ): ActivityInputResult {
-            if (text.isBlank()) return ActivityInputResult(ActivityInputOutcome.IGNORED_BLANK)
+            if (text.isBlank()) {
+                return ActivityInputResult(ActivityInputOutcome.IGNORED_BLANK)
+            }
             val parsed = stateSlashCommandParser.parse(text)
-            if (parsed.cleanedText.isBlank() && parsed.detectedChange != null) {
-                appDatabase.withTransaction {
-                    userAwarenessRepository.ensureDefaultStateInTransaction(timestamp)
-                    userAwarenessRepository.applyStateChangeFromActivityInTransaction(
+            return when {
+                parsed.cleanedText.isBlank() && parsed.detectedChange != null ->
+                    applyStateOnlyTimelessRecord(
                         change = parsed.detectedChange,
-                        activityId = UUID.randomUUID().toString(),
-                        now = timestamp,
+                        timestamp = timestamp,
                     )
-                }
-                return ActivityInputResult(
-                    outcome = ActivityInputOutcome.STATE_CHANGED_ONLY,
-                    appliedStateChange = parsed.detectedChange,
-                )
-            }
-            val recordId = UUID.randomUUID().toString()
-            val record =
-                ActivityRecord(
-                    id = recordId,
-                    text = parsed.cleanedText,
-                    rawNoteText = text,
-                    noteText = parsed.cleanedText,
-                    stateEventType = parsed.detectedChange?.type?.name,
-                    stateEventCrisisLevel = parsed.detectedChange?.crisisLevel,
-                    stateEventLabel = parsed.detectedChange?.label,
-                    stateEventApplied = parsed.detectedChange != null,
-                    createdAt = timestamp,
-                    startTime = null,
-                    endTime = null,
-                    xpGained = null,
-                    antyXp = null,
-                    updatedAt = timestamp,
-                    syncedAt = null,
-                    version = 1,
-                )
-            appDatabase.withTransaction {
-                userAwarenessRepository.ensureDefaultStateInTransaction(timestamp)
-                activityRecordDao.insert(record)
-                parsed.detectedChange?.let {
-                    userAwarenessRepository.applyStateChangeFromActivityInTransaction(
-                        change = it,
-                        activityId = recordId,
-                        now = timestamp,
+
+                else ->
+                    insertTimelessRecord(
+                        originalText = text,
+                        cleanedText = parsed.cleanedText,
+                        timestamp = timestamp,
+                        detectedChange = parsed.detectedChange,
                     )
-                }
             }
-            aiEventRepository.emit(
-                ActivityLoggedEvent(
-                    timestamp = java.time.Instant.ofEpochMilli(timestamp),
-                    durationMinutes = 0,
-                    xp = record.xpGained ?: 0,
-                    antiXp = record.antyXp ?: 0,
-                    isOngoing = false,
-                ),
-            )
-            return ActivityInputResult(
-                outcome = ActivityInputOutcome.LOGGED,
-                appliedStateChange = parsed.detectedChange,
-            )
         }
 
         suspend fun startActivity(
@@ -246,7 +207,10 @@ class ActivityRepository
                     )
                 activityRecordDao.update(finishedActivity)
                 val end = finishedActivity.endTime ?: finishedActivity.createdAt
-                val duration = ((end - (finishedActivity.startTime ?: end)) / 60000L).toInt().coerceAtLeast(0)
+                val duration =
+                    ((end - (finishedActivity.startTime ?: end)) / MINUTES_IN_MILLIS)
+                        .toInt()
+                        .coerceAtLeast(0)
                 aiEventRepository.emit(
                     ActivityFinishedEvent(
                         timestamp = java.time.Instant.ofEpochMilli(end),
@@ -363,7 +327,10 @@ class ActivityRepository
                         version = it.version + 1,
                     )
                 activityRecordDao.update(finishedActivity)
-                val duration = ((now - (finishedActivity.startTime ?: now)) / 60000L).toInt().coerceAtLeast(0)
+                val duration =
+                    ((now - (finishedActivity.startTime ?: now)) / MINUTES_IN_MILLIS)
+                        .toInt()
+                        .coerceAtLeast(0)
                 aiEventRepository.emit(
                     ActivityFinishedEvent(
                         timestamp = java.time.Instant.ofEpochMilli(now),
@@ -395,7 +362,13 @@ class ActivityRepository
             goalIds: List<String>,
             startTime: Long,
             endTime: Long,
-        ): List<ActivityRecord> = activityRecordDao.getCompletedActivitiesForContext(contextId, goalIds, startTime, endTime)
+        ): List<ActivityRecord> =
+            activityRecordDao.getCompletedActivitiesForContext(
+                contextId = contextId,
+                goalIds = goalIds,
+                startTime = startTime,
+                endTime = endTime,
+            )
 
         suspend fun getAllCompletedActivitiesForContext(
             contextId: String,
@@ -425,7 +398,7 @@ class ActivityRepository
             records.forEach { record ->
                 val contextId = record.contextId ?: return@forEach
                 val durationMinutes =
-                    (((record.endTime ?: return@forEach) - (record.startTime ?: return@forEach)) / 60000L)
+                    (((record.endTime ?: return@forEach) - (record.startTime ?: return@forEach)) / MINUTES_IN_MILLIS)
                         .toInt()
                         .coerceAtLeast(0)
                 if (durationMinutes == 0) return@forEach
@@ -434,14 +407,89 @@ class ActivityRepository
                 val current = buckets[contextId] ?: ContextStateMinutes(contextId = contextId)
                 val updated =
                     when (stateType) {
-                        UserAwarenessStateType.NORMAL -> current.copy(normalMinutes = current.normalMinutes + durationMinutes)
-                        UserAwarenessStateType.CRISIS -> current.copy(crisisMinutes = current.crisisMinutes + durationMinutes)
-                        UserAwarenessStateType.EXHAUSTION -> current.copy(exhaustionMinutes = current.exhaustionMinutes + durationMinutes)
+                        UserAwarenessStateType.NORMAL ->
+                            current.copy(normalMinutes = current.normalMinutes + durationMinutes)
+
+                        UserAwarenessStateType.CRISIS ->
+                            current.copy(crisisMinutes = current.crisisMinutes + durationMinutes)
+
+                        UserAwarenessStateType.EXHAUSTION ->
+                            current.copy(exhaustionMinutes = current.exhaustionMinutes + durationMinutes)
                         UserAwarenessStateType.UNPRODUCTIVE ->
                             current.copy(unproductiveMinutes = current.unproductiveMinutes + durationMinutes)
                     }
                 buckets[contextId] = updated
             }
             return buckets.values.toList()
+        }
+
+        private suspend fun applyStateOnlyTimelessRecord(
+            change: UserStateChange,
+            timestamp: Long,
+        ): ActivityInputResult {
+            appDatabase.withTransaction {
+                userAwarenessRepository.ensureDefaultStateInTransaction(timestamp)
+                userAwarenessRepository.applyStateChangeFromActivityInTransaction(
+                    change = change,
+                    activityId = UUID.randomUUID().toString(),
+                    now = timestamp,
+                )
+            }
+            return ActivityInputResult(
+                outcome = ActivityInputOutcome.STATE_CHANGED_ONLY,
+                appliedStateChange = change,
+            )
+        }
+
+        private suspend fun insertTimelessRecord(
+            originalText: String,
+            cleanedText: String,
+            timestamp: Long,
+            detectedChange: UserStateChange?,
+        ): ActivityInputResult {
+            val recordId = UUID.randomUUID().toString()
+            val record =
+                ActivityRecord(
+                    id = recordId,
+                    text = cleanedText,
+                    rawNoteText = originalText,
+                    noteText = cleanedText,
+                    stateEventType = detectedChange?.type?.name,
+                    stateEventCrisisLevel = detectedChange?.crisisLevel,
+                    stateEventLabel = detectedChange?.label,
+                    stateEventApplied = detectedChange != null,
+                    createdAt = timestamp,
+                    startTime = null,
+                    endTime = null,
+                    xpGained = null,
+                    antyXp = null,
+                    updatedAt = timestamp,
+                    syncedAt = null,
+                    version = 1,
+                )
+            appDatabase.withTransaction {
+                userAwarenessRepository.ensureDefaultStateInTransaction(timestamp)
+                activityRecordDao.insert(record)
+                detectedChange?.let {
+                    userAwarenessRepository.applyStateChangeFromActivityInTransaction(
+                        change = it,
+                        activityId = recordId,
+                        now = timestamp,
+                    )
+                }
+            }
+            aiEventRepository.emit(
+                ActivityLoggedEvent(
+                    timestamp = java.time.Instant.ofEpochMilli(timestamp),
+                    durationMinutes = 0,
+                    xp = record.xpGained ?: 0,
+                    antiXp = record.antyXp ?: 0,
+                    isOngoing = false,
+                ),
+            )
+            return ActivityInputResult(
+                outcome = ActivityInputOutcome.LOGGED,
+                appliedStateChange = detectedChange,
+            )
         }
     }

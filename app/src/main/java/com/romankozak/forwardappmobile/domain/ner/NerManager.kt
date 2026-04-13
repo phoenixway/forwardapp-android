@@ -293,6 +293,25 @@ data class EncodingResult(
     val charSpans: Array<Pair<Int, Int>>,
 )
 
+private data class NerInputTensors(
+    val inputIdsTensor: OnnxTensor,
+    val attentionTensor: OnnxTensor,
+    val tokenTypeIdsTensor: OnnxTensor,
+) {
+    fun toInputMap(): Map<String, OnnxTensor> =
+        mapOf(
+            "input_ids" to inputIdsTensor,
+            "attention_mask" to attentionTensor,
+            "token_type_ids" to tokenTypeIdsTensor,
+        )
+
+    fun close() {
+        inputIdsTensor.close()
+        attentionTensor.close()
+        tokenTypeIdsTensor.close()
+    }
+}
+
 private class UkDtNerProcessor(
     private val context: Context,
     private val modelUri: String,
@@ -360,100 +379,131 @@ private class UkDtNerProcessor(
         }
 
     fun predict(text: String): List<Entity> {
-        if (!::session.isInitialized || !::tokenizer.isInitialized) {
-            return emptyList()
-        }
-
-        if (text.isBlank()) {
-            return emptyList()
-        }
+        if (!canPredict(text)) return emptyList()
 
         return try {
             val encoding = tokenizer.encode(text)
-            val shape = longArrayOf(1, encoding.ids.size.toLong())
-
-            val inputIdsTensor = OnnxTensor.createTensor(env, LongBuffer.wrap(encoding.ids), shape)
-            val attnTensor = OnnxTensor.createTensor(env, LongBuffer.wrap(encoding.attentionMask), shape)
-
-            val tokenTypeIdsTensor = OnnxTensor.createTensor(env, LongBuffer.wrap(LongArray(encoding.ids.size)), shape)
-
-            val inputs =
-                mapOf(
-                    "input_ids" to inputIdsTensor,
-                    "attention_mask" to attnTensor,
-                    "token_type_ids" to tokenTypeIdsTensor,
-                )
-            val entities = mutableListOf<Entity>()
-
+            val tensors = createInputTensors(encoding)
             try {
-                val logits =
-                    session.run(inputs).use { results ->
-                        @Suppress("UNCHECKED_CAST")
-                        results[0].value as Array<Array<FloatArray>>
-                    }
-
-                val predIds =
-                    logits[0].map { row ->
-                        row.indices.maxByOrNull { row[it] } ?: 0
-                    }
-
-                var i = 0
-                while (i < predIds.size && i < encoding.tokens.size) {
-                    val token = encoding.tokens[i]
-                    if (token == "[CLS]" || token == "[SEP]" || token == "[PAD]") {
-                        i++
-                        continue
-                    }
-
-                    val labelIndex = predIds[i]
-                    if (labelIndex < labels.size) {
-                        val label = labels[labelIndex]
-                        if (label.startsWith("B-")) {
-                            val kind = label.substring(2)
-                            val startTok = i
-                            var endTok = i
-                            i++
-
-                            while (i < predIds.size &&
-                                i < labels.size &&
-                                predIds[i] < labels.size &&
-                                labels[predIds[i]] == "I-$kind"
-                            ) {
-                                endTok = i
-                                i++
-                            }
-
-                            if (startTok < encoding.charSpans.size && endTok < encoding.charSpans.size) {
-                                val (s, _) = encoding.charSpans[startTok]
-                                val (_, e) =
-                                    if (endTok < encoding.charSpans.size) {
-                                        encoding.charSpans[endTok]
-                                    } else {
-                                        encoding.charSpans[startTok]
-                                    }
-
-                                val start = s.coerceIn(0, text.length)
-                                val end = e.coerceIn(start, text.length)
-
-                                if (end > start) {
-                                    val spanText = text.substring(start, end)
-                                    entities.add(Entity(kind, start, end, spanText))
-                                }
-                            }
-                            continue
-                        }
-                    }
-                    i++
-                }
+                val predIds = runInference(tensors)
+                extractEntities(text = text, encoding = encoding, predIds = predIds)
             } finally {
-                inputIdsTensor.close()
-                attnTensor.close()
+                tensors.close()
             }
-
-            entities
         } catch (e: Exception) {
             Log.e(TAG, "Error during prediction", e)
             emptyList()
         }
+    }
+
+    private fun canPredict(text: String): Boolean =
+        ::session.isInitialized &&
+            ::tokenizer.isInitialized &&
+            text.isNotBlank()
+
+    private fun createInputTensors(encoding: EncodingResult): NerInputTensors {
+        val shape = longArrayOf(1, encoding.ids.size.toLong())
+        return NerInputTensors(
+            inputIdsTensor = OnnxTensor.createTensor(env, LongBuffer.wrap(encoding.ids), shape),
+            attentionTensor = OnnxTensor.createTensor(env, LongBuffer.wrap(encoding.attentionMask), shape),
+            tokenTypeIdsTensor = OnnxTensor.createTensor(env, LongBuffer.wrap(LongArray(encoding.ids.size)), shape),
+        )
+    }
+
+    private fun runInference(tensors: NerInputTensors): List<Int> {
+        val logits =
+            session.run(tensors.toInputMap()).use { results ->
+                @Suppress("UNCHECKED_CAST")
+                results[0].value as Array<Array<FloatArray>>
+            }
+        return logits[0].map { row ->
+            row.indices.maxByOrNull { row[it] } ?: 0
+        }
+    }
+
+    private fun extractEntities(
+        text: String,
+        encoding: EncodingResult,
+        predIds: List<Int>,
+    ): List<Entity> {
+        val entities = mutableListOf<Entity>()
+        var index = 0
+
+        while (index < predIds.size && index < encoding.tokens.size) {
+            if (encoding.tokens[index].isSpecialToken()) {
+                index++
+                continue
+            }
+
+            val nextIndex =
+                collectEntityAtIndex(
+                    text = text,
+                    encoding = encoding,
+                    predIds = predIds,
+                    index = index,
+                    entities = entities,
+                )
+            index = nextIndex ?: index + 1
+        }
+
+        return entities
+    }
+
+    private fun String.isSpecialToken(): Boolean =
+        this == "[CLS]" || this == "[SEP]" || this == "[PAD]"
+
+    private fun collectEntityAtIndex(
+        text: String,
+        encoding: EncodingResult,
+        predIds: List<Int>,
+        index: Int,
+        entities: MutableList<Entity>,
+    ): Int? {
+        val labelIndex = predIds.getOrNull(index) ?: return null
+        val label = labels.getOrNull(labelIndex) ?: return null
+        if (!label.startsWith("B-")) return null
+
+        val kind = label.substring(2)
+        var endIndex = index
+        var cursor = index + 1
+        while (cursor < predIds.size && isInsideEntity(predIds, cursor, kind)) {
+            endIndex = cursor
+            cursor++
+        }
+
+        buildEntityFromSpan(
+            text = text,
+            encoding = encoding,
+            startIndex = index,
+            endIndex = endIndex,
+            kind = kind,
+        )?.let(entities::add)
+        return cursor
+    }
+
+    private fun isInsideEntity(
+        predIds: List<Int>,
+        index: Int,
+        kind: String,
+    ): Boolean {
+        val predictedLabelIndex = predIds.getOrNull(index) ?: return false
+        val predictedLabel = labels.getOrNull(predictedLabelIndex) ?: return false
+        return predictedLabel == "I-$kind"
+    }
+
+    private fun buildEntityFromSpan(
+        text: String,
+        encoding: EncodingResult,
+        startIndex: Int,
+        endIndex: Int,
+        kind: String,
+    ): Entity? {
+        if (startIndex !in encoding.charSpans.indices || endIndex !in encoding.charSpans.indices) return null
+        val (startChar, _) = encoding.charSpans[startIndex]
+        val (_, endCharRaw) = encoding.charSpans[endIndex]
+        val start = startChar.coerceIn(0, text.length)
+        val end = endCharRaw.coerceIn(start, text.length)
+        if (end <= start) return null
+        return Entity(kind, start, end, text.substring(start, end))
     }
 }

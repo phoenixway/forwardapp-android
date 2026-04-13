@@ -4,6 +4,7 @@ import android.net.Uri
 import com.google.gson.GsonBuilder
 import com.romankozak.forwardappmobile.core.data.models.sync.*
 import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSelectiveImportSelection
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -17,6 +18,7 @@ class SyncRepository @Inject constructor(
     private val systemContextEnsurer: SystemContextEnsurer,
     private val fullBackupLocalDataSource: FullBackupLocalDataSource,
 ) : SyncApi {
+    private val selectiveImportFilter = SnapshotBundleSelectiveImportFilter()
     private val gson = GsonBuilder()
         .registerTypeAdapter(Long::class.java, LongDeserializer())
         .create()
@@ -38,6 +40,9 @@ class SyncRepository @Inject constructor(
 
     override suspend fun parseBackupFile(uri: Uri): Result<FullAppBackup> =
         fileService.parseBackupFile(uri.toString())
+
+    suspend fun resolveSnapshotBundleForImport(uri: Uri): Result<ResolvedImportBundle> =
+        fileService.resolveSnapshotBundleForImport(uri.toString())
 
     /**
      *
@@ -96,6 +101,52 @@ class SyncRepository @Inject constructor(
 
     override suspend fun createBackupDiff(incoming: DatabaseContent): LegacyBackupDiff =
         mergeRepository.createBackupDiff(incoming)
+
+    suspend fun createBackupDiff(incoming: SnapshotBundle): BackupDiff =
+        mergeRepository.createBackupDiff(incoming)
+
+    suspend fun loadSelectiveImportPreview(uri: Uri): Result<SelectiveImportPreviewBundle> =
+        parseBackupFile(uri).fold(
+            onSuccess = { fullAppBackup ->
+                val version = fullAppBackup.backupSchemaVersion.takeIf { it != 0 } ?: 1
+                if (version !in setOf(1, 2)) {
+                    return@fold Result.failure(
+                        IllegalArgumentException("Unsupported backup version: $version. Expected 1 or 2."),
+                    )
+                }
+
+                val database = fullAppBackup.database
+                if (database != null) {
+                    return@fold Result.success(
+                        SelectiveImportPreviewBundle(
+                            descriptor = fileService.legacyImportDescriptor(),
+                            sourceSnapshotBundle = null,
+                            legacyDiff = createBackupDiff(database),
+                        ),
+                    )
+                }
+
+                resolveSnapshotBundleForImport(uri).map { resolvedImportBundle ->
+                    SelectiveImportPreviewBundle(
+                        descriptor = resolvedImportBundle.descriptor,
+                        sourceSnapshotBundle = resolvedImportBundle.snapshotBundle,
+                        snapshotDiff = createBackupDiff(resolvedImportBundle.snapshotBundle),
+                    )
+                }
+            },
+            onFailure = { Result.failure(it) },
+        )
+
+    suspend fun importSelectedSnapshotBundle(bundle: SnapshotBundle): Result<String> {
+        val result = mergeRepository.importSelectedSnapshotBundle(bundle)
+        systemContextEnsurer.ensureAllSystemContextsExist()
+        return result
+    }
+
+    fun filterSnapshotBundleForSelectiveImport(
+        bundle: SnapshotBundle,
+        selection: WorkspaceSelectiveImportSelection,
+    ): SnapshotBundle = selectiveImportFilter.filter(bundle, selection)
 
     override suspend fun importSelectedData(selectedData: DatabaseContent): Result<String> {
         val result = mergeRepository.importSelectedData(selectedData)

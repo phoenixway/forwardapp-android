@@ -432,9 +432,11 @@ fun MainScreenLayout(
                         )
                     } else {
                         contextHierarchyViewModel.onEvent(
-                            com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent.ContextSelected(
-                                contextMarkerName,
-                            ),
+                            com.romankozak.forwardappmobile
+                                .features.contexts.ui.context_hierarchy_screen.models
+                                .ContextHierarchyScreenEvent.ContextSelected(
+                                    contextMarkerName,
+                                ),
                         )
                     }
                 }
@@ -986,6 +988,7 @@ private fun MainScreenCommandDeckDialogs(commandDeckViewModel: CommandDeckViewMo
 }
 
 @Composable
+@Suppress("UnusedParameter")
 private fun MainScreenContextMarkersSheet(
     showSheet: Boolean,
     onDismiss: () -> Unit,

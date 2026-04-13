@@ -172,11 +172,10 @@ class CommandDeckViewModel
         }
 
         fun startContextTracking() {
-            if (_pendingSessionResultMode.value != null) {
-                submitContextInput()
-                return
-            }
-            if (_pendingSessionChangeReasonMode.value != null) {
+            if (
+                _pendingSessionResultMode.value != null ||
+                _pendingSessionChangeReasonMode.value != null
+            ) {
                 submitContextInput()
                 return
             }

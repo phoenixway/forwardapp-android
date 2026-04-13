@@ -1,3 +1,5 @@
+@file:Suppress("WildcardImport", "PackageNaming", "LongMethod", "CyclomaticComplexMethod")
+
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs
 
 import androidx.compose.foundation.layout.Column

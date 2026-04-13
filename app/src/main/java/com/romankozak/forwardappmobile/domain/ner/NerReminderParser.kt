@@ -5,6 +5,15 @@ import java.util.Calendar
 import java.util.Locale
 
 object NerReminderParser {
+    private data class DateTimeDetectionState(
+        val calendar: Calendar,
+        var dateSet: Boolean = false,
+        var timeSet: Boolean = false,
+        val detectedDateTimeEntities: MutableList<DateTimeEntity> = mutableListOf(),
+        val detectedOtherEntities: MutableList<Entity> = mutableListOf(),
+        val timeRelatedEntities: MutableList<Entity> = mutableListOf(),
+    )
+
     val numberMap =
         mapOf(
             "одна" to 1,
@@ -55,79 +64,29 @@ object NerReminderParser {
             )
         }
 
-        val calendar = Calendar.getInstance()
-        var dateSet = false
-        var timeSet = false
-        val detectedDateTimeEntities = mutableListOf<DateTimeEntity>()
-        val detectedOtherEntities = mutableListOf<Entity>()
-        val timeRelatedEntities = mutableListOf<Entity>()
+        val detectionState = DateTimeDetectionState(calendar = Calendar.getInstance())
+        expandedEntities.forEach { entity -> processEntity(entity, detectionState) }
 
-        expandedEntities.forEach { entity ->
-            when (entity.label.uppercase()) {
-                "DATE" -> {
-                    if (parseDate(entity.text.lowercase(Locale.getDefault()), calendar)) {
-                        dateSet = true
-                        timeRelatedEntities.add(entity)
-                        detectedDateTimeEntities.add(toDateTimeEntity(entity))
-                    } else {
-                        detectedOtherEntities.add(entity)
-                    }
-                }
-                "TIME" -> {
-                    if (parseTime(entity.text.lowercase(Locale.getDefault()), calendar)) {
-                        timeSet = true
-                        timeRelatedEntities.add(entity)
-                        detectedDateTimeEntities.add(toDateTimeEntity(entity))
-                    } else {
-                        detectedOtherEntities.add(entity)
-                    }
-                }
-                "DURATION" -> {
-                    if (parseDuration(entity.text.lowercase(Locale.getDefault()), calendar)) {
-                        dateSet = true
-                        timeSet = true
-                        timeRelatedEntities.add(entity)
-                        detectedDateTimeEntities.add(toDateTimeEntity(entity))
-                    } else {
-                        detectedOtherEntities.add(entity)
-                    }
-                }
-                else -> detectedOtherEntities.add(entity)
-            }
-        }
-
-        if (!dateSet && !timeSet) {
+        if (!detectionState.dateSet && !detectionState.timeSet) {
             return ReminderParseResult(
                 originalText = text,
-                dateTimeEntities = detectedDateTimeEntities,
-                otherEntities = detectedOtherEntities,
+                dateTimeEntities = detectionState.detectedDateTimeEntities,
+                otherEntities = detectionState.detectedOtherEntities,
                 success = false,
                 errorMessage = "No valid date/time found",
             )
         }
 
-        if (dateSet && !timeSet) {
-            calendar.set(Calendar.HOUR_OF_DAY, 9)
-            calendar.set(Calendar.MINUTE, 0)
-            calendar.set(Calendar.SECOND, 0)
-            calendar.set(Calendar.MILLISECOND, 0)
-        }
-
-        if (!dateSet && timeSet) {
-            val now = Calendar.getInstance()
-            if (calendar.timeInMillis < now.timeInMillis) {
-                calendar.add(Calendar.DAY_OF_YEAR, 1)
-            }
-        }
+        applyMissingDateOrTimeDefaults(detectionState)
 
         val suggestion =
-            timeRelatedEntities
+            detectionState.timeRelatedEntities
                 .sortedBy { it.start }
                 .joinToString(" ") { it.text }
 
-        val goalText = extractGoalText(text, timeRelatedEntities)
+        val goalText = extractGoalText(text, detectionState.timeRelatedEntities)
         if (goalText.isNotEmpty()) {
-            detectedOtherEntities.add(
+            detectionState.detectedOtherEntities.add(
                 Entity(
                     text = goalText,
                     label = "GOAL",
@@ -139,13 +98,66 @@ object NerReminderParser {
 
         return ReminderParseResult(
             originalText = text,
-            dateTimeEntities = detectedDateTimeEntities,
-            otherEntities = detectedOtherEntities,
+            dateTimeEntities = detectionState.detectedDateTimeEntities,
+            otherEntities = detectionState.detectedOtherEntities,
             success = true,
-            calendar = calendar,
+            calendar = detectionState.calendar,
             suggestionText = if (suggestion.isNotBlank()) suggestion else null,
             errorMessage = null,
         )
+    }
+
+    private fun processEntity(
+        entity: Entity,
+        state: DateTimeDetectionState,
+    ) {
+        val normalizedText = entity.text.lowercase(Locale.getDefault())
+        when (entity.label.uppercase()) {
+            "DATE" -> updateDetectionState(entity, state, parseDate(normalizedText, state.calendar), setDate = true)
+            "TIME" -> updateDetectionState(entity, state, parseTime(normalizedText, state.calendar), setTime = true)
+            "DURATION" ->
+                updateDetectionState(
+                    entity = entity,
+                    state = state,
+                    parsed = parseDuration(normalizedText, state.calendar),
+                    setDate = true,
+                    setTime = true,
+                )
+            else -> state.detectedOtherEntities.add(entity)
+        }
+    }
+
+    private fun updateDetectionState(
+        entity: Entity,
+        state: DateTimeDetectionState,
+        parsed: Boolean,
+        setDate: Boolean = false,
+        setTime: Boolean = false,
+    ) {
+        if (!parsed) {
+            state.detectedOtherEntities.add(entity)
+            return
+        }
+        if (setDate) state.dateSet = true
+        if (setTime) state.timeSet = true
+        state.timeRelatedEntities.add(entity)
+        state.detectedDateTimeEntities.add(toDateTimeEntity(entity))
+    }
+
+    private fun applyMissingDateOrTimeDefaults(state: DateTimeDetectionState) {
+        if (state.dateSet && !state.timeSet) {
+            state.calendar.set(Calendar.HOUR_OF_DAY, 9)
+            state.calendar.set(Calendar.MINUTE, 0)
+            state.calendar.set(Calendar.SECOND, 0)
+            state.calendar.set(Calendar.MILLISECOND, 0)
+        }
+
+        if (!state.dateSet && state.timeSet) {
+            val now = Calendar.getInstance()
+            if (state.calendar.timeInMillis < now.timeInMillis) {
+                state.calendar.add(Calendar.DAY_OF_YEAR, 1)
+            }
+        }
     }
 
     private fun expandDurationEntities(
@@ -343,42 +355,7 @@ object NerReminderParser {
             return false
         }
 
-        val result =
-            when {
-                normalizedText.contains("хвилину") || normalizedText.contains("хвилини") || normalizedText.contains("хвилин") ||
-                    normalizedText.contains("хв") -> {
-                    calendar.add(Calendar.MINUTE, number!!)
-                    true
-                }
-                normalizedText.contains("годину") || normalizedText.contains("години") || normalizedText.contains("годин") ||
-                    normalizedText.contains("год") -> {
-                    calendar.add(Calendar.HOUR_OF_DAY, number!!)
-                    true
-                }
-                normalizedText.contains("днів") || normalizedText.contains("дні") || normalizedText.contains("день") ||
-                    normalizedText.contains("дн") -> {
-                    calendar.add(Calendar.DAY_OF_YEAR, number!!)
-                    true
-                }
-                normalizedText.contains("тижнів") || normalizedText.contains("тижні") || normalizedText.contains("тиждень") ||
-                    normalizedText.contains("тижн") -> {
-                    calendar.add(Calendar.WEEK_OF_YEAR, number!!)
-                    true
-                }
-                normalizedText.contains("місяців") || normalizedText.contains("місяці") || normalizedText.contains("місяць") -> {
-                    calendar.add(Calendar.MONTH, number!!)
-                    true
-                }
-                normalizedText.contains("років") || normalizedText.contains("роки") || normalizedText.contains("року") ||
-                    normalizedText.contains("рок") -> {
-                    calendar.add(Calendar.YEAR, number!!)
-                    true
-                }
-                else -> {
-                    Log.w("NerReminderParser", "No time unit found in duration text: '$durationText'")
-                    false
-                }
-            }
+        val result = applyDurationUnit(calendar, normalizedText, number, durationText)
 
         if (result) {
             Log.d("NerReminderParser", "Successfully parsed duration: $number from '$durationText'")
@@ -386,6 +363,35 @@ object NerReminderParser {
 
         return result
     }
+
+    private fun applyDurationUnit(
+        calendar: Calendar,
+        normalizedText: String,
+        number: Int,
+        durationText: String,
+    ): Boolean {
+        val calendarField =
+            when {
+                containsAny(normalizedText, "хвилину", "хвилини", "хвилин", "хв") -> Calendar.MINUTE
+                containsAny(normalizedText, "годину", "години", "годин", "год") -> Calendar.HOUR_OF_DAY
+                containsAny(normalizedText, "днів", "дні", "день", "дн") -> Calendar.DAY_OF_YEAR
+                containsAny(normalizedText, "тижнів", "тижні", "тиждень", "тижн") -> Calendar.WEEK_OF_YEAR
+                containsAny(normalizedText, "місяців", "місяці", "місяць") -> Calendar.MONTH
+                containsAny(normalizedText, "років", "роки", "року", "рок") -> Calendar.YEAR
+                else -> null
+            }
+        if (calendarField == null) {
+            Log.w("NerReminderParser", "No time unit found in duration text: '$durationText'")
+            return false
+        }
+        calendar.add(calendarField, number)
+        return true
+    }
+
+    private fun containsAny(
+        text: String,
+        vararg variants: String,
+    ): Boolean = variants.any(text::contains)
 
     private fun setToNextDayOfWeek(
         calendar: Calendar,

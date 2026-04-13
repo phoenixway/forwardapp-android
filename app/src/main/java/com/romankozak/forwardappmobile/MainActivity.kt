@@ -4,6 +4,7 @@
     "UnusedPrivateMember",
     "LongMethod",
     "CyclomaticComplexMethod",
+    "MagicNumber",
 )
 
 package com.romankozak.forwardappmobile
@@ -51,6 +52,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
+
+private val StartupOverlayBackgroundColor = Color(0xFF0F1115)
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -162,7 +165,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun StartupLoadingOverlay() {
     Surface(
-        color = Color(0xFF0F1115),
+        color = StartupOverlayBackgroundColor,
         modifier = Modifier.fillMaxSize(),
     ) {
         Box(

@@ -118,7 +118,12 @@ private fun AnimatedCommandDeck(
         mutableStateOf(commandDeckViewModel.isCategoryExpanded(FOCUS_CONTEXTS_EXPANDED_KEY))
     }
     var lifeManagementStatusExpanded by remember {
-        mutableStateOf(commandDeckViewModel.isCategoryExpanded(LIFE_MANAGEMENT_STATUS_EXPANDED_KEY, defaultValue = true))
+        mutableStateOf(
+            commandDeckViewModel.isCategoryExpanded(
+                LIFE_MANAGEMENT_STATUS_EXPANDED_KEY,
+                defaultValue = true,
+            ),
+        )
     }
 
     Column(

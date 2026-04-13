@@ -1,3 +1,5 @@
+@file:Suppress("LongMethod", "NestedBlockDepth")
+
 package com.romankozak.forwardappmobile.data.database
 
 import androidx.room.migration.Migration

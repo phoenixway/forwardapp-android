@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+private const val STATUS_FLOW_STOP_TIMEOUT_MILLIS = 5_000L
+
 @HiltViewModel
 class LifeManagementStatusPanelViewModel
     @Inject
@@ -18,7 +20,7 @@ class LifeManagementStatusPanelViewModel
         val statuses: StateFlow<List<LifeManagementLevelStatus>> =
             repository.observeStatuses().stateIn(
                 scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000),
+                started = SharingStarted.WhileSubscribed(STATUS_FLOW_STOP_TIMEOUT_MILLIS),
                 initialValue = emptyList(),
             )
 

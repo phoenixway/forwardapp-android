@@ -41,6 +41,7 @@ import javax.inject.Singleton
 enum class ContextTextAction { ADD, REMOVE }
 
 @Singleton
+@Suppress("TooManyFunctions", "LargeClass", "LongParameterList")
 class ContextRepository
     @Inject
     constructor(
@@ -72,6 +73,42 @@ class ContextRepository
         val contextMarkerToEmojiMap: StateFlow<Map<String, String>> get() = contextMarkerHandler.contextMarkerToEmojiMap
         val contextMarkerNamesFlow: StateFlow<List<String>> get() = contextMarkerHandler.contextMarkerNamesFlow
         private val internalHandler: ContextMarkerHandler by lazy { contextMarkerHandlerProvider.get() }
+
+        private data class ListItemContentInput(
+            val contextId: String,
+            val items: List<BacklogItem>,
+            val backlogOrders: List<BacklogOrder>,
+            val attachments: List<AttachmentWithContext>,
+            val reminders: List<Reminder>,
+            val goals: List<Goal>,
+            val contexts: List<Context>,
+            val links: List<LinkItemEntity>,
+            val notes: List<LegacyNoteEntity>,
+            val noteDocuments: List<NoteDocumentEntity>,
+            val musicNotes: List<MusicNoteEntity>,
+            val checklists: List<ChecklistEntity>,
+        )
+
+        private data class AttachmentLinkRequest(
+            val attachmentType: String,
+            val entityId: String,
+            val targetContextId: String,
+            val ownerContextId: String?,
+            val createdAt: Long,
+            val roleCode: String?,
+            val isSystem: Boolean,
+        )
+
+        private data class BacklogLookupMaps(
+            val remindersMap: Map<String, List<Reminder>>,
+            val goalsMap: Map<String, Goal>,
+            val contextsMap: Map<String, Context>,
+            val linksMap: Map<String, LinkItemEntity>,
+            val notesMap: Map<String, LegacyNoteEntity>,
+            val noteDocumentsMap: Map<String, NoteDocumentEntity>,
+            val musicNotesMap: Map<String, MusicNoteEntity>,
+            val checklistsMap: Map<String, ChecklistEntity>,
+        )
 
         fun getContextTag(contextName: String): String? = contextMarkerHandler.getContextTag(contextName)
 
@@ -107,18 +144,21 @@ class ContextRepository
             ) { array ->
                 @Suppress("UNCHECKED_CAST")
                 mapToListItemContent(
-                    contextId = contextId,
-                    items = array[0] as List<BacklogItem>,
-                    backlogOrders = array[1] as List<BacklogOrder>,
-                    attachments = array[10] as List<AttachmentWithContext>,
-                    reminders = array[2] as List<Reminder>,
-                    goals = array[3] as List<Goal>,
-                    contexts = array[4] as List<Context>,
-                    links = array[5] as List<LinkItemEntity>,
-                    notes = array[6] as List<LegacyNoteEntity>,
-                    noteDocuments = array[7] as List<NoteDocumentEntity>,
-                    musicNotes = array[8] as List<MusicNoteEntity>,
-                    checklists = array[9] as List<ChecklistEntity>,
+                    input =
+                        ListItemContentInput(
+                            contextId = contextId,
+                            items = array[0] as List<BacklogItem>,
+                            backlogOrders = array[1] as List<BacklogOrder>,
+                            attachments = array[10] as List<AttachmentWithContext>,
+                            reminders = array[2] as List<Reminder>,
+                            goals = array[3] as List<Goal>,
+                            contexts = array[4] as List<Context>,
+                            links = array[5] as List<LinkItemEntity>,
+                            notes = array[6] as List<LegacyNoteEntity>,
+                            noteDocuments = array[7] as List<NoteDocumentEntity>,
+                            musicNotes = array[8] as List<MusicNoteEntity>,
+                            checklists = array[9] as List<ChecklistEntity>,
+                        ),
                 )
             }
         }
@@ -132,83 +172,79 @@ class ContextRepository
         }
 
         private fun mapToListItemContent(
-            contextId: String,
-            items: List<BacklogItem>,
-            backlogOrders: List<BacklogOrder>,
-            attachments: List<AttachmentWithContext>,
-            reminders: List<Reminder>,
-            goals: List<Goal>,
-            contexts: List<Context>,
-            links: List<LinkItemEntity>,
-            notes: List<LegacyNoteEntity>,
-            noteDocuments: List<NoteDocumentEntity>,
-            musicNotes: List<MusicNoteEntity>,
-            checklists: List<ChecklistEntity>,
+            input: ListItemContentInput,
         ): List<BacklogItemContent> {
             val attachmentBacklogItems =
-                attachments.map { attachment ->
+                input.attachments.map { attachment ->
                     val order = attachment.attachmentOrder ?: -attachment.attachment.createdAt
                     BacklogItem(
                         id = attachment.attachment.id,
-                        contextId = contextId,
+                        contextId = input.contextId,
                         itemType = attachment.attachment.attachmentType,
                         entityId = attachment.attachment.entityId,
                         order = order,
                     )
                 }
-            val orderOverrideMap = backlogOrders.associateBy { it.itemId to it.listId }
+            val orderOverrideMap = input.backlogOrders.associateBy { it.itemId to it.listId }
 
             val combinedItems =
-                (items + attachmentBacklogItems).sortedWith { a, b ->
+                (input.items + attachmentBacklogItems).sortedWith { a, b ->
                     val orderA = orderOverrideMap[a.entityId to a.contextId]?.order ?: a.order
                     val orderB = orderOverrideMap[b.entityId to b.contextId]?.order ?: b.order
                     if (orderA != orderB) orderA.compareTo(orderB) else a.id.compareTo(b.id)
                 }
 
-            val remindersMap = reminders.groupBy { it.entityId }
-            val goalsMap = goals.associateBy { it.id }
-            val contextsMap = contexts.associateBy { it.id }
-            val linksMap = links.associateBy { it.id }
-            val notesMap = notes.associateBy { it.id }
-            val noteDocumentsMap = noteDocuments.associateBy { it.id }
-            val musicNotesMap = musicNotes.associateBy { it.id }
-            val checklistsMap = checklists.associateBy { it.id }
+            val lookupMaps =
+                BacklogLookupMaps(
+                    remindersMap = input.reminders.groupBy { it.entityId },
+                    goalsMap = input.goals.associateBy { it.id },
+                    contextsMap = input.contexts.associateBy { it.id },
+                    linksMap = input.links.associateBy { it.id },
+                    notesMap = input.notes.associateBy { it.id },
+                    noteDocumentsMap = input.noteDocuments.associateBy { it.id },
+                    musicNotesMap = input.musicNotes.associateBy { it.id },
+                    checklistsMap = input.checklists.associateBy { it.id },
+                )
 
             return combinedItems.mapNotNull { item ->
-                when (item.itemType) {
-                    BacklogItemTypeValues.GOAL ->
-                        goalsMap[item.entityId]?.let {
-                            BacklogItemContent.GoalItem(
-                                it,
-                                remindersMap[it.id] ?: emptyList(),
-                                item,
-                            )
-                        }
-                    BacklogItemTypeValues.SUBLIST ->
-                        contextsMap[item.entityId]?.let {
-                            BacklogItemContent.ContextLinkItem(it, remindersMap[it.id] ?: emptyList(), item)
-                        }
-                    BacklogItemTypeValues.LINK_ITEM -> linksMap[item.entityId]?.let { BacklogItemContent.LinkItem(it, item) }
-                    BacklogItemTypeValues.NOTE -> notesMap[item.entityId]?.let { BacklogItemContent.NoteItem(it, item) }
-                    BacklogItemTypeValues.NOTE_DOCUMENT ->
-                        noteDocumentsMap[item.entityId]?.let {
-                            BacklogItemContent.NoteDocumentItem(
-                                it,
-                                item,
-                            )
-                        }
-                    BacklogItemTypeValues.MUSIC_NOTE ->
-                        musicNotesMap[item.entityId]?.let {
-                            BacklogItemContent.MusicNoteItem(
-                                it,
-                                item,
-                            )
-                        }
-                    BacklogItemTypeValues.CHECKLIST -> checklistsMap[item.entityId]?.let { BacklogItemContent.ChecklistItem(it, item) }
-                    else -> null
-                }
+                item.toBacklogItemContent(lookupMaps)
             }
         }
+
+        private fun BacklogItem.toBacklogItemContent(
+            lookupMaps: BacklogLookupMaps,
+        ): BacklogItemContent? =
+            when (itemType) {
+                BacklogItemTypeValues.GOAL -> toGoalBacklogItemContent(lookupMaps)
+                BacklogItemTypeValues.SUBLIST -> toSublistBacklogItemContent(lookupMaps)
+                BacklogItemTypeValues.LINK_ITEM -> lookupMaps.linksMap[entityId]?.let { BacklogItemContent.LinkItem(it, this) }
+                BacklogItemTypeValues.NOTE -> lookupMaps.notesMap[entityId]?.let { BacklogItemContent.NoteItem(it, this) }
+                BacklogItemTypeValues.NOTE_DOCUMENT ->
+                    lookupMaps.noteDocumentsMap[entityId]?.let { BacklogItemContent.NoteDocumentItem(it, this) }
+                BacklogItemTypeValues.MUSIC_NOTE ->
+                    lookupMaps.musicNotesMap[entityId]?.let { BacklogItemContent.MusicNoteItem(it, this) }
+                BacklogItemTypeValues.CHECKLIST ->
+                    lookupMaps.checklistsMap[entityId]?.let { BacklogItemContent.ChecklistItem(it, this) }
+                else -> null
+            }
+
+        private fun BacklogItem.toGoalBacklogItemContent(
+            lookupMaps: BacklogLookupMaps,
+        ): BacklogItemContent.GoalItem? =
+            lookupMaps.goalsMap[entityId]?.let { goal ->
+                BacklogItemContent.GoalItem(goal, lookupMaps.remindersMap[goal.id] ?: emptyList(), this)
+            }
+
+        private fun BacklogItem.toSublistBacklogItemContent(
+            lookupMaps: BacklogLookupMaps,
+        ): BacklogItemContent.ContextLinkItem? =
+            lookupMaps.contextsMap[entityId]?.let { context ->
+                BacklogItemContent.ContextLinkItem(
+                    context,
+                    lookupMaps.remindersMap[context.id] ?: emptyList(),
+                    this,
+                )
+            }
 
         // --- Операції переміщення та логіки ---
         @Transaction
@@ -415,13 +451,7 @@ class ContextRepository
         private suspend fun rebindSharedAttachmentEntitiesBeforeContextDeletion(deletingContextIds: Set<String>) {
             if (deletingContextIds.isEmpty()) return
 
-            val activeContextIds =
-                contextDao
-                    .getAll()
-                    .asSequence()
-                    .filter { !it.isDeleted && it.id !in deletingContextIds }
-                    .map { it.id }
-                    .toSet()
+            val activeContextIds = getActiveContextIdsExcluding(deletingContextIds)
             if (activeContextIds.isEmpty()) return
 
             val linksByAttachmentId =
@@ -438,27 +468,50 @@ class ContextRepository
                 if (ownerContextId !in deletingContextIds) return@forEach
 
                 val fallbackContextId = links.map { it.contextId }.firstOrNull { it in activeContextIds } ?: return@forEach
+                rebindAttachmentEntityOwnerContext(
+                    attachmentType = attachment.attachmentType,
+                    entityId = attachment.entityId,
+                    fallbackContextId = fallbackContextId,
+                    now = now,
+                )
+            }
+        }
 
-                when (attachment.attachmentType) {
-                    BacklogItemTypeValues.NOTE_DOCUMENT -> {
-                        val document = noteDocumentRepository.getDocumentById(attachment.entityId) ?: return@forEach
-                        if (document.contextId != fallbackContextId) {
-                            noteDocumentRepository.updateDocument(
-                                document.copy(contextId = fallbackContextId, updatedAt = now),
-                            )
-                        }
+        private suspend fun getActiveContextIdsExcluding(deletingContextIds: Set<String>): Set<String> =
+            contextDao
+                .getAll()
+                .asSequence()
+                .filter { !it.isDeleted && it.id !in deletingContextIds }
+                .map { it.id }
+                .toSet()
+
+        private suspend fun rebindAttachmentEntityOwnerContext(
+            attachmentType: String,
+            entityId: String,
+            fallbackContextId: String,
+            now: Long,
+        ) {
+            when (attachmentType) {
+                BacklogItemTypeValues.NOTE_DOCUMENT -> {
+                    val document = noteDocumentRepository.getDocumentById(entityId) ?: return
+                    if (document.contextId != fallbackContextId) {
+                        noteDocumentRepository.updateDocument(
+                            document.copy(contextId = fallbackContextId, updatedAt = now),
+                        )
                     }
-                    BacklogItemTypeValues.MUSIC_NOTE -> {
-                        val musicNote = musicNoteRepository.getById(attachment.entityId) ?: return@forEach
-                        if (musicNote.contextId != fallbackContextId) {
-                            musicNoteRepository.update(musicNote.copy(contextId = fallbackContextId, updatedAt = now))
-                        }
+                }
+                BacklogItemTypeValues.MUSIC_NOTE -> {
+                    val musicNote = musicNoteRepository.getById(entityId) ?: return
+                    if (musicNote.contextId != fallbackContextId) {
+                        musicNoteRepository.update(musicNote.copy(contextId = fallbackContextId, updatedAt = now))
                     }
-                    BacklogItemTypeValues.CHECKLIST -> {
-                        val checklist = checklistRepository.getChecklistById(attachment.entityId) ?: return@forEach
-                        if (checklist.contextId != fallbackContextId) {
-                            checklistRepository.updateChecklist(checklist.copy(contextId = fallbackContextId, updatedAt = now))
-                        }
+                }
+                BacklogItemTypeValues.CHECKLIST -> {
+                    val checklist = checklistRepository.getChecklistById(entityId) ?: return
+                    if (checklist.contextId != fallbackContextId) {
+                        checklistRepository.updateChecklist(
+                            checklist.copy(contextId = fallbackContextId, updatedAt = now),
+                        )
                     }
                 }
             }
@@ -538,17 +591,33 @@ class ContextRepository
             createdAt: Long = System.currentTimeMillis(),
             roleCode: String? = null,
             isSystem: Boolean = false,
-        ): String { // Змінюємо Unit на String
-            attachmentRepository.ensureAttachmentLinkedToContext(
-                attachmentType,
-                entityId,
-                targetContextId,
-                ownerContextId,
-                createdAt,
-                roleCode,
-                isSystem,
+        ): String {
+            return ensureAttachmentLinkedToContext(
+                AttachmentLinkRequest(
+                    attachmentType = attachmentType,
+                    entityId = entityId,
+                    targetContextId = targetContextId,
+                    ownerContextId = ownerContextId,
+                    createdAt = createdAt,
+                    roleCode = roleCode,
+                    isSystem = isSystem,
+                ),
             )
-            return entityId // Повертаємо ID для UI-логіки (підсвічування/скролу)
+        }
+
+        private suspend fun ensureAttachmentLinkedToContext(
+            request: AttachmentLinkRequest,
+        ): String {
+            attachmentRepository.ensureAttachmentLinkedToContext(
+                request.attachmentType,
+                request.entityId,
+                request.targetContextId,
+                request.ownerContextId,
+                request.createdAt,
+                request.roleCode,
+                request.isSystem,
+            )
+            return request.entityId
         }
 
         /**

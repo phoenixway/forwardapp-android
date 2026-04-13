@@ -1,17 +1,21 @@
 package com.romankozak.forwardappmobile.features.sync.selectiveimport
 
-import android.app.Application
-import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.romankozak.forwardappmobile.core.context.ContextId
-import com.romankozak.forwardappmobile.core.context.SystemContexts
-import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
-import com.romankozak.forwardappmobile.core.data.models.sync.LegacyBackupDiff
-import com.romankozak.forwardappmobile.sync.SyncRepository
+import com.romankozak.forwardappmobile.shared.application.imports.WorkspaceImportSessionEffect
+import com.romankozak.forwardappmobile.shared.application.imports.WorkspaceImportSessionIntent
+import com.romankozak.forwardappmobile.shared.application.imports.WorkspaceImportSessionStore
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportPreviewItem
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportPreviewItemStatus
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportPreviewModel
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportPreviewSection
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportPreviewSectionKind
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportPreviewSectionSummary
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportPreviewSummary
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -24,17 +28,38 @@ import javax.inject.Inject
 class SelectiveImportViewModel
     @Inject
     constructor(
-        private val syncRepository: SyncRepository,
+        private val loadSelectiveImportPreviewUseCase: LoadSelectiveImportPreviewUseCase,
+        private val selectiveImportCoordinator: SelectiveImportCoordinator,
         savedStateHandle: SavedStateHandle,
-        private val application: Application,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(SelectiveImportState())
         val uiState = _uiState.asStateFlow()
+        private val importSessionStore = WorkspaceImportSessionStore()
 
         private val _eventChannel = Channel<SelectiveImportEvent>()
         val eventFlow = _eventChannel.receiveAsFlow()
 
         init {
+            viewModelScope.launch {
+                importSessionStore.state.collectLatest { sessionState ->
+                    _uiState.update { current ->
+                        current.copy(
+                            isLoading = sessionState.isBusy,
+                            error = sessionState.errorMessage,
+                            sourceMode = sessionState.descriptor?.sourceMode,
+                            sourceFormat = sessionState.descriptor?.format,
+                            previewModel = sessionState.previewModel,
+                            previewSummary = sessionState.previewSummary,
+                            selection = sessionState.selection,
+                        )
+                    }
+
+                    if (sessionState.pendingEffect == WorkspaceImportSessionEffect.NavigateBack) {
+                        _eventChannel.send(SelectiveImportEvent.NavigateBack)
+                        importSessionStore.dispatch(WorkspaceImportSessionIntent.EffectConsumed)
+                    }
+                }
+            }
             val uri = savedStateHandle.get<String>("fileUri")
             Timber.tag("IMPORT_SELECTIVE_INIT").d("Init called, fileUri from SavedStateHandle: $uri")
             loadBackupFile(uri)
@@ -43,198 +68,60 @@ class SelectiveImportViewModel
         internal fun loadBackupFile(fileUriString: String?) {
             viewModelScope.launch {
                 Timber.tag("IMPORT_SELECTIVE").d("loadBackupFile called with: $fileUriString")
-                _uiState.update { it.copy(isLoading = true) }
-
                 if (fileUriString == null) {
                     Timber.tag("IMPORT_SELECTIVE").d("File URI is null!")
-                    _uiState.update { it.copy(isLoading = false, error = "File URI not provided.") }
+                    importSessionStore.dispatch(
+                        WorkspaceImportSessionIntent.PreviewFailed("File URI not provided."),
+                    )
                     return@launch
                 }
 
-                val fileUri = Uri.parse(fileUriString)
-                Timber.tag("IMPORT_SELECTIVE").d("Loading backup from URI: $fileUri")
+                importSessionStore.dispatch(WorkspaceImportSessionIntent.PreviewLoadingStarted)
 
-                syncRepository.parseBackupFile(fileUri)
-                    .onSuccess { fullAppBackup ->
-                        val dbContent = fullAppBackup.database ?: return@onSuccess
-                        val version = (fullAppBackup.backupSchemaVersion.takeIf { it != 0 } ?: 1)
-                        if (version !in listOf(1, 2)) {
-                            val msg = "Unsupported backup version: $version. Expected 1 or 2."
-                            Timber.tag("IMPORT_SELECTIVE").e(msg)
-                            _uiState.update { it.copy(isLoading = false, error = msg) }
-                            return@onSuccess
-                        }
-                        Timber.tag("IMPORT_SELECTIVE").d("Database projects: ${dbContent.projects.size}")
-                        Timber.tag("IMPORT_SELECTIVE").d("Database attachments: ${dbContent.attachments.size}")
-                        Timber
-                            .tag("IMPORT_SELECTIVE")
-                            .d("Database contextAttachmentCrossRefs: ${dbContent.contextAttachmentCrossRefs.size}")
-                        val diff = syncRepository.createBackupDiff(dbContent)
+                loadSelectiveImportPreviewUseCase(fileUriString)
+                    .onSuccess { preview ->
+                        importSessionStore.dispatch(
+                            WorkspaceImportSessionIntent.PreviewLoaded(
+                                descriptor =
+                                    com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportDescriptor(
+                                        format = preview.sourceFormat,
+                                        sourceMode = preview.sourceMode,
+                                    ),
+                            ),
+                        )
                         _uiState.update {
                             it.copy(
-                                isLoading = false,
-                                backupContent = (diff as LegacyBackupDiff).toSelectable(),
+                                backupContent = preview.backupContent,
+                                sourceSnapshotBundle = preview.sourceSnapshotBundle,
                             )
                         }
+                        syncPreviewModel(preview.backupContent)
+                        syncPreviewSummary(preview.backupContent)
+                        syncSelection(preview.backupContent)
                     }
                     .onFailure { error ->
-                        Timber.tag("IMPORT_SELECTIVE").e(error, "Failed to parse backup")
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                error = "Failed to parse backup file: ${error.message}",
-                            )
-                        }
+                        importSessionStore.dispatch(
+                            WorkspaceImportSessionIntent.PreviewFailed(
+                                error.message ?: "Failed to parse backup file.",
+                            ),
+                        )
                     }
             }
         }
 
         fun onImportClicked() {
             viewModelScope.launch {
-                val currentState = _uiState.value
-                val contentToImport = currentState.backupContent ?: return@launch
-
-                val selectedProjects = contentToImport.projects.filter { it.isSelected && it.isSelectable }.map { it.item }
-                val selectedGoals = contentToImport.goals.filter { it.isSelected && it.isSelectable }.map { it.item }
-                val selectedLegacyNotes = contentToImport.legacyNotes.filter { it.isSelected && it.isSelectable }.map { it.item }
-                val selectedActivityRecords = contentToImport.activityRecords.filter { it.isSelected && it.isSelectable }.map { it.item }
-                val selectedListItems = contentToImport.backlogItems.filter { it.isSelected && it.isSelectable }.map { it.item }
-                val selectedBacklogOrders = contentToImport.backlogOrders.filter { it.isSelected && it.isSelectable }.map { it.item }
-                val selectedDocuments = contentToImport.documents.filter { it.isSelected && it.isSelectable }.map { it.item }
-                val selectedChecklists = contentToImport.checklists.filter { it.isSelected && it.isSelectable }.map { it.item }
-                val selectedLinkItems = contentToImport.linkItems.filter { it.isSelected && it.isSelectable }.map { it.item }
-                val selectedInboxRecords = contentToImport.inboxRecords.filter { it.isSelected && it.isSelectable }.map { it.item }
-                val selectedProjectExecutionLogs = contentToImport.contextLogs.filter { it.isSelected && it.isSelectable }.map { it.item }
-                val selectedScripts = contentToImport.scripts.filter { it.isSelected && it.isSelectable }.map { it.item }
-                val selectedAttachments = contentToImport.attachments.filter { it.isSelected && it.isSelectable }.map { it.item }
-
-                Timber.tag("IMPORT_DEBUG").d("Total projects selected: ${selectedProjects.size}")
-                Timber.tag("IMPORT_DEBUG").d("Projects with parents: ${selectedProjects.filter { it.parentId != null }.size}")
-                Timber.tag("IMPORT_DEBUG").d("Root projects (no parent): ${selectedProjects.filter { it.parentId == null }.size}")
-
-                // Filter out system projects (those with systemKey) to prevent duplication
-                val regularProjects = selectedProjects.filter { !SystemContexts.isSystem(ContextId(it.id)) }
-                val systemProjectsCount = selectedProjects.size - regularProjects.size
-                Timber
-                    .tag("IMPORT_DEBUG")
-                    .d("Regular (non-system) projects: ${regularProjects.size}, System projects: $systemProjectsCount")
-
-                // Get all available projects from backup to check for parent references
-                val allBackupProjects = contentToImport.projects.map { it.item }
-                val regularcontextIds = regularProjects.map { it.id }.toSet()
-
-                // Build map of all projects by ID to check their system status
-                val allProjectsMap = allBackupProjects.associateBy { it.id }
-
-                // Recursively check if a project's entire parent chain is valid
-                // A project is valid if:
-                // 1. It has no parent (root level), OR
-                // 2. Its parent is a system project (exists in DB), OR
-                // 3. Its parent is a selected regular project whose parent is also valid
-                fun isProjectValidForImport(
-                    contextId: String,
-                    visited: Set<String> = emptySet(),
-                ): Boolean {
-                    if (contextId in visited) return false // Circular reference protection
-                    val project = allProjectsMap[contextId] ?: return false
-
-                    if (project.parentId == null) return true // Root level is valid
-
-                    val parentProject = allProjectsMap[project.parentId] ?: return false
-
-                    // Parent must be either a system project or a selected regular project
-                    val isParentValid =
-                        if (SystemContexts.isSystem(ContextId(parentProject.id))) {
-                            // System projects already exist in DB, so they're valid
-                            true
-                        } else {
-                            project.parentId?.let { pid ->
-                                pid in regularcontextIds && isProjectValidForImport(pid, visited + contextId)
-                            } ?: false
-                        }
-
-                    return isParentValid
-                }
-
-                val projectsWithValidParents =
-                    regularProjects.filter { project ->
-                        isProjectValidForImport(project.id)
-                    }
-
-                val selectedcontextIds = projectsWithValidParents.map { it.id }.toSet()
-                val selectedGoalIds = selectedGoals.map { it.id }.toSet()
-                val selectedLegacyNoteIds = selectedLegacyNotes.map { it.id }.toSet()
-                val selectedDocumentIds = selectedDocuments.map { it.id }.toSet()
-                val selectedChecklistIds = selectedChecklists.map { it.id }.toSet()
-                val selectedLinkItemIds = selectedLinkItems.map { it.id }.toSet()
-                val selectedInboxRecordIds = selectedInboxRecords.map { it.id }.toSet()
-                val selectedScriptIds = selectedScripts.map { it.id }.toSet()
-                val selectedAttachmentIds = selectedAttachments.map { it.id }.toSet()
-                val selectedBacklogOrdersFiltered =
-                    selectedBacklogOrders.filter { order ->
-                        order.listId in selectedcontextIds && order.itemId in (selectedcontextIds + selectedGoalIds)
-                    }
-
-                // Filter list items to only those linked to selected projects, goals, documents, checklists, legacy notes, scripts, inbox records
-                val allListItems = currentState.backupContent?.backlogItems?.map { it.item } ?: emptyList()
-                val filteredListItems =
-                    allListItems.filter { listItem ->
-                        listItem.contextId in selectedcontextIds ||
-                            listItem.entityId in selectedGoalIds ||
-                            listItem.entityId in selectedLegacyNoteIds ||
-                            listItem.entityId in selectedDocumentIds ||
-                            listItem.entityId in selectedChecklistIds ||
-                            listItem.entityId in selectedScriptIds ||
-                            listItem.entityId in selectedInboxRecordIds
-                    }
-
-                // Filter checklist items to only those linked to selected checklists
-                val allChecklistItems = currentState.backupContent?.checklistItems?.map { it.item } ?: emptyList()
-                val filteredChecklistItems = allChecklistItems.filter { it.checklistId in selectedChecklistIds }
-
-                // Filter project attachment cross-refs to only those linked to selected projects and selected attachments
-                val allContextAttachmentCrossRefs = currentState.backupContent?.allContextAttachmentCrossRefs ?: emptyList()
-                val filteredCrossRefs =
-                    allContextAttachmentCrossRefs.filter { crossRef ->
-                        crossRef.contextId in selectedcontextIds && crossRef.attachmentId in selectedAttachmentIds
-                    }
-
-                // Filter scripts to those that are unassigned or belong to selected projects (to avoid FK issues)
-                val filteredScripts =
-                    selectedScripts.filter { script ->
-                        script.contextId == null || script.contextId in selectedcontextIds
-                    }
-
-                val databaseContent =
-                    DatabaseContent(
-                        projects = projectsWithValidParents,
-                        goals = selectedGoals,
-                        legacyNotes = selectedLegacyNotes,
-                        activityRecords = selectedActivityRecords,
-                        backlogItems = filteredListItems,
-                        backlogOrders = selectedBacklogOrdersFiltered,
-                        documents = selectedDocuments,
-                        checklists = selectedChecklists,
-                        checklistItems = filteredChecklistItems,
-                        linkItemEntities = selectedLinkItems,
-                        inboxRecords = selectedInboxRecords,
-                        contextLogs = selectedProjectExecutionLogs,
-                        recentProjectEntries = emptyList(), // Not directly selectable, derived from projects
-                        attachments = selectedAttachments,
-                        contextAttachmentCrossRefs = filteredCrossRefs,
-                        scripts = filteredScripts,
-                    )
-
-                _uiState.update { it.copy(isLoading = true) }
-
-                val result = syncRepository.importSelectedData(databaseContent)
-
-                _uiState.update { it.copy(isLoading = false) }
+                importSessionStore.dispatch(WorkspaceImportSessionIntent.ImportStarted)
+                val result = selectiveImportCoordinator.importSelection(_uiState.value)
 
                 if (result.isSuccess) {
-                    _eventChannel.send(SelectiveImportEvent.NavigateBack)
+                    importSessionStore.dispatch(WorkspaceImportSessionIntent.ImportSucceeded)
                 } else {
-                    _uiState.update { it.copy(error = result.exceptionOrNull()?.message ?: "Unknown import error") }
+                    importSessionStore.dispatch(
+                        WorkspaceImportSessionIntent.ImportFailed(
+                            result.exceptionOrNull()?.message ?: "Unknown import error",
+                        ),
+                    )
                 }
             }
         }
@@ -250,6 +137,7 @@ class SelectiveImportViewModel
                     }
                 currentState.copy(backupContent = currentState.backupContent?.copy(projects = updatedProjects ?: emptyList()))
             }
+            onItemSelectionChanged(WorkspaceImportPreviewSectionKind.Contexts, contextId, isSelected)
         }
 
         fun toggleGoalSelection(
@@ -263,6 +151,7 @@ class SelectiveImportViewModel
                     }
                 currentState.copy(backupContent = currentState.backupContent?.copy(goals = updatedGoals ?: emptyList()))
             }
+            onItemSelectionChanged(WorkspaceImportPreviewSectionKind.Goals, goalId, isSelected)
         }
 
         fun toggleLegacyNoteSelection(
@@ -276,6 +165,9 @@ class SelectiveImportViewModel
                     }
                 currentState.copy(backupContent = currentState.backupContent?.copy(legacyNotes = updatedNotes ?: emptyList()))
             }
+            syncPreviewModel()
+            syncSelection()
+            syncPreviewSummary()
         }
 
         fun toggleActivityRecordSelection(
@@ -289,6 +181,7 @@ class SelectiveImportViewModel
                     }
                 currentState.copy(backupContent = currentState.backupContent?.copy(activityRecords = updatedRecords ?: emptyList()))
             }
+            onItemSelectionChanged(WorkspaceImportPreviewSectionKind.ActivityRecords, recordId, isSelected)
         }
 
         fun toggleListItemSelection(
@@ -302,6 +195,7 @@ class SelectiveImportViewModel
                     }
                 currentState.copy(backupContent = currentState.backupContent?.copy(backlogItems = updatedItems ?: emptyList()))
             }
+            onItemSelectionChanged(WorkspaceImportPreviewSectionKind.BacklogItems, itemId, isSelected)
         }
 
         fun toggleDocumentSelection(
@@ -315,6 +209,7 @@ class SelectiveImportViewModel
                     }
                 currentState.copy(backupContent = currentState.backupContent?.copy(documents = updatedDocuments ?: emptyList()))
             }
+            onItemSelectionChanged(WorkspaceImportPreviewSectionKind.Documents, documentId, isSelected)
         }
 
         fun toggleChecklistSelection(
@@ -328,6 +223,7 @@ class SelectiveImportViewModel
                     }
                 currentState.copy(backupContent = currentState.backupContent?.copy(checklists = updatedChecklists ?: emptyList()))
             }
+            onItemSelectionChanged(WorkspaceImportPreviewSectionKind.Checklists, checklistId, isSelected)
         }
 
         fun toggleLinkItemSelection(
@@ -341,6 +237,7 @@ class SelectiveImportViewModel
                     }
                 currentState.copy(backupContent = currentState.backupContent?.copy(linkItems = updatedLinks ?: emptyList()))
             }
+            onItemSelectionChanged(WorkspaceImportPreviewSectionKind.LinkItems, linkId, isSelected)
         }
 
         fun toggleInboxRecordSelection(
@@ -354,6 +251,7 @@ class SelectiveImportViewModel
                     }
                 currentState.copy(backupContent = currentState.backupContent?.copy(inboxRecords = updatedRecords ?: emptyList()))
             }
+            onItemSelectionChanged(WorkspaceImportPreviewSectionKind.InboxRecords, recordId, isSelected)
         }
 
         fun toggleProjectExecutionLogSelection(
@@ -367,6 +265,7 @@ class SelectiveImportViewModel
                     }
                 currentState.copy(backupContent = currentState.backupContent?.copy(contextLogs = updatedLogs ?: emptyList()))
             }
+            onItemSelectionChanged(WorkspaceImportPreviewSectionKind.ContextLogs, logId, isSelected)
         }
 
         fun toggleScriptSelection(
@@ -380,6 +279,7 @@ class SelectiveImportViewModel
                     }
                 currentState.copy(backupContent = currentState.backupContent?.copy(scripts = updatedScripts ?: emptyList()))
             }
+            onItemSelectionChanged(WorkspaceImportPreviewSectionKind.Scripts, scriptId, isSelected)
         }
 
         fun toggleAttachmentSelection(
@@ -393,6 +293,7 @@ class SelectiveImportViewModel
                     }
                 currentState.copy(backupContent = currentState.backupContent?.copy(attachments = updatedAttachments ?: emptyList()))
             }
+            onItemSelectionChanged(WorkspaceImportPreviewSectionKind.Attachments, attachmentId, isSelected)
         }
 
         fun toggleAllSelection(
@@ -472,6 +373,89 @@ class SelectiveImportViewModel
                     }
                 currentState.copy(backupContent = updatedContent)
             }
+            syncPreviewModel()
+            onSectionSelectionChanged(entityType, selectAll)
+        }
+
+        private fun syncSelection(content: SelectableDatabaseContent? = _uiState.value.backupContent) {
+            importSessionStore.dispatch(
+                WorkspaceImportSessionIntent.SelectionReplaced(
+                    selection = content.toWorkspaceSelectiveImportSelection(),
+                ),
+            )
+        }
+
+        private fun syncPreviewSummary(content: SelectableDatabaseContent? = _uiState.value.backupContent) {
+            importSessionStore.dispatch(
+                WorkspaceImportSessionIntent.PreviewSummaryReplaced(
+                    summary = content.toWorkspaceImportPreviewSummary(),
+                ),
+            )
+        }
+
+        private fun syncPreviewModel(content: SelectableDatabaseContent? = _uiState.value.backupContent) {
+            importSessionStore.dispatch(
+                WorkspaceImportSessionIntent.PreviewModelReplaced(
+                    model = content.toWorkspaceImportPreviewModel(),
+                ),
+            )
+        }
+
+        private fun onItemSelectionChanged(
+            kind: WorkspaceImportPreviewSectionKind,
+            itemId: String,
+            isSelected: Boolean,
+        ) {
+            importSessionStore.dispatch(
+                WorkspaceImportSessionIntent.ItemSelectionChanged(
+                    kind = kind,
+                    itemId = itemId,
+                    isSelected = isSelected,
+                ),
+            )
+        }
+
+        private fun onSectionSelectionChanged(
+            entityType: EntityType,
+            isSelected: Boolean,
+        ) {
+            val content = _uiState.value.backupContent ?: return
+            val (kind, itemIds) =
+                when (entityType) {
+                    EntityType.PROJECT -> WorkspaceImportPreviewSectionKind.Contexts to content.projects.selectedCandidateIds()
+                    EntityType.GOAL -> WorkspaceImportPreviewSectionKind.Goals to content.goals.selectedCandidateIds()
+                    EntityType.LEGACY_NOTE -> {
+                        syncSelection()
+                        syncPreviewSummary()
+                        return
+                    }
+                    EntityType.ACTIVITY_RECORD ->
+                        WorkspaceImportPreviewSectionKind.ActivityRecords to content.activityRecords.selectedCandidateIds()
+                    EntityType.LIST_ITEM ->
+                        WorkspaceImportPreviewSectionKind.BacklogItems to content.backlogItems.selectedCandidateIds()
+                    EntityType.DOCUMENT ->
+                        WorkspaceImportPreviewSectionKind.Documents to content.documents.selectedCandidateIds()
+                    EntityType.CHECKLIST ->
+                        WorkspaceImportPreviewSectionKind.Checklists to content.checklists.selectedCandidateIds()
+                    EntityType.LINK_ITEM ->
+                        WorkspaceImportPreviewSectionKind.LinkItems to content.linkItems.selectedCandidateIds()
+                    EntityType.INBOX_RECORD ->
+                        WorkspaceImportPreviewSectionKind.InboxRecords to content.inboxRecords.selectedCandidateIds()
+                    EntityType.PROJECT_EXECUTION_LOG ->
+                        WorkspaceImportPreviewSectionKind.ContextLogs to content.contextLogs.selectedCandidateIds()
+                    EntityType.SCRIPT ->
+                        WorkspaceImportPreviewSectionKind.Scripts to content.scripts.selectedCandidateIds()
+                    EntityType.ATTACHMENT ->
+                        WorkspaceImportPreviewSectionKind.Attachments to content.attachments.selectedCandidateIds()
+                }
+
+            importSessionStore.dispatch(
+                WorkspaceImportSessionIntent.SectionSelectionChanged(
+                    kind = kind,
+                    itemIds = itemIds,
+                    isSelected = isSelected,
+                ),
+            )
         }
     }
 
@@ -493,3 +477,185 @@ enum class EntityType {
 sealed interface SelectiveImportEvent {
     object NavigateBack : SelectiveImportEvent
 }
+
+fun SelectiveImportViewModel.onPreviewItemToggle(
+    kind: WorkspaceImportPreviewSectionKind,
+    itemId: String,
+    isSelected: Boolean,
+) {
+    when (kind) {
+        WorkspaceImportPreviewSectionKind.Contexts -> toggleProjectSelection(itemId, isSelected)
+        WorkspaceImportPreviewSectionKind.Goals -> toggleGoalSelection(itemId, isSelected)
+        WorkspaceImportPreviewSectionKind.LegacyNotes -> toggleLegacyNoteSelection(itemId, isSelected)
+        WorkspaceImportPreviewSectionKind.ActivityRecords -> toggleActivityRecordSelection(itemId, isSelected)
+        WorkspaceImportPreviewSectionKind.BacklogItems -> toggleListItemSelection(itemId, isSelected)
+        WorkspaceImportPreviewSectionKind.Documents -> toggleDocumentSelection(itemId, isSelected)
+        WorkspaceImportPreviewSectionKind.Checklists -> toggleChecklistSelection(itemId, isSelected)
+        WorkspaceImportPreviewSectionKind.LinkItems -> toggleLinkItemSelection(itemId, isSelected)
+        WorkspaceImportPreviewSectionKind.InboxRecords -> toggleInboxRecordSelection(itemId, isSelected)
+        WorkspaceImportPreviewSectionKind.ContextLogs -> toggleProjectExecutionLogSelection(itemId, isSelected)
+        WorkspaceImportPreviewSectionKind.Scripts -> toggleScriptSelection(itemId, isSelected)
+        WorkspaceImportPreviewSectionKind.Attachments -> toggleAttachmentSelection(itemId, isSelected)
+    }
+}
+
+fun SelectiveImportViewModel.onPreviewSectionToggle(
+    kind: WorkspaceImportPreviewSectionKind,
+    selectAll: Boolean,
+) {
+    when (kind) {
+        WorkspaceImportPreviewSectionKind.Contexts -> toggleAllSelection(EntityType.PROJECT, selectAll)
+        WorkspaceImportPreviewSectionKind.Goals -> toggleAllSelection(EntityType.GOAL, selectAll)
+        WorkspaceImportPreviewSectionKind.LegacyNotes -> toggleAllSelection(EntityType.LEGACY_NOTE, selectAll)
+        WorkspaceImportPreviewSectionKind.ActivityRecords -> toggleAllSelection(EntityType.ACTIVITY_RECORD, selectAll)
+        WorkspaceImportPreviewSectionKind.BacklogItems -> toggleAllSelection(EntityType.LIST_ITEM, selectAll)
+        WorkspaceImportPreviewSectionKind.Documents -> toggleAllSelection(EntityType.DOCUMENT, selectAll)
+        WorkspaceImportPreviewSectionKind.Checklists -> toggleAllSelection(EntityType.CHECKLIST, selectAll)
+        WorkspaceImportPreviewSectionKind.LinkItems -> toggleAllSelection(EntityType.LINK_ITEM, selectAll)
+        WorkspaceImportPreviewSectionKind.InboxRecords -> toggleAllSelection(EntityType.INBOX_RECORD, selectAll)
+        WorkspaceImportPreviewSectionKind.ContextLogs -> toggleAllSelection(EntityType.PROJECT_EXECUTION_LOG, selectAll)
+        WorkspaceImportPreviewSectionKind.Scripts -> toggleAllSelection(EntityType.SCRIPT, selectAll)
+        WorkspaceImportPreviewSectionKind.Attachments -> toggleAllSelection(EntityType.ATTACHMENT, selectAll)
+    }
+}
+
+private fun SelectableDatabaseContent?.toWorkspaceSelectiveImportSelection() =
+    com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSelectiveImportSelection(
+        selectedContextIds = this?.projects.selectedIds().orEmpty(),
+        selectedGoalIds = this?.goals.selectedIds().orEmpty(),
+        selectedBacklogItemIds = this?.backlogItems.selectedIds().orEmpty(),
+        selectedDocumentIds = this?.documents.selectedIds().orEmpty(),
+        selectedChecklistIds = this?.checklists.selectedIds().orEmpty(),
+        selectedLinkItemIds = this?.linkItems.selectedIds().orEmpty(),
+        selectedInboxRecordIds = this?.inboxRecords.selectedIds().orEmpty(),
+        selectedContextLogIds = this?.contextLogs.selectedIds().orEmpty(),
+        selectedScriptIds = this?.scripts.selectedIds().orEmpty(),
+        selectedAttachmentIds = this?.attachments.selectedIds().orEmpty(),
+        selectedActivityRecordIds = this?.activityRecords.selectedIds().orEmpty(),
+    )
+
+private fun SelectableDatabaseContent?.toWorkspaceImportPreviewSummary(): WorkspaceImportPreviewSummary =
+    WorkspaceImportPreviewSummary(
+        sections =
+            listOfNotNull(
+                this?.projects?.toSectionSummary(WorkspaceImportPreviewSectionKind.Contexts),
+                this?.goals?.toSectionSummary(WorkspaceImportPreviewSectionKind.Goals),
+                this?.legacyNotes?.toSectionSummary(WorkspaceImportPreviewSectionKind.LegacyNotes),
+                this?.activityRecords?.toSectionSummary(WorkspaceImportPreviewSectionKind.ActivityRecords),
+                this?.backlogItems?.toSectionSummary(WorkspaceImportPreviewSectionKind.BacklogItems),
+                this?.documents?.toSectionSummary(WorkspaceImportPreviewSectionKind.Documents),
+                this?.checklists?.toSectionSummary(WorkspaceImportPreviewSectionKind.Checklists),
+                this?.linkItems?.toSectionSummary(WorkspaceImportPreviewSectionKind.LinkItems),
+                this?.inboxRecords?.toSectionSummary(WorkspaceImportPreviewSectionKind.InboxRecords),
+                this?.contextLogs?.toSectionSummary(WorkspaceImportPreviewSectionKind.ContextLogs),
+                this?.scripts?.toSectionSummary(WorkspaceImportPreviewSectionKind.Scripts),
+                this?.attachments?.toSectionSummary(WorkspaceImportPreviewSectionKind.Attachments),
+            ),
+    )
+
+private fun SelectableDatabaseContent?.toWorkspaceImportPreviewModel(): WorkspaceImportPreviewModel =
+    WorkspaceImportPreviewModel(
+        sections =
+            listOfNotNull(
+                this?.projects?.toPreviewSection(WorkspaceImportPreviewSectionKind.Contexts) { it.id to (it.name to null) },
+                this?.goals?.toPreviewSection(WorkspaceImportPreviewSectionKind.Goals) { it.id to (it.text to null) },
+                this?.legacyNotes?.toPreviewSection(WorkspaceImportPreviewSectionKind.LegacyNotes) {
+                    it.id to ((it.title.ifBlank { "Без назви" }) to null)
+                },
+                this?.activityRecords?.toPreviewSection(WorkspaceImportPreviewSectionKind.ActivityRecords) {
+                    it.id to ((it.text.ifBlank { "Без опису" }) to null)
+                },
+                this?.backlogItems?.toPreviewSection(WorkspaceImportPreviewSectionKind.BacklogItems) {
+                    it.id to ("ListItem #${it.order} -> ${it.entityId}" to null)
+                },
+                this?.documents?.toPreviewSection(WorkspaceImportPreviewSectionKind.Documents) {
+                    it.id to ((it.name.ifBlank { "Без назви" }) to null)
+                },
+                this?.checklists?.toPreviewSection(WorkspaceImportPreviewSectionKind.Checklists) {
+                    it.id to ((it.name.ifBlank { "Без назви" }) to null)
+                },
+                this?.linkItems?.toPreviewSection(WorkspaceImportPreviewSectionKind.LinkItems) {
+                    it.id to (((it.linkData.displayName ?: it.linkData.target).ifBlank { "Без назви" }) to null)
+                },
+                this?.inboxRecords?.toPreviewSection(WorkspaceImportPreviewSectionKind.InboxRecords) {
+                    it.id to ((it.text.ifBlank { "Без вмісту" }) to null)
+                },
+                this?.contextLogs?.toPreviewSection(WorkspaceImportPreviewSectionKind.ContextLogs) {
+                    it.id to ("Log ${it.id.take(8)}" to null)
+                },
+                this?.scripts?.toPreviewSection(WorkspaceImportPreviewSectionKind.Scripts) {
+                    it.id to ((it.name.ifBlank { "Без назви" }) to null)
+                },
+                this?.attachments?.toPreviewSection(WorkspaceImportPreviewSectionKind.Attachments) {
+                    it.id to ((it.attachmentType.ifBlank { "Без назви" }) to null)
+                },
+            ),
+    )
+
+private fun <T> List<SelectableDiffItem<T>>?.selectedIds(): Set<String> =
+    this.orEmpty().asSequence()
+        .filter { it.isSelectable && it.isSelected }
+        .mapNotNull { item -> extractSelectionId(item.item as Any) }
+        .toSet()
+
+private fun <T> List<SelectableDiffItem<T>>.selectedCandidateIds(): Set<String> =
+    asSequence()
+        .filter { it.isSelectable }
+        .mapNotNull { item -> extractSelectionId(item.item as Any) }
+        .toSet()
+
+private fun extractSelectionId(item: Any): String? =
+    when (item) {
+        is com.romankozak.forwardappmobile.core.data.models.entities.Context -> item.id
+        is com.romankozak.forwardappmobile.core.data.models.entities.Goal -> item.id
+        is com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem -> item.id
+        is com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity -> item.id
+        is com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity -> item.id
+        is com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity -> item.id
+        is com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord -> item.id
+        is com.romankozak.forwardappmobile.core.data.models.entities.ContextLog -> item.id
+        is com.romankozak.forwardappmobile.core.data.models.entities.ScriptEntity -> item.id
+        is com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity -> item.id
+        is com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord -> item.id
+        else -> null
+    }
+
+private fun <T> List<SelectableDiffItem<T>>.toSectionSummary(
+    kind: WorkspaceImportPreviewSectionKind,
+): WorkspaceImportPreviewSectionSummary =
+    WorkspaceImportPreviewSectionSummary(
+        kind = kind,
+        totalCount = size,
+        selectedCount = count { it.isSelectable && it.isSelected },
+        newCount = count { it.status == com.romankozak.forwardappmobile.core.data.models.sync.DiffStatus.NEW },
+        updatedCount = count { it.status == com.romankozak.forwardappmobile.core.data.models.sync.DiffStatus.UPDATED },
+        deletedCount = count { it.status == com.romankozak.forwardappmobile.core.data.models.sync.DiffStatus.DELETED },
+    )
+
+private fun <T> List<SelectableDiffItem<T>>.toPreviewSection(
+    kind: WorkspaceImportPreviewSectionKind,
+    mapper: (T) -> Pair<String, Pair<String, String?>>,
+): WorkspaceImportPreviewSection =
+    WorkspaceImportPreviewSection(
+        kind = kind,
+        title = kind.title,
+        items =
+            map { selectable ->
+                val (id, text) = mapper(selectable.item)
+                WorkspaceImportPreviewItem(
+                    id = id,
+                    title = text.first,
+                    subtitle = selectable.changeInfo ?: text.second,
+                    status = selectable.status.toPreviewItemStatus(),
+                    isSelected = selectable.isSelected,
+                    isSelectable = selectable.isSelectable,
+                )
+            },
+    )
+
+private fun com.romankozak.forwardappmobile.core.data.models.sync.DiffStatus.toPreviewItemStatus(): WorkspaceImportPreviewItemStatus =
+    when (this) {
+        com.romankozak.forwardappmobile.core.data.models.sync.DiffStatus.NEW -> WorkspaceImportPreviewItemStatus.New
+        com.romankozak.forwardappmobile.core.data.models.sync.DiffStatus.UPDATED -> WorkspaceImportPreviewItemStatus.Updated
+        com.romankozak.forwardappmobile.core.data.models.sync.DiffStatus.DELETED -> WorkspaceImportPreviewItemStatus.Deleted
+    }

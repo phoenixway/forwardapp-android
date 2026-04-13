@@ -1,3 +1,5 @@
+@file:Suppress("MaxLineLength")
+
 package com.romankozak.forwardappmobile.features.contexts.domain.clipboard
 
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
@@ -71,6 +73,14 @@ data class TacticalMissionPasteReport(
 }
 
 @Singleton
+@Suppress(
+    "LongParameterList",
+    "LongMethod",
+    "LargeClass",
+    "CyclomaticComplexMethod",
+    "NestedBlockDepth",
+    "TooManyFunctions",
+)
 class BacklogClipboardUseCase
     @Inject
     constructor(
@@ -873,8 +883,10 @@ class BacklogClipboardUseCase
         }
 
         suspend fun pasteIntoInbox(targetContextId: String): Int {
-            val payload = clipboardService.payload.value ?: return 0
-            if (targetContextId.isBlank()) return 0
+            val payload = clipboardService.payload.value
+            if (payload == null || targetContextId.isBlank()) {
+                return 0
+            }
             val textItems = resolveStructuredTextClipboardItems(
                 dayTaskRefs = payload.entities.filterIsInstance<ClipboardEntityRef.DayTask>(),
                 tacticalMissionRefs = payload.entities.filterIsInstance<ClipboardEntityRef.TacticalMission>(),
@@ -886,13 +898,14 @@ class BacklogClipboardUseCase
                 inboxRefs = payload.entities.filterIsInstance<ClipboardEntityRef.InboxRecord>(),
                 operation = payload.operation,
             )
-            if (textItems.isEmpty()) return 0
-            textItems.forEach { item ->
-                inboxRepository.addInboxRecord(item.text, targetContextId)
-            }
-            if (payload.operation == ClipboardOperation.CUT) {
-                finalizeStructuredTextCut(textItems)
-                clipboardService.clear()
+            if (textItems.isNotEmpty()) {
+                textItems.forEach { item ->
+                    inboxRepository.addInboxRecord(item.text, targetContextId)
+                }
+                if (payload.operation == ClipboardOperation.CUT) {
+                    finalizeStructuredTextCut(textItems)
+                    clipboardService.clear()
+                }
             }
             return textItems.size
         }

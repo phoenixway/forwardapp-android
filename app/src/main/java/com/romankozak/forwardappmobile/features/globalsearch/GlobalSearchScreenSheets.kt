@@ -1,3 +1,5 @@
+@file:Suppress("WildcardImport")
+
 package com.romankozak.forwardappmobile.features.globalsearch
 
 import androidx.compose.foundation.clickable

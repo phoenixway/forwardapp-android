@@ -1,4 +1,4 @@
-@file:Suppress("FunctionNaming", "MagicNumber")
+@file:Suppress("FunctionNaming", "MagicNumber", "LongParameterList")
 
 package com.romankozak.forwardappmobile.ui.components
 
@@ -119,6 +119,7 @@ private val MusicNoteTypeTint = Color(0xFFE65100)
 private val ScriptTypeTint = Color(0xFF00695C)
 private val UrlTypeTint = Color(0xFF3949AB)
 private val ObsidianTypeTint = Color(0xFF455A64)
+private val WideLayoutMinWidth = 420.dp
 
 @Composable
 @Suppress("LongParameterList", "LongMethod")
@@ -164,116 +165,205 @@ fun ConnectionsPanel(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (showTitle) {
-                Text(
-                    text = "Connections",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f),
-                )
-            } else {
-                Spacer(modifier = Modifier.weight(1f))
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (onCreateConnection != null) {
-                    FilledTonalIconButton(
-                        onClick = { showCreateActionsDialog = true },
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Add,
-                            contentDescription = "Створити новий зв'язок",
-                        )
-                    }
+        ConnectionsHeader(
+            showTitle = showTitle,
+            onShowCreateActions = onCreateConnection?.let { { showCreateActionsDialog = true } },
+            onAddExistingConnection = {
+                if (onAddButtonClick != null) {
+                    onAddButtonClick()
+                } else {
+                    onAddConnection(AddConnectionType.CONTEXT)
                 }
+            },
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        ConnectionsListCard(
+            items = internalItems,
+            lazyListState = lazyListState,
+            reorderableState = reorderableState,
+            wrapContentHeight = wrapContentHeight,
+            onConnectionClick = onConnectionClick,
+            onPendingRemovalChange = { pendingRemovalItem = it },
+            onConnectionCopy = onConnectionCopy,
+            onConnectionCut = onConnectionCut,
+            mode = mode,
+            preferActionsBesideTitleWhenWide = preferActionsBesideTitleWhenWide,
+            hapticFeedback = hapticFeedback,
+        )
+    }
+
+    ConnectionsFooterDialogs(
+        showCreateActionsDialog = showCreateActionsDialog,
+        onShowCreateActionsDialogChange = { showCreateActionsDialog = it },
+        onCreateConnection = onCreateConnection,
+        pendingRemovalItem = pendingRemovalItem,
+        onPendingRemovalChange = { pendingRemovalItem = it },
+        onConnectionDeleteEverywhere = onConnectionDeleteEverywhere,
+        onConnectionRemove = onConnectionRemove,
+    )
+}
+
+@Composable
+private fun ConnectionsHeader(
+    showTitle: Boolean,
+    onShowCreateActions: (() -> Unit)?,
+    onAddExistingConnection: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (showTitle) {
+            Text(
+                text = "Connections",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+        } else {
+            Spacer(modifier = Modifier.weight(1f))
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (onShowCreateActions != null) {
                 FilledTonalIconButton(
-                    onClick = {
-                        if (onAddButtonClick != null) {
-                            onAddButtonClick()
-                        } else {
-                            onAddConnection(AddConnectionType.CONTEXT)
-                        }
-                    },
+                    onClick = onShowCreateActions,
                     shape = RoundedCornerShape(12.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Search,
-                        contentDescription = "Додати існуючий зв'язок",
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = "Створити новий зв'язок",
                     )
                 }
             }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        ElevatedCard(
-            modifier =
-                if (wrapContentHeight) {
-                    Modifier.fillMaxWidth()
-                } else {
-                    Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                },
-            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
-            shape = RoundedCornerShape(16.dp),
-        ) {
-            if (internalItems.isEmpty()) {
-                Text(
-                    text = "Поки немає зв'язків. Додай перший через +",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            FilledTonalIconButton(
+                onClick = onAddExistingConnection,
+                shape = RoundedCornerShape(12.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Search,
+                    contentDescription = "Додати існуючий зв'язок",
                 )
-            } else {
-                LazyColumn(
-                    state = lazyListState,
-                    modifier =
-                        if (wrapContentHeight) {
-                            Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = WRAP_CONTENT_LIST_MAX_HEIGHT_DP.dp)
-                        } else {
-                            Modifier.fillMaxSize()
-                        },
-                ) {
-                    items(internalItems, key = { "${it.type}-${it.id}" }) { item ->
-                        ReorderableItem(reorderableState, key = "${item.type}-${item.id}") {
-                            ConnectionRow(
-                                item = item,
-                                onOpen = { onConnectionClick(item) },
-                                onRemoveRequest = { pendingRemovalItem = item },
-                                onCopy = onConnectionCopy?.let { { it(item) } },
-                                onCut = onConnectionCut?.let { { it(item) } },
-                                mode = mode,
-                                preferActionsBesideTitleWhenWide = preferActionsBesideTitleWhenWide,
-                                typeIconModifier =
-                                    with(this@ReorderableItem) {
-                                        Modifier.longPressDraggableHandle(
-                                            onDragStarted = {
-                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            },
-                                        )
-                                    },
-                            )
-                        }
-                    }
-                }
             }
         }
     }
+}
 
+@Composable
+private fun ConnectionsListCard(
+    items: List<ConnectionItemUi>,
+    lazyListState: androidx.compose.foundation.lazy.LazyListState,
+    reorderableState: sh.calvin.reorderable.ReorderableLazyListState,
+    wrapContentHeight: Boolean,
+    onConnectionClick: (ConnectionItemUi) -> Unit,
+    onPendingRemovalChange: (ConnectionItemUi?) -> Unit,
+    onConnectionCopy: ((ConnectionItemUi) -> Unit)?,
+    onConnectionCut: ((ConnectionItemUi) -> Unit)?,
+    mode: ConnectionPanelMode,
+    preferActionsBesideTitleWhenWide: Boolean,
+    hapticFeedback: androidx.compose.ui.hapticfeedback.HapticFeedback,
+) {
+    ElevatedCard(
+        modifier =
+            if (wrapContentHeight) {
+                Modifier.fillMaxWidth()
+            } else {
+                Modifier.fillMaxWidth()
+            },
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        ConnectionsListContent(
+            items = items,
+            lazyListState = lazyListState,
+            reorderableState = reorderableState,
+            wrapContentHeight = wrapContentHeight,
+            onConnectionClick = onConnectionClick,
+            onPendingRemovalChange = onPendingRemovalChange,
+            onConnectionCopy = onConnectionCopy,
+            onConnectionCut = onConnectionCut,
+            mode = mode,
+            preferActionsBesideTitleWhenWide = preferActionsBesideTitleWhenWide,
+            hapticFeedback = hapticFeedback,
+        )
+    }
+}
+
+@Composable
+private fun ConnectionsListContent(
+    items: List<ConnectionItemUi>,
+    lazyListState: androidx.compose.foundation.lazy.LazyListState,
+    reorderableState: sh.calvin.reorderable.ReorderableLazyListState,
+    wrapContentHeight: Boolean,
+    onConnectionClick: (ConnectionItemUi) -> Unit,
+    onPendingRemovalChange: (ConnectionItemUi?) -> Unit,
+    onConnectionCopy: ((ConnectionItemUi) -> Unit)?,
+    onConnectionCut: ((ConnectionItemUi) -> Unit)?,
+    mode: ConnectionPanelMode,
+    preferActionsBesideTitleWhenWide: Boolean,
+    hapticFeedback: androidx.compose.ui.hapticfeedback.HapticFeedback,
+) {
+    if (items.isEmpty()) {
+        Text(
+            text = "Поки немає зв'язків. Додай перший через +",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+        )
+        return
+    }
+
+    LazyColumn(
+        state = lazyListState,
+        modifier =
+            if (wrapContentHeight) {
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = WRAP_CONTENT_LIST_MAX_HEIGHT_DP.dp)
+            } else {
+                Modifier.fillMaxSize()
+            },
+    ) {
+        items(items, key = { "${it.type}-${it.id}" }) { item ->
+            ReorderableItem(reorderableState, key = "${item.type}-${item.id}") {
+                ConnectionRow(
+                    item = item,
+                    onOpen = { onConnectionClick(item) },
+                    onRemoveRequest = { onPendingRemovalChange(item) },
+                    onCopy = onConnectionCopy?.let { { it(item) } },
+                    onCut = onConnectionCut?.let { { it(item) } },
+                    mode = mode,
+                    preferActionsBesideTitleWhenWide = preferActionsBesideTitleWhenWide,
+                    typeIconModifier =
+                        with(this@ReorderableItem) {
+                            Modifier.longPressDraggableHandle(
+                                onDragStarted = {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                },
+                            )
+                        },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConnectionsFooterDialogs(
+    showCreateActionsDialog: Boolean,
+    onShowCreateActionsDialogChange: (Boolean) -> Unit,
+    onCreateConnection: ((CreateConnectionType) -> Unit)?,
+    pendingRemovalItem: ConnectionItemUi?,
+    onPendingRemovalChange: (ConnectionItemUi?) -> Unit,
+    onConnectionDeleteEverywhere: ((ConnectionItemUi) -> Unit)?,
+    onConnectionRemove: (ConnectionItemUi) -> Unit,
+) {
     if (showCreateActionsDialog && onCreateConnection != null) {
         ConnectionsCreateActionsDialog(
-            onDismiss = { showCreateActionsDialog = false },
+            onDismiss = { onShowCreateActionsDialogChange(false) },
             onActionSelected = { type ->
-                showCreateActionsDialog = false
+                onShowCreateActionsDialogChange(false)
                 onCreateConnection(type)
             },
         )
@@ -282,14 +372,14 @@ fun ConnectionsPanel(
     pendingRemovalItem?.let { item ->
         DeleteConnectionDialog(
             item = item,
-            onDismiss = { pendingRemovalItem = null },
+            onDismiss = { onPendingRemovalChange(null) },
             onDeleteEverywhere = {
                 (onConnectionDeleteEverywhere ?: onConnectionRemove)(item)
-                pendingRemovalItem = null
+                onPendingRemovalChange(null)
             },
             onDeleteFromListOnly = {
                 onConnectionRemove(item)
-                pendingRemovalItem = null
+                onPendingRemovalChange(null)
             },
         )
     }
@@ -309,16 +399,8 @@ private fun ConnectionRow(
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-            val showActionsOnRight =
-                when (mode) {
-                    ConnectionPanelMode.COMPACT -> true
-                    ConnectionPanelMode.NORMAL -> preferActionsBesideTitleWhenWide && maxWidth >= 420.dp
-                }
-            val titleMaxLines =
-                when (mode) {
-                    ConnectionPanelMode.NORMAL -> NORMAL_TITLE_MAX_LINES
-                    ConnectionPanelMode.COMPACT -> COMPACT_TITLE_MAX_LINES
-                }
+            val showActionsOnRight = mode.shouldShowActionsOnRight(preferActionsBesideTitleWhenWide, maxWidth)
+            val titleMaxLines = mode.titleMaxLines
 
             Row(
                 modifier =
@@ -528,4 +610,20 @@ private val ConnectionType.label: String
             ConnectionType.SCRIPT -> "Скрипт"
             ConnectionType.URL -> "Веб-посилання"
             ConnectionType.OBSIDIAN_NOTE -> "Посилання Obsidian"
+        }
+
+private fun ConnectionPanelMode.shouldShowActionsOnRight(
+    preferActionsBesideTitleWhenWide: Boolean,
+    maxWidth: androidx.compose.ui.unit.Dp,
+): Boolean =
+    when (this) {
+        ConnectionPanelMode.COMPACT -> true
+        ConnectionPanelMode.NORMAL -> preferActionsBesideTitleWhenWide && maxWidth >= WideLayoutMinWidth
+    }
+
+private val ConnectionPanelMode.titleMaxLines: Int
+    get() =
+        when (this) {
+            ConnectionPanelMode.NORMAL -> NORMAL_TITLE_MAX_LINES
+            ConnectionPanelMode.COMPACT -> COMPACT_TITLE_MAX_LINES
         }

@@ -63,6 +63,7 @@ import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
 
 @Composable
+@Suppress("LongParameterList", "LongMethod")
 fun TacticsBottomPanel(
     onNavigateToProjectHierarchy: () -> Unit,
     onShowContextMarkersSheet: () -> Unit,
@@ -91,6 +92,15 @@ fun TacticsBottomPanel(
     recentViewModel: RecentViewModel = hiltViewModel(),
     viewModel: TacticalMissionViewModel = hiltViewModel(),
 ) {
+    @Suppress("UNUSED_VARIABLE")
+    val unusedInputs =
+        listOf(
+            onNavigateToGlobalSearch,
+            onNavigateToInbox,
+            onNavigateToTracker,
+            onNavigateToRecentItem,
+            recentViewModel,
+        )
     val allTags by viewModel.allTags.collectAsStateWithLifecycle()
     val contextMarkerNames by viewModel.contextMarkerNames.collectAsStateWithLifecycle()
     val projectOptions by viewModel.projectOptions.collectAsStateWithLifecycle()

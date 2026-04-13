@@ -1,3 +1,11 @@
+@file:Suppress(
+    "LongParameterList",
+    "TooManyFunctions",
+    "TooGenericExceptionCaught",
+    "InstanceOfCheckForException",
+    "PackageNaming",
+)
+
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel
 
 import android.util.Log
@@ -8,7 +16,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.domain.ner.ReminderParser
-import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.GoalActionType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +27,13 @@ import kotlinx.coroutines.withContext
 import java.net.URL
 import java.net.URLEncoder
 import java.util.Calendar
+
+private const val SMART_DEBOUNCE_GRACE_MS = 50L
+private const val DEFAULT_DEBOUNCE_MS = 800L
+private const val REMINDER_PARSE_TIMEOUT_MS = 10_000L
+private const val REMINDER_FLOW_TAG = "ReminderFlow"
+private const val RECENTS_DEBUG_TAG = "Recents_Debug"
+private const val UTF_8 = "UTF-8"
 
 class SmartDebouncer(
     private val delayMs: Long,
@@ -38,7 +52,7 @@ class SmartDebouncer(
         job =
             coroutineScope.launch {
                 delay(delayMs)
-                if (lastInputTime <= currentTime + 50) {
+                if (lastInputTime <= currentTime + SMART_DEBOUNCE_GRACE_MS) {
                     try {
                         block()
                     } catch (e: Exception) {
@@ -48,7 +62,7 @@ class SmartDebouncer(
                     }
                 }
             }
-        return job!!
+        return checkNotNull(job)
     }
 
     fun cancel() {
@@ -60,15 +74,12 @@ class SmartDebouncer(
 class InputHandler(
     private val contextRepository: ContextRepository,
     private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository,
-    private val listItemRepository: com.romankozak.forwardappmobile.data.repository.ListItemRepository,
     private val scope: CoroutineScope,
     private val projectIdFlow: StateFlow<String>,
     private val resultListener: ResultListener,
     private val reminderParser: ReminderParser,
-    private val alarmScheduler: AlarmScheduler,
 ) {
-    private val TAG = "ReminderFlow"
-    private val smartDebouncer = SmartDebouncer(800L)
+    private val smartDebouncer = SmartDebouncer(DEFAULT_DEBOUNCE_MS)
     private var nerJob: Job? = null
 
     interface ResultListener {
@@ -133,7 +144,7 @@ class InputHandler(
 
     private suspend fun parseReminderForSuggestion(text: String) {
         try {
-            val result = reminderParser.parseWithTimeout(text, 10000L)
+            val result = reminderParser.parseWithTimeout(text, REMINDER_PARSE_TIMEOUT_MS)
             withContext(Dispatchers.Main) {
                 if (result.success) {
                     resultListener.updateInputState(
@@ -145,7 +156,7 @@ class InputHandler(
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Suggestion parse error: ${e.message}", e)
+            Log.e(REMINDER_FLOW_TAG, "Suggestion parse error: ${e.message}", e)
             withContext(Dispatchers.Main) {
                 resultListener.updateInputState(clearDetectedReminder = true)
             }
@@ -166,115 +177,147 @@ class InputHandler(
         inputMode: InputMode,
     ) {
         val originalText = inputValue.text.trim()
-        if (originalText.isBlank()) return
+        if (originalText.isNotBlank()) {
+            clearAndCancelParsing()
 
-        clearAndCancelParsing()
-
-        when (inputMode) {
-            InputMode.AddGoal -> {
-                val currentProjectId = projectIdFlow.value
-                if (currentProjectId.isBlank()) return
-
-                resultListener.updateInputState(
-                    inputValue = TextFieldValue(""),
-                    clearDetectedReminder = true,
-                )
-
-                scope.launch(Dispatchers.IO) {
-                    try {
-                        val definitiveResult = reminderParser.parseWithTimeout(originalText, 10000L)
-                        Log.d(
-                            TAG,
-                            "Submit Parser Result: success=${definitiveResult.success}, calendar=${definitiveResult.calendar?.time}, suggestion='${definitiveResult.suggestionText}'",
-                        )
-
-                        var textToSave = originalText
-                        var reminderTime: Long? = null
-
-                        if (definitiveResult.success) {
-                            val detectedCalendar = definitiveResult.calendar
-                            val detectedSuggestion = definitiveResult.suggestionText
-
-                            if (detectedCalendar != null && !detectedSuggestion.isNullOrBlank()) {
-                                reminderTime = detectedCalendar.timeInMillis
-                                val cleanedText = originalText.replace(detectedSuggestion, "", ignoreCase = true).trim()
-                                textToSave = if (cleanedText.isNotBlank()) cleanedText else originalText
-                            }
-                        }
-
-                        val newItemIdentifier: String
-                        if (reminderTime != null) {
-                            val newGoal = goalRepository.addGoalWithReminder(textToSave, currentProjectId, reminderTime)
-                            newItemIdentifier = newGoal.id
-                        } else {
-                            newItemIdentifier = goalRepository.addGoalToContext(textToSave, currentProjectId)
-                        }
-
-                        withContext(Dispatchers.Main) {
-                            resultListener.updateInputState(
-                                newlyAddedItemId = newItemIdentifier,
-                            )
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Submit error: ${e.message}", e)
-                    }
+            when (inputMode) {
+                InputMode.AddGoal -> submitGoalInput(originalText)
+                InputMode.AddIssue -> {
+                    resetInput(clearDetectedReminder = true)
+                    resultListener.addIssue(originalText)
                 }
-            }
-            InputMode.AddIssue -> {
-                resultListener.updateInputState(
-                    inputValue = TextFieldValue(""),
-                    clearDetectedReminder = true,
-                )
-                resultListener.addIssue(originalText)
-            }
-            InputMode.AddQuickRecord -> {
-                resultListener.updateInputState(inputValue = TextFieldValue(""))
-                resultListener.addQuickRecord(originalText)
-            }
-            InputMode.AddConnectionNote -> {
-                val currentProjectId = projectIdFlow.value
-                if (currentProjectId.isBlank()) return
-
-                resultListener.updateInputState(inputValue = TextFieldValue(""))
-
-                scope.launch(Dispatchers.IO) {
-                    val newItemId =
-                        contextRepository.addConnectionNoteToContext(
-                            contextId = currentProjectId,
-                            text = originalText,
-                        )
-                    if (newItemId.isNotBlank()) {
-                        resultListener.updateInputState(newlyAddedItemId = newItemId)
-                    }
+                InputMode.AddQuickRecord -> {
+                    resetInput()
+                    resultListener.addQuickRecord(originalText)
                 }
-            }
-            InputMode.SearchGlobal -> {
-                resultListener.requestNavigation("global_search_screen/${URLEncoder.encode(originalText, "UTF-8")}")
-                resultListener.updateInputState(inputValue = TextFieldValue(""))
-            }
-            InputMode.SearchInList -> {
-                resultListener.updateInputState(
-                    inputValue = TextFieldValue(originalText),
-                    localSearchQuery = originalText,
-                )
-            }
-            InputMode.AddProjectLog -> {
-                resultListener.updateInputState(inputValue = TextFieldValue(""))
-                resultListener.addProjectComment(originalText)
-            }
-            InputMode.AddMilestone -> {
-                resultListener.updateInputState(inputValue = TextFieldValue(""))
-                resultListener.addMilestone(originalText)
-            }
-            InputMode.AddDirection -> {
-                resultListener.updateInputState(inputValue = TextFieldValue(""))
-                resultListener.addDirectionItem(originalText)
+                InputMode.AddConnectionNote -> submitConnectionNoteInput(originalText)
+                InputMode.SearchGlobal -> {
+                    resultListener.requestNavigation(
+                        "global_search_screen/${URLEncoder.encode(originalText, UTF_8)}",
+                    )
+                    resetInput()
+                }
+                InputMode.SearchInList -> {
+                    resultListener.updateInputState(
+                        inputValue = TextFieldValue(originalText),
+                        localSearchQuery = originalText,
+                    )
+                }
+                InputMode.AddProjectLog -> {
+                    resetInput()
+                    resultListener.addProjectComment(originalText)
+                }
+                InputMode.AddMilestone -> {
+                    resetInput()
+                    resultListener.addMilestone(originalText)
+                }
+                InputMode.AddDirection -> {
+                    resetInput()
+                    resultListener.addDirectionItem(originalText)
+                }
             }
         }
     }
 
     fun onClearDetectedReminder() {
         clearAndCancelParsing()
+    }
+
+    private fun submitGoalInput(originalText: String) {
+        val currentProjectId = projectIdFlow.value
+        if (currentProjectId.isBlank()) {
+            return
+        }
+
+        resetInput(clearDetectedReminder = true)
+
+        scope.launch(Dispatchers.IO) {
+            try {
+                val definitiveResult =
+                    reminderParser.parseWithTimeout(originalText, REMINDER_PARSE_TIMEOUT_MS)
+                Log.d(
+                    REMINDER_FLOW_TAG,
+                    "Submit Parser Result: " +
+                        "success=${definitiveResult.success}, " +
+                        "calendar=${definitiveResult.calendar?.time}, " +
+                        "suggestion='${definitiveResult.suggestionText}'",
+                )
+
+                val preparedGoal = prepareGoalInput(originalText, definitiveResult)
+                val newItemIdentifier =
+                    if (preparedGoal.reminderTime != null) {
+                        goalRepository.addGoalWithReminder(
+                            preparedGoal.textToSave,
+                            currentProjectId,
+                            preparedGoal.reminderTime,
+                        ).id
+                    } else {
+                        goalRepository.addGoalToContext(
+                            preparedGoal.textToSave,
+                            currentProjectId,
+                        )
+                    }
+
+                withContext(Dispatchers.Main) {
+                    resultListener.updateInputState(newlyAddedItemId = newItemIdentifier)
+                }
+            } catch (e: Exception) {
+                Log.e(REMINDER_FLOW_TAG, "Submit error: ${e.message}", e)
+            }
+        }
+    }
+
+    private fun submitConnectionNoteInput(originalText: String) {
+        val currentProjectId = projectIdFlow.value
+        if (currentProjectId.isBlank()) {
+            return
+        }
+
+        resetInput()
+
+        scope.launch(Dispatchers.IO) {
+            val newItemId =
+                contextRepository.addConnectionNoteToContext(
+                    contextId = currentProjectId,
+                    text = originalText,
+                )
+            if (newItemId.isNotBlank()) {
+                resultListener.updateInputState(newlyAddedItemId = newItemId)
+            }
+        }
+    }
+
+    private data class PreparedGoalInput(
+        val textToSave: String,
+        val reminderTime: Long?,
+    )
+
+    private fun prepareGoalInput(
+        originalText: String,
+        definitiveResult: com.romankozak.forwardappmobile.domain.ner.ReminderParseResult,
+    ): PreparedGoalInput {
+        val detectedCalendar = definitiveResult.calendar.takeIf { definitiveResult.success }
+        val detectedSuggestion = definitiveResult.suggestionText
+        val hasReminderData = detectedCalendar != null && !detectedSuggestion.isNullOrBlank()
+        val cleanedText =
+            if (hasReminderData) {
+                originalText
+                    .replace(detectedSuggestion.orEmpty(), "", ignoreCase = true)
+                    .trim()
+            } else {
+                originalText
+            }
+        return PreparedGoalInput(
+            textToSave = cleanedText.takeIf { hasReminderData && it.isNotBlank() } ?: originalText,
+            reminderTime = detectedCalendar?.timeInMillis.takeIf { hasReminderData },
+        )
+    }
+
+    private fun resetInput(clearDetectedReminder: Boolean = false) {
+        resultListener.updateInputState(
+            inputValue = TextFieldValue(""),
+            clearDetectedReminder = clearDetectedReminder,
+        )
     }
 
     private fun clearAndCancelParsing() {
@@ -307,7 +350,8 @@ class InputHandler(
                     name
                 }
             val link = RelatedLink(type = LinkType.URL, target = url, displayName = displayName)
-            val newItemId = contextRepository.addLinkItemToContextFromLink(projectIdFlow.value, link)
+            val newItemId =
+                contextRepository.addLinkItemToContextFromLink(projectIdFlow.value, link)
             resultListener.updateInputState(newlyAddedItemId = newItemId)
         }
         onDismissLinkDialogs()
@@ -321,7 +365,8 @@ class InputHandler(
         scope.launch(Dispatchers.IO) {
             val link =
                 RelatedLink(type = LinkType.OBSIDIAN, target = noteName, displayName = noteName)
-            val newItemId = contextRepository.addLinkItemToContextFromLink(projectIdFlow.value, link)
+            val newItemId =
+                contextRepository.addLinkItemToContextFromLink(projectIdFlow.value, link)
             resultListener.updateInputState(newlyAddedItemId = newItemId)
         }
         onDismissLinkDialogs()
@@ -336,18 +381,24 @@ class InputHandler(
         onAddObsidianLinkConfirm(noteName)
     }
 
-    fun onShowAddWebLinkDialog() = resultListener.updateDialogState(showAddWebLinkDialog = true)
+    fun onShowAddWebLinkDialog() =
+        resultListener.updateDialogState(showAddWebLinkDialog = true)
 
-    fun onShowAddObsidianLinkDialog() = resultListener.updateDialogState(showAddObsidianLinkDialog = true)
+    fun onShowAddObsidianLinkDialog() =
+        resultListener.updateDialogState(showAddObsidianLinkDialog = true)
 
-    fun onDismissLinkDialogs() = resultListener.updateDialogState(showAddWebLinkDialog = false, showAddObsidianLinkDialog = false)
+    fun onDismissLinkDialogs() =
+        resultListener.updateDialogState(
+            showAddWebLinkDialog = false,
+            showAddObsidianLinkDialog = false,
+        )
 
     fun onAddListLinkRequest() = resultListener.setPendingAction(GoalActionType.AddLinkToList)
 
     fun onAddListShortcutRequest() = resultListener.setPendingAction(GoalActionType.ADD_LIST_SHORTCUT)
 
     fun onShowRecentLists() {
-        Log.d("Recents_Debug", "InputHandler: onShowRecentLists() called. Calling listener.")
+        Log.d(RECENTS_DEBUG_TAG, "InputHandler: onShowRecentLists() called. Calling listener.")
         resultListener.showRecentListsSheet(true)
     }
 

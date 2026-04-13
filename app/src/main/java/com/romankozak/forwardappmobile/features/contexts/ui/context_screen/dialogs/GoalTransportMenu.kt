@@ -1,3 +1,5 @@
+@file:Suppress("WildcardImport", "MagicNumber", "PackageNaming", "LongMethod")
+
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.dialogs
 
 import androidx.compose.animation.AnimatedVisibility

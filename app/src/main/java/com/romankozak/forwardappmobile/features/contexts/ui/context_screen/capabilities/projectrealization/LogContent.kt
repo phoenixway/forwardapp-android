@@ -1,3 +1,10 @@
+@file:Suppress(
+    "PackageNaming",
+    "WildcardImport",
+    "LongMethod",
+    "MagicNumber",
+)
+
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization
 
 import androidx.compose.animation.AnimatedVisibility
@@ -42,6 +49,12 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextLogEntry
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.abs
+
+private const val MILLIS_PER_MINUTE = 60_000L
+private const val MINUTES_PER_HOUR = 60
+private const val HOURS_PER_DAY = 24
+private const val DAYS_PER_WEEK = 7
+private const val PREVIEW_OFFSET_MINUTES = 20
 
 @Composable
 fun LogContent(
@@ -332,14 +345,14 @@ private fun formatRelativeTime(timestamp: Long): String {
     val now = System.currentTimeMillis()
     val diff = now - timestamp
     val absDiff = abs(diff)
-    val minutes = (absDiff / 60000L).toInt()
-    val hours = (absDiff / 3600000L).toInt()
-    val days = (absDiff / (24 * 3600000L)).toInt()
+    val minutes = (absDiff / MILLIS_PER_MINUTE).toInt()
+    val hours = (minutes / MINUTES_PER_HOUR)
+    val days = (hours / HOURS_PER_DAY)
     return when {
-        absDiff < 60_000L -> "щойно"
-        minutes < 60 -> "$minutes хв. тому"
-        hours < 24 -> "$hours год. тому"
-        days < 7 -> "$days дн. тому"
+        absDiff < MILLIS_PER_MINUTE -> "щойно"
+        minutes < MINUTES_PER_HOUR -> "$minutes хв. тому"
+        hours < HOURS_PER_DAY -> "$hours год. тому"
+        days < DAYS_PER_WEEK -> "$days дн. тому"
         else -> SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date(timestamp))
     }
 }
@@ -375,6 +388,7 @@ internal fun PlaceholderContent(text: String) {
 // ----------------------------------------------------------
 @Preview(showBackground = true)
 @Composable
+@Suppress("UnusedPrivateMember")
 private fun LogContentPreview() {
     val now = System.currentTimeMillis()
     val sample =
@@ -382,7 +396,7 @@ private fun LogContentPreview() {
             ContextLog(
                 id = "1",
                 contextId = "0",
-                timestamp = now - 20 * 60_000,
+                timestamp = now - PREVIEW_OFFSET_MINUTES * MILLIS_PER_MINUTE,
                 type = ContextLogEntryTypeValues.STATUS_CHANGE,
                 description = "Перенесено до 'Робота'",
                 details = "Завершено перевірку",

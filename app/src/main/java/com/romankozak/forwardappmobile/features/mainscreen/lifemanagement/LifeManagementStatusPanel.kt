@@ -1,3 +1,5 @@
+@file:Suppress("MagicNumber")
+
 package com.romankozak.forwardappmobile.features.mainscreen.lifemanagement
 
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -48,6 +50,31 @@ import com.romankozak.forwardappmobile.core.data.models.entities.GeneralStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.LifeManagementLevelId
 import com.romankozak.forwardappmobile.core.data.models.entities.TransferStatus
 import com.romankozak.forwardappmobile.core.theme.ForwardAppMobileTheme
+
+private const val LifeManagementHeaderAlpha = 0.08f
+private const val LifeManagementMutedBadgeAlpha = 0.86f
+private const val ReadyDarkContainerAlpha = 0.24f
+private const val ReadyDarkBorderAlpha = 0.20f
+private const val ReadyLightContainerAlpha = 0.42f
+private const val SharedBorderAlpha = 0.14f
+private const val ConditionalDarkContainerAlpha = 0.24f
+private const val ConditionalDarkBorderAlpha = 0.18f
+private const val ConditionalLightContainerAlpha = 0.40f
+private const val BlockedContainerAlpha = 0.34f
+private const val BlockedBorderAlpha = 0.18f
+private const val FallbackDarkContainerAlpha = 0.82f
+private const val FallbackDarkBorderAlpha = 0.26f
+private const val FallbackLightContainerAlpha = 0.05f
+private const val FallbackLightBorderAlpha = 0.12f
+
+private val ReadyDarkContainerColor = Color(0xFF23462D)
+private val ReadyDarkContentColor = Color(0xFFB8E6C4)
+private val ReadyLightContainerColor = Color(0xFFDDF1E3)
+private val ReadyLightContentColor = Color(0xFF215A31)
+private val ConditionalDarkContainerColor = Color(0xFF4B3B12)
+private val ConditionalDarkContentColor = Color(0xFFFFDF8A)
+private val ConditionalLightContainerColor = Color(0xFFFFEDBF)
+private val ConditionalLightContentColor = Color(0xFF8A5B00)
 
 @Composable
 fun LifeManagementStatusPanelSection(
@@ -128,7 +155,10 @@ private fun LifeManagementSectionHeader(
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.08f)),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = LifeManagementHeaderAlpha),
+            ),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -250,23 +280,23 @@ private fun rememberStatusBadgeColors(status: GeneralStatus): StatusBadgeColors 
     when {
         status == GeneralStatus.READY && isSystemInDarkTheme() ->
             StatusBadgeColors(
-                containerColor = Color(0xFF23462D),
-                contentColor = Color(0xFFB8E6C4),
+                containerColor = ReadyDarkContainerColor,
+                contentColor = ReadyDarkContentColor,
             )
         status == GeneralStatus.READY ->
             StatusBadgeColors(
-                containerColor = Color(0xFFDDF1E3),
-                contentColor = Color(0xFF215A31),
+                containerColor = ReadyLightContainerColor,
+                contentColor = ReadyLightContentColor,
             )
         status == GeneralStatus.CONDITIONAL && isSystemInDarkTheme() ->
             StatusBadgeColors(
-                containerColor = Color(0xFF4B3B12),
-                contentColor = Color(0xFFFFDF8A),
+                containerColor = ConditionalDarkContainerColor,
+                contentColor = ConditionalDarkContentColor,
             )
         status == GeneralStatus.CONDITIONAL ->
             StatusBadgeColors(
-                containerColor = Color(0xFFFFEDBF),
-                contentColor = Color(0xFF8A5B00),
+                containerColor = ConditionalLightContainerColor,
+                contentColor = ConditionalLightContentColor,
             )
         status == GeneralStatus.BLOCKED ->
             StatusBadgeColors(
@@ -280,7 +310,7 @@ private fun rememberStatusBadgeColors(status: GeneralStatus): StatusBadgeColors 
             )
         else ->
             StatusBadgeColors(
-                containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.86f),
+                containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = LifeManagementMutedBadgeAlpha),
                 contentColor = MaterialTheme.colorScheme.surface,
             )
     }
@@ -291,38 +321,48 @@ private fun rememberStatusCardColors(status: GeneralStatus): StatusCardColors {
     return when {
         status == GeneralStatus.READY && isSystemInDarkTheme() ->
             StatusCardColors(
-                containerColor = Color(0xFF23462D).copy(alpha = 0.24f).compositeOver(baseContainer),
-                borderColor = Color(0xFFB8E6C4).copy(alpha = 0.20f),
+                containerColor =
+                    ReadyDarkContainerColor.copy(alpha = ReadyDarkContainerAlpha)
+                        .compositeOver(baseContainer),
+                borderColor = ReadyDarkContentColor.copy(alpha = ReadyDarkBorderAlpha),
             )
         status == GeneralStatus.READY ->
             StatusCardColors(
-                containerColor = Color(0xFFDDF1E3).copy(alpha = 0.42f).compositeOver(baseContainer),
-                borderColor = Color(0xFF215A31).copy(alpha = 0.14f),
+                containerColor =
+                    ReadyLightContainerColor.copy(alpha = ReadyLightContainerAlpha)
+                        .compositeOver(baseContainer),
+                borderColor = ReadyLightContentColor.copy(alpha = SharedBorderAlpha),
             )
         status == GeneralStatus.CONDITIONAL && isSystemInDarkTheme() ->
             StatusCardColors(
-                containerColor = Color(0xFF4B3B12).copy(alpha = 0.24f).compositeOver(baseContainer),
-                borderColor = Color(0xFFFFDF8A).copy(alpha = 0.18f),
+                containerColor =
+                    ConditionalDarkContainerColor.copy(alpha = ConditionalDarkContainerAlpha).compositeOver(baseContainer),
+                borderColor = ConditionalDarkContentColor.copy(alpha = ConditionalDarkBorderAlpha),
             )
         status == GeneralStatus.CONDITIONAL ->
             StatusCardColors(
-                containerColor = Color(0xFFFFEDBF).copy(alpha = 0.40f).compositeOver(baseContainer),
-                borderColor = Color(0xFF8A5B00).copy(alpha = 0.14f),
+                containerColor =
+                    ConditionalLightContainerColor.copy(alpha = ConditionalLightContainerAlpha).compositeOver(baseContainer),
+                borderColor = ConditionalLightContentColor.copy(alpha = SharedBorderAlpha),
             )
         status == GeneralStatus.BLOCKED ->
             StatusCardColors(
-                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.34f).compositeOver(baseContainer),
-                borderColor = MaterialTheme.colorScheme.error.copy(alpha = 0.18f),
+                containerColor =
+                    MaterialTheme.colorScheme.errorContainer.copy(alpha = BlockedContainerAlpha)
+                        .compositeOver(baseContainer),
+                borderColor = MaterialTheme.colorScheme.error.copy(alpha = BlockedBorderAlpha),
             )
         isSystemInDarkTheme() ->
             StatusCardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.82f),
-                borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.26f),
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = FallbackDarkContainerAlpha),
+                borderColor = MaterialTheme.colorScheme.outline.copy(alpha = FallbackDarkBorderAlpha),
             )
         else ->
             StatusCardColors(
-                containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f).compositeOver(baseContainer),
-                borderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                containerColor =
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = FallbackLightContainerAlpha)
+                        .compositeOver(baseContainer),
+                borderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = FallbackLightBorderAlpha),
             )
     }
 }
@@ -562,6 +602,7 @@ private val previewStatuses =
 
 @Preview(showBackground = true)
 @Composable
+@Suppress("UnusedPrivateMember")
 private fun LifeManagementStatusPanelPreview() {
     ForwardAppMobileTheme {
         Box(modifier = Modifier.padding(16.dp)) {

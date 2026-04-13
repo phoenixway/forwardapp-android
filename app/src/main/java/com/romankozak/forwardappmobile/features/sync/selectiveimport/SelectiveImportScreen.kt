@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -34,33 +35,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.romankozak.forwardappmobile.core.data.models.sync.DiffStatus
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportPreviewItemStatus
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportPreviewModel
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportPreviewSection
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportPreviewSummary
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportSourceMode
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSnapshotFormat
 
-private fun hasItemsSelected(uiState: SelectiveImportState): Boolean {
-    val backupContent = uiState.backupContent ?: return false
-    return backupContent.totalSelectedCount() > 0
-}
-
-private fun SelectableDatabaseContent.totalSelectedCount(): Int =
-    allSections().sumOf { section -> section.count { it.isSelectable && it.isSelected } }
-
-private fun SelectableDatabaseContent.countByStatus(status: DiffStatus): Int =
-    allSections().sumOf { section -> section.count { it.status == status } }
-
-private fun SelectableDatabaseContent.allSections(): List<List<SelectableDiffItem<*>>> =
-    listOf(
-        projects,
-        goals,
-        legacyNotes,
-        activityRecords,
-        backlogItems,
-        documents,
-        checklists,
-        linkItems,
-        inboxRecords,
-        contextLogs,
-        scripts,
-        attachments,
-    )
+private fun hasItemsSelected(uiState: SelectiveImportState): Boolean = uiState.previewSummary.totalSelectedCount > 0
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,7 +80,7 @@ fun SelectiveImportScreen(
             TopAppBar(title = { Text("Вибірковий імпорт") })
         },
         bottomBar = {
-            val selectedCount = uiState.backupContent?.totalSelectedCount() ?: 0
+            val selectedCount = uiState.previewSummary.totalSelectedCount
             Row(
                 modifier =
                     Modifier
@@ -143,12 +125,16 @@ fun SelectiveImportScreen(
                                 .fillMaxSize()
                                 .padding(horizontal = 16.dp),
                     ) {
-                        DiffSummaryBar(content = uiState.backupContent!!)
+                        DiffSummaryBar(
+                            previewSummary = uiState.previewSummary,
+                            sourceMode = uiState.sourceMode,
+                            sourceFormat = uiState.sourceFormat,
+                        )
                         Spacer(modifier = Modifier.height(12.dp))
                         HorizontalDivider()
                         Spacer(modifier = Modifier.height(12.dp))
                         BackupContentList(
-                            content = uiState.backupContent!!,
+                            previewModel = uiState.previewModel,
                             viewModel = viewModel,
                         )
                     }
@@ -240,12 +226,16 @@ private fun SummaryChip(
 }
 
 @Composable
-private fun DiffSummaryBar(content: SelectableDatabaseContent) {
-    val newCount = content.countByStatus(DiffStatus.NEW)
-    val updatedCount = content.countByStatus(DiffStatus.UPDATED)
-    val deletedCount = content.countByStatus(DiffStatus.DELETED)
-    val totalSelected = content.totalSelectedCount()
-    val totalAvailable = content.allSections().sumOf { it.size }
+private fun DiffSummaryBar(
+    previewSummary: WorkspaceImportPreviewSummary,
+    sourceMode: WorkspaceImportSourceMode?,
+    sourceFormat: WorkspaceSnapshotFormat?,
+) {
+    val newCount = previewSummary.totalNewCount
+    val updatedCount = previewSummary.totalUpdatedCount
+    val deletedCount = previewSummary.totalDeletedCount
+    val totalSelected = previewSummary.totalSelectedCount
+    val totalAvailable = previewSummary.totalCount
 
     Surface(
         shape = MaterialTheme.shapes.medium,
@@ -257,6 +247,26 @@ private fun DiffSummaryBar(content: SelectableDatabaseContent) {
                 text = "Зміни у файлі",
                 style = MaterialTheme.typography.titleMedium,
             )
+            if (sourceMode != null || sourceFormat != null) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    sourceMode?.let { mode ->
+                        SourceChip(
+                            label = "Режим",
+                            value = mode.title,
+                        )
+                    }
+                    sourceFormat?.let { format ->
+                        SourceChip(
+                            label = "Формат",
+                            value = format.title,
+                        )
+                    }
+                }
+            }
             Spacer(modifier = Modifier.height(12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -271,6 +281,34 @@ private fun DiffSummaryBar(content: SelectableDatabaseContent) {
                 text = "Вибрано $totalSelected з $totalAvailable",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SourceChip(
+    label: String,
+    value: String,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
+        shape = MaterialTheme.shapes.medium,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+        ) {
+            Text(
+                text = label,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                style = MaterialTheme.typography.labelMedium,
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = value,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                style = MaterialTheme.typography.titleSmall,
             )
         }
     }
@@ -317,275 +355,57 @@ private fun SelectableRow(
 
 @Composable
 private fun BackupContentList(
-    content: SelectableDatabaseContent,
+    previewModel: WorkspaceImportPreviewModel,
     viewModel: SelectiveImportViewModel,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 96.dp),
     ) {
-        if (content.projects.isNotEmpty()) {
-            item {
-                SectionHeader(
-                    title = "Проекти (${content.projects.size})",
-                    onSelectAll = { viewModel.toggleAllSelection(EntityType.PROJECT, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.PROJECT, false) },
-                )
-            }
-            items(content.projects, key = { it.item.id }) { selectableProject ->
-                SelectableRow(
-                    label = selectableProject.item.name,
-                    isSelected = selectableProject.isSelected,
-                    isSelectable = selectableProject.isSelectable,
-                    status = selectableProject.status,
-                    onToggle = { isSelected ->
-                        viewModel.toggleProjectSelection(selectableProject.item.id, isSelected)
-                    },
-                )
-            }
-        }
-
-        if (content.goals.isNotEmpty()) {
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(
-                    title = "Цілі (${content.goals.size})",
-                    onSelectAll = { viewModel.toggleAllSelection(EntityType.GOAL, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.GOAL, false) },
-                )
-            }
-            items(content.goals, key = { it.item.id }) { selectableGoal ->
-                SelectableRow(
-                    label = selectableGoal.item.text,
-                    isSelected = selectableGoal.isSelected,
-                    isSelectable = selectableGoal.isSelectable,
-                    status = selectableGoal.status,
-                    onToggle = { isSelected ->
-                        viewModel.toggleGoalSelection(selectableGoal.item.id, isSelected)
-                    },
-                )
-            }
-        }
-
-        if (content.legacyNotes.isNotEmpty()) {
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(
-                    title = "Нотатки (${content.legacyNotes.size})",
-                    onSelectAll = { viewModel.toggleAllSelection(EntityType.LEGACY_NOTE, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.LEGACY_NOTE, false) },
-                )
-            }
-            items(content.legacyNotes, key = { it.item.id }) { selectableItem ->
-                SelectableRow(
-                    label = selectableItem.item.title.ifBlank { "Без назви" },
-                    isSelected = selectableItem.isSelected,
-                    isSelectable = selectableItem.isSelectable,
-                    status = selectableItem.status,
-                    onToggle = { isSelected ->
-                        viewModel.toggleLegacyNoteSelection(selectableItem.item.id, isSelected)
-                    },
-                )
-            }
-        }
-
-        if (content.activityRecords.isNotEmpty()) {
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(
-                    title = "Активності (${content.activityRecords.size})",
-                    onSelectAll = { viewModel.toggleAllSelection(EntityType.ACTIVITY_RECORD, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.ACTIVITY_RECORD, false) },
-                )
-            }
-            items(content.activityRecords, key = { it.item.id }) { selectableItem ->
-                SelectableRow(
-                    label = selectableItem.item.text.ifBlank { "Без опису" },
-                    isSelected = selectableItem.isSelected,
-                    isSelectable = selectableItem.isSelectable,
-                    status = selectableItem.status,
-                    onToggle = { isSelected ->
-                        viewModel.toggleActivityRecordSelection(selectableItem.item.id, isSelected)
-                    },
-                )
-            }
-        }
-
-        if (content.backlogItems.isNotEmpty()) {
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(
-                    title = "Елементи списку (${content.backlogItems.size})",
-                    onSelectAll = { viewModel.toggleAllSelection(EntityType.LIST_ITEM, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.LIST_ITEM, false) },
-                )
-            }
-            items(content.backlogItems, key = { it.item.id }) { selectableItem ->
-                SelectableRow(
-                    label = "ListItem #${selectableItem.item.order} → ${selectableItem.item.entityId}",
-                    subtitle = selectableItem.changeInfo,
-                    isSelected = selectableItem.isSelected,
-                    isSelectable = selectableItem.isSelectable,
-                    status = selectableItem.status,
-                    onToggle = { isSelected ->
-                        viewModel.toggleListItemSelection(selectableItem.item.id, isSelected)
-                    },
-                )
-            }
-        }
-
-        if (content.documents.isNotEmpty()) {
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(
-                    title = "Документи (${content.documents.size})",
-                    onSelectAll = { viewModel.toggleAllSelection(EntityType.DOCUMENT, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.DOCUMENT, false) },
-                )
-            }
-            items(content.documents, key = { it.item.id }) { selectableItem ->
-                SelectableRow(
-                    label = selectableItem.item.name.ifBlank { "Без назви" },
-                    isSelected = selectableItem.isSelected,
-                    isSelectable = selectableItem.isSelectable,
-                    status = selectableItem.status,
-                    onToggle = { isSelected ->
-                        viewModel.toggleDocumentSelection(selectableItem.item.id, isSelected)
-                    },
-                )
-            }
-        }
-
-        if (content.checklists.isNotEmpty()) {
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(
-                    title = "Чеклісти (${content.checklists.size})",
-                    onSelectAll = { viewModel.toggleAllSelection(EntityType.CHECKLIST, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.CHECKLIST, false) },
-                )
-            }
-            items(content.checklists, key = { it.item.id }) { selectableItem ->
-                SelectableRow(
-                    label = selectableItem.item.name.ifBlank { "Без назви" },
-                    isSelected = selectableItem.isSelected,
-                    isSelectable = selectableItem.isSelectable,
-                    status = selectableItem.status,
-                    onToggle = { isSelected ->
-                        viewModel.toggleChecklistSelection(selectableItem.item.id, isSelected)
-                    },
-                )
-            }
-        }
-
-        if (content.linkItems.isNotEmpty()) {
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(
-                    title = "Посилання (${content.linkItems.size})",
-                    onSelectAll = { viewModel.toggleAllSelection(EntityType.LINK_ITEM, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.LINK_ITEM, false) },
-                )
-            }
-            items(content.linkItems, key = { it.item.id }) { selectableItem ->
-                SelectableRow(
-                    label = (selectableItem.item.linkData.displayName ?: selectableItem.item.linkData.target).ifBlank { "Без назви" },
-                    isSelected = selectableItem.isSelected,
-                    isSelectable = selectableItem.isSelectable,
-                    status = selectableItem.status,
-                    onToggle = { isSelected ->
-                        viewModel.toggleLinkItemSelection(selectableItem.item.id, isSelected)
-                    },
-                )
-            }
-        }
-
-        if (content.inboxRecords.isNotEmpty()) {
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(
-                    title = "Записи Inbox (${content.inboxRecords.size})",
-                    onSelectAll = { viewModel.toggleAllSelection(EntityType.INBOX_RECORD, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.INBOX_RECORD, false) },
-                )
-            }
-            items(content.inboxRecords, key = { it.item.id }) { selectableItem ->
-                SelectableRow(
-                    label = selectableItem.item.text.ifBlank { "Без вмісту" },
-                    isSelected = selectableItem.isSelected,
-                    isSelectable = selectableItem.isSelectable,
-                    status = selectableItem.status,
-                    onToggle = { isSelected ->
-                        viewModel.toggleInboxRecordSelection(selectableItem.item.id, isSelected)
-                    },
-                )
-            }
-        }
-
-        if (content.contextLogs.isNotEmpty()) {
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(
-                    title = "Логи виконання проектів (${content.contextLogs.size})",
-                    onSelectAll = { viewModel.toggleAllSelection(EntityType.PROJECT_EXECUTION_LOG, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.PROJECT_EXECUTION_LOG, false) },
-                )
-            }
-            items(content.contextLogs, key = { it.item.id }) { selectableItem ->
-                SelectableRow(
-                    label = selectableItem.item.description.ifBlank { "Без опису" },
-                    isSelected = selectableItem.isSelected,
-                    isSelectable = selectableItem.isSelectable,
-                    status = selectableItem.status,
-                    onToggle = { isSelected ->
-                        viewModel.toggleProjectExecutionLogSelection(selectableItem.item.id, isSelected)
-                    },
-                )
-            }
-        }
-
-        if (content.scripts.isNotEmpty()) {
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(
-                    title = "Скрипти (${content.scripts.size})",
-                    onSelectAll = { viewModel.toggleAllSelection(EntityType.SCRIPT, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.SCRIPT, false) },
-                )
-            }
-            items(content.scripts, key = { it.item.id }) { selectableItem ->
-                SelectableRow(
-                    label = selectableItem.item.name.ifBlank { "Без назви" },
-                    isSelected = selectableItem.isSelected,
-                    isSelectable = selectableItem.isSelectable,
-                    status = selectableItem.status,
-                    onToggle = { isSelected ->
-                        viewModel.toggleScriptSelection(selectableItem.item.id, isSelected)
-                    },
-                )
-            }
-        }
-
-        if (content.attachments.isNotEmpty()) {
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(
-                    title = "Вкладення (${content.attachments.size})",
-                    onSelectAll = { viewModel.toggleAllSelection(EntityType.ATTACHMENT, true) },
-                    onDeselectAll = { viewModel.toggleAllSelection(EntityType.ATTACHMENT, false) },
-                )
-            }
-            items(content.attachments, key = { it.item.id }) { selectableItem ->
-                SelectableRow(
-                    label = "Attachment: ${selectableItem.item.entityId}", // Temporary
-                    isSelected = selectableItem.isSelected,
-                    isSelectable = selectableItem.isSelectable,
-                    status = selectableItem.status,
-                    onToggle = { isSelected ->
-                        viewModel.toggleAttachmentSelection(selectableItem.item.id, isSelected)
-                    },
-                )
-            }
+        items(previewModel.sections, key = { it.kind.name }) { section ->
+            PreviewSection(
+                scope = this,
+                section = section,
+                viewModel = viewModel,
+            )
         }
     }
 }
+
+private fun PreviewSection(
+    scope: LazyListScope,
+    section: WorkspaceImportPreviewSection,
+    viewModel: SelectiveImportViewModel,
+) {
+    if (section.items.isEmpty()) return
+
+    with(scope) {
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            SectionHeader(
+                title = "${section.kind.title} (${section.items.size})",
+                onSelectAll = { viewModel.onPreviewSectionToggle(section.kind, true) },
+                onDeselectAll = { viewModel.onPreviewSectionToggle(section.kind, false) },
+            )
+        }
+        items(section.items, key = { it.id }) { previewItem ->
+            SelectableRow(
+                label = previewItem.title,
+                subtitle = previewItem.subtitle,
+                isSelected = previewItem.isSelected,
+                isSelectable = previewItem.isSelectable,
+                status = previewItem.status.toDiffStatus(),
+                onToggle = { isSelected ->
+                    viewModel.onPreviewItemToggle(section.kind, previewItem.id, isSelected)
+                },
+            )
+        }
+    }
+}
+
+private fun WorkspaceImportPreviewItemStatus.toDiffStatus(): DiffStatus =
+    when (this) {
+        WorkspaceImportPreviewItemStatus.New -> DiffStatus.NEW
+        WorkspaceImportPreviewItemStatus.Updated -> DiffStatus.UPDATED
+        WorkspaceImportPreviewItemStatus.Deleted -> DiffStatus.DELETED
+    }

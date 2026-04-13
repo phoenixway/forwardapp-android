@@ -264,6 +264,9 @@ dependencies {
     implementation(libs.google.gson)
     implementation(libs.compose.dnd)
     implementation(libs.androidx.work.runtime)
+    implementation(project(":shared-application"))
+    implementation(project(":shared-contracts"))
+    implementation(project(":shared-domain"))
     implementation(project(":core-data-models"))
     implementation(project(":core-data-interfaces"))
 

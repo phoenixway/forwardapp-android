@@ -19,7 +19,10 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceRule
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurringTask
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
-import com.romankozak.forwardappmobile.data.dao.*
+import com.romankozak.forwardappmobile.data.dao.DailyMetricDao
+import com.romankozak.forwardappmobile.data.dao.DayPlanDao
+import com.romankozak.forwardappmobile.data.dao.DayTaskDao
+import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
 import com.romankozak.forwardappmobile.domain.ai.events.TaskCompletedEvent
 import com.romankozak.forwardappmobile.domain.ai.events.TaskCreatedEvent
 import com.romankozak.forwardappmobile.domain.ai.events.TaskDeferredEvent
@@ -29,11 +32,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
-import java.util.*
+import java.time.DayOfWeek
+import java.util.Calendar
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
+@Suppress("TooManyFunctions", "LargeClass", "LongParameterList")
 class DayManagementRepository
     @Inject
     constructor(
@@ -55,7 +61,61 @@ class DayManagementRepository
             const val PRIORITY_RANK_MEDIUM = 2
             const val PRIORITY_RANK_LOW = 3
             const val PRIORITY_RANK_NONE = 4
+            const val DAYS_IN_WEEK = 7
+            const val HOURS_IN_DAY = 24
+            const val MINUTES_IN_HOUR = 60
+            const val SECONDS_IN_MINUTE = 60
+            const val MILLIS_IN_SECOND = 1000L
+            const val MILLIS_IN_MINUTE = 60000L
         }
+
+        private data class RecurringTaskGenerationCandidate(
+            val recurringTaskId: String,
+            val params: NewTaskParameters,
+        )
+
+        private data class RecurringTaskTemplateData(
+            val title: String,
+            val description: String?,
+            val goalId: String?,
+            val projectId: String?,
+            val priority: TaskPriority,
+            val estimatedDurationMinutes: Long?,
+            val points: Int,
+            val taskType: String,
+        )
+
+        data class AddRecurringTaskParams(
+            val title: String,
+            val description: String?,
+            val duration: Long?,
+            val priority: TaskPriority,
+            val recurrenceRule: RecurrenceRule,
+            val dayPlanId: String,
+            val goalId: String? = null,
+            val projectId: String? = null,
+            val taskType: String? = null,
+            val points: Int = 0,
+            val order: Long? = null,
+        )
+
+        data class UpdateTaskParams(
+            val taskId: String,
+            val title: String,
+            val description: String?,
+            val priority: TaskPriority,
+            val duration: Long?,
+            val points: Int,
+        )
+
+        data class SplitRecurringTaskParams(
+            val originalTask: DayTask,
+            val newTitle: String,
+            val newDescription: String?,
+            val newPriority: TaskPriority,
+            val newDuration: Long?,
+            val points: Int,
+        )
 
         @Volatile
         private var cachedBestCompletedPoints: Int? = null
@@ -149,60 +209,53 @@ class DayManagementRepository
             )
         }
 
-        suspend fun addRecurringTask(
-            title: String,
-            description: String?,
-            duration: Long?,
-            priority: TaskPriority,
-            recurrenceRule: RecurrenceRule,
-            dayPlanId: String,
-            goalId: String? = null,
-            projectId: String? = null,
-            taskType: String? = null,
-            points: Int = 0,
-            order: Long? = null,
-        ) {
+        suspend fun addRecurringTask(params: AddRecurringTaskParams) {
             withContext(ioDispatcher) {
-                val dayPlan = dayPlanDao.getPlanById(dayPlanId) ?: return@withContext
+                val dayPlan = dayPlanDao.getPlanById(params.dayPlanId) ?: return@withContext
 
                 val resolvedTaskType =
-                    taskType
+                    params.taskType
                         ?: when {
-                            goalId != null -> BacklogItemTypeValues.GOAL
-                            projectId != null -> BacklogItemTypeValues.SUBLIST
+                            params.goalId != null -> BacklogItemTypeValues.GOAL
+                            params.projectId != null -> BacklogItemTypeValues.SUBLIST
                             else -> BacklogItemTypeValues.GOAL
                         }
 
                 val recurringTask =
                     RecurringTask(
-                        title = title,
-                        description = description,
-                        goalId = goalId,
-                        duration = duration?.toInt(),
-                        priority = priority,
-                        points = points,
-                        recurrenceRule = recurrenceRule,
+                        title = params.title,
+                        description = params.description,
+                        goalId = params.goalId,
+                        duration = params.duration?.toInt(),
+                        priority = params.priority,
+                        points = params.points,
+                        recurrenceRule = params.recurrenceRule,
                         startDate = dayPlan.date,
                     )
                 recurringTaskDao.insert(recurringTask)
 
                 val taskParams =
                     NewTaskParameters(
-                        dayPlanId = dayPlanId,
-                        title = title,
-                        description = description,
-                        priority = priority,
-                        goalId = goalId,
-                        projectId = projectId,
-                        estimatedDurationMinutes = duration,
+                        dayPlanId = params.dayPlanId,
+                        title = params.title,
+                        description = params.description,
+                        priority = params.priority,
+                        goalId = params.goalId,
+                        projectId = params.projectId,
+                        estimatedDurationMinutes = params.duration,
                         taskType = resolvedTaskType,
-                        points = points,
-                        order = order,
+                        points = params.points,
+                        order = params.order,
                     )
                 val dayTask =
                     addTaskToDayPlan(taskParams).copy(
                         recurringTaskId = recurringTask.id,
-                        nextOccurrenceTime = if (recurrenceRule.frequency == RecurrenceFrequency.HOURLY) System.currentTimeMillis() else null,
+                        nextOccurrenceTime =
+                            if (params.recurrenceRule.frequency == RecurrenceFrequency.HOURLY) {
+                                System.currentTimeMillis()
+                            } else {
+                                null
+                            },
                         syncedAt = null,
                         version = 1,
                     )
@@ -425,22 +478,15 @@ class DayManagementRepository
                 )
             }
 
-        suspend fun updateTask(
-            taskId: String,
-            title: String,
-            description: String?,
-            priority: TaskPriority,
-            duration: Long?,
-            points: Int,
-        ) = withContext(ioDispatcher) {
-            val task = dayTaskDao.getTaskById(taskId) ?: return@withContext
+        suspend fun updateTask(params: UpdateTaskParams) = withContext(ioDispatcher) {
+            val task = dayTaskDao.getTaskById(params.taskId) ?: return@withContext
             val updatedTask =
                 task.copy(
-                    title = title,
-                    description = description,
-                    priority = priority,
-                    estimatedDurationMinutes = duration,
-                    points = points,
+                    title = params.title,
+                    description = params.description,
+                    priority = params.priority,
+                    estimatedDurationMinutes = params.duration,
+                    points = params.points,
                     updatedAt = System.currentTimeMillis(),
                     syncedAt = null,
                     version = task.version + 1,
@@ -468,18 +514,11 @@ class DayManagementRepository
         }
 
         @Transaction
-        suspend fun splitRecurringTask(
-            originalTask: DayTask,
-            newTitle: String,
-            newDescription: String?,
-            newPriority: TaskPriority,
-            newDuration: Long?,
-            points: Int,
-        ) {
+        suspend fun splitRecurringTask(params: SplitRecurringTaskParams) {
             withContext(ioDispatcher) {
-                val recurringTaskId = originalTask.recurringTaskId ?: return@withContext
+                val recurringTaskId = params.originalTask.recurringTaskId ?: return@withContext
                 val originalRecurringTask = recurringTaskDao.getById(recurringTaskId) ?: return@withContext
-                val dayPlan = dayPlanDao.getPlanById(originalTask.dayPlanId) ?: return@withContext
+                val dayPlan = dayPlanDao.getPlanById(params.originalTask.dayPlanId) ?: return@withContext
 
                 // 1. End the old recurring task
                 val yesterday =
@@ -493,13 +532,13 @@ class DayManagementRepository
                 val newRecurringTask =
                     originalRecurringTask.copy(
                         id = UUID.randomUUID().toString(),
-                        title = newTitle,
-                        description = newDescription,
-                        priority = newPriority,
-                        duration = newDuration?.toInt(),
+                        title = params.newTitle,
+                        description = params.newDescription,
+                        priority = params.newPriority,
+                        duration = params.newDuration?.toInt(),
                         startDate = dayPlan.date,
                         endDate = null,
-                        points = points,
+                        points = params.points,
                     )
                 recurringTaskDao.insert(newRecurringTask)
 
@@ -614,7 +653,9 @@ class DayManagementRepository
             }
 
         fun getWeeklyInsights(startOfWeek: Long): Flow<WeeklyInsights> {
-            val endOfWeek = startOfWeek + (7 * 24 * 60 * 60 * 1000L)
+            val endOfWeek =
+                startOfWeek +
+                    (DAYS_IN_WEEK * HOURS_IN_DAY * MINUTES_IN_HOUR * SECONDS_IN_MINUTE * MILLIS_IN_SECOND)
             return dailyMetricDao.getMetricsForDateRange(startOfWeek, endOfWeek).map { metrics ->
                 if (metrics.isEmpty()) {
                     WeeklyInsights(
@@ -650,59 +691,14 @@ class DayManagementRepository
                 val dayPlan = dayPlanDao.getPlanForDateSync(date)
                 if (dayPlan != null) {
                     val recurringTasks = recurringTaskDao.getAll()
-                    val tasksToGenerate = mutableListOf<Pair<String, NewTaskParameters>>()
-
-                    recurringTasks.forEach { recurringTask ->
-                        if (shouldGenerateTaskForDate(recurringTask, date)) {
-                            val existingTask = dayTaskDao.findByRecurringIdAndDate(recurringTask.id, dayPlan.id)
-                            if (existingTask == null) {
-                                val templateTask = dayTaskDao.findTemplateForRecurringTask(recurringTask.id)
-                                val templateGoalId = templateTask?.goalId ?: recurringTask.goalId
-                                val projectId = templateTask?.projectId
-                                val points = templateTask?.points ?: recurringTask.points
-                                val priority = templateTask?.priority ?: recurringTask.priority
-                                val estimatedDurationMinutes = templateTask?.estimatedDurationMinutes ?: recurringTask.duration?.toLong()
-
-                                val (title, description, goalId) =
-                                    if (templateGoalId != null) {
-                                        val goal = goalDao.getGoalById(templateGoalId)
-                                        if (goal != null) {
-                                            Triple(goal.text, goal.description, goal.id)
-                                        } else {
-                                            return@forEach
-                                        }
-                                    } else {
-                                        Triple(
-                                            templateTask?.title ?: recurringTask.title,
-                                            templateTask?.description ?: recurringTask.description,
-                                            null,
-                                        )
-                                    }
-
-                                val resolvedTaskType =
-                                    templateTask?.taskType
-                                        ?: when {
-                                            goalId != null -> BacklogItemTypeValues.GOAL
-                                            projectId != null -> BacklogItemTypeValues.SUBLIST
-                                            else -> BacklogItemTypeValues.GOAL
-                                        }
-
-                                val taskParams =
-                                    NewTaskParameters(
-                                        dayPlanId = dayPlan.id,
-                                        title = title,
-                                        description = description,
-                                        goalId = goalId,
-                                        projectId = projectId,
-                                        priority = priority,
-                                        estimatedDurationMinutes = estimatedDurationMinutes,
-                                        taskType = resolvedTaskType,
-                                        points = points,
-                                    )
-                                tasksToGenerate += recurringTask.id to taskParams
-                            }
+                    val tasksToGenerate =
+                        recurringTasks.mapNotNull { recurringTask ->
+                            buildRecurringTaskGenerationCandidate(
+                                recurringTask = recurringTask,
+                                date = date,
+                                dayPlanId = dayPlan.id,
+                            )
                         }
-                    }
 
                     if (tasksToGenerate.isEmpty()) return@withContext
 
@@ -710,16 +706,94 @@ class DayManagementRepository
 
                     tasksToGenerate
                         .sortedWith(
-                            compareByDescending<Pair<String, NewTaskParameters>> { priorityRank(it.second.priority) }
-                                .thenBy { it.second.title.lowercase() },
+                            compareByDescending<RecurringTaskGenerationCandidate> { priorityRank(it.params.priority) }
+                                .thenBy { it.params.title.lowercase() },
                         )
-                        .forEachIndexed { index, (recurringTaskId, params) ->
-                            addTaskToDayPlan(params.copy(order = startingOrder + index))
-                                .copy(recurringTaskId = recurringTaskId)
+                        .forEachIndexed { index, candidate ->
+                            addTaskToDayPlan(candidate.params.copy(order = startingOrder + index))
+                                .copy(recurringTaskId = candidate.recurringTaskId)
                                 .also { dayTaskDao.update(it) }
                         }
                 }
             }
+        }
+
+        private suspend fun buildRecurringTaskGenerationCandidate(
+            recurringTask: RecurringTask,
+            date: Long,
+            dayPlanId: String,
+        ): RecurringTaskGenerationCandidate? {
+            if (!shouldGenerateTaskForDate(recurringTask, date)) return null
+
+            val existingTask = dayTaskDao.findByRecurringIdAndDate(recurringTask.id, dayPlanId)
+            if (existingTask != null) return null
+
+            val templateTask = dayTaskDao.findTemplateForRecurringTask(recurringTask.id)
+            val templateData =
+                resolveRecurringTaskTemplateData(
+                    recurringTask = recurringTask,
+                    templateTask = templateTask,
+                ) ?: return null
+
+            return RecurringTaskGenerationCandidate(
+                recurringTaskId = recurringTask.id,
+                params =
+                    NewTaskParameters(
+                        dayPlanId = dayPlanId,
+                        title = templateData.title,
+                        description = templateData.description,
+                        goalId = templateData.goalId,
+                        projectId = templateData.projectId,
+                        priority = templateData.priority,
+                        estimatedDurationMinutes = templateData.estimatedDurationMinutes,
+                        taskType = templateData.taskType,
+                        points = templateData.points,
+                    ),
+            )
+        }
+
+        private suspend fun resolveRecurringTaskTemplateData(
+            recurringTask: RecurringTask,
+            templateTask: DayTask?,
+        ): RecurringTaskTemplateData? {
+            val templateGoalId = templateTask?.goalId ?: recurringTask.goalId
+            val projectId = templateTask?.projectId
+            val points = templateTask?.points ?: recurringTask.points
+            val priority = templateTask?.priority ?: recurringTask.priority
+            val estimatedDurationMinutes =
+                templateTask?.estimatedDurationMinutes ?: recurringTask.duration?.toLong()
+
+            val titleData =
+                if (templateGoalId != null) {
+                    goalDao.getGoalById(templateGoalId)?.let { goal ->
+                        Triple(goal.text, goal.description, goal.id)
+                    }
+                } else {
+                    Triple(
+                        templateTask?.title ?: recurringTask.title,
+                        templateTask?.description ?: recurringTask.description,
+                        null,
+                    )
+                } ?: return null
+
+            val resolvedTaskType =
+                templateTask?.taskType
+                    ?: when {
+                        titleData.third != null -> BacklogItemTypeValues.GOAL
+                        projectId != null -> BacklogItemTypeValues.SUBLIST
+                        else -> BacklogItemTypeValues.GOAL
+                    }
+
+            return RecurringTaskTemplateData(
+                title = titleData.first,
+                description = titleData.second,
+                goalId = titleData.third,
+                projectId = projectId,
+                priority = priority,
+                estimatedDurationMinutes = estimatedDurationMinutes,
+                points = points,
+                taskType = resolvedTaskType,
+            )
         }
 
         private suspend fun reorderTasksByPriority(dayPlanId: String) {
@@ -760,42 +834,66 @@ class DayManagementRepository
             date: Long,
         ): Boolean {
             val calendar = Calendar.getInstance().apply { timeInMillis = date }
-            val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
-
-            if (date < recurringTask.startDate) return false
-            // 1. Фіксуємо значення у локальній змінній для забезпечення Smart Cast
-            val endDate = recurringTask.endDate
-
-// 2. Додаємо дужки для чіткості логічного виразу
-            if (endDate != null && (date > endDate)) return false
-
-            return when (recurringTask.recurrenceRule.frequency) {
-                RecurrenceFrequency.HOURLY -> true
-                RecurrenceFrequency.DAILY -> true
-                RecurrenceFrequency.WEEKLY -> {
-                    val taskDayOfWeek =
-                        when (dayOfWeek) {
-                            Calendar.MONDAY -> java.time.DayOfWeek.MONDAY
-                            Calendar.TUESDAY -> java.time.DayOfWeek.TUESDAY
-                            Calendar.WEDNESDAY -> java.time.DayOfWeek.WEDNESDAY
-                            Calendar.THURSDAY -> java.time.DayOfWeek.THURSDAY
-                            Calendar.FRIDAY -> java.time.DayOfWeek.FRIDAY
-                            Calendar.SATURDAY -> java.time.DayOfWeek.SATURDAY
-                            Calendar.SUNDAY -> java.time.DayOfWeek.SUNDAY
-                            else -> null
-                        }
-                    recurringTask.recurrenceRule.daysOfWeek?.contains(taskDayOfWeek) ?: false
-                }
-                RecurrenceFrequency.MONTHLY -> {
-                    val startCalendar = Calendar.getInstance().apply { timeInMillis = recurringTask.startDate }
-                    calendar.get(Calendar.DAY_OF_MONTH) == startCalendar.get(Calendar.DAY_OF_MONTH)
-                }
-                RecurrenceFrequency.YEARLY -> {
-                    val startCalendar = Calendar.getInstance().apply { timeInMillis = recurringTask.startDate }
-                    calendar.get(Calendar.DAY_OF_YEAR) == startCalendar.get(Calendar.DAY_OF_YEAR)
-                }
-            }
+            return isRecurringTaskWithinDateBounds(recurringTask, date) &&
+                matchesRecurrenceFrequency(recurringTask, calendar)
         }
+
+        private fun isRecurringTaskWithinDateBounds(
+            recurringTask: RecurringTask,
+            date: Long,
+        ): Boolean {
+            val endDate = recurringTask.endDate
+            return date >= recurringTask.startDate && (endDate == null || date <= endDate)
+        }
+
+        private fun matchesRecurrenceFrequency(
+            recurringTask: RecurringTask,
+            calendar: Calendar,
+        ): Boolean =
+            when (recurringTask.recurrenceRule.frequency) {
+                RecurrenceFrequency.HOURLY,
+                RecurrenceFrequency.DAILY,
+                -> true
+                RecurrenceFrequency.WEEKLY -> matchesWeeklyRecurrence(recurringTask, calendar)
+                RecurrenceFrequency.MONTHLY -> matchesMonthlyRecurrence(recurringTask, calendar)
+                RecurrenceFrequency.YEARLY -> matchesYearlyRecurrence(recurringTask, calendar)
+            }
+
+        private fun matchesWeeklyRecurrence(
+            recurringTask: RecurringTask,
+            calendar: Calendar,
+        ): Boolean {
+            val taskDayOfWeek = calendarDayOfWeek(calendar.get(Calendar.DAY_OF_WEEK)) ?: return false
+            return recurringTask.recurrenceRule.daysOfWeek?.contains(taskDayOfWeek) ?: false
+        }
+
+        private fun matchesMonthlyRecurrence(
+            recurringTask: RecurringTask,
+            calendar: Calendar,
+        ): Boolean {
+            val startCalendar = Calendar.getInstance().apply { timeInMillis = recurringTask.startDate }
+            return calendar.get(Calendar.DAY_OF_MONTH) == startCalendar.get(Calendar.DAY_OF_MONTH)
+        }
+
+        private fun matchesYearlyRecurrence(
+            recurringTask: RecurringTask,
+            calendar: Calendar,
+        ): Boolean {
+            val startCalendar = Calendar.getInstance().apply { timeInMillis = recurringTask.startDate }
+            return calendar.get(Calendar.DAY_OF_YEAR) == startCalendar.get(Calendar.DAY_OF_YEAR)
+        }
+
+        private fun calendarDayOfWeek(dayOfWeek: Int): DayOfWeek? =
+            when (dayOfWeek) {
+                Calendar.MONDAY -> DayOfWeek.MONDAY
+                Calendar.TUESDAY -> DayOfWeek.TUESDAY
+                Calendar.WEDNESDAY -> DayOfWeek.WEDNESDAY
+                Calendar.THURSDAY -> DayOfWeek.THURSDAY
+                Calendar.FRIDAY -> DayOfWeek.FRIDAY
+                Calendar.SATURDAY -> DayOfWeek.SATURDAY
+                Calendar.SUNDAY -> DayOfWeek.SUNDAY
+                else -> null
+            }
 
         suspend fun deleteAllFutureInstancesOfRecurringTask(
             recurringTaskId: String,

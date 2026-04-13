@@ -18,7 +18,13 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ScriptEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.BackupDiff
 import com.romankozak.forwardappmobile.core.data.models.sync.DiffResult
 import com.romankozak.forwardappmobile.core.data.models.sync.DiffStatus
+import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.UpdatedItem
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportSourceMode
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportPreviewSummary
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportPreviewModel
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSelectiveImportSelection
+import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSnapshotFormat
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.BacklogItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toEntity
@@ -27,6 +33,12 @@ data class SelectiveImportState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val backupContent: SelectableDatabaseContent? = null,
+    val sourceSnapshotBundle: SnapshotBundle? = null,
+    val sourceMode: WorkspaceImportSourceMode? = null,
+    val sourceFormat: WorkspaceSnapshotFormat? = null,
+    val previewModel: WorkspaceImportPreviewModel = WorkspaceImportPreviewModel(),
+    val previewSummary: WorkspaceImportPreviewSummary = WorkspaceImportPreviewSummary(),
+    val selection: WorkspaceSelectiveImportSelection = WorkspaceSelectiveImportSelection(),
 )
 
 data class SelectableDatabaseContent(

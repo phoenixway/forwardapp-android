@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package com.romankozak.forwardappmobile.ui.components
 
 import androidx.compose.animation.animateColorAsState
@@ -6,7 +8,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,8 +30,22 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +67,70 @@ private data class CreateListDraft(
     val name: String,
     val parent: Context?,
 )
+
+private data class BrowseListsState(
+    val filterText: String,
+    val topLevelLists: List<Context>,
+    val childMap: Map<String, List<Context>>,
+    val expandedIds: Set<String>,
+    val currentParentId: String?,
+    val disabledIds: Set<String>,
+    val highlightedListId: String?,
+    val focusRequester: FocusRequester,
+)
+
+private data class BrowseListsActions(
+    val onFilterTextChanged: (String) -> Unit,
+    val onToggleExpanded: (String) -> Unit,
+    val onDismiss: () -> Unit,
+    val onConfirm: (String?) -> Unit,
+    val onStartCreateRoot: () -> Unit,
+    val onStartCreateChild: (Context) -> Unit,
+)
+
+private data class ListChooserTreeState(
+    val childMap: Map<String, List<Context>>,
+    val expandedIds: Set<String>,
+    val disabledIds: Set<String>,
+    val highlightedListId: String?,
+)
+
+private data class ListChooserTreeActions(
+    val onToggleExpanded: (String) -> Unit,
+    val onSelect: (String?) -> Unit,
+    val onAddSubProjectRequest: (Context) -> Unit,
+)
+
+private data class SelectableListRowState(
+    val list: Context,
+    val level: Int,
+    val hasChildren: Boolean,
+    val isExpanded: Boolean,
+    val isEnabled: Boolean,
+    val backgroundColor: Color,
+    val interactionSource: MutableInteractionSource,
+)
+
+private data class FilterableListChooserUiState(
+    val isCreatingMode: Boolean,
+    val createListDraft: CreateListDraft,
+    val highlightedListId: String?,
+    val keyboardController: androidx.compose.ui.platform.SoftwareKeyboardController?,
+    val searchFocusRequester: FocusRequester,
+)
+
+private data class FilterableListChooserCallbacks(
+    val onCreateModeChange: (Boolean) -> Unit,
+    val onDraftChange: (CreateListDraft) -> Unit,
+    val onHighlightedListIdChange: (String?) -> Unit,
+    val onDismiss: () -> Unit,
+    val onAddNewList: (id: String, parentId: String?, name: String) -> Unit,
+)
+
+private const val HIGHLIGHT_RESET_DELAY_MILLIS = 2000L
+private const val MIN_LIST_NAME_LENGTH = 3
+private const val TREE_INDENT_DP = 16
+private const val CHOOSER_HEIGHT_FRACTION = 0.5f
 
 @Composable
 @Suppress("LongParameterList")
@@ -66,7 +156,7 @@ fun FilterableListChooser(
 
     LaunchedEffect(highlightedListId) {
         if (highlightedListId != null) {
-            delay(2000L)
+            delay(HIGHLIGHT_RESET_DELAY_MILLIS)
             highlightedListId = null
         }
     }
@@ -77,7 +167,53 @@ fun FilterableListChooser(
         }
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    FilterableListChooserDialog(
+        title = title,
+        filterText = filterText,
+        onFilterTextChanged = onFilterTextChanged,
+        topLevelLists = topLevelLists,
+        childMap = childMap,
+        expandedIds = expandedIds,
+        onToggleExpanded = onToggleExpanded,
+        onConfirm = onConfirm,
+        currentParentId = currentParentId,
+        disabledIds = disabledIds,
+        state =
+            FilterableListChooserUiState(
+                isCreatingMode = isCreatingMode,
+                createListDraft = createListDraft,
+                highlightedListId = highlightedListId,
+                keyboardController = keyboardController,
+                searchFocusRequester = searchFocusRequester,
+            ),
+        callbacks =
+            FilterableListChooserCallbacks(
+                onCreateModeChange = { isCreatingMode = it },
+                onDraftChange = { createListDraft = it },
+                onHighlightedListIdChange = { highlightedListId = it },
+                onDismiss = onDismiss,
+                onAddNewList = onAddNewList,
+            ),
+    )
+}
+
+@Composable
+@Suppress("LongParameterList", "LongMethod")
+private fun FilterableListChooserDialog(
+    title: String,
+    filterText: String,
+    onFilterTextChanged: (String) -> Unit,
+    topLevelLists: List<Context>,
+    childMap: Map<String, List<Context>>,
+    expandedIds: Set<String>,
+    onToggleExpanded: (String) -> Unit,
+    onConfirm: (String?) -> Unit,
+    currentParentId: String?,
+    disabledIds: Set<String>,
+    state: FilterableListChooserUiState,
+    callbacks: FilterableListChooserCallbacks,
+) {
+    Dialog(onDismissRequest = callbacks.onDismiss) {
         Surface(
             shape = MaterialTheme.shapes.extraLarge,
             tonalElevation = 8.dp,
@@ -86,64 +222,61 @@ fun FilterableListChooser(
                     .fillMaxWidth()
                     .padding(16.dp),
         ) {
-            Column(
-                modifier =
-                    Modifier
-                        .padding(24.dp),
-            ) {
-                val currentTitle =
-                    if (isCreatingMode) {
-                        createListDraft.parent?.let { "Новий підсписок для '${it.name}'" } ?: "Новий список верхнього рівня"
-                    } else {
-                        title
-                    }
-
-                Text(
-                    text = currentTitle,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(bottom = 16.dp),
+            Column(modifier = Modifier.padding(24.dp)) {
+                ChooserTitle(
+                    title =
+                        resolveChooserTitle(
+                            title = title,
+                            isCreatingMode = state.isCreatingMode,
+                            draft = state.createListDraft,
+                        ),
                 )
 
-                if (isCreatingMode) {
+                if (state.isCreatingMode) {
                     CreateListSection(
-                        draft = createListDraft,
-                        focusRequester = searchFocusRequester,
-                        onDraftChange = { createListDraft = it },
+                        draft = state.createListDraft,
+                        focusRequester = state.searchFocusRequester,
+                        onDraftChange = callbacks.onDraftChange,
                         onCancel = {
-                            isCreatingMode = false
-                            keyboardController?.hide()
+                            callbacks.onCreateModeChange(false)
+                            state.keyboardController?.hide()
                         },
                         onCreate = { name, parentId ->
                             val newId = UUID.randomUUID().toString()
-                            onAddNewList(newId, parentId, name)
-                            highlightedListId = newId
-                            isCreatingMode = false
-                            keyboardController?.hide()
+                            callbacks.onAddNewList(newId, parentId, name)
+                            callbacks.onHighlightedListIdChange(newId)
+                            callbacks.onCreateModeChange(false)
+                            state.keyboardController?.hide()
                         },
                     )
                 } else {
                     BrowseListsSection(
-                        filterText = filterText,
-                        onFilterTextChanged = onFilterTextChanged,
-                        topLevelLists = topLevelLists,
-                        childMap = childMap,
-                        expandedIds = expandedIds,
-                        onToggleExpanded = onToggleExpanded,
-                        currentParentId = currentParentId,
-                        disabledIds = disabledIds,
-                        highlightedListId = highlightedListId,
-                        focusRequester = searchFocusRequester,
-                        onDismiss = onDismiss,
-                        onConfirm = onConfirm,
-                        onStartCreateRoot = {
-                            createListDraft = CreateListDraft(name = "", parent = null)
-                            isCreatingMode = true
-                        },
-                        onStartCreateChild = { parent ->
-                            createListDraft = CreateListDraft(name = "", parent = parent)
-                            isCreatingMode = true
-                        },
+                        state =
+                            BrowseListsState(
+                                filterText = filterText,
+                                topLevelLists = topLevelLists,
+                                childMap = childMap,
+                                expandedIds = expandedIds,
+                                currentParentId = currentParentId,
+                                disabledIds = disabledIds,
+                                highlightedListId = state.highlightedListId,
+                                focusRequester = state.searchFocusRequester,
+                            ),
+                        actions =
+                            BrowseListsActions(
+                                onFilterTextChanged = onFilterTextChanged,
+                                onToggleExpanded = onToggleExpanded,
+                                onDismiss = callbacks.onDismiss,
+                                onConfirm = onConfirm,
+                                onStartCreateRoot = {
+                                    callbacks.onDraftChange(CreateListDraft(name = "", parent = null))
+                                    callbacks.onCreateModeChange(true)
+                                },
+                                onStartCreateChild = { parent ->
+                                    callbacks.onDraftChange(CreateListDraft(name = "", parent = parent))
+                                    callbacks.onCreateModeChange(true)
+                                },
+                            ),
                     )
                 }
             }
@@ -159,8 +292,8 @@ private fun CreateListSection(
     onCancel: () -> Unit,
     onCreate: (String, String?) -> Unit,
 ) {
-    val isError = draft.name.isNotBlank() && draft.name.length < 3
-    val canCreate = draft.name.isNotBlank() && draft.name.length >= 3
+    val isError = draft.name.isNotBlank() && draft.name.length < MIN_LIST_NAME_LENGTH
+    val canCreate = draft.name.isNotBlank() && draft.name.length >= MIN_LIST_NAME_LENGTH
 
     OutlinedTextField(
         value = draft.name,
@@ -191,8 +324,8 @@ private fun CreateListSection(
     Spacer(modifier = Modifier.height(24.dp))
 
     Row(
-        modifier = Modifier.align(Alignment.End),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.End,
     ) {
         TextButton(
             onClick = onCancel,
@@ -214,47 +347,53 @@ private fun CreateListSection(
 }
 
 @Composable
-@Suppress("LongParameterList")
 private fun BrowseListsSection(
-    filterText: String,
-    onFilterTextChanged: (String) -> Unit,
-    topLevelLists: List<Context>,
-    childMap: Map<String, List<Context>>,
-    expandedIds: Set<String>,
-    onToggleExpanded: (String) -> Unit,
-    currentParentId: String?,
-    disabledIds: Set<String>,
-    highlightedListId: String?,
-    focusRequester: FocusRequester,
-    onDismiss: () -> Unit,
-    onConfirm: (String?) -> Unit,
-    onStartCreateRoot: () -> Unit,
-    onStartCreateChild: (Context) -> Unit,
+    state: BrowseListsState,
+    actions: BrowseListsActions,
 ) {
     SearchListsField(
-        filterText = filterText,
-        onFilterTextChanged = onFilterTextChanged,
-        focusRequester = focusRequester,
+        filterText = state.filterText,
+        onFilterTextChanged = actions.onFilterTextChanged,
+        focusRequester = state.focusRequester,
     )
 
     Spacer(modifier = Modifier.height(16.dp))
 
     ListsChooserContent(
-        filterText = filterText,
-        topLevelLists = topLevelLists,
-        childMap = childMap,
-        expandedIds = expandedIds,
-        onToggleExpanded = onToggleExpanded,
-        currentParentId = currentParentId,
-        disabledIds = disabledIds,
-        highlightedListId = highlightedListId,
-        onDismiss = onDismiss,
-        onConfirm = onConfirm,
-        onStartCreateChild = onStartCreateChild,
+        filterText = state.filterText,
+        topLevelLists = state.topLevelLists,
+        currentParentId = state.currentParentId,
+        treeState =
+            ListChooserTreeState(
+                childMap = state.childMap,
+                expandedIds = state.expandedIds,
+                disabledIds = state.disabledIds,
+                highlightedListId = state.highlightedListId,
+            ),
+        actions =
+            ListChooserTreeActions(
+                onToggleExpanded = actions.onToggleExpanded,
+                onSelect = { selectedId ->
+                    actions.onConfirm(selectedId)
+                    actions.onDismiss()
+                },
+                onAddSubProjectRequest = actions.onStartCreateChild,
+            ),
     )
 
     Spacer(modifier = Modifier.height(16.dp))
 
+    BrowseListsFooter(
+        onStartCreateRoot = actions.onStartCreateRoot,
+        onDismiss = actions.onDismiss,
+    )
+}
+
+@Composable
+private fun BrowseListsFooter(
+    onStartCreateRoot: () -> Unit,
+    onDismiss: () -> Unit,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -320,35 +459,25 @@ private fun SearchListsField(
 }
 
 @Composable
-@Suppress("LongParameterList")
 private fun ListsChooserContent(
     filterText: String,
     topLevelLists: List<Context>,
-    childMap: Map<String, List<Context>>,
-    expandedIds: Set<String>,
-    onToggleExpanded: (String) -> Unit,
     currentParentId: String?,
-    disabledIds: Set<String>,
-    highlightedListId: String?,
-    onDismiss: () -> Unit,
-    onConfirm: (String?) -> Unit,
-    onStartCreateChild: (Context) -> Unit,
+    treeState: ListChooserTreeState,
+    actions: ListChooserTreeActions,
 ) {
     LazyColumn(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.5).dp),
+                .heightIn(max = (LocalConfiguration.current.screenHeightDp * CHOOSER_HEIGHT_FRACTION).dp),
     ) {
         if (filterText.isBlank()) {
             item {
                 val isAlreadyAtRoot = currentParentId == null
                 SelectableRootItem(
                     isEnabled = !isAlreadyAtRoot,
-                    onSelect = {
-                        onConfirm(null)
-                        onDismiss()
-                    },
+                    onSelect = { actions.onSelect(null) },
                 )
 
                 if (topLevelLists.isNotEmpty()) {
@@ -383,17 +512,9 @@ private fun ListsChooserContent(
         items(topLevelLists, key = { it.id }) { list ->
             RecursiveSelectableListItem(
                 list = list,
-                childMap = childMap,
+                treeState = treeState,
                 level = 0,
-                expandedIds = expandedIds,
-                onToggleExpanded = onToggleExpanded,
-                onSelect = { selectedId ->
-                    onConfirm(selectedId)
-                    onDismiss()
-                },
-                disabledIds = disabledIds,
-                highlightedListId = highlightedListId,
-                onAddSubProjectRequest = onStartCreateChild,
+                actions = actions,
             )
         }
     }
@@ -455,20 +576,15 @@ private fun SelectableRootItem(
 @Composable
 private fun RecursiveSelectableListItem(
     list: Context,
-    childMap: Map<String, List<Context>>,
+    treeState: ListChooserTreeState,
     level: Int,
-    expandedIds: Set<String>,
-    onToggleExpanded: (String) -> Unit,
-    onSelect: (String) -> Unit,
-    disabledIds: Set<String>,
-    highlightedListId: String?,
-    onAddSubProjectRequest: (parentList: Context) -> Unit,
+    actions: ListChooserTreeActions,
 ) {
-    val isExpanded = list.id in expandedIds
-    val children = childMap[list.id]?.sortedBy { it.order } ?: emptyList()
+    val isExpanded = list.id in treeState.expandedIds
+    val children = treeState.childMap[list.id]?.sortedBy { it.order } ?: emptyList()
     val hasChildren = children.isNotEmpty()
-    val isEnabled = list.id !in disabledIds
-    val isHighlighted = list.id == highlightedListId
+    val isEnabled = list.id !in treeState.disabledIds
+    val isHighlighted = list.id == treeState.highlightedListId
     val interactionSource = remember { MutableInteractionSource() }
 
     val backgroundColor by animateColorAsState(
@@ -484,73 +600,61 @@ private fun RecursiveSelectableListItem(
 
     Column {
         SelectableListRow(
-            list = list,
-            level = level,
-            hasChildren = hasChildren,
-            isExpanded = isExpanded,
-            isEnabled = isEnabled,
-            backgroundColor = backgroundColor,
-            interactionSource = interactionSource,
-            onToggleExpanded = onToggleExpanded,
-            onSelect = onSelect,
-            onAddSubProjectRequest = onAddSubProjectRequest,
+            state =
+                SelectableListRowState(
+                    list = list,
+                    level = level,
+                    hasChildren = hasChildren,
+                    isExpanded = isExpanded,
+                    isEnabled = isEnabled,
+                    backgroundColor = backgroundColor,
+                    interactionSource = interactionSource,
+                ),
+            actions = actions,
         )
         ChildDivider(level = level)
         ChildListItems(
             children = children,
             isExpanded = isExpanded,
-            childMap = childMap,
+            treeState = treeState,
             level = level,
-            expandedIds = expandedIds,
-            onToggleExpanded = onToggleExpanded,
-            onSelect = onSelect,
-            disabledIds = disabledIds,
-            highlightedListId = highlightedListId,
-            onAddSubProjectRequest = onAddSubProjectRequest,
+            actions = actions,
         )
     }
 }
 
 @Composable
 private fun SelectableListRow(
-    list: Context,
-    level: Int,
-    hasChildren: Boolean,
-    isExpanded: Boolean,
-    isEnabled: Boolean,
-    backgroundColor: Color,
-    interactionSource: MutableInteractionSource,
-    onToggleExpanded: (String) -> Unit,
-    onSelect: (String) -> Unit,
-    onAddSubProjectRequest: (Context) -> Unit,
+    state: SelectableListRowState,
+    actions: ListChooserTreeActions,
 ) {
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.small)
-                .background(backgroundColor)
+                .background(state.backgroundColor)
                 .clickable(
-                    enabled = isEnabled,
-                    onClick = { onSelect(list.id) },
-                    interactionSource = interactionSource,
+                    enabled = state.isEnabled,
+                    onClick = { actions.onSelect(state.list.id) },
+                    interactionSource = state.interactionSource,
                     indication = null,
                 ).padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Spacer(modifier = Modifier.width((level * 16).dp))
+        Spacer(modifier = Modifier.width((state.level * TREE_INDENT_DP).dp))
         ExpandToggle(
-            hasChildren = hasChildren,
-            isExpanded = isExpanded,
-            onToggle = { onToggleExpanded(list.id) },
+            hasChildren = state.hasChildren,
+            isExpanded = state.isExpanded,
+            onToggle = { actions.onToggleExpanded(state.list.id) },
         )
         Spacer(modifier = Modifier.width(12.dp))
         Text(
-            text = list.name,
+            text = state.list.name,
             modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.bodyLarge,
             color =
-                if (isEnabled) {
+                if (state.isEnabled) {
                     MaterialTheme.colorScheme.onSurface
                 } else {
                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
@@ -559,14 +663,14 @@ private fun SelectableListRow(
             overflow = TextOverflow.Ellipsis,
         )
 
-        if (isEnabled) {
+        if (state.isEnabled) {
             IconButton(
-                onClick = { onAddSubProjectRequest(list) },
+                onClick = { actions.onAddSubProjectRequest(state.list) },
                 modifier = Modifier.size(36.dp),
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Додати підсписок до ${list.name}",
+                    contentDescription = "Додати підсписок до ${state.list.name}",
                     tint = MaterialTheme.colorScheme.primary,
                 )
             }
@@ -601,7 +705,7 @@ private fun ChildDivider(level: Int) {
         Box(
             modifier =
                 Modifier
-                    .width((level * 16).dp)
+                    .width((level * TREE_INDENT_DP).dp)
                     .height(1.dp)
                     .background(MaterialTheme.colorScheme.outlineVariant),
         )
@@ -609,32 +713,42 @@ private fun ChildDivider(level: Int) {
 }
 
 @Composable
-@Suppress("LongParameterList")
 private fun ChildListItems(
     children: List<Context>,
     isExpanded: Boolean,
-    childMap: Map<String, List<Context>>,
+    treeState: ListChooserTreeState,
     level: Int,
-    expandedIds: Set<String>,
-    onToggleExpanded: (String) -> Unit,
-    onSelect: (String) -> Unit,
-    disabledIds: Set<String>,
-    highlightedListId: String?,
-    onAddSubProjectRequest: (Context) -> Unit,
+    actions: ListChooserTreeActions,
 ) {
     if (!isExpanded || children.isEmpty()) return
 
     children.forEach { child ->
         RecursiveSelectableListItem(
             list = child,
-            childMap = childMap,
+            treeState = treeState,
             level = level + 1,
-            expandedIds = expandedIds,
-            onToggleExpanded = onToggleExpanded,
-            onSelect = onSelect,
-            disabledIds = disabledIds,
-            highlightedListId = highlightedListId,
-            onAddSubProjectRequest = onAddSubProjectRequest,
+            actions = actions,
         )
     }
+}
+
+private fun resolveChooserTitle(
+    title: String,
+    isCreatingMode: Boolean,
+    draft: CreateListDraft,
+): String {
+    if (!isCreatingMode) return title
+    return draft.parent?.let { parent ->
+        "Новий підсписок для '${parent.name}'"
+    } ?: "Новий список верхнього рівня"
+}
+
+@Composable
+private fun ChooserTitle(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.headlineSmall,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(bottom = 16.dp),
+    )
 }

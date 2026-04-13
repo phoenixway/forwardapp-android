@@ -11,6 +11,8 @@ pluginManagement {
         id("com.android.application") version "8.4.1" apply false
         id("com.android.library") version "8.4.1" apply false
         id("org.jetbrains.kotlin.android") version "2.2.0" apply false
+        id("org.jetbrains.kotlin.jvm") version "2.2.20" apply false
+        id("org.jetbrains.compose") version "1.9.0" apply false
         id("com.google.devtools.ksp") version "2.0.0-1.0.21" apply false
         id("org.jetbrains.kotlin.plugin.compose") version "2.0.0" apply false
         id("com.google.dagger.hilt.android") version "2.51.1" apply false
@@ -31,6 +33,11 @@ dependencyResolutionManagement {
 
 rootProject.name = "ForwardAppMobile"
 include(":app")
+include(":desktop-app")
+include(":desktop-data")
+include(":shared-application")
+include(":shared-contracts")
+include(":shared-domain")
 include(":core-data-models")
 include(":core-data-interfaces")
 include(":sync")

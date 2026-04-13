@@ -163,16 +163,18 @@ class EditTaskViewModel
             }
 
             dayManagementRepository.addRecurringTask(
-                title = state.title,
-                description = state.description,
-                duration = state.duration,
-                priority = state.priority,
-                recurrenceRule = recurrenceRule,
-                dayPlanId = originalTask.dayPlanId,
-                goalId = originalTask.goalId,
-                projectId = originalTask.projectId,
-                taskType = originalTask.taskType,
-                points = state.points,
+                DayManagementRepository.AddRecurringTaskParams(
+                    title = state.title,
+                    description = state.description,
+                    duration = state.duration,
+                    priority = state.priority,
+                    recurrenceRule = recurrenceRule,
+                    dayPlanId = originalTask.dayPlanId,
+                    goalId = originalTask.goalId,
+                    projectId = originalTask.projectId,
+                    taskType = originalTask.taskType,
+                    points = state.points,
+                ),
             )
             dayManagementRepository.deleteTask(originalTask.id)
         }
@@ -192,12 +194,14 @@ class EditTaskViewModel
             originalTask: DayTask,
         ) {
             dayManagementRepository.updateTask(
-                taskId = originalTask.id,
-                title = state.title,
-                description = state.description,
-                priority = state.priority,
-                duration = state.duration,
-                points = state.points,
+                DayManagementRepository.UpdateTaskParams(
+                    taskId = originalTask.id,
+                    title = state.title,
+                    description = state.description,
+                    priority = state.priority,
+                    duration = state.duration,
+                    points = state.points,
+                ),
             )
         }
 

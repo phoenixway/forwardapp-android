@@ -1,0 +1,101 @@
+{
+  "contexts": [
+    {
+      "id": "core",
+      "name": "Core Level",
+      "description": "Ключові системи і стратегічні контексти верхнього рівня.",
+      "parentId": null,
+      "status": "InProgress",
+      "defaultView": "Dashboard",
+      "score": 91,
+      "isCompleted": false
+    },
+    {
+      "id": "work",
+      "name": "Work System",
+      "description": "Операційний workbench для задач, backlog і tactical flow.",
+      "parentId": "core",
+      "status": "InProgress",
+      "defaultView": "Backlog",
+      "score": 84,
+      "isCompleted": false
+    },
+    {
+      "id": "desktop",
+      "name": "Desktop App",
+      "description": "Новий desktop shell, shared contracts і desktop feature slices.",
+      "parentId": "work",
+      "status": "InProgress",
+      "defaultView": "Backlog",
+      "score": 78,
+      "isCompleted": false
+    },
+    {
+      "id": "scripts",
+      "name": "Scripts Library",
+      "description": "Автоматизації, tooling, migration utilities.",
+      "parentId": "work",
+      "status": "NoPlan",
+      "defaultView": "Connections",
+      "score": 53,
+      "isCompleted": false
+    },
+    {
+      "id": "health",
+      "name": "Health",
+      "description": "Контури self-management і регулярних review.",
+      "parentId": "core",
+      "status": "Planning",
+      "defaultView": "Dashboard",
+      "score": 66,
+      "isCompleted": false
+    }
+  ],
+  "backlogItems": [
+    {
+      "id": "desktop-shell",
+      "contextId": "desktop",
+      "title": "Desktop shell bootstrap",
+      "details": "Compose Desktop shell, navigation skeleton і стартова композиція модулів.",
+      "kind": "Feature",
+      "priority": "Critical",
+      "isDone": false
+    },
+    {
+      "id": "shared-contracts",
+      "contextId": "desktop",
+      "title": "Shared contracts for desktop-safe data",
+      "details": "DTO та model layer, які можна безпечно переносити між Android і desktop.",
+      "kind": "Architecture",
+      "priority": "High",
+      "isDone": false
+    },
+    {
+      "id": "workspace-store",
+      "contextId": "desktop",
+      "title": "Desktop workspace store",
+      "details": "State holder для query, selection і orchestration use case.",
+      "kind": "Architecture",
+      "priority": "High",
+      "isDone": false
+    },
+    {
+      "id": "tooling-audit",
+      "contextId": "scripts",
+      "title": "Tooling audit",
+      "details": "Перевірити devtools, migration utilities і debug-cycle для desktop сценаріїв.",
+      "kind": "Task",
+      "priority": "Medium",
+      "isDone": false
+    },
+    {
+      "id": "health-review",
+      "contextId": "health",
+      "title": "Review weekly reset workflow",
+      "details": "Підготувати desktop-safe capture для weekly review flow.",
+      "kind": "Research",
+      "priority": "Low",
+      "isDone": false
+    }
+  ]
+}

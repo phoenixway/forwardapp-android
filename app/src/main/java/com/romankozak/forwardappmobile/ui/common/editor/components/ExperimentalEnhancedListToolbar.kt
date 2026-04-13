@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package com.romankozak.forwardappmobile.ui.common.editor.components
 
 import androidx.compose.animation.*
@@ -27,8 +29,60 @@ import androidx.compose.ui.unit.sp
 
 enum class CommandGroup { РЕДАГУВАННЯ, СПИСКИ, ВСТАВКА, ФОРМАТУВАННЯ }
 
+private data class ToolbarCallbacks(
+    val onIndentBlock: () -> Unit,
+    val onDeIndentBlock: () -> Unit,
+    val onMoveBlockUp: () -> Unit,
+    val onMoveBlockDown: () -> Unit,
+    val onIndentLine: () -> Unit,
+    val onDeIndentLine: () -> Unit,
+    val onMoveLineUp: () -> Unit,
+    val onMoveLineDown: () -> Unit,
+    val onDeleteLine: () -> Unit,
+    val onCopyLine: () -> Unit,
+    val onCutLine: () -> Unit,
+    val onPasteLine: () -> Unit,
+    val onToggleBullet: () -> Unit,
+    val onToggleCheckbox: () -> Unit,
+    val onUndo: () -> Unit,
+    val onRedo: () -> Unit,
+    val onToggleVisibility: () -> Unit,
+    val onInsertDateTime: () -> Unit,
+    val onInsertTime: () -> Unit,
+    val onInsertAttachmentLink: () -> Unit,
+    val onInsertContextLink: () -> Unit,
+    val onH1: () -> Unit,
+    val onH2: () -> Unit,
+    val onH3: () -> Unit,
+    val onBold: () -> Unit,
+    val onItalic: () -> Unit,
+    val onInsertSeparator: () -> Unit,
+)
+
+private data class ToolbarAvailability(
+    val canInsertAttachmentLink: Boolean,
+    val canInsertContextLink: Boolean,
+)
+
+private data class ToolbarButtonSpec(
+    val icon: ImageVector,
+    val description: String,
+    val onClick: () -> Unit,
+    val enabled: Boolean = true,
+    val isActive: Boolean = false,
+)
+
+private data class ToolbarSectionSpec(
+    val title: String,
+    val actions: List<ToolbarButtonSpec>,
+)
+
+private const val TOOLBAR_TAB_ANIMATION_MILLIS = 300
+private const val TOOLBAR_PULSE_ANIMATION_MILLIS = 1500
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("LongParameterList")
 fun ExperimentalEnhancedListToolbar(
     modifier: Modifier = Modifier,
     state: ListToolbarState,
@@ -65,8 +119,68 @@ fun ExperimentalEnhancedListToolbar(
     onItalic: () -> Unit = {},
     onInsertSeparator: () -> Unit = {},
 ) {
+    ExperimentalEnhancedListToolbarContent(
+        modifier = modifier,
+        state = state,
+        callbacks =
+            ToolbarCallbacks(
+                onIndentBlock = onIndentBlock,
+                onDeIndentBlock = onDeIndentBlock,
+                onMoveBlockUp = onMoveBlockUp,
+                onMoveBlockDown = onMoveBlockDown,
+                onIndentLine = onIndentLine,
+                onDeIndentLine = onDeIndentLine,
+                onMoveLineUp = onMoveLineUp,
+                onMoveLineDown = onMoveLineDown,
+                onDeleteLine = onDeleteLine,
+                onCopyLine = onCopyLine,
+                onCutLine = onCutLine,
+                onPasteLine = onPasteLine,
+                onToggleBullet = onToggleBullet,
+                onToggleCheckbox = onToggleCheckbox,
+                onUndo = onUndo,
+                onRedo = onRedo,
+                onToggleVisibility = onToggleVisibility,
+                onInsertDateTime = onInsertDateTime,
+                onInsertTime = onInsertTime,
+                onInsertAttachmentLink = onInsertAttachmentLink,
+                onInsertContextLink = onInsertContextLink,
+                onH1 = onH1,
+                onH2 = onH2,
+                onH3 = onH3,
+                onBold = onBold,
+                onItalic = onItalic,
+                onInsertSeparator = onInsertSeparator,
+            ),
+        availability =
+            ToolbarAvailability(
+                canInsertAttachmentLink = canInsertAttachmentLink,
+                canInsertContextLink = canInsertContextLink,
+            ),
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+@Suppress("LongMethod")
+private fun ExperimentalEnhancedListToolbarContent(
+    modifier: Modifier = Modifier,
+    state: ListToolbarState,
+    callbacks: ToolbarCallbacks,
+    availability: ToolbarAvailability,
+) {
     var selectedTab by remember { mutableStateOf(CommandGroup.РЕДАГУВАННЯ) }
     val haptics = LocalHapticFeedback.current
+    val sections =
+        remember(selectedTab, state, callbacks, availability, haptics) {
+            buildToolbarSections(
+                tab = selectedTab,
+                state = state,
+                callbacks = callbacks,
+                availability = availability,
+                haptics = haptics,
+            )
+        }
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -79,53 +193,11 @@ fun ExperimentalEnhancedListToolbar(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Top accent line
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(3.dp)
-                        .background(
-                            MaterialTheme.colorScheme.primary.copy(
-                                alpha = if (state.isEditing) 0.6f else 0.3f,
-                            ),
-                        ),
+            ToolbarAccentLine(isEditing = state.isEditing)
+            ToolbarDragHandle(
+                isEditing = state.isEditing,
+                onToggleVisibility = callbacks.onToggleVisibility,
             )
-
-            // Drag handle with pulsing animation
-            val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-            val pulseAlpha by infiniteTransition.animateFloat(
-                initialValue = 0.3f,
-                targetValue = 0.6f,
-                animationSpec =
-                    infiniteRepeatable(
-                        animation = tween(1500, easing = FastOutSlowInEasing),
-                        repeatMode = RepeatMode.Reverse,
-                    ),
-                label = "pulse_alpha",
-            )
-
-            Box(
-                modifier =
-                    Modifier
-                        .height(24.dp)
-                        .fillMaxWidth()
-                        .clickable(onClick = onToggleVisibility),
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(
-                    modifier =
-                        Modifier
-                            .width(48.dp)
-                            .height(5.dp)
-                            .clip(RoundedCornerShape(2.5.dp))
-                            .background(
-                                MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                                    alpha = if (state.isEditing) 0.5f else pulseAlpha,
-                                ),
-                            ),
-                )
-            }
 
             AnimatedVisibility(
                 visible = state.isEditing,
@@ -154,344 +226,454 @@ fun ExperimentalEnhancedListToolbar(
                             .padding(bottom = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    // Modern tab row with chips style
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        ScrollableTabRow(
-                            selectedTabIndex = selectedTab.ordinal,
-                            edgePadding = 0.dp,
-                            containerColor = Color.Transparent,
-                            indicator = { },
-                            divider = { },
-                        ) {
-                            CommandGroup.values().forEach { group ->
-                                val isSelected = selectedTab == group
-                                Tab(
-                                    modifier = Modifier.height(40.dp),
-                                    selected = isSelected,
-                                    onClick = {
-                                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        selectedTab = group
-                                    },
-                                ) {
-                                    Surface(
-                                        shape = RoundedCornerShape(12.dp),
-                                        color =
-                                            if (isSelected) {
-                                                MaterialTheme.colorScheme.primaryContainer
-                                            } else {
-                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                            },
-                                        modifier = Modifier.padding(horizontal = 4.dp),
-                                    ) {
-                                        Text(
-                                            text = group.name,
-                                            fontSize = 12.sp,
-                                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                                            color =
-                                                if (isSelected) {
-                                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                                } else {
-                                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                                },
-                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Animated content with crossfade
-                    Crossfade(
-                        targetState = selectedTab,
-                        animationSpec = tween(300, easing = FastOutSlowInEasing),
-                    ) { tab ->
-                        Row(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .horizontalScroll(rememberScrollState())
-                                    .padding(vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            when (tab) {
-                                CommandGroup.РЕДАГУВАННЯ -> {
-                                    ToolbarSection(title = "Історія") {
-                                        EnhancedToolbarButton(
-                                            icon = Icons.AutoMirrored.Filled.Undo,
-                                            description = "Скасувати",
-                                            enabled = state.canUndo,
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onUndo()
-                                            },
-                                        )
-                                        EnhancedToolbarButton(
-                                            icon = Icons.AutoMirrored.Filled.Redo,
-                                            description = "Повторити",
-                                            enabled = state.canRedo,
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onRedo()
-                                            },
-                                        )
-                                    }
-                                    VerticalDivider(
-                                        modifier = Modifier.height(36.dp).padding(horizontal = 4.dp),
-                                        thickness = 1.dp,
-                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                    )
-                                    ToolbarSection(title = "Редагування") {
-                                        EnhancedToolbarButton(
-                                            icon = Icons.Default.DeleteOutline,
-                                            description = "Видалити рядок",
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                onDeleteLine()
-                                            },
-                                        )
-                                        EnhancedToolbarButton(
-                                            icon = Icons.Default.ContentCopy,
-                                            description = "Копіювати рядок",
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onCopyLine()
-                                            },
-                                        )
-                                        EnhancedToolbarButton(
-                                            icon = Icons.Default.ContentCut,
-                                            description = "Вирізати рядок",
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onCutLine()
-                                            },
-                                        )
-                                        EnhancedToolbarButton(
-                                            icon = Icons.Default.ContentPaste,
-                                            description = "Вставити рядок",
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onPasteLine()
-                                            },
-                                        )
-                                    }
-                                }
-                                CommandGroup.СПИСКИ -> {
-                                    ToolbarSection(title = "Формат") {
-                                        EnhancedToolbarButton(
-                                            icon = Icons.AutoMirrored.Filled.FormatListBulleted,
-                                            description = "Маркери",
-                                            isActive = state.formatMode == ListFormatMode.BULLET,
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onToggleBullet()
-                                            },
-                                        )
-                                        EnhancedToolbarButton(
-                                            icon = Icons.Default.Checklist,
-                                            description = "Чекбокс",
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onToggleCheckbox()
-                                            },
-                                        )
-                                    }
-                                    VerticalDivider(
-                                        modifier = Modifier.height(36.dp).padding(horizontal = 4.dp),
-                                        thickness = 1.dp,
-                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                    )
-                                    ToolbarSection(title = "Відступи") {
-                                        EnhancedToolbarButton(
-                                            icon = Icons.AutoMirrored.Filled.FormatIndentIncrease,
-                                            description = "Збільшити відступ",
-                                            enabled = state.canIndent,
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onIndentLine()
-                                            },
-                                        )
-                                        EnhancedToolbarButton(
-                                            icon = Icons.AutoMirrored.Filled.FormatIndentDecrease,
-                                            description = "Зменшити відступ",
-                                            enabled = state.canDeIndent,
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onDeIndentLine()
-                                            },
-                                        )
-                                    }
-                                    VerticalDivider(
-                                        modifier = Modifier.height(36.dp).padding(horizontal = 4.dp),
-                                        thickness = 1.dp,
-                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                    )
-                                    ToolbarSection(title = "Рядки") {
-                                        EnhancedToolbarButton(
-                                            icon = Icons.Default.KeyboardArrowUp,
-                                            description = "Рядок вгору",
-                                            enabled = state.canMoveUp,
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onMoveLineUp()
-                                            },
-                                        )
-                                        EnhancedToolbarButton(
-                                            icon = Icons.Default.KeyboardArrowDown,
-                                            description = "Рядок вниз",
-                                            enabled = state.canMoveDown,
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onMoveLineDown()
-                                            },
-                                        )
-                                    }
-                                    VerticalDivider(
-                                        modifier = Modifier.height(36.dp).padding(horizontal = 4.dp),
-                                        thickness = 1.dp,
-                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                    )
-                                    ToolbarSection(title = "Блоки") {
-                                        EnhancedToolbarButton(
-                                            icon = Icons.AutoMirrored.Filled.FormatIndentIncrease,
-                                            description = "Відступ блоку",
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onIndentBlock()
-                                            },
-                                        )
-                                        EnhancedToolbarButton(
-                                            icon = Icons.AutoMirrored.Filled.FormatIndentDecrease,
-                                            description = "Зняти відступ блоку",
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onDeIndentBlock()
-                                            },
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        EnhancedToolbarButton(
-                                            icon = Icons.Default.KeyboardDoubleArrowUp,
-                                            description = "Блок вгору",
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onMoveBlockUp()
-                                            },
-                                        )
-                                        EnhancedToolbarButton(
-                                            icon = Icons.Default.KeyboardDoubleArrowDown,
-                                            description = "Блок вниз",
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onMoveBlockDown()
-                                            },
-                                        )
-                                    }
-                                }
-                                CommandGroup.ВСТАВКА -> {
-                                    ToolbarSection(title = "Вставка") {
-                                        EnhancedToolbarButton(
-                                            icon = Icons.Default.DateRange,
-                                            description = "Вставити дату і час",
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onInsertDateTime()
-                                            },
-                                        )
-                                        EnhancedToolbarButton(
-                                            icon = Icons.Default.AccessTime,
-                                            description = "Вставити час",
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onInsertTime()
-                                            },
-                                        )
-                                        EnhancedToolbarButton(
-                                            icon = Icons.Default.HorizontalRule,
-                                            description = "Вставити роздільник",
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onInsertSeparator()
-                                            },
-                                        )
-                                        EnhancedToolbarButton(
-                                            icon = Icons.Default.AttachFile,
-                                            description = "Вставити посилання на вкладення",
-                                            enabled = canInsertAttachmentLink,
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onInsertAttachmentLink()
-                                            },
-                                        )
-                                        EnhancedToolbarButton(
-                                            icon = Icons.Default.AccountTree,
-                                            description = "Вставити посилання на контекст",
-                                            enabled = canInsertContextLink,
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onInsertContextLink()
-                                            },
-                                        )
-                                    }
-                                }
-                                CommandGroup.ФОРМАТУВАННЯ -> {
-                                    ToolbarSection(title = "Заголовки") {
-                                        EnhancedToolbarButton(
-                                            icon = Icons.Default.HMobiledata,
-                                            description = "H1",
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onH1()
-                                            },
-                                        )
-                                        EnhancedToolbarButton(
-                                            icon = Icons.Default.HPlusMobiledata,
-                                            description = "H2",
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onH2()
-                                            },
-                                        )
-                                        EnhancedToolbarButton(
-                                            icon = Icons.Default.HPlusMobiledata,
-                                            description = "H3",
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onH3()
-                                            },
-                                        )
-                                    }
-                                    VerticalDivider(
-                                        modifier = Modifier.height(36.dp).padding(horizontal = 4.dp),
-                                        thickness = 1.dp,
-                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                    )
-                                    ToolbarSection(title = "Стиль") {
-                                        EnhancedToolbarButton(
-                                            icon = Icons.Default.FormatBold,
-                                            description = "Жирний",
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onBold()
-                                            },
-                                        )
-                                        EnhancedToolbarButton(
-                                            icon = Icons.Default.FormatItalic,
-                                            description = "Курсив",
-                                            onClick = {
-                                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                onItalic()
-                                            },
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    ToolbarTabSelector(
+                        selectedTab = selectedTab,
+                        onTabSelected = { selectedTab = it },
+                        haptics = haptics,
+                    )
+                    ToolbarSectionsContent(
+                        selectedTab = selectedTab,
+                        sections = sections,
+                    )
                 }
             }
         }
     }
+}
+
+@Composable
+private fun ToolbarAccentLine(isEditing: Boolean) {
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(3.dp)
+                .background(
+                    MaterialTheme.colorScheme.primary.copy(
+                        alpha = if (isEditing) 0.6f else 0.3f,
+                    ),
+                ),
+    )
+}
+
+@Composable
+private fun ToolbarDragHandle(
+    isEditing: Boolean,
+    onToggleVisibility: () -> Unit,
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.6f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(TOOLBAR_PULSE_ANIMATION_MILLIS, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "pulse_alpha",
+    )
+
+    Box(
+        modifier =
+            Modifier
+                .height(24.dp)
+                .fillMaxWidth()
+                .clickable(onClick = onToggleVisibility),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .width(48.dp)
+                    .height(5.dp)
+                    .clip(RoundedCornerShape(2.5.dp))
+                    .background(
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                            alpha = if (isEditing) 0.5f else pulseAlpha,
+                        ),
+                    ),
+        )
+    }
+}
+
+@Composable
+private fun ToolbarTabSelector(
+    selectedTab: CommandGroup,
+    onTabSelected: (CommandGroup) -> Unit,
+    haptics: androidx.compose.ui.hapticfeedback.HapticFeedback,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        ScrollableTabRow(
+            selectedTabIndex = selectedTab.ordinal,
+            edgePadding = 0.dp,
+            containerColor = Color.Transparent,
+            indicator = { },
+            divider = { },
+        ) {
+            CommandGroup.values().forEach { group ->
+                ToolbarTab(
+                    group = group,
+                    isSelected = selectedTab == group,
+                    onClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onTabSelected(group)
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ToolbarTab(
+    group: CommandGroup,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
+    Tab(
+        modifier = Modifier.height(40.dp),
+        selected = isSelected,
+        onClick = onClick,
+    ) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color =
+                if (isSelected) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                },
+            modifier = Modifier.padding(horizontal = 4.dp),
+        ) {
+            Text(
+                text = group.name,
+                fontSize = 12.sp,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                color =
+                    if (isSelected) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ToolbarSectionsContent(
+    selectedTab: CommandGroup,
+    sections: List<ToolbarSectionSpec>,
+) {
+    Crossfade(
+        targetState = selectedTab,
+        animationSpec = tween(TOOLBAR_TAB_ANIMATION_MILLIS, easing = FastOutSlowInEasing),
+    ) {
+        ToolbarSectionsRow(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(vertical = 2.dp),
+            sections = sections,
+        )
+    }
+}
+
+@Composable
+private fun ToolbarSectionsRow(
+    modifier: Modifier = Modifier,
+    sections: List<ToolbarSectionSpec>,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        sections.forEachIndexed { index, section ->
+            ToolbarSection(title = section.title) {
+                section.actions.forEach { action ->
+                    EnhancedToolbarButton(spec = action)
+                }
+            }
+            if (index < sections.lastIndex) {
+                VerticalDivider(
+                    modifier = Modifier.height(36.dp).padding(horizontal = 4.dp),
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                )
+            }
+        }
+    }
+}
+
+private fun buildToolbarSections(
+    tab: CommandGroup,
+    state: ListToolbarState,
+    callbacks: ToolbarCallbacks,
+    availability: ToolbarAvailability,
+    haptics: androidx.compose.ui.hapticfeedback.HapticFeedback,
+): List<ToolbarSectionSpec> =
+    when (tab) {
+        CommandGroup.РЕДАГУВАННЯ -> editingSections(state, callbacks, haptics)
+        CommandGroup.СПИСКИ -> listSections(state, callbacks, haptics)
+        CommandGroup.ВСТАВКА -> insertSections(callbacks, availability, haptics)
+        CommandGroup.ФОРМАТУВАННЯ -> formattingSections(callbacks, haptics)
+    }
+
+private fun toolbarAction(
+    icon: ImageVector,
+    description: String,
+    enabled: Boolean = true,
+    isActive: Boolean = false,
+    onClick: () -> Unit,
+): ToolbarButtonSpec =
+    ToolbarButtonSpec(
+        icon = icon,
+        description = description,
+        enabled = enabled,
+        isActive = isActive,
+        onClick = onClick,
+    )
+
+private fun editingSections(
+    state: ListToolbarState,
+    callbacks: ToolbarCallbacks,
+    haptics: androidx.compose.ui.hapticfeedback.HapticFeedback,
+): List<ToolbarSectionSpec> =
+    listOf(
+        ToolbarSectionSpec(
+            title = "Історія",
+            actions =
+                listOf(
+                    toolbarAction(
+                        icon = Icons.AutoMirrored.Filled.Undo,
+                        description = "Скасувати",
+                        enabled = state.canUndo,
+                        onClick = hapticAction(haptics, callback = callbacks.onUndo),
+                    ),
+                    toolbarAction(
+                        icon = Icons.AutoMirrored.Filled.Redo,
+                        description = "Повторити",
+                        enabled = state.canRedo,
+                        onClick = hapticAction(haptics, callback = callbacks.onRedo),
+                    ),
+                ),
+        ),
+        ToolbarSectionSpec(
+            title = "Редагування",
+            actions =
+                listOf(
+                    toolbarAction(
+                        icon = Icons.Default.DeleteOutline,
+                        description = "Видалити рядок",
+                        onClick =
+                            hapticAction(
+                                haptics = haptics,
+                                hapticType = HapticFeedbackType.LongPress,
+                                callback = callbacks.onDeleteLine,
+                            ),
+                    ),
+                    toolbarAction(
+                        icon = Icons.Default.ContentCopy,
+                        description = "Копіювати рядок",
+                        onClick = hapticAction(haptics, callback = callbacks.onCopyLine),
+                    ),
+                    toolbarAction(
+                        icon = Icons.Default.ContentCut,
+                        description = "Вирізати рядок",
+                        onClick = hapticAction(haptics, callback = callbacks.onCutLine),
+                    ),
+                    toolbarAction(
+                        icon = Icons.Default.ContentPaste,
+                        description = "Вставити рядок",
+                        onClick = hapticAction(haptics, callback = callbacks.onPasteLine),
+                    ),
+                ),
+        ),
+    )
+
+@Suppress("LongMethod")
+private fun listSections(
+    state: ListToolbarState,
+    callbacks: ToolbarCallbacks,
+    haptics: androidx.compose.ui.hapticfeedback.HapticFeedback,
+): List<ToolbarSectionSpec> =
+    listOf(
+        ToolbarSectionSpec(
+            title = "Формат",
+            actions =
+                listOf(
+                    toolbarAction(
+                        icon = Icons.AutoMirrored.Filled.FormatListBulleted,
+                        description = "Маркери",
+                        isActive = state.formatMode == ListFormatMode.BULLET,
+                        onClick = hapticAction(haptics, callback = callbacks.onToggleBullet),
+                    ),
+                    toolbarAction(
+                        icon = Icons.Default.Checklist,
+                        description = "Чекбокс",
+                        onClick = hapticAction(haptics, callback = callbacks.onToggleCheckbox),
+                    ),
+                ),
+        ),
+        ToolbarSectionSpec(
+            title = "Відступи",
+            actions =
+                listOf(
+                    toolbarAction(
+                        icon = Icons.AutoMirrored.Filled.FormatIndentIncrease,
+                        description = "Збільшити відступ",
+                        enabled = state.canIndent,
+                        onClick = hapticAction(haptics, callback = callbacks.onIndentLine),
+                    ),
+                    toolbarAction(
+                        icon = Icons.AutoMirrored.Filled.FormatIndentDecrease,
+                        description = "Зменшити відступ",
+                        enabled = state.canDeIndent,
+                        onClick = hapticAction(haptics, callback = callbacks.onDeIndentLine),
+                    ),
+                ),
+        ),
+        ToolbarSectionSpec(
+            title = "Рядки",
+            actions =
+                listOf(
+                    toolbarAction(
+                        icon = Icons.Default.KeyboardArrowUp,
+                        description = "Рядок вгору",
+                        enabled = state.canMoveUp,
+                        onClick = hapticAction(haptics, callback = callbacks.onMoveLineUp),
+                    ),
+                    toolbarAction(
+                        icon = Icons.Default.KeyboardArrowDown,
+                        description = "Рядок вниз",
+                        enabled = state.canMoveDown,
+                        onClick = hapticAction(haptics, callback = callbacks.onMoveLineDown),
+                    ),
+                ),
+        ),
+        ToolbarSectionSpec(
+            title = "Блоки",
+            actions =
+                listOf(
+                    toolbarAction(
+                        icon = Icons.AutoMirrored.Filled.FormatIndentIncrease,
+                        description = "Відступ блоку",
+                        onClick = hapticAction(haptics, callback = callbacks.onIndentBlock),
+                    ),
+                    toolbarAction(
+                        icon = Icons.AutoMirrored.Filled.FormatIndentDecrease,
+                        description = "Зняти відступ блоку",
+                        onClick = hapticAction(haptics, callback = callbacks.onDeIndentBlock),
+                    ),
+                    toolbarAction(
+                        icon = Icons.Default.KeyboardDoubleArrowUp,
+                        description = "Блок вгору",
+                        onClick = hapticAction(haptics, callback = callbacks.onMoveBlockUp),
+                    ),
+                    toolbarAction(
+                        icon = Icons.Default.KeyboardDoubleArrowDown,
+                        description = "Блок вниз",
+                        onClick = hapticAction(haptics, callback = callbacks.onMoveBlockDown),
+                    ),
+                ),
+        ),
+    )
+
+private fun insertSections(
+    callbacks: ToolbarCallbacks,
+    availability: ToolbarAvailability,
+    haptics: androidx.compose.ui.hapticfeedback.HapticFeedback,
+): List<ToolbarSectionSpec> =
+    listOf(
+        ToolbarSectionSpec(
+            title = "Вставка",
+            actions =
+                listOf(
+                    toolbarAction(
+                        icon = Icons.Default.DateRange,
+                        description = "Вставити дату і час",
+                        onClick = hapticAction(haptics, callback = callbacks.onInsertDateTime),
+                    ),
+                    toolbarAction(
+                        icon = Icons.Default.AccessTime,
+                        description = "Вставити час",
+                        onClick = hapticAction(haptics, callback = callbacks.onInsertTime),
+                    ),
+                    toolbarAction(
+                        icon = Icons.Default.HorizontalRule,
+                        description = "Вставити роздільник",
+                        onClick = hapticAction(haptics, callback = callbacks.onInsertSeparator),
+                    ),
+                    toolbarAction(
+                        icon = Icons.Default.AttachFile,
+                        description = "Вставити посилання на вкладення",
+                        enabled = availability.canInsertAttachmentLink,
+                        onClick = hapticAction(haptics, callback = callbacks.onInsertAttachmentLink),
+                    ),
+                    toolbarAction(
+                        icon = Icons.Default.AccountTree,
+                        description = "Вставити посилання на контекст",
+                        enabled = availability.canInsertContextLink,
+                        onClick = hapticAction(haptics, callback = callbacks.onInsertContextLink),
+                    ),
+                ),
+        ),
+    )
+
+private fun formattingSections(
+    callbacks: ToolbarCallbacks,
+    haptics: androidx.compose.ui.hapticfeedback.HapticFeedback,
+): List<ToolbarSectionSpec> =
+    listOf(
+        ToolbarSectionSpec(
+            title = "Заголовки",
+            actions =
+                listOf(
+                    toolbarAction(
+                        icon = Icons.Default.HMobiledata,
+                        description = "H1",
+                        onClick = hapticAction(haptics, callback = callbacks.onH1),
+                    ),
+                    toolbarAction(
+                        icon = Icons.Default.HPlusMobiledata,
+                        description = "H2",
+                        onClick = hapticAction(haptics, callback = callbacks.onH2),
+                    ),
+                    toolbarAction(
+                        icon = Icons.Default.HPlusMobiledata,
+                        description = "H3",
+                        onClick = hapticAction(haptics, callback = callbacks.onH3),
+                    ),
+                ),
+        ),
+        ToolbarSectionSpec(
+            title = "Стиль",
+            actions =
+                listOf(
+                    toolbarAction(
+                        icon = Icons.Default.FormatBold,
+                        description = "Жирний",
+                        onClick = hapticAction(haptics, callback = callbacks.onBold),
+                    ),
+                    toolbarAction(
+                        icon = Icons.Default.FormatItalic,
+                        description = "Курсив",
+                        onClick = hapticAction(haptics, callback = callbacks.onItalic),
+                    ),
+                ),
+        ),
+    )
+
+private fun hapticAction(
+    haptics: androidx.compose.ui.hapticfeedback.HapticFeedback,
+    hapticType: HapticFeedbackType = HapticFeedbackType.TextHandleMove,
+    callback: () -> Unit,
+): () -> Unit = {
+    haptics.performHapticFeedback(hapticType)
+    callback()
 }
 
 @Composable
@@ -509,15 +691,11 @@ private fun ToolbarSection(
 
 @Composable
 private fun EnhancedToolbarButton(
-    icon: ImageVector,
-    description: String,
-    onClick: () -> Unit,
+    spec: ToolbarButtonSpec,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    isActive: Boolean = false,
 ) {
     val animatedScale by animateFloatAsState(
-        targetValue = if (enabled) 1f else 0.95f,
+        targetValue = if (spec.enabled) 1f else 0.95f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
         label = "button_scale",
     )
@@ -525,8 +703,8 @@ private fun EnhancedToolbarButton(
     val animatedColor by animateColorAsState(
         targetValue =
             when {
-                isActive -> MaterialTheme.colorScheme.primary
-                enabled -> MaterialTheme.colorScheme.onSurfaceVariant
+                spec.isActive -> MaterialTheme.colorScheme.primary
+                spec.enabled -> MaterialTheme.colorScheme.onSurfaceVariant
                 else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
             },
         animationSpec = tween(250, easing = FastOutSlowInEasing),
@@ -535,7 +713,7 @@ private fun EnhancedToolbarButton(
 
     val animatedBackgroundColor by animateColorAsState(
         targetValue =
-            if (isActive) {
+            if (spec.isActive) {
                 MaterialTheme.colorScheme.primaryContainer
             } else {
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
@@ -545,8 +723,8 @@ private fun EnhancedToolbarButton(
     )
 
     FilledIconButton(
-        onClick = onClick,
-        enabled = enabled,
+        onClick = spec.onClick,
+        enabled = spec.enabled,
         modifier =
             modifier
                 .size(36.dp)
@@ -564,8 +742,8 @@ private fun EnhancedToolbarButton(
             ),
     ) {
         Icon(
-            imageVector = icon,
-            contentDescription = description,
+            imageVector = spec.icon,
+            contentDescription = spec.description,
             modifier = Modifier.size(20.dp),
         )
     }

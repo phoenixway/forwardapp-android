@@ -1,3 +1,5 @@
+@file:Suppress("MagicNumber")
+
 package com.romankozak.forwardappmobile.features.mainscreen.session
 
 import androidx.compose.foundation.clickable
@@ -37,6 +39,18 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import java.util.concurrent.TimeUnit
 
+private val ImproveModeColor = Color(0xFF2E7D32)
+private val ExecutionModeColor = Color(0xFF1565C0)
+private val ControlModeColor = Color(0xFFEF6C00)
+private val RecoveryModeColor = Color(0xFF00838F)
+private val EmergencyModeColor = Color(0xFFB71C1C)
+private val UnsetModeColor = Color(0xFF616161)
+
+private const val HeaderContainerAlpha = 0.42f
+private const val ActiveCardAlpha = 0.08f
+private const val DarkReasonContainerAlpha = 0.34f
+private const val LightReasonContainerAlpha = 0.18f
+
 @Composable
 fun SessionModeDashboard(
     state: SessionModeState,
@@ -53,12 +67,6 @@ fun SessionModeDashboard(
         remember(state.startedAt) {
             state.startedAt?.let(::formatElapsedDuration)
         }
-    val headerContainerColor =
-        if (isDarkTheme) {
-            MaterialTheme.colorScheme.surfaceContainerHigh
-        } else {
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f)
-        }
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -68,7 +76,6 @@ fun SessionModeDashboard(
             latestSessionReason = latestSessionReason,
             activeDuration = activeDuration,
             isExpanded = isExpanded,
-            headerContainerColor = headerContainerColor,
             modeMenuExpanded = modeMenuExpanded,
             onExpandedChange = onExpandedChange,
             onModeMenuExpandedChange = { modeMenuExpanded = it },
@@ -87,7 +94,6 @@ private fun SessionModeCard(
     latestSessionReason: String?,
     activeDuration: String?,
     isExpanded: Boolean,
-    headerContainerColor: Color,
     modeMenuExpanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     onModeMenuExpandedChange: (Boolean) -> Unit,
@@ -96,12 +102,12 @@ private fun SessionModeCard(
 ) {
     val isDarkTheme = isSystemInDarkTheme()
     val accentColor = modeAccentColor(currentMode)
-    val activeCardColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.08f)
+    val activeCardColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = ActiveCardAlpha)
     val reasonContainerColor =
         if (isDarkTheme) {
-            accentColor.copy(alpha = 0.34f)
+            accentColor.copy(alpha = DarkReasonContainerAlpha)
         } else {
-            accentColor.copy(alpha = 0.18f)
+            accentColor.copy(alpha = LightReasonContainerAlpha)
         }
 
     Card(colors = CardDefaults.cardColors(containerColor = activeCardColor)) {
@@ -156,7 +162,12 @@ private fun SessionModeCard(
                 }
                 IconButton(onClick = { onExpandedChange(!isExpanded) }) {
                     Icon(
-                        imageVector = if (isExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                        imageVector =
+                            if (isExpanded) {
+                                Icons.Outlined.KeyboardArrowUp
+                            } else {
+                                Icons.Outlined.KeyboardArrowDown
+                            },
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -256,10 +267,10 @@ private fun formatElapsedDuration(startedAt: Long): String {
 
 private fun modeAccentColor(mode: SessionMode): Color =
     when (mode) {
-        SessionMode.IMPROVE -> Color(0xFF2E7D32)
-        SessionMode.EXECUTION -> Color(0xFF1565C0)
-        SessionMode.CONTROL -> Color(0xFFEF6C00)
-        SessionMode.RECOVERY -> Color(0xFF00838F)
-        SessionMode.EMERGENCY -> Color(0xFFB71C1C)
-        SessionMode.UNSET -> Color(0xFF616161)
+        SessionMode.IMPROVE -> ImproveModeColor
+        SessionMode.EXECUTION -> ExecutionModeColor
+        SessionMode.CONTROL -> ControlModeColor
+        SessionMode.RECOVERY -> RecoveryModeColor
+        SessionMode.EMERGENCY -> EmergencyModeColor
+        SessionMode.UNSET -> UnsetModeColor
     }
