@@ -362,7 +362,7 @@ private fun BackupContentList(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 96.dp),
     ) {
-        items(previewModel.sections, key = { it.kind.name }) { section ->
+        previewModel.sections.forEach { section ->
             PreviewSection(
                 scope = this,
                 section = section,

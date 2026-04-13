@@ -169,3 +169,28 @@
   - `./gradlew :shared-application:compileKotlin :app:compileExpLocalKotlin --stacktrace`
 - Next recommended step:
   - extend shared contracts to cover the remaining entity gaps or introduce shared preview item descriptors that remove Android-local mutation ownership entirely
+
+## 2026-04-13 / Session H
+
+- Campaign:
+  - Shared Feature State Handling
+- Goal:
+  - introduce shared preview item/section descriptors and start rendering Android selective import preview from them
+- Completed work:
+  - added `WorkspaceImportPreviewItem`, `WorkspaceImportPreviewSection` and `WorkspaceImportPreviewModel` in `shared-contracts`
+  - extended `WorkspaceImportSessionStore` with canonical shared preview model state
+  - Android `SelectiveImportViewModel` now syncs shared preview model from temporary Android-local selectable content
+  - Android `SelectiveImportScreen` now renders summary and preview list from shared preview state instead of Android-local section rendering helpers
+- Decisions made:
+  - preview item descriptors are now treated as shared feature state
+  - Android local selectable content remains a transitional adapter, not the long-term preview model owner
+- Not completed:
+  - direct mutation of shared preview model without first updating Android-local `SelectableDatabaseContent`
+  - desktop preview/import UI consumer over the same shared preview model
+- Risks/debt:
+  - Android still maintains two synchronized representations of preview items
+  - legacy notes still depend on fallback resync because canonical selection contracts do not yet cover them
+- Verification:
+  - `./gradlew :shared-contracts:compileKotlin :shared-application:compileKotlin :app:compileExpLocalKotlin --stacktrace`
+- Next recommended step:
+  - move item toggle/select-all mutation to a shared preview reducer so Android and desktop can edit one canonical preview structure directly

@@ -85,3 +85,15 @@
 - Consequences:
   - `WorkspaceImportSessionStore` now mutates canonical selection and preview summary on shared mutation intents
   - Android still updates local preview items, but shared feature state no longer depends only on full snapshot replacement
+
+## 2026-04-13 - Preview item descriptors belong in shared contracts/application state
+
+- Decision:
+  - item-level selective import preview descriptors are represented in shared contracts and stored canonically in `WorkspaceImportSessionStore`
+- Rationale:
+  - Android and desktop need the same preview sections, labels, statuses and selection flags even if they render them differently
+  - keeping item descriptors Android-local would force desktop to rebuild the same preview abstraction
+- Consequences:
+  - `WorkspaceImportPreviewModel` now exists in `shared-contracts`
+  - Android selective import UI now renders preview sections/items from shared preview state
+  - Android still mirrors mutations through local `SelectableDatabaseContent`, so canonical mutation ownership is not complete yet

@@ -29,7 +29,11 @@
   - shared import session state now also owns canonical `WorkspaceSelectiveImportSelection`
   - shared preview section summary contracts now exist and Android summary bar reads shared preview summary state
   - supported selection mutation now flows through shared store intents for item and section actions
+  - shared preview item and section descriptors now exist as `WorkspaceImportPreviewModel` in `shared-contracts`
+  - shared import session state now also owns canonical preview item descriptors
+  - Android selective import screen now renders preview list sections/items from shared preview descriptors
 - Remaining:
+  - stop deriving shared preview model from Android-local `SelectableDatabaseContent`
   - move preview/import state model from Android screen-local structures toward shared-application
   - define a desktop import preview consumer over the same preview bundle/use case chain
   - reduce `sync` transitional ownership where logic belongs in `shared-application`
@@ -77,4 +81,4 @@
 
 ## Recommended Next Step
 
-Design and implement shared preview item descriptors, so Android and desktop can stop depending on Android-local selectable item containers for preview rendering and selection orchestration.
+Move item toggle/select-all ownership onto the shared preview model, so Android and desktop can edit one canonical preview structure instead of synchronizing through Android-local containers.

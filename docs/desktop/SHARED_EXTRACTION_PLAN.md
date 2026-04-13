@@ -91,8 +91,12 @@ Completed:
 - canonical import selection payload now also lives in `shared-application` as `WorkspaceSelectiveImportSelection`.
 - preview section summary now lives in shared contracts/application and is consumed by Android UI as shared feature state.
 - supported selection mutation now flows through shared application intents instead of only full snapshot replacement.
+- preview item and section descriptors now live in shared contracts as `WorkspaceImportPreviewModel`.
+- shared import session state now also owns canonical preview item descriptors.
+- Android selective import screen now renders preview sections/items from shared preview state.
 
 Next:
-- move selective import preview/selection state model toward `shared-application` so Android and desktop stop carrying parallel feature orchestration.
+- remove Android-local `SelectableDatabaseContent` as the mutation source for preview item state and selection.
+- move selective import preview/selection state model fully toward `shared-application` so Android and desktop stop carrying parallel feature orchestration.
 - build a desktop consumer for preview/import/recovery flows on top of the same normalized preview/import pipeline.
 - review `sync` transitional ownership and migrate application-level orchestration upward when `shared-application` contracts are defined.
