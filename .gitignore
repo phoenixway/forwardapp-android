@@ -10,6 +10,7 @@ error.log
 communication.log
 bb.log
 
+dumps/
 app/schemas/
 tools/.node/
 .pnpm-store/
