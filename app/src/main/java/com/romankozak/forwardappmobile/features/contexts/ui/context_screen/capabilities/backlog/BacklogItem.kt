@@ -80,6 +80,7 @@ fun BacklogItem(
     reorderableScope: ReorderableCollectionItemScope,
     modifier: Modifier = Modifier,
     onItemClick: () -> Unit,
+    onTagClick: (String) -> Unit,
     onLongClick: () -> Unit,
     onMoreClick: () -> Unit,
     onCheckedChange: (Boolean) -> Unit,
@@ -101,6 +102,7 @@ fun BacklogItem(
                 reorderableScope = reorderableScope,
                 modifier = modifier,
                 onItemClick = onItemClick,
+                onTagClick = onTagClick,
                 onLongClick = onLongClick,
                 onMoreClick = onMoreClick,
                 onCheckedChange = onCheckedChange,
@@ -145,6 +147,7 @@ private fun InternalGoalItem(
     reorderableScope: ReorderableCollectionItemScope,
     modifier: Modifier = Modifier,
     onItemClick: () -> Unit,
+    onTagClick: (String) -> Unit,
     onLongClick: () -> Unit,
     onMoreClick: () -> Unit,
     onCheckedChange: (Boolean) -> Unit,
@@ -362,6 +365,7 @@ private fun InternalGoalItem(
                                     ),
                                 actions =
                                     MarkdownTextActions(
+                                        onTagClick = onTagClick,
                                         onTextClick = onItemClick,
                                         onLongClick = onLongClick,
                                     ),

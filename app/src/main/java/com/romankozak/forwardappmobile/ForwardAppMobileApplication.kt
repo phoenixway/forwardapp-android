@@ -5,6 +5,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.core.storage.getDocumentsLogsDir
+import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.logging.CoroutineFileTree
 import dagger.hilt.android.HiltAndroidApp
@@ -21,6 +22,8 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
     @Inject lateinit var workerFactory: HiltWorkerFactory
 
     @Inject lateinit var settingsRepository: SettingsRepository
+
+    @Inject lateinit var tagAssociationHandler: TagAssociationHandler
 
     private val appScope by lazy { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
 
@@ -52,6 +55,14 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
                 FeatureToggles.updateAll(toggles)
             }.onFailure {
                 Timber.e(it, "Failed to load feature toggles")
+            }
+        }
+
+        appScope.launch(Dispatchers.IO) {
+            runCatching {
+                tagAssociationHandler.repairAllAssociations()
+            }.onFailure {
+                Timber.e(it, "Failed to repair tag associations on startup")
             }
         }
     }

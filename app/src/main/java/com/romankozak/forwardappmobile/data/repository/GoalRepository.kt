@@ -9,6 +9,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
 import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
+import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
@@ -29,6 +30,7 @@ class GoalRepository
         private val reminderRepository: ReminderRepository,
         private val contextMarkerHandlerProvider: Provider<ContextMarkerHandler>,
         private val contextDao: ContextDao,
+        private val tagAssociationHandler: TagAssociationHandler,
     ) {
         private val contextMarkerHandler: ContextMarkerHandler by lazy { contextMarkerHandlerProvider.get() }
 
@@ -75,6 +77,7 @@ class GoalRepository
 
             val finalGoalState = goalDao.getGoalById(goalToInsert.id)!!
             contextMarkerHandler.handleContextsOnCreate(finalGoalState)
+            tagAssociationHandler.syncGoalAssociations(finalGoalState, contextId)
             return newBacklogItem.id
         }
 
@@ -110,12 +113,18 @@ class GoalRepository
 
             syncContextMarker(newGoal.id, contextId, ContextTextAction.ADD)
             contextMarkerHandler.handleContextsOnCreate(newGoal)
+            tagAssociationHandler.syncGoalAssociations(newGoal, contextId)
             return newGoal
         }
 
-        suspend fun updateGoal(goal: Goal) {
+        suspend fun updateGoal(
+            goal: Goal,
+            sourceContextId: String? = null,
+        ) {
             val now = System.currentTimeMillis()
-            goalDao.updateGoal(normalizeGoalState(goal).bumpSync(now))
+            val updatedGoal = normalizeGoalState(goal).bumpSync(now)
+            goalDao.updateGoal(updatedGoal)
+            tagAssociationHandler.syncGoalAssociations(updatedGoal, sourceContextId)
         }
 
         suspend fun updateGoals(goals: List<Goal>) {

@@ -194,6 +194,7 @@ private fun BacklogListContent(
                         reorderableScope = this,
                         modifier = Modifier,
                         onItemClick = { actions.onItemClick(item) },
+                        onTagClick = actions.onTagClick,
                         onLongClick = { actions.onLongClick(item) },
                         onMoreClick = { onShowItemActions(item) },
                         onCheckedChange = { isChecked -> actions.onCheckedChange(item, isChecked) },
@@ -258,6 +259,7 @@ data class BacklogListState(
 
 data class BacklogListActions(
     val onItemClick: (BacklogItemContent) -> Unit,
+    val onTagClick: (String) -> Unit,
     val onLongClick: (BacklogItemContent) -> Unit,
     val onCheckedChange: (BacklogItemContent, Boolean) -> Unit,
     val onDelete: (BacklogItemContent) -> Unit,

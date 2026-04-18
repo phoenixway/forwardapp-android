@@ -148,7 +148,7 @@ class InboxHandler(
 
     fun promoteInboxRecordToGoal(record: InboxRecord) {
         scope.launch(Dispatchers.IO) {
-            inboxRepository.promoteInboxRecordToGoal(record)
+            inboxRepository.promoteInboxRecordToGoal(record, projectIdFlow.value)
         }
     }
 

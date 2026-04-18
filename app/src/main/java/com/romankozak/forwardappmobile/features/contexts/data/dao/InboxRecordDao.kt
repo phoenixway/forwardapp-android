@@ -6,11 +6,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface InboxRecordDao {
-    @Query("SELECT * FROM inbox_records WHERE contextId = :contextId ORDER BY item_order DESC")
-    fun getRecordsForContextStream(contextId: String): Flow<List<InboxRecord>>
+    @Query("SELECT * FROM inbox_records WHERE contextId = :contextId AND is_deleted = 0 ORDER BY item_order DESC")
+    fun getOwnedRecordsForContextStream(contextId: String): Flow<List<InboxRecord>>
 
-    @Query("SELECT * FROM inbox_records WHERE contextId = :contextId ORDER BY item_order DESC")
-    suspend fun getRecordsForContext(contextId: String): List<InboxRecord>
+    @Query("SELECT * FROM inbox_records WHERE contextId = :contextId AND is_deleted = 0 ORDER BY item_order DESC")
+    suspend fun getOwnedRecordsForContext(contextId: String): List<InboxRecord>
 
     @Query("SELECT * FROM inbox_records WHERE id = :id")
     suspend fun getRecordById(id: String): InboxRecord?

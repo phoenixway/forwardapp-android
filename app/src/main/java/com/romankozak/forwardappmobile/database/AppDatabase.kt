@@ -11,6 +11,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.BacklogOrder
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextTagRef
+import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecordLink
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
@@ -81,11 +83,13 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextArtifac
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextInboxSortingDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextKeyProblemsDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextTagRefDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.DirectionDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordLinkDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.MusicNoteDao
@@ -100,6 +104,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         ConversationEntity::class,
         Goal::class,
         Context::class,
+        ContextTagRef::class,
         DirectionItemEntity::class,
         BacklogItem::class,
         BacklogOrder::class,
@@ -111,6 +116,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         MainBeaconLevelStatus::class,
         AttachmentEntity::class,
         InboxRecord::class,
+        InboxRecordLink::class,
         ChatMessageEntity::class,
         ContextLog::class,
         ContextInboxSortingEntity::class,
@@ -149,12 +155,14 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 119,
+    version = 120,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun contextDao(): ContextDao
+
+    abstract fun contextTagRefDao(): ContextTagRefDao
 
     abstract fun goalDao(): GoalDao
 
@@ -169,6 +177,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun directionDao(): DirectionDao
 
     abstract fun inboxRecordDao(): InboxRecordDao
+
+    abstract fun inboxRecordLinkDao(): InboxRecordLinkDao
 
     abstract fun contextManagementDao(): ContextManagementDao
 

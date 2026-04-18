@@ -18,9 +18,11 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextInboxSo
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextKeyProblemsDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextTagRefDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.DirectionDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordLinkDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.MusicNoteDao
@@ -56,6 +58,10 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideContextDao(appDatabase: AppDatabase): ContextDao = appDatabase.contextDao()
+
+    @Provides
+    @Singleton
+    fun provideContextTagRefDao(appDatabase: AppDatabase): ContextTagRefDao = appDatabase.contextTagRefDao()
 
     @Provides
     @Singleton
@@ -136,6 +142,10 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideInboxRecordDao(appDatabase: AppDatabase): InboxRecordDao = appDatabase.inboxRecordDao()
+
+    @Provides
+    @Singleton
+    fun provideInboxRecordLinkDao(appDatabase: AppDatabase): InboxRecordLinkDao = appDatabase.inboxRecordLinkDao()
 
     @Provides
     @Singleton

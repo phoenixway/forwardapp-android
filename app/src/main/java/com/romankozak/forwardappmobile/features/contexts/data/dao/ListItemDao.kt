@@ -38,6 +38,36 @@ interface ListItemDao {
         contextId: String,
     ): Int
 
+    @Query(
+        """
+        SELECT * FROM list_items
+        WHERE entityId = :entityId
+          AND itemType = :itemType
+          AND association_owner_context_id = :ownerContextId
+          AND is_deleted = 0
+        """,
+    )
+    suspend fun getAssociatedItemsForOwner(
+        entityId: String,
+        itemType: String,
+        ownerContextId: String,
+    ): List<BacklogItem>
+
+    @Query(
+        """
+        SELECT context_id FROM list_items
+        WHERE entityId = :entityId
+          AND itemType = :itemType
+          AND association_owner_context_id IS NULL
+          AND is_deleted = 0
+        ORDER BY item_order ASC, id ASC
+        """,
+    )
+    suspend fun getDirectContextIdsForEntity(
+        entityId: String,
+        itemType: String,
+    ): List<String>
+
     @Query("DELETE FROM list_items WHERE entityId = :entityId AND context_id = :contextId")
     suspend fun deleteLinkByEntityAndContext(
         entityId: String,

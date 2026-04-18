@@ -10,4 +10,5 @@ data class InboxViewState(
     val isSelectionMode: Boolean,
     val selectedRecordIds: Set<String>,
     val canPaste: Boolean,
+    val onTagClick: (String) -> Unit,
 )

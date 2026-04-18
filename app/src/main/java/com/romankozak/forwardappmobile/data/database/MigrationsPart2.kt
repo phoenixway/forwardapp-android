@@ -955,3 +955,69 @@ val MIGRATION_118_119 =
             )
         }
     }
+
+val MIGRATION_119_120 =
+    object : Migration(119, 120) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE list_items ADD COLUMN association_owner_context_id TEXT")
+            db.execSQL("ALTER TABLE list_items ADD COLUMN association_tag TEXT")
+            db.execSQL(
+                """
+                DELETE FROM list_items
+                WHERE rowid NOT IN (
+                    SELECT MIN(rowid)
+                    FROM list_items
+                    GROUP BY context_id, itemType, entityId, is_deleted
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS `index_list_items_context_id_itemType_entityId_is_deleted`
+                ON `list_items` (`context_id`, `itemType`, `entityId`, `is_deleted`)
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS `index_list_items_entityId_itemType_association_owner_context_id`
+                ON `list_items` (`entityId`, `itemType`, `association_owner_context_id`)
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `context_tag_refs` (
+                    `context_id` TEXT NOT NULL,
+                    `normalized_tag` TEXT NOT NULL,
+                    PRIMARY KEY(`context_id`, `normalized_tag`),
+                    FOREIGN KEY(`context_id`) REFERENCES `contexts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_context_tag_refs_normalized_tag` ON `context_tag_refs` (`normalized_tag`)",
+            )
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `inbox_record_links` (
+                    `record_id` TEXT NOT NULL,
+                    `context_id` TEXT NOT NULL,
+                    `owner_context_id` TEXT NOT NULL,
+                    `association_tag` TEXT,
+                    `linked_at` INTEGER NOT NULL,
+                    PRIMARY KEY(`record_id`, `context_id`),
+                    FOREIGN KEY(`record_id`) REFERENCES `inbox_records`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(`context_id`) REFERENCES `contexts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_inbox_record_links_context_id` ON `inbox_record_links` (`context_id`)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_inbox_record_links_record_id` ON `inbox_record_links` (`record_id`)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_inbox_record_links_owner_context_id_record_id` ON `inbox_record_links` (`owner_context_id`, `record_id`)",
+            )
+        }
+    }

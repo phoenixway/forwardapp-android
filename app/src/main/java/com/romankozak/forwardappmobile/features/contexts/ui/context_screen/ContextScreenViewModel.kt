@@ -1128,6 +1128,26 @@ class ContextScreenViewModel
                 )
             }
 
+        fun onTagClicked(tag: String) =
+            viewModelScope.launch {
+                val normalized = tag.trim().removePrefix("#")
+                if (normalized.isBlank()) return@launch
+                val contextId = contextRepository.findContextIdsByTag(normalized).firstOrNull()
+                if (contextId == null) {
+                    showSnackbar("Контекст для тега #$normalized не знайдено", null)
+                    return@launch
+                }
+                uiEventActions.tryEmit(
+                    UiEvent.Navigate(
+                        NavTarget.ContextDetail(
+                            contextId = contextId,
+                            initialTagQuery = "#$normalized",
+                            originContextId = contextIdFlow.value.takeIf { it.isNotBlank() },
+                        ),
+                    ),
+                )
+            }
+
         fun onDirectionContextLinkSelected(targetContextId: String) =
             viewModelScope.launch {
                 contextPickerActions.onDirectionContextLinkSelected(

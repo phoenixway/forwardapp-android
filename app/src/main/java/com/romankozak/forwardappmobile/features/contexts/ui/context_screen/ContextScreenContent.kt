@@ -138,6 +138,7 @@ fun GoalDetailContent(
                 actions =
                     BacklogListActions(
                         onItemClick = { item -> viewModel.itemActionHandler.onItemClick(item) },
+                        onTagClick = viewModel::onTagClicked,
                         onLongClick = { item -> viewModel.toggleSelection(item.backlogItem.id) },
                         onCheckedChange = { item, isChecked ->
                             when (item) {
@@ -185,6 +186,7 @@ fun GoalDetailContent(
                         isSelectionMode = inboxSelectionMode,
                         selectedRecordIds = inboxSelectedRecordIds,
                         canPaste = canPasteIntoInbox,
+                        onTagClick = viewModel::onTagClicked,
                     ),
                 navigationManager = viewModel.enhancedNavigationManager,
             )

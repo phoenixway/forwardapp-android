@@ -36,10 +36,12 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownText
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownTextActions
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownTextState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
@@ -71,6 +73,7 @@ fun InboxScreen(
     onPaste: ((Int) -> Unit) -> Unit,
     listState: LazyListState,
     highlightedRecordId: String? = null,
+    onTagClick: (String) -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -199,6 +202,7 @@ fun InboxScreen(
                         isSelected = record.id in selectedRecordIds,
                         onToggleSelection = { onToggleSelection(record.id) },
                         onLongPress = { onLongPress(record.id) },
+                        onTagClick = onTagClick,
                         listState = listState,
                         index = index,
                         scope = scope,
@@ -227,6 +231,7 @@ fun InboxItemRow(
     isSelected: Boolean,
     onToggleSelection: () -> Unit,
     onLongPress: () -> Unit,
+    onTagClick: (String) -> Unit,
     listState: LazyListState,
     index: Int,
     scope: CoroutineScope,
@@ -314,16 +319,23 @@ fun InboxItemRow(
                     }
                 }
             }
-            Text(
-                text = record.text,
-                style =
-                    MaterialTheme.typography.bodyLarge.copy(
-                        fontSize = 16.sp,
-                        lineHeight = 24.sp,
+            MarkdownText(
+                state =
+                    MarkdownTextState(
+                        text = record.text,
+                        style =
+                            MaterialTheme.typography.bodyLarge.copy(
+                                fontSize = 16.sp,
+                                lineHeight = 24.sp,
+                            ),
+                        maxLines = 6,
                     ),
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 6,
-                overflow = TextOverflow.Ellipsis,
+                actions =
+                    MarkdownTextActions(
+                        onTagClick = onTagClick,
+                        onTextClick = onEdit,
+                        onLongClick = onLongPress,
+                    ),
                 modifier = Modifier.fillMaxWidth(),
             )
 

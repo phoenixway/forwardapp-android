@@ -25,6 +25,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
 import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
+import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
@@ -46,6 +47,7 @@ class ContextRepository
     @Inject
     constructor(
         private val contextDao: ContextDao,
+        private val contextTagRefDao: ContextTagRefDao,
         private val legacyNoteRepository: LegacyNoteRepository,
         private val activityRepository: ActivityRepository,
         private val recentItemsRepository: RecentItemsRepository,
@@ -67,6 +69,7 @@ class ContextRepository
         private val aiEventRepository: AiEventRepository,
         // ДОДАНО: Потрібен провайдер для уникнення циклічної залежності
         private val contextMarkerHandlerProvider: Provider<ContextMarkerHandler>,
+        private val tagAssociationHandler: TagAssociationHandler,
     ) {
         private val contextMarkerHandler: ContextMarkerHandler by lazy { contextMarkerHandlerProvider.get() }
 
@@ -281,7 +284,12 @@ class ContextRepository
         }
 
         // --- Делегати для інших репозиторіїв (ViewModels їх шукають тут) ---
-        suspend fun findContextIdsByTag(tag: String) = contextDao.getContextIdsByTag(tag)
+        suspend fun findContextIdsByTag(tag: String) =
+            tagAssociationHandler
+                .normalizeTags(listOf(tag))
+                .firstOrNull()
+                ?.let { normalized -> contextTagRefDao.findContextIdsByTag(normalized) }
+                ?: emptyList()
 
         suspend fun doesLinkToContextExist(
             eId: String,
@@ -390,6 +398,7 @@ class ContextRepository
             val bumped = context.bumpSync(now)
 
             contextDao.update(bumped)
+            tagAssociationHandler.syncContextTags(bumped, previous?.tags)
             ensureDirectionFrontLinkForParentChangeIfNeeded(
                 oldParentId = previous?.parentId,
                 newParentId = bumped.parentId,
@@ -672,6 +681,7 @@ class ContextRepository
                     roleCode = normalizedRoleCode,
                 )
             contextDao.insert(newContext)
+            tagAssociationHandler.syncContextTags(newContext)
             contextStructureDao.insertStructure(
                 ContextConfiguration(
                     id = UUID.randomUUID().toString(),

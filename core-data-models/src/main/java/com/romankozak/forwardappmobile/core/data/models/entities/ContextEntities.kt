@@ -134,6 +134,10 @@ data class InboxRecord(
 
 @Entity(
     tableName = "list_items",
+    indices = [
+        Index(value = ["context_id", "itemType", "entityId", "is_deleted"], unique = true),
+        Index(value = ["entityId", "itemType", "association_owner_context_id"]),
+    ],
     foreignKeys = [
         ForeignKey(
             entity = Context::class,
@@ -150,6 +154,8 @@ data class BacklogItem(
     val contextId: String = "",
     @SerializedName("itemType") val itemType: String,
     @SerializedName("entityId") val entityId: String,
+    @ColumnInfo(name = "association_owner_context_id") @SerializedName("associationOwnerContextId") val associationOwnerContextId: String? = null,
+    @ColumnInfo(name = "association_tag") @SerializedName("associationTag") val associationTag: String? = null,
     @ColumnInfo(name = "item_order") @SerializedName("order") val order: Long,
     @SerializedName("updatedAt") val updatedAt: Long? = null,
     @ColumnInfo(name = "synced_at") @SerializedName("syncedAt") val syncedAt: Long? = null,

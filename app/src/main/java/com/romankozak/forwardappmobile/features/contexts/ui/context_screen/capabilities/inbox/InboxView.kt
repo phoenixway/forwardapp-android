@@ -35,6 +35,7 @@ fun InboxView(
             onPaste = viewModel.inboxHandler::pasteFromClipboard,
             listState = state.listState,
             highlightedRecordId = state.highlightedRecordId,
+            onTagClick = state.onTagClick,
         )
     }
 }
