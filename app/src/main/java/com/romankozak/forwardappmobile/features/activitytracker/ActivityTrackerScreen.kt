@@ -59,6 +59,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 import com.romankozak.forwardappmobile.features.activitytracker.dialogs.TimePickerDialog
+import com.romankozak.forwardappmobile.features.reminders.components.DateTimePickerDialog
 import com.romankozak.forwardappmobile.features.activitytracker.dialogs.formatDuration
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller
@@ -1315,7 +1316,7 @@ private fun EditRecordDialog(
         }
 
     var text by remember(record) { mutableStateOf(record.text) }
-    var startTime by remember(record) { mutableStateOf(record.startTime ?: record.createdAt) }
+    var startTime by remember(record) { mutableStateOf<Long?>(record.startTime ?: record.createdAt) }
     var endTime by remember(record) { mutableStateOf(record.endTime) }
     var recordType by remember(record) { mutableStateOf(initialType) }
     var xpText by remember(record) { mutableStateOf(record.xpGained?.toString().orEmpty()) }
@@ -1379,7 +1380,12 @@ private fun EditRecordDialog(
                                     .weight(1f)
                                     .heightIn(min = 44.dp),
                         ) {
-                            Text(startTime?.let { timeFormatter.format(Date(it)) } ?: "Start")
+                            Text(startTime?.let { SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(it)) } ?: "Start")
+                        }
+                        if (startTime != null) {
+                            IconButton(onClick = { startTime = null }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Очистити час початку")
+                            }
                         }
                         if (recordType == ActivityRecordType.TIMED) {
                             Text("-")
@@ -1391,7 +1397,7 @@ private fun EditRecordDialog(
                                         .heightIn(min = 44.dp),
                                 enabled = !record.isOngoing,
                             ) {
-                                Text(endTime?.let { timeFormatter.format(Date(it)) } ?: "Зараз")
+                                Text(endTime?.let { SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(it)) } ?: "Зараз")
                             }
                             if (isLastTimedRecord && endTime != null) {
                                 IconButton(onClick = { endTime = null }) {
@@ -1443,13 +1449,10 @@ private fun EditRecordDialog(
                             actualStart != null &&
                             actualEnd != null &&
                             actualEnd < actualStart
-                    if (isTimeInvalid) {
-                        Toast.makeText(context, "Час закінчення не може бути раніше часу початку", Toast.LENGTH_SHORT).show()
-                    } else {
-                        val xp = xpText.toIntOrNull()
-                        val antyXp = antyXpText.toIntOrNull()
-                        onConfirm(text, actualStart, actualEnd, xp, antyXp)
-                    }
+                    val adjustedEnd = if (isTimeInvalid) actualStart else actualEnd
+                    val xp = xpText.toIntOrNull()
+                    val antyXp = antyXpText.toIntOrNull()
+                    onConfirm(text, actualStart, adjustedEnd, xp, antyXp)
                 },
                 enabled = text.isNotBlank(),
             ) {
@@ -1460,24 +1463,26 @@ private fun EditRecordDialog(
     )
 
     if (showStartTimePicker) {
-        TimePickerDialog(
-            initialTime = startTime ?: System.currentTimeMillis(),
+        DateTimePickerDialog(
+            initialDateTime = startTime ?: System.currentTimeMillis(),
             onDismiss = { showStartTimePicker = false },
             onConfirm = { newTime ->
                 startTime = newTime
                 showStartTimePicker = false
             },
+            enablePastValues = true,
         )
     }
 
     if (showEndTimePicker) {
-        TimePickerDialog(
-            initialTime = endTime ?: System.currentTimeMillis(),
+        DateTimePickerDialog(
+            initialDateTime = endTime ?: System.currentTimeMillis(),
             onDismiss = { showEndTimePicker = false },
-            onConfirm = { newTime ->
-                endTime = newTime
+            onConfirm = { newDateTime ->
+                endTime = newDateTime
                 showEndTimePicker = false
             },
+            enablePastValues = true,
         )
     }
 }

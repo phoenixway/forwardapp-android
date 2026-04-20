@@ -69,12 +69,12 @@ class ActivityTrackerViewModel
             combine(recentActivityLog, _loadedOlderRecords) { recentRecords, olderRecords ->
                 (olderRecords + recentRecords)
                     .distinctBy { it.id }
-                    .sortedBy { it.createdAt }
+                    .sortedBy { it.startTime ?: it.createdAt }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
         val groupedActivityLog: StateFlow<Map<String, List<ActivityRecord>>> =
             activityLog.map { log ->
-                log.groupBy { toDateHeader(it.createdAt) }
+                log.groupBy { toDateHeader(it.startTime ?: it.createdAt) }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
         val lastOngoingActivity: StateFlow<ActivityRecord?> =
@@ -96,7 +96,7 @@ class ActivityTrackerViewModel
                         listOfNotNull(
                             _loadedOlderRecords.value.firstOrNull(),
                             recentActivityLog.value.firstOrNull(),
-                        ).minByOrNull { it.createdAt }
+                        ).minByOrNull { it.startTime ?: it.createdAt }
 
                     val beforeCreatedAt = oldestLoadedRecord?.createdAt ?: run {
                         _hasMoreOlderRecords.value = false
@@ -115,7 +115,7 @@ class ActivityTrackerViewModel
                         _loadedOlderRecords.update { loaded ->
                             (olderRecords + loaded)
                                 .distinctBy { it.id }
-                                .sortedBy { it.createdAt }
+                                .sortedBy { it.startTime ?: it.createdAt }
                         }
                         if (olderRecords.size < OLDER_RECORDS_PAGE_SIZE) {
                             _hasMoreOlderRecords.value = false

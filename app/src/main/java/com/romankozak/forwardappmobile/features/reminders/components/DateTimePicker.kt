@@ -98,6 +98,7 @@ fun DateTimePickerDialog(
     initialDateTime: Long,
     onDismiss: () -> Unit,
     onConfirm: (Long) -> Unit,
+    enablePastValues: Boolean = false,
 ) {
     val calendar = Calendar.getInstance()
     var selectedDate by remember {
@@ -156,7 +157,7 @@ fun DateTimePickerDialog(
         confirmButton = {
             Button(
                 onClick = { onConfirm(buildDateTime(selectedDate, selectedTime)) },
-                enabled = buildDateTime(selectedDate, selectedTime) > System.currentTimeMillis(),
+                enabled = enablePastValues || buildDateTime(selectedDate, selectedTime) > System.currentTimeMillis(),
             ) {
                 Text("Підтвердити")
             }
