@@ -598,20 +598,14 @@ private fun CompactOmnibox(
                         ResultsCountBadge(count = resultCount)
                     }
                     if (uiState.query.isNotBlank()) {
-                        Surface(
+                        IconButton(
                             onClick = onClearQuery,
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.48f),
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                modePalette.iconTint.copy(alpha = 0.16f),
-                            ),
+                            modifier = Modifier.size(24.dp)
                         ) {
-                            Text(
-                                text = "очистити",
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = "очистити",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -713,11 +707,11 @@ private fun CompactOmnibox(
                             modePalette.iconTint.copy(alpha = 0.16f),
                         ),
                     ) {
-                        Text(
-                            text = "close",
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     Box {
