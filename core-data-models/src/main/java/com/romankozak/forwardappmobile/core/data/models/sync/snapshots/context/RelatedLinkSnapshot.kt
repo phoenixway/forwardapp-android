@@ -5,5 +5,6 @@ import com.google.gson.annotations.SerializedName
 data class RelatedLinkSnapshot(
     @SerializedName("type") val type: String?,
     @SerializedName("target") val target: String,
-    @SerializedName("displayName") val displayName: String?
+    @SerializedName("displayName") val displayName: String?,
+    @SerializedName("vault") val vault: String?
 )

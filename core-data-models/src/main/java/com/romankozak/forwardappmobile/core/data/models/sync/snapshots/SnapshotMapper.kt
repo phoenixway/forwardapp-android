@@ -253,9 +253,9 @@ fun LinkItemEntitySnapshot.toEntity(): LinkItemEntity = LinkItemEntity(
 )
 
 fun RelatedLink.toSnapshot(): RelatedLinkSnapshot =
-    RelatedLinkSnapshot(type?.name, target, displayName)
+    RelatedLinkSnapshot(type?.name, target, displayName, vault)
 fun RelatedLinkSnapshot.toEntity(): RelatedLink =
-    RelatedLink(type?.let { enumValueOf<LinkType>(it) }, target, displayName)
+    RelatedLink(type?.let { enumValueOf<LinkType>(it) }, target, displayName, vault)
 
 fun RecentProjectEntry.toSnapshot(): RecentProjectEntrySnapshot =
     RecentProjectEntrySnapshot(contextId ?: "", timestamp)

@@ -58,6 +58,7 @@ data class RelatedLink(
     @SerializedName("type") val type: LinkType?,
     @SerializedName("target") val target: String,
     @SerializedName("displayName") val displayName: String? = null,
+    @SerializedName("vault") val vault: String? = null,
 )
 
 enum class ContextViewMode {
