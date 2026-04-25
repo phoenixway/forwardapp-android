@@ -64,6 +64,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusVa
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownText
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownTextActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownTextState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.EnhancedReminderBadge
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.StatusIconsRow
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
@@ -377,7 +378,6 @@ private fun InternalGoalItem(
                     val shouldShowStatusIcons =
                         !isInlineEditing && ((goal.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
                             (goal.relativeSize > 0) ||
-                            (reminder != null) ||
                             (parsedData.icons.isNotEmpty()) ||
                             (!goal.description.isNullOrBlank()) ||
                             (!goal.relatedLinks.isNullOrEmpty()))
@@ -385,21 +385,37 @@ private fun InternalGoalItem(
                     if (!isInlineEditing) {
                         Column {
                             Spacer(modifier = Modifier.height(6.dp))
-                            Box(
-                                modifier =
-                                    when {
-                                        goal.completed -> Modifier.alpha(0.6f)
-                                        else -> Modifier
-                                    },
-                            ) {
-                                StatusIconsRow(
-                                    goal = goal,
-                                    currentContextId = currentContextId,
-                                    parsedData = parsedData,
-                                    reminder = reminder,
-                                    emojiToHide = null,
-                                    onRelatedLinkClick = onRelatedLinkClick,
-                                )
+                            reminder?.let {
+                                Box(
+                                    modifier =
+                                        when {
+                                            goal.completed -> Modifier.alpha(0.6f)
+                                            else -> Modifier
+                                        },
+                                ) {
+                                    EnhancedReminderBadge(reminder = it)
+                                }
+                                if (shouldShowStatusIcons) {
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                }
+                            }
+                            if (shouldShowStatusIcons) {
+                                Box(
+                                    modifier =
+                                        when {
+                                            goal.completed -> Modifier.alpha(0.6f)
+                                            else -> Modifier
+                                        },
+                                ) {
+                                    StatusIconsRow(
+                                        goal = goal,
+                                        currentContextId = currentContextId,
+                                        parsedData = parsedData,
+                                        reminder = null,
+                                        emojiToHide = null,
+                                        onRelatedLinkClick = onRelatedLinkClick,
+                                    )
+                                }
                             }
                         }
                     }

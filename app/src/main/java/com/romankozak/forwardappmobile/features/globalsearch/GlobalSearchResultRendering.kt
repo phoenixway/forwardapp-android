@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import java.text.SimpleDateFormat
@@ -45,6 +46,7 @@ internal data class SearchResultsContentArgs(
     val context: Context,
     val listState: LazyListState,
     val selectedResultUniqueId: String?,
+    val navController: NavController,
 )
 
 internal data class SearchResultRenderContext(
@@ -55,6 +57,7 @@ internal data class SearchResultRenderContext(
     val viewModel: GlobalSearchViewModel,
     val obsidianVaultName: String,
     val context: Context,
+    val navController: NavController,
 )
 
 @Composable
@@ -175,8 +178,9 @@ private fun linkCardSpec(
                     renderContext.viewModel.onDataResultOpened(result.uniqueId)
                     handleRelatedLinkClick(
                         link = linkData,
-                        obsidianVaultName = renderContext.obsidianVaultName,
                         context = renderContext.context,
+                        navController = renderContext.navController,
+                        globalObsidianVaultName = renderContext.obsidianVaultName,
                     )
                 }
             }

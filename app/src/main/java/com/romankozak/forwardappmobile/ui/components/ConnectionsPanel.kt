@@ -103,6 +103,7 @@ data class ConnectionItemUi(
     val id: String,
     val title: String,
     val type: ConnectionType,
+    val vault: String? = null,
 )
 
 private const val NORMAL_TITLE_MAX_LINES = 4
@@ -425,6 +426,14 @@ private fun ConnectionRow(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+
+                    if (item.type == ConnectionType.OBSIDIAN_NOTE && !item.vault.isNullOrBlank()) {
+                        Text(
+                            text = "Vault: ${item.vault}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        )
+                    }
 
                     if (!showActionsOnRight) {
                         Spacer(modifier = Modifier.height(6.dp))

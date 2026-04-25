@@ -18,10 +18,10 @@ fun TacticalAddUrlDialog(
 @Composable
 fun TacticalAddObsidianDialog(
     onDismiss: () -> Unit,
-    onConfirm: (noteName: String, displayName: String) -> Unit,
+    onConfirm: (noteName: String, displayName: String, vault: String) -> Unit,
 ) {
     AddObsidianLinkDialog(
         onDismiss = onDismiss,
-        onConfirm = onConfirm,
+        onConfirm = { url, name, vault -> onConfirm(url, name, vault) },
     )
 }

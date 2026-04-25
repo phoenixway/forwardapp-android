@@ -96,10 +96,12 @@ fun TacticalScopeLinksSheet(
             )
             addAll(
                 validLinkedObsidianIds.map { id ->
+                    val option = attachmentOptions.firstOrNull { it.id == id }
                     ConnectionItemUi(
                         id = id,
-                        title = attachmentOptions.firstOrNull { it.id == id }?.name ?: "Obsidian ${id.take(8)}",
+                        title = option?.name ?: "Obsidian ${id.take(8)}",
                         type = ConnectionType.OBSIDIAN_NOTE,
+                        vault = option?.vault,
                     )
                 },
             )

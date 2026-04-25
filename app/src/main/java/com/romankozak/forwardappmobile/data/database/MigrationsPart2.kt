@@ -1021,3 +1021,15 @@ val MIGRATION_119_120 =
             )
         }
     }
+
+val MIGRATION_120_121 =
+    object : Migration(120, 121) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "ALTER TABLE context_structures ADD COLUMN remove_inbox_entry_after_tag_autocopy INTEGER",
+            )
+            db.execSQL(
+                "ALTER TABLE inbox_records ADD COLUMN hide_in_owner_inbox INTEGER NOT NULL DEFAULT 0",
+            )
+        }
+    }

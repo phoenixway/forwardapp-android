@@ -125,6 +125,7 @@ fun CoreLevelScreen(
     val linkedAttachmentIds by viewModel.linkedAttachmentIds.collectAsState()
     val connectionsOrder by viewModel.connectionsOrder.collectAsState()
     val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsState()
+    val obsidianVaultName by viewModel.obsidianVaultName.collectAsState()
     val scope = rememberCoroutineScope()
     val hapticFeedback = LocalHapticFeedback.current
 
@@ -213,6 +214,7 @@ fun CoreLevelScreen(
                                 option?.attachmentType == "SCRIPT" -> ConnectionType.SCRIPT
                                 else -> ConnectionType.ATTACHMENT
                             },
+                        vault = option?.vault,
                     )
                 },
             )
@@ -234,7 +236,7 @@ fun CoreLevelScreen(
                     openTarget(NavTarget.ContextDetail(contextId = option.target), true)
                 (option?.linkType == LinkType.URL || option?.linkType == LinkType.OBSIDIAN) &&
                     !option.target.isNullOrBlank() -> {
-                    val resolvedTarget = buildExternalTarget(option.linkType, option.target)
+                    val resolvedTarget = buildExternalTarget(option.linkType, option.target, option.vault, obsidianVaultName)
                     runCatching {
                         context.startActivity(
                             Intent(Intent.ACTION_VIEW, Uri.parse(resolvedTarget)).apply {
@@ -418,6 +420,7 @@ fun CoreLevelScreen(
                                                                         option.attachmentType == "SCRIPT" -> ConnectionType.SCRIPT
                                                                         else -> ConnectionType.ATTACHMENT
                                                                     },
+                                                                vault = option.vault,
                                                             ),
                                                         )
                                                     }
@@ -468,6 +471,7 @@ fun CoreLevelScreen(
                                         option.attachmentType == "SCRIPT" -> ConnectionType.SCRIPT
                                         else -> ConnectionType.ATTACHMENT
                                     },
+                                vault = option.vault,
                             )
                         }
                     },
@@ -794,7 +798,7 @@ fun CoreLevelScreen(
                 showAddObsidianDialog = false
                 linkActionTarget = MainBeaconLinkActionTarget.CORE_SCOPE
             },
-            onConfirm = { noteName, displayName ->
+            onConfirm = { noteName, displayName, vault ->
                 if (linkActionTarget == MainBeaconLinkActionTarget.EDITOR) {
                     scope.launch {
                         val attachmentId =
@@ -802,6 +806,7 @@ fun CoreLevelScreen(
                                 NewDocumentDraft.Obsidian(
                                     noteName = noteName,
                                     displayName = displayName,
+                                    vault = vault.takeIf { it.isNotBlank() },
                                 ),
                             )
                         if (attachmentId != null) {
@@ -812,7 +817,7 @@ fun CoreLevelScreen(
                         }
                     }
                 } else {
-                    viewModel.addObsidianLink(noteName, displayName)
+                    viewModel.addObsidianLink(noteName, displayName, vault)
                 }
                 showAddObsidianDialog = false
                 linkActionTarget = MainBeaconLinkActionTarget.CORE_SCOPE
@@ -1166,10 +1171,18 @@ private fun summarizeSelection(
 private fun buildExternalTarget(
     linkType: LinkType?,
     target: String,
+    vault: String? = null,
+    globalObsidianVaultName: String? = null,
 ): String {
     val trimmed = target.trim()
     if (linkType == LinkType.OBSIDIAN && !trimmed.startsWith("obsidian://", ignoreCase = true)) {
-        return "obsidian://open?file=${URLEncoder.encode(trimmed, "UTF-8")}"
+        val vaultName = vault?.takeIf { it.isNotBlank() } ?: globalObsidianVaultName?.takeIf { it.isNotBlank() }
+        val encodedFile = URLEncoder.encode(trimmed, "UTF-8")
+        return if (vaultName != null) {
+            "obsidian://open?vault=${URLEncoder.encode(vaultName, "UTF-8")}&file=$encodedFile"
+        } else {
+            "obsidian://open?file=$encodedFile"
+        }
     }
     return trimmed
 }

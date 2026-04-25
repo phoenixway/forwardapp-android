@@ -11,7 +11,6 @@ import android.os.PowerManager
 import android.util.Log
 import android.widget.Toast
 import androidx.core.content.ContextCompat
-import com.romankozak.forwardappmobile.BuildConfig
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
@@ -64,10 +63,6 @@ class AlarmScheduler
                 } else {
                     reminderTime
                 }
-
-            if (BuildConfig.DEBUG) {
-                adjustedTime = System.currentTimeMillis() + 20000 // 20 seconds
-            }
 
             if (!checkPermissions()) return
 

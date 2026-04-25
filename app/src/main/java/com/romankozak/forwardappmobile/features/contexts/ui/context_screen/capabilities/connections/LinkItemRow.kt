@@ -81,6 +81,7 @@ fun LinkItemRow(
 private data class LinkItemVisualState(
     val title: String,
     val subtitle: String,
+    val supporting: String?,
     val icon: ImageVector,
 )
 
@@ -110,6 +111,7 @@ private fun rememberLinkItemVisualState(
     return LinkItemVisualState(
         title = link.displayName ?: link.target,
         subtitle = resolveLinkSubtitle(link.type, link.target),
+        supporting = resolveLinkSupporting(link.type, link.vault),
         icon = resolveLinkIcon(link.type),
     )
 }
@@ -145,6 +147,15 @@ private fun LinkItemMainContent(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            visualState.supporting?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         },
     )
 }
@@ -172,4 +183,14 @@ private fun resolveLinkSubtitle(
         LinkType.URL -> target
         LinkType.OBSIDIAN -> "Нотатка Obsidian"
         null -> "Broken"
+    }
+
+private fun resolveLinkSupporting(
+    type: LinkType?,
+    vault: String?,
+): String? =
+    if (type == LinkType.OBSIDIAN && !vault.isNullOrBlank()) {
+        "Vault: $vault"
+    } else {
+        null
     }

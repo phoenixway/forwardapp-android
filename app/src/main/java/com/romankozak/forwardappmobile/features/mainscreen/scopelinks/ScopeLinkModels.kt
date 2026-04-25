@@ -16,6 +16,7 @@ data class ScopeAttachmentOption(
     val attachmentType: String? = null,
     val entityId: String? = null,
     val target: String? = null,
+    val vault: String? = null,
 )
 
 fun AttachmentLibraryQueryResult.toScopeAttachmentOption(): ScopeAttachmentOption {
@@ -42,5 +43,6 @@ fun AttachmentLibraryQueryResult.toScopeAttachmentOption(): ScopeAttachmentOptio
         attachmentType = attachmentType,
         entityId = entityId,
         target = relatedLink?.target,
+        vault = relatedLink?.vault,
     )
 }

@@ -120,7 +120,7 @@ class InputHandler(
 
         fun addDirectionItem(text: String)
 
-        fun createObsidianNote(noteName: String)
+        fun createObsidianNote(noteName: String, vault: String? = null)
     }
 
     fun onInputTextChanged(
@@ -357,14 +357,22 @@ class InputHandler(
         onDismissLinkDialogs()
     }
 
-    fun onAddObsidianLinkConfirm(noteName: String?) {
+    fun onAddObsidianLinkConfirm(
+        noteName: String?,
+        vault: String? = null,
+    ) {
         if (noteName.isNullOrBlank()) {
             onDismissLinkDialogs()
             return
         }
         scope.launch(Dispatchers.IO) {
             val link =
-                RelatedLink(type = LinkType.OBSIDIAN, target = noteName, displayName = noteName)
+                RelatedLink(
+                    type = LinkType.OBSIDIAN,
+                    target = noteName,
+                    displayName = noteName,
+                    vault = vault?.trim()?.ifBlank { null },
+                )
             val newItemId =
                 contextRepository.addLinkItemToContextFromLink(projectIdFlow.value, link)
             resultListener.updateInputState(newlyAddedItemId = newItemId)
@@ -372,13 +380,17 @@ class InputHandler(
         onDismissLinkDialogs()
     }
 
-    fun onAddObsidianLinkAndCreateNewConfirm(noteName: String) {
+    fun onAddObsidianLinkAndCreateNewConfirm(
+        noteName: String,
+        vault: String? = null,
+    ) {
         if (noteName.isBlank()) {
             onDismissLinkDialogs()
             return
         }
-        resultListener.createObsidianNote(noteName)
-        onAddObsidianLinkConfirm(noteName)
+        val normalizedVault = vault?.trim()?.ifBlank { null }
+        resultListener.createObsidianNote(noteName, normalizedVault)
+        onAddObsidianLinkConfirm(noteName, normalizedVault)
     }
 
     fun onShowAddWebLinkDialog() =

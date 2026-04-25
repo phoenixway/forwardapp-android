@@ -122,7 +122,7 @@ class TagAssociationHandler
         }
 
         @Transaction
-        suspend fun syncInboxRecordAssociations(record: InboxRecord) {
+        suspend fun syncInboxRecordAssociations(record: InboxRecord): Map<String, String> {
             val desiredContexts = resolveDesiredContexts(record.text).filterKeys { it != record.contextId }
             val existingLinks = inboxRecordLinkDao.getLinksForRecord(record.id).associateBy { it.contextId }
 
@@ -149,6 +149,7 @@ class TagAssociationHandler
             if (linksToUpsert.isNotEmpty()) {
                 inboxRecordLinkDao.insertAll(linksToUpsert)
             }
+            return desiredContexts
         }
 
         @Transaction

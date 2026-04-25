@@ -81,7 +81,16 @@ fun ConnectionsView(
                     if (title.isBlank()) {
                         null
                     } else {
-                        ConnectionItemUi(id = id, title = title, type = type)
+                        ConnectionItemUi(
+                            id = id,
+                            title = title,
+                            type = type,
+                            vault =
+                                (item as? BacklogItemContent.LinkItem)
+                                    ?.link
+                                    ?.linkData
+                                    ?.vault,
+                        )
                     }
                 }
             val baseIds = baseItems.map { it.id }.toSet()

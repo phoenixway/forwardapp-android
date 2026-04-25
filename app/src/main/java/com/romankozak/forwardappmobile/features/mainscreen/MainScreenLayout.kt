@@ -158,6 +158,7 @@ fun MainScreenLayout(
     val aiInsightsViewModel: AiInsightsViewModel = hiltViewModel()
     val focusContextsViewModel: FocusContextsViewModel = hiltViewModel()
     val tacticalMissionViewModel: TacticalMissionViewModel = hiltViewModel()
+    val tacticalObsidianVaultName by tacticalMissionViewModel.obsidianVaultName.collectAsStateWithLifecycle()
     val activeUserAwarenessState by userAwarenessViewModel.activeState.collectAsStateWithLifecycle()
     val sessionModeState by commandDeckViewModel.sessionModeState.collectAsStateWithLifecycle()
     val latestSessionReason by commandDeckViewModel.latestSessionReason.collectAsStateWithLifecycle()
@@ -376,6 +377,7 @@ fun MainScreenLayout(
                     aiInsightsViewModel = aiInsightsViewModel,
                     focusContextsViewModel = focusContextsViewModel,
                     tacticalMissionViewModel = tacticalMissionViewModel,
+                    tacticalObsidianVaultName = tacticalObsidianVaultName,
                     dayManagementViewModel = dayManagementViewModel,
                     dayPlanViewModel = dayPlanViewModel,
                     sessionModeState = sessionModeState,
@@ -455,10 +457,18 @@ fun MainScreenLayout(
 private fun buildExternalTarget(
     linkType: LinkType?,
     target: String,
+    vault: String? = null,
+    globalObsidianVaultName: String? = null,
 ): String {
     val trimmed = target.trim()
     if (linkType == LinkType.OBSIDIAN && !trimmed.startsWith("obsidian://", ignoreCase = true)) {
-        return "obsidian://open?file=${URLEncoder.encode(trimmed, "UTF-8")}"
+        val vaultName = vault?.takeIf { it.isNotBlank() } ?: globalObsidianVaultName?.takeIf { it.isNotBlank() }
+        val encodedFile = URLEncoder.encode(trimmed, "UTF-8")
+        return if (vaultName != null) {
+            "obsidian://open?vault=${URLEncoder.encode(vaultName, "UTF-8")}&file=$encodedFile"
+        } else {
+            "obsidian://open?file=$encodedFile"
+        }
     }
     return trimmed
 }
@@ -708,6 +718,7 @@ private fun MainScreenPagerContent(
     aiInsightsViewModel: AiInsightsViewModel,
     focusContextsViewModel: FocusContextsViewModel,
     tacticalMissionViewModel: TacticalMissionViewModel,
+    tacticalObsidianVaultName: String,
     dayManagementViewModel: DayManagementViewModel,
     dayPlanViewModel: DayPlanViewModel,
     sessionModeState: SessionModeState,
@@ -849,7 +860,13 @@ private fun MainScreenPagerContent(
                                 attachment.linkType == LinkType.URL ||
                                     attachment.linkType == LinkType.OBSIDIAN
                             ) && !attachment.target.isNullOrBlank() -> {
-                                val resolvedTarget = buildExternalTarget(attachment.linkType, attachment.target)
+                                val resolvedTarget =
+                                    buildExternalTarget(
+                                        attachment.linkType,
+                                        attachment.target,
+                                        attachment.vault,
+                                        tacticalObsidianVaultName,
+                                    )
                                 runCatching {
                                     context.startActivity(
                                         Intent(Intent.ACTION_VIEW, Uri.parse(resolvedTarget)).apply {

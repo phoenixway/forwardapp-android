@@ -39,8 +39,8 @@ fun GoalDetailDialogs(viewModel: ContextScreenViewModel) {
     if (uiState.showAddObsidianLinkDialog) {
         AddObsidianLinkDialog(
             onDismiss = { viewModel.inputHandler.onDismissLinkDialogs() },
-            onConfirm = { noteName -> viewModel.inputHandler.onAddObsidianLinkConfirm(noteName) },
-            onCreateNew = { noteName -> viewModel.inputHandler.onAddObsidianLinkAndCreateNewConfirm(noteName) },
+            onConfirm = { noteName, vault -> viewModel.inputHandler.onAddObsidianLinkConfirm(noteName, vault) },
+            onCreateNew = { noteName, vault -> viewModel.inputHandler.onAddObsidianLinkAndCreateNewConfirm(noteName, vault) },
         )
     }
 

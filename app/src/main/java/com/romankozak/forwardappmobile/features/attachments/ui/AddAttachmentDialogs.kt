@@ -35,10 +35,11 @@ fun AddWebLinkDialog(
 @Composable
 fun AddObsidianLinkDialog(
     onDismiss: () -> Unit,
-    onConfirm: (url: String, name: String) -> Unit,
+    onConfirm: (url: String, name: String, vault: String) -> Unit,
 ) {
     var url by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
+    var vault by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -47,10 +48,11 @@ fun AddObsidianLinkDialog(
             Column {
                 TextField(value = url, onValueChange = { url = it }, placeholder = { Text("URL") })
                 TextField(value = name, onValueChange = { name = it }, placeholder = { Text("Name") })
+                TextField(value = vault, onValueChange = { vault = it }, placeholder = { Text("Vault (optional)") })
             }
         },
         confirmButton = {
-            Button(onClick = { onConfirm(url, name) }) {
+            Button(onClick = { onConfirm(url, name, vault) }) {
                 Text("Add")
             }
         },

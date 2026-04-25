@@ -34,6 +34,11 @@ class ReminderRepository
             reminderTime: Long,
         ) {
             val now = System.currentTimeMillis()
+            val existingReminders = reminderDao.getActiveRemindersForEntity(entityId, entityType)
+            existingReminders.forEach { reminder ->
+                alarmScheduler.cancel(reminder)
+                reminderDao.insert(reminder.softDelete(now))
+            }
             val reminder =
                 Reminder(
                     entityId = entityId,
@@ -59,7 +64,7 @@ class ReminderRepository
             val now = System.currentTimeMillis()
             val bumped = reminder.bumpSync(now)
             reminderDao.update(bumped)
-            alarmScheduler.schedule(reminder)
+            alarmScheduler.schedule(bumped)
         }
 
         suspend fun clearRemindersForEntity(entityId: String) {

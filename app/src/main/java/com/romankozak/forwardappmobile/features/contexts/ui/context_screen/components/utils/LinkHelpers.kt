@@ -14,9 +14,9 @@ import java.net.URLEncoder
 
 fun handleRelatedLinkClick(
     link: RelatedLink,
-    obsidianVaultName: String,
     context: Context,
     navController: NavController,
+    globalObsidianVaultName: String?,
 ) {
     runCatching {
         when (link.type) {
@@ -37,8 +37,9 @@ fun handleRelatedLinkClick(
                 navController.navigate("music_note_screen/${link.target}")
             }
             LinkType.OBSIDIAN -> {
-                if (obsidianVaultName.isNotBlank()) {
-                    val encodedVault = URLEncoder.encode(obsidianVaultName, "UTF-8")
+                val vaultName = link.vault?.takeIf { it.isNotBlank() } ?: globalObsidianVaultName?.takeIf { it.isNotBlank() }
+                if (vaultName != null) {
+                    val encodedVault = URLEncoder.encode(vaultName, "UTF-8")
                     val encodedFile = URLEncoder.encode(link.target, "UTF-8")
                     val obsidianUri = "obsidian://open?vault=$encodedVault&file=$encodedFile"
                     val intent = Intent(Intent.ACTION_VIEW, obsidianUri.toUri())

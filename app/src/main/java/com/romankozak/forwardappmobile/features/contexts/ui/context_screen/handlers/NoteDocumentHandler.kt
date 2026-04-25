@@ -38,9 +38,12 @@ class NoteDocumentHandler
 
         fun onCreateChecklist(@Suppress("UNUSED_PARAMETER") projectId: String) = Unit
 
-        fun createObsidianNote(noteName: String) {
+        fun createObsidianNote(
+            noteName: String,
+            vault: String? = null,
+        ) {
             scope.launch {
-                val vaultName = settingsRepository.obsidianVaultNameFlow.first()
+                val vaultName = vault?.takeIf { it.isNotBlank() } ?: settingsRepository.obsidianVaultNameFlow.first()
                 if (vaultName.isBlank()) {
                     resultListener.showSnackbar("Obsidian vault name is not configured.")
                     return@launch

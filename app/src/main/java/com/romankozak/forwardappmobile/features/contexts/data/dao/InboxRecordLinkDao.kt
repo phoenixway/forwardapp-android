@@ -27,6 +27,7 @@ interface InboxRecordLinkDao {
         FROM inbox_records ir
         WHERE ir.contextId = :contextId
           AND ir.is_deleted = 0
+          AND ir.hide_in_owner_inbox = 0
         UNION
         SELECT ir.*
         FROM inbox_records ir
@@ -44,6 +45,7 @@ interface InboxRecordLinkDao {
         FROM inbox_records ir
         WHERE ir.contextId = :contextId
           AND ir.is_deleted = 0
+          AND ir.hide_in_owner_inbox = 0
         UNION
         SELECT ir.*
         FROM inbox_records ir

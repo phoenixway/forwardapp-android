@@ -20,6 +20,7 @@ data class ContextConfigurationSnapshot(
     @SerializedName("enableBacklog") val enableBacklog: Boolean,
     @SerializedName("enableAttachments") val enableAttachments: Boolean,
     @SerializedName("enableAutoLinkSubprojects") val enableAutoLinkSubprojects: Boolean,
+    @SerializedName("removeInboxEntryAfterTagAutocopy") val removeInboxEntryAfterTagAutocopy: Boolean? = false,
     @SerializedName("version") val version: Long,
     @SerializedName("updatedAt") val updatedAt: Long,
     @SerializedName("isDeleted") val isDeleted: Boolean,

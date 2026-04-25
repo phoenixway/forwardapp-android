@@ -17,6 +17,7 @@ class InboxRepository
         private val inboxRecordLinkDao: InboxRecordLinkDao,
         private val goalRepository: GoalRepository,
         private val tagAssociationHandler: TagAssociationHandler,
+        private val contextStructureRepository: ContextStructureRepository,
     ) {
         suspend fun getInboxRecordById(id: String): InboxRecord? = inboxRecordDao.getRecordById(id)
 
@@ -27,6 +28,7 @@ class InboxRepository
             contextId: String,
         ): String {
             val currentTime = System.currentTimeMillis()
+            val removeAfterAutocopy = shouldRemoveAfterTagAutocopy(contextId)
             val newRecord =
                 InboxRecord(
                     id = UUID.randomUUID().toString(),
@@ -36,16 +38,46 @@ class InboxRepository
                     order = -currentTime,
                     updatedAt = currentTime,
                     syncedAt = null,
+                    hideInOwnerInbox = false,
                     version = 1,
             )
             inboxRecordDao.insert(newRecord)
-            tagAssociationHandler.syncInboxRecordAssociations(newRecord)
+            val associatedContexts = tagAssociationHandler.syncInboxRecordAssociations(newRecord)
+            if (removeAfterAutocopy && associatedContexts.isNotEmpty()) {
+                inboxRecordDao.update(
+                    newRecord.copy(
+                        hideInOwnerInbox = true,
+                        updatedAt = currentTime,
+                        syncedAt = null,
+                        version = newRecord.version + 1,
+                    ),
+                )
+            }
             return newRecord.id
         }
 
         suspend fun updateInboxRecord(record: InboxRecord) {
-            inboxRecordDao.update(record)
-            tagAssociationHandler.syncInboxRecordAssociations(record)
+            val updatedAt = System.currentTimeMillis()
+            val removeAfterAutocopy = shouldRemoveAfterTagAutocopy(record.contextId)
+            val persistedRecord =
+                record.copy(
+                    updatedAt = updatedAt,
+                    syncedAt = null,
+                    version = record.version + 1,
+                )
+            inboxRecordDao.update(persistedRecord)
+            val associatedContexts = tagAssociationHandler.syncInboxRecordAssociations(persistedRecord)
+            val shouldHide = removeAfterAutocopy && associatedContexts.isNotEmpty()
+            if (persistedRecord.hideInOwnerInbox != shouldHide) {
+                inboxRecordDao.update(
+                    persistedRecord.copy(
+                        hideInOwnerInbox = shouldHide,
+                        updatedAt = updatedAt,
+                        syncedAt = null,
+                        version = persistedRecord.version + 1,
+                    ),
+                )
+            }
         }
 
         suspend fun getInboxRecordsForContext(contextId: String): List<InboxRecord> = inboxRecordLinkDao.getRecordsForContext(contextId)
@@ -87,6 +119,9 @@ class InboxRepository
             uniqueIds.forEach { inboxRecordDao.deleteById(it) }
             return uniqueIds.size
         }
+
+        private suspend fun shouldRemoveAfterTagAutocopy(contextId: String): Boolean =
+            contextStructureRepository.getStructureByContext(contextId)?.removeInboxEntryAfterTagAutocopy == true
 
         @Transaction
         suspend fun promoteInboxRecordToGoal(record: InboxRecord) {

@@ -121,6 +121,9 @@ class CoreLevelViewModel
 
         private val _isScopeLinksSheetVisible = MutableStateFlow(false)
         val isScopeLinksSheetVisible: StateFlow<Boolean> = _isScopeLinksSheetVisible.asStateFlow()
+        val obsidianVaultName: StateFlow<String> =
+            settingsRepository.obsidianVaultNameFlow
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS), "")
 
         init {
             attachmentsRepository.getAttachmentLibraryItems()
@@ -296,6 +299,7 @@ class CoreLevelViewModel
         fun addObsidianLink(
             noteName: String,
             displayName: String,
+            vault: String? = null,
         ) {
             val target = noteName.trim()
             if (target.isBlank()) return
@@ -304,7 +308,7 @@ class CoreLevelViewModel
                 val attachmentId =
                     attachmentsRepository.createLinkAttachment(
                         contextId = SystemContexts.MAIN_BEACONS.raw,
-                        link = RelatedLink(type = LinkType.OBSIDIAN, target = target, displayName = display),
+                        link = RelatedLink(type = LinkType.OBSIDIAN, target = target, displayName = display, vault = vault),
                     )
                 addAttachmentLink(attachmentId)
             }
@@ -362,6 +366,7 @@ class CoreLevelViewModel
                         target = request.noteName.trim(),
                         displayName = request.displayName.trim().ifBlank { request.noteName.trim() },
                         contextId = SystemContexts.MAIN_BEACONS.raw,
+                        vault = request.vault,
                     )
                 }
             }
@@ -406,11 +411,12 @@ class CoreLevelViewModel
             target: String,
             displayName: String,
             contextId: String,
+            vault: String? = null,
         ): String? {
             if (target.isBlank()) return null
             return attachmentsRepository.createLinkAttachment(
                 contextId = contextId,
-                link = RelatedLink(type = type, target = target, displayName = displayName),
+                link = RelatedLink(type = type, target = target, displayName = displayName, vault = vault?.trim()?.ifBlank { null }),
             )
         }
     }

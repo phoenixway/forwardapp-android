@@ -79,6 +79,9 @@ class StrategicManagementViewModel
 
         private val _isScopeLinksSheetVisible = MutableStateFlow(false)
         val isScopeLinksSheetVisible: StateFlow<Boolean> = _isScopeLinksSheetVisible.asStateFlow()
+        val obsidianVaultName: StateFlow<String> =
+            settingsRepository.obsidianVaultNameFlow
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS), "")
 
         init {
             attachmentsRepository.getAttachmentLibraryItems()
@@ -156,6 +159,7 @@ class StrategicManagementViewModel
         fun addObsidianLink(
             noteName: String,
             displayName: String,
+            vault: String? = null,
         ) {
             val target = noteName.trim()
             if (target.isBlank()) return
@@ -164,7 +168,7 @@ class StrategicManagementViewModel
                 val attachmentId =
                     attachmentsRepository.createLinkAttachment(
                         contextId = SystemContexts.STRATEGIC.raw,
-                        link = RelatedLink(type = LinkType.OBSIDIAN, target = target, displayName = display),
+                        link = RelatedLink(type = LinkType.OBSIDIAN, target = target, displayName = display, vault = vault),
                     )
                 addAttachmentLink(attachmentId)
             }
@@ -220,6 +224,7 @@ class StrategicManagementViewModel
                         target = request.noteName,
                         displayName = request.displayName,
                         linkType = LinkType.OBSIDIAN,
+                        vault = request.vault,
                     )
                 }
             }
@@ -258,6 +263,7 @@ class StrategicManagementViewModel
             target: String,
             displayName: String,
             linkType: LinkType,
+            vault: String? = null,
         ): String? {
             val normalizedTarget = target.trim().takeIf { it.isNotBlank() } ?: return null
             return attachmentsRepository.createLinkAttachment(
@@ -267,6 +273,7 @@ class StrategicManagementViewModel
                         type = linkType,
                         target = normalizedTarget,
                         displayName = displayName.trim().ifBlank { normalizedTarget },
+                        vault = vault?.trim()?.ifBlank { null },
                     ),
             )
         }

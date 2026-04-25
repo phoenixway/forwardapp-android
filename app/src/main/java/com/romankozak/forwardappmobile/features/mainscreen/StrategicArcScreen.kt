@@ -77,6 +77,7 @@ fun StrategicArcScreen(
     val linkedAttachmentIds by viewModel.linkedAttachmentIds.collectAsState()
     val connectionsOrder by viewModel.connectionsOrder.collectAsState()
     val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsState()
+    val obsidianVaultName by viewModel.obsidianVaultName.collectAsState()
     val scope = rememberCoroutineScope()
     var showAttachmentChooser by remember { mutableStateOf(false) }
     var activeLinkPickerTab by remember { mutableStateOf<LinkPickerTab?>(null) }
@@ -157,12 +158,14 @@ fun StrategicArcScreen(
             )
             addAll(
                 obsidianIds.map { id ->
+                    val option = availableAttachmentById[id]
                     ConnectionItemUi(
                         id = id,
                         title =
-                            availableAttachmentById[id]?.name
+                            option?.name
                                 ?: "Obsidian ${id.take(ATTACHMENT_ID_PREVIEW_LENGTH)}",
                         type = ConnectionType.OBSIDIAN_NOTE,
+                        vault = option?.vault,
                     )
                 },
             )
@@ -185,7 +188,7 @@ fun StrategicArcScreen(
                     openTarget(NavTarget.ContextDetail(contextId = option.target), true)
                 (option?.linkType == LinkType.URL || option?.linkType == LinkType.OBSIDIAN) &&
                     !option.target.isNullOrBlank() -> {
-                    val resolvedTarget = buildExternalTarget(option.linkType, option.target)
+                    val resolvedTarget = buildExternalTarget(option.linkType, option.target, option.vault, obsidianVaultName)
                     runCatching {
                         context.startActivity(
                             Intent(Intent.ACTION_VIEW, Uri.parse(resolvedTarget)).apply {
@@ -445,8 +448,8 @@ fun StrategicArcScreen(
     if (showAddObsidianDialog) {
         AddObsidianLinkDialog(
             onDismiss = { showAddObsidianDialog = false },
-            onConfirm = { noteName, displayName ->
-                viewModel.addObsidianLink(noteName, displayName)
+            onConfirm = { noteName, displayName, vault ->
+                viewModel.addObsidianLink(noteName, displayName, vault)
                 showAddObsidianDialog = false
             },
         )
@@ -456,10 +459,18 @@ fun StrategicArcScreen(
 private fun buildExternalTarget(
     linkType: LinkType?,
     target: String,
+    vault: String? = null,
+    globalObsidianVaultName: String? = null,
 ): String {
     val trimmed = target.trim()
     if (linkType == LinkType.OBSIDIAN && !trimmed.startsWith("obsidian://", ignoreCase = true)) {
-        return "obsidian://open?file=${URLEncoder.encode(trimmed, "UTF-8")}"
+        val vaultName = vault?.takeIf { it.isNotBlank() } ?: globalObsidianVaultName?.takeIf { it.isNotBlank() }
+        val encodedFile = URLEncoder.encode(trimmed, "UTF-8")
+        return if (vaultName != null) {
+            "obsidian://open?vault=${URLEncoder.encode(vaultName, "UTF-8")}&file=$encodedFile"
+        } else {
+            "obsidian://open?file=$encodedFile"
+        }
     }
     return trimmed
 }

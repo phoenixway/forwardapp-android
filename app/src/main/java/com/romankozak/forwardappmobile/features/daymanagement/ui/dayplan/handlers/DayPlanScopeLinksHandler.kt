@@ -1,76 +1,53 @@
 package com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.handlers
 
-import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-class DayPlanScopeLinksHandler(
-    private val dayManagementRepository: DayManagementRepository,
+class TodayTabScopeLinksHandler(
     private val settingsRepository: SettingsRepository,
-    private val planIdFlow: StateFlow<String?>,
     private val isScopeLinksSheetVisible: MutableStateFlow<Boolean>,
     private val scope: CoroutineScope,
 ) {
     private val linksMutationMutex = Mutex()
 
     fun addPlanProjectLink(projectId: String) {
-        val planId = planIdFlow.value ?: return
         scope.launch(Dispatchers.IO) {
             linksMutationMutex.withLock {
-                val current = dayManagementRepository.getPlanById(planId) ?: return@withLock
-                dayManagementRepository.updatePlanLinks(
-                    planId = planId,
-                    linkedProjectIds = (current.linkedProjectIds.orEmpty() + projectId).distinct(),
-                    linkedAttachmentIds = current.linkedAttachmentIds.orEmpty(),
-                )
+                val current = settingsRepository.todayLinkedProjectIdsFlow.first()
+                settingsRepository.setTodayLinkedProjectIds((current + projectId).toSet())
             }
         }
     }
 
     fun removePlanProjectLink(projectId: String) {
-        val planId = planIdFlow.value ?: return
         scope.launch(Dispatchers.IO) {
             linksMutationMutex.withLock {
-                val current = dayManagementRepository.getPlanById(planId) ?: return@withLock
-                dayManagementRepository.updatePlanLinks(
-                    planId = planId,
-                    linkedProjectIds = current.linkedProjectIds.orEmpty().filterNot { it == projectId },
-                    linkedAttachmentIds = current.linkedAttachmentIds.orEmpty(),
-                )
+                val current = settingsRepository.todayLinkedProjectIdsFlow.first()
+                settingsRepository.setTodayLinkedProjectIds(current.filterNot { it == projectId }.toSet())
             }
         }
     }
 
     fun addPlanAttachmentLink(attachmentId: String) {
-        val planId = planIdFlow.value ?: return
         scope.launch(Dispatchers.IO) {
             linksMutationMutex.withLock {
-                val current = dayManagementRepository.getPlanById(planId) ?: return@withLock
-                dayManagementRepository.updatePlanLinks(
-                    planId = planId,
-                    linkedProjectIds = current.linkedProjectIds.orEmpty(),
-                    linkedAttachmentIds = (current.linkedAttachmentIds.orEmpty() + attachmentId).distinct(),
-                )
+                val current = settingsRepository.todayLinkedAttachmentIdsFlow.first()
+                settingsRepository.setTodayLinkedAttachmentIds((current + attachmentId).toSet())
             }
         }
     }
 
     fun removePlanAttachmentLink(attachmentId: String) {
-        val planId = planIdFlow.value ?: return
         scope.launch(Dispatchers.IO) {
             linksMutationMutex.withLock {
-                val current = dayManagementRepository.getPlanById(planId) ?: return@withLock
-                dayManagementRepository.updatePlanLinks(
-                    planId = planId,
-                    linkedProjectIds = current.linkedProjectIds.orEmpty(),
-                    linkedAttachmentIds = current.linkedAttachmentIds.orEmpty().filterNot { it == attachmentId },
-                )
+                val current = settingsRepository.todayLinkedAttachmentIdsFlow.first()
+                settingsRepository.setTodayLinkedAttachmentIds(current.filterNot { it == attachmentId }.toSet())
             }
         }
     }

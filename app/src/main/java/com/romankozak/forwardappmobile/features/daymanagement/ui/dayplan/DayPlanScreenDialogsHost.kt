@@ -95,8 +95,8 @@ private fun PlanCreationDialogs(
     if (overlayState.showAddObsidianDialog.value) {
         AddObsidianLinkDialog(
             onDismiss = { overlayState.showAddObsidianDialog.value = false },
-            onConfirm = { noteName, displayName ->
-                viewModel.addPlanObsidianLink(noteName, displayName)
+            onConfirm = { noteName, displayName, vault ->
+                viewModel.addPlanObsidianLink(noteName, displayName, vault)
                 overlayState.showAddObsidianDialog.value = false
             },
         )

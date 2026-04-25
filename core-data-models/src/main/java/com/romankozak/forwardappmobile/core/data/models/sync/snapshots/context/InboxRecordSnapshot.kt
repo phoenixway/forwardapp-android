@@ -9,6 +9,7 @@ data class InboxRecordSnapshot(
     @SerializedName("createdAt") val createdAt: Long,
     @SerializedName("order") val order: Long,
     @SerializedName("updatedAt") val updatedAt: Long,
+    @SerializedName("hideInOwnerInbox") val hideInOwnerInbox: Boolean? = false,
     @SerializedName("version") val version: Long,
     @SerializedName("isDeleted") val isDeleted: Boolean
 )

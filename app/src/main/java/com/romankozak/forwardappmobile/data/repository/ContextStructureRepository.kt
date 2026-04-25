@@ -65,6 +65,7 @@ class ContextStructureRepository
                     contextId = contextId,
                     basePresetCode = basePresetCode,
                     enableAutoLinkSubprojects = true,
+                    removeInboxEntryAfterTagAutocopy = false,
                 )
             contextStructureDao.insertStructure(structure)
             return structure
@@ -119,6 +120,7 @@ class ContextStructureRepository
                         presetCapabilities.contains(CapabilityId("connections")) ||
                             presetCapabilities.contains(CapabilityId("attachments")),
                     enableAutoLinkSubprojects = preset.enableAutoLinkSubprojects ?: true,
+                    removeInboxEntryAfterTagAutocopy = structure.removeInboxEntryAfterTagAutocopy ?: false,
                     experimentalCapabilityIds = experimentalIdsFromPreset,
                 )
             contextStructureDao.updateStructure(updatedStructure)

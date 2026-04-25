@@ -129,6 +129,9 @@ data class InboxRecord(
     @SerializedName("updatedAt") val updatedAt: Long? = null,
     @ColumnInfo(name = "synced_at") @SerializedName("syncedAt") val syncedAt: Long? = null,
     @ColumnInfo(name = "is_deleted", defaultValue = "0") @SerializedName("isDeleted") val isDeleted: Boolean = false,
+    @ColumnInfo(name = "hide_in_owner_inbox", defaultValue = "0")
+    @SerializedName("hideInOwnerInbox")
+    val hideInOwnerInbox: Boolean = false,
     @ColumnInfo(name = "version", defaultValue = "0") val version: Long = 0,
 )
 

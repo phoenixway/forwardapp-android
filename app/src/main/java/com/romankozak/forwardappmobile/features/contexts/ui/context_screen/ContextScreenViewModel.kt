@@ -887,7 +887,10 @@ class ContextScreenViewModel
 
         override fun addMilestone(text: String) = logHandler.addMilestone(text, contextIdFlow.value)
 
-        override fun createObsidianNote(noteName: String) = noteDocumentHandler.createObsidianNote(noteName)
+        override fun createObsidianNote(
+            noteName: String,
+            vault: String?,
+        ) = noteDocumentHandler.createObsidianNote(noteName, vault)
 
         override fun openUri(uri: String) {
             viewModelScope.launch { uiEventActions.tryEmit(UiEvent.OpenUri(uri)) }

@@ -100,7 +100,11 @@ sealed interface NewDocumentDraft {
 
     data class WebLink(val url: String, val name: String) : NewDocumentDraft
 
-    data class Obsidian(val noteName: String, val displayName: String) : NewDocumentDraft
+    data class Obsidian(
+        val noteName: String,
+        val displayName: String,
+        val vault: String? = null,
+    ) : NewDocumentDraft
 }
 
 private data class PickerNode(
@@ -120,6 +124,7 @@ private data class LinkedTargetsPickerDialogState(
     val pendingDocumentType: DocumentCreationType?,
     val documentName: String,
     val documentTarget: String,
+    val documentVault: String,
 )
 
 private data class LinkedTargetsPickerDerivedState(
@@ -204,6 +209,7 @@ private fun LinkedTargetsPickerDialogRoute(
     var pendingDocumentType by remember { mutableStateOf<DocumentCreationType?>(null) }
     var documentName by remember { mutableStateOf("") }
     var documentTarget by remember { mutableStateOf("") }
+    var documentVault by remember { mutableStateOf("") }
     val derivedState =
         rememberLinkedTargetsPickerDerivedState(
             contextOptions = contextOptions,
@@ -224,6 +230,7 @@ private fun LinkedTargetsPickerDialogRoute(
             pendingDocumentType = pendingDocumentType,
             documentName = documentName,
             documentTarget = documentTarget,
+            documentVault = documentVault,
         )
 
     SyncExpandedIdsWithQuery(
@@ -246,6 +253,7 @@ private fun LinkedTargetsPickerDialogRoute(
             pendingDocumentType = type
             documentName = ""
             documentTarget = ""
+            documentVault = ""
         },
     )
 
@@ -269,6 +277,7 @@ private fun LinkedTargetsPickerDialogRoute(
             pendingDocumentType = type
             documentName = ""
             documentTarget = ""
+            documentVault = ""
         },
         onContextSelected = onContextSelected,
         onAttachmentSelected = onAttachmentSelected,
@@ -288,9 +297,14 @@ private fun LinkedTargetsPickerDialogRoute(
         type = pendingDocumentType,
         name = documentName,
         target = documentTarget,
+        vault = documentVault,
         onNameChange = { documentName = it },
         onTargetChange = { documentTarget = it },
-        onDismiss = { pendingDocumentType = null },
+        onVaultChange = { documentVault = it },
+        onDismiss = {
+            pendingDocumentType = null
+            documentVault = ""
+        },
         onCreateDocument = onCreateDocument,
         onAttachmentSelected = onAttachmentSelected,
         onPickerDismiss = onDismiss,
@@ -781,8 +795,10 @@ private fun DocumentCreationOverlay(
     type: DocumentCreationType?,
     name: String,
     target: String,
+    vault: String,
     onNameChange: (String) -> Unit,
     onTargetChange: (String) -> Unit,
+    onVaultChange: (String) -> Unit,
     onDismiss: () -> Unit,
     onCreateDocument: (suspend (NewDocumentDraft) -> String?)?,
     onAttachmentSelected: (String) -> Unit,
@@ -795,11 +811,13 @@ private fun DocumentCreationOverlay(
         type = type,
         name = name,
         target = target,
+        vault = vault,
         onNameChange = onNameChange,
         onTargetChange = onTargetChange,
+        onVaultChange = onVaultChange,
         onDismiss = onDismiss,
         onConfirm = {
-            val request = buildNewDocumentDraft(type = type, name = name, target = target)
+            val request = buildNewDocumentDraft(type = type, name = name, target = target, vault = vault)
             scope.launch {
                 val id = onCreateDocument?.invoke(request)
                 if (!id.isNullOrBlank()) {
@@ -816,13 +834,19 @@ private fun buildNewDocumentDraft(
     type: DocumentCreationType,
     name: String,
     target: String,
+    vault: String,
 ): NewDocumentDraft =
     when (type) {
         DocumentCreationType.NOTE -> NewDocumentDraft.Note(name = name.trim().ifBlank { "New note" })
         DocumentCreationType.MUSIC_NOTE -> NewDocumentDraft.MusicNote(name = name.trim().ifBlank { "New music note" })
         DocumentCreationType.CHECKLIST -> NewDocumentDraft.Checklist(name = name.trim().ifBlank { "New checklist" })
         DocumentCreationType.WEB_LINK -> NewDocumentDraft.WebLink(url = target.trim(), name = name.trim())
-        DocumentCreationType.OBSIDIAN -> NewDocumentDraft.Obsidian(noteName = target.trim(), displayName = name.trim())
+        DocumentCreationType.OBSIDIAN ->
+            NewDocumentDraft.Obsidian(
+                noteName = target.trim(),
+                displayName = name.trim(),
+                vault = vault.trim().ifBlank { null },
+            )
     }
 
 @Composable
@@ -1182,8 +1206,10 @@ private fun DocumentCreationDialog(
     type: DocumentCreationType,
     name: String,
     target: String,
+    vault: String,
     onNameChange: (String) -> Unit,
     onTargetChange: (String) -> Unit,
+    onVaultChange: (String) -> Unit,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
@@ -1225,6 +1251,15 @@ private fun DocumentCreationDialog(
                     label = { Text(stringResource(R.string.display_name_optional)) },
                     singleLine = true,
                 )
+                if (type == DocumentCreationType.OBSIDIAN) {
+                    OutlinedTextField(
+                        value = vault,
+                        onValueChange = onVaultChange,
+                        label = { Text("Vault (optional)") },
+                        placeholder = { Text("Falls back to Settings vault") },
+                        singleLine = true,
+                    )
+                }
             }
         },
         confirmButton = {

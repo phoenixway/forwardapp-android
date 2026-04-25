@@ -86,9 +86,9 @@ private fun buildConnectionItems(uiState: DayPlanUiState): List<ConnectionItemUi
     val availableAttachmentById = uiState.availableAttachments.associateBy { it.id }
     val availableProjectIds = availableProjectById.keys
     val availableAttachmentIds = availableAttachmentById.keys
-    val planLinkedProjectIds = uiState.dayPlan?.linkedProjectIds.orEmpty().filter { it in availableProjectIds }
+    val planLinkedProjectIds = uiState.todayScopeLinkedProjectIds.filter { it in availableProjectIds }
     val planLinkedAttachmentIds =
-        uiState.dayPlan?.linkedAttachmentIds.orEmpty().filter { it in availableAttachmentIds }
+        uiState.todayScopeLinkedAttachmentIds.filter { it in availableAttachmentIds }
 
     return buildList {
         addAll(planLinkedProjectIds.map { id -> createContextItem(id, availableProjectById[id]?.name) })
@@ -123,6 +123,7 @@ private fun createAttachmentItem(
         id = id,
         title = option?.name ?: defaultTitle,
         type = type,
+        vault = option?.vault,
     )
 }
 

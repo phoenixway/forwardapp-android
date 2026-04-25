@@ -215,6 +215,7 @@ class ContextPickerActions(
                                 type = LinkType.OBSIDIAN,
                                 target = it,
                                 displayName = request.displayName.trim().ifBlank { it },
+                                vault = request.vault,
                             ),
                     )
                 }

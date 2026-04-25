@@ -66,33 +66,42 @@ fun AddWebLinkDialog(
 @Composable
 fun AddObsidianLinkDialog(
     onDismiss: () -> Unit,
-    onConfirm: (noteName: String) -> Unit,
-    onCreateNew: (noteName: String) -> Unit,
+    onConfirm: (noteName: String, vault: String?) -> Unit,
+    onCreateNew: (noteName: String, vault: String?) -> Unit,
 ) {
     var noteName by remember { mutableStateOf("") }
+    var vault by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = stringResource(R.string.menu_add_obsidian_link)) },
         text = {
-            OutlinedTextField(
-                value = noteName,
-                onValueChange = { noteName = it },
-                label = { Text(stringResource(R.string.note_name)) },
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = noteName,
+                    onValueChange = { noteName = it },
+                    label = { Text(stringResource(R.string.note_name)) },
+                )
+                OutlinedTextField(
+                    value = vault,
+                    onValueChange = { vault = it },
+                    label = { Text("Vault (optional)") },
+                    placeholder = { Text("Falls back to Settings vault") },
+                )
+            }
         },
         confirmButton = {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 TextButton(
-                    onClick = { onCreateNew(noteName) },
+                    onClick = { onCreateNew(noteName, vault.takeIf { it.isNotBlank() }) },
                     enabled = noteName.isNotBlank(),
                 ) {
                     Text("Створити та додати")
                 }
                 TextButton(
-                    onClick = { onConfirm(noteName) },
+                    onClick = { onConfirm(noteName, vault.takeIf { it.isNotBlank() }) },
                     enabled = noteName.isNotBlank(),
                 ) {
                     Text(stringResource(R.string.add))

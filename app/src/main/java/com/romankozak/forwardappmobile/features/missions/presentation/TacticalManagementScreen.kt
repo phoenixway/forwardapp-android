@@ -636,7 +636,7 @@ private fun TacticalManagementOverlays(
     onAddBoardProjectLink: (String) -> Unit,
     onAddBoardAttachmentLink: (String) -> Unit,
     onAddBoardUrlLink: (String, String) -> Unit,
-    onAddBoardObsidianLink: (String, String) -> Unit,
+    onAddBoardObsidianLink: (String, String, String) -> Unit,
     scope: kotlinx.coroutines.CoroutineScope,
 ) {
     val availableProjectIds = projectOptions.map { it.id }.toSet()
@@ -774,8 +774,8 @@ private fun TacticalManagementOverlays(
     if (uiState.showAddObsidianDialog) {
         TacticalAddObsidianDialog(
             onDismiss = { onShowAddObsidianDialogChange(false) },
-            onConfirm = { noteName, displayName ->
-                onAddBoardObsidianLink(noteName, displayName)
+            onConfirm = { noteName, displayName, vault ->
+                onAddBoardObsidianLink(noteName, displayName, vault)
                 onShowAddObsidianDialogChange(false)
             },
         )

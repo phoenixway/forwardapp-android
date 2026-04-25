@@ -170,6 +170,9 @@ class TacticalMissionViewModel
 
         private val _isScopeLinksSheetVisible = MutableStateFlow(false)
         val isScopeLinksSheetVisible: StateFlow<Boolean> = _isScopeLinksSheetVisible.asStateFlow()
+        val obsidianVaultName: StateFlow<String> =
+            settingsRepository.obsidianVaultNameFlow
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), "")
         private val scopeLinksHandler =
             TacticalScopeLinksHandler(
                 settingsRepository = settingsRepository,
@@ -464,15 +467,23 @@ class TacticalMissionViewModel
         fun addBoardObsidianLink(
             noteName: String,
             displayName: String,
+            vault: String,
         ) {
             val target = noteName.trim()
             if (target.isBlank()) return
             val display = displayName.trim().ifBlank { target }
+            val normalizedVault = vault.trim().ifBlank { null }
             viewModelScope.launch {
                 val attachmentId =
                     attachmentsRepository.createLinkAttachment(
                         contextId = SystemContexts.MISSION.raw,
-                        link = RelatedLink(type = LinkType.OBSIDIAN, target = target, displayName = display),
+                        link =
+                            RelatedLink(
+                                type = LinkType.OBSIDIAN,
+                                target = target,
+                                displayName = display,
+                                vault = normalizedVault,
+                            ),
                     )
                 scopeLinksHandler.addBoardAttachmentLink(attachmentId)
             }
@@ -534,6 +545,7 @@ class TacticalMissionViewModel
                                 type = LinkType.OBSIDIAN,
                                 target = target,
                                 displayName = request.displayName.trim().ifBlank { target },
+                                vault = request.vault,
                             ),
                     )
                 }
@@ -587,6 +599,7 @@ data class AttachmentOption(
     val attachmentType: String? = null,
     val entityId: String? = null,
     val target: String? = null,
+    val vault: String? = null,
 )
 
 // Оновлене розширення для роботи з результатом запиту бібліотеки
@@ -614,5 +627,6 @@ private fun AttachmentLibraryQueryResult.toAttachmentOption(): AttachmentOption 
         attachmentType = attachmentType,
         entityId = entityId,
         target = relatedLink?.target,
+        vault = relatedLink?.vault,
     )
 }

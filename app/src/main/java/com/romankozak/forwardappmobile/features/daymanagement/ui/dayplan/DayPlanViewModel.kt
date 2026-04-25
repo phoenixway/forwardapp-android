@@ -25,7 +25,7 @@ import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
-import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.handlers.DayPlanScopeLinksHandler
+import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.handlers.TodayTabScopeLinksHandler
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
 import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
@@ -83,6 +83,7 @@ data class LinkOption(
     val attachmentType: String? = null,
     val entityId: String? = null,
     val target: String? = null,
+    val vault: String? = null,
 )
 
 data class DayPlanUiState(
@@ -90,6 +91,8 @@ data class DayPlanUiState(
     val tasks: List<DayTaskWithReminder> = emptyList(),
     val availableProjects: List<LinkOption> = emptyList(),
     val availableAttachments: List<LinkOption> = emptyList(),
+    val todayScopeLinkedProjectIds: List<String> = emptyList(),
+    val todayScopeLinkedAttachmentIds: List<String> = emptyList(),
     val linkedProjectTitles: Map<String, String> = emptyMap(),
     val linkedAttachmentTitles: Map<String, String> = emptyMap(),
     val scopeContextsExpanded: Boolean = true,
@@ -111,6 +114,13 @@ private data class ProjectOptionsSnapshot(
 private data class AttachmentOptionsSnapshot(
     val options: List<LinkOption> = emptyList(),
     val titlesById: Map<String, String> = emptyMap(),
+)
+
+private data class TodayScopeLinksSnapshot(
+    val linkedProjectIds: Set<String> = emptySet(),
+    val linkedAttachmentIds: Set<String> = emptySet(),
+    val scopeContextsExpanded: Boolean = true,
+    val scopeAttachmentsExpanded: Boolean = true,
 )
 
 sealed class DayPlanUiEvent {
@@ -196,10 +206,8 @@ class DayPlanViewModel
                     initialValue = emptyList(),
                 )
         private val scopeLinksHandler =
-            DayPlanScopeLinksHandler(
-                dayManagementRepository = dayManagementRepository,
+            TodayTabScopeLinksHandler(
                 settingsRepository = settingsRepository,
-                planIdFlow = _planId,
                 isScopeLinksSheetVisible = _isScopeLinksSheetVisible,
                 scope = viewModelScope,
             )
@@ -256,6 +264,7 @@ class DayPlanViewModel
                                         attachmentType = result.attachmentType,
                                         entityId = result.entityId,
                                         target = relatedLink?.target,
+                                        vault = relatedLink?.vault,
                                     )
                                 }
                             }.sortedBy { it.name.lowercase() }
@@ -361,6 +370,8 @@ class DayPlanViewModel
 
                     val scopeContextsExpandedFlow = settingsRepository.dayScopeContextsExpandedFlow
                     val scopeAttachmentsExpandedFlow = settingsRepository.dayScopeAttachmentsExpandedFlow
+                    val todayLinkedProjectIdsFlow = settingsRepository.todayLinkedProjectIdsFlow
+                    val todayLinkedAttachmentIdsFlow = settingsRepository.todayLinkedAttachmentIdsFlow
                     val scopeExpansionFlow =
                         combine(
                             scopeContextsExpandedFlow,
@@ -368,21 +379,34 @@ class DayPlanViewModel
                         ) { scopeContextsExpanded, scopeAttachmentsExpanded ->
                             scopeContextsExpanded to scopeAttachmentsExpanded
                         }
+                    val todayScopeLinksFlow =
+                        combine(
+                            todayLinkedProjectIdsFlow,
+                            todayLinkedAttachmentIdsFlow,
+                            scopeExpansionFlow,
+                        ) { todayLinkedProjectIds, todayLinkedAttachmentIds, scopeExpansion ->
+                            val (scopeContextsExpanded, scopeAttachmentsExpanded) = scopeExpansion
+                            TodayScopeLinksSnapshot(
+                                linkedProjectIds = todayLinkedProjectIds,
+                                linkedAttachmentIds = todayLinkedAttachmentIds,
+                                scopeContextsExpanded = scopeContextsExpanded,
+                                scopeAttachmentsExpanded = scopeAttachmentsExpanded,
+                            )
+                        }
 
                     combine(
                         dayPlanFlow,
                         tasksFlow,
                         availableProjectsSnapshot,
                         availableAttachmentsSnapshot,
-                        scopeExpansionFlow,
+                        todayScopeLinksFlow,
                     ) {
                             dayPlan: DayPlan?,
                             tasks: List<DayTaskWithReminder>,
                             projectSnapshot: ProjectOptionsSnapshot,
                             attachmentSnapshot: AttachmentOptionsSnapshot,
-                            scopeExpansion: Pair<Boolean, Boolean>,
+                            todayScopeLinks: TodayScopeLinksSnapshot,
                         ->
-                        val (scopeContextsExpanded, scopeAttachmentsExpanded) = scopeExpansion
                         Log.d(
                             "DayPlanViewModel",
                             (
@@ -390,20 +414,8 @@ class DayPlanViewModel
                                     "tasksCount=${tasks.size} (before creating DayPlanUiState)"
                             ),
                         )
-                        val linkedProjectIds =
-                            (
-                                tasks
-                                    .flatMap { it.dayTask.linkedProjectIds.orEmpty() } +
-                                    dayPlan?.linkedProjectIds.orEmpty()
-                            )
-                                .toSet()
-                        val linkedAttachmentIds =
-                            (
-                                tasks
-                                    .flatMap { it.dayTask.linkedAttachmentIds.orEmpty() } +
-                                    dayPlan?.linkedAttachmentIds.orEmpty()
-                            )
-                                .toSet()
+                        val linkedProjectIds = todayScopeLinks.linkedProjectIds
+                        val linkedAttachmentIds = todayScopeLinks.linkedAttachmentIds
                         val linkedProjectTitles =
                             linkedProjectIds.associateWith { projectId ->
                                 projectSnapshot.titlesById[projectId] ?: compactId(projectId)
@@ -418,10 +430,12 @@ class DayPlanViewModel
                             tasks = sortTasksWithOrder(tasks),
                             availableProjects = projectSnapshot.options,
                             availableAttachments = attachmentSnapshot.options,
+                            todayScopeLinkedProjectIds = linkedProjectIds.toList(),
+                            todayScopeLinkedAttachmentIds = linkedAttachmentIds.toList(),
                             linkedProjectTitles = linkedProjectTitles,
                             linkedAttachmentTitles = linkedAttachmentTitles,
-                            scopeContextsExpanded = scopeContextsExpanded,
-                            scopeAttachmentsExpanded = scopeAttachmentsExpanded,
+                            scopeContextsExpanded = todayScopeLinks.scopeContextsExpanded,
+                            scopeAttachmentsExpanded = todayScopeLinks.scopeAttachmentsExpanded,
                             isLoading = false,
                             isRefreshing = false,
                             isToday = dayPlan?.let { isTimestampToday(it.date) } ?: true,
@@ -475,6 +489,9 @@ class DayPlanViewModel
 
         private val _uiEvent = Channel<DayPlanUiEvent>()
         val uiEvent = _uiEvent.receiveAsFlow()
+        val obsidianVaultName: StateFlow<String> =
+            settingsRepository.obsidianVaultNameFlow
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), "")
 
         fun loadDataForPlan(dayPlanId: String) {
             Log.d("DayPlanViewModel", "Loading data for plan: $dayPlanId")
@@ -513,15 +530,23 @@ class DayPlanViewModel
         fun addPlanObsidianLink(
             noteName: String,
             displayName: String,
+            vault: String,
         ) {
             val target = noteName.trim()
             if (target.isBlank()) return
             val display = displayName.trim().ifBlank { target }
+            val normalizedVault = vault.trim().ifBlank { null }
             viewModelScope.launch(Dispatchers.IO) {
                 val attachmentId =
                     attachmentsRepository.createLinkAttachment(
                         contextId = SystemContexts.TODAY.raw,
-                        link = RelatedLink(type = LinkType.OBSIDIAN, target = target, displayName = display),
+                        link =
+                            RelatedLink(
+                                type = LinkType.OBSIDIAN,
+                                target = target,
+                                displayName = display,
+                                vault = normalizedVault,
+                            ),
                     )
                 scopeLinksHandler.addPlanAttachmentLink(attachmentId)
             }
@@ -595,6 +620,7 @@ class DayPlanViewModel
                                         target = nonBlankTarget,
                                         displayName =
                                             request.displayName.trim().ifBlank { nonBlankTarget },
+                                        vault = request.vault,
                                     ),
                             )
                         }

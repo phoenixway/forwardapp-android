@@ -154,6 +154,7 @@ private fun rememberSearchResultRenderContext(args: SearchResultsContentArgs): S
         args.viewModel,
         args.obsidianVaultName,
         args.context,
+        args.navController,
         haptic,
         formatter,
     ) {
@@ -165,6 +166,7 @@ private fun rememberSearchResultRenderContext(args: SearchResultsContentArgs): S
             viewModel = args.viewModel,
             obsidianVaultName = args.obsidianVaultName,
             context = args.context,
+            navController = args.navController,
         )
     }
 }

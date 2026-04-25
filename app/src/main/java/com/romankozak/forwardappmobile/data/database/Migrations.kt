@@ -107,4 +107,5 @@ val ALL_MIGRATIONS: Array<Migration> =
         MIGRATION_117_118,
         MIGRATION_118_119,
         MIGRATION_119_120,
+        MIGRATION_120_121,
     )

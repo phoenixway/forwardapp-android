@@ -84,6 +84,9 @@ class StrategicArcViewModel
 
         private val _isScopeLinksSheetVisible = MutableStateFlow(false)
         val isScopeLinksSheetVisible: StateFlow<Boolean> = _isScopeLinksSheetVisible.asStateFlow()
+        val obsidianVaultName: StateFlow<String> =
+            settingsRepository.obsidianVaultNameFlow
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS), "")
 
         init {
             attachmentsRepository.getAttachmentLibraryItems()
@@ -157,6 +160,7 @@ class StrategicArcViewModel
         fun addObsidianLink(
             noteName: String,
             displayName: String,
+            vault: String? = null,
         ) {
             val target = noteName.trim()
             if (target.isBlank()) return
@@ -165,7 +169,7 @@ class StrategicArcViewModel
                 val attachmentId =
                     attachmentsRepository.createLinkAttachment(
                         contextId = SystemContexts.STRATEGIC.raw,
-                        link = RelatedLink(type = LinkType.OBSIDIAN, target = target, displayName = display),
+                        link = RelatedLink(type = LinkType.OBSIDIAN, target = target, displayName = display, vault = vault),
                     )
                 addAttachmentLink(attachmentId)
             }
@@ -225,6 +229,7 @@ class StrategicArcViewModel
                         target = target,
                         displayName = request.displayName.trim().ifBlank { target },
                         contextId = SystemContexts.STRATEGIC.raw,
+                        vault = request.vault,
                     )
                 }
             }
@@ -283,6 +288,7 @@ class StrategicArcViewModel
             target: String,
             displayName: String,
             contextId: String,
+            vault: String? = null,
         ): String? {
             if (target.isBlank()) {
                 return null
@@ -295,6 +301,7 @@ class StrategicArcViewModel
                         type = type,
                         target = target,
                         displayName = displayName,
+                        vault = vault?.trim()?.ifBlank { null },
                     ),
             )
         }

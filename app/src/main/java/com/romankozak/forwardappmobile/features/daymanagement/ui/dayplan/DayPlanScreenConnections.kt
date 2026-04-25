@@ -6,8 +6,10 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
@@ -34,10 +36,18 @@ data class DayPlanConnectionDeps(
 private fun buildExternalTarget(
     linkType: LinkType?,
     target: String,
+    vault: String? = null,
+    globalObsidianVaultName: String? = null,
 ): String {
     val trimmed = target.trim()
     if (linkType == LinkType.OBSIDIAN && !trimmed.startsWith("obsidian://", ignoreCase = true)) {
-        return "obsidian://open?file=${URLEncoder.encode(trimmed, "UTF-8")}"
+        val vaultName = vault?.takeIf { it.isNotBlank() } ?: globalObsidianVaultName?.takeIf { it.isNotBlank() }
+        val encodedFile = URLEncoder.encode(trimmed, "UTF-8")
+        return if (vaultName != null) {
+            "obsidian://open?vault=${URLEncoder.encode(vaultName, "UTF-8")}&file=$encodedFile"
+        } else {
+            "obsidian://open?file=$encodedFile"
+        }
     }
     return trimmed
 }
@@ -69,6 +79,7 @@ private fun DayPlanScopeLinksSheetHost(
     overlayState: DayPlanOverlayState,
     deps: DayPlanConnectionDeps,
 ) {
+    val obsidianVaultName by deps.viewModel.obsidianVaultName.collectAsState()
     DayScopeLinksSheet(
         isVisible = dialogState.isScopeLinksSheetVisible,
         uiState = state.uiState,
@@ -116,6 +127,7 @@ private fun DayPlanScopeLinksSheetHost(
                         attachmentId = attachmentId,
                         contentState = state,
                         context = deps.context,
+                        globalObsidianVaultName = obsidianVaultName,
                     )
                 },
                 onContextRemove = deps.viewModel::removePlanProjectLink,
@@ -169,17 +181,19 @@ private fun DayPlanLinkPickerDialogHost(
                         id = attachment.id,
                         name = attachment.name,
                         linkType = attachment.linkType,
+                        attachmentType = attachment.attachmentType,
+                        entityId = attachment.entityId,
+                        target = attachment.target,
+                        vault = attachment.vault,
                     )
                 },
             preselectedContextIds =
-                state.uiState.dayPlan
-                    ?.linkedProjectIds
+                state.uiState.todayScopeLinkedProjectIds
                     .orEmpty()
                     .filter { it in availableProjectIds }
                     .toSet(),
             preselectedAttachmentIds =
-                state.uiState.dayPlan
-                    ?.linkedAttachmentIds
+                state.uiState.todayScopeLinkedAttachmentIds
                     .orEmpty()
                     .filter { it in availableAttachmentIds }
                     .toSet(),
@@ -224,6 +238,7 @@ private fun handleAttachmentClick(
     attachmentId: String,
     contentState: DayPlanContentState,
     context: Context,
+    globalObsidianVaultName: String,
 ) {
     val option = contentState.uiState.availableAttachments.firstOrNull { it.id == attachmentId }
     when {
@@ -254,7 +269,13 @@ private fun handleAttachmentClick(
 
         (option?.linkType == LinkType.URL || option?.linkType == LinkType.OBSIDIAN) &&
             !option.target.isNullOrBlank() -> {
-            val resolvedTarget = buildExternalTarget(option.linkType, option.target)
+            val resolvedTarget =
+                buildExternalTarget(
+                    option.linkType,
+                    option.target,
+                    option.vault,
+                    globalObsidianVaultName,
+                )
             runCatching {
                 context.startActivity(
                     Intent(Intent.ACTION_VIEW, Uri.parse(resolvedTarget)).apply {

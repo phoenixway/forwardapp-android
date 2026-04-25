@@ -199,10 +199,10 @@ private fun ContextScreenUiEventsEffect(
 
                 is UiEvent.HandleLinkClick ->
                     handleRelatedLinkClick(
-                        event.link,
-                        context.obsidianVaultName.orEmpty(),
-                        context.localContext,
-                        dependencies.navController,
+                        link = event.link,
+                        context = context.localContext,
+                        navController = dependencies.navController,
+                        globalObsidianVaultName = context.obsidianVaultName.orEmpty(),
                     )
 
                 is UiEvent.OpenUri -> {

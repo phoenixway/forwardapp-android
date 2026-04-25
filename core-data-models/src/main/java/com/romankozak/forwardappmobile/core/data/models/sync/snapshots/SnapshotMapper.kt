@@ -184,6 +184,7 @@ fun InboxRecord.toSnapshot(): InboxRecordSnapshot = InboxRecordSnapshot(
     createdAt,
     order,
     updatedAt ?: createdAt,
+    hideInOwnerInbox,
     version,
     isDeleted
 )
@@ -194,6 +195,7 @@ fun InboxRecordSnapshot.toEntity(): InboxRecord = InboxRecord(
     createdAt,
     order,
     updatedAt,
+    hideInOwnerInbox = hideInOwnerInbox ?: false,
     version = version,
     isDeleted = isDeleted
 )

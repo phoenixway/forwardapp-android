@@ -426,7 +426,13 @@ class GoalSettingsViewModel
                 is NewDocumentDraft.Obsidian -> {
                     val target = request.noteName.trim()
                     target.takeIf { it.isNotBlank() }?.let {
-                        val link = RelatedLink(type = LinkType.OBSIDIAN, target = it, displayName = request.displayName.trim().ifBlank { it })
+                        val link =
+                            RelatedLink(
+                                type = LinkType.OBSIDIAN,
+                                target = it,
+                                displayName = request.displayName.trim().ifBlank { it },
+                                vault = request.vault,
+                            )
                         addRelatedLink(link)
                         relatedLinkIdentity(link)
                     }
@@ -494,7 +500,7 @@ class GoalSettingsViewModel
                 linkType == LinkType.URL && !target.isNullOrBlank() ->
                     RelatedLink(type = LinkType.URL, target = target, displayName = name)
                 linkType == LinkType.OBSIDIAN && !target.isNullOrBlank() ->
-                    RelatedLink(type = LinkType.OBSIDIAN, target = target, displayName = name)
+                    RelatedLink(type = LinkType.OBSIDIAN, target = target, displayName = name, vault = vault)
                 attachmentType == BacklogItemTypeValues.NOTE_DOCUMENT && !entityId.isNullOrBlank() ->
                     RelatedLink(type = LinkType.NOTE_DOCUMENT, target = entityId, displayName = name)
                 attachmentType == BacklogItemTypeValues.CHECKLIST && !entityId.isNullOrBlank() ->
@@ -529,7 +535,8 @@ private fun AttachmentLibraryQueryResult.toAttachmentOption(): AttachmentOption 
         attachmentType = attachmentType,
         entityId = entityId,
         target = relatedLink?.target,
+        vault = relatedLink?.vault,
     )
 }
 
-private fun relatedLinkIdentity(link: RelatedLink): String = "${link.type}:${link.target}"
+private fun relatedLinkIdentity(link: RelatedLink): String = "${link.type}:${link.target}:${link.vault.orEmpty()}"

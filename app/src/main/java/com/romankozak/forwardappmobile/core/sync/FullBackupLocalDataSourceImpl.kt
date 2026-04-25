@@ -232,6 +232,7 @@ class FullBackupLocalDataSourceImpl
                         enableBacklog = snapshot.enableBacklog,
                         enableAttachments = snapshot.enableAttachments,
                         enableAutoLinkSubprojects = snapshot.enableAutoLinkSubprojects,
+                        removeInboxEntryAfterTagAutocopy = snapshot.removeInboxEntryAfterTagAutocopy ?: false,
                         version = snapshot.version,
                         updatedAt = snapshot.updatedAt,
                         isDeleted = snapshot.isDeleted,

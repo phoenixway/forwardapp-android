@@ -8,27 +8,19 @@ import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import java.net.URLEncoder
 
+import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.utils.handleRelatedLinkClick
+
 internal fun handleRelatedLinkClick(
     link: RelatedLink,
-    obsidianVaultName: String,
     context: Context,
+    navController: NavController,
+    globalObsidianVaultName: String?,
 ) {
-    try {
-        when (link.type) {
-            LinkType.URL -> context.startActivity(Intent(Intent.ACTION_VIEW, link.target.toUri()))
-            LinkType.OBSIDIAN -> {
-                if (obsidianVaultName.isNotBlank()) {
-                    val encodedVault = URLEncoder.encode(obsidianVaultName, "UTF-8")
-                    val encodedFile = URLEncoder.encode(link.target, "UTF-8")
-                    val obsidianUri = "obsidian://open?vault=$encodedVault&file=$encodedFile"
-                    context.startActivity(Intent(Intent.ACTION_VIEW, obsidianUri.toUri()))
-                } else {
-                    Toast.makeText(context, "Назву Obsidian сховища не встановлено.", Toast.LENGTH_LONG).show()
-                }
-            }
-            else -> Unit
-        }
-    } catch (_: Exception) {
-        Toast.makeText(context, "Не вдалося відкрити посилання.", Toast.LENGTH_LONG).show()
-    }
+    com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.utils.handleRelatedLinkClick(
+        link = link,
+        context = context,
+        navController = navController,
+        globalObsidianVaultName = globalObsidianVaultName,
+    )
 }

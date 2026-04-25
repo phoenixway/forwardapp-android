@@ -416,7 +416,10 @@ class SettingsRepository
         private val isBottomNavExpandedKey = booleanPreferencesKey("is_bottom_nav_expanded")
         private val tacticalLinkedProjectIdsKey = stringSetPreferencesKey("tactical_linked_project_ids")
         private val tacticalLinkedAttachmentIdsKey = stringSetPreferencesKey("tactical_linked_attachment_ids")
-        private val dayConnectionsOrderKey = stringPreferencesKey("day_connections_order")
+        private val todayLinkedProjectIdsKey = stringSetPreferencesKey("today_tab_linked_project_ids")
+        private val todayLinkedAttachmentIdsKey = stringSetPreferencesKey("today_tab_linked_attachment_ids")
+        private val todayConnectionsOrderKey = stringPreferencesKey("today_tab_connections_order")
+        private val dayConnectionsOrderKey = todayConnectionsOrderKey
         private val tacticalConnectionsOrderKey = stringPreferencesKey("tactical_connections_order")
         private val coreConnectionsOrderKey = stringPreferencesKey("core_connections_order")
         private val strategicArcConnectionsOrderKey = stringPreferencesKey("strategic_arc_connections_order")
@@ -768,6 +771,8 @@ class SettingsRepository
 
                         tacticalLinkedProjectIdsKey.name,
                         tacticalLinkedAttachmentIdsKey.name,
+                        todayLinkedProjectIdsKey.name,
+                        todayLinkedAttachmentIdsKey.name,
                         coreLinkedAttachmentIdsKey.name,
                         strategicArcLinkedAttachmentIdsKey.name,
                         strategicLinkedAttachmentIdsKey.name,
@@ -775,7 +780,7 @@ class SettingsRepository
                             preferences[stringSetPreferencesKey(key)] = parseSet(value)
                         }
 
-                        dayConnectionsOrderKey.name,
+                        todayConnectionsOrderKey.name,
                         tacticalConnectionsOrderKey.name,
                         coreConnectionsOrderKey.name,
                         strategicArcConnectionsOrderKey.name,
@@ -977,10 +982,30 @@ class SettingsRepository
                     }
                 }
 
+        val todayLinkedProjectIdsFlow: Flow<Set<String>> =
+            context.dataStore.data
+                .map { preferences ->
+                    try {
+                        preferences[todayLinkedProjectIdsKey] ?: emptySet()
+                    } catch (e: ClassCastException) {
+                        parseSet(preferences[stringPreferencesKey(todayLinkedProjectIdsKey.name)])
+                    }
+                }
+
+        val todayLinkedAttachmentIdsFlow: Flow<Set<String>> =
+            context.dataStore.data
+                .map { preferences ->
+                    try {
+                        preferences[todayLinkedAttachmentIdsKey] ?: emptySet()
+                    } catch (e: ClassCastException) {
+                        parseSet(preferences[stringPreferencesKey(todayLinkedAttachmentIdsKey.name)])
+                    }
+                }
+
         val dayConnectionsOrderFlow: Flow<List<String>> =
             context.dataStore.data
                 .map { preferences ->
-                    parseOrderedList(preferences[dayConnectionsOrderKey])
+                    parseOrderedList(preferences[todayConnectionsOrderKey])
                 }
 
         val tacticalConnectionsOrderFlow: Flow<List<String>> =
@@ -1049,9 +1074,21 @@ class SettingsRepository
             }
         }
 
+        suspend fun setTodayLinkedProjectIds(ids: Set<String>) {
+            context.dataStore.edit { settings ->
+                settings[todayLinkedProjectIdsKey] = ids
+            }
+        }
+
+        suspend fun setTodayLinkedAttachmentIds(ids: Set<String>) {
+            context.dataStore.edit { settings ->
+                settings[todayLinkedAttachmentIdsKey] = ids
+            }
+        }
+
         suspend fun setDayConnectionsOrder(order: List<String>) {
             context.dataStore.edit { settings ->
-                settings[dayConnectionsOrderKey] = serializeOrderedList(order)
+                settings[todayConnectionsOrderKey] = serializeOrderedList(order)
             }
         }
 

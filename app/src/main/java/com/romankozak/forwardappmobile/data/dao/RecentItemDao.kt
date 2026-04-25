@@ -15,13 +15,13 @@ interface RecentItemDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<RecentItem>)
 
-    @Query("SELECT * FROM recent_items ORDER BY lastAccessed DESC LIMIT :limit")
+    @Query("SELECT * FROM recent_items ORDER BY lastAccessed DESC, id ASC LIMIT :limit")
     fun getRecentItems(limit: Int): Flow<List<RecentItem>>
 
     @Query("SELECT * FROM recent_items WHERE id = :id")
     suspend fun getRecentItemById(id: String): RecentItem?
 
-    @Query("SELECT * FROM recent_items WHERE target = :contextId AND type = 'PROJECT' ORDER BY lastAccessed DESC")
+    @Query("SELECT * FROM recent_items WHERE target = :contextId AND type = 'PROJECT' ORDER BY lastAccessed DESC, id ASC")
     fun getRecentItemsForContext(contextId: String): Flow<List<RecentItem>>
 
     @Query("SELECT * FROM recent_items")

@@ -26,8 +26,19 @@ interface ReminderDao {
     @Query("SELECT * FROM reminders WHERE id = :id")
     suspend fun getReminderById(id: String): Reminder?
 
-    @Query("SELECT * FROM reminders WHERE entityId = :entityId")
+    @Query("SELECT * FROM reminders WHERE entityId = :entityId ORDER BY reminderTime ASC")
     fun getRemindersForEntity(entityId: String): Flow<List<Reminder>>
+
+    @Query(
+        """
+        SELECT * FROM reminders
+        WHERE entityId = :entityId
+          AND entityType = :entityType
+          AND isDeleted = 0
+        ORDER BY reminderTime ASC
+        """,
+    )
+    suspend fun getActiveRemindersForEntity(entityId: String, entityType: String): List<Reminder>
 
     @Query("DELETE FROM reminders WHERE entityId = :entityId")
     suspend fun deleteByEntityId(entityId: String)

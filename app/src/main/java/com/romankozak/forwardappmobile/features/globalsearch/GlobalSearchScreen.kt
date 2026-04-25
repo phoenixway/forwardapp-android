@@ -378,6 +378,7 @@ fun GlobalSearchScreen(
                                                 context = context,
                                                 listState = listState,
                                                 selectedResultUniqueId = selectedDataResultUniqueId,
+                                                navController = navController,
                                             ),
                                             modifier = Modifier
                                                 .fillMaxSize()

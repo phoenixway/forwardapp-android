@@ -230,10 +230,21 @@ class ContextHierarchyScreenViewModel
                     contextClipboard.update { payload ->
                         payload?.copy(contextIds = payload.contextIds.intersect(existingIds))?.takeIf { it.contextIds.isNotEmpty() }
                     }
-                    withContext(ioDispatcher) {
-                        recentItemsRepository.syncProjectRecentItemsWithContexts(projects)
-                    }
                 }
+            }
+            viewModelScope.launch {
+                _allProjectsFlat
+                    .map { projects ->
+                        projects to
+                            projects.map { context ->
+                                context.id to context.name
+                            }
+                    }.distinctUntilChanged { old, new -> old.second == new.second }
+                    .collect { (projects, _) ->
+                        withContext(ioDispatcher) {
+                            recentItemsRepository.syncProjectRecentItemsWithContexts(projects)
+                        }
+                    }
             }
             viewModelScope.launch {
                 planningUseCase.filterStateFlow.collect { state ->

@@ -40,12 +40,9 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -70,11 +67,6 @@ private data class RecentItemCardColors(
     val cardBackground: Color,
 )
 
-private data class RecentItemsSheetState(
-    val displayedRecentItems: List<RecentItem>,
-    val setDisplayedRecentItems: (List<RecentItem>) -> Unit,
-)
-
 private val recentItemsComparator =
     compareByDescending<RecentItem> { it.lastAccessed }
         .thenBy { it.id }
@@ -90,10 +82,9 @@ fun NewRecentListsSheet(
 ) {
     if (!showSheet) return
 
-    val sheetState = rememberRecentItemsSheetState(showSheet = showSheet, recentItems = recentItems)
     val stableRecentItems =
-        remember(sheetState.displayedRecentItems) {
-            sheetState.displayedRecentItems.sortedWith(recentItemsComparator)
+        remember(recentItems) {
+            recentItems.sortedWith(recentItemsComparator)
         }
 
     ModalBottomSheet(
@@ -104,7 +95,6 @@ fun NewRecentListsSheet(
             stableRecentItems = stableRecentItems,
             onItemClick = onItemClick,
             onPinClick = { item ->
-                sheetState.setDisplayedRecentItems(togglePinnedRecentItem(sheetState.displayedRecentItems, item))
                 onPinClick(item)
             },
         )
@@ -149,41 +139,10 @@ private fun RecentItemsSheetContent(
     }
 }
 
-@Composable
-private fun rememberRecentItemsSheetState(
-    showSheet: Boolean,
-    recentItems: List<RecentItem>,
-): RecentItemsSheetState {
-    var displayedRecentItems by remember(showSheet) {
-        mutableStateOf(recentItems.sortedWith(recentItemsComparator))
-    }
-
-    LaunchedEffect(showSheet, recentItems) {
-        displayedRecentItems = recentItems.sortedWith(recentItemsComparator)
-    }
-
-    return RecentItemsSheetState(
-        displayedRecentItems = displayedRecentItems,
-        setDisplayedRecentItems = { displayedRecentItems = it },
-    )
-}
-
 private fun itemsForRecentItemsPage(
     page: Int,
     stableRecentItems: List<RecentItem>,
 ): List<RecentItem> = if (page == 0) stableRecentItems else stableRecentItems.filter { it.isPinned }
-
-private fun togglePinnedRecentItem(
-    items: List<RecentItem>,
-    item: RecentItem,
-): List<RecentItem> =
-    items.map { existing ->
-        if (existing.id == item.id) {
-            existing.copy(isPinned = !existing.isPinned)
-        } else {
-            existing
-        }
-    }
 
 @Composable
 private fun RecentItemsGrid(

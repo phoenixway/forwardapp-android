@@ -155,7 +155,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 120,
+    version = 121,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)

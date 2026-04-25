@@ -73,6 +73,7 @@ fun CoreScopeLinksSheet(
                         id = id,
                         title = option?.name ?: "Вкладення ${id.take(8)}",
                         type = type,
+                        vault = option?.vault,
                     )
                 },
             )
