@@ -129,7 +129,6 @@ internal fun SearchResultGroupHeader(
 
 @Composable
 internal fun UnifiedSearchResultCard(spec: SearchResultCardSpec) {
-    val (badgeContainer, badgeContent) = resultBadgeColors(spec.presentation.tone)
     val selectedScale by animateFloatAsState(
         targetValue = if (spec.isSelected) 1.01f else 1f,
         animationSpec = tween(durationMillis = 170),
@@ -167,12 +166,6 @@ internal fun UnifiedSearchResultCard(spec: SearchResultCardSpec) {
             modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.Top,
         ) {
-            SearchResultLeadingBadge(
-                presentation = spec.presentation,
-                containerColor = badgeContainer,
-                contentColor = badgeContent,
-            )
-            Spacer(modifier = Modifier.width(12.dp))
             SearchResultTextContent(spec = spec)
             SearchResultSecondaryAction(spec = spec)
         }
@@ -339,6 +332,11 @@ private fun RowScope.SearchResultTextContent(spec: SearchResultCardSpec) {
                 maxLines = 2,
             )
         }
+        Spacer(modifier = Modifier.height(8.dp))
+        ResultTypeBadge(
+            presentation = spec.presentation,
+            modifier = Modifier.align(Alignment.End),
+        )
     }
 }
 

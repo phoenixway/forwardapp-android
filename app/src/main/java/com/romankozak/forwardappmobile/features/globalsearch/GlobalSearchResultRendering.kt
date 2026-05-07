@@ -79,10 +79,6 @@ internal fun SearchResultItemCard(
             UnifiedSearchResultCard(
                 spec = buildSearchResultCardSpec(result, typePresentation, renderContext),
             )
-            ResultTypeBadge(
-                presentation = typePresentation,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 6.dp, end = 6.dp),
-            )
         }
     }
 }
