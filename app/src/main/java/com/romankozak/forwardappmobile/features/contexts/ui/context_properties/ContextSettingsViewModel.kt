@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
+import com.romankozak.forwardappmobile.core.capability.CapabilityRegistry
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
@@ -56,6 +57,7 @@ class ContextSettingsViewModel
         private val structurePresetDao: StructurePresetDao,
         private val contextStructureRepository: ContextStructureRepository,
         private val structurePresetService: StructurePresetService,
+        private val capabilityRegistry: CapabilityRegistry,
         private val capabilitySettingsRegistry: CapabilitySettingsRegistry,
         private val attachmentsRepository: AttachmentsRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
@@ -135,11 +137,9 @@ class ContextSettingsViewModel
                 val allKnownCapabilities = ContextRoleRegistry.getAllKnownCapabilities()
                 val structureFeatures =
                     allKnownCapabilities.associate { capId ->
-                        val key =
-                            capId.raw.replace("_", " ")
-                                .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
+                        val key = featureLabelForCapability(capId)
                         key to isEnabledForConfig(capId, structure)
-                    }
+                    }.toSortedMap()
 
                 // 4. Оновлюємо стан UI одним атомарним блоком
                 _uiState.update { state ->
@@ -496,8 +496,15 @@ class ContextSettingsViewModel
                 "Dashboard" -> CapabilityId("dashboard")
                 "Backlog" -> CapabilityId("backlog")
                 "Attachments", "Connections" -> CapabilityId("connections")
+                "Issues" -> CapabilityId("key_problems")
                 else -> CapabilityId(label.lowercase().replace(" ", "_"))
             }
+
+        private fun featureLabelForCapability(capabilityId: CapabilityId): String {
+            return capabilityRegistry.get(capabilityId)?.label ?: capabilityId.raw
+                .replace("_", " ")
+                .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
+        }
 
         /**
          * Збереження стану можливостей у БД

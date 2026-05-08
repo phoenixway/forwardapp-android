@@ -20,6 +20,7 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -48,6 +49,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.direction.DirectionView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxViewState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.journallog.JournalLogView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.keyproblems.KeyProblemsView
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ArtifactContent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
@@ -96,6 +98,7 @@ fun GoalDetailContent(
     val projectLogs = uiState.logs
     val projectArtifact by viewModel.contextArtifact.collectAsStateWithLifecycle()
     val keyProblemsData by viewModel.keyProblemsData.collectAsStateWithLifecycle()
+    val journalLogDocument by viewModel.journalLogDocument.collectAsStateWithLifecycle()
     val allContexts by viewModel.allContextsForPicker.collectAsStateWithLifecycle()
     val pickerAttachmentOptions by viewModel.pickerAttachmentOptions.collectAsStateWithLifecycle()
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
@@ -242,6 +245,14 @@ fun GoalDetailContent(
                 isManagementEnabled = true,
                 onEditLog = onEditLog,
                 onDeleteLog = onDeleteLog,
+            )
+        }
+        ContextViewMode.JOURNAL_LOG -> {
+            JournalLogView(
+                modifier = modifier,
+                contextTitle = goalList?.name,
+                document = journalLogDocument,
+                onSave = viewModel::saveJournalLogDocument,
             )
         }
         ContextViewMode.ARTIFACT -> {
@@ -516,6 +527,7 @@ private fun ContextViewMode.dashboardLabel(): String =
         ContextViewMode.CONNECTIONS -> "Connections"
         ContextViewMode.DASHBOARD -> "Дашборд"
         ContextViewMode.LOG -> "Лог"
+        ContextViewMode.JOURNAL_LOG -> "Journal Log"
         ContextViewMode.ARTIFACT -> "Артефакт"
         ContextViewMode.KEY_PROBLEMS -> "Issues"
         ContextViewMode.ADVANCED,
@@ -537,6 +549,7 @@ private fun ContextViewMode.dashboardIcon(): ImageVector =
         ContextViewMode.CONNECTIONS -> Icons.Default.Attachment
         ContextViewMode.DASHBOARD -> Icons.Default.Dashboard
         ContextViewMode.LOG -> Icons.Outlined.History
+        ContextViewMode.JOURNAL_LOG -> Icons.Outlined.MenuBook
         ContextViewMode.ARTIFACT -> Icons.Outlined.Inventory2
         ContextViewMode.KEY_PROBLEMS -> Icons.Outlined.Checklist
         ContextViewMode.ADVANCED,

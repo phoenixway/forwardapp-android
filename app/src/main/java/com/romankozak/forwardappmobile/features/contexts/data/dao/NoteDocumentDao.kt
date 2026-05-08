@@ -19,6 +19,9 @@ interface NoteDocumentDao {
     @Query("SELECT * FROM note_documents WHERE id = :documentId")
     suspend fun getDocumentById(documentId: String): NoteDocumentEntity?
 
+    @Query("SELECT * FROM note_documents WHERE id = :documentId")
+    fun getDocumentByIdFlow(documentId: String): Flow<NoteDocumentEntity?>
+
     @Query(
         """
         SELECT nd.*

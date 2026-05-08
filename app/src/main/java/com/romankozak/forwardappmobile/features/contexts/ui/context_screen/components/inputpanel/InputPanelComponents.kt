@@ -173,13 +173,22 @@ internal fun ModeSelectorButton(
                     ContextViewMode.DIRECTION -> InputMode.AddDirection
                     ContextViewMode.INBOX -> InputMode.AddQuickRecord
                     ContextViewMode.LOG -> InputMode.AddProjectLog
+                    ContextViewMode.JOURNAL_LOG -> InputMode.AddGoal
                     ContextViewMode.KEY_PROBLEMS -> InputMode.AddIssue
                     else -> InputMode.AddGoal
                 },
                 if (currentView == ContextViewMode.DIRECTION) InputMode.AddDirection else null,
                 if (currentView == ContextViewMode.LOG) InputMode.AddMilestone else null,
-                if (currentView != ContextViewMode.LOG) InputMode.AddQuickRecord else null,
-                if (isProjectManagementEnabled && currentView != ContextViewMode.LOG) InputMode.AddProjectLog else null,
+                if (currentView != ContextViewMode.LOG && currentView != ContextViewMode.JOURNAL_LOG) InputMode.AddQuickRecord else null,
+                if (
+                    isProjectManagementEnabled &&
+                    currentView != ContextViewMode.LOG &&
+                    currentView != ContextViewMode.JOURNAL_LOG
+                ) {
+                    InputMode.AddProjectLog
+                } else {
+                    null
+                },
                 InputMode.SearchGlobal,
             )
         }

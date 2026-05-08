@@ -45,7 +45,7 @@ class ContextScreenDataObserver(
                     dependencies.contextRepository.getAllContextsFlow(),
                     dependencies.contextRepository.getAttachmentsForContextStream(contextId),
                     dependencies.listItemRepository.getAllEntitiesAsFlow(),
-                    dependencies.reminderRepository.getRemindersForEntityFlow(contextId),
+                    dependencies.reminderRepository.getAllReminders(),
                     dependencies.recentItemsRepository.getRecentItems(RECENT_ITEMS_LIMIT),
                     dependencies.noteRepository.getNotesForContext(contextId),
                     dependencies.goalRepository.getGoalsByContextIdFlow(contextId),

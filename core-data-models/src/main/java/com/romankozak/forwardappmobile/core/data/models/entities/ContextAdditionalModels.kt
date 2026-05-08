@@ -69,6 +69,7 @@ enum class ContextViewMode {
     DASHBOARD,
     DIRECTION,
     LOG,
+    JOURNAL_LOG,
     ARTIFACT,
     KEY_PROBLEMS,
     NOTES,

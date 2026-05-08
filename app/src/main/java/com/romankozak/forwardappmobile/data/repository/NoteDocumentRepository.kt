@@ -31,6 +31,8 @@ class NoteDocumentRepository
 
         fun getAllDocumentsAsFlow(): Flow<List<NoteDocumentEntity>> = noteDocumentDao.getAllDocumentsAsFlow()
 
+        fun getDocumentByIdFlow(id: String): Flow<NoteDocumentEntity?> = noteDocumentDao.getDocumentByIdFlow(id)
+
         suspend fun findDocumentByName(name: String): NoteDocumentEntity? = noteDocumentDao.findByName(name)
 
         @Transaction
@@ -57,6 +59,29 @@ class NoteDocumentRepository
                 isSystem = isSystem,
             )
             Log.d(TAG, "createDocument finished")
+            return document.id
+        }
+
+        suspend fun createDetachedDocument(
+            id: String,
+            name: String,
+            contextId: String,
+            content: String? = null,
+            lastCursorPosition: Int = 0,
+        ): String {
+            val now = System.currentTimeMillis()
+            val document =
+                NoteDocumentEntity(
+                    id = id,
+                    contextId = contextId,
+                    name = name,
+                    updatedAt = now,
+                    content = content,
+                    lastCursorPosition = lastCursorPosition,
+                    syncedAt = null,
+                    version = 1,
+                )
+            noteDocumentDao.insertDocument(document)
             return document.id
         }
 

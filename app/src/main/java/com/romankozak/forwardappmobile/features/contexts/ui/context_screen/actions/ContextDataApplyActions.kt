@@ -20,6 +20,7 @@ private fun fallbackInputMode(currentViewMode: ContextViewMode): InputMode =
         ContextViewMode.DIRECTION -> InputMode.AddDirection
         ContextViewMode.INBOX -> InputMode.AddQuickRecord
         ContextViewMode.LOG -> InputMode.AddProjectLog
+        ContextViewMode.JOURNAL_LOG -> InputMode.AddGoal
         ContextViewMode.KEY_PROBLEMS -> InputMode.AddIssue
         else -> InputMode.AddGoal
     }
@@ -30,6 +31,7 @@ private fun defaultInputMode(currentViewMode: ContextViewMode): InputMode =
         ContextViewMode.DIRECTION -> InputMode.AddDirection
         ContextViewMode.INBOX -> InputMode.AddQuickRecord
         ContextViewMode.LOG -> InputMode.AddProjectLog
+        ContextViewMode.JOURNAL_LOG -> InputMode.AddGoal
         ContextViewMode.KEY_PROBLEMS -> InputMode.AddIssue
         else -> InputMode.AddGoal
     }
@@ -40,6 +42,7 @@ private fun allowedInputModes(currentViewMode: ContextViewMode): Set<InputMode> 
         ContextViewMode.CONNECTIONS -> setOf(InputMode.AddConnectionNote, InputMode.SearchInList)
         ContextViewMode.DIRECTION -> setOf(InputMode.AddDirection, InputMode.SearchInList)
         ContextViewMode.INBOX -> setOf(InputMode.AddQuickRecord, InputMode.SearchInList)
+        ContextViewMode.JOURNAL_LOG -> setOf(InputMode.AddGoal)
         ContextViewMode.KEY_PROBLEMS -> setOf(InputMode.AddIssue)
         else -> setOf(InputMode.AddGoal)
     }

@@ -27,7 +27,13 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.Checklist
+import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -204,7 +210,14 @@ private fun RightButtons(
                                 when (viewMode) {
                                     ContextViewMode.BACKLOG -> Icons.AutoMirrored.Outlined.List
                                     ContextViewMode.INBOX -> Icons.Outlined.Inbox
-                                    else -> Icons.Default.Error // Should not happen
+                                    ContextViewMode.CONNECTIONS -> Icons.Default.Attachment
+                                    ContextViewMode.DASHBOARD -> Icons.Default.Home
+                                    ContextViewMode.DIRECTION -> Icons.Outlined.Explore
+                                    ContextViewMode.LOG -> Icons.Outlined.History
+                                    ContextViewMode.JOURNAL_LOG -> Icons.Outlined.MenuBook
+                                    ContextViewMode.ARTIFACT -> Icons.Outlined.Inventory2
+                                    ContextViewMode.KEY_PROBLEMS -> Icons.Outlined.Checklist
+                                    else -> Icons.Outlined.Description
                                 },
                             contentDescription = viewMode.name,
                             modifier = Modifier.size(18.dp),

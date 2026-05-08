@@ -199,6 +199,7 @@ private fun String?.toSharedView(): SharedContextView =
         ContextViewMode.DASHBOARD.name -> SharedContextView.Dashboard
         ContextViewMode.DIRECTION.name -> SharedContextView.Direction
         ContextViewMode.LOG.name -> SharedContextView.Log
+        ContextViewMode.JOURNAL_LOG.name -> SharedContextView.JournalLog
         ContextViewMode.ARTIFACT.name -> SharedContextView.Artifact
         ContextViewMode.KEY_PROBLEMS.name -> SharedContextView.KeyProblems
         else -> SharedContextView.Backlog
@@ -211,6 +212,7 @@ private fun SharedContextView.toAndroidViewMode(): ContextViewMode =
         SharedContextView.Dashboard -> ContextViewMode.DASHBOARD
         SharedContextView.Direction -> ContextViewMode.DIRECTION
         SharedContextView.Log -> ContextViewMode.LOG
+        SharedContextView.JournalLog -> ContextViewMode.JOURNAL_LOG
         SharedContextView.Artifact -> ContextViewMode.ARTIFACT
         SharedContextView.KeyProblems -> ContextViewMode.KEY_PROBLEMS
         else -> ContextViewMode.BACKLOG

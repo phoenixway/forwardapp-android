@@ -366,6 +366,16 @@ class ContextScreenViewModel
                     }
                 }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+        val journalLogDocument: StateFlow<NoteDocumentEntity?> =
+            contextIdFlow
+                .flatMapLatest { contextId ->
+                    if (contextId.isBlank()) {
+                        flowOf(null)
+                    } else {
+                        noteDocumentRepository.getDocumentByIdFlow(journalLogDocumentId(contextId))
+                    }
+                }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
         val contextTimeMetrics: StateFlow<ContextTimeMetrics?> =
             contextIdFlow
                 .flatMapLatest { contextId ->
@@ -817,6 +827,47 @@ class ContextScreenViewModel
         }
 
         private fun capabilityForView(viewMode: ContextViewMode): CapabilityId = CapabilityId(viewMode.name.lowercase())
+
+        fun saveJournalLogDocument(
+            title: String,
+            content: String,
+            cursorPosition: Int,
+        ) {
+            val contextId = contextIdFlow.value
+            if (contextId.isBlank()) return
+            val normalizedTitle = title.trim().ifBlank { defaultJournalLogTitle(project.value?.name) }
+            val documentId = journalLogDocumentId(contextId)
+
+            viewModelScope.launch(ioDispatcher) {
+                val existing = noteDocumentRepository.getDocumentById(documentId)
+                if (existing == null) {
+                    noteDocumentRepository.createDetachedDocument(
+                        id = documentId,
+                        name = normalizedTitle,
+                        contextId = contextId,
+                        content = content,
+                        lastCursorPosition = cursorPosition,
+                    )
+                } else {
+                    noteDocumentRepository.updateDocument(
+                        existing.copy(
+                            name = normalizedTitle,
+                            content = content,
+                            updatedAt = System.currentTimeMillis(),
+                            lastCursorPosition = cursorPosition,
+                        ),
+                    )
+                }
+            }
+        }
+
+        private fun journalLogDocumentId(contextId: String): String = "system_journal_log_$contextId"
+
+        private fun defaultJournalLogTitle(contextName: String?): String =
+            contextName?.trim()
+                ?.takeIf { it.isNotEmpty() }
+                ?.let { "$it Journal" }
+                ?: "Journal Log"
 
         fun onExportBacklogToMarkdown() = markdownActions.onExportBacklogToMarkdown(_listContent.value)
 

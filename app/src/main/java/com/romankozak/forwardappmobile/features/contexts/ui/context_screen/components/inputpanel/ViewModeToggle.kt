@@ -16,6 +16,7 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.ViewModule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -94,6 +95,7 @@ fun ViewModeToggle(
 
 private fun ContextViewMode.displayName(): String {
     if (this == ContextViewMode.KEY_PROBLEMS) return "Issues"
+    if (this == ContextViewMode.JOURNAL_LOG) return "Journal Log"
     return this.name.lowercase(Locale.ROOT)
         .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
         .replace("_", " ")
@@ -107,6 +109,7 @@ private fun ContextViewMode.toIcon(): ImageVector =
         ContextViewMode.DASHBOARD -> Icons.Outlined.ViewModule
         ContextViewMode.DIRECTION -> Icons.Outlined.Explore
         ContextViewMode.LOG -> Icons.Outlined.History
+        ContextViewMode.JOURNAL_LOG -> Icons.Outlined.MenuBook
         ContextViewMode.ARTIFACT -> Icons.Outlined.Inventory2
         ContextViewMode.KEY_PROBLEMS -> Icons.Outlined.Description
         ContextViewMode.ADVANCED,
@@ -121,6 +124,7 @@ private fun ContextViewMode.getDefaultInputMode() =
         ContextViewMode.CONNECTIONS -> InputMode.AddConnectionNote
         ContextViewMode.DIRECTION -> InputMode.AddDirection
         ContextViewMode.LOG -> InputMode.AddProjectLog
+        ContextViewMode.JOURNAL_LOG -> InputMode.AddGoal
         ContextViewMode.KEY_PROBLEMS -> InputMode.AddIssue
         else -> InputMode.AddGoal
     }

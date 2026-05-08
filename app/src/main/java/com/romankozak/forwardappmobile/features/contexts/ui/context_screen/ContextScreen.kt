@@ -199,6 +199,7 @@ private fun ProjectScaffold(
             ContextViewMode.INBOX -> canPasteIntoCurrentInbox
             ContextViewMode.DIRECTION -> canPasteIntoCurrentDirection
             ContextViewMode.CONNECTIONS -> canPasteIntoCurrentAttachments
+            ContextViewMode.JOURNAL_LOG -> false
             else -> false
         }
 

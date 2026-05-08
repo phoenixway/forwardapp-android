@@ -151,6 +151,7 @@ object ContextRoleRegistry {
             add(CapabilityId("direction"))
             add(CapabilityId("key_problems"))
             add(CapabilityId("inbox_sorting"))
+            add(CapabilityId("journal_log"))
             add(CapabilityId("connections"))
         }
     }

@@ -470,6 +470,7 @@ private fun String?.toSharedContextView(): SharedContextView =
         "DASHBOARD" -> SharedContextView.Dashboard
         "DIRECTION" -> SharedContextView.Direction
         "LOG" -> SharedContextView.Log
+        "JOURNAL_LOG" -> SharedContextView.JournalLog
         "ARTIFACT" -> SharedContextView.Artifact
         "KEY_PROBLEMS" -> SharedContextView.KeyProblems
         else -> SharedContextView.Backlog

@@ -25,6 +25,7 @@ private fun ContextViewMode.defaultInputMode(): InputMode =
         ContextViewMode.CONNECTIONS -> InputMode.AddConnectionNote
         ContextViewMode.DIRECTION -> InputMode.AddDirection
         ContextViewMode.LOG -> InputMode.AddProjectLog
+        ContextViewMode.JOURNAL_LOG -> InputMode.AddGoal
         ContextViewMode.KEY_PROBLEMS -> InputMode.AddIssue
         else -> InputMode.AddGoal
     }
