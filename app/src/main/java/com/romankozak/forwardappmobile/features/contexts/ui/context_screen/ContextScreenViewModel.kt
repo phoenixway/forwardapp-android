@@ -869,6 +869,81 @@ class ContextScreenViewModel
                 ?.let { "$it Journal" }
                 ?: "Journal Log"
 
+        private fun appendJournalLogEntry(text: String) {
+            val contextId = contextIdFlow.value
+            if (contextId.isBlank()) return
+            val documentId = journalLogDocumentId(contextId)
+            val normalizedTitle = defaultJournalLogTitle(project.value?.name)
+
+            viewModelScope.launch(ioDispatcher) {
+                val existing = noteDocumentRepository.getDocumentById(documentId)
+                val appendedContent =
+                    existing?.content
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { "$it\n$text" }
+                        ?: text
+
+                if (existing == null) {
+                    noteDocumentRepository.createDetachedDocument(
+                        id = documentId,
+                        name = normalizedTitle,
+                        contextId = contextId,
+                        content = appendedContent,
+                        lastCursorPosition = appendedContent.length,
+                    )
+                } else {
+                    noteDocumentRepository.updateDocument(
+                        existing.copy(
+                            content = appendedContent,
+                            updatedAt = System.currentTimeMillis(),
+                            lastCursorPosition = appendedContent.length,
+                        ),
+                    )
+                }
+            }
+        }
+
+        fun updateJournalLogLine(lineIndex: Int, updatedText: String) {
+            mutateJournalLogDocument { lines ->
+                val safeIndex = lineIndex.takeIf { it in lines.indices } ?: return@mutateJournalLogDocument lines
+                lines.toMutableList().apply { this[safeIndex] = updatedText }
+            }
+        }
+
+        fun deleteJournalLogLine(lineIndex: Int) {
+            mutateJournalLogDocument { lines ->
+                val safeIndex = lineIndex.takeIf { it in lines.indices } ?: return@mutateJournalLogDocument lines
+                lines.toMutableList().apply { removeAt(safeIndex) }
+            }
+        }
+
+        fun replaceJournalLogLines(updatedLines: List<String>) {
+            mutateJournalLogDocument { updatedLines }
+        }
+
+        private fun mutateJournalLogDocument(transform: (List<String>) -> List<String>) {
+            val contextId = contextIdFlow.value
+            if (contextId.isBlank()) return
+            val documentId = journalLogDocumentId(contextId)
+            val normalizedTitle = defaultJournalLogTitle(project.value?.name)
+
+            viewModelScope.launch(ioDispatcher) {
+                val existing = noteDocumentRepository.getDocumentById(documentId) ?: return@launch
+                val currentLines = existing.content.orEmpty().lines()
+                val updatedLines = transform(currentLines)
+                val updatedContent = updatedLines.joinToString(separator = "\n")
+
+                noteDocumentRepository.updateDocument(
+                    existing.copy(
+                        name = normalizedTitle,
+                        content = updatedContent,
+                        updatedAt = System.currentTimeMillis(),
+                        lastCursorPosition = updatedContent.length,
+                    ),
+                )
+            }
+        }
+
         fun onExportBacklogToMarkdown() = markdownActions.onExportBacklogToMarkdown(_listContent.value)
 
         fun onImportBacklogFromMarkdown(markdownText: String) =
@@ -937,6 +1012,8 @@ class ContextScreenViewModel
         override fun addProjectComment(text: String) = logHandler.addProjectComment(text, contextIdFlow.value)
 
         override fun addMilestone(text: String) = logHandler.addMilestone(text, contextIdFlow.value)
+
+        override fun addJournalLogEntry(text: String) = appendJournalLogEntry(text)
 
         override fun createObsidianNote(
             noteName: String,
@@ -1672,6 +1749,15 @@ class ContextScreenViewModel
                     )
 
                 is BacklogItemContent.NoteDocumentItem ->
+                    createTacticalMission(
+                        title = document.name.trim(),
+                        description = null,
+                        projectId = fallbackContextId,
+                        linkedProjectIds = listOfNotNull(fallbackContextId),
+                        now = now,
+                    )
+
+                is BacklogItemContent.JournalDocumentItem ->
                     createTacticalMission(
                         title = document.name.trim(),
                         description = null,

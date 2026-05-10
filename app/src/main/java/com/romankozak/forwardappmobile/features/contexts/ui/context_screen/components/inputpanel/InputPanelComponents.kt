@@ -31,6 +31,7 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.PostAdd
 import androidx.compose.material.icons.outlined.TravelExplore
 import androidx.compose.material3.Icon
@@ -122,6 +123,7 @@ internal fun InputTextField(
                                         InputMode.AddIssue -> "Додати issue"
                                         InputMode.AddConnectionNote -> "add note.."
                                         InputMode.AddDirection -> stringResource(R.string.hint_add_direction)
+                                        InputMode.AddJournalLogEntry -> "Додати рядок у journal"
                                         InputMode.AddQuickRecord -> stringResource(R.string.hint_add_quick_record)
                                         InputMode.AddProjectLog -> "Додати запис у лог"
                                         InputMode.AddMilestone -> "Додати віху"
@@ -173,7 +175,7 @@ internal fun ModeSelectorButton(
                     ContextViewMode.DIRECTION -> InputMode.AddDirection
                     ContextViewMode.INBOX -> InputMode.AddQuickRecord
                     ContextViewMode.LOG -> InputMode.AddProjectLog
-                    ContextViewMode.JOURNAL_LOG -> InputMode.AddGoal
+                    ContextViewMode.JOURNAL_LOG -> InputMode.AddJournalLogEntry
                     ContextViewMode.KEY_PROBLEMS -> InputMode.AddIssue
                     else -> InputMode.AddGoal
                 },
@@ -219,6 +221,7 @@ internal fun ModeSelectorButton(
                         InputMode.AddIssue -> Icons.Outlined.Description
                         InputMode.AddConnectionNote -> Icons.Outlined.Description
                         InputMode.AddDirection -> Icons.Outlined.Explore
+                        InputMode.AddJournalLogEntry -> Icons.Outlined.MenuBook
                         InputMode.AddQuickRecord -> Icons.Outlined.Inbox
                         InputMode.AddMilestone -> Icons.Outlined.Flag
                         InputMode.SearchGlobal -> Icons.Outlined.TravelExplore

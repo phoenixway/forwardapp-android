@@ -247,6 +247,11 @@ private fun handleAttachmentClick(
                 navController = contentState.navigator.navController,
                 target = NavTarget.NoteDocument(id = option.entityId),
             )
+        option?.attachmentType == "JOURNAL_DOCUMENT" && !option.entityId.isNullOrBlank() ->
+            contentState.navigator.navigationManager.navigateOrFallback(
+                navController = contentState.navigator.navController,
+                target = NavTarget.JournalDocument(id = option.entityId),
+            )
 
         option?.attachmentType == "MUSIC_NOTE" && !option.entityId.isNullOrBlank() ->
             contentState.navigator.navigationManager.navigateOrFallback(

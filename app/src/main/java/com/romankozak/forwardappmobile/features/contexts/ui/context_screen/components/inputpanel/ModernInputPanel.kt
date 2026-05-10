@@ -250,7 +250,7 @@ private fun defaultInputModeForView(view: ContextViewMode): InputMode =
         ContextViewMode.CONNECTIONS -> InputMode.AddConnectionNote
         ContextViewMode.DIRECTION -> InputMode.AddDirection
         ContextViewMode.LOG -> InputMode.AddProjectLog
-        ContextViewMode.JOURNAL_LOG -> InputMode.AddGoal
+        ContextViewMode.JOURNAL_LOG -> InputMode.AddJournalLogEntry
         ContextViewMode.KEY_PROBLEMS -> InputMode.AddIssue
         else -> InputMode.AddGoal
     }
@@ -258,7 +258,7 @@ private fun defaultInputModeForView(view: ContextViewMode): InputMode =
 private fun supportedInputModesForView(view: ContextViewMode): List<InputMode> =
     when (view) {
         ContextViewMode.LOG -> listOf(InputMode.AddProjectLog, InputMode.AddMilestone)
-        ContextViewMode.JOURNAL_LOG -> listOf(InputMode.AddGoal)
+        ContextViewMode.JOURNAL_LOG -> listOf(InputMode.AddJournalLogEntry)
         else -> {
             val baseMode = defaultInputModeForView(view)
             if (supportsLocalSearchForView(view)) {

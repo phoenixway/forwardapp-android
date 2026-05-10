@@ -27,17 +27,14 @@ interface NoteDocumentDao {
         SELECT nd.*
         FROM note_documents AS nd
         INNER JOIN attachments AS a
-            ON a.entity_id = nd.id AND a.attachment_type = :attachmentType
+            ON a.entity_id = nd.id AND a.attachment_type IN ('NOTE_DOCUMENT', 'JOURNAL_DOCUMENT')
         INNER JOIN context_attachment_cross_ref AS link
             ON link.attachment_id = a.id
         WHERE link.context_id = :contextId
         ORDER BY nd.updatedAt DESC
         """,
     )
-    fun getDocumentsForContext(
-        contextId: String,
-        attachmentType: String,
-    ): Flow<List<NoteDocumentEntity>>
+    fun getDocumentsForContext(contextId: String): Flow<List<NoteDocumentEntity>>
 
     @Query("DELETE FROM note_documents WHERE id = :documentId")
     suspend fun deleteDocumentById(documentId: String)

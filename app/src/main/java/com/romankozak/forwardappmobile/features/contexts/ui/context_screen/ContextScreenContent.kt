@@ -250,9 +250,10 @@ fun GoalDetailContent(
         ContextViewMode.JOURNAL_LOG -> {
             JournalLogView(
                 modifier = modifier,
-                contextTitle = goalList?.name,
                 document = journalLogDocument,
-                onSave = viewModel::saveJournalLogDocument,
+                onUpdateLine = viewModel::updateJournalLogLine,
+                onDeleteLine = viewModel::deleteJournalLogLine,
+                onReorderLines = viewModel::replaceJournalLogLines,
             )
         }
         ContextViewMode.ARTIFACT -> {
@@ -576,6 +577,7 @@ private fun BacklogItemContent.searchableTexts(): List<String> =
         is BacklogItemContent.LinkItem -> listOfNotNull(link.linkData.displayName, link.linkData.target)
         is BacklogItemContent.NoteItem -> listOfNotNull(note.title, note.content)
         is BacklogItemContent.NoteDocumentItem -> listOfNotNull(document.name, document.content)
+        is BacklogItemContent.JournalDocumentItem -> listOfNotNull(document.name, document.content)
         is BacklogItemContent.ChecklistItem -> listOfNotNull(checklist.name)
         is BacklogItemContent.MusicNoteItem -> listOfNotNull(musicNote.name, musicNote.content)
     }
@@ -591,6 +593,7 @@ private fun AttachmentRowSummary(
                 item.link.linkData.displayName?.takeIf { it.isNotBlank() }
                     ?: item.link.linkData.target
             is BacklogItemContent.NoteDocumentItem -> item.document.name.ifBlank { "Document" }
+            is BacklogItemContent.JournalDocumentItem -> item.document.name.ifBlank { "Journal" }
             is BacklogItemContent.MusicNoteItem -> item.musicNote.name.ifBlank { "Music note" }
             is BacklogItemContent.ChecklistItem -> item.checklist.name ?: "Checklist"
             else -> "Attachment"
@@ -607,6 +610,7 @@ private fun AttachmentRowSummary(
             when (item) {
                 is BacklogItemContent.LinkItem -> Icons.Outlined.Link
                 is BacklogItemContent.NoteDocumentItem -> Icons.Outlined.Description
+                is BacklogItemContent.JournalDocumentItem -> Icons.Outlined.Description
                 is BacklogItemContent.MusicNoteItem -> Icons.Outlined.MusicNote
                 is BacklogItemContent.ChecklistItem -> Icons.Outlined.Checklist
                 else -> Icons.Default.Attachment

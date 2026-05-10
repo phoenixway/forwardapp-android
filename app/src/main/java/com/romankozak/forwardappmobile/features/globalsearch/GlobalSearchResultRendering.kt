@@ -164,6 +164,7 @@ private fun linkCardSpec(
                 }
             }
             LinkType.NOTE_DOCUMENT,
+            LinkType.JOURNAL_DOCUMENT,
             LinkType.CHECKLIST,
             LinkType.MUSIC_NOTE,
             LinkType.URL,

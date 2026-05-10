@@ -23,6 +23,7 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.PostAdd
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.TravelExplore
@@ -143,6 +144,7 @@ fun QuickActionsRow(
                                 InputMode.AddIssue -> "Issue"
                                 InputMode.AddConnectionNote -> "add note.."
                                 InputMode.AddDirection -> "Напрям"
+                                InputMode.AddJournalLogEntry -> "Journal"
                                 InputMode.AddQuickRecord -> "Запис"
                                 InputMode.SearchInList -> "Пошук"
                                 InputMode.SearchGlobal -> "Глобально"
@@ -180,6 +182,7 @@ fun InputStatusIndicator(
                         InputMode.AddIssue -> MaterialTheme.colorScheme.error
                         InputMode.AddConnectionNote -> MaterialTheme.colorScheme.primary
                         InputMode.AddDirection -> MaterialTheme.colorScheme.primary
+                        InputMode.AddJournalLogEntry -> MaterialTheme.colorScheme.secondary
                         InputMode.AddQuickRecord -> MaterialTheme.colorScheme.primary
                         InputMode.SearchInList -> MaterialTheme.colorScheme.secondary
                         InputMode.SearchGlobal -> MaterialTheme.colorScheme.tertiary
@@ -220,6 +223,7 @@ object InputModeUtils {
                 InputMode.AddIssue,
                 InputMode.AddConnectionNote,
                 InputMode.AddDirection,
+                InputMode.AddJournalLogEntry,
                 InputMode.AddQuickRecord,
             )
         val currentIndex = modes.indexOf(current)
@@ -235,6 +239,7 @@ object InputModeUtils {
                 InputMode.AddIssue,
                 InputMode.AddConnectionNote,
                 InputMode.AddDirection,
+                InputMode.AddJournalLogEntry,
                 InputMode.AddQuickRecord,
             )
         val currentIndex = modes.indexOf(current)
@@ -247,6 +252,7 @@ object InputModeUtils {
             InputMode.AddIssue -> Icons.Outlined.Description
             InputMode.AddConnectionNote -> Icons.Outlined.Description
             InputMode.AddDirection -> Icons.Outlined.Explore
+            InputMode.AddJournalLogEntry -> Icons.Outlined.MenuBook
             InputMode.AddQuickRecord -> Icons.Outlined.Inbox
             InputMode.SearchInList -> Icons.Outlined.Search
             InputMode.SearchGlobal -> Icons.Outlined.TravelExplore
@@ -262,6 +268,7 @@ object InputModeUtils {
         InputMode.AddIssue -> colorScheme.error
         InputMode.AddConnectionNote -> colorScheme.primary
         InputMode.AddDirection -> colorScheme.primary
+        InputMode.AddJournalLogEntry -> colorScheme.secondary
         InputMode.AddQuickRecord -> colorScheme.primary
         InputMode.SearchInList -> colorScheme.secondary
         InputMode.SearchGlobal -> colorScheme.tertiary

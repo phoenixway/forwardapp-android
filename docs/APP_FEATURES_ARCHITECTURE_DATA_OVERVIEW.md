@@ -56,7 +56,7 @@ ForwardApp — Android-додаток для персонального/опер
 - `activitytracker` — трекінг активностей, XP/anti-XP.
 - `ai` (`chat`, `insights`, `data`) — чати/події/інсайти.
 - `attachments` (`specific_types`, `ui`, `data`) — бібліотека вкладень і редактори типів.
-- `context_lab` — експериментальна контекстна гілка.
+- `common` — загальні UI-компоненти та утиліти.
 - `contexts` (`ui`, `data`, `di`) — ядро системи контекстів.
 - `daymanagement` (`ui`, `utils`) — план/трекінг/аналітика дня.
 - `dev_task` — окремі dev task екрани.
@@ -70,6 +70,8 @@ ForwardApp — Android-додаток для персонального/опер
 - `sharing` — прийом external share.
 - `strategicmanagement` — стратегічний менеджмент.
 - `sync` (`selectiveimport`, `di`) — sync UI та selective import.
+- `userawareness` — UI-компоненти для відображення стану/повідомлень користувачу (UserAwarenessBadge, UserAwarenessViewModel).
+- `userawareness` — UI-компоненти для відображення стану/повідомлень користувачу (UserAwarenessBadge, UserAwarenessViewModel).
 - `vet_case` — домен ветеринарних кейсів.
 
 ---

@@ -29,6 +29,7 @@ import com.romankozak.forwardappmobile.core.navigation.ui.PlaceholderScreen
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerScreen
 import com.romankozak.forwardappmobile.features.ai.insights.AiInsightsScreen
 import com.romankozak.forwardappmobile.features.attachments.specifictypes.checklist.ChecklistScreen
+import com.romankozak.forwardappmobile.features.attachments.specifictypes.journaldocument.JournalDocumentScreen
 import com.romankozak.forwardappmobile.features.attachments.specifictypes.musicnote.MusicNoteScreen
 import com.romankozak.forwardappmobile.features.attachments.specifictypes.notedocument.NoteDocumentEditorScreen
 import com.romankozak.forwardappmobile.features.attachments.specifictypes.notedocument.NoteDocumentScreen
@@ -482,6 +483,20 @@ private fun NavGraphBuilder.mainGraph(
             navigationManager = appNavigationViewModel.navigationManager,
             startEdit = startEdit,
         )
+    }
+
+    composable(
+        route = "${NavigationRoutes.JOURNAL_DOCUMENT}/{documentId}?startEdit={startEdit}",
+        arguments =
+            listOf(
+                navArgument("documentId") { type = NavType.StringType },
+                navArgument("startEdit") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                },
+            ),
+    ) {
+        JournalDocumentScreen(navController = navController)
     }
 
     composable(

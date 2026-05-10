@@ -27,7 +27,7 @@ class NoteDocumentRepository
         private val TAG = "NoteDocumentRepository"
 
         fun getDocumentsForContext(contextId: String): Flow<List<NoteDocumentEntity>> =
-            noteDocumentDao.getDocumentsForContext(contextId, BacklogItemTypeValues.NOTE_DOCUMENT)
+            noteDocumentDao.getDocumentsForContext(contextId)
 
         fun getAllDocumentsAsFlow(): Flow<List<NoteDocumentEntity>> = noteDocumentDao.getAllDocumentsAsFlow()
 
@@ -40,6 +40,7 @@ class NoteDocumentRepository
             name: String,
             contextId: String,
             content: String? = null,
+            attachmentType: String = BacklogItemTypeValues.NOTE_DOCUMENT,
             roleCode: String? = null,
             isSystem: Boolean = false,
         ): String {
@@ -50,7 +51,7 @@ class NoteDocumentRepository
             Log.d(TAG, "Inserting new note document: $document")
             noteDocumentDao.insertDocument(document)
             attachmentRepository.ensureAttachmentLinkedToContext(
-                attachmentType = BacklogItemTypeValues.NOTE_DOCUMENT,
+                attachmentType = attachmentType,
                 entityId = document.id,
                 contextId = contextId,
                 ownerContextId = contextId,
@@ -97,6 +98,9 @@ class NoteDocumentRepository
                 noteDocumentDao.deleteDocumentById(documentId)
             }
             attachmentRepository.findAttachmentByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)?.let {
+                attachmentRepository.deleteAttachment(it.id)
+            }
+            attachmentRepository.findAttachmentByEntity(BacklogItemTypeValues.JOURNAL_DOCUMENT, documentId)?.let {
                 attachmentRepository.deleteAttachment(it.id)
             }
         }

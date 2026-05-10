@@ -7,7 +7,7 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.GlobalContextSearchResult
+import com.romankozak.forwardappmobile.core.data.models.entities.GlobalContextSearchRow
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSubcontextSearchResult
 import kotlinx.coroutines.flow.Flow
 
@@ -110,10 +110,10 @@ interface ContextDao {
     SELECT p.*, pc.path as pathSegments
     FROM contexts p
     JOIN path_cte pc ON p.id = pc.id
-    WHERE p.name LIKE :query
+    WHERE p.name LIKE :query OR p.tags LIKE :query
 """,
     )
-    suspend fun searchContextsGlobal(query: String): List<GlobalContextSearchResult>
+    suspend fun searchContextsGlobal(query: String): List<GlobalContextSearchRow>
 
     @Query("DELETE FROM contexts")
     suspend fun deleteAll()

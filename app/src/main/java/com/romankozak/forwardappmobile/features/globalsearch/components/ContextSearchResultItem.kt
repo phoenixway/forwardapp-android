@@ -25,6 +25,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -68,6 +69,9 @@ fun ProjectSearchResultItem(
             if (result.pathSegments.isNotEmpty()) {
                 ContextResultPath(pathText = result.pathSegments.joinToString(" → "))
             }
+            if (result.matchedTags.isNotEmpty()) {
+                ContextMatchedTags(tags = result.matchedTags)
+            }
             ContextResultFooter(
                 onClick = onClick,
                 onOpenInNavigation = onOpenInNavigation,
@@ -110,6 +114,40 @@ private fun ContextResultPath(pathText: String) {
             text = pathText,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun ContextMatchedTags(tags: List<String>) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Surface(
+            shape = RoundedCornerShape(8.dp),
+            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.72f),
+        ) {
+            Text(
+                text = "Matched tag",
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            )
+        }
+        Text(
+            text = tags.joinToString("  ") { tag ->
+                if (tag.startsWith("#")) tag else "#$tag"
+            },
+            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+            color = MaterialTheme.colorScheme.tertiary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
     }

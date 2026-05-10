@@ -22,6 +22,7 @@ import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.DataObject
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material3.Card
@@ -179,6 +180,12 @@ private fun createConnectionItems(): List<ConnectionCreateItem> =
             Icons.AutoMirrored.Outlined.StickyNote2,
             MaterialTheme.colorScheme.primary,
             CreateConnectionType.NOTE_DOCUMENT,
+        ),
+        ConnectionCreateItem(
+            "Journal log",
+            Icons.Outlined.Description,
+            MaterialTheme.colorScheme.tertiary,
+            CreateConnectionType.JOURNAL_DOCUMENT,
         ),
         ConnectionCreateItem(
             "Ноти",

@@ -132,6 +132,7 @@ private fun BacklogItem.toBacklogItemContent(
         BacklogItemTypeValues.GOAL -> toGoalItemContent(support, reminders)
         BacklogItemTypeValues.SUBLIST, PROJECT_ITEM_TYPE -> toContextLinkItemContent(support, reminders)
         BacklogItemTypeValues.NOTE_DOCUMENT,
+        BacklogItemTypeValues.JOURNAL_DOCUMENT,
         BacklogItemTypeValues.CHECKLIST,
         BacklogItemTypeValues.MUSIC_NOTE,
         BacklogItemTypeValues.LINK_ITEM,
@@ -173,6 +174,10 @@ private fun AttachmentWithContext.toAttachmentItem(
         BacklogItemTypeValues.NOTE_DOCUMENT ->
             support.noteDocumentsById[attachment.entityId]?.let { document ->
                 BacklogItemContent.NoteDocumentItem(document, backlogItem)
+            }
+        BacklogItemTypeValues.JOURNAL_DOCUMENT ->
+            support.noteDocumentsById[attachment.entityId]?.let { document ->
+                BacklogItemContent.JournalDocumentItem(document, backlogItem)
             }
         BacklogItemTypeValues.CHECKLIST ->
             support.checklistsById[attachment.entityId]?.let { checklist ->
@@ -232,6 +237,13 @@ private fun BacklogItem.toAttachmentBackedItemContent(
         BacklogItemTypeValues.NOTE_DOCUMENT ->
             support.noteDocumentsById[entityId]?.let { document ->
                 BacklogItemContent.NoteDocumentItem(
+                    document = document,
+                    backlogItem = this,
+                )
+            }
+        BacklogItemTypeValues.JOURNAL_DOCUMENT ->
+            support.noteDocumentsById[entityId]?.let { document ->
+                BacklogItemContent.JournalDocumentItem(
                     document = document,
                     backlogItem = this,
                 )

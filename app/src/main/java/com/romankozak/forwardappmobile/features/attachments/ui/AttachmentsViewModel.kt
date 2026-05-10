@@ -133,6 +133,7 @@ class AttachmentsViewModel
                         content.filter { item ->
                             item is BacklogItemContent.LinkItem ||
                                 item is BacklogItemContent.NoteDocumentItem ||
+                                item is BacklogItemContent.JournalDocumentItem ||
                                 item is BacklogItemContent.MusicNoteItem ||
                                 item is BacklogItemContent.ChecklistItem
                         }
@@ -234,8 +235,12 @@ class AttachmentsViewModel
                             ),
                         )
                     }
-                    LinkType.NOTE_DOCUMENT -> {
+                    LinkType.NOTE_DOCUMENT,
+                    -> {
                         _uiEventFlow.send(UiEvent.Navigate(NavTarget.NoteDocument(id = link.target, startEdit = false)))
+                    }
+                    LinkType.JOURNAL_DOCUMENT -> {
+                        _uiEventFlow.send(UiEvent.Navigate(NavTarget.JournalDocument(id = link.target, startEdit = false)))
                     }
                     LinkType.CHECKLIST -> {
                         _uiEventFlow.send(UiEvent.Navigate(NavTarget.Checklist(id = link.target)))

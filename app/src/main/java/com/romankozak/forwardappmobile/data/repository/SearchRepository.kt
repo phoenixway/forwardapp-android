@@ -2,6 +2,8 @@ package com.romankozak.forwardappmobile.data.repository
 
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalAttachmentSearchResult
+import com.romankozak.forwardappmobile.core.data.models.entities.GlobalContextSearchRow
+import com.romankozak.forwardappmobile.core.data.models.entities.GlobalContextSearchResult
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
@@ -96,7 +98,11 @@ class SearchRepository
             contextDao.searchSubprojectsGlobal(query).map { GlobalSearchResultItem.SubcontextItem(it) }
 
         private suspend fun buildContextResults(query: String): List<GlobalSearchResultItem.ContextItem> =
-            contextDao.searchContextsGlobal(query).map { GlobalSearchResultItem.ContextItem(it) }
+            contextDao.searchContextsGlobal(query).map { searchRow ->
+                GlobalSearchResultItem.ContextItem(
+                    searchRow.toSearchResult(query),
+                )
+            }
 
         private suspend fun buildActivityResults(activityQuery: String?): List<GlobalSearchResultItem.ActivityItem> =
             activityQuery
@@ -188,7 +194,7 @@ class SearchRepository
                 when (link.type) {
                     LinkType.URL, LinkType.OBSIDIAN -> link.target
                     LinkType.CONTEXT -> link.displayName ?: link.target
-                    LinkType.NOTE_DOCUMENT, LinkType.CHECKLIST, LinkType.MUSIC_NOTE -> link.displayName ?: link.target
+                    LinkType.NOTE_DOCUMENT, LinkType.JOURNAL_DOCUMENT, LinkType.CHECKLIST, LinkType.MUSIC_NOTE -> link.displayName ?: link.target
                     null -> link.target
                 }
             }
@@ -200,4 +206,26 @@ class SearchRepository
                 ?.let { safeLinkDisplayName ->
                     runCatching { Gson().fromJson(safeLinkDisplayName, RelatedLink::class.java) }.getOrNull()
                 }
+
+        private fun GlobalContextSearchRow.toSearchResult(query: String): GlobalContextSearchResult {
+            val normalizedQuery = query.removePrefix("%").removeSuffix("%").trim()
+            if (normalizedQuery.isBlank()) {
+                return GlobalContextSearchResult(
+                    context = context,
+                    pathSegments = pathSegments,
+                    matchedTags = emptyList(),
+                )
+            }
+            val matchedTags =
+                context.tags
+                    .orEmpty()
+                    .map { it.trim() }
+                    .filter { it.isNotBlank() && it.contains(normalizedQuery, ignoreCase = true) }
+                    .distinct()
+            return GlobalContextSearchResult(
+                context = context,
+                pathSegments = pathSegments,
+                matchedTags = matchedTags,
+            )
+        }
     }

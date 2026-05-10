@@ -70,6 +70,7 @@ enum class ConnectionType {
     CONTEXT,
     ATTACHMENT,
     NOTE_DOCUMENT,
+    JOURNAL_DOCUMENT,
     CHECKLIST,
     MUSIC_NOTE,
     SCRIPT,
@@ -87,6 +88,7 @@ enum class AddConnectionType {
 enum class CreateConnectionType {
     CONTEXT,
     NOTE_DOCUMENT,
+    JOURNAL_DOCUMENT,
     MUSIC_NOTE,
     CHECKLIST,
     SCRIPT,
@@ -588,6 +590,7 @@ private val ConnectionType.icon: ImageVector
             ConnectionType.CONTEXT -> Icons.Outlined.AccountTree
             ConnectionType.ATTACHMENT -> Icons.Outlined.AttachFile
             ConnectionType.NOTE_DOCUMENT -> Icons.Outlined.Description
+            ConnectionType.JOURNAL_DOCUMENT -> Icons.AutoMirrored.Outlined.StickyNote2
             ConnectionType.CHECKLIST -> Icons.Outlined.Checklist
             ConnectionType.MUSIC_NOTE -> Icons.Outlined.MusicNote
             ConnectionType.SCRIPT -> Icons.Outlined.Code
@@ -601,6 +604,7 @@ private val ConnectionType.tint: Color
             ConnectionType.CONTEXT -> ContextTypeTint
             ConnectionType.ATTACHMENT -> AttachmentTypeTint
             ConnectionType.NOTE_DOCUMENT -> NoteDocumentTypeTint
+            ConnectionType.JOURNAL_DOCUMENT -> NoteDocumentTypeTint
             ConnectionType.CHECKLIST -> ChecklistTypeTint
             ConnectionType.MUSIC_NOTE -> MusicNoteTypeTint
             ConnectionType.SCRIPT -> ScriptTypeTint
@@ -614,6 +618,7 @@ private val ConnectionType.label: String
             ConnectionType.CONTEXT -> "Контекст"
             ConnectionType.ATTACHMENT -> "Вкладення"
             ConnectionType.NOTE_DOCUMENT -> "Нотатка"
+            ConnectionType.JOURNAL_DOCUMENT -> "Журнал"
             ConnectionType.CHECKLIST -> "Чекліст"
             ConnectionType.MUSIC_NOTE -> "Музичні ноти"
             ConnectionType.SCRIPT -> "Скрипт"

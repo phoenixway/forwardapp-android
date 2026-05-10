@@ -218,6 +218,17 @@ private fun AttachmentItemCard(
                     onDelete = { onDeleteItem(item) },
                 )
             }
+            is BacklogItemContent.JournalDocumentItem -> {
+                NoteDocumentItemRow(
+                    noteDocumentItem =
+                        BacklogItemContent.NoteDocumentItem(
+                            item.document,
+                            item.backlogItem,
+                        ),
+                    onClick = { onItemClick(item) },
+                    onDelete = { onDeleteItem(item) },
+                )
+            }
             is BacklogItemContent.ChecklistItem -> {
                 ChecklistItemRow(
                     checklistItem = item,

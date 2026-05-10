@@ -213,6 +213,15 @@ data class GlobalContextSearchResult(
     val context: Context,
     @TypeConverters(PathSegmentsConverter::class) @SerializedName("pathSegments")
     val pathSegments: List<String>,
+    @SerializedName("matchedTags")
+    val matchedTags: List<String> = emptyList(),
+)
+
+data class GlobalContextSearchRow(
+    @Embedded @SerializedName("context")
+    val context: Context,
+    @TypeConverters(PathSegmentsConverter::class) @SerializedName("pathSegments")
+    val pathSegments: List<String>,
 )
 
 data class GlobalAttachmentSearchResult(

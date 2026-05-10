@@ -5,6 +5,7 @@ enum class InputMode {
     AddIssue,
     AddConnectionNote,
     AddDirection,
+    AddJournalLogEntry,
     SearchInList,
     SearchGlobal,
     AddQuickRecord,

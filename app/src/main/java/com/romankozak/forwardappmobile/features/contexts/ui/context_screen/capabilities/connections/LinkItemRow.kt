@@ -164,6 +164,7 @@ private fun resolveLinkIcon(type: LinkType?) =
     when (type) {
         LinkType.CONTEXT -> Icons.AutoMirrored.Filled.ListAlt
         LinkType.NOTE_DOCUMENT -> Icons.AutoMirrored.Filled.Note
+        LinkType.JOURNAL_DOCUMENT -> Icons.AutoMirrored.Filled.Note
         LinkType.CHECKLIST -> Icons.AutoMirrored.Filled.ListAlt
         LinkType.MUSIC_NOTE -> Icons.AutoMirrored.Filled.Note
         LinkType.URL -> Icons.Default.Language
@@ -178,6 +179,7 @@ private fun resolveLinkSubtitle(
     when (type) {
         LinkType.CONTEXT -> "Посилання на список"
         LinkType.NOTE_DOCUMENT -> "Документ"
+        LinkType.JOURNAL_DOCUMENT -> "Журнал"
         LinkType.CHECKLIST -> "Чекліст"
         LinkType.MUSIC_NOTE -> "Музичні ноти"
         LinkType.URL -> target

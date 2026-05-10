@@ -43,6 +43,7 @@ fun ConnectionsView(
         attachmentItems.filter {
             it is BacklogItemContent.LinkItem ||
                 it is BacklogItemContent.NoteDocumentItem ||
+                it is BacklogItemContent.JournalDocumentItem ||
                 it is BacklogItemContent.MusicNoteItem ||
                 it is BacklogItemContent.ChecklistItem
         }
@@ -237,6 +238,7 @@ private fun CreateConnectionType.toPickerCreateAction(): PickerCreateAction =
     when (this) {
         CreateConnectionType.CONTEXT -> PickerCreateAction.CONTEXT
         CreateConnectionType.NOTE_DOCUMENT -> PickerCreateAction.NOTE
+        CreateConnectionType.JOURNAL_DOCUMENT -> PickerCreateAction.JOURNAL_DOCUMENT
         CreateConnectionType.MUSIC_NOTE -> PickerCreateAction.MUSIC_NOTE
         CreateConnectionType.CHECKLIST -> PickerCreateAction.CHECKLIST
         CreateConnectionType.SCRIPT -> PickerCreateAction.NOTE
@@ -257,6 +259,7 @@ private fun BacklogItemContent.connectionTitle(): String =
             link.linkData.displayName?.ifBlank { link.linkData.target }
                 ?: link.linkData.target
         is BacklogItemContent.NoteDocumentItem -> document.name
+        is BacklogItemContent.JournalDocumentItem -> document.name
         is BacklogItemContent.MusicNoteItem -> musicNote.name
         is BacklogItemContent.ChecklistItem -> checklist.name
         else -> ""
@@ -268,6 +271,7 @@ private fun BacklogItemContent.connectionType(): ConnectionType =
             when (link.linkData.type) {
                 LinkType.CONTEXT -> ConnectionType.CONTEXT
                 LinkType.NOTE_DOCUMENT -> ConnectionType.NOTE_DOCUMENT
+                LinkType.JOURNAL_DOCUMENT -> ConnectionType.JOURNAL_DOCUMENT
                 LinkType.CHECKLIST -> ConnectionType.CHECKLIST
                 LinkType.MUSIC_NOTE -> ConnectionType.MUSIC_NOTE
                 LinkType.URL -> ConnectionType.URL
@@ -275,6 +279,7 @@ private fun BacklogItemContent.connectionType(): ConnectionType =
                 null -> ConnectionType.ATTACHMENT
             }
         is BacklogItemContent.NoteDocumentItem -> ConnectionType.NOTE_DOCUMENT
+        is BacklogItemContent.JournalDocumentItem -> ConnectionType.JOURNAL_DOCUMENT
         is BacklogItemContent.MusicNoteItem -> ConnectionType.MUSIC_NOTE
         is BacklogItemContent.ChecklistItem -> ConnectionType.CHECKLIST
         else -> ConnectionType.ATTACHMENT

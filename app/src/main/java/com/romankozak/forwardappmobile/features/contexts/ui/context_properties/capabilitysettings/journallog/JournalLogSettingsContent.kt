@@ -37,7 +37,7 @@ fun JournalLogSettingsContent(contextId: String) {
         MarkerHint("?  питання або вибір")
         MarkerHint("*  будь-який інший маркер теж відобразиться")
         Text(
-            text = "Натисни на заголовок у Journal Log view, щоб редагувати title.",
+            text = "Journal Log тепер тримає фокус на самому editor, а назва документа береться автоматично з контексту.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

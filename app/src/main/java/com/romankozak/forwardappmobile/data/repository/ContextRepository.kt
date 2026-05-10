@@ -224,6 +224,8 @@ class ContextRepository
                 BacklogItemTypeValues.NOTE -> lookupMaps.notesMap[entityId]?.let { BacklogItemContent.NoteItem(it, this) }
                 BacklogItemTypeValues.NOTE_DOCUMENT ->
                     lookupMaps.noteDocumentsMap[entityId]?.let { BacklogItemContent.NoteDocumentItem(it, this) }
+                BacklogItemTypeValues.JOURNAL_DOCUMENT ->
+                    lookupMaps.noteDocumentsMap[entityId]?.let { BacklogItemContent.JournalDocumentItem(it, this) }
                 BacklogItemTypeValues.MUSIC_NOTE ->
                     lookupMaps.musicNotesMap[entityId]?.let { BacklogItemContent.MusicNoteItem(it, this) }
                 BacklogItemTypeValues.CHECKLIST ->
@@ -509,6 +511,14 @@ class ContextRepository
                         )
                     }
                 }
+                BacklogItemTypeValues.JOURNAL_DOCUMENT -> {
+                    val document = noteDocumentRepository.getDocumentById(entityId) ?: return
+                    if (document.contextId != fallbackContextId) {
+                        noteDocumentRepository.updateDocument(
+                            document.copy(contextId = fallbackContextId, updatedAt = now),
+                        )
+                    }
+                }
                 BacklogItemTypeValues.MUSIC_NOTE -> {
                     val musicNote = musicNoteRepository.getById(entityId) ?: return
                     if (musicNote.contextId != fallbackContextId) {
@@ -552,9 +562,10 @@ class ContextRepository
                     name = title,
                     contextId = contextId,
                     content = trimmed,
+                    attachmentType = BacklogItemTypeValues.JOURNAL_DOCUMENT,
                 )
 
-            return attachmentRepository.findAttachmentByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)?.id
+            return attachmentRepository.findAttachmentByEntity(BacklogItemTypeValues.JOURNAL_DOCUMENT, documentId)?.id
                 ?: documentId
         }
 
@@ -574,6 +585,7 @@ class ContextRepository
             val attachment = attachmentRepository.getAttachmentById(attachmentId) ?: return
             when (attachment.attachmentType) {
                 BacklogItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.deleteDocument(attachment.entityId)
+                BacklogItemTypeValues.JOURNAL_DOCUMENT -> noteDocumentRepository.deleteDocument(attachment.entityId)
                 BacklogItemTypeValues.MUSIC_NOTE -> musicNoteRepository.delete(attachment.entityId)
                 BacklogItemTypeValues.CHECKLIST -> checklistRepository.deleteChecklist(attachment.entityId)
                 else -> attachmentRepository.deleteAttachment(attachmentId)
@@ -646,6 +658,7 @@ class ContextRepository
                             BacklogItemTypeValues.GOAL -> goalRepository.getGoalById(entityId) == null
                             BacklogItemTypeValues.SUBLIST -> contextDao.getContextById(entityId) == null
                             BacklogItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.getDocumentById(entityId) == null
+                            BacklogItemTypeValues.JOURNAL_DOCUMENT -> noteDocumentRepository.getDocumentById(entityId) == null
                             BacklogItemTypeValues.MUSIC_NOTE -> musicNoteRepository.getById(entityId) == null
                             BacklogItemTypeValues.CHECKLIST -> checklistRepository.getChecklistById(entityId) == null
                             else -> false
@@ -884,6 +897,8 @@ class ContextRepository
                 if (attachment != null) {
                     when (attachment.attachmentType) {
                         BacklogItemTypeValues.NOTE_DOCUMENT ->
+                            noteDocumentRepository.deleteDocument(attachment.entityId)
+                        BacklogItemTypeValues.JOURNAL_DOCUMENT ->
                             noteDocumentRepository.deleteDocument(attachment.entityId)
                         BacklogItemTypeValues.MUSIC_NOTE ->
                             musicNoteRepository.delete(attachment.entityId)

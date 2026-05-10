@@ -29,6 +29,7 @@ internal fun getPanelColors(
             InputMode.AddIssue -> theme.addProjectLog
             InputMode.AddConnectionNote -> theme.addQuickRecord
             InputMode.AddDirection -> theme.addGoal
+            InputMode.AddJournalLogEntry -> theme.addProjectLog
             InputMode.AddQuickRecord -> theme.addQuickRecord
             InputMode.SearchInList -> theme.searchInList
             InputMode.SearchGlobal -> theme.searchGlobal

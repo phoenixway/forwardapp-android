@@ -180,6 +180,8 @@ fun StrategicArcScreen(
             when {
                 option?.attachmentType == "NOTE_DOCUMENT" && !option.entityId.isNullOrBlank() ->
                     openTarget(NavTarget.NoteDocument(id = option.entityId), false)
+                option?.attachmentType == "JOURNAL_DOCUMENT" && !option.entityId.isNullOrBlank() ->
+                    openTarget(NavTarget.JournalDocument(id = option.entityId), false)
                 option?.attachmentType == "MUSIC_NOTE" && !option.entityId.isNullOrBlank() ->
                     openTarget(NavTarget.MusicNote(id = option.entityId), false)
                 option?.attachmentType == "CHECKLIST" && !option.entityId.isNullOrBlank() ->
@@ -479,6 +481,7 @@ private fun CreateConnectionType.toPickerCreateAction(): PickerCreateAction =
     when (this) {
         CreateConnectionType.CONTEXT -> PickerCreateAction.CONTEXT
         CreateConnectionType.NOTE_DOCUMENT -> PickerCreateAction.NOTE
+        CreateConnectionType.JOURNAL_DOCUMENT -> PickerCreateAction.JOURNAL_DOCUMENT
         CreateConnectionType.MUSIC_NOTE -> PickerCreateAction.MUSIC_NOTE
         CreateConnectionType.CHECKLIST -> PickerCreateAction.CHECKLIST
         CreateConnectionType.SCRIPT -> PickerCreateAction.NOTE

@@ -85,6 +85,7 @@ enum class LinkPickerTab {
 enum class PickerCreateAction {
     CONTEXT,
     NOTE,
+    JOURNAL_DOCUMENT,
     MUSIC_NOTE,
     CHECKLIST,
     WEB_LINK,
@@ -93,6 +94,8 @@ enum class PickerCreateAction {
 
 sealed interface NewDocumentDraft {
     data class Note(val name: String) : NewDocumentDraft
+
+    data class JournalDocument(val name: String) : NewDocumentDraft
 
     data class MusicNote(val name: String) : NewDocumentDraft
 
@@ -455,6 +458,12 @@ private fun HandleInitialPickerCreateAction(
                     onOpenDocumentCreation(DocumentCreationType.NOTE)
                 }
             }
+            PickerCreateAction.JOURNAL_DOCUMENT -> {
+                if (hasAttachmentsTab && onCreateDocument != null) {
+                    onSelectTab(LinkPickerTab.ATTACHMENTS)
+                    onOpenDocumentCreation(DocumentCreationType.JOURNAL_DOCUMENT)
+                }
+            }
             PickerCreateAction.CHECKLIST -> {
                 if (hasAttachmentsTab && onCreateDocument != null) {
                     onSelectTab(LinkPickerTab.ATTACHMENTS)
@@ -688,7 +697,7 @@ private fun LinkedTargetsPickerFab(
             ) {
                 DocumentCreationType.entries.forEach { type ->
                     DropdownMenuItem(
-                        text = { Text(stringResource(documentCreationMenuLabel(type))) },
+                        text = { Text(documentCreationMenuLabel(type)) },
                         onClick = {
                             onDocumentsMenuExpandedChange(false)
                             onOpenDocumentCreation(type)
@@ -700,13 +709,15 @@ private fun LinkedTargetsPickerFab(
     }
 }
 
-private fun documentCreationMenuLabel(type: DocumentCreationType): Int =
+@Composable
+private fun documentCreationMenuLabel(type: DocumentCreationType): String =
     when (type) {
-        DocumentCreationType.NOTE -> R.string.attachment_type_notes
-        DocumentCreationType.MUSIC_NOTE -> R.string.attachment_type_music_notes
-        DocumentCreationType.CHECKLIST -> R.string.attachment_type_checklist
-        DocumentCreationType.WEB_LINK -> R.string.attachment_type_web_link
-        DocumentCreationType.OBSIDIAN -> R.string.attachment_type_obsidian
+        DocumentCreationType.NOTE -> stringResource(R.string.attachment_type_notes)
+        DocumentCreationType.JOURNAL_DOCUMENT -> "Journal log"
+        DocumentCreationType.MUSIC_NOTE -> stringResource(R.string.attachment_type_music_notes)
+        DocumentCreationType.CHECKLIST -> stringResource(R.string.attachment_type_checklist)
+        DocumentCreationType.WEB_LINK -> stringResource(R.string.attachment_type_web_link)
+        DocumentCreationType.OBSIDIAN -> stringResource(R.string.attachment_type_obsidian)
     }
 
 private fun Modifier.pickerDragGesture(
@@ -838,6 +849,7 @@ private fun buildNewDocumentDraft(
 ): NewDocumentDraft =
     when (type) {
         DocumentCreationType.NOTE -> NewDocumentDraft.Note(name = name.trim().ifBlank { "New note" })
+        DocumentCreationType.JOURNAL_DOCUMENT -> NewDocumentDraft.JournalDocument(name = name.trim().ifBlank { "New journal" })
         DocumentCreationType.MUSIC_NOTE -> NewDocumentDraft.MusicNote(name = name.trim().ifBlank { "New music note" })
         DocumentCreationType.CHECKLIST -> NewDocumentDraft.Checklist(name = name.trim().ifBlank { "New checklist" })
         DocumentCreationType.WEB_LINK -> NewDocumentDraft.WebLink(url = target.trim(), name = name.trim())
@@ -1188,6 +1200,7 @@ private fun attachmentIcon(type: LinkType?) =
         LinkType.OBSIDIAN -> Icons.AutoMirrored.Filled.Notes
         LinkType.CONTEXT -> Icons.Default.Folder
         LinkType.NOTE_DOCUMENT,
+        LinkType.JOURNAL_DOCUMENT,
         LinkType.CHECKLIST,
         LinkType.MUSIC_NOTE,
         null -> Icons.AutoMirrored.Filled.InsertDriveFile
@@ -1195,6 +1208,7 @@ private fun attachmentIcon(type: LinkType?) =
 
 private enum class DocumentCreationType {
     NOTE,
+    JOURNAL_DOCUMENT,
     MUSIC_NOTE,
     CHECKLIST,
     WEB_LINK,
@@ -1216,6 +1230,7 @@ private fun DocumentCreationDialog(
     val title =
         when (type) {
             DocumentCreationType.NOTE -> stringResource(R.string.attachment_type_notes)
+            DocumentCreationType.JOURNAL_DOCUMENT -> "Journal log"
             DocumentCreationType.MUSIC_NOTE -> stringResource(R.string.attachment_type_music_notes)
             DocumentCreationType.CHECKLIST -> stringResource(R.string.attachment_type_checklist)
             DocumentCreationType.WEB_LINK -> stringResource(R.string.attachment_type_web_link)
@@ -1224,6 +1239,7 @@ private fun DocumentCreationDialog(
     val targetLabel =
         when (type) {
             DocumentCreationType.NOTE,
+            DocumentCreationType.JOURNAL_DOCUMENT,
             DocumentCreationType.MUSIC_NOTE,
             DocumentCreationType.CHECKLIST,
             -> null
@@ -1268,6 +1284,7 @@ private fun DocumentCreationDialog(
                 enabled =
                     when (type) {
                         DocumentCreationType.NOTE,
+                        DocumentCreationType.JOURNAL_DOCUMENT,
                         DocumentCreationType.MUSIC_NOTE,
                         DocumentCreationType.CHECKLIST,
                         -> true

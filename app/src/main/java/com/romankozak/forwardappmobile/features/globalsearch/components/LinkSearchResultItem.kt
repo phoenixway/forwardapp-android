@@ -250,7 +250,8 @@ private fun getLinkDisplayData(
     onOpenUrl: () -> Unit,
 ): LinkDisplayData =
     when (linkType) {
-        LinkType.NOTE_DOCUMENT ->
+        LinkType.NOTE_DOCUMENT,
+        LinkType.JOURNAL_DOCUMENT ->
             LinkDisplayData(
                 icon = Icons.AutoMirrored.Filled.Note,
                 colors =
@@ -349,6 +350,7 @@ private fun getLinkTypeLabel(linkType: LinkType?): String =
         LinkType.OBSIDIAN -> "Attachment: Obsidian note"
         LinkType.CONTEXT -> "Attachment: link to project"
         LinkType.NOTE_DOCUMENT -> "Attachment: note document"
+        LinkType.JOURNAL_DOCUMENT -> "Attachment: journal document"
         LinkType.CHECKLIST -> "Attachment: checklist"
         LinkType.MUSIC_NOTE -> "Attachment: music note"
         null -> "Attachment: Unknown"

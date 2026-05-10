@@ -5,6 +5,7 @@ fun ConnectionItemUi.orderToken(): String =
         ConnectionType.CONTEXT -> "C:$id"
         ConnectionType.ATTACHMENT -> "A:$id"
         ConnectionType.NOTE_DOCUMENT -> "A:$id"
+        ConnectionType.JOURNAL_DOCUMENT -> "A:$id"
         ConnectionType.CHECKLIST -> "A:$id"
         ConnectionType.MUSIC_NOTE -> "A:$id"
         ConnectionType.SCRIPT -> "S:$id"

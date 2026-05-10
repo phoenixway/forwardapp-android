@@ -120,6 +120,8 @@ class InputHandler(
 
         fun addDirectionItem(text: String)
 
+        fun addJournalLogEntry(text: String)
+
         fun createObsidianNote(noteName: String, vault: String? = null)
     }
 
@@ -214,6 +216,10 @@ class InputHandler(
                 InputMode.AddDirection -> {
                     resetInput()
                     resultListener.addDirectionItem(originalText)
+                }
+                InputMode.AddJournalLogEntry -> {
+                    resetInput()
+                    resultListener.addJournalLogEntry(originalText)
                 }
             }
         }
