@@ -47,3 +47,4 @@ forward_app_full_backup_*.json
 *.keystore
 app/google-services.json
 *.db
+*.png
