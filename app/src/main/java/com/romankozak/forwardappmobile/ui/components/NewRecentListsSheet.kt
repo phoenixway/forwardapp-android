@@ -67,10 +67,6 @@ private data class RecentItemCardColors(
     val cardBackground: Color,
 )
 
-private val recentItemsComparator =
-    compareByDescending<RecentItem> { it.lastAccessed }
-        .thenBy { it.id }
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun NewRecentListsSheet(
@@ -82,17 +78,12 @@ fun NewRecentListsSheet(
 ) {
     if (!showSheet) return
 
-    val stableRecentItems =
-        remember(recentItems) {
-            recentItems.sortedWith(recentItemsComparator)
-        }
-
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
         RecentItemsSheetContent(
-            stableRecentItems = stableRecentItems,
+            stableRecentItems = recentItems,
             onItemClick = onItemClick,
             onPinClick = { item ->
                 onPinClick(item)

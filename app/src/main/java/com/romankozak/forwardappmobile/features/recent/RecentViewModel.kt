@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -13,23 +14,28 @@ import javax.inject.Inject
 private const val FLOW_STOP_TIMEOUT_MILLIS = 5000L
 private const val RECENT_ITEMS_LIMIT = 100
 
+private val recentItemsComparator =
+    compareByDescending<RecentItem> { it.lastAccessed }
+        .thenBy { it.id }
+
 @HiltViewModel
 class RecentViewModel
-    @Inject
-    constructor(
-        private val recentItemsRepository: RecentItemsRepository,
-    ) : ViewModel() {
-        val recentItems =
-            recentItemsRepository.getRecentItems(RECENT_ITEMS_LIMIT)
-                .stateIn(
-                    viewModelScope,
-                    SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS),
-                    emptyList(),
-                )
+@Inject
+constructor(
+    private val recentItemsRepository: RecentItemsRepository,
+) : ViewModel() {
+    val recentItems =
+        recentItemsRepository.getRecentItems(RECENT_ITEMS_LIMIT)
+            .map { items -> items.sortedWith(recentItemsComparator) }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS),
+                emptyList(),
+            )
 
-        fun onPinClick(item: RecentItem) {
-            viewModelScope.launch {
-                recentItemsRepository.updateRecentItem(item.copy(isPinned = !item.isPinned))
-            }
+    fun onPinClick(item: RecentItem) {
+        viewModelScope.launch {
+            recentItemsRepository.updateRecentItem(item.copy(isPinned = !item.isPinned))
         }
     }
+}
