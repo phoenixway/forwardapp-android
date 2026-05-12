@@ -506,6 +506,7 @@ class ContextSettingsViewModel
                 "Backlog" -> CapabilityId("backlog")
                 "Attachments", "Connections" -> CapabilityId("connections")
                 "Issues" -> CapabilityId("key_problems")
+                "Directions" -> CapabilityId("direction")
                 else -> CapabilityId(label.lowercase().replace(" ", "_"))
             }
 
