@@ -243,6 +243,15 @@ private fun DayTaskMetaRow(
     val task = taskWithReminder.dayTask
     val metaItems =
         buildList<UnifiedStatusChipSpec> {
+            if (task.title.contains("#focus", ignoreCase = true) || task.description?.contains("#focus", ignoreCase = true) == true) {
+                add(
+                    UnifiedStatusChipSpec(
+                        icon = Icons.Outlined.Flag,
+                        text = "Focus",
+                        contentColor = MaterialTheme.colorScheme.tertiary,
+                    ),
+                )
+            }
             task.points.takeIf { it > 0 }?.let { points ->
                 add(
                     UnifiedStatusChipSpec(
