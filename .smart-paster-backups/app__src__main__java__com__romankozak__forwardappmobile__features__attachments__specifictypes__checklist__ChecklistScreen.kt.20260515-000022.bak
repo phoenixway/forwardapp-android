@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -44,11 +43,8 @@ import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.CheckBoxOutlineBlank
 import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.Delete
@@ -155,18 +151,6 @@ fun ChecklistScreen(
     val clipboardManager = LocalClipboardManager.current
     val coroutineScope = rememberCoroutineScope()
     val linkSuggestions by viewModel.linkSuggestions.collectAsStateWithLifecycle()
-    var isSearchActive by remember { mutableStateOf(false) }
-    var searchQuery by remember { mutableStateOf("") }
-    val visibleItems =
-        remember(uiState.items, searchQuery) {
-            if (searchQuery.isBlank()) {
-                uiState.items
-            } else {
-                uiState.items.filter { item ->
-                    item.content.contains(searchQuery, ignoreCase = true)
-                }
-            }
-        }
 
     LaunchedEffect(uiState.showUndoSnackbar) {
         if (uiState.showUndoSnackbar) {
@@ -340,9 +324,6 @@ fun ChecklistScreen(
                         coroutineScope.launch { snackbarHostState.showSnackbar(message) }
                     }
                 },
-                onSearchInList = {
-                    isSearchActive = true
-                },
             )
         },
         floatingActionButton = {
@@ -355,18 +336,6 @@ fun ChecklistScreen(
                         contentDescription = stringResource(R.string.checklist_add_item),
                     )
                 }
-            }
-        },
-        bottomBar = {
-            if (isSearchActive) {
-                ChecklistSearchBottomBar(
-                    query = searchQuery,
-                    onQueryChange = { searchQuery = it },
-                    onClose = {
-                        searchQuery = ""
-                        isSearchActive = false
-                    },
-                )
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -416,7 +385,6 @@ fun ChecklistScreen(
                             .fillMaxSize()
                             .padding(padding),
                     uiState = uiState,
-                    visibleItems = visibleItems,
                     reorderState = reorderState,
                     listState = listState,
                     onContentChange = viewModel::onItemContentChange,
@@ -502,7 +470,6 @@ fun ChecklistScreen(
 private fun ChecklistContent(
     modifier: Modifier,
     uiState: ChecklistUiState,
-    visibleItems: List<ChecklistItemUiModel>,
     reorderState: ReorderableLazyListState,
     listState: LazyListState,
     onContentChange: (String, String) -> Unit,
@@ -521,7 +488,7 @@ private fun ChecklistContent(
     val focusManager = LocalFocusManager.current
 
     AnimatedVisibility(
-        visible = visibleItems.isEmpty(),
+        visible = uiState.items.isEmpty(),
         enter = fadeIn(),
         exit = fadeOut(),
     ) {
@@ -558,7 +525,7 @@ private fun ChecklistContent(
     }
 
     AnimatedVisibility(
-        visible = visibleItems.isNotEmpty(),
+        visible = uiState.items.isNotEmpty(),
         enter = fadeIn(),
         exit = fadeOut(),
     ) {
@@ -566,6 +533,7 @@ private fun ChecklistContent(
             state = listState,
             modifier =
                 modifier
+                    .imePadding()
                     .pointerInput(Unit) {
                         awaitEachGesture {
                             awaitFirstDown(requireUnconsumed = true)
@@ -578,7 +546,7 @@ private fun ChecklistContent(
             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(visibleItems, key = { it.id }) { item ->
+            items(uiState.items, key = { it.id }) { item ->
                 ReorderableItem(reorderState, key = item.id) { isDragging ->
                     val reorderableScope = this
                     val clipboardManager = LocalClipboardManager.current
@@ -620,7 +588,7 @@ private fun ChecklistContent(
                         )
                     }
 
-                    if (true) {
+                    if (isSelectionMode) {
                         content()
                     } else {
                         SwipeToDismissBox(
@@ -673,65 +641,6 @@ private fun ChecklistContent(
     }
 }
 
-@Composable
-private fun ChecklistSearchBottomBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onClose: () -> Unit,
-) {
-    val focusRequester = remember { FocusRequester() }
-
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
-    }
-
-    Surface(
-        tonalElevation = 3.dp,
-        shadowElevation = 6.dp,
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .imePadding()
-                .navigationBarsPadding(),
-    ) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            OutlinedTextField(
-                value = query,
-                onValueChange = onQueryChange,
-                modifier =
-                    Modifier
-                        .weight(1f)
-                        .focusRequester(focusRequester),
-                placeholder = { Text("Search in list") },
-                leadingIcon = {
-                    if (query.isNotEmpty()) {
-                        IconButton(onClick = { onQueryChange("") }) {
-                            Icon(
-                                imageVector = Icons.Filled.Clear,
-                                contentDescription = "Clear search",
-                            )
-                        }
-                    }
-                },
-                singleLine = true,
-            )
-            IconButton(onClick = onClose) {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = "Close search",
-                )
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ChecklistTopBar(
@@ -755,7 +664,6 @@ private fun ChecklistTopBar(
     onCopySelected: () -> Unit,
     onCutSelected: () -> Unit,
     onPasteChecklistItems: () -> Unit,
-    onSearchInList: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     TopAppBar(
@@ -793,16 +701,6 @@ private fun ChecklistTopBar(
                 expanded = menuExpanded,
                 onDismissRequest = { menuExpanded = false },
             ) {
-                DropdownMenuItem(
-                    text = { Text("Search in list") },
-                    leadingIcon = {
-                        Icon(imageVector = Icons.Filled.Search, contentDescription = null)
-                    },
-                    onClick = {
-                        menuExpanded = false
-                        onSearchInList()
-                    },
-                )
                 DropdownMenuItem(
                     text = {
                         Text(

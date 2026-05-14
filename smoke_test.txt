@@ -1,0 +1,4 @@
+Hello, this is a test file.
+This is the second line, modified again.
+This line was added by another edit_file.
+This line was added by edit_file.

@@ -44,8 +44,6 @@ import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
@@ -566,6 +564,7 @@ private fun ChecklistContent(
             state = listState,
             modifier =
                 modifier
+                    .imePadding()
                     .pointerInput(Unit) {
                         awaitEachGesture {
                             awaitFirstDown(requireUnconsumed = true)
@@ -620,7 +619,7 @@ private fun ChecklistContent(
                         )
                     }
 
-                    if (true) {
+                    if (isSelectionMode) {
                         content()
                     } else {
                         SwipeToDismissBox(
@@ -710,23 +709,10 @@ private fun ChecklistSearchBottomBar(
                         .weight(1f)
                         .focusRequester(focusRequester),
                 placeholder = { Text("Search in list") },
-                leadingIcon = {
-                    if (query.isNotEmpty()) {
-                        IconButton(onClick = { onQueryChange("") }) {
-                            Icon(
-                                imageVector = Icons.Filled.Clear,
-                                contentDescription = "Clear search",
-                            )
-                        }
-                    }
-                },
                 singleLine = true,
             )
-            IconButton(onClick = onClose) {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = "Close search",
-                )
+            TextButton(onClick = onClose) {
+                Text("Close")
             }
         }
     }
