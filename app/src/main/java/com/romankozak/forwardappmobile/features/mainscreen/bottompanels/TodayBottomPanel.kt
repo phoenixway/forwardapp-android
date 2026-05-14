@@ -63,6 +63,9 @@ import com.romankozak.forwardappmobile.features.missions.presentation.LinkPicker
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTargetsPickerDialog
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
 import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckMoreActionButton
+import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementTab
+import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.text.style.TextOverflow
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
 import java.text.SimpleDateFormat
@@ -132,6 +135,7 @@ fun TodayBottomPanel(
     onNavigateToAttachments: () -> Unit,
     onNavigateToScripts: () -> Unit,
     onShowAbout: () -> Unit,
+    onNavigateToDayManagementTab: (DayManagementTab) -> Unit,
     featureToggles: Map<FeatureFlag, Boolean>,
     onNavigateToRecentItem: (RecentItem) -> Unit,
     recentViewModel: RecentViewModel = hiltViewModel(),
@@ -427,6 +431,39 @@ fun TodayBottomPanel(
                                 imageVector = Icons.AutoMirrored.Filled.Send,
                                 contentDescription = "Створити задачу",
                             )
+                        }
+                    }
+                }
+
+                // Day Management Sub-tabs
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    DayManagementTab.entries.filter { it != DayManagementTab.TRACK && it != DayManagementTab.DASHBOARD && it != DayManagementTab.ANALYTICS }.forEach {
+                        IconButton(
+                            onClick = { onNavigateToDayManagementTab(it) },
+                            modifier = Modifier.size(48.dp),
+                            colors =
+                                IconButtonDefaults.iconButtonColors(
+                                    contentColor = panelStyle.textColor.copy(alpha = 0.8f),
+                                ),
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = it.icon,
+                                    contentDescription = it.title,
+                                    modifier = Modifier.size(24.dp),
+                                )
+                                Text(
+                                    text = it.title,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    color = panelStyle.textColor.copy(alpha = 0.7f),
+                                )
+                            }
                         }
                     }
                 }
