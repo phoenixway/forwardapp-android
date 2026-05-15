@@ -79,6 +79,7 @@ fun DayManagementScreen(
     dayPlanViewModel: DayPlanViewModel = hiltViewModel(),
     modifier: Modifier = Modifier,
     startTab: String? = null,
+    currentDayManagementTab: DayManagementTab? = null,
     showFabMenu: Boolean = true,
 ) {
     val screenLogTag = "NAV_DEBUG"
