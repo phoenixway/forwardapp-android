@@ -1,0 +1,33 @@
+[project]
+name = "dm-runtime"
+version = "0.8.0"
+description = "A small day-management runtime with protocol registry and terminal dashboard."
+requires-python = ">=3.11"
+dependencies = [
+  "rich>=13.7.0",
+  "PyYAML>=6.0.1",
+]
+
+[project.scripts]
+dm = "dm_runtime.app.cli:main"
+dm-watchdog = "dm_runtime.watchdog.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = [
+  "dm_runtime",
+  "dm_runtime.domain",
+  "dm_runtime.engine",
+  "dm_runtime.protocols",
+  "dm_runtime.storage",
+  "dm_runtime.presentation",
+  "dm_runtime.app",
+  "dm_runtime.goals",
+  "dm_runtime.triggers",
+  "dm_runtime.config",
+  "dm_runtime.notifications",
+  "dm_runtime.watchdog",
+]

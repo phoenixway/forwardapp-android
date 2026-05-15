@@ -29,6 +29,8 @@ data class NewTaskParameters(
     val priority: TaskPriority = TaskPriority.MEDIUM,
     val scheduledTime: Long? = null,
     val estimatedDurationMinutes: Long? = null,
+    val dueTime: Long? = null,
+    val executionStrictness: TaskExecutionStrictness = TaskExecutionStrictness.NORMAL,
     val order: Long? = null,
     val taskType: String? = null,
     val points: Int = 0,
@@ -122,6 +124,7 @@ data class DayTask(
     @SerializedName("estimatedDurationMinutes") val estimatedDurationMinutes: Long? = null,
     @SerializedName("actualDurationMinutes") val actualDurationMinutes: Long? = null,
     @SerializedName("dueTime") val dueTime: Long? = null,
+    @ColumnInfo(defaultValue = "'NORMAL'") @SerializedName("executionStrictness") val executionStrictness: TaskExecutionStrictness = TaskExecutionStrictness.NORMAL,
     @ColumnInfo(defaultValue = "0.0") @SerializedName("valueImportance") val valueImportance: Float = 0f,
     @ColumnInfo(defaultValue = "0.0") @SerializedName("valueImpact") val valueImpact: Float = 0f,
     @ColumnInfo(defaultValue = "0.0") @SerializedName("effort") val effort: Float = 0f,
@@ -182,6 +185,12 @@ class DailyPlanConverters {
 
     @TypeConverter
     fun toTaskStatus(value: String?): TaskStatus? = value?.let { TaskStatus.valueOf(it) }
+
+    @TypeConverter
+    fun fromTaskExecutionStrictness(strictness: TaskExecutionStrictness?): String? = strictness?.name
+
+    @TypeConverter
+    fun toTaskExecutionStrictness(value: String?): TaskExecutionStrictness? = value?.let { TaskExecutionStrictness.valueOf(it) }
 
     @TypeConverter
     fun fromCustomMetrics(metrics: Map<String, Float>?): String? {

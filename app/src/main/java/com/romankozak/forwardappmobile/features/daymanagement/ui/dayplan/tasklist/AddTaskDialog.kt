@@ -57,6 +57,9 @@ import androidx.compose.ui.window.DialogProperties
 import com.google.accompanist.flowlayout.FlowRow
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceRule
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.TaskExecutionStrictness
+import com.romankozak.forwardappmobile.features.daymanagement.taskexecution.domain.TaskExecutionTimingCalculator
+import com.romankozak.forwardappmobile.features.daymanagement.taskexecution.domain.TaskExecutionTimingRequest
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.components.AdvancedRecurrencePickerDialog
 
 private const val PRIORITY_LOW_COLOR_HEX = 0xFF4CAF50
@@ -102,6 +105,9 @@ private data class AddTaskDraft(
     val pointsText: String,
     val priority: TaskPriority,
     val recurrenceRule: RecurrenceRule?,
+    val scheduledTime: Long?,
+    val dueTime: Long?,
+    val strictness: TaskExecutionStrictness,
 )
 
 private data class AddTaskFormActions(
@@ -109,8 +115,11 @@ private data class AddTaskFormActions(
     val onDescriptionChange: (String) -> Unit,
     val onDurationChange: (String) -> Unit,
     val onPointsChange: (String) -> Unit,
+    val onScheduledTimeChange: (Long?) -> Unit,
+    val onDueTimeChange: (Long?) -> Unit,
     val onOpenRecurrencePicker: () -> Unit,
     val onPrioritySelected: (TaskPriority) -> Unit,
+    val onStrictnessSelected: (TaskExecutionStrictness) -> Unit,
 )
 
 private data class TextFieldConfig(
@@ -125,7 +134,7 @@ private data class TextFieldConfig(
     val supportingText: String? = null,
 )
 
-private data class NumericFieldConfig(
+internal data class NumericFieldConfig(
     val label: String,
     val value: String,
     val placeholder: String,
@@ -143,10 +152,14 @@ fun AddTaskDialog(
         title: String,
         description: String,
         duration: Long?,
+        scheduledTime: Long?,
+        dueTime: Long?,
         priority: TaskPriority,
+        strictness: TaskExecutionStrictness,
         recurrenceRule: RecurrenceRule?,
         points: Int,
     ) -> Unit,
+    dayAnchorTime: Long,
     initialPriority: TaskPriority = TaskPriority.MEDIUM,
 ) {
     var title by remember { mutableStateOf("") }
@@ -155,6 +168,9 @@ fun AddTaskDialog(
     var pointsText by remember { mutableStateOf("") }
     var priority by remember { mutableStateOf(initialPriority) }
     var recurrenceRule by remember { mutableStateOf<RecurrenceRule?>(null) }
+    var scheduledTime by remember { mutableStateOf<Long?>(null) }
+    var dueTime by remember { mutableStateOf<Long?>(null) }
+    var strictness by remember { mutableStateOf(TaskExecutionStrictness.NORMAL) }
     var showRecurrencePicker by remember { mutableStateOf(false) }
 
     val draft =
@@ -165,7 +181,20 @@ fun AddTaskDialog(
             pointsText = pointsText,
             priority = priority,
             recurrenceRule = recurrenceRule,
+            scheduledTime = scheduledTime,
+            dueTime = dueTime,
+            strictness = strictness,
         )
+    val timingResolution =
+        remember(draft.scheduledTime, draft.dueTime, draft.durationText) {
+            TaskExecutionTimingCalculator().resolve(
+                TaskExecutionTimingRequest(
+                    scheduledTime = draft.scheduledTime,
+                    dueTime = draft.dueTime,
+                    durationMinutes = draft.durationText.toLongOrNull(),
+                ),
+            )
+        }
 
     if (showRecurrencePicker) {
         AdvancedRecurrencePickerDialog(
@@ -190,12 +219,18 @@ fun AddTaskDialog(
                     onDescriptionChange = { description = it },
                     onDurationChange = { durationText = it },
                     onPointsChange = { pointsText = it },
+                    onScheduledTimeChange = { scheduledTime = it },
+                    onDueTimeChange = { dueTime = it },
                     onOpenRecurrencePicker = { showRecurrencePicker = true },
                     onPrioritySelected = { priority = it },
+                    onStrictnessSelected = { strictness = it },
                 )
             AddTaskDialogContent(
                 draft = draft,
                 actions = actions,
+                dayAnchorTime = dayAnchorTime,
+                resolvedScheduledTime = timingResolution.scheduledTime,
+                resolvedDueTime = timingResolution.dueTime,
             )
         },
         confirmButton = {
@@ -252,6 +287,9 @@ private fun AddTaskDialogHeader() {
 private fun AddTaskDialogContent(
     draft: AddTaskDraft,
     actions: AddTaskFormActions,
+    dayAnchorTime: Long,
+    resolvedScheduledTime: Long?,
+    resolvedDueTime: Long?,
 ) {
     Column(
         modifier =
@@ -283,11 +321,22 @@ private fun AddTaskDialogContent(
                     maxLines = 4,
                 ),
         )
-        AddTaskNumericSection(
+        AddTaskPointsSection(
             pointsText = draft.pointsText,
-            durationText = draft.durationText,
             onPointsChange = actions.onPointsChange,
-            onDurationChange = actions.onDurationChange,
+        )
+        TaskExecutionPolicyEditor(
+            dayAnchorTime = dayAnchorTime,
+            durationMinutes = draft.durationText.toLongOrNull(),
+            scheduledTime = draft.scheduledTime,
+            dueTime = draft.dueTime,
+            resolvedScheduledTime = resolvedScheduledTime,
+            resolvedDueTime = resolvedDueTime,
+            strictness = draft.strictness,
+            onDurationChange = { actions.onDurationChange(it?.toString().orEmpty()) },
+            onScheduledTimeChange = actions.onScheduledTimeChange,
+            onDueTimeChange = actions.onDueTimeChange,
+            onStrictnessChange = actions.onStrictnessSelected,
         )
         AddTaskRecurrenceSection(
             recurrenceRule = draft.recurrenceRule,
@@ -344,43 +393,25 @@ private fun AddTaskTextSection(
 }
 
 @Composable
-private fun AddTaskNumericSection(
+private fun AddTaskPointsSection(
     pointsText: String,
-    durationText: String,
     onPointsChange: (String) -> Unit,
-    onDurationChange: (String) -> Unit,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(ROW_FIELD_SPACING.dp)) {
-        NumericField(
-            config =
-                NumericFieldConfig(
-                    label = "Бали",
-                    value = pointsText,
-                    placeholder = "0",
-                    tint = MaterialTheme.colorScheme.primary,
-                    icon = Icons.Default.Star,
-                    onValueChange = onPointsChange,
-                ),
-            modifier = Modifier.weight(1f),
-        )
-        NumericField(
-            config =
-                NumericFieldConfig(
-                    label = "Тривалість",
-                    value = durationText,
-                    placeholder = "0",
-                    tint = MaterialTheme.colorScheme.tertiary,
-                    icon = Icons.Default.AccessTime,
-                    suffixText = "хв",
-                    onValueChange = onDurationChange,
-                ),
-            modifier = Modifier.weight(1f),
-        )
-    }
+    NumericField(
+        config =
+            NumericFieldConfig(
+                label = "Бали",
+                value = pointsText,
+                placeholder = "0",
+                tint = MaterialTheme.colorScheme.primary,
+                icon = Icons.Default.Star,
+                onValueChange = onPointsChange,
+            ),
+    )
 }
 
 @Composable
-private fun NumericField(
+internal fun NumericField(
     config: NumericFieldConfig,
     modifier: Modifier = Modifier,
 ) {
@@ -573,7 +604,10 @@ private fun AddTaskDialogButtons(
         title: String,
         description: String,
         duration: Long?,
+        scheduledTime: Long?,
+        dueTime: Long?,
         priority: TaskPriority,
+        strictness: TaskExecutionStrictness,
         recurrenceRule: RecurrenceRule?,
         points: Int,
     ) -> Unit,
@@ -606,7 +640,10 @@ private fun AddTaskDialogButtons(
                     draft.title,
                     draft.description,
                     draft.durationText.toLongOrNull(),
+                    draft.scheduledTime,
+                    draft.dueTime,
                     draft.priority,
+                    draft.strictness,
                     draft.recurrenceRule,
                     draft.pointsText.toIntOrNull() ?: 0,
                 )

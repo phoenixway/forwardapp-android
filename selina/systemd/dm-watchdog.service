@@ -1,0 +1,13 @@
+[Unit]
+Description=DM Runtime watchdog
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/dm-watchdog
+Restart=always
+RestartSec=10
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target

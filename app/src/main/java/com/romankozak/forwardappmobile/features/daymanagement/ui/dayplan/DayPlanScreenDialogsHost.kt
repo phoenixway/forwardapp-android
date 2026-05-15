@@ -67,17 +67,21 @@ private fun PlanCreationDialogs(
     if (dialogState.isAddTaskDialogOpen) {
         AddTaskDialog(
             onDismissRequest = viewModel::dismissAddTaskDialog,
-            onConfirm = { title, description, duration, priority, recurrenceRule, points ->
+            onConfirm = { title, description, duration, scheduledTime, dueTime, priority, strictness, recurrenceRule, points ->
                 viewModel.addTask(
                     state.initialDayPlanId,
                     title,
                     description,
                     duration,
+                    scheduledTime,
+                    dueTime,
                     priority,
+                    strictness,
                     recurrenceRule,
                     points,
                 )
             },
+            dayAnchorTime = state.uiState.dayPlan?.date ?: System.currentTimeMillis(),
             initialPriority = TaskPriority.MEDIUM,
         )
     }

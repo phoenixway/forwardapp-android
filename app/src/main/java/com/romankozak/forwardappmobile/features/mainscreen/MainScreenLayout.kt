@@ -55,7 +55,10 @@ import com.romankozak.forwardappmobile.core.navigation.routes.STRATEGIC_MANAGEME
 import com.romankozak.forwardappmobile.features.ai.insights.AiInsightsViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.ContextMarkersSheet
+import com.romankozak.forwardappmobile.features.daymanagement.runtime.presentation.DayManagementRuntimeUiState
+import com.romankozak.forwardappmobile.features.daymanagement.runtime.presentation.DayManagementRuntimeViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementScreen
+import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementTab
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.CoreBottomPanel
@@ -151,8 +154,10 @@ fun MainScreenLayout(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val dayManagementViewModel: DayManagementViewModel = hiltViewModel()
+    val dayManagementRuntimeViewModel: DayManagementRuntimeViewModel = hiltViewModel()
     val dayPlanViewModel: DayPlanViewModel = hiltViewModel()
     val dayManagementUiState by dayManagementViewModel.uiState.collectAsStateWithLifecycle()
+    val dayManagementRuntimeUiState by dayManagementRuntimeViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val userAwarenessViewModel: UserAwarenessViewModel = hiltViewModel()
     val aiInsightsViewModel: AiInsightsViewModel = hiltViewModel()
@@ -336,6 +341,9 @@ fun MainScreenLayout(
                     onShowAbout = { showAboutDialog = true },
                     onNavigateToRecentItem = onNavigateToRecentItem,
                     recentViewModel = recentViewModel,
+                    dayManagementViewModel = dayManagementViewModel,
+                    dayManagementRuntimeViewModel = dayManagementRuntimeViewModel,
+                    dayManagementRuntimeUiState = dayManagementRuntimeUiState,
                     dayPlanViewModel = dayPlanViewModel,
                     tacticalMissionViewModel = tacticalMissionViewModel,
                 )
@@ -379,6 +387,7 @@ fun MainScreenLayout(
                     tacticalMissionViewModel = tacticalMissionViewModel,
                     tacticalObsidianVaultName = tacticalObsidianVaultName,
                     dayManagementViewModel = dayManagementViewModel,
+                    dayManagementRuntimeViewModel = dayManagementRuntimeViewModel,
                     dayPlanViewModel = dayPlanViewModel,
                     sessionModeState = sessionModeState,
                     latestSessionReason = latestSessionReason,
@@ -501,10 +510,14 @@ private fun MainScreenBottomBar(
     onShowAbout: () -> Unit,
     onNavigateToRecentItem: (RecentItem) -> Unit,
     recentViewModel: RecentViewModel,
+    dayManagementViewModel: DayManagementViewModel,
+    dayManagementRuntimeViewModel: DayManagementRuntimeViewModel,
+    dayManagementRuntimeUiState: DayManagementRuntimeUiState,
     dayPlanViewModel: DayPlanViewModel,
     tacticalMissionViewModel: TacticalMissionViewModel,
 ) {
     val contextUiState by contextHierarchyViewModel.uiState.collectAsStateWithLifecycle()
+    val dayManagementUiState by dayManagementViewModel.uiState.collectAsStateWithLifecycle()
 
     when (currentRoute) {
         MAIN_SCREEN_DASHBOARD_ROUTE ->
@@ -562,6 +575,17 @@ private fun MainScreenBottomBar(
                 featureToggles = contextUiState.featureToggles,
                 onNavigateToRecentItem = onNavigateToRecentItem,
                 recentViewModel = recentViewModel,
+                currentTab =
+                    dayManagementUiState.selectedTab
+                        .takeIf { it in DayManagementTab.todaySubTabs() }
+                        ?: DayManagementTab.DAY_PLAN,
+                onSelectTodayTab = dayManagementViewModel::selectTab,
+                runtimeUiState = dayManagementRuntimeUiState,
+                onWakeUp = dayManagementRuntimeViewModel::wakeUp,
+                onFinalizePlan = dayManagementRuntimeViewModel::finalizePlan,
+                onStartImplementation = dayManagementRuntimeViewModel::startImplementation,
+                onStartFinalization = dayManagementRuntimeViewModel::startFinalization,
+                onSleep = dayManagementRuntimeViewModel::sleep,
                 dayPlanViewModel = dayPlanViewModel,
             )
         MAIN_SCREEN_TACTICS_ROUTE ->
@@ -720,6 +744,7 @@ private fun MainScreenPagerContent(
     tacticalMissionViewModel: TacticalMissionViewModel,
     tacticalObsidianVaultName: String,
     dayManagementViewModel: DayManagementViewModel,
+    dayManagementRuntimeViewModel: DayManagementRuntimeViewModel,
     dayPlanViewModel: DayPlanViewModel,
     sessionModeState: SessionModeState,
     latestSessionReason: String?,
@@ -914,8 +939,9 @@ private fun MainScreenPagerContent(
                     mainNavController = navController,
                     navigationManager = navigationManager,
                     viewModel = dayManagementViewModel,
+                    runtimeViewModel = dayManagementRuntimeViewModel,
                     dayPlanViewModel = dayPlanViewModel,
-                    startTab = "PLAN",
+                    startTab = DayManagementTab.DAY_PLAN.name,
                     showFabMenu = false,
                 )
         }

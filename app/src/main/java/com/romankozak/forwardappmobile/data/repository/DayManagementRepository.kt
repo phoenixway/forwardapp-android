@@ -18,6 +18,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceFrequency
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceRule
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurringTask
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.TaskExecutionStrictness
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.data.dao.DailyMetricDao
 import com.romankozak.forwardappmobile.data.dao.DayPlanDao
@@ -26,7 +27,9 @@ import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
 import com.romankozak.forwardappmobile.domain.ai.events.TaskCompletedEvent
 import com.romankozak.forwardappmobile.domain.ai.events.TaskCreatedEvent
 import com.romankozak.forwardappmobile.domain.ai.events.TaskDeferredEvent
-import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
+import com.romankozak.forwardappmobile.features.daymanagement.taskexecution.domain.TaskExecutionTimingCalculator
+import com.romankozak.forwardappmobile.features.daymanagement.taskexecution.domain.TaskExecutionTimingRequest
+import com.romankozak.forwardappmobile.features.daymanagement.taskexecution.platform.TaskExecutionAlarmCoordinator
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -51,7 +54,8 @@ class DayManagementRepository
         private val recurringTaskDao: RecurringTaskDao,
         private val listItemDao: com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao,
         private val activityRepository: ActivityRepository,
-        private val alarmScheduler: javax.inject.Provider<AlarmScheduler>,
+        private val taskExecutionTimingCalculator: TaskExecutionTimingCalculator,
+        private val taskExecutionAlarmCoordinator: TaskExecutionAlarmCoordinator,
         private val aiEventRepository: AiEventRepository,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) {
@@ -80,7 +84,10 @@ class DayManagementRepository
             val goalId: String?,
             val projectId: String?,
             val priority: TaskPriority,
+            val scheduledTime: Long?,
             val estimatedDurationMinutes: Long?,
+            val dueTime: Long?,
+            val executionStrictness: TaskExecutionStrictness,
             val points: Int,
             val taskType: String,
         )
@@ -95,6 +102,9 @@ class DayManagementRepository
             val goalId: String? = null,
             val projectId: String? = null,
             val taskType: String? = null,
+            val scheduledTime: Long? = null,
+            val dueTime: Long? = null,
+            val executionStrictness: TaskExecutionStrictness = TaskExecutionStrictness.NORMAL,
             val points: Int = 0,
             val order: Long? = null,
         )
@@ -105,6 +115,9 @@ class DayManagementRepository
             val description: String?,
             val priority: TaskPriority,
             val duration: Long?,
+            val scheduledTime: Long?,
+            val dueTime: Long?,
+            val executionStrictness: TaskExecutionStrictness,
             val points: Int,
         )
 
@@ -242,7 +255,10 @@ class DayManagementRepository
                         priority = params.priority,
                         goalId = params.goalId,
                         projectId = params.projectId,
+                        scheduledTime = params.scheduledTime,
                         estimatedDurationMinutes = params.duration,
+                        dueTime = params.dueTime,
+                        executionStrictness = params.executionStrictness,
                         taskType = resolvedTaskType,
                         points = params.points,
                         order = params.order,
@@ -270,6 +286,12 @@ class DayManagementRepository
                         val maxOrder = dayTaskDao.getMaxOrderForDayPlan(params.dayPlanId) ?: 0L
                         maxOrder + 1
                     }
+                val timing =
+                    resolveTaskExecutionTiming(
+                        scheduledTime = params.scheduledTime,
+                        dueTime = params.dueTime,
+                        duration = params.estimatedDurationMinutes,
+                    )
 
                 val task =
                     DayTask(
@@ -281,15 +303,18 @@ class DayManagementRepository
                         linkedProjectIds = params.linkedProjectIds ?: emptyList(),
                         linkedAttachmentIds = params.linkedAttachmentIds ?: emptyList(),
                         priority = params.priority,
-                        scheduledTime = params.scheduledTime,
+                        scheduledTime = timing.scheduledTime,
                         estimatedDurationMinutes = params.estimatedDurationMinutes,
+                        dueTime = timing.dueTime,
+                        executionStrictness = params.executionStrictness,
                         order = order,
                         taskType = params.taskType ?: BacklogItemTypeValues.GOAL,
                         points = params.points,
                         syncedAt = null,
                         version = 1,
-                    )
+                )
                 dayTaskDao.insert(task)
+                taskExecutionAlarmCoordinator.sync(task)
                 reorderTasksByPriority(params.dayPlanId)
                 aiEventRepository.emit(
                     TaskCreatedEvent(
@@ -370,6 +395,8 @@ class DayManagementRepository
                         priority = taskToCopy.priority,
                         scheduledTime = null,
                         estimatedDurationMinutes = taskToCopy.estimatedDurationMinutes,
+                        dueTime = taskToCopy.dueTime,
+                        executionStrictness = taskToCopy.executionStrictness,
                         taskType = taskToCopy.taskType,
                         order = null,
                         points = taskToCopy.points,
@@ -480,18 +507,28 @@ class DayManagementRepository
 
         suspend fun updateTask(params: UpdateTaskParams) = withContext(ioDispatcher) {
             val task = dayTaskDao.getTaskById(params.taskId) ?: return@withContext
+            val timing =
+                resolveTaskExecutionTiming(
+                    scheduledTime = params.scheduledTime,
+                    dueTime = params.dueTime,
+                    duration = params.duration,
+                )
             val updatedTask =
                 task.copy(
                     title = params.title,
                     description = params.description,
                     priority = params.priority,
                     estimatedDurationMinutes = params.duration,
+                    scheduledTime = timing.scheduledTime,
+                    dueTime = timing.dueTime,
+                    executionStrictness = params.executionStrictness,
                     points = params.points,
                     updatedAt = System.currentTimeMillis(),
                     syncedAt = null,
                     version = task.version + 1,
                 )
             dayTaskDao.update(updatedTask)
+            taskExecutionAlarmCoordinator.sync(updatedTask)
             reorderTasksByPriority(task.dayPlanId)
         }
 
@@ -568,6 +605,7 @@ class DayManagementRepository
                 activityRecord?.let {
                     dayTaskDao.linkTaskWithActivity(taskId, it.id, now)
                     dayTaskDao.updateTaskCompletion(taskId, false, TaskStatus.IN_PROGRESS, null, now)
+                    syncTaskTimingFromActualStart(taskId = taskId, actualStartTime = it.startTime ?: now)
                 }
                 activityRecord
             }
@@ -745,7 +783,10 @@ class DayManagementRepository
                         goalId = templateData.goalId,
                         projectId = templateData.projectId,
                         priority = templateData.priority,
+                        scheduledTime = templateData.scheduledTime,
                         estimatedDurationMinutes = templateData.estimatedDurationMinutes,
+                        dueTime = templateData.dueTime,
+                        executionStrictness = templateData.executionStrictness,
                         taskType = templateData.taskType,
                         points = templateData.points,
                     ),
@@ -760,8 +801,11 @@ class DayManagementRepository
             val projectId = templateTask?.projectId
             val points = templateTask?.points ?: recurringTask.points
             val priority = templateTask?.priority ?: recurringTask.priority
+            val scheduledTime = templateTask?.scheduledTime
             val estimatedDurationMinutes =
                 templateTask?.estimatedDurationMinutes ?: recurringTask.duration?.toLong()
+            val dueTime = templateTask?.dueTime
+            val executionStrictness = templateTask?.executionStrictness ?: TaskExecutionStrictness.NORMAL
 
             val titleData =
                 if (templateGoalId != null) {
@@ -790,10 +834,53 @@ class DayManagementRepository
                 goalId = titleData.third,
                 projectId = projectId,
                 priority = priority,
+                scheduledTime = scheduledTime,
                 estimatedDurationMinutes = estimatedDurationMinutes,
+                dueTime = dueTime,
+                executionStrictness = executionStrictness,
                 points = points,
                 taskType = resolvedTaskType,
             )
+        }
+
+        private suspend fun resolveTaskExecutionTiming(
+            scheduledTime: Long?,
+            dueTime: Long?,
+            duration: Long?,
+            actualStartTime: Long? = null,
+        ) = taskExecutionTimingCalculator.resolve(
+            TaskExecutionTimingRequest(
+                scheduledTime = scheduledTime,
+                dueTime = dueTime,
+                durationMinutes = duration,
+                actualStartTime = actualStartTime,
+            ),
+        )
+
+        private suspend fun syncTaskTimingFromActualStart(
+            taskId: String,
+            actualStartTime: Long,
+        ) {
+            val task = dayTaskDao.getTaskById(taskId) ?: return
+            if (task.dueTime != null || task.estimatedDurationMinutes == null) return
+
+            val timing =
+                resolveTaskExecutionTiming(
+                    scheduledTime = task.scheduledTime ?: actualStartTime,
+                    dueTime = task.dueTime,
+                    duration = task.estimatedDurationMinutes,
+                    actualStartTime = actualStartTime,
+                )
+            val updatedTask =
+                task.copy(
+                    scheduledTime = task.scheduledTime ?: timing.scheduledTime,
+                    dueTime = timing.dueTime,
+                    updatedAt = System.currentTimeMillis(),
+                    syncedAt = null,
+                    version = task.version + 1,
+                )
+            dayTaskDao.update(updatedTask)
+            taskExecutionAlarmCoordinator.sync(updatedTask)
         }
 
         private suspend fun reorderTasksByPriority(dayPlanId: String) {
@@ -1026,6 +1113,7 @@ class DayManagementRepository
             withContext(ioDispatcher) {
                 val task = dayTaskDao.getTaskById(taskId)
                 if (task != null) {
+                    taskExecutionAlarmCoordinator.cancel(task.id)
                     dayTaskDao.deleteById(taskId)
                     calculateAndSaveDailyMetrics(task.dayPlanId)
                 }
@@ -1044,6 +1132,12 @@ class DayManagementRepository
                     completedAt = if (newStatus) now else null,
                     updatedAt = now,
                 )
+
+                if (newStatus) {
+                    taskExecutionAlarmCoordinator.cancel(task.id)
+                } else {
+                    taskExecutionAlarmCoordinator.sync(task.copy(completed = false))
+                }
 
                 recalculateDayProgress(taskId)
             }

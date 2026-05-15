@@ -23,6 +23,7 @@ data class DayManagementState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val selectedDate: Long = System.currentTimeMillis(),
+    val selectedTab: DayManagementTab = DayManagementTab.DAY_PLAN,
 )
 
 sealed class DayManagementUiEvent {
@@ -84,5 +85,15 @@ class DayManagementViewModel
 
         fun navigateToDate(newDate: Long) {
             loadOrCreatePlan(newDate)
+        }
+
+        fun selectTab(tab: DayManagementTab) {
+            _uiState.update { currentState ->
+                if (currentState.selectedTab == tab) {
+                    currentState
+                } else {
+                    currentState.copy(selectedTab = tab)
+                }
+            }
         }
     }

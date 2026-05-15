@@ -7,6 +7,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceFrequency
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceRule
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.TaskExecutionStrictness
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -23,7 +24,11 @@ data class EditTaskUiState(
     val description: String = "",
     val priority: TaskPriority = TaskPriority.NONE,
     val duration: Long? = null,
+    val scheduledTime: Long? = null,
+    val dueTime: Long? = null,
+    val executionStrictness: TaskExecutionStrictness = TaskExecutionStrictness.NORMAL,
     val points: Int = 0,
+    val dayAnchorTime: Long = System.currentTimeMillis(),
     val isRecurring: Boolean = false,
     val recurrenceRule: RecurrenceRule? = null,
     val recurrenceFrequency: RecurrenceFrequency = RecurrenceFrequency.DAILY,
@@ -72,7 +77,11 @@ class EditTaskViewModel
                         description = task?.description ?: "",
                         priority = task?.priority ?: TaskPriority.NONE,
                         duration = task?.estimatedDurationMinutes,
+                        scheduledTime = task?.scheduledTime,
+                        dueTime = task?.dueTime,
+                        executionStrictness = task?.executionStrictness ?: TaskExecutionStrictness.NORMAL,
                         points = task?.points ?: 0,
+                        dayAnchorTime = task?.dayPlanId?.let { dayManagementRepository.getPlanById(it)?.date } ?: System.currentTimeMillis(),
                         isRecurring = task?.recurringTaskId != null,
                         recurrenceRule = recurringTask?.recurrenceRule,
                         recurrenceFrequency = recurringTask?.recurrenceRule?.frequency ?: RecurrenceFrequency.DAILY,
@@ -101,6 +110,18 @@ class EditTaskViewModel
 
         fun onDurationChange(duration: Long?) {
             _uiState.value = _uiState.value.copy(duration = duration)
+        }
+
+        fun onScheduledTimeChange(scheduledTime: Long?) {
+            _uiState.value = _uiState.value.copy(scheduledTime = scheduledTime)
+        }
+
+        fun onDueTimeChange(dueTime: Long?) {
+            _uiState.value = _uiState.value.copy(dueTime = dueTime)
+        }
+
+        fun onExecutionStrictnessChange(strictness: TaskExecutionStrictness) {
+            _uiState.value = _uiState.value.copy(executionStrictness = strictness)
         }
 
         fun onPointsChange(points: Int) {
@@ -173,6 +194,9 @@ class EditTaskViewModel
                     goalId = originalTask.goalId,
                     projectId = originalTask.projectId,
                     taskType = originalTask.taskType,
+                    scheduledTime = state.scheduledTime,
+                    dueTime = state.dueTime,
+                    executionStrictness = state.executionStrictness,
                     points = state.points,
                 ),
             )
@@ -200,6 +224,9 @@ class EditTaskViewModel
                     description = state.description,
                     priority = state.priority,
                     duration = state.duration,
+                    scheduledTime = state.scheduledTime,
+                    dueTime = state.dueTime,
+                    executionStrictness = state.executionStrictness,
                     points = state.points,
                 ),
             )

@@ -37,6 +37,7 @@ import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.domain.ner.NerState
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
+import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementTab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.ModernInputPanel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.topbar.AdaptiveTopBar
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.topbar.AdaptiveTopBarActions
@@ -507,7 +508,7 @@ private fun ProjectBottomBar(
             onIndicatorClick = {
                 val today = System.currentTimeMillis()
                 navigationManager.navigate(
-                    target = NavTarget.DayPlan(dayPlanId = today.toString(), startTab = "TRACK"),
+                    target = NavTarget.DayPlan(dayPlanId = today.toString(), startTab = DayManagementTab.JOURNAL.name),
                 )
             },
             indicatorState = indicatorState,

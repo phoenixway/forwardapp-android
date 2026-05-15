@@ -23,6 +23,7 @@ data class DayTaskSnapshot(
     @SerializedName("estimatedDurationMinutes") val estimatedDurationMinutes: Long?,
     @SerializedName("actualDurationMinutes") val actualDurationMinutes: Long?,
     @SerializedName("dueTime") val dueTime: Long?,
+    @SerializedName("executionStrictness") val executionStrictness: String,
     @SerializedName("valueImportance") val valueImportance: Float,
     @SerializedName("valueImpact") val valueImpact: Float,
     @SerializedName("effort") val effort: Float,

@@ -16,6 +16,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.NewTaskParameters
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceFrequency
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceRule
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.TaskExecutionStrictness
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
@@ -719,7 +720,10 @@ class DayPlanViewModel
             title: String,
             description: String,
             duration: Long?,
+            scheduledTime: Long?,
+            dueTime: Long?,
             priority: TaskPriority,
+            strictness: TaskExecutionStrictness,
             recurrenceRule: RecurrenceRule?,
             points: Int,
             projectId: String? = null,
@@ -747,6 +751,9 @@ class DayPlanViewModel
                                 priority = priority,
                                 recurrenceRule = recurrenceRule,
                                 dayPlanId = dayPlanId,
+                                scheduledTime = scheduledTime,
+                                dueTime = dueTime,
+                                executionStrictness = strictness,
                                 points = points,
                                 order = topOrder,
                             ),
@@ -759,8 +766,11 @@ class DayPlanViewModel
                                 title = trimmedTitle,
                                 description = description.trim().takeIf { it.isNotEmpty() },
                                 projectId = projectId,
+                                scheduledTime = scheduledTime,
                                 estimatedDurationMinutes =
                                     duration?.takeIf { it > 0 && it <= MAX_DURATION_MINUTES },
+                                dueTime = dueTime,
+                                executionStrictness = strictness,
                                 priority = priority,
                                 order = topOrder,
                                 points = points,
@@ -792,7 +802,10 @@ class DayPlanViewModel
                 title = title,
                 description = "",
                 duration = null,
+                scheduledTime = null,
+                dueTime = null,
                 priority = TaskPriority.MEDIUM,
+                strictness = TaskExecutionStrictness.NORMAL,
                 recurrenceRule = null,
                 points = 0,
                 projectId = sourceContext.id,
@@ -1163,6 +1176,9 @@ class DayPlanViewModel
                                 description = description,
                                 priority = priority,
                                 duration = duration,
+                                scheduledTime = task.scheduledTime,
+                                dueTime = task.dueTime,
+                                executionStrictness = task.executionStrictness,
                                 points = points,
                             ),
                         )

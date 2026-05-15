@@ -1,0 +1,3 @@
+[console_scripts]
+dm = dm_runtime.app.cli:main
+dm-watchdog = dm_runtime.watchdog.cli:main

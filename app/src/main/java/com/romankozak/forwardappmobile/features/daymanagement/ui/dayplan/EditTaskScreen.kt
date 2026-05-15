@@ -76,6 +76,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceFrequency
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.TaskExecutionStrictness
+import com.romankozak.forwardappmobile.features.daymanagement.taskexecution.domain.TaskExecutionTimingCalculator
+import com.romankozak.forwardappmobile.features.daymanagement.taskexecution.domain.TaskExecutionTimingRequest
+import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.TaskExecutionPolicyEditor
 import java.time.DayOfWeek
 import java.time.format.TextStyle
 import java.util.Locale
@@ -88,6 +92,9 @@ private data class EditTaskActions(
     val onPointsChange: (Int) -> Unit,
     val onPriorityChange: (TaskPriority) -> Unit,
     val onDurationChange: (Long?) -> Unit,
+    val onScheduledTimeChange: (Long?) -> Unit,
+    val onDueTimeChange: (Long?) -> Unit,
+    val onExecutionStrictnessChange: (TaskExecutionStrictness) -> Unit,
     val onRecurringChange: (Boolean) -> Unit,
     val onRecurrenceFrequencyChange: (RecurrenceFrequency) -> Unit,
     val onRecurrenceIntervalChange: (Int) -> Unit,
@@ -557,6 +564,16 @@ private fun DetailsContent(
     actions: EditTaskActions,
 ) {
     val cs = MaterialTheme.colorScheme
+    val timingResolution =
+        remember(uiState.scheduledTime, uiState.dueTime, uiState.duration) {
+            TaskExecutionTimingCalculator().resolve(
+                TaskExecutionTimingRequest(
+                    scheduledTime = uiState.scheduledTime,
+                    dueTime = uiState.dueTime,
+                    durationMinutes = uiState.duration,
+                ),
+            )
+        }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SectionLabel("Пріоритет")
         FlowRow(
@@ -607,14 +624,18 @@ private fun DetailsContent(
 
         HorizontalDivider(color = cs.outlineVariant)
 
-        SectionLabel("Тривалість (хв)")
-        OutlinedTextField(
-            value = uiState.duration?.toString().orEmpty(),
-            onValueChange = { actions.onDurationChange(it.toLongOrNull()) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            colors = outlinedFieldColors(),
+        TaskExecutionPolicyEditor(
+            dayAnchorTime = uiState.dayAnchorTime,
+            durationMinutes = uiState.duration,
+            scheduledTime = uiState.scheduledTime,
+            dueTime = uiState.dueTime,
+            resolvedScheduledTime = timingResolution.scheduledTime,
+            resolvedDueTime = timingResolution.dueTime,
+            strictness = uiState.executionStrictness,
+            onDurationChange = actions.onDurationChange,
+            onScheduledTimeChange = actions.onScheduledTimeChange,
+            onDueTimeChange = actions.onDueTimeChange,
+            onStrictnessChange = actions.onExecutionStrictnessChange,
         )
     }
 }
@@ -780,6 +801,9 @@ private fun rememberActions(viewModel: EditTaskViewModel) = EditTaskActions(
     onPointsChange = viewModel::onPointsChange,
     onPriorityChange = viewModel::onPriorityChange,
     onDurationChange = viewModel::onDurationChange,
+    onScheduledTimeChange = viewModel::onScheduledTimeChange,
+    onDueTimeChange = viewModel::onDueTimeChange,
+    onExecutionStrictnessChange = viewModel::onExecutionStrictnessChange,
     onRecurringChange = viewModel::onRecurringChange,
     onRecurrenceFrequencyChange = viewModel::onRecurrenceFrequencyChange,
     onRecurrenceIntervalChange = viewModel::onRecurrenceIntervalChange,

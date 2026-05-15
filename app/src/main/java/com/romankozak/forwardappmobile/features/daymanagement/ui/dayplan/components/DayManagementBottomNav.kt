@@ -196,16 +196,16 @@ private fun MainNavigationRow(
         horizontalArrangement = Arrangement.SpaceAround,
     ) {
         ModernBottomNavButton(
-            text = "Track",
+            text = "Journal",
             icon = Icons.Outlined.Timeline,
-            isSelected = currentTab == DayManagementTab.TRACK,
-            onClick = { onTabSelected(DayManagementTab.TRACK) },
+            isSelected = currentTab == DayManagementTab.JOURNAL,
+            onClick = { onTabSelected(DayManagementTab.JOURNAL) },
         )
         ModernBottomNavButton(
             text = "Plan",
             icon = Icons.AutoMirrored.Outlined.ListAlt,
-            isSelected = currentTab == DayManagementTab.PLAN,
-            onClick = { onTabSelected(DayManagementTab.PLAN) },
+            isSelected = currentTab == DayManagementTab.DAY_PLAN,
+            onClick = { onTabSelected(DayManagementTab.DAY_PLAN) },
         )
         ModernBottomNavButton(
             text = "Contexts",
