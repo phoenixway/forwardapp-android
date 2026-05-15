@@ -69,6 +69,14 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+sealed class TodayTab(val title: String) {
+    object DayStart : TodayTab("Day Start")
+    object DayFocuses : TodayTab("Day Focuses")
+    object DayPlan : TodayTab("Day Plan")
+    object Journal : TodayTab("Journal")
+    object Finalization : TodayTab("Finalization")
+}
+
 private data class TodayQuickTaskDraft(
     val title: String,
     val description: String,
@@ -186,6 +194,8 @@ fun TodayBottomPanel(
             val formatted = SimpleDateFormat("d MMM", Locale.getDefault()).format(Date(date))
             listOf(prefix, formatted).filter { it.isNotBlank() }.joinToString(" ")
         }
+
+    var selectedTab by remember { mutableStateOf<TodayTab>(TodayTab.DayPlan) }
 
     fun submitTask() {
         val dayPlanId = dayPlanUiState.dayPlan?.id ?: return
@@ -349,6 +359,8 @@ fun TodayBottomPanel(
                     modifier = Modifier.fillMaxWidth(),
                 )
 
+                                TodaySubTabs(selectedTab = selectedTab, onTabSelected = { tab -> selectedTab = tab })
+
                 Row(
                     modifier =
                         Modifier
@@ -450,6 +462,70 @@ fun TodayBottomPanel(
             onAttachmentSelected = {},
             onCreateRootContext = null,
             onCreateDocument = null,
+        )
+    }
+}
+
+@Composable
+private fun TodaySubTabs(selectedTab: TodayTab, onTabSelected: (TodayTab) -> Unit) {
+    // Dummy implementation for now
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceAround,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TabIcon(
+            text = "Day Start",
+            selected = selectedTab == TodayTab.DayStart,
+            onClick = { onTabSelected(TodayTab.DayStart) }
+        )
+        TabIcon(
+            text = "Day Focuses",
+            selected = selectedTab == TodayTab.DayFocuses,
+            onClick = { onTabSelected(TodayTab.DayFocuses) }
+        )
+        TabIcon(
+            text = "Day Plan",
+            selected = selectedTab == TodayTab.DayPlan,
+            onClick = { onTabSelected(TodayTab.DayPlan) }
+        )
+        TabIcon(
+            text = "Journal",
+            selected = selectedTab == TodayTab.Journal,
+            onClick = { onTabSelected(TodayTab.Journal) }
+        )
+        TabIcon(
+            text = "Finalization",
+            selected = selectedTab == TodayTab.Finalization,
+            onClick = { onTabSelected(TodayTab.Finalization) }
+        )
+    }
+}
+
+@Composable
+private fun TabIcon(text: String, selected: Boolean, onClick: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier.padding(horizontal = 4.dp)
+    ) {
+        IconButton(
+            onClick = onClick,
+            colors = IconButtonDefaults.iconButtonColors(
+                contentColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+            )
+        ) {
+            // Placeholder icon
+            Icon(
+                imageVector = Icons.Default.Add, // Replace with appropriate icons
+                contentDescription = text,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
         )
     }
 }
