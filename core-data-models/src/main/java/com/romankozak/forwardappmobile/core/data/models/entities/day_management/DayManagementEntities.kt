@@ -11,9 +11,9 @@ import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
-
 import com.romankozak.forwardappmobile.core.data.models.entities.DayStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
+import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskStatus
 import java.time.DayOfWeek
@@ -37,6 +37,11 @@ data class NewTaskParameters(
     val linkedProjectIds: List<String>? = null,
     val linkedAttachmentIds: List<String>? = null,
 )
+
+enum class DayFocusType {
+    FOCUS,
+    RESPONSIBILITY,
+}
 
 @Entity(tableName = "day_plans")
 data class DayPlan(
@@ -143,6 +148,38 @@ data class DayTask(
     @ColumnInfo(defaultValue = "0") @SerializedName("points") val points: Int = 0,
 )
 
+@Entity(
+    tableName = "day_focus_items",
+    foreignKeys = [
+        ForeignKey(
+            entity = DayPlan::class,
+            parentColumns = ["id"],
+            childColumns = ["dayPlanId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [
+        Index("dayPlanId"),
+        Index(value = ["dayPlanId", "order"]),
+    ],
+)
+data class DayFocusItem(
+    @PrimaryKey @SerializedName("id") val id: String = UUID.randomUUID().toString(),
+    @SerializedName("dayPlanId") val dayPlanId: String,
+    @SerializedName("title") val title: String,
+    @SerializedName("notes") val notes: String? = null,
+    @SerializedName("relatedLinks") val relatedLinks: List<RelatedLink>? = emptyList(),
+    @SerializedName("type") val type: DayFocusType = DayFocusType.FOCUS,
+    @ColumnInfo(defaultValue = "0") @SerializedName("isEveryday") val isEveryday: Boolean = false,
+    @SerializedName("recurringKey") val recurringKey: String? = null,
+    @SerializedName("order") val order: Long = 0,
+    @SerializedName("createdAt") val createdAt: Long = System.currentTimeMillis(),
+    @SerializedName("updatedAt") val updatedAt: Long? = null,
+    @SerializedName("syncedAt") val syncedAt: Long? = null,
+    @SerializedName("isDeleted") val isDeleted: Boolean = false,
+    @SerializedName("version") val version: Long = 0,
+)
+
 @Entity(tableName = "daily_metrics")
 data class DailyMetric(
     @PrimaryKey @SerializedName("id") val id: String = UUID.randomUUID().toString(),
@@ -191,6 +228,12 @@ class DailyPlanConverters {
 
     @TypeConverter
     fun toTaskExecutionStrictness(value: String?): TaskExecutionStrictness? = value?.let { TaskExecutionStrictness.valueOf(it) }
+
+    @TypeConverter
+    fun fromDayFocusType(type: DayFocusType?): String? = type?.name
+
+    @TypeConverter
+    fun toDayFocusType(value: String?): DayFocusType? = value?.let { DayFocusType.valueOf(it) }
 
     @TypeConverter
     fun fromCustomMetrics(metrics: Map<String, Float>?): String? {

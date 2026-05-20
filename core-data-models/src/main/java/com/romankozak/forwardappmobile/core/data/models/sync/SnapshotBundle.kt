@@ -35,11 +35,18 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.I
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.LinkItemEntitySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.SystemAppSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DailyMetricSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayFocusItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayPlanSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayTaskSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.RecurringTaskSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.DayManagementRuntimeStateSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.FocusContextIntervalSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.LifeManagementLevelStatusSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.LifeSystemStateSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconAttachmentCrossRefSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconContextCrossRefSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconLevelStatusSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.RecentProjectEntrySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.UserStateIntervalSnapshot
 
@@ -76,6 +83,7 @@ data class SnapshotBundle(
     @SerializedName("recentProjectEntries") val recentProjectEntries: List<RecentProjectEntrySnapshot> = emptyList(),
     @SerializedName("linkItemEntities") val linkItemEntities: List<LinkItemEntitySnapshot> = emptyList(),
     @SerializedName("dayPlans") val dayPlans: List<DayPlanSnapshot> = emptyList(),
+    @SerializedName("dayFocusItems") val dayFocusItems: List<DayFocusItemSnapshot> = emptyList(),
     @SerializedName("dayTasks") val dayTasks: List<DayTaskSnapshot> = emptyList(),
     @SerializedName("dailyMetrics") val dailyMetrics: List<DailyMetricSnapshot> = emptyList(),
     @SerializedName("conversations") val conversations: List<ConversationSnapshot> = emptyList(),
@@ -87,7 +95,13 @@ data class SnapshotBundle(
     @SerializedName("tacticalMissionAttachments") val tacticalMissionAttachments: List<TacticalMissionAttachmentCrossRefSnapshot> = emptyList(),
     @SerializedName("aiEvents") val aiEvents: List<AiEventSnapshot> = emptyList(),
     @SerializedName("aiInsights") val aiInsights: List<AiInsightSnapshot> = emptyList(),
+    @SerializedName("mainBeacons") val mainBeacons: List<MainBeaconSnapshot> = emptyList(),
+    @SerializedName("mainBeaconContextCrossRefs") val mainBeaconContextCrossRefs: List<MainBeaconContextCrossRefSnapshot> = emptyList(),
+    @SerializedName("mainBeaconAttachmentCrossRefs") val mainBeaconAttachmentCrossRefs: List<MainBeaconAttachmentCrossRefSnapshot> = emptyList(),
+    @SerializedName("mainBeaconLevelStatuses") val mainBeaconLevelStatuses: List<MainBeaconLevelStatusSnapshot> = emptyList(),
+    @SerializedName("lifeManagementLevelStatuses") val lifeManagementLevelStatuses: List<LifeManagementLevelStatusSnapshot> = emptyList(),
     @SerializedName("lifeSystemStates") val lifeSystemStates: List<LifeSystemStateSnapshot> = emptyList(),
+    @SerializedName("dayManagementRuntimeState") val dayManagementRuntimeState: DayManagementRuntimeStateSnapshot? = null,
     @SerializedName("contextRoleProfiles") val contextRoleProfiles: List<ContextRoleProfileSnapshot> = emptyList(),
     @SerializedName("contextRoleProfileItems") val contextRoleProfileItems: List<ContextRoleProfileItemSnapshot> = emptyList(),
     @SerializedName("contextConfigurations") val contextConfigurations: List<ContextConfigurationSnapshot> = emptyList(),

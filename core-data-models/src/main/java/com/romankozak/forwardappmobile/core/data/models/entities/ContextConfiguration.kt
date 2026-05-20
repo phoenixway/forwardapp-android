@@ -37,6 +37,7 @@ data class ContextConfiguration(
     @ColumnInfo(name = "enable_attachments") val enableAttachments: Boolean? = null,
     @ColumnInfo(name = "enable_auto_link_subprojects") val enableAutoLinkSubprojects: Boolean? = null,
     @ColumnInfo(name = "remove_inbox_entry_after_tag_autocopy") val removeInboxEntryAfterTagAutocopy: Boolean? = null,
+    @ColumnInfo(name = "remove_backlog_entry_after_tag_autocopy") val removeBacklogEntryAfterTagAutocopy: Boolean? = null,
     
     val updatedAt: Long = System.currentTimeMillis(),
     val version: Long = 0,

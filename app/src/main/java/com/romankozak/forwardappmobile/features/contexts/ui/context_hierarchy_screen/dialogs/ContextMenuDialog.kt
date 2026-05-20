@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FilterCenterFocus
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Description
@@ -93,7 +94,9 @@ fun ContextMenuDialog(
     canPasteContextLinks: Boolean,
 ) {
     var showAddActionsDialog by remember { mutableStateOf(false) }
-    val isSystemContext = remember(project.id) { SystemContexts.isSystem(ContextId(project.id)) }
+    val contextId = remember(project.id) { ContextId(project.id) }
+    val isSystemContext = remember(project.id) { SystemContexts.isSystem(contextId) }
+    val canRenameOrMove = remember(project.id) { SystemContexts.canRenameOrMove(contextId) }
     val colorScheme = MaterialTheme.colorScheme
 
     val createSection =
@@ -114,20 +117,34 @@ fun ContextMenuDialog(
         ContextActionSection(
             title = "Організація",
             items =
-                listOf(
-                    ContextActionItem(
-                        title = "Редагувати",
-                        icon = Icons.Default.Edit,
-                        tint = colorScheme.secondary,
-                        onClick = { onEditRequest(project) },
-                    ),
-                    ContextActionItem(
-                        title = if (isUserFocused) "Зняти з фокусу" else "Додати у фокус",
-                        icon = Icons.Default.FilterCenterFocus,
-                        tint = colorScheme.tertiary,
-                        onClick = { onToggleUserFocusRequest(project) },
-                    ),
-                ),
+                buildList {
+                    if (canRenameOrMove) {
+                        add(
+                            ContextActionItem(
+                                title = "Редагувати",
+                                icon = Icons.Default.Edit,
+                                tint = colorScheme.secondary,
+                                onClick = { onEditRequest(project) },
+                            ),
+                        )
+                        add(
+                            ContextActionItem(
+                                title = "Перемістити",
+                                icon = Icons.Default.FolderOpen,
+                                tint = colorScheme.secondary,
+                                onClick = { onMoveRequest(project) },
+                            ),
+                        )
+                    }
+                    add(
+                        ContextActionItem(
+                            title = if (isUserFocused) "Зняти з фокусу" else "Додати у фокус",
+                            icon = Icons.Default.FilterCenterFocus,
+                            tint = colorScheme.tertiary,
+                            onClick = { onToggleUserFocusRequest(project) },
+                        ),
+                    )
+                },
         )
 
     val planningSection =

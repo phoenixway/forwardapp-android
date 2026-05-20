@@ -1033,3 +1033,85 @@ val MIGRATION_120_121 =
             )
         }
     }
+
+val MIGRATION_121_122 =
+    object : Migration(121, 122) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                ALTER TABLE day_tasks
+                ADD COLUMN executionStrictness TEXT NOT NULL DEFAULT 'NORMAL'
+                """.trimIndent(),
+            )
+        }
+    }
+
+val MIGRATION_122_123 =
+    object : Migration(122, 123) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `day_focus_items` (
+                    `id` TEXT NOT NULL,
+                    `dayPlanId` TEXT NOT NULL,
+                    `title` TEXT NOT NULL,
+                    `notes` TEXT,
+                    `type` TEXT NOT NULL,
+                    `order` INTEGER NOT NULL,
+                    `createdAt` INTEGER NOT NULL,
+                    `updatedAt` INTEGER,
+                    `syncedAt` INTEGER,
+                    `isDeleted` INTEGER NOT NULL,
+                    `version` INTEGER NOT NULL,
+                    PRIMARY KEY(`id`),
+                    FOREIGN KEY(`dayPlanId`) REFERENCES `day_plans`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_day_focus_items_dayPlanId` ON `day_focus_items` (`dayPlanId`)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_day_focus_items_dayPlanId_order` ON `day_focus_items` (`dayPlanId`, `order`)",
+            )
+        }
+    }
+
+val MIGRATION_123_124 =
+    object : Migration(123, 124) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                ALTER TABLE day_focus_items
+                ADD COLUMN isEveryday INTEGER NOT NULL DEFAULT 0
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                ALTER TABLE day_focus_items
+                ADD COLUMN recurringKey TEXT
+                """.trimIndent(),
+            )
+        }
+    }
+
+val MIGRATION_124_125 =
+    object : Migration(124, 125) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                ALTER TABLE day_focus_items
+                ADD COLUMN relatedLinks TEXT
+                """.trimIndent(),
+            )
+        }
+    }
+
+val MIGRATION_125_126 =
+    object : Migration(125, 126) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "ALTER TABLE context_structures ADD COLUMN remove_backlog_entry_after_tag_autocopy INTEGER",
+            )
+        }
+    }

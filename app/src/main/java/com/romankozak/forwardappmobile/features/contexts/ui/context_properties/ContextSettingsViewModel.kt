@@ -149,7 +149,7 @@ class ContextSettingsViewModel
                         title = state.title.copy(project.name),
                         description = state.description.copy(project.description ?: ""),
                         relatedLinks = project.relatedLinks ?: emptyList(),
-                        tags = project.tags ?: emptyList(),
+                        tags = sanitizeTags(project.tags),
                         isReady = true,
                         isNewProject = false,
                         showCheckboxes = project.showCheckboxes,
@@ -236,7 +236,7 @@ class ContextSettingsViewModel
                     name = _uiState.value.title.text,
                     description = _uiState.value.description.text.ifEmpty { null },
                     relatedLinks = _uiState.value.relatedLinks,
-                    tags = _uiState.value.tags,
+                    tags = sanitizeTags(_uiState.value.tags),
                     showCheckboxes = _uiState.value.showCheckboxes,
                     isContextManagementEnabled = _uiState.value.isProjectManagementEnabled,
                     valueImportance = _uiState.value.valueImportance,
@@ -312,9 +312,16 @@ class ContextSettingsViewModel
 
         fun onShowCheckboxesChange(show: Boolean) = _uiState.update { it.copy(showCheckboxes = show) }
 
-        fun onAddTag(tag: String) = _uiState.update { it.copy(tags = it.tags + tag) }
+        fun onAddTag(tag: String) {
+            val normalizedTag = tag.trim()
+            if (normalizedTag.isBlank()) return
+            _uiState.update { state ->
+                val updatedTags = (state.tags + normalizedTag).distinct()
+                state.copy(tags = sanitizeTags(updatedTags))
+            }
+        }
 
-        fun onRemoveTag(tag: String) = _uiState.update { it.copy(tags = it.tags - tag) }
+        fun onRemoveTag(tag: String) = _uiState.update { it.copy(tags = sanitizeTags(it.tags - tag)) }
 
         fun onAddContextLink(contextId: String) {
             viewModelScope.launch {
@@ -447,6 +454,7 @@ class ContextSettingsViewModel
                                 presetCapabilities.contains(CapabilityId("attachments")),
                         enableAutoLinkSubprojects = structure.enableAutoLinkSubprojects,
                         removeInboxEntryAfterTagAutocopy = structure.removeInboxEntryAfterTagAutocopy,
+                        removeBacklogEntryAfterTagAutocopy = structure.removeBacklogEntryAfterTagAutocopy,
                         // Оновлення списку експериментальних ID
                         experimentalCapabilityIds = experimentalIdsFromPreset,
                     )
@@ -546,6 +554,7 @@ class ContextSettingsViewModel
                     // Тут не перезаписуємо, щоб не затирати актуальне значення.
                     enableAutoLinkSubprojects = structure.enableAutoLinkSubprojects,
                     removeInboxEntryAfterTagAutocopy = structure.removeInboxEntryAfterTagAutocopy,
+                    removeBacklogEntryAfterTagAutocopy = structure.removeBacklogEntryAfterTagAutocopy,
                     updatedAt = System.currentTimeMillis(),
                 )
 
@@ -564,6 +573,12 @@ class ContextSettingsViewModel
         private companion object {
             private const val APPLY_MODE_ADDITIVE = "ADDITIVE"
             private const val APPLY_MODE_OVERRIDE = "OVERRIDE"
+
+            private fun sanitizeTags(tags: List<String>?): List<String> =
+                tags.orEmpty()
+                    .map { it.trim() }
+                    .filter { it.isNotBlank() }
+                    .distinct()
         }
 
         override fun onSetReminder(

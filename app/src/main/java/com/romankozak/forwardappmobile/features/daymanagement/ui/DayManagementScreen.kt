@@ -20,8 +20,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerViewModel
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.presentation.DayManagementRuntimeViewModel
+import com.romankozak.forwardappmobile.features.daymanagement.ui.dayfocus.DayFocusesViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -32,6 +34,8 @@ fun DayManagementScreen(
     viewModel: DayManagementViewModel = hiltViewModel(),
     runtimeViewModel: DayManagementRuntimeViewModel = hiltViewModel(),
     dayPlanViewModel: DayPlanViewModel = hiltViewModel(),
+    activityTrackerViewModel: ActivityTrackerViewModel = hiltViewModel(),
+    dayFocusesViewModel: DayFocusesViewModel = hiltViewModel(),
     modifier: Modifier = Modifier,
     startTab: String? = null,
     currentDayManagementTab: DayManagementTab? = null,
@@ -40,10 +44,17 @@ fun DayManagementScreen(
     val screenLogTag = "NAV_DEBUG"
 
     val uiState by viewModel.uiState.collectAsState()
-    val tabs = DayManagementTab.entries.toTypedArray()
     val requestedStartTab =
         remember(startTab, currentDayManagementTab) {
             currentDayManagementTab ?: DayManagementTab.fromRouteValue(startTab) ?: DayManagementTab.DAY_PLAN
+        }
+    val tabs =
+        remember(requestedStartTab) {
+            if (requestedStartTab in DayManagementTab.todaySubTabs()) {
+                DayManagementTab.todaySubTabs().toTypedArray()
+            } else {
+                DayManagementTab.entries.toTypedArray()
+            }
         }
     val initialPage =
         remember(requestedStartTab) { tabs.indexOfFirst { it == requestedStartTab }.coerceAtLeast(0) }
@@ -97,6 +108,8 @@ fun DayManagementScreen(
                 navigationManager = navigationManager,
                 runtimeViewModel = runtimeViewModel,
                 dayPlanViewModel = dayPlanViewModel,
+                activityTrackerViewModel = activityTrackerViewModel,
+                dayFocusesViewModel = dayFocusesViewModel,
                 addTaskTrigger = addTaskTrigger,
                 screenLogTag = screenLogTag,
             )

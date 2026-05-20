@@ -20,6 +20,11 @@ import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntit
 import com.romankozak.forwardappmobile.core.data.models.entities.LifeSystemStateEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
+import com.romankozak.forwardappmobile.core.data.models.entities.LifeManagementLevelStatusEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconContextCrossRef
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
@@ -34,6 +39,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ai.ChatMessageE
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.ConversationEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.ConversationFolderEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DailyMetric
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusItem
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusType
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceFrequency
@@ -75,12 +82,18 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.L
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.RelatedLinkSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.SystemAppSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DailyMetricSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayFocusItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayPlanSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayTaskSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.RecurrenceRuleSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.RecurringTaskSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.LifeSystemStateSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.FocusContextIntervalSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.LifeManagementLevelStatusSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconAttachmentCrossRefSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconContextCrossRefSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconLevelStatusSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.RecentProjectEntrySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.UserStateIntervalSnapshot
 import java.time.DayOfWeek
@@ -478,3 +491,133 @@ fun UserStateIntervalSnapshot.toEntity(): UserStateIntervalEntity = UserStateInt
     startedAt = startedAt,
     endedAt = endedAt,
 )
+
+fun DayFocusItem.toSnapshot(): DayFocusItemSnapshot =
+    DayFocusItemSnapshot(
+        id = id,
+        dayPlanId = dayPlanId,
+        title = title,
+        notes = notes,
+        relatedLinks = relatedLinks.orEmpty().map { it.toSnapshot() },
+        type = type.name,
+        isEveryday = isEveryday,
+        recurringKey = recurringKey,
+        order = order,
+        createdAt = createdAt,
+        updatedAt = updatedAt ?: createdAt,
+        syncedAt = syncedAt,
+        isDeleted = isDeleted,
+        version = version,
+    )
+
+fun DayFocusItemSnapshot.toEntity(): DayFocusItem =
+    DayFocusItem(
+        id = id,
+        dayPlanId = dayPlanId,
+        title = title,
+        notes = notes,
+        relatedLinks = relatedLinks.map { it.toEntity() },
+        type = DayFocusType.valueOf(type),
+        isEveryday = isEveryday,
+        recurringKey = recurringKey,
+        order = order,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        syncedAt = syncedAt,
+        isDeleted = isDeleted,
+        version = version,
+    )
+
+fun MainBeacon.toSnapshot(): MainBeaconSnapshot =
+    MainBeaconSnapshot(
+        id = id,
+        title = title,
+        description = description,
+        whyItMatters = whyItMatters,
+        successShape = successShape,
+        failureShape = failureShape,
+        antiGoal = antiGoal,
+        decisionImpact = decisionImpact,
+        readinessStatus = readinessStatus.name,
+        blockerText = blockerText,
+        nextActionText = nextActionText,
+        order = order,
+        updatedAt = updatedAt,
+        createdAt = createdAt,
+    )
+
+fun MainBeaconSnapshot.toEntity(): MainBeacon =
+    MainBeacon(
+        id = id,
+        title = title,
+        description = description,
+        whyItMatters = whyItMatters,
+        successShape = successShape,
+        failureShape = failureShape,
+        antiGoal = antiGoal,
+        decisionImpact = decisionImpact,
+        readinessStatus = enumValueOf(readinessStatus),
+        blockerText = blockerText,
+        nextActionText = nextActionText,
+        order = order,
+        updatedAt = updatedAt,
+        createdAt = createdAt,
+    )
+
+fun MainBeaconContextCrossRef.toSnapshot(): MainBeaconContextCrossRefSnapshot =
+    MainBeaconContextCrossRefSnapshot(beaconId = beaconId, contextId = contextId)
+
+fun MainBeaconContextCrossRefSnapshot.toEntity(): MainBeaconContextCrossRef =
+    MainBeaconContextCrossRef(beaconId = beaconId, contextId = contextId)
+
+fun MainBeaconAttachmentCrossRef.toSnapshot(): MainBeaconAttachmentCrossRefSnapshot =
+    MainBeaconAttachmentCrossRefSnapshot(beaconId = beaconId, attachmentId = attachmentId)
+
+fun MainBeaconAttachmentCrossRefSnapshot.toEntity(): MainBeaconAttachmentCrossRef =
+    MainBeaconAttachmentCrossRef(beaconId = beaconId, attachmentId = attachmentId)
+
+fun MainBeaconLevelStatus.toSnapshot(): MainBeaconLevelStatusSnapshot =
+    MainBeaconLevelStatusSnapshot(
+        id = id,
+        mainBeaconId = mainBeaconId,
+        levelType = levelType.name,
+        generalStatus = generalStatus.name,
+        syncStatus = syncStatus.name,
+        blockerText = blockerText,
+        nextActionText = nextActionText,
+        updatedAt = updatedAt,
+    )
+
+fun MainBeaconLevelStatusSnapshot.toEntity(): MainBeaconLevelStatus =
+    MainBeaconLevelStatus(
+        id = id,
+        mainBeaconId = mainBeaconId,
+        levelType = enumValueOf(levelType),
+        generalStatus = enumValueOf(generalStatus),
+        syncStatus = enumValueOf(syncStatus),
+        blockerText = blockerText,
+        nextActionText = nextActionText,
+        updatedAt = updatedAt,
+    )
+
+fun LifeManagementLevelStatusEntity.toSnapshot(): LifeManagementLevelStatusSnapshot =
+    LifeManagementLevelStatusSnapshot(
+        levelId = levelId.name,
+        generalStatus = generalStatus.name,
+        transferStatus = transferStatus.name,
+        freshnessStatus = freshnessStatus.name,
+        blockerText = blockerText,
+        nextActionText = nextActionText,
+        updatedAt = updatedAt,
+    )
+
+fun LifeManagementLevelStatusSnapshot.toEntity(): LifeManagementLevelStatusEntity =
+    LifeManagementLevelStatusEntity(
+        levelId = enumValueOf(levelId),
+        generalStatus = enumValueOf(generalStatus),
+        transferStatus = enumValueOf(transferStatus),
+        freshnessStatus = enumValueOf(freshnessStatus),
+        blockerText = blockerText,
+        nextActionText = nextActionText,
+        updatedAt = updatedAt,
+    )

@@ -9,6 +9,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayTaskSnapshot
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -60,6 +61,77 @@ class SyncFileServiceSnapshotTest {
                             valueImportance = 0, valueImpact = 0, effort = 0, cost = 0, risk = 0,
                             weightEffort = 1f, weightCost = 1f, weightRisk = 1f, rawScore = 0.0, displayScore = 0.0,
                             scoringStatus = "NOT_ASSESSED", showCheckboxes = false, roleCode = null,
+                        ),
+                    ),
+            )
+        val backup =
+            FullAppBackup(
+                backupSchemaVersion = 2,
+                snapshotBundle = snapshot,
+                database = null,
+                settings = null,
+            )
+        return gson.toJson(backup)
+    }
+
+    private fun createNewFormatJsonWithoutExecutionStrictness(): String {
+        val snapshot =
+            SnapshotBundle(
+                version = 2,
+                contexts =
+                    listOf(
+                        ContextSnapshot(
+                            id = "new_c1", name = "New Context", createdAt = 100L, updatedAt = 100L,
+                            isExpanded = false, isDeleted = false, version = 1, contextStatus = "NO_PLAN",
+                            contextLogLevel = null, isContextManagementEnabled = false,
+                            parentId = null, description = null, contextStatusText = null,
+                            tags = emptyList(), relatedLinks = emptyList(), order = 0, isAttachmentsExpanded = false,
+                            defaultViewModeName = "DIRECTION", isCompleted = false, totalTimeSpentMinutes = 0L,
+                            valueImportance = 0, valueImpact = 0, effort = 0, cost = 0, risk = 0,
+                            weightEffort = 1f, weightCost = 1f, weightRisk = 1f, rawScore = 0.0, displayScore = 0.0,
+                            scoringStatus = "NOT_ASSESSED", showCheckboxes = false, roleCode = null,
+                        ),
+                    ),
+                dayPlans = emptyList(),
+                dayTasks =
+                    listOf(
+                        DayTaskSnapshot(
+                            id = "task_1",
+                            dayPlanId = "plan_1",
+                            title = "Task",
+                            description = null,
+                            goalId = null,
+                            projectId = null,
+                            linkedProjectIds = emptyList(),
+                            linkedAttachmentIds = emptyList(),
+                            activityRecordId = null,
+                            recurringTaskId = null,
+                            taskType = "GOAL",
+                            entityId = null,
+                            order = 0,
+                            priority = "MEDIUM",
+                            status = "NOT_STARTED",
+                            completed = false,
+                            scheduledTime = null,
+                            estimatedDurationMinutes = 15,
+                            actualDurationMinutes = null,
+                            dueTime = null,
+                            executionStrictness = null,
+                            valueImportance = 0f,
+                            valueImpact = 0f,
+                            effort = 0f,
+                            cost = 0f,
+                            risk = 0f,
+                            location = null,
+                            tags = emptyList(),
+                            notes = null,
+                            createdAt = 100L,
+                            updatedAt = 100L,
+                            isDeleted = false,
+                            version = 1,
+                            completedAt = null,
+                            nextOccurrenceTime = null,
+                            points = 0,
                         ),
                     ),
             )
@@ -233,6 +305,28 @@ class SyncFileServiceSnapshotTest {
             assertThat(result.isSuccess).isTrue()
             verify(exactly = 1) { mockLegacyMigrationMapper.toSnapshotBundle(any<DatabaseContent>()) }
             coVerify(exactly = 1) { mockMergeRepository.applyServerChanges(migratedSnapshot) }
+        }
+
+    @Test
+    fun `importFullBackupFromFileV2 defaults missing executionStrictness for old snapshot backups`() =
+        runBlocking {
+            val uriString = "content://test/old_snapshot_without_execution_strictness"
+            val jsonString = createNewFormatJsonWithoutExecutionStrictness()
+
+            every { mockContentProvider.readText(uriString) } returns Result.success(jsonString)
+            coEvery { mockMergeRepository.applyServerChanges(any<SnapshotBundle>()) } returns Result.success(Unit)
+            coEvery { mockLocalDataSource.restoreSettings(any()) } returns Unit
+
+            val result = syncFileService.importFullBackupFromFileV2(uriString)
+
+            assertThat(result.isSuccess).isTrue()
+            coVerify(exactly = 1) {
+                mockMergeRepository.applyServerChanges(
+                    match<SnapshotBundle> {
+                        it.dayTasks.single().executionStrictness == "NORMAL"
+                    },
+                )
+            }
         }
 
     @Test

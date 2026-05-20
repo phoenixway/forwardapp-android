@@ -14,6 +14,7 @@ object SystemContexts {
     val STRATEGIC_PROGRAMS = ContextId("sys_strategic-programs")
     val MEDIUM_TERM_STRATEGY = ContextId("sys_medium-term-strategy")
     val ACTIVE_QUESTS = ContextId("sys_active-quests")
+    val LEVELS = ContextId("sys_levels")
     val WEEK = ContextId("sys_week")
     val INBOX = ContextId("sys_inbox")
     val STRATEGIC_INBOX = ContextId("sys_strategic-inbox")
@@ -36,6 +37,7 @@ object SystemContexts {
             STRATEGIC_PROGRAMS,
             MEDIUM_TERM_STRATEGY,
             ACTIVE_QUESTS,
+            LEVELS,
             WEEK,
             INBOX,
             STRATEGIC_INBOX,
@@ -52,4 +54,6 @@ object SystemContexts {
     fun isSystem(id: ContextId): Boolean = RESERVED.contains(id)
 
     fun isPinnedRoot(id: ContextId): Boolean = PINNED_ROOT.contains(id)
+
+    fun canRenameOrMove(id: ContextId): Boolean = !isPinnedRoot(id)
 }

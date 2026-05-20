@@ -20,6 +20,8 @@ import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
+import com.romankozak.forwardappmobile.features.daymanagement.runtime.data.DayManagementRuntimeRepository
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconDao
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import com.romankozak.forwardappmobile.sync.SyncMapper
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
@@ -48,6 +50,10 @@ class FullBackupLocalDataSourceImpl
         private val reminderDao: ReminderDao,
         private val tacticalMissionDao: TacticalMissionDao,
         private val aiInsightDao: AiInsightDao,
+        private val dayFocusItemDao: DayFocusItemDao,
+        private val lifeManagementLevelStatusDao: LifeManagementLevelStatusDao,
+        private val mainBeaconDao: MainBeaconDao,
+        private val dayManagementRuntimeRepository: DayManagementRuntimeRepository,
         private val systemContextEnsurer: SystemContextEnsurer,
         private val backlogOrderDao: BacklogOrderDao,
         private val backlogItemDao: ListItemDao,
@@ -98,6 +104,7 @@ class FullBackupLocalDataSourceImpl
                 // Activity & RPG
                 activityRecords = activityRecordDao.getAllRaw().map { it.toSnapshot() },
                 dayPlans = dayPlanDao.getAllPlansSync().map { it.toSnapshot() },
+                dayFocusItems = dayFocusItemDao.getAllSync().map { it.toSnapshot() },
                 dayTasks = dayTaskDao.getAllTasksSync().map { it.toSnapshot() },
                 dailyMetrics = dailyMetricDao.getAll().map { it.toSnapshot() },
                 recurringTasks = recurringTaskDao.getAll().map { it.toSnapshot() },
@@ -107,12 +114,18 @@ class FullBackupLocalDataSourceImpl
                 conversationFolders = conversationFolderDao.getAllSync().map { it.toSnapshot() },
                 aiInsights = aiInsightDao.getAllSync().map { it.toSnapshot() },
                 aiEvents = aiEventDao.getAllSync().map { it.toSnapshot() },
+                mainBeacons = mainBeaconDao.getAllBeaconsSync().map { it.toSnapshot() },
+                mainBeaconContextCrossRefs = mainBeaconDao.getAllContextCrossRefsSync().map { it.toSnapshot() },
+                mainBeaconAttachmentCrossRefs = mainBeaconDao.getAllAttachmentCrossRefsSync().map { it.toSnapshot() },
+                mainBeaconLevelStatuses = mainBeaconDao.getAllLevelStatusesSync().map { it.toSnapshot() },
+                lifeManagementLevelStatuses = lifeManagementLevelStatusDao.getAll().map { it.toSnapshot() },
                 // System & Tactical
                 tacticalMissions = tacticalMissionDao.getAllMissionsSync().map { it.toSnapshot() },
                 tacticalMissionAttachments = tacticalMissionDao.getAllMissionAttachmentCrossRefs().map { it.toSnapshot() },
                 reminders = reminderDao.getAllRemindersSync().map { it.toSnapshot() },
                 systemApps = systemAppDao.getAllRaw().map { it.toSnapshot() },
                 lifeSystemStates = lifeSystemStateDao.getAllSync().map { it.toSnapshot() },
+                dayManagementRuntimeState = dayManagementRuntimeRepository.exportSnapshot(),
                 recentProjectEntries = recentItemDao.getAllSync().map { it.toSnapshot() },
                 linkItemEntities = linkItemDao.getAllRaw().map { it.toSnapshot() },
                 // Configuration
@@ -169,6 +182,9 @@ class FullBackupLocalDataSourceImpl
             Log.d("SyncV2", "Inserting DayPlans: ${bundle.dayPlans.size}")
             dayPlanDao.insertPlans(bundle.dayPlans.map { it.toEntity() })
 
+            Log.d("SyncV2", "Inserting DayFocusItems: ${bundle.dayFocusItems.size}")
+            dayFocusItemDao.insertAll(bundle.dayFocusItems.map { it.toEntity() })
+
             Log.d("SyncV2", "Inserting Checklists: ${bundle.checklists.size}")
             checklistDao.insertChecklists(bundle.checklists.map { it.toEntity() })
 
@@ -208,6 +224,12 @@ class FullBackupLocalDataSourceImpl
             Log.d("SyncV2", "Inserting AiEvents: ${bundle.aiEvents.size}")
             aiEventDao.insertAll(bundle.aiEvents.map { it.toEntity() })
 
+            Log.d("SyncV2", "Inserting MainBeacons: ${bundle.mainBeacons.size}")
+            mainBeaconDao.insertBeacons(bundle.mainBeacons.map { it.toEntity() })
+
+            Log.d("SyncV2", "Inserting LifeManagementLevelStatuses: ${bundle.lifeManagementLevelStatuses.size}")
+            lifeManagementLevelStatusDao.upsertAll(bundle.lifeManagementLevelStatuses.map { it.toEntity() })
+
             // Level 2: Dependent entities
             Log.d("SyncV2", "Inserting Goals: ${bundle.goals.size}")
             goalDao.insertAll(bundle.goals.map { it.toEntity() }) // Depends on Context
@@ -233,6 +255,7 @@ class FullBackupLocalDataSourceImpl
                         enableAttachments = snapshot.enableAttachments,
                         enableAutoLinkSubprojects = snapshot.enableAutoLinkSubprojects,
                         removeInboxEntryAfterTagAutocopy = snapshot.removeInboxEntryAfterTagAutocopy ?: false,
+                        removeBacklogEntryAfterTagAutocopy = snapshot.removeBacklogEntryAfterTagAutocopy ?: false,
                         version = snapshot.version,
                         updatedAt = snapshot.updatedAt,
                         isDeleted = snapshot.isDeleted,
@@ -336,6 +359,15 @@ class FullBackupLocalDataSourceImpl
             Log.d("SyncV2", "Inserting ContextAttachmentCrossRefs: ${bundle.crossRefs.size}")
             attachmentDao.insertContextAttachmentCrossRefs(bundle.crossRefs.map { it.toEntity() }) // Depends on Context and Attachment
 
+            Log.d("SyncV2", "Inserting MainBeaconContextCrossRefs: ${bundle.mainBeaconContextCrossRefs.size}")
+            mainBeaconDao.insertContextCrossRefs(bundle.mainBeaconContextCrossRefs.map { it.toEntity() })
+
+            Log.d("SyncV2", "Inserting MainBeaconAttachmentCrossRefs: ${bundle.mainBeaconAttachmentCrossRefs.size}")
+            mainBeaconDao.insertAttachmentCrossRefs(bundle.mainBeaconAttachmentCrossRefs.map { it.toEntity() })
+
+            Log.d("SyncV2", "Inserting MainBeaconLevelStatuses: ${bundle.mainBeaconLevelStatuses.size}")
+            mainBeaconDao.insertLevelStatuses(bundle.mainBeaconLevelStatuses.map { it.toEntity() })
+
             Log.d("SyncV2", "Inserting TacticalMissionAttachments: ${bundle.tacticalMissionAttachments.size}")
             tacticalMissionDao.insertMissionAttachments(
                 bundle.tacticalMissionAttachments.map {
@@ -362,6 +394,7 @@ class FullBackupLocalDataSourceImpl
                 Log.d("SyncV2", "Applying bundle V${bundle.version} in Merge Mode")
                 insertBundleData(bundle)
             }
+            dayManagementRuntimeRepository.importSnapshot(bundle.dayManagementRuntimeState)
         }
 
         override suspend fun loadFullDatabaseContent(): DatabaseContent {

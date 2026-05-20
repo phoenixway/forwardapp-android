@@ -10,6 +10,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
 import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
+import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
@@ -31,6 +32,7 @@ class GoalRepository
         private val contextMarkerHandlerProvider: Provider<ContextMarkerHandler>,
         private val contextDao: ContextDao,
         private val tagAssociationHandler: TagAssociationHandler,
+        private val contextStructureRepository: ContextStructureRepository,
     ) {
         private val contextMarkerHandler: ContextMarkerHandler by lazy { contextMarkerHandlerProvider.get() }
 
@@ -77,7 +79,12 @@ class GoalRepository
 
             val finalGoalState = goalDao.getGoalById(goalToInsert.id)!!
             contextMarkerHandler.handleContextsOnCreate(finalGoalState)
-            tagAssociationHandler.syncGoalAssociations(finalGoalState, contextId)
+            val associatedContexts = tagAssociationHandler.syncGoalAssociations(finalGoalState, contextId)
+            applyBacklogAutoMovePolicy(
+                goalId = finalGoalState.id,
+                sourceContextId = contextId,
+                associatedContextIds = associatedContexts.keys,
+            )
             return newBacklogItem.id
         }
 
@@ -113,7 +120,12 @@ class GoalRepository
 
             syncContextMarker(newGoal.id, contextId, ContextTextAction.ADD)
             contextMarkerHandler.handleContextsOnCreate(newGoal)
-            tagAssociationHandler.syncGoalAssociations(newGoal, contextId)
+            val associatedContexts = tagAssociationHandler.syncGoalAssociations(newGoal, contextId)
+            applyBacklogAutoMovePolicy(
+                goalId = newGoal.id,
+                sourceContextId = contextId,
+                associatedContextIds = associatedContexts.keys,
+            )
             return newGoal
         }
 
@@ -124,7 +136,20 @@ class GoalRepository
             val now = System.currentTimeMillis()
             val updatedGoal = normalizeGoalState(goal).bumpSync(now)
             goalDao.updateGoal(updatedGoal)
-            tagAssociationHandler.syncGoalAssociations(updatedGoal, sourceContextId)
+            val resolvedSourceContextId =
+                sourceContextId?.takeIf { it.isNotBlank() }
+                    ?: listItemDao
+                        .getDirectItemsForEntity(updatedGoal.id, BacklogItemTypeValues.GOAL)
+                        .firstOrNull()
+                        ?.contextId
+            val associatedContexts = tagAssociationHandler.syncGoalAssociations(updatedGoal, resolvedSourceContextId)
+            if (resolvedSourceContextId != null) {
+                applyBacklogAutoMovePolicy(
+                    goalId = updatedGoal.id,
+                    sourceContextId = resolvedSourceContextId,
+                    associatedContextIds = associatedContexts.keys,
+                )
+            }
         }
 
         suspend fun updateGoals(goals: List<Goal>) {
@@ -256,6 +281,35 @@ class GoalRepository
         fun getGoalsByContextIdFlow(contextId: String): Flow<List<Goal>> {
             return goalDao.getGoalsByContextIdFlow(contextId)
         }
+
+        private suspend fun applyBacklogAutoMovePolicy(
+            goalId: String,
+            sourceContextId: String,
+            associatedContextIds: Set<String>,
+        ) {
+            val sourceItem =
+                listItemDao.getDirectItemForEntityInContext(
+                    entityId = goalId,
+                    itemType = BacklogItemTypeValues.GOAL,
+                    contextId = sourceContextId,
+                ) ?: return
+            val shouldHide =
+                shouldRemoveBacklogAfterTagAutocopy(sourceContextId) &&
+                    associatedContextIds.isNotEmpty()
+            if (sourceItem.isDeleted == shouldHide) return
+
+            val now = System.currentTimeMillis()
+            val updatedItem =
+                if (shouldHide) {
+                    sourceItem.softDelete(now)
+                } else {
+                    sourceItem.copy(isDeleted = false).bumpSync(now)
+                }
+            listItemDao.insertItem(updatedItem)
+        }
+
+        private suspend fun shouldRemoveBacklogAfterTagAutocopy(contextId: String): Boolean =
+            contextStructureRepository.getStructureByContext(contextId)?.removeBacklogEntryAfterTagAutocopy == true
 
         private fun normalizeGoalState(goal: Goal): Goal {
             val normalizedStatus =

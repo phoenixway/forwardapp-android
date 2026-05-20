@@ -22,6 +22,11 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -30,6 +35,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,6 +52,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CalendarToday
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
@@ -53,6 +61,7 @@ import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.core.navigation.routes.STRATEGIC_MANAGEMENT_ROUTE
 import com.romankozak.forwardappmobile.features.ai.insights.AiInsightsViewModel
+import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.ContextMarkersSheet
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.presentation.DayManagementRuntimeUiState
@@ -60,6 +69,7 @@ import com.romankozak.forwardappmobile.features.daymanagement.runtime.presentati
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementTab
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementViewModel
+import com.romankozak.forwardappmobile.features.daymanagement.ui.dayfocus.DayFocusesViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.CoreBottomPanel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.DashboardBottomPanel
@@ -156,6 +166,8 @@ fun MainScreenLayout(
     val dayManagementViewModel: DayManagementViewModel = hiltViewModel()
     val dayManagementRuntimeViewModel: DayManagementRuntimeViewModel = hiltViewModel()
     val dayPlanViewModel: DayPlanViewModel = hiltViewModel()
+    val activityTrackerViewModel: ActivityTrackerViewModel = hiltViewModel()
+    val dayFocusesViewModel: DayFocusesViewModel = hiltViewModel()
     val dayManagementUiState by dayManagementViewModel.uiState.collectAsStateWithLifecycle()
     val dayManagementRuntimeUiState by dayManagementRuntimeViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -313,6 +325,18 @@ fun MainScreenLayout(
                         )
                 }
             },
+            floatingActionButton = {
+                if (
+                    currentRoute == MAIN_SCREEN_TODAY_ROUTE &&
+                    dayManagementUiState.selectedTab in DayManagementTab.todaySubTabs() &&
+                    dayManagementUiState.selectedTab != DayManagementTab.JOURNAL
+                ) {
+                    TodayDatePickerFab(
+                        selectedDate = dayManagementUiState.selectedDate,
+                        onDateSelected = dayManagementViewModel::navigateToDate,
+                    )
+                }
+            },
             bottomBar = {
                 MainScreenBottomBar(
                     currentRoute = currentRoute,
@@ -345,6 +369,8 @@ fun MainScreenLayout(
                     dayManagementRuntimeViewModel = dayManagementRuntimeViewModel,
                     dayManagementRuntimeUiState = dayManagementRuntimeUiState,
                     dayPlanViewModel = dayPlanViewModel,
+                    activityTrackerViewModel = activityTrackerViewModel,
+                    dayFocusesViewModel = dayFocusesViewModel,
                     tacticalMissionViewModel = tacticalMissionViewModel,
                 )
             },
@@ -387,8 +413,11 @@ fun MainScreenLayout(
                     tacticalMissionViewModel = tacticalMissionViewModel,
                     tacticalObsidianVaultName = tacticalObsidianVaultName,
                     dayManagementViewModel = dayManagementViewModel,
+                    currentDayManagementTab = dayManagementUiState.selectedTab,
                     dayManagementRuntimeViewModel = dayManagementRuntimeViewModel,
                     dayPlanViewModel = dayPlanViewModel,
+                    activityTrackerViewModel = activityTrackerViewModel,
+                    dayFocusesViewModel = dayFocusesViewModel,
                     sessionModeState = sessionModeState,
                     latestSessionReason = latestSessionReason,
                     onSessionModeSelected = commandDeckViewModel::setSessionMode,
@@ -463,6 +492,46 @@ fun MainScreenLayout(
     }
 }
 
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun TodayDatePickerFab(
+    selectedDate: Long,
+    onDateSelected: (Long) -> Unit,
+) {
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    FloatingActionButton(onClick = { showDatePicker = true }) {
+        Icon(
+            imageVector = Icons.Outlined.CalendarToday,
+            contentDescription = "Вибрати день",
+        )
+    }
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDate)
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let(onDateSelected)
+                        showDatePicker = false
+                    },
+                ) {
+                    Text("Обрати")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Скасувати")
+                }
+            },
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+}
+
 private fun buildExternalTarget(
     linkType: LinkType?,
     target: String,
@@ -514,6 +583,8 @@ private fun MainScreenBottomBar(
     dayManagementRuntimeViewModel: DayManagementRuntimeViewModel,
     dayManagementRuntimeUiState: DayManagementRuntimeUiState,
     dayPlanViewModel: DayPlanViewModel,
+    activityTrackerViewModel: ActivityTrackerViewModel,
+    dayFocusesViewModel: DayFocusesViewModel,
     tacticalMissionViewModel: TacticalMissionViewModel,
 ) {
     val contextUiState by contextHierarchyViewModel.uiState.collectAsStateWithLifecycle()
@@ -582,11 +653,14 @@ private fun MainScreenBottomBar(
                 onSelectTodayTab = dayManagementViewModel::selectTab,
                 runtimeUiState = dayManagementRuntimeUiState,
                 onWakeUp = dayManagementRuntimeViewModel::wakeUp,
+                onFinalizeFocus = dayManagementRuntimeViewModel::finalizeFocus,
                 onFinalizePlan = dayManagementRuntimeViewModel::finalizePlan,
                 onStartImplementation = dayManagementRuntimeViewModel::startImplementation,
                 onStartFinalization = dayManagementRuntimeViewModel::startFinalization,
                 onSleep = dayManagementRuntimeViewModel::sleep,
                 dayPlanViewModel = dayPlanViewModel,
+                activityTrackerViewModel = activityTrackerViewModel,
+                dayFocusesViewModel = dayFocusesViewModel,
             )
         MAIN_SCREEN_TACTICS_ROUTE ->
             TacticsBottomPanel(
@@ -744,8 +818,11 @@ private fun MainScreenPagerContent(
     tacticalMissionViewModel: TacticalMissionViewModel,
     tacticalObsidianVaultName: String,
     dayManagementViewModel: DayManagementViewModel,
+    currentDayManagementTab: DayManagementTab,
     dayManagementRuntimeViewModel: DayManagementRuntimeViewModel,
     dayPlanViewModel: DayPlanViewModel,
+    activityTrackerViewModel: ActivityTrackerViewModel,
+    dayFocusesViewModel: DayFocusesViewModel,
     sessionModeState: SessionModeState,
     latestSessionReason: String?,
     onSessionModeSelected: (com.romankozak.forwardappmobile.features.mainscreen.session.SessionMode) -> Unit,
@@ -941,7 +1018,12 @@ private fun MainScreenPagerContent(
                     viewModel = dayManagementViewModel,
                     runtimeViewModel = dayManagementRuntimeViewModel,
                     dayPlanViewModel = dayPlanViewModel,
-                    startTab = DayManagementTab.DAY_PLAN.name,
+                    activityTrackerViewModel = activityTrackerViewModel,
+                    dayFocusesViewModel = dayFocusesViewModel,
+                    currentDayManagementTab =
+                        currentDayManagementTab
+                            .takeIf { it in DayManagementTab.todaySubTabs() }
+                            ?: DayManagementTab.DAY_PLAN,
                     showFabMenu = false,
                 )
         }

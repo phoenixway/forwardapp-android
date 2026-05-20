@@ -11,17 +11,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,24 +35,32 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusType
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.TaskExecutionStrictness
 import com.romankozak.forwardappmobile.core.theme.LocalInputPanelColors
+import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerViewModel
+import com.romankozak.forwardappmobile.features.activitytracker.ActivityInputBar
+import com.romankozak.forwardappmobile.features.activitytracker.QuickCompletedActionDialog
+import com.romankozak.forwardappmobile.features.activitytracker.copyToClipboard
+import com.romankozak.forwardappmobile.features.activitytracker.exportLogToMarkdown
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.InputSuggestionActions
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.AutocompleteSuggestions
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
+import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.presentation.DayManagementRuntimeUiState
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementTab
+import com.romankozak.forwardappmobile.features.daymanagement.ui.dayfocus.DayFocusDialogMode
+import com.romankozak.forwardappmobile.features.daymanagement.ui.dayfocus.DayFocusItemEditorSheet
+import com.romankozak.forwardappmobile.features.daymanagement.ui.dayfocus.DayFocusesViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTargetsPickerDialog
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
 import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckMoreActionButton
+import com.romankozak.forwardappmobile.features.mainscreen.MoreSheetAction
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
-
-private const val SURFACE_LUMINANCE_THRESHOLD = 0.5f
 
 @Composable
 @Suppress("LongParameterList", "LongMethod")
@@ -85,6 +91,7 @@ fun TodayBottomPanel(
     onSelectTodayTab: (DayManagementTab) -> Unit,
     runtimeUiState: DayManagementRuntimeUiState,
     onWakeUp: () -> Unit,
+    onFinalizeFocus: () -> Unit,
     onFinalizePlan: () -> Unit,
     onStartImplementation: () -> Unit,
     onStartFinalization: () -> Unit,
@@ -93,6 +100,8 @@ fun TodayBottomPanel(
     onNavigateToRecentItem: (RecentItem) -> Unit,
     recentViewModel: RecentViewModel = hiltViewModel(),
     dayPlanViewModel: DayPlanViewModel = hiltViewModel(),
+    activityTrackerViewModel: ActivityTrackerViewModel = hiltViewModel(),
+    dayFocusesViewModel: DayFocusesViewModel = hiltViewModel(),
 ) {
     @Suppress("UNUSED_VARIABLE")
     val unusedInputs =
@@ -106,17 +115,22 @@ fun TodayBottomPanel(
     val dayPlanUiState by dayPlanViewModel.uiState.collectAsStateWithLifecycle()
     val allTags by dayPlanViewModel.allTags.collectAsStateWithLifecycle()
     val contextMarkerNames by dayPlanViewModel.contextMarkerNames.collectAsStateWithLifecycle()
+    val groupedActivityLog by activityTrackerViewModel.groupedActivityLog.collectAsStateWithLifecycle()
+    val activityInputText by activityTrackerViewModel.inputText.collectAsStateWithLifecycle()
+    val lastOngoingActivity by activityTrackerViewModel.lastOngoingActivity.collectAsStateWithLifecycle()
+    val dayFocusesUiState by dayFocusesViewModel.uiState.collectAsStateWithLifecycle()
     val panelStyle = LocalInputPanelColors.current.addGoal
-    val colorScheme = MaterialTheme.colorScheme
     val inputSuggestionActions = remember { InputSuggestionActions() }
-    val dateChipBackground =
-        if (colorScheme.surface.luminance() > SURFACE_LUMINANCE_THRESHOLD) {
-            colorScheme.surfaceContainerHighest
-        } else {
-            colorScheme.surfaceContainerHigh
-        }
+    val context = androidx.compose.ui.platform.LocalContext.current
     var inputValue by remember { mutableStateOf(TextFieldValue("")) }
     var showContextPicker by remember { mutableStateOf(false) }
+    var showClearJournalConfirmDialog by remember { mutableStateOf(false) }
+    var journalQuickDoneDialogState by remember { mutableStateOf<String?>(null) }
+    val journalHoldMenuController = rememberHoldMenu2()
+
+    LaunchedEffect(dayPlanUiState.dayPlan?.id) {
+        dayPlanUiState.dayPlan?.id?.let(dayFocusesViewModel::loadDataForPlan)
+    }
     val autocompleteSuggestions =
         remember(inputValue, allTags, contextMarkerNames) {
             inputSuggestionActions.buildSuggestions(
@@ -136,12 +150,81 @@ fun TodayBottomPanel(
                 )
             }
         }
-    val dateLabel =
-        remember(dayPlanUiState.dayPlan?.date, dayPlanUiState.isToday) {
-            val date = dayPlanUiState.dayPlan?.date ?: return@remember ""
-            val prefix = if (dayPlanUiState.isToday) "Today" else ""
-            val formatted = SimpleDateFormat("d MMM", Locale.getDefault()).format(Date(date))
-            listOf(prefix, formatted).filter { it.isNotBlank() }.joinToString(" ")
+    val additionalMoreActions =
+        when (currentTab) {
+            DayManagementTab.DAY_START ->
+                listOf(
+                    MoreSheetAction(label = "Проснувся!", onClick = onWakeUp),
+                    MoreSheetAction(label = "Пішов спати", onClick = onSleep),
+                )
+            DayManagementTab.DAY_PLAN ->
+                listOf(
+                    MoreSheetAction(
+                        label =
+                            if (runtimeUiState.runtimeState.dayPlanFinalizedAt != null) {
+                                "План дня зафіксовано"
+                            } else {
+                                "План дня готовий"
+                            },
+                        onClick = onFinalizePlan,
+                    ),
+                )
+            DayManagementTab.DAY_FOCUSES ->
+                listOf(
+                    MoreSheetAction(
+                        label =
+                            if (runtimeUiState.runtimeState.dayFocusFinalizedAt != null) {
+                                "Фокус дня зафіксований"
+                            } else {
+                                "Фокус дня зафіксувати"
+                            },
+                        onClick = onFinalizeFocus,
+                    ),
+                    MoreSheetAction(
+                        label = "Додати фокус",
+                        onClick = { dayFocusesViewModel.openCreateDialog(DayFocusType.FOCUS) },
+                    ),
+                    MoreSheetAction(
+                        label = "Додати зону відповідальності",
+                        onClick = { dayFocusesViewModel.openCreateDialog(DayFocusType.RESPONSIBILITY) },
+                    ),
+                )
+            DayManagementTab.JOURNAL ->
+                listOf(
+                    MoreSheetAction(
+                        label =
+                            if (runtimeUiState.runtimeState.hasOpenOperationalDay) {
+                                "Почати реалізацію"
+                            } else {
+                                "Стартувати день і реалізацію"
+                            },
+                        onClick = onStartImplementation,
+                    ),
+                    MoreSheetAction(
+                        label = "Події",
+                        onClick = {
+                            if (activityInputText.isNotBlank()) {
+                                journalQuickDoneDialogState = activityInputText
+                            }
+                        },
+                    ),
+                    MoreSheetAction(
+                        label = "Коментар",
+                        onClick = activityTrackerViewModel::onTimelessRecordClick,
+                    ),
+                    MoreSheetAction(
+                        label = "Експорт в Markdown",
+                        onClick = {
+                            val markdown = exportLogToMarkdown(groupedActivityLog.values.flatten())
+                            copyToClipboard(context, markdown)
+                        },
+                    ),
+                    MoreSheetAction(
+                        label = "Очистити лог",
+                        onClick = { showClearJournalConfirmDialog = true },
+                    ),
+                )
+            else -> emptyList()
         }
 
     fun submitTask() {
@@ -185,135 +268,115 @@ fun TodayBottomPanel(
                         Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    IconButton(
-                        onClick = { showContextPicker = true },
-                        modifier = Modifier.size(38.dp),
-                        colors =
-                            IconButtonDefaults.iconButtonColors(
-                                contentColor = panelStyle.textColor.copy(alpha = 0.8f),
-                            ),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Додати задачу",
-                            modifier = Modifier.size(22.dp),
-                        )
-                    }
+                ) {}
 
-                    IconButton(
-                        onClick = { dayPlanViewModel.toggleScopeLinksSheet() },
-                        modifier = Modifier.size(38.dp),
-                        colors =
-                            IconButtonDefaults.iconButtonColors(
-                                contentColor = panelStyle.textColor.copy(alpha = 0.8f),
-                            ),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Link,
-                            contentDescription = "Показати зв'язки",
-                            modifier = Modifier.size(22.dp),
-                        )
-                    }
-
-                    IconButton(
-                        onClick = { dayPlanViewModel.navigateToPreviousDay() },
-                        modifier = Modifier.size(38.dp),
-                        colors =
-                            IconButtonDefaults.iconButtonColors(
-                                contentColor = panelStyle.textColor.copy(alpha = 0.8f),
-                            ),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Попередній день",
-                            modifier = Modifier.size(22.dp),
-                        )
-                    }
-
-                    IconButton(
-                        onClick = { dayPlanViewModel.navigateToNextDay() },
-                        modifier = Modifier.size(38.dp),
-                        colors =
-                            IconButtonDefaults.iconButtonColors(
-                                contentColor = panelStyle.textColor.copy(alpha = 0.8f),
-                            ),
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = "Наступний день",
-                            modifier = Modifier.size(22.dp),
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    if (dateLabel.isNotBlank()) {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = dateChipBackground,
-                            border = BorderStroke(1.dp, panelStyle.textColor.copy(alpha = 0.12f)),
-                        ) {
-                            Text(
-                                text = dateLabel,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = colorScheme.onSurface.copy(alpha = 0.88f),
-                            )
-                        }
-                    }
-
-                    CommandDeckMoreActionButton(
-                        onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
-                        onShowContextMarkersSheet = onShowContextMarkersSheet,
-                        onNavigateToReminders = onNavigateToReminders,
-                        onNavigateToPresets = onNavigateToPresets,
-                        onNavigateToAiChat = onNavigateToAiChat,
-                        onNavigateToAiInsights = onNavigateToAiInsights,
-                        onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
-                        onNavigateToSettings = onNavigateToSettings,
-                        onExportToFile = onExportToFile,
-                        onImportFromFileRequest = onImportFromFileRequest,
-                        onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
-                        onExportAttachments = onExportAttachments,
-                        onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
-                        onWifiPush = onWifiPush,
-                        onShowWifiServer = onShowWifiServer,
-                        onShowWifiImport = onShowWifiImport,
-                        onNavigateToAttachments = onNavigateToAttachments,
-                        onNavigateToScripts = onNavigateToScripts,
-                        onShowAbout = onShowAbout,
-                        featureToggles = featureToggles,
-                        modifier = Modifier.size(38.dp),
+                if (currentTab != DayManagementTab.JOURNAL && currentTab != DayManagementTab.DAY_FOCUSES) {
+                    AutocompleteSuggestions(
+                        suggestions = autocompleteSuggestions,
+                        onSuggestionClick = { suggestion ->
+                            inputSuggestionActions
+                                .applySuggestion(
+                                    currentText = inputValue.text,
+                                    cursorPosition = inputValue.selection.start.coerceAtLeast(0),
+                                    suggestion = suggestion,
+                                )?.let { result ->
+                                    inputValue =
+                                        TextFieldValue(
+                                            text = result.text,
+                                            selection = TextRange(result.cursorPosition),
+                                        )
+                                }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
-
-                AutocompleteSuggestions(
-                    suggestions = autocompleteSuggestions,
-                    onSuggestionClick = { suggestion ->
-                        inputSuggestionActions
-                            .applySuggestion(
-                                currentText = inputValue.text,
-                                cursorPosition = inputValue.selection.start.coerceAtLeast(0),
-                                suggestion = suggestion,
-                            )?.let { result ->
-                                inputValue =
-                                    TextFieldValue(
-                                        text = result.text,
-                                        selection = TextRange(result.cursorPosition),
-                                    )
+                if (currentTab == DayManagementTab.JOURNAL) {
+                    ActivityInputBar(
+                        text = activityInputText,
+                        isActivityOngoing = lastOngoingActivity != null,
+                        onTextChange = activityTrackerViewModel::onInputTextChanged,
+                        onToggleStartStop = activityTrackerViewModel::onToggleStartStop,
+                        onTimelessClick = activityTrackerViewModel::onTimelessRecordClick,
+                        onQuickDoneClick = { textValue -> journalQuickDoneDialogState = textValue },
+                        holdMenuController = journalHoldMenuController,
+                        showMoreMenu = false,
+                        trailingContent = {
+                            CommandDeckMoreActionButton(
+                                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                                onShowContextMarkersSheet = onShowContextMarkersSheet,
+                                onNavigateToReminders = onNavigateToReminders,
+                                onNavigateToPresets = onNavigateToPresets,
+                                onNavigateToAiChat = onNavigateToAiChat,
+                                onNavigateToAiInsights = onNavigateToAiInsights,
+                                onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
+                                onNavigateToSettings = onNavigateToSettings,
+                                onExportToFile = onExportToFile,
+                                onImportFromFileRequest = onImportFromFileRequest,
+                                onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
+                                onExportAttachments = onExportAttachments,
+                                onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
+                                onWifiPush = onWifiPush,
+                                onShowWifiServer = onShowWifiServer,
+                                onShowWifiImport = onShowWifiImport,
+                                onNavigateToAttachments = onNavigateToAttachments,
+                                onNavigateToScripts = onNavigateToScripts,
+                                onShowAbout = onShowAbout,
+                                additionalActions = additionalMoreActions,
+                                featureToggles = featureToggles,
+                                modifier = Modifier.size(38.dp),
+                            )
+                        },
+                    )
+                } else {
+                    TodayBottomPanelComposer(
+                        inputValue = inputValue,
+                        onValueChange = { inputValue = it },
+                        onSubmit = {
+                            when (currentTab) {
+                                DayManagementTab.DAY_FOCUSES -> {
+                                    dayFocusesViewModel.addQuickFocus(inputValue.text)
+                                    inputValue = TextFieldValue("")
+                                }
+                                else -> submitTask()
                             }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                TodayBottomPanelComposer(
-                    inputValue = inputValue,
-                    onValueChange = { inputValue = it },
-                    onSubmit = ::submitTask,
-                    panelStyle = panelStyle,
-                )
+                        },
+                        panelStyle = panelStyle,
+                        placeholderText =
+                            if (currentTab == DayManagementTab.DAY_FOCUSES) {
+                                "Новий фокус дня..."
+                            } else {
+                                "Нове завдання..."
+                            },
+                        trailingContent = {
+                            CommandDeckMoreActionButton(
+                                onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
+                                onShowContextMarkersSheet = onShowContextMarkersSheet,
+                                onNavigateToReminders = onNavigateToReminders,
+                                onNavigateToPresets = onNavigateToPresets,
+                                onNavigateToAiChat = onNavigateToAiChat,
+                                onNavigateToAiInsights = onNavigateToAiInsights,
+                                onNavigateToAiLifeManagement = onNavigateToAiLifeManagement,
+                                onNavigateToSettings = onNavigateToSettings,
+                                onExportToFile = onExportToFile,
+                                onImportFromFileRequest = onImportFromFileRequest,
+                                onSelectiveImportFromFileRequest = onSelectiveImportFromFileRequest,
+                                onExportAttachments = onExportAttachments,
+                                onImportAttachmentsFromFileRequest = onImportAttachmentsFromFileRequest,
+                                onWifiPush = onWifiPush,
+                                onShowWifiServer = onShowWifiServer,
+                                onShowWifiImport = onShowWifiImport,
+                                onNavigateToAttachments = onNavigateToAttachments,
+                                onNavigateToScripts = onNavigateToScripts,
+                                onShowAbout = onShowAbout,
+                                additionalActions = additionalMoreActions,
+                                featureToggles = featureToggles,
+                                modifier = Modifier.size(38.dp),
+                            )
+                        },
+                    )
+                }
 
                 TodaySubTabs(
                     selectedTab = currentTab,
@@ -324,6 +387,7 @@ fun TodayBottomPanel(
                     currentTab = currentTab,
                     runtimeUiState = runtimeUiState,
                     onWakeUp = onWakeUp,
+                    onFinalizeFocus = onFinalizeFocus,
                     onFinalizePlan = onFinalizePlan,
                     onStartImplementation = onStartImplementation,
                     onStartFinalization = onStartFinalization,
@@ -349,6 +413,108 @@ fun TodayBottomPanel(
             onAttachmentSelected = {},
             onCreateRootContext = null,
             onCreateDocument = null,
+        )
+    }
+
+    if (showClearJournalConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearJournalConfirmDialog = false },
+            title = { Text("Очистити лог?") },
+            text = { Text("Ви впевнені, що хочете видалити всі записи? Цю дію неможливо буде скасувати.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        activityTrackerViewModel.onClearLogConfirm()
+                        showClearJournalConfirmDialog = false
+                    },
+                ) { Text("Видалити") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearJournalConfirmDialog = false }) {
+                    Text("Скасувати")
+                }
+            },
+        )
+    }
+
+    journalQuickDoneDialogState?.let { presetText ->
+        QuickCompletedActionDialog(
+            initialText = presetText,
+            onDismiss = { journalQuickDoneDialogState = null },
+            onConfirm = { desc, xp, antyXp ->
+                activityTrackerViewModel.onAddCompletedAction(desc, xp, antyXp)
+                activityTrackerViewModel.onInputTextChanged("")
+                journalQuickDoneDialogState = null
+            },
+        )
+    }
+
+    if (currentTab == DayManagementTab.JOURNAL) {
+        HoldMenu2Overlay(controller = journalHoldMenuController)
+    }
+
+    when (val dialogMode = dayFocusesUiState.dialogMode) {
+        is DayFocusDialogMode.Create ->
+            DayFocusItemEditorSheet(
+                initialType = dialogMode.type,
+                availableContexts = dayFocusesUiState.availableContexts,
+                availableAttachments = dayFocusesUiState.availableAttachments,
+                onDismiss = dayFocusesViewModel::dismissDialog,
+                onConfirm = dayFocusesViewModel::saveItem,
+                onCreateDocumentForPicker = dayFocusesViewModel::createDocumentForPicker,
+            )
+
+        is DayFocusDialogMode.Edit ->
+            DayFocusItemEditorSheet(
+                existingItem = dialogMode.item,
+                initialType = dialogMode.item.type,
+                availableContexts = dayFocusesUiState.availableContexts,
+                availableAttachments = dayFocusesUiState.availableAttachments,
+                onDismiss = dayFocusesViewModel::dismissDialog,
+                onConfirm = dayFocusesViewModel::saveItem,
+                onCreateDocumentForPicker = dayFocusesViewModel::createDocumentForPicker,
+            )
+
+        null -> Unit
+    }
+
+    dayFocusesUiState.pendingDeleteItem?.let { item ->
+        AlertDialog(
+            onDismissRequest = dayFocusesViewModel::dismissDeleteRequest,
+            title = { Text("Видалити елемент?") },
+            text = {
+                Text(
+                    if (item.isEveryday) {
+                        "Це everyday-фокус. Видалити його з усіх днів чи тільки з сьогодні?"
+                    } else {
+                        "Видалити \"${item.title}\" зі списку фокусів дня?"
+                    },
+                )
+            },
+            confirmButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (item.isEveryday) {
+                        TextButton(onClick = dayFocusesViewModel::confirmDeleteCurrentOnly) {
+                            Text("Лише сьогодні")
+                        }
+                    }
+                    Button(
+                        onClick =
+                            if (item.isEveryday) {
+                                dayFocusesViewModel::confirmDeleteEverywhere
+                            } else {
+                                dayFocusesViewModel::confirmDeleteCurrentOnly
+                            },
+                    ) {
+                        Text(if (item.isEveryday) "З усіх днів" else "Видалити")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = dayFocusesViewModel::dismissDeleteRequest) {
+                    Text("Скасувати")
+                }
+            },
         )
     }
 }

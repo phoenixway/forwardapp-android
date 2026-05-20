@@ -72,6 +72,11 @@ import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 import kotlinx.coroutines.launch
 
+data class MoreSheetAction(
+    val label: String,
+    val onClick: () -> Unit,
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardBottomBar(
@@ -239,6 +244,7 @@ fun DashboardBottomBar(
                         onShowAbout()
                     }
                 },
+                additionalActions = emptyList(),
                 onNavigateToSettings = {
                     coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
                         if (!modalSheetState.isVisible) {
@@ -453,6 +459,7 @@ fun CommandDeckMoreActionButton(
     onNavigateToAttachments: () -> Unit,
     onNavigateToScripts: () -> Unit,
     onShowAbout: () -> Unit,
+    additionalActions: List<MoreSheetAction> = emptyList(),
     featureToggles: Map<FeatureFlag, Boolean>,
     modifier: Modifier = Modifier,
 ) {
@@ -590,6 +597,20 @@ fun CommandDeckMoreActionButton(
                         onShowAbout()
                     }
                 },
+                additionalActions =
+                    additionalActions.map { action ->
+                        MoreSheetAction(
+                            label = action.label,
+                            onClick = {
+                                coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
+                                    if (!modalSheetState.isVisible) {
+                                        showMoreBottomSheet = false
+                                    }
+                                    action.onClick()
+                                }
+                            },
+                        )
+                    },
                 onNavigateToSettings = {
                     coroutineScope.launch { modalSheetState.hide() }.invokeOnCompletion {
                         if (!modalSheetState.isVisible) {
@@ -743,6 +764,7 @@ private fun MoreBottomSheetContent(
     onNavigateToAttachments: () -> Unit,
     onNavigateToScripts: () -> Unit,
     onShowAbout: () -> Unit,
+    additionalActions: List<MoreSheetAction>,
     onNavigateToSettings: () -> Unit,
     featureToggles: Map<FeatureFlag, Boolean>,
     containerColor: androidx.compose.ui.graphics.Color,
@@ -834,6 +856,23 @@ private fun MoreBottomSheetContent(
                 Icon(Icons.Outlined.DashboardCustomize, contentDescription = "Presets")
                 Spacer(modifier = Modifier.width(16.dp))
                 Text("Structure presets")
+            }
+            additionalActions.forEach { action ->
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = action.onClick)
+                            .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Outlined.DashboardCustomize,
+                        contentDescription = action.label,
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(action.label)
+                }
             }
             Row(
                 modifier =

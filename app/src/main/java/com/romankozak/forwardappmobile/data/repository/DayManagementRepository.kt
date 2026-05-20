@@ -12,6 +12,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.TaskStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.DailyAnalytics
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.WeeklyInsights
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DailyMetric
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusItem
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.NewTaskParameters
@@ -21,6 +22,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.TaskExecutionStrictness
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.data.dao.DailyMetricDao
+import com.romankozak.forwardappmobile.data.dao.DayFocusItemDao
 import com.romankozak.forwardappmobile.data.dao.DayPlanDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
 import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
@@ -47,6 +49,7 @@ class DayManagementRepository
     @Inject
     constructor(
         private val dayPlanDao: DayPlanDao,
+        private val dayFocusItemDao: DayFocusItemDao,
         private val dayTaskDao: DayTaskDao,
         private val dailyMetricDao: DailyMetricDao,
         private val goalDao: com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao,
@@ -179,9 +182,45 @@ class DayManagementRepository
                             version = 1,
                         )
                     dayPlanDao.insert(newPlan)
+                    cloneEverydayFocusItems(
+                        targetPlan = newPlan,
+                        sourcePlan = dayPlanDao.getLatestPlanBeforeDate(dayStart),
+                        now = now,
+                    )
                     newPlan
                 }
             }
+
+        private suspend fun cloneEverydayFocusItems(
+            targetPlan: DayPlan,
+            sourcePlan: DayPlan?,
+            now: Long,
+        ) {
+            val previousPlanId = sourcePlan?.id ?: return
+            val sourceItems =
+                dayFocusItemDao
+                    .getItemsForDayPlanSync(previousPlanId)
+                    .filter { !it.isDeleted && it.isEveryday }
+            if (sourceItems.isEmpty()) return
+
+            val clonedItems =
+                sourceItems.mapIndexed { index, item ->
+                    DayFocusItem(
+                        dayPlanId = targetPlan.id,
+                        title = item.title,
+                        notes = item.notes,
+                        type = item.type,
+                        isEveryday = true,
+                        recurringKey = item.recurringKey ?: item.id,
+                        order = index.toLong(),
+                        createdAt = now,
+                        updatedAt = now,
+                        syncedAt = null,
+                        version = 1,
+                    )
+                }
+            dayFocusItemDao.insertAll(clonedItems)
+        }
 
         suspend fun updatePlanStatus(
             planId: String,

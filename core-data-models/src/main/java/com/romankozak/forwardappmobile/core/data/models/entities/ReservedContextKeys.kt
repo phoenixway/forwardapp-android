@@ -8,6 +8,7 @@ object ReservedContextKeys {
     const val STRATEGIC_PROGRAMS = "strategic-programs"
     const val MEDIUM_TERM_STRATEGY = "medium-term-strategy"
     const val ACTIVE_QUESTS = "active-quests"
+    const val LEVELS = "levels"
     const val WEEK = "week"
     const val INBOX = "inbox"
     const val STRATEGIC_INBOX = "strategic-inbox"

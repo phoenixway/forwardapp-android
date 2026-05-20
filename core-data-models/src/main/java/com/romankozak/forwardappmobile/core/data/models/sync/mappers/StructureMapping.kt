@@ -104,6 +104,7 @@ fun ContextConfiguration.toSnapshot(): ContextConfigurationSnapshot = ContextCon
     enableAttachments = this.enableAttachments ?: false,
     enableAutoLinkSubprojects = this.enableAutoLinkSubprojects ?: false,
     removeInboxEntryAfterTagAutocopy = this.removeInboxEntryAfterTagAutocopy ?: false,
+    removeBacklogEntryAfterTagAutocopy = this.removeBacklogEntryAfterTagAutocopy ?: false,
 
     version = this.version,
     updatedAt = this.updatedAt,
@@ -133,6 +134,7 @@ fun ContextConfigurationSnapshot.toEntity(): ContextConfiguration = ContextConfi
     enableAttachments = enableAttachments,
     enableAutoLinkSubprojects = enableAutoLinkSubprojects,
     removeInboxEntryAfterTagAutocopy = removeInboxEntryAfterTagAutocopy ?: false,
+    removeBacklogEntryAfterTagAutocopy = removeBacklogEntryAfterTagAutocopy ?: false,
     version = version,
     updatedAt = updatedAt,
     isDeleted = isDeleted,

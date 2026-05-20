@@ -41,6 +41,10 @@ class SnapshotBundleSelectiveImportFilter {
         val filteredScripts = source.scripts.filter { script -> script.id in selection.selectedScriptIds }
         val filteredAttachments = source.attachments.filter { attachment -> attachment.id in selection.selectedAttachmentIds }
         val validAttachmentIds = filteredAttachments.mapTo(linkedSetOf()) { attachment -> attachment.id }
+        val filteredDayPlans = source.dayPlans
+        val validDayPlanIds = filteredDayPlans.mapTo(linkedSetOf()) { plan -> plan.id }
+        val filteredMainBeacons = source.mainBeacons
+        val validMainBeaconIds = filteredMainBeacons.mapTo(linkedSetOf()) { beacon -> beacon.id }
 
         return source.copy(
             contexts = filteredContexts,
@@ -65,18 +69,43 @@ class SnapshotBundleSelectiveImportFilter {
                 source.crossRefs.filter { crossRef ->
                     crossRef.contextId in validContextIds && crossRef.attachmentId in validAttachmentIds
                 },
+            dayPlans = filteredDayPlans,
+            dayFocusItems =
+                source.dayFocusItems.filter { item ->
+                    item.dayPlanId in validDayPlanIds
+                },
+            dayTasks =
+                source.dayTasks.filter { task ->
+                    task.dayPlanId in validDayPlanIds
+                },
+            dailyMetrics =
+                source.dailyMetrics.filter { metric ->
+                    metric.dayPlanId in validDayPlanIds
+                },
             activityRecords =
                 source.activityRecords.filter { record ->
                     record.id in selection.selectedActivityRecordIds
                 },
+            mainBeacons = filteredMainBeacons,
+            mainBeaconContextCrossRefs =
+                source.mainBeaconContextCrossRefs.filter { crossRef ->
+                    crossRef.beaconId in validMainBeaconIds && crossRef.contextId in validContextIds
+                },
+            mainBeaconAttachmentCrossRefs =
+                source.mainBeaconAttachmentCrossRefs.filter { crossRef ->
+                    crossRef.beaconId in validMainBeaconIds && crossRef.attachmentId in validAttachmentIds
+                },
+            mainBeaconLevelStatuses =
+                source.mainBeaconLevelStatuses.filter { status ->
+                    status.mainBeaconId in validMainBeaconIds
+                },
+            lifeManagementLevelStatuses = source.lifeManagementLevelStatuses,
+            dayManagementRuntimeState = source.dayManagementRuntimeState,
             notes = emptyList(),
             musicNotes = emptyList(),
             artifacts = emptyList(),
             systemApps = emptyList(),
             recentProjectEntries = emptyList(),
-            dayPlans = emptyList(),
-            dayTasks = emptyList(),
-            dailyMetrics = emptyList(),
             conversations = emptyList(),
             chatMessages = emptyList(),
             conversationFolders = emptyList(),
@@ -86,7 +115,7 @@ class SnapshotBundleSelectiveImportFilter {
             tacticalMissionAttachments = emptyList(),
             aiEvents = emptyList(),
             aiInsights = emptyList(),
-            lifeSystemStates = emptyList(),
+            lifeSystemStates = source.lifeSystemStates,
             contextRoleProfiles = emptyList(),
             contextRoleProfileItems = emptyList(),
             contextConfigurations = emptyList(),

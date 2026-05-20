@@ -25,7 +25,7 @@ fun handleRelatedLinkClick(
                 context.startActivity(intent)
             }
             LinkType.CONTEXT -> {
-                navController.navigate("project_detail_screen/${link.target}")
+                navController.navigate(NavigationRoutes.contextDetail(contextId = link.target))
             }
             LinkType.NOTE_DOCUMENT,
             -> {

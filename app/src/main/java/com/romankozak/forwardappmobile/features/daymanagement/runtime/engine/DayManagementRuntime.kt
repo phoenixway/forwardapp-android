@@ -20,6 +20,7 @@ class DayManagementRuntime
         ): DayManagementRuntimeDecision =
             when (command) {
                 is DayManagementRuntimeCommand.WakeUp -> wakeUp(command.now)
+                is DayManagementRuntimeCommand.FinalizeFocus -> finalizeFocus(state, command.now)
                 is DayManagementRuntimeCommand.FinalizePlan -> finalizePlan(state, command.now)
                 is DayManagementRuntimeCommand.ActivatePhase -> activatePhase(state, command.phase, command.now)
                 is DayManagementRuntimeCommand.Sleep -> sleep(state, command.now)
@@ -34,7 +35,10 @@ class DayManagementRuntime
                     sleepAt = null,
                     currentPhase = DayManagementPhase.PREPARATION,
                     phaseStartedAt = now,
+                    dayFocusFinalizedAt = null,
                     dayPlanFinalizedAt = null,
+                    implementationStartedAt = null,
+                    finalizationStartedAt = null,
                     activeAlarmIds = emptySet(),
                     riskFlags = emptySet(),
                     updatedAt = now,
@@ -45,6 +49,28 @@ class DayManagementRuntime
                     listOf(
                         DayManagementRuntimeEvent(
                             type = DayManagementRuntimeEventType.WOKE_UP,
+                            timestamp = now,
+                        ),
+                    ),
+            )
+        }
+
+        private fun finalizeFocus(
+            state: DayManagementRuntimeState,
+            now: Long,
+        ): DayManagementRuntimeDecision {
+            val ensuredState = ensureOpenSession(state, now)
+            val newState =
+                ensuredState.copy(
+                    dayFocusFinalizedAt = now,
+                    updatedAt = now,
+                )
+            return DayManagementRuntimeDecision(
+                newState = newState,
+                events =
+                    listOf(
+                        DayManagementRuntimeEvent(
+                            type = DayManagementRuntimeEventType.FOCUS_FINALIZED,
                             timestamp = now,
                         ),
                     ),
@@ -85,6 +111,16 @@ class DayManagementRuntime
                 ensuredState.copy(
                     currentPhase = phase,
                     phaseStartedAt = now,
+                    implementationStartedAt =
+                        when (phase) {
+                            DayManagementPhase.IMPLEMENTATION -> now
+                            else -> ensuredState.implementationStartedAt
+                        },
+                    finalizationStartedAt =
+                        when (phase) {
+                            DayManagementPhase.FINALIZATION -> now
+                            else -> ensuredState.finalizationStartedAt
+                        },
                     updatedAt = now,
                 )
             return DayManagementRuntimeDecision(

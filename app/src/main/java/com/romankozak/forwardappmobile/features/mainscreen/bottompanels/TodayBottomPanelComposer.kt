@@ -46,6 +46,8 @@ fun TodayBottomPanelComposer(
     onValueChange: (TextFieldValue) -> Unit,
     onSubmit: () -> Unit,
     panelStyle: InputModeColors,
+    placeholderText: String = "Нове завдання...",
+    trailingContent: @Composable (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -76,7 +78,7 @@ fun TodayBottomPanelComposer(
                     Box {
                         if (inputValue.text.isBlank()) {
                             Text(
-                                text = "Нове завдання...",
+                                text = placeholderText,
                                 color = panelStyle.textColor.copy(alpha = 0.6f),
                                 style = MaterialTheme.typography.bodyLarge,
                             )
@@ -118,6 +120,11 @@ fun TodayBottomPanelComposer(
                     contentDescription = "Створити задачу",
                 )
             }
+        }
+
+        trailingContent?.let { content ->
+            Spacer(modifier = Modifier.width(8.dp))
+            content()
         }
     }
 }

@@ -52,7 +52,7 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "forward_app_database",
-        ).fallbackToDestructiveMigration().addMigrations(*ALL_MIGRATIONS).build()
+        ).addMigrations(*ALL_MIGRATIONS).build()
     }
 
     @Provides
@@ -166,6 +166,10 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideDayPlanDao(appDatabase: AppDatabase) = appDatabase.dayPlanDao()
+
+    @Provides
+    @Singleton
+    fun provideDayFocusItemDao(appDatabase: AppDatabase) = appDatabase.dayFocusItemDao()
 
     @Provides
     @Singleton

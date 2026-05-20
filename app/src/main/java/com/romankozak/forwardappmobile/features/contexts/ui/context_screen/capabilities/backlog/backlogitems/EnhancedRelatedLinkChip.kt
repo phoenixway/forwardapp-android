@@ -41,7 +41,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 
 @Composable
-internal fun EnhancedRelatedLinkChip(
+fun EnhancedRelatedLinkChip(
     link: RelatedLink,
     onClick: () -> Unit,
 ) {

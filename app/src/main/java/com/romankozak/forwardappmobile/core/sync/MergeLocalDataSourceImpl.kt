@@ -22,6 +22,8 @@ import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
+import com.romankozak.forwardappmobile.features.daymanagement.runtime.data.DayManagementRuntimeRepository
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconDao
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import com.romankozak.forwardappmobile.sync.datasource.MergeLocalDataSource
 import javax.inject.Inject
@@ -45,6 +47,7 @@ class MergeLocalDataSourceImpl
         private val reminderDao: ReminderDao,
         private val tacticalMissionDao: TacticalMissionDao,
         private val aiInsightDao: AiInsightDao,
+        private val dayFocusItemDao: DayFocusItemDao,
         private val checklistDao: ChecklistDao,
         private val conversationFolderDao: ConversationFolderDao,
         private val recurringTaskDao: RecurringTaskDao,
@@ -59,7 +62,9 @@ class MergeLocalDataSourceImpl
         private val recentItemDao: RecentItemDao,
         private val linkItemDao: LinkItemDao,
         private val aiEventDao: AiEventDao,
+        private val lifeManagementLevelStatusDao: LifeManagementLevelStatusDao,
         private val lifeSystemStateDao: LifeSystemStateDao,
+        private val mainBeaconDao: MainBeaconDao,
         private val structurePresetDao: StructurePresetDao,
         private val structurePresetItemDao: StructurePresetItemDao,
         private val contextStructureDao: ContextStructureDao,
@@ -68,6 +73,7 @@ class MergeLocalDataSourceImpl
         private val contextKeyProblemsDao: ContextKeyProblemsDao,
         private val focusContextIntervalDao: FocusContextIntervalDao,
         private val userStateIntervalDao: UserStateIntervalDao,
+        private val dayManagementRuntimeRepository: DayManagementRuntimeRepository,
     ) : MergeLocalDataSource {
         override suspend fun getContexts(): List<Context> = contextDao.getAll()
 
@@ -185,6 +191,7 @@ class MergeLocalDataSourceImpl
 
                 conversationFolderDao.insertAll(bundle.conversationFolders.map { it.toEntity() })
                 dayPlanDao.insertPlans(bundle.dayPlans.map { it.toEntity() })
+                dayFocusItemDao.insertAll(bundle.dayFocusItems.map { it.toEntity() })
                 recurringTaskDao.insertAll(bundle.recurringTasks.map { it.toEntity() })
 
                 val missions = bundle.tacticalMissions.map { it.toEntity() }
@@ -212,6 +219,8 @@ class MergeLocalDataSourceImpl
                 tacticalMissionDao.insertMissionAttachments(bundle.tacticalMissionAttachments.map { it.toEntity() })
                 aiEventDao.insertAll(bundle.aiEvents.map { it.toEntity() })
                 aiInsightDao.upsertAll(bundle.aiInsights.map { it.toEntity() })
+                mainBeaconDao.insertBeacons(bundle.mainBeacons.map { it.toEntity() })
+                lifeManagementLevelStatusDao.upsertAll(bundle.lifeManagementLevelStatuses.map { it.toEntity() })
                 lifeSystemStateDao.insertAll(bundle.lifeSystemStates.map { it.toEntity() })
                 structurePresetDao.insertAll(bundle.contextRoleProfiles.map { it.toEntity() })
                 structurePresetItemDao.insertAll(bundle.contextRoleProfileItems.map { it.toEntity() })
@@ -232,6 +241,7 @@ class MergeLocalDataSourceImpl
                             enableAttachments = snapshot.enableAttachments,
                             enableAutoLinkSubprojects = snapshot.enableAutoLinkSubprojects,
                             removeInboxEntryAfterTagAutocopy = snapshot.removeInboxEntryAfterTagAutocopy ?: false,
+                            removeBacklogEntryAfterTagAutocopy = snapshot.removeBacklogEntryAfterTagAutocopy ?: false,
                             version = snapshot.version,
                             updatedAt = snapshot.updatedAt,
                             isDeleted = snapshot.isDeleted,
@@ -243,6 +253,10 @@ class MergeLocalDataSourceImpl
                 contextKeyProblemsDao.insertAll(bundle.contextKeyProblems.map { it.toEntity() })
                 focusContextIntervalDao.insertAll(bundle.focusContextIntervals.map { it.toEntity() })
                 userStateIntervalDao.insertAll(bundle.userStateIntervals.map { it.toEntity() })
+                mainBeaconDao.insertContextCrossRefs(bundle.mainBeaconContextCrossRefs.map { it.toEntity() })
+                mainBeaconDao.insertAttachmentCrossRefs(bundle.mainBeaconAttachmentCrossRefs.map { it.toEntity() })
+                mainBeaconDao.insertLevelStatuses(bundle.mainBeaconLevelStatuses.map { it.toEntity() })
             }
+            dayManagementRuntimeRepository.importSnapshot(bundle.dayManagementRuntimeState)
         }
     }

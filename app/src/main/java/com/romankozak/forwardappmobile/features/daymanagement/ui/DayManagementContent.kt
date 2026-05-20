@@ -36,7 +36,10 @@ import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerScreen
+import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.presentation.DayManagementRuntimeViewModel
+import com.romankozak.forwardappmobile.features.daymanagement.ui.dayfocus.DayFocusesScreen
+import com.romankozak.forwardappmobile.features.daymanagement.ui.dayfocus.DayFocusesViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayanalitics.DayAnalyticsScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.daystart.DayStartScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.daydashboard.DayDashboardScreen
@@ -52,6 +55,8 @@ internal data class DayManagementScreenContentArgs(
     val navigationManager: EnhancedNavigationManager?,
     val runtimeViewModel: DayManagementRuntimeViewModel,
     val dayPlanViewModel: DayPlanViewModel,
+    val activityTrackerViewModel: ActivityTrackerViewModel,
+    val dayFocusesViewModel: DayFocusesViewModel,
     val addTaskTrigger: Int,
     val screenLogTag: String,
 )
@@ -64,6 +69,8 @@ private data class DayManagementPagerArgs(
     val navigationManager: EnhancedNavigationManager?,
     val runtimeViewModel: DayManagementRuntimeViewModel,
     val dayPlanViewModel: DayPlanViewModel,
+    val activityTrackerViewModel: ActivityTrackerViewModel,
+    val dayFocusesViewModel: DayFocusesViewModel,
     val addTaskTrigger: Int,
     val screenLogTag: String,
 )
@@ -93,6 +100,8 @@ internal fun DayManagementScreenContent(
                         navigationManager = args.navigationManager,
                         runtimeViewModel = args.runtimeViewModel,
                         dayPlanViewModel = args.dayPlanViewModel,
+                        activityTrackerViewModel = args.activityTrackerViewModel,
+                        dayFocusesViewModel = args.dayFocusesViewModel,
                         addTaskTrigger = args.addTaskTrigger,
                         screenLogTag = args.screenLogTag,
                     )
@@ -129,9 +138,10 @@ private fun DayManagementPagerContent(
                     onSleep = args.runtimeViewModel::sleep,
                 )
             DayManagementTab.DAY_FOCUSES ->
-                TodayPlaceholderScreen(
-                    title = "Day Focuses",
-                    description = "Під-екран фокусів дня ще не реалізований.",
+                DayFocusesScreen(
+                    initialDayPlanId = args.planId,
+                    navController = args.mainNavController,
+                    viewModel = args.dayFocusesViewModel,
                 )
             DayManagementTab.DAY_PLAN ->
                 DayPlanScreen(
@@ -150,7 +160,13 @@ private fun DayManagementPagerContent(
                     addTaskTrigger = args.addTaskTrigger,
                     viewModel = args.dayPlanViewModel,
                 )
-            DayManagementTab.JOURNAL -> ActivityTrackerScreen(navController = args.mainNavController)
+            DayManagementTab.JOURNAL ->
+                ActivityTrackerScreen(
+                    navController = args.mainNavController,
+                    viewModel = args.activityTrackerViewModel,
+                    showTopBar = false,
+                    showInputBar = false,
+                )
             DayManagementTab.FINALIZATION ->
                 TodayPlaceholderScreen(
                     title = "Finalization",

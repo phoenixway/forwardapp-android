@@ -68,6 +68,36 @@ interface ListItemDao {
         itemType: String,
     ): List<String>
 
+    @Query(
+        """
+        SELECT * FROM list_items
+        WHERE entityId = :entityId
+          AND itemType = :itemType
+          AND association_owner_context_id IS NULL
+          AND context_id = :contextId
+        LIMIT 1
+        """,
+    )
+    suspend fun getDirectItemForEntityInContext(
+        entityId: String,
+        itemType: String,
+        contextId: String,
+    ): BacklogItem?
+
+    @Query(
+        """
+        SELECT * FROM list_items
+        WHERE entityId = :entityId
+          AND itemType = :itemType
+          AND association_owner_context_id IS NULL
+        ORDER BY item_order ASC, id ASC
+        """,
+    )
+    suspend fun getDirectItemsForEntity(
+        entityId: String,
+        itemType: String,
+    ): List<BacklogItem>
+
     @Query("DELETE FROM list_items WHERE entityId = :entityId AND context_id = :contextId")
     suspend fun deleteLinkByEntityAndContext(
         entityId: String,

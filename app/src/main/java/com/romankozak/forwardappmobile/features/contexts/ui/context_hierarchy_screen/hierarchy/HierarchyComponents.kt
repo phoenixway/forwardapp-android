@@ -348,7 +348,9 @@ fun SwipeableProjectRow(
     onToggleSelection: ((String) -> Unit)? = null,
     onStartSelection: ((String) -> Unit)? = null,
 ) {
-    val isSystemContext = remember(project.id) { SystemContexts.isSystem(ContextId(project.id)) }
+    val contextId = remember(project.id) { ContextId(project.id) }
+    val isSystemContext = remember(project.id) { SystemContexts.isSystem(contextId) }
+    val canRenameOrMove = remember(project.id) { SystemContexts.canRenameOrMove(contextId) }
     val density = LocalDensity.current
     val coroutineScope = rememberCoroutineScope()
     val startActionWidth = 120.dp
@@ -445,7 +447,7 @@ fun SwipeableProjectRow(
             }
         }
 
-        if (endProgress > SWIPE_ACTION_VISIBILITY_THRESHOLD && !isSystemContext) {
+        if (endProgress > SWIPE_ACTION_VISIBILITY_THRESHOLD && canRenameOrMove) {
             val endBg = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f)
             Surface(
                 modifier =

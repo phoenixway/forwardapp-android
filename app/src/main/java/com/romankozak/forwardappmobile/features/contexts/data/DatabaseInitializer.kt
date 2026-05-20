@@ -34,6 +34,13 @@ class DatabaseInitializer
                     name = "strategic",
                     parentId = personalManagementProjectId,
                 )
+            val levelsProjectId =
+                ensureProjectExists(
+                    contextDao = contextDao,
+                    id = SystemContexts.LEVELS.raw,
+                    name = "levels",
+                    parentId = personalManagementProjectId,
+                )
             val weekProjectId =
                 ensureProjectExists(
                     contextDao = contextDao,
@@ -45,8 +52,8 @@ class DatabaseInitializer
                 ensureProjectExists(
                     contextDao = contextDao,
                     id = SystemContexts.TODAY.raw,
-                    name = "today",
-                    parentId = personalManagementProjectId,
+                    name = "day-management",
+                    parentId = levelsProjectId,
                 )
 
             createSystemProjects(
@@ -167,7 +174,8 @@ class DatabaseInitializer
         ): String {
             val existingProject = contextDao.getContextById(id)
             if (existingProject != null) {
-                if (existingProject.name != name || existingProject.parentId != parentId) {
+                val canRenameOrMove = SystemContexts.canRenameOrMove(com.romankozak.forwardappmobile.core.context.ContextId(id))
+                if (!canRenameOrMove && (existingProject.name != name || existingProject.parentId != parentId)) {
                     contextDao.update(
                         existingProject.copy(
                             name = name,

@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.DayManagementRuntimeStateSnapshot
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.domain.DayManagementPhase
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.domain.DayManagementRuntimeCommand
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.domain.DayManagementRuntimeDecision
@@ -49,7 +50,10 @@ class DayManagementRuntimeRepository
                     sleepAt = prefs[sleepAtKey],
                     currentPhase = prefs[currentPhaseKey]?.let(DayManagementPhase::valueOf) ?: DayManagementPhase.CLOSED,
                     phaseStartedAt = prefs[phaseStartedAtKey],
+                    dayFocusFinalizedAt = prefs[dayFocusFinalizedAtKey],
                     dayPlanFinalizedAt = prefs[dayPlanFinalizedAtKey],
+                    implementationStartedAt = prefs[implementationStartedAtKey],
+                    finalizationStartedAt = prefs[finalizationStartedAtKey],
                     activeAlarmIds = prefs[activeAlarmIdsKey] ?: emptySet(),
                     riskFlags = prefs[riskFlagsKey] ?: emptySet(),
                     updatedAt = prefs[updatedAtKey],
@@ -61,6 +65,18 @@ class DayManagementRuntimeRepository
                 val currentState = state.first()
                 val decision = runtime.handle(currentState, command)
                 persistDecision(decision)
+            }
+        }
+
+        suspend fun exportSnapshot(): DayManagementRuntimeStateSnapshot =
+            state.first().toSnapshot()
+
+        suspend fun importSnapshot(snapshot: DayManagementRuntimeStateSnapshot?) {
+            withContext(ioDispatcher) {
+                context.dayManagementRuntimeDataStore.edit { prefs ->
+                    writeState(prefs, snapshot?.toRuntimeState() ?: DayManagementRuntimeState())
+                }
+                notifier.sync(snapshot?.toRuntimeState() ?: DayManagementRuntimeState())
             }
         }
 
@@ -82,7 +98,10 @@ class DayManagementRuntimeRepository
             writeNullableLong(prefs, sleepAtKey, state.sleepAt)
             prefs[currentPhaseKey] = state.currentPhase.name
             writeNullableLong(prefs, phaseStartedAtKey, state.phaseStartedAt)
+            writeNullableLong(prefs, dayFocusFinalizedAtKey, state.dayFocusFinalizedAt)
             writeNullableLong(prefs, dayPlanFinalizedAtKey, state.dayPlanFinalizedAt)
+            writeNullableLong(prefs, implementationStartedAtKey, state.implementationStartedAt)
+            writeNullableLong(prefs, finalizationStartedAtKey, state.finalizationStartedAt)
             prefs[activeAlarmIdsKey] = state.activeAlarmIds
             prefs[riskFlagsKey] = state.riskFlags
             writeNullableLong(prefs, updatedAtKey, state.updatedAt)
@@ -135,9 +154,46 @@ class DayManagementRuntimeRepository
             private val sleepAtKey = longPreferencesKey("sleep_at")
             private val currentPhaseKey = stringPreferencesKey("current_phase")
             private val phaseStartedAtKey = longPreferencesKey("phase_started_at")
+            private val dayFocusFinalizedAtKey = longPreferencesKey("day_focus_finalized_at")
             private val dayPlanFinalizedAtKey = longPreferencesKey("day_plan_finalized_at")
+            private val implementationStartedAtKey = longPreferencesKey("implementation_started_at")
+            private val finalizationStartedAtKey = longPreferencesKey("finalization_started_at")
             private val activeAlarmIdsKey = stringSetPreferencesKey("active_alarm_ids")
             private val riskFlagsKey = stringSetPreferencesKey("risk_flags")
             private val updatedAtKey = longPreferencesKey("updated_at")
         }
     }
+
+private fun DayManagementRuntimeState.toSnapshot(): DayManagementRuntimeStateSnapshot =
+    DayManagementRuntimeStateSnapshot(
+        sessionId = sessionId,
+        calendarAnchorDate = calendarAnchorDate,
+        wokeAt = wokeAt,
+        sleepAt = sleepAt,
+        currentPhase = currentPhase.name,
+        phaseStartedAt = phaseStartedAt,
+        dayFocusFinalizedAt = dayFocusFinalizedAt,
+        dayPlanFinalizedAt = dayPlanFinalizedAt,
+        implementationStartedAt = implementationStartedAt,
+        finalizationStartedAt = finalizationStartedAt,
+        activeAlarmIds = activeAlarmIds,
+        riskFlags = riskFlags,
+        updatedAt = updatedAt,
+    )
+
+private fun DayManagementRuntimeStateSnapshot.toRuntimeState(): DayManagementRuntimeState =
+    DayManagementRuntimeState(
+        sessionId = sessionId,
+        calendarAnchorDate = calendarAnchorDate,
+        wokeAt = wokeAt,
+        sleepAt = sleepAt,
+        currentPhase = DayManagementPhase.valueOf(currentPhase),
+        phaseStartedAt = phaseStartedAt,
+        dayFocusFinalizedAt = dayFocusFinalizedAt,
+        dayPlanFinalizedAt = dayPlanFinalizedAt,
+        implementationStartedAt = implementationStartedAt,
+        finalizationStartedAt = finalizationStartedAt,
+        activeAlarmIds = activeAlarmIds,
+        riskFlags = riskFlags,
+        updatedAt = updatedAt,
+    )

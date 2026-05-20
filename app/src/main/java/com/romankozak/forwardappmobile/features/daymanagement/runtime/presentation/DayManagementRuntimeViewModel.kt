@@ -44,6 +44,10 @@ class DayManagementRuntimeViewModel
             launchCommand(DayManagementRuntimeCommand.WakeUp(now()))
         }
 
+        fun finalizeFocus() {
+            launchCommand(DayManagementRuntimeCommand.FinalizeFocus(now()))
+        }
+
         fun finalizePlan() {
             launchCommand(DayManagementRuntimeCommand.FinalizePlan(now()))
         }

@@ -31,6 +31,9 @@ interface DayPlanDao {
     @Query("SELECT * FROM day_plans WHERE date = :dayStartMillis LIMIT 1")
     suspend fun getPlanForDateSync(dayStartMillis: Long): DayPlan?
 
+    @Query("SELECT * FROM day_plans WHERE date < :dayStartMillis ORDER BY date DESC LIMIT 1")
+    suspend fun getLatestPlanBeforeDate(dayStartMillis: Long): DayPlan?
+
     @Query("SELECT * FROM day_plans WHERE date = :dayStartMillis LIMIT 1")
     fun getPlanForDate(dayStartMillis: Long): Flow<DayPlan?>
 

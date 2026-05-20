@@ -184,13 +184,15 @@ private fun TagsSectionContent(
     tags: List<String>,
     onRemoveTag: (String) -> Unit,
 ) {
-    if (tags.isNotEmpty()) {
+    val sanitizedTags = tags.map { it.trim() }.filter { it.isNotBlank() }.distinct()
+
+    if (sanitizedTags.isNotEmpty()) {
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            tags.forEach { tag ->
+            sanitizedTags.forEach { tag ->
                 TagItem(tag = tag, onRemove = { onRemoveTag(tag) })
             }
         }

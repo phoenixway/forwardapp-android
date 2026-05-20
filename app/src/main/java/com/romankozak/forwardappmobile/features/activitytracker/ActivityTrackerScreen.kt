@@ -172,6 +172,8 @@ private enum class ActivityRecordType { COMMENT, TIMED, INSTANT }
 fun ActivityTrackerScreen(
     navController: NavController,
     viewModel: ActivityTrackerViewModel = hiltViewModel(),
+    showTopBar: Boolean = true,
+    showInputBar: Boolean = true,
 ) {
     val groupedByDate by viewModel.groupedActivityLog.collectAsStateWithLifecycle()
     val inputText by viewModel.inputText.collectAsStateWithLifecycle()
@@ -211,16 +213,21 @@ fun ActivityTrackerScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-            topBar = {
-                ActivityTrackerTopAppBar(
-                    onNavigateBack = { navController.popBackStack() },
-                    onClearLogRequest = { showClearConfirmDialog = true },
-                    onExportRequest = {
-                        val markdown = exportLogToMarkdown(groupedByDate.values.flatten())
-                        copyToClipboard(context, markdown)
-                    },
-                )
-            },
+            topBar =
+                if (showTopBar) {
+                    {
+                        ActivityTrackerTopAppBar(
+                            onNavigateBack = { navController.popBackStack() },
+                            onClearLogRequest = { showClearConfirmDialog = true },
+                            onExportRequest = {
+                                val markdown = exportLogToMarkdown(groupedByDate.values.flatten())
+                                copyToClipboard(context, markdown)
+                            },
+                        )
+                    }
+                } else {
+                    {}
+                },
             bottomBar = {
                 Column(
                     modifier =
@@ -237,15 +244,17 @@ fun ActivityTrackerScreen(
                         onIndicatorClick = { },
                         indicatorState = indicatorState,
                     )
-                    ActivityInputBar(
-                        text = inputText,
-                        isActivityOngoing = lastOngoingActivity != null,
-                        onTextChange = viewModel::onInputTextChanged,
-                        onToggleStartStop = viewModel::onToggleStartStop,
-                        onTimelessClick = viewModel::onTimelessRecordClick,
-                        onQuickDoneClick = { textValue -> quickDoneDialogState = textValue },
-                        holdMenuController = holdMenuController,
-                    )
+                    if (showInputBar) {
+                        ActivityInputBar(
+                            text = inputText,
+                            isActivityOngoing = lastOngoingActivity != null,
+                            onTextChange = viewModel::onInputTextChanged,
+                            onToggleStartStop = viewModel::onToggleStartStop,
+                            onTimelessClick = viewModel::onTimelessRecordClick,
+                            onQuickDoneClick = { textValue -> quickDoneDialogState = textValue },
+                            holdMenuController = holdMenuController,
+                        )
+                    }
                 }
             },
         ) { paddingValues ->
@@ -338,7 +347,9 @@ fun ActivityTrackerScreen(
             }
         }
 
-        HoldMenu2Overlay(controller = holdMenuController)
+        if (showInputBar) {
+            HoldMenu2Overlay(controller = holdMenuController)
+        }
     }
 }
 
@@ -531,7 +542,7 @@ private fun buildJournalListKeys(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun QuickCompletedActionDialog(
+fun QuickCompletedActionDialog(
     initialText: String,
     onDismiss: () -> Unit,
     onConfirm: (String, Int?, Int?) -> Unit,
@@ -1105,7 +1116,7 @@ private fun recordCountLabel(count: Int): String {
 }
 
 @Composable
-private fun ActivityInputBar(
+fun ActivityInputBar(
     text: String,
     isActivityOngoing: Boolean,
     onTextChange: (String) -> Unit,
@@ -1113,6 +1124,8 @@ private fun ActivityInputBar(
     onTimelessClick: () -> Unit,
     onQuickDoneClick: (String) -> Unit,
     holdMenuController: HoldMenu2Controller,
+    showMoreMenu: Boolean = true,
+    trailingContent: @Composable (() -> Unit)? = null,
 ) {
     val uiConfig = rememberJournalUiConfig()
     var moreMenuExpanded by remember { mutableStateOf(false) }
@@ -1230,44 +1243,48 @@ private fun ActivityInputBar(
                 }
             }
 
-            Box {
-                IconButton(
-                    onClick = { moreMenuExpanded = true },
-                    modifier = Modifier.size(if (uiConfig.isCompactPhone) 36.dp else 40.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Додаткові дії",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                DropdownMenu(
-                    expanded = moreMenuExpanded,
-                    onDismissRequest = { moreMenuExpanded = false },
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Події") },
-                        leadingIcon = { Icon(Icons.Default.CheckCircle, contentDescription = null) },
-                        onClick = {
-                            moreMenuExpanded = false
-                            if (text.isNotBlank()) onQuickDoneClick(text)
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Коментар") },
-                        leadingIcon = { Icon(Icons.Default.AddComment, contentDescription = null) },
-                        onClick = {
-                            moreMenuExpanded = false
-                            onTimelessClick()
-                        },
-                    )
+            if (showMoreMenu) {
+                Box {
+                    IconButton(
+                        onClick = { moreMenuExpanded = true },
+                        modifier = Modifier.size(if (uiConfig.isCompactPhone) 36.dp else 40.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "Додаткові дії",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = moreMenuExpanded,
+                        onDismissRequest = { moreMenuExpanded = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Події") },
+                            leadingIcon = { Icon(Icons.Default.CheckCircle, contentDescription = null) },
+                            onClick = {
+                                moreMenuExpanded = false
+                                if (text.isNotBlank()) onQuickDoneClick(text)
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Коментар") },
+                            leadingIcon = { Icon(Icons.Default.AddComment, contentDescription = null) },
+                            onClick = {
+                                moreMenuExpanded = false
+                                onTimelessClick()
+                            },
+                        )
+                    }
                 }
             }
+
+            trailingContent?.let { content -> content() }
         }
     }
 }
 
-private fun exportLogToMarkdown(log: List<ActivityRecord>): String {
+fun exportLogToMarkdown(log: List<ActivityRecord>): String {
     val sdfTime = SimpleDateFormat("HH:mm", Locale.getDefault())
     val groupedByDate = log.sortedByDescending { it.createdAt }.groupBy { toDateHeader(it.createdAt) }
     return buildString {
@@ -1290,7 +1307,7 @@ private fun exportLogToMarkdown(log: List<ActivityRecord>): String {
     }
 }
 
-private fun copyToClipboard(
+fun copyToClipboard(
     context: Context,
     text: String,
 ) {

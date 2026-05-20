@@ -69,11 +69,11 @@ class TagAssociationHandler
         suspend fun syncGoalAssociations(
             goal: Goal,
             sourceContextId: String?,
-        ) {
+        ): Map<String, String> {
             val ownerContextId =
                 sourceContextId?.takeIf { it.isNotBlank() }
                     ?: listItemDao.getDirectContextIdsForEntity(goal.id, BacklogItemTypeValues.GOAL).firstOrNull()
-                    ?: return
+                    ?: return emptyMap()
             val directContextIds = listItemDao.getDirectContextIdsForEntity(goal.id, BacklogItemTypeValues.GOAL).toSet()
             val desiredContexts = resolveDesiredContexts(goal.text).filterKeys { it !in directContextIds }
             val existingAutoItems =
@@ -119,6 +119,7 @@ class TagAssociationHandler
             if (itemsToUpsert.isNotEmpty()) {
                 listItemDao.insertItems(itemsToUpsert)
             }
+            return desiredContexts
         }
 
         @Transaction
