@@ -414,7 +414,8 @@ fun ChecklistScreen(
                     modifier =
                         Modifier
                             .fillMaxSize()
-                            .padding(padding),
+                            .padding(padding)
+                            .imePadding(),
                     uiState = uiState,
                     visibleItems = visibleItems,
                     reorderState = reorderState,
