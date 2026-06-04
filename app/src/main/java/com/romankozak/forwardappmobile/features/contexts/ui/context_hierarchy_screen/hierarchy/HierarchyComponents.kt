@@ -74,7 +74,7 @@ import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadinessStatus
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BeaconRootedHierarchyNode
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyItem
@@ -172,7 +172,7 @@ fun highlightSubstring(
 
 @Composable
 fun BeaconRootHeaderRow(
-    node: BeaconRootedHierarchyNode.Beacon,
+    node: OrientationHierarchyNode.Beacon,
     level: Int,
     childCount: Int = 0,
     onClick: () -> Unit = {},
@@ -192,7 +192,7 @@ fun BeaconRootHeaderRow(
 
 @Composable
 fun BeaconGroupRootHeaderRow(
-    node: BeaconRootedHierarchyNode.Group,
+    node: OrientationHierarchyNode.Group,
     level: Int,
     childCount: Int = 0,
     onClick: () -> Unit = {},

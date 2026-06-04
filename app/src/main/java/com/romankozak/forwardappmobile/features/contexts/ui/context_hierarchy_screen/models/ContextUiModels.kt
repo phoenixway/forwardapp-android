@@ -17,7 +17,7 @@ data class BreadcrumbItem(
 
 enum class BreadcrumbTarget {
     Context,
-    BeaconRoot,
+    OrientationNode,
 }
 
 data class HierarchyDisplaySettings(

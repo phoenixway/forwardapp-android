@@ -1,9 +1,13 @@
 package com.romankozak.forwardappmobile.features.mainscreen.core
 
 import androidx.room.Dao
+import androidx.room.Embedded
 import androidx.room.Insert
+import androidx.room.Junction
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Relation
+import androidx.room.Transaction
 import androidx.room.Update
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
@@ -23,10 +27,44 @@ data class MainBeaconWithRelations(
     val groupIds: List<String>,
 )
 
+data class MainBeaconRelationEntity(
+    @Embedded val beacon: MainBeacon,
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "id",
+        associateBy =
+            Junction(
+                value = MainBeaconContextCrossRef::class,
+                parentColumn = "beacon_id",
+                entityColumn = "context_id",
+            ),
+    )
+    val relatedContexts: List<Context>,
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "id",
+        associateBy =
+            Junction(
+                value = MainBeaconAttachmentCrossRef::class,
+                parentColumn = "beacon_id",
+                entityColumn = "attachment_id",
+            ),
+    )
+    val relatedAttachments: List<AttachmentEntity>,
+    @Relation(parentColumn = "id", entityColumn = "main_beacon_id")
+    val levelStatuses: List<MainBeaconLevelStatus>,
+    @Relation(parentColumn = "id", entityColumn = "beacon_id")
+    val groupMembers: List<MainBeaconGroupMember>,
+)
+
 @Dao
 interface MainBeaconDao {
     @Query("SELECT * FROM main_beacons ORDER BY beacon_order ASC, updatedAt DESC, createdAt DESC")
     fun observeMainBeacons(): Flow<List<MainBeacon>>
+
+    @Transaction
+    @Query("SELECT * FROM main_beacons ORDER BY beacon_order ASC, updatedAt DESC, createdAt DESC")
+    fun observeMainBeaconRelations(): Flow<List<MainBeaconRelationEntity>>
 
     @Query("SELECT * FROM main_beacons ORDER BY beacon_order ASC, updatedAt DESC, createdAt DESC")
     suspend fun getAllBeaconsSync(): List<MainBeacon>

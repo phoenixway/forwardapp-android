@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.features.mainscreen.core
 
 import androidx.room.withTransaction
+import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconContextCrossRef
@@ -12,7 +13,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadi
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconSyncStatus
 import com.romankozak.forwardappmobile.database.AppDatabase
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -46,27 +46,33 @@ class MainBeaconRepository
         }
 
         fun observeMainBeaconDetails(): Flow<List<MainBeaconWithRelations>> =
-            combine(
-                mainBeaconDao.observeMainBeacons(),
-                mainBeaconDao.observeGroupMembers(),
-                mainBeaconDao.observeContextCrossRefs(),
-                mainBeaconDao.observeAttachmentCrossRefs(),
-            ) { beacons, _, _, _ ->
-                beacons.map { beacon ->
-                    val ensuredStatuses =
-                        ensureAllLevelStatuses(
-                            beacon.id,
-                            mainBeaconDao.getLevelStatusesForBeacon(beacon.id),
+            mainBeaconDao
+                .observeMainBeaconRelations()
+                .map { relationRows ->
+                    relationRows.map { row ->
+                        val beacon = row.beacon
+                        val ensuredStatuses =
+                            ensureAllLevelStatuses(
+                                beacon.id,
+                                row.levelStatuses.sortedBy { it.levelType },
+                            )
+                        val relatedContexts = row.relatedContexts.sortedBy { it.name.lowercase() }
+                        val relatedAttachments =
+                            row.relatedAttachments.sortedWith(
+                                compareByDescending<AttachmentEntity> { it.updatedAt }
+                                    .thenByDescending { it.createdAt },
+                            )
+                        val groupIds = row.groupMembers.sortedBy { it.order }.map { it.groupId }
+
+                        MainBeaconWithRelations(
+                            beacon = beacon,
+                            relatedContexts = relatedContexts,
+                            relatedAttachments = relatedAttachments,
+                            levelStatuses = ensuredStatuses,
+                            groupIds = groupIds,
                         )
-                    MainBeaconWithRelations(
-                        beacon = beacon,
-                        relatedContexts = mainBeaconDao.getContextsForBeacon(beacon.id),
-                        relatedAttachments = mainBeaconDao.getAttachmentsForBeacon(beacon.id),
-                        levelStatuses = ensuredStatuses,
-                        groupIds = mainBeaconDao.getGroupIdsForBeacon(beacon.id),
-                    )
+                    }
                 }
-            }
 
         fun observeGroups(): Flow<List<MainBeaconGroup>> = mainBeaconDao.observeGroups()
 

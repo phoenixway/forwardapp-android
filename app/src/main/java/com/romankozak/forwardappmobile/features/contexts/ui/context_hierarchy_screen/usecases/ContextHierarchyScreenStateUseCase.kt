@@ -17,7 +17,7 @@ import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextParentLinkDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.AppStatistics
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BeaconRootedHierarchyItem
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextRoleOption
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextClipboardOperationUi
@@ -66,7 +66,7 @@ class ProjectHierarchyScreenStateUseCase
         private val recentItemsRepository: RecentItemsRepository,
         private val mainBeaconRepository: MainBeaconRepository,
         private val contextParentLinkDao: ContextParentLinkDao,
-        private val beaconRootedHierarchyBuilder: BeaconRootedHierarchyBuilder,
+        private val orientationHierarchyBuilder: OrientationHierarchyBuilder,
     ) {
         data class NavigationSnapshot(
             val canGoBack: Boolean = false,
@@ -119,10 +119,14 @@ class ProjectHierarchyScreenStateUseCase
                 contextParentLinkDao
                     .observeActiveLinks()
                     .stateIn(scope, SharingStarted.WhileSubscribed(5_000), emptyList())
-            val beaconHierarchyInputsFlow =
+            val orientationHierarchyInputsFlow =
                 combine(mainBeaconDetailsFlow, mainBeaconGroupsFlow, contextParentLinksFlow) { beacons, groups, parentLinks ->
-                    BeaconHierarchyInputs(beacons = beacons, groups = groups, parentLinks = parentLinks)
-                }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), BeaconHierarchyInputs())
+                    OrientationHierarchyInputs(
+                        beacons = beacons.map { it.toOrientationBeaconInput() },
+                        groups = groups,
+                        parentLinks = parentLinks,
+                    )
+                }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), OrientationHierarchyInputs())
 
             scope.launch {
                 hierarchyState.collect { hierarchy ->
@@ -172,19 +176,19 @@ class ProjectHierarchyScreenStateUseCase
                     searchUseCase.subStateStack,
                     searchUseCase.searchQuery,
                     hierarchyState,
-                    beaconHierarchyInputsFlow,
+                    orientationHierarchyInputsFlow,
                     searchUseCase.currentBreadcrumbs,
-                ) { subStateStack, searchQuery, hierarchy, beaconHierarchyInputs, breadcrumbs ->
+                ) { subStateStack, searchQuery, hierarchy, orientationHierarchyInputs, breadcrumbs ->
                     CoreUiState(
                         subStateStack = subStateStack,
                         searchQuery = searchQuery,
                         projectHierarchy = hierarchy,
-                        beaconRootedHierarchy =
-                            beaconRootedHierarchyBuilder.build(
+                        orientationHierarchy =
+                            orientationHierarchyBuilder.build(
                                 hierarchy = hierarchy,
-                                beacons = beaconHierarchyInputs.beacons,
-                                groups = beaconHierarchyInputs.groups,
-                                parentLinks = beaconHierarchyInputs.parentLinks,
+                                beacons = orientationHierarchyInputs.beacons,
+                                groups = orientationHierarchyInputs.groups,
+                                parentLinks = orientationHierarchyInputs.parentLinks,
                             ),
                         currentBreadcrumbs = breadcrumbs,
                         searchResultFilter = SearchResultFilter.All,
@@ -286,7 +290,7 @@ class ProjectHierarchyScreenStateUseCase
                         searchHistory = searchHistory,
                         projectHierarchy = coreState.projectHierarchy,
                         flattenedHierarchy = coreState.flattenedHierarchy,
-                        beaconRootedHierarchy = coreState.beaconRootedHierarchy,
+                        orientationHierarchy = coreState.orientationHierarchy,
                         longDescendantsMap = coreState.longDescendantsMap,
                         currentBreadcrumbs = coreState.currentBreadcrumbs,
                         planningSettings = planningSettings,
@@ -337,17 +341,27 @@ class ProjectHierarchyScreenStateUseCase
         val searchResults: StateFlow<List<SearchResult>>
             get() = searchResultsInternal
 
-private data class BeaconHierarchyInputs(
-    val beacons: List<MainBeaconWithRelations> = emptyList(),
-    val groups: List<MainBeaconGroup> = emptyList(),
-    val parentLinks: List<ContextParentLink> = emptyList(),
-)
+        private data class OrientationHierarchyInputs(
+            val beacons: List<OrientationBeaconInput> = emptyList(),
+            val groups: List<MainBeaconGroup> = emptyList(),
+            val parentLinks: List<ContextParentLink> = emptyList(),
+        )
+
+        private fun MainBeaconWithRelations.toOrientationBeaconInput(): OrientationBeaconInput =
+            OrientationBeaconInput(
+                id = beacon.id,
+                title = beacon.title,
+                order = beacon.order,
+                readinessStatus = beacon.readinessStatus,
+                relatedContexts = relatedContexts,
+                groupIds = groupIds,
+            )
 
         private data class CoreUiState(
             val subStateStack: List<ProjectHierarchyScreenSubState>,
             val searchQuery: TextFieldValue,
             val projectHierarchy: ContextHierarchyData,
-            val beaconRootedHierarchy: List<BeaconRootedHierarchyItem>,
+            val orientationHierarchy: List<OrientationHierarchyItem>,
             val currentBreadcrumbs: List<BreadcrumbItem>,
             val searchResultFilter: SearchResultFilter,
             val searchResultSort: SearchResultSort,

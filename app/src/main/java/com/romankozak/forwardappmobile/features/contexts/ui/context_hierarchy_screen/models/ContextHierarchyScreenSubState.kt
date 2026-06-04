@@ -17,7 +17,7 @@ sealed class ProjectHierarchyScreenSubState : Parcelable {
     data class ProjectFocused(val projectId: String) : ProjectHierarchyScreenSubState()
 
     @Parcelize
-    data class BeaconFocused(val nodeId: String) : ProjectHierarchyScreenSubState()
+    data class OrientationFocused(val nodeId: String) : ProjectHierarchyScreenSubState()
 }
 
 typealias MainSubState = ProjectHierarchyScreenSubState

@@ -3,15 +3,17 @@ package com.romankozak.forwardappmobile.ui.screens.mainscreen.usecases
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextParentLink
-import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BeaconRootedHierarchyNode
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.BeaconRootedHierarchyBuilder
-import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconWithRelations
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadinessStatus
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.OrientationBeaconInput
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.OrientationHierarchyBuilder
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.buildOrientationBreadcrumbs
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-class BeaconRootedHierarchyBuilderTest {
-    private val builder = BeaconRootedHierarchyBuilder()
+class OrientationHierarchyBuilderTest {
+    private val builder = OrientationHierarchyBuilder()
 
     @Test
     fun buildsBeaconRootsAndNoBeaconFallback() {
@@ -31,12 +33,11 @@ class BeaconRootedHierarchyBuilderTest {
                     ),
             )
         val beacon =
-            MainBeaconWithRelations(
-                beacon = MainBeacon(id = "beacon-1", title = "Health", order = 0),
+            beacon(
+                id = "beacon-1",
+                title = "Health",
+                order = 0,
                 relatedContexts = listOf(beaconRoot),
-                relatedAttachments = emptyList(),
-                levelStatuses = emptyList(),
-                groupIds = emptyList(),
             )
 
         val items = builder.build(hierarchy = hierarchy, beacons = listOf(beacon))
@@ -68,12 +69,11 @@ class BeaconRootedHierarchyBuilderTest {
                 childMap = mapOf("unassigned-root" to listOf(linkedChild, unlinkedChild)),
             )
         val beacon =
-            MainBeaconWithRelations(
-                beacon = MainBeacon(id = "beacon-1", title = "Health", order = 0),
+            beacon(
+                id = "beacon-1",
+                title = "Health",
+                order = 0,
                 relatedContexts = listOf(linkedChild),
-                relatedAttachments = emptyList(),
-                levelStatuses = emptyList(),
-                groupIds = emptyList(),
             )
 
         val items = builder.build(hierarchy = hierarchy, beacons = listOf(beacon))
@@ -91,7 +91,7 @@ class BeaconRootedHierarchyBuilderTest {
         )
         assertEquals(
             setOf("beacon-1"),
-            (items[2].node as BeaconRootedHierarchyNode.ContextNode).linkedBeaconIds,
+            (items[2].node as OrientationHierarchyNode.ContextNode).linkedBeaconIds,
         )
     }
 
@@ -134,6 +134,47 @@ class BeaconRootedHierarchyBuilderTest {
         assertEquals(listOf(0, 1, 2, 1, 2), items.map { it.level })
     }
 
+    @Test
+    fun buildsBreadcrumbsThroughGroupBeaconAndDeepContext() {
+        val context1 = context(id = "context-1", order = 0)
+        val context2 = context(id = "context-2", parentId = "context-1", order = 0)
+        val context3 = context(id = "context-3", parentId = "context-2", order = 0)
+        val hierarchy =
+            ContextHierarchyData(
+                allProjects = listOf(context1, context2, context3),
+                topLevelProjects = listOf(context1),
+                childMap =
+                    mapOf(
+                        "context-1" to listOf(context2),
+                        "context-2" to listOf(context3),
+                    ),
+            )
+
+        val items =
+            builder.build(
+                hierarchy = hierarchy,
+                beacons =
+                    listOf(
+                        beacon(
+                            id = "beacon-1",
+                            title = "Health",
+                            order = 0,
+                            relatedContexts = listOf(context1),
+                            groupIds = listOf("group-1"),
+                        ),
+                    ),
+                groups = listOf(MainBeaconGroup(id = "group-1", title = "Core", order = 0)),
+            )
+
+        val breadcrumbs = buildOrientationBreadcrumbs(items = items, nodeId = "context-3")
+
+        assertEquals(
+            listOf("group-1", "beacon-1", "context-1", "context-2", "context-3"),
+            breadcrumbs.map { it.id },
+        )
+        assertEquals(listOf(0, 1, 2, 3, 4), breadcrumbs.map { it.level })
+    }
+
     private fun context(
         id: String,
         parentId: String? = null,
@@ -147,5 +188,21 @@ class BeaconRootedHierarchyBuilderTest {
             createdAt = 0L,
             updatedAt = 0L,
             order = order,
+        )
+
+    private fun beacon(
+        id: String,
+        title: String,
+        order: Long,
+        relatedContexts: List<Context>,
+        groupIds: List<String> = emptyList(),
+    ): OrientationBeaconInput =
+        OrientationBeaconInput(
+            id = id,
+            title = title,
+            order = order,
+            readinessStatus = MainBeaconReadinessStatus.READY,
+            relatedContexts = relatedContexts,
+            groupIds = groupIds,
         )
 }

@@ -29,7 +29,7 @@ sealed interface ContextHierarchyScreenEvent {
 
     data class ContextClick(val projectId: String) : ContextHierarchyScreenEvent
 
-    data class BeaconRootClick(val nodeId: String) : ContextHierarchyScreenEvent
+    data class OrientationNodeClick(val nodeId: String) : ContextHierarchyScreenEvent
 
     data class ContextMenuRequest(val project: Context) : ContextHierarchyScreenEvent
 

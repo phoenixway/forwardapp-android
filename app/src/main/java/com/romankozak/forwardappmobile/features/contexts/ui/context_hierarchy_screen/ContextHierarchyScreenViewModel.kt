@@ -30,8 +30,7 @@ import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BeaconRootedHierarchyNode
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BeaconRootedHierarchyItem
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbTarget
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextClipboardOperationUi
@@ -51,6 +50,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SyncUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.ThemingUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.UtilityDialogRequest
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.buildOrientationBreadcrumbs
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.buildPathToProject
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.flattenHierarchy
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconRepository
@@ -445,9 +445,9 @@ class ContextHierarchyScreenViewModel
                         onProjectClicked(event.projectId)
                     }
                 }
-                is ContextHierarchyScreenEvent.BeaconRootClick -> {
-                    searchUseCase.currentBreadcrumbs.value = beaconBreadcrumbsFor(event.nodeId)
-                    searchUseCase.pushSubState(ProjectHierarchyScreenSubState.BeaconFocused(event.nodeId))
+                is ContextHierarchyScreenEvent.OrientationNodeClick -> {
+                    searchUseCase.currentBreadcrumbs.value = orientationBreadcrumbsFor(event.nodeId)
+                    searchUseCase.pushSubState(ProjectHierarchyScreenSubState.OrientationFocused(event.nodeId))
                 }
                 is ContextHierarchyScreenEvent.StartContextSelection -> {
                     selectedContextIds.update { current -> current + event.projectId }
@@ -625,7 +625,7 @@ class ContextHierarchyScreenViewModel
                         searchUseCase.navigateToProject(
                             projectId = event.project.id,
                             currentHierarchy = uiState.value.projectHierarchy,
-                            breadcrumbPrefix = currentBeaconBreadcrumbPrefix(),
+                            breadcrumbPrefix = currentOrientationBreadcrumbPrefix(),
                         )
                         searchUseCase.enterProjectFocus(event.project.id)
                         dialogUseCase.dismissDialog()
@@ -756,10 +756,10 @@ class ContextHierarchyScreenViewModel
                         }
 
                         val beaconNode =
-                            uiState.value.beaconRootedHierarchy
+                            uiState.value.orientationHierarchy
                                 .firstOrNull { it.node.id == event.beaconNodeId }
                                 ?.node
-                        if (beaconNode !is BeaconRootedHierarchyNode.Beacon) {
+                        if (beaconNode !is OrientationHierarchyNode.Beacon) {
                             _uiEventChannel.send(ProjectUiEvent.ShowToast("Вставка доступна тільки в головний орієнтир"))
                             return@launch
                         }
@@ -1243,18 +1243,20 @@ class ContextHierarchyScreenViewModel
             }
         }
 
-        private fun currentBeaconBreadcrumbPrefix(): List<BreadcrumbItem> {
-            val existingBeaconPrefix =
+        private fun currentOrientationBreadcrumbPrefix(): List<BreadcrumbItem> {
+            val existingOrientationPrefix =
                 uiState.value.currentBreadcrumbs
-                    .takeWhile { it.target == BreadcrumbTarget.BeaconRoot }
-            if (existingBeaconPrefix.isNotEmpty()) {
-                return existingBeaconPrefix
+                    .takeWhile { it.target == BreadcrumbTarget.OrientationNode }
+            if (existingOrientationPrefix.isNotEmpty()) {
+                return existingOrientationPrefix
             }
 
-            val beaconState = uiState.value.currentSubState as? ProjectHierarchyScreenSubState.BeaconFocused ?: return emptyList()
+            val orientationState =
+                uiState.value.currentSubState as? ProjectHierarchyScreenSubState.OrientationFocused
+                    ?: return emptyList()
             val rootNode =
-                uiState.value.beaconRootedHierarchy
-                    .firstOrNull { item -> item.node.id == beaconState.nodeId }
+                uiState.value.orientationHierarchy
+                    .firstOrNull { item -> item.node.id == orientationState.nodeId }
                     ?.node
                     ?: return emptyList()
             return listOf(
@@ -1262,35 +1264,16 @@ class ContextHierarchyScreenViewModel
                     id = rootNode.id,
                     name = rootNode.title,
                     level = 0,
-                    target = BreadcrumbTarget.BeaconRoot,
+                    target = BreadcrumbTarget.OrientationNode,
                 ),
             )
         }
 
-        private fun beaconBreadcrumbsFor(nodeId: String): List<BreadcrumbItem> {
-            val items = uiState.value.beaconRootedHierarchy
-            val nodeIndex = items.indexOfFirst { it.node.id == nodeId }
-            if (nodeIndex == -1) return emptyList()
-            val targetItem = items[nodeIndex]
-            val ancestors = ArrayDeque<BeaconRootedHierarchyItem>()
-            var expectedLevel = targetItem.level - 1
-            for (index in nodeIndex - 1 downTo 0) {
-                val item = items[index]
-                if (item.level == expectedLevel) {
-                    ancestors.addFirst(item)
-                    expectedLevel--
-                }
-                if (expectedLevel < 0) break
-            }
-            return (ancestors + targetItem).mapIndexed { index, item ->
-                BreadcrumbItem(
-                    id = item.node.id,
-                    name = item.node.title,
-                    level = index,
-                    target = BreadcrumbTarget.BeaconRoot,
-                )
-            }
-        }
+        private fun orientationBreadcrumbsFor(nodeId: String): List<BreadcrumbItem> =
+            buildOrientationBreadcrumbs(
+                items = uiState.value.orientationHierarchy,
+                nodeId = nodeId,
+            )
 
         private suspend fun awaitHierarchyForProjectPath(projectId: String): com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData {
             return withTimeoutOrNull(1_500) {

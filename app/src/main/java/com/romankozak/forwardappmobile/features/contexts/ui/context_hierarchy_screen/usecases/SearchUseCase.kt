@@ -241,9 +241,9 @@ class SearchUseCase
         fun navigateToBreadcrumb(breadcrumbItem: BreadcrumbItem) {
             currentBreadcrumbs.update { it.take(breadcrumbItem.level + 1) }
             when (breadcrumbItem.target) {
-                BreadcrumbTarget.BeaconRoot -> {
+                BreadcrumbTarget.OrientationNode -> {
                     focusedProjectId.value = null
-                    navigateToExistingOrReplace(ProjectHierarchyScreenSubState.BeaconFocused(breadcrumbItem.id))
+                    navigateToExistingOrReplace(ProjectHierarchyScreenSubState.OrientationFocused(breadcrumbItem.id))
                 }
                 BreadcrumbTarget.Context -> {
                     focusedProjectId.value = breadcrumbItem.id
@@ -377,7 +377,7 @@ class SearchUseCase
             val currentStack = _subStateStack.value
             val beaconBreadcrumbPrefix =
                 currentBreadcrumbs.value
-                    .takeWhile { it.target == BreadcrumbTarget.BeaconRoot }
+                    .takeWhile { it.target == BreadcrumbTarget.OrientationNode }
             when {
                 currentStack.lastOrNull() is ProjectHierarchyScreenSubState.ProjectFocused -> {
                     popSubState()
@@ -389,16 +389,16 @@ class SearchUseCase
                                 breadcrumbPrefix = beaconBreadcrumbPrefix,
                             )
                         }
-                        is ProjectHierarchyScreenSubState.BeaconFocused -> {
+                        is ProjectHierarchyScreenSubState.OrientationFocused -> {
                             focusedProjectId.value = null
                             currentBreadcrumbs.value =
                                 currentBreadcrumbs.value
-                                    .takeWhile { it.target == BreadcrumbTarget.BeaconRoot }
+                                    .takeWhile { it.target == BreadcrumbTarget.OrientationNode }
                         }
                         else -> clearNavigation()
                     }
                 }
-                currentStack.lastOrNull() is ProjectHierarchyScreenSubState.BeaconFocused -> {
+                currentStack.lastOrNull() is ProjectHierarchyScreenSubState.OrientationFocused -> {
                     popSubState()
                     focusedProjectId.value = null
                     currentBreadcrumbs.value = emptyList()

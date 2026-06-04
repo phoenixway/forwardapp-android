@@ -77,7 +77,7 @@ fun ProjectHierarchyScreenContent(
             breadcrumbs = uiState.currentBreadcrumbs,
             hasFocusedProject =
                 currentSubState is ProjectHierarchyScreenSubState.ProjectFocused ||
-                    currentSubState is ProjectHierarchyScreenSubState.BeaconFocused,
+                    currentSubState is ProjectHierarchyScreenSubState.OrientationFocused,
         )
 
     Column(
@@ -185,7 +185,7 @@ fun ProjectHierarchyScreenContent(
                     modifier = Modifier.weight(1f),
                     hierarchy = uiState.projectHierarchy,
                     flattenedHierarchy = uiState.flattenedHierarchy,
-                    beaconRootedHierarchy = uiState.beaconRootedHierarchy,
+                    orientationHierarchy = uiState.orientationHierarchy,
                     breadcrumbs = uiState.currentBreadcrumbs,
                     focusedProjectId =
                         if (isFocusMode) {
@@ -196,10 +196,10 @@ fun ProjectHierarchyScreenContent(
                         } else {
                             null
                         },
-                    focusedBeaconNodeId =
+                    focusedOrientationNodeId =
                         if (isFocusMode) {
                             when (currentSubState) {
-                                is ProjectHierarchyScreenSubState.BeaconFocused -> currentSubState.nodeId
+                                is ProjectHierarchyScreenSubState.OrientationFocused -> currentSubState.nodeId
                                 else -> null
                             }
                         } else {

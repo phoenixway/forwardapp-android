@@ -4,20 +4,29 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BeaconRootedHierarchyItem
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BeaconRootedHierarchyNode
-import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconWithRelations
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadinessStatus
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyItem
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
 import javax.inject.Inject
 
-class BeaconRootedHierarchyBuilder
+data class OrientationBeaconInput(
+    val id: String,
+    val title: String,
+    val order: Long,
+    val readinessStatus: MainBeaconReadinessStatus,
+    val relatedContexts: List<Context>,
+    val groupIds: List<String>,
+)
+
+class OrientationHierarchyBuilder
     @Inject
     constructor() {
         fun build(
             hierarchy: ContextHierarchyData,
-            beacons: List<MainBeaconWithRelations>,
+            beacons: List<OrientationBeaconInput>,
             groups: List<MainBeaconGroup> = emptyList(),
             parentLinks: List<ContextParentLink> = emptyList(),
-        ): List<BeaconRootedHierarchyItem> {
+        ): List<OrientationHierarchyItem> {
             if (hierarchy.allProjects.isEmpty() && beacons.isEmpty()) return emptyList()
 
             val contextsById = hierarchy.allProjects.associateBy { it.id }
@@ -25,10 +34,10 @@ class BeaconRootedHierarchyBuilder
             val additionalParentsByChildId = buildAdditionalParentsByChildId(parentLinks, contextsById)
             val beaconIdsByContextId = buildBeaconIdsByContextId(beacons)
             val linkedContextIds = beaconIdsByContextId.keys
-            val result = mutableListOf<BeaconRootedHierarchyItem>()
+            val result = mutableListOf<OrientationHierarchyItem>()
             val sortedBeacons =
                 beacons.sortedWith(
-                    compareBy<MainBeaconWithRelations> { it.beacon.order }.thenBy { it.beacon.title.lowercase() },
+                    compareBy<OrientationBeaconInput> { it.order }.thenBy { it.title.lowercase() },
                 )
             val knownGroupIds = groups.mapTo(hashSetOf()) { it.id }
             val beaconsByGroupId = sortedBeacons.mapNotNull { details ->
@@ -41,9 +50,9 @@ class BeaconRootedHierarchyBuilder
                 .forEach { group ->
                     val groupBeacons = beaconsByGroupId[group.id].orEmpty()
                     result +=
-                        BeaconRootedHierarchyItem(
+                        OrientationHierarchyItem(
                             node =
-                                BeaconRootedHierarchyNode.Group(
+                                OrientationHierarchyNode.Group(
                                     id = group.id,
                                     title = group.title,
                                     beaconCount = groupBeacons.size,
@@ -67,8 +76,8 @@ class BeaconRootedHierarchyBuilder
             val noGroupBeacons = sortedBeacons.filter { details -> details.groupIds.none { it in knownGroupIds } }
             if (noGroupBeacons.isNotEmpty()) {
                 result +=
-                    BeaconRootedHierarchyItem(
-                        node = BeaconRootedHierarchyNode.NoGroup,
+                    OrientationHierarchyItem(
+                        node = OrientationHierarchyNode.NoGroup,
                         level = 0,
                     )
                 noGroupBeacons.forEach { details ->
@@ -92,8 +101,8 @@ class BeaconRootedHierarchyBuilder
 
             if (noBeaconRoots.isNotEmpty()) {
                 result +=
-                    BeaconRootedHierarchyItem(
-                        node = BeaconRootedHierarchyNode.NoBeacon,
+                    OrientationHierarchyItem(
+                        node = OrientationHierarchyNode.NoBeacon,
                         level = 0,
                     )
                 noBeaconRoots.forEach { context ->
@@ -114,22 +123,22 @@ class BeaconRootedHierarchyBuilder
         }
 
         private fun appendBeaconSubtree(
-            details: MainBeaconWithRelations,
+            details: OrientationBeaconInput,
             level: Int,
             contextsById: Map<String, Context>,
             additionalChildrenByParentId: Map<String, List<Context>>,
             additionalParentsByChildId: Map<String, List<String>>,
             beaconIdsByContextId: Map<String, Set<String>>,
             hierarchy: ContextHierarchyData,
-            result: MutableList<BeaconRootedHierarchyItem>,
+            result: MutableList<OrientationHierarchyItem>,
         ) {
             result +=
-                BeaconRootedHierarchyItem(
+                OrientationHierarchyItem(
                     node =
-                        BeaconRootedHierarchyNode.Beacon(
-                            id = details.beacon.id,
-                            title = details.beacon.title,
-                            readinessStatus = details.beacon.readinessStatus,
+                        OrientationHierarchyNode.Beacon(
+                            id = details.id,
+                            title = details.title,
+                            readinessStatus = details.readinessStatus,
                             relatedContextCount = details.relatedContexts.size,
                         ),
                     level = level,
@@ -165,11 +174,11 @@ class BeaconRootedHierarchyBuilder
             }
         }
 
-        private fun buildBeaconIdsByContextId(beacons: List<MainBeaconWithRelations>): Map<String, Set<String>> {
+        private fun buildBeaconIdsByContextId(beacons: List<OrientationBeaconInput>): Map<String, Set<String>> {
             val mutable = linkedMapOf<String, MutableSet<String>>()
             beacons.forEach { details ->
                 details.relatedContexts.forEach { context ->
-                    mutable.getOrPut(context.id) { linkedSetOf() } += details.beacon.id
+                    mutable.getOrPut(context.id) { linkedSetOf() } += details.id
                 }
             }
             return mutable.mapValues { (_, ids) -> ids.toSet() }
@@ -181,7 +190,7 @@ class BeaconRootedHierarchyBuilder
             hierarchy: ContextHierarchyData,
             additionalChildrenByParentId: Map<String, List<Context>>,
             beaconIdsByContextId: Map<String, Set<String>>,
-            result: MutableList<BeaconRootedHierarchyItem>,
+            result: MutableList<OrientationHierarchyItem>,
             visited: LinkedHashSet<String>,
             skipDirectBeaconLinkedContexts: Boolean,
         ) {
@@ -189,9 +198,9 @@ class BeaconRootedHierarchyBuilder
             if (skipDirectBeaconLinkedContexts && beaconIdsByContextId.containsKey(context.id)) return
 
             result +=
-                BeaconRootedHierarchyItem(
+                OrientationHierarchyItem(
                     node =
-                        BeaconRootedHierarchyNode.ContextNode(
+                        OrientationHierarchyNode.ContextNode(
                             context = context,
                             linkedBeaconIds = beaconIdsByContextId[context.id].orEmpty(),
                         ),

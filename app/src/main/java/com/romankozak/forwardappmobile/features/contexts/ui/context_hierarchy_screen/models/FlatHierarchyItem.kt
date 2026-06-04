@@ -11,12 +11,12 @@ data class FlatHierarchyItem(
     val level: Int,
 )
 
-data class BeaconRootedHierarchyItem(
-    val node: BeaconRootedHierarchyNode,
+data class OrientationHierarchyItem(
+    val node: OrientationHierarchyNode,
     val level: Int,
 )
 
-sealed interface BeaconRootedHierarchyNode {
+sealed interface OrientationHierarchyNode {
     val id: String
     val title: String
 
@@ -24,21 +24,21 @@ sealed interface BeaconRootedHierarchyNode {
         override val id: String,
         override val title: String,
         val beaconCount: Int,
-    ) : BeaconRootedHierarchyNode
+    ) : OrientationHierarchyNode
 
     data class Beacon(
         override val id: String,
         override val title: String,
         val readinessStatus: MainBeaconReadinessStatus,
         val relatedContextCount: Int,
-    ) : BeaconRootedHierarchyNode
+    ) : OrientationHierarchyNode
 
-    data object NoBeacon : BeaconRootedHierarchyNode {
+    data object NoBeacon : OrientationHierarchyNode {
         override val id: String = NO_BEACON_NODE_ID
         override val title: String = "No beacon"
     }
 
-    data object NoGroup : BeaconRootedHierarchyNode {
+    data object NoGroup : OrientationHierarchyNode {
         override val id: String = NO_GROUP_NODE_ID
         override val title: String = "No group"
     }
@@ -46,7 +46,7 @@ sealed interface BeaconRootedHierarchyNode {
     data class ContextNode(
         val context: Context,
         val linkedBeaconIds: Set<String>,
-    ) : BeaconRootedHierarchyNode {
+    ) : OrientationHierarchyNode {
         override val id: String = context.id
         override val title: String = context.name
     }

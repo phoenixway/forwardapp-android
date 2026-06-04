@@ -28,14 +28,14 @@ import androidx.compose.ui.unit.dp
 import com.mohamedrejeb.compose.dnd.DragAndDropState
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BeaconRootedHierarchyItem
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BeaconRootedHierarchyNode
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyItem
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbTarget
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.buildOrientationBreadcrumbs
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -43,7 +43,7 @@ fun FocusedProjectView(
     focusedProjectId: String,
     hierarchy: ContextHierarchyData,
     displayChildMap: Map<String, List<Context>>,
-    beaconRootedHierarchy: List<BeaconRootedHierarchyItem>,
+    directChildrenByNodeId: Map<String, List<OrientationHierarchyItem>>,
     breadcrumbs: List<BreadcrumbItem>,
     dragAndDropState: DragAndDropState<Context>,
     isSearchActive: Boolean,
@@ -68,9 +68,9 @@ fun FocusedProjectView(
 ) {
     val focusedProject = hierarchy.allProjects.find { it.id == focusedProjectId }
     val children =
-        remember(beaconRootedHierarchy, focusedProjectId, displayChildMap) {
-            directChildrenOfNode(beaconRootedHierarchy, focusedProjectId)
-                .mapNotNull { item -> (item.node as? BeaconRootedHierarchyNode.ContextNode)?.context }
+        remember(directChildrenByNodeId, focusedProjectId, displayChildMap) {
+            directChildrenByNodeId[focusedProjectId].orEmpty()
+                .mapNotNull { item -> (item.node as? OrientationHierarchyNode.ContextNode)?.context }
                 .ifEmpty { displayChildMap[focusedProjectId].orEmpty() }
                 .distinctBy { it.id }
                 .map { child -> FlatHierarchyItem(project = child, level = 0) }
@@ -162,10 +162,11 @@ fun FocusedProjectView(
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
-fun FocusedBeaconRootView(
-    focusedRoot: BeaconRootedHierarchyItem?,
-    directChildren: List<BeaconRootedHierarchyItem>,
-    beaconRootedHierarchy: List<BeaconRootedHierarchyItem>,
+fun FocusedOrientationNodeView(
+    focusedRoot: OrientationHierarchyItem?,
+    directChildren: List<OrientationHierarchyItem>,
+    directChildrenByNodeId: Map<String, List<OrientationHierarchyItem>>,
+    orientationHierarchy: List<OrientationHierarchyItem>,
     displayChildMap: Map<String, List<Context>>,
     dragAndDropState: DragAndDropState<Context>,
     isSearchActive: Boolean,
@@ -196,23 +197,23 @@ fun FocusedBeaconRootView(
     }
 
     val rootBreadcrumb =
-        remember(beaconRootedHierarchy, focusedRoot) {
-            buildBeaconBreadcrumbs(
-                items = beaconRootedHierarchy,
+        remember(orientationHierarchy, focusedRoot) {
+            buildOrientationBreadcrumbs(
+                items = orientationHierarchy,
                 nodeId = focusedRoot.node.id,
             )
         }
     val childItems =
         remember(directChildren) {
             directChildren.mapNotNull { item ->
-                (item.node as? BeaconRootedHierarchyNode.ContextNode)?.context?.let { context ->
+                (item.node as? OrientationHierarchyNode.ContextNode)?.context?.let { context ->
                     FlatHierarchyItem(project = context, level = 0)
                 }
             }
         }
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
-        stickyHeader(key = "focused-beacon-header") {
+        stickyHeader(key = "focused-orientation-header") {
             Column(Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
                 BreadcrumbNavigation(
                     breadcrumbs = rootBreadcrumb,
@@ -222,46 +223,42 @@ fun FocusedBeaconRootView(
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                 when (val node = focusedRoot.node) {
-                    is BeaconRootedHierarchyNode.Group ->
+                    is OrientationHierarchyNode.Group ->
                         BeaconGroupRootHeaderRow(
                             node = node,
                             level = 0,
                             childCount = directChildren.size,
                         )
-                    is BeaconRootedHierarchyNode.Beacon ->
+                    is OrientationHierarchyNode.Beacon ->
                         BeaconRootHeaderRow(
                             node = node,
                             level = 0,
                             childCount = directChildren.size,
                         )
-                    BeaconRootedHierarchyNode.NoGroup ->
+                    OrientationHierarchyNode.NoGroup ->
                         NoGroupRootHeaderRow(
                             level = 0,
                             childCount = directChildren.size,
                         )
-                    BeaconRootedHierarchyNode.NoBeacon ->
+                    OrientationHierarchyNode.NoBeacon ->
                         NoBeaconRootHeaderRow(
                             level = 0,
                             childCount = directChildren.size,
                         )
-                    is BeaconRootedHierarchyNode.ContextNode -> Unit
+                    is OrientationHierarchyNode.ContextNode -> Unit
                 }
             }
         }
 
-        val beaconChildren = directChildren.filter { it.node is BeaconRootedHierarchyNode.Beacon }
+        val beaconChildren = directChildren.filter { it.node is OrientationHierarchyNode.Beacon }
         if (beaconChildren.isNotEmpty()) {
             items(beaconChildren, key = { "beacon-${it.node.id}" }) { item ->
-                val node = item.node as BeaconRootedHierarchyNode.Beacon
+                val node = item.node as OrientationHierarchyNode.Beacon
                 BeaconRootHeaderRow(
                     node = node,
                     level = 0,
-                    childCount =
-                        directChildrenOfNode(
-                            items = beaconRootedHierarchy,
-                            nodeId = node.id,
-                        ).size,
-                    onClick = { onEvent(ContextHierarchyScreenEvent.BeaconRootClick(node.id)) },
+                    childCount = directChildrenByNodeId[node.id].orEmpty().size,
+                    onClick = { onEvent(ContextHierarchyScreenEvent.OrientationNodeClick(node.id)) },
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                 )
             }
@@ -300,79 +297,6 @@ fun FocusedBeaconRootView(
             }
         }
     }
-}
-
-private fun buildBeaconBreadcrumbs(
-    items: List<BeaconRootedHierarchyItem>,
-    nodeId: String,
-): List<BreadcrumbItem> {
-    val nodeIndex = items.indexOfFirst { it.node.id == nodeId }
-    if (nodeIndex == -1) return emptyList()
-    val targetItem = items[nodeIndex]
-    val ancestors = ArrayDeque<BeaconRootedHierarchyItem>()
-    var expectedLevel = targetItem.level - 1
-    for (index in nodeIndex - 1 downTo 0) {
-        val item = items[index]
-        if (item.level == expectedLevel) {
-            ancestors.addFirst(item)
-            expectedLevel--
-        }
-        if (expectedLevel < 0) break
-    }
-    return (ancestors + targetItem).mapIndexed { index, item ->
-        BreadcrumbItem(
-            id = item.node.id,
-            name = item.node.title,
-            level = index,
-            target = BreadcrumbTarget.BeaconRoot,
-        )
-    }
-}
-
-internal fun directChildrenOfNode(
-    items: List<BeaconRootedHierarchyItem>,
-    nodeId: String,
-): List<BeaconRootedHierarchyItem> = buildDirectChildrenByNodeId(items)[nodeId].orEmpty()
-
-internal fun buildDirectChildrenByNodeId(items: List<BeaconRootedHierarchyItem>): Map<String, List<BeaconRootedHierarchyItem>> {
-    val result = linkedMapOf<String, MutableList<BeaconRootedHierarchyItem>>()
-    val stack = ArrayDeque<BeaconRootedHierarchyItem>()
-    items.forEach { item ->
-        while (stack.isNotEmpty() && stack.last().level >= item.level) {
-            stack.removeLast()
-        }
-        stack.lastOrNull()?.let { parent ->
-            result.getOrPut(parent.node.id) { mutableListOf() } += item
-        }
-        stack.addLast(item)
-    }
-    return result
-}
-
-internal fun buildDisplayChildMap(
-    canonicalChildMap: Map<String, List<Context>>,
-    beaconRootedHierarchy: List<BeaconRootedHierarchyItem>,
-): Map<String, List<Context>> {
-    val result = canonicalChildMap.mapValues { (_, children) -> children.toMutableList() }.toMutableMap()
-    val directChildrenByNodeId = buildDirectChildrenByNodeId(beaconRootedHierarchy)
-    beaconRootedHierarchy
-        .filter { it.node is BeaconRootedHierarchyNode.ContextNode }
-        .forEach { parentItem ->
-            val parentContext = (parentItem.node as BeaconRootedHierarchyNode.ContextNode).context
-            val children =
-                directChildrenByNodeId[parentContext.id].orEmpty().mapNotNull { childItem ->
-                    (childItem.node as? BeaconRootedHierarchyNode.ContextNode)?.context
-                }
-            if (children.isNotEmpty()) {
-                val mutableChildren = result.getOrPut(parentContext.id) { mutableListOf() }
-                children.forEach { child ->
-                    if (mutableChildren.none { it.id == child.id }) {
-                        mutableChildren += child
-                    }
-                }
-            }
-        }
-    return result
 }
 
 @Composable

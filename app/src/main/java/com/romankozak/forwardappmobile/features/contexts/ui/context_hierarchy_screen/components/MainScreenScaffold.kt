@@ -51,7 +51,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.OptimizedExpandingProjectHierarchyBottomNav
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreenContent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.SearchProjectHierarchyBottomBar
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BeaconRootedHierarchyNode
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
@@ -103,12 +103,12 @@ fun ProjectHierarchyScreenScaffold(
                     ?.projectId
                     ?.let { focusedId -> uiState.projectHierarchy.allProjects.find { it.id == focusedId } }
             val focusedBeaconNode =
-                (uiState.currentSubState as? ProjectHierarchyScreenSubState.BeaconFocused)
+                (uiState.currentSubState as? ProjectHierarchyScreenSubState.OrientationFocused)
                     ?.nodeId
                     ?.let { focusedId ->
-                        uiState.beaconRootedHierarchy
+                        uiState.orientationHierarchy
                             .firstOrNull { it.node.id == focusedId }
-                            ?.node as? BeaconRootedHierarchyNode.Beacon
+                            ?.node as? OrientationHierarchyNode.Beacon
                     }
             val canPasteToFocusedNode =
                 uiState.clipboardContextIds.isNotEmpty() &&

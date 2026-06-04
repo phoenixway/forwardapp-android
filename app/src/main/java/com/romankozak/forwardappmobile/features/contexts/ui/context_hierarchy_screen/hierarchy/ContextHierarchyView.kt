@@ -19,13 +19,15 @@ import com.mohamedrejeb.compose.dnd.DragAndDropContainer
 import com.mohamedrejeb.compose.dnd.rememberDragAndDropState
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BeaconRootedHierarchyItem
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BeaconRootedHierarchyNode
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyItem
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.buildDirectChildrenByOrientationNodeId
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.buildOrientationDisplayChildMap
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -33,10 +35,10 @@ fun ProjectHierarchyView(
     modifier: Modifier = Modifier,
     hierarchy: ContextHierarchyData,
     flattenedHierarchy: List<FlatHierarchyItem>,
-    beaconRootedHierarchy: List<BeaconRootedHierarchyItem>,
+    orientationHierarchy: List<OrientationHierarchyItem>,
     breadcrumbs: List<BreadcrumbItem>,
     focusedProjectId: String?,
-    focusedBeaconNodeId: String?,
+    focusedOrientationNodeId: String?,
     highlightedProjectId: String?,
     searchQuery: String,
     isSearchActive: Boolean,
@@ -59,16 +61,17 @@ fun ProjectHierarchyView(
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
     val dragAndDropState = rememberDragAndDropState<Context>()
-    val displayChildMap =
-        remember(hierarchy.childMap, beaconRootedHierarchy) {
-            buildDisplayChildMap(
-                canonicalChildMap = hierarchy.childMap,
-                beaconRootedHierarchy = beaconRootedHierarchy,
-            )
-        }
     val directChildrenByNodeId =
-        remember(beaconRootedHierarchy) {
-            buildDirectChildrenByNodeId(beaconRootedHierarchy)
+        remember(orientationHierarchy) {
+            buildDirectChildrenByOrientationNodeId(orientationHierarchy)
+        }
+    val displayChildMap =
+        remember(hierarchy.childMap, orientationHierarchy, directChildrenByNodeId) {
+            buildOrientationDisplayChildMap(
+                canonicalChildMap = hierarchy.childMap,
+                orientationHierarchy = orientationHierarchy,
+                directChildrenByNodeId = directChildrenByNodeId,
+            )
         }
 
     DragAndDropContainer(
@@ -81,7 +84,7 @@ fun ProjectHierarchyView(
                 focusedProjectId = focusedProjectId,
                 hierarchy = hierarchy,
                 displayChildMap = displayChildMap,
-                beaconRootedHierarchy = beaconRootedHierarchy,
+                directChildrenByNodeId = directChildrenByNodeId,
                 breadcrumbs = breadcrumbs,
                 dragAndDropState = dragAndDropState,
                 isSearchActive = isSearchActive,
@@ -104,19 +107,20 @@ fun ProjectHierarchyView(
                 sharedTransitionScope = sharedTransitionScope,
                 animatedVisibilityScope = animatedVisibilityScope,
             )
-        } else if (focusedBeaconNodeId != null) {
+        } else if (focusedOrientationNodeId != null) {
             val focusedRoot =
-                remember(beaconRootedHierarchy, focusedBeaconNodeId) {
-                    beaconRootedHierarchy.firstOrNull { it.node.id == focusedBeaconNodeId }
+                remember(orientationHierarchy, focusedOrientationNodeId) {
+                    orientationHierarchy.firstOrNull { it.node.id == focusedOrientationNodeId }
                 }
             val directChildren =
-                remember(beaconRootedHierarchy, focusedBeaconNodeId) {
-                    directChildrenByNodeId[focusedBeaconNodeId].orEmpty()
+                remember(orientationHierarchy, focusedOrientationNodeId) {
+                    directChildrenByNodeId[focusedOrientationNodeId].orEmpty()
                 }
-            FocusedBeaconRootView(
+            FocusedOrientationNodeView(
                 focusedRoot = focusedRoot,
                 directChildren = directChildren,
-                beaconRootedHierarchy = beaconRootedHierarchy,
+                directChildrenByNodeId = directChildrenByNodeId,
+                orientationHierarchy = orientationHierarchy,
                 displayChildMap = displayChildMap,
                 dragAndDropState = dragAndDropState,
                 isSearchActive = isSearchActive,
@@ -141,8 +145,8 @@ fun ProjectHierarchyView(
             )
         } else {
             val rootChildCounts =
-                remember(beaconRootedHierarchy) {
-                    beaconRootedHierarchy
+                remember(orientationHierarchy) {
+                    orientationHierarchy
                         .filter { it.level == 0 }
                         .associate { item ->
                             item.node.id to
@@ -163,40 +167,40 @@ fun ProjectHierarchyView(
                 modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                if (beaconRootedHierarchy.isNotEmpty() && !isSearchActive) {
-                    val rootItems = beaconRootedHierarchy.filter { it.level == 0 }
+                if (orientationHierarchy.isNotEmpty() && !isSearchActive) {
+                    val rootItems = orientationHierarchy.filter { it.level == 0 }
                     itemsIndexed(
                         items = rootItems,
                         key = { index, item -> "${item.node.id}-$index" },
                     ) { _, item ->
                         when (val node = item.node) {
-                            is BeaconRootedHierarchyNode.Group ->
+                            is OrientationHierarchyNode.Group ->
                                 BeaconGroupRootHeaderRow(
                                     node = node,
                                     level = item.level,
                                     childCount = rootChildCounts[node.id] ?: 0,
-                                    onClick = { onEvent(ContextHierarchyScreenEvent.BeaconRootClick(node.id)) },
+                                    onClick = { onEvent(ContextHierarchyScreenEvent.OrientationNodeClick(node.id)) },
                                 )
-                            is BeaconRootedHierarchyNode.Beacon ->
+                            is OrientationHierarchyNode.Beacon ->
                                 BeaconRootHeaderRow(
                                     node = node,
                                     level = item.level,
                                     childCount = rootChildCounts[node.id] ?: 0,
-                                    onClick = { onEvent(ContextHierarchyScreenEvent.BeaconRootClick(node.id)) },
+                                    onClick = { onEvent(ContextHierarchyScreenEvent.OrientationNodeClick(node.id)) },
                                 )
-                            BeaconRootedHierarchyNode.NoGroup ->
+                            OrientationHierarchyNode.NoGroup ->
                                 NoGroupRootHeaderRow(
                                     level = item.level,
                                     childCount = rootChildCounts[node.id] ?: 0,
-                                    onClick = { onEvent(ContextHierarchyScreenEvent.BeaconRootClick(node.id)) },
+                                    onClick = { onEvent(ContextHierarchyScreenEvent.OrientationNodeClick(node.id)) },
                                 )
-                            BeaconRootedHierarchyNode.NoBeacon ->
+                            OrientationHierarchyNode.NoBeacon ->
                                 NoBeaconRootHeaderRow(
                                     level = item.level,
                                     childCount = rootChildCounts[node.id] ?: 0,
-                                    onClick = { onEvent(ContextHierarchyScreenEvent.BeaconRootClick(node.id)) },
+                                    onClick = { onEvent(ContextHierarchyScreenEvent.OrientationNodeClick(node.id)) },
                                 )
-                            is BeaconRootedHierarchyNode.ContextNode ->
+                            is OrientationHierarchyNode.ContextNode ->
                                 HierarchyListItem(
                                     item = FlatHierarchyItem(project = node.context, level = item.level),
                                     childMap = displayChildMap,
