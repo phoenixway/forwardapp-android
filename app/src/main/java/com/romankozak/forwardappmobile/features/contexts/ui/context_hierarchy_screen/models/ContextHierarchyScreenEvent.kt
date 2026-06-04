@@ -29,6 +29,8 @@ sealed interface ContextHierarchyScreenEvent {
 
     data class ContextClick(val projectId: String) : ContextHierarchyScreenEvent
 
+    data class BeaconRootClick(val nodeId: String) : ContextHierarchyScreenEvent
+
     data class ContextMenuRequest(val project: Context) : ContextHierarchyScreenEvent
 
     data class ContextReorder(
@@ -117,6 +119,10 @@ sealed interface ContextHierarchyScreenEvent {
         val project: Context,
         val mode: BacklogPasteMode = BacklogPasteMode.AS_LINK,
     ) : ContextHierarchyScreenEvent
+
+    data class PasteContextLinksIntoBeacon(val beaconNodeId: String) : ContextHierarchyScreenEvent
+
+    data class AddContextAppearanceHere(val parentProject: Context) : ContextHierarchyScreenEvent
 
     data class ToggleContextSelection(val projectId: String) : ContextHierarchyScreenEvent
 

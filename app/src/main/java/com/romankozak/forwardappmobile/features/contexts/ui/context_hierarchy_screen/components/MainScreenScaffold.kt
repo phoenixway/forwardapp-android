@@ -51,6 +51,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.OptimizedExpandingProjectHierarchyBottomNav
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreenContent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.SearchProjectHierarchyBottomBar
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BeaconRootedHierarchyNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
@@ -101,6 +102,17 @@ fun ProjectHierarchyScreenScaffold(
                 (uiState.currentSubState as? ProjectHierarchyScreenSubState.ProjectFocused)
                     ?.projectId
                     ?.let { focusedId -> uiState.projectHierarchy.allProjects.find { it.id == focusedId } }
+            val focusedBeaconNode =
+                (uiState.currentSubState as? ProjectHierarchyScreenSubState.BeaconFocused)
+                    ?.nodeId
+                    ?.let { focusedId ->
+                        uiState.beaconRootedHierarchy
+                            .firstOrNull { it.node.id == focusedId }
+                            ?.node as? BeaconRootedHierarchyNode.Beacon
+                    }
+            val canPasteToFocusedNode =
+                uiState.clipboardContextIds.isNotEmpty() &&
+                    (focusedProject != null || focusedBeaconNode != null)
             ProjectHierarchyScreenTopAppBar(
                 onBackClick = {
                     if (uiState.isSelectionMode) {
@@ -113,11 +125,14 @@ fun ProjectHierarchyScreenScaffold(
                 },
                 isSelectionMode = uiState.isSelectionMode,
                 selectedCount = uiState.selectedContextIds.size,
-                canPasteToFocusedContext = focusedProject != null && uiState.clipboardContextIds.isNotEmpty(),
+                canPasteToFocusedContext = canPasteToFocusedNode,
                 onCopySelection = { onEvent(ContextHierarchyScreenEvent.CopySelectedContexts) },
                 onCutSelection = { onEvent(ContextHierarchyScreenEvent.CutSelectedContexts) },
                 onPasteToFocusedContext = {
-                    focusedProject?.let { onEvent(ContextHierarchyScreenEvent.PasteContextLink(it)) }
+                    when {
+                        focusedProject != null -> onEvent(ContextHierarchyScreenEvent.PasteContextLink(focusedProject))
+                        focusedBeaconNode != null -> onEvent(ContextHierarchyScreenEvent.PasteContextLinksIntoBeacon(focusedBeaconNode.id))
+                    }
                 },
             )
         },

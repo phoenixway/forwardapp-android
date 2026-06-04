@@ -6,6 +6,7 @@ import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -72,6 +73,8 @@ import com.mohamedrejeb.compose.dnd.drop.dropTarget
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadinessStatus
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BeaconRootedHierarchyNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.FlatHierarchyItem
@@ -85,6 +88,7 @@ private const val HIERARCHY_MIN_CARD_ALPHA = 0.64f
 private const val HIERARCHY_MAX_CARD_ALPHA = 0.9f
 private const val SWIPE_ACTION_VISIBILITY_THRESHOLD = 0.02f
 private const val SHORT_QUERY_THRESHOLD = 3
+private const val ROOT_LEVEL_INDENT_DP = 18
 
 fun fuzzyMatchAndGetIndices(
     query: String,
@@ -165,6 +169,167 @@ fun highlightSubstring(
         }
     }
 }
+
+@Composable
+fun BeaconRootHeaderRow(
+    node: BeaconRootedHierarchyNode.Beacon,
+    level: Int,
+    childCount: Int = 0,
+    onClick: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    RootHeaderRow(
+        title = node.title,
+        subtitle = "${node.relatedContextCount} contexts",
+        symbol = "MB",
+        tint = readinessTint(node.readinessStatus),
+        level = level,
+        childCount = childCount,
+        onClick = onClick,
+        modifier = modifier,
+    )
+}
+
+@Composable
+fun BeaconGroupRootHeaderRow(
+    node: BeaconRootedHierarchyNode.Group,
+    level: Int,
+    childCount: Int = 0,
+    onClick: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    RootHeaderRow(
+        title = node.title,
+        subtitle = "${node.beaconCount} beacons",
+        symbol = "GR",
+        tint = MaterialTheme.colorScheme.primary,
+        level = level,
+        childCount = childCount,
+        onClick = onClick,
+        modifier = modifier,
+    )
+}
+
+@Composable
+fun NoGroupRootHeaderRow(
+    level: Int,
+    childCount: Int = 0,
+    onClick: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    RootHeaderRow(
+        title = "No group",
+        subtitle = "Main beacons without a group",
+        symbol = "NG",
+        tint = MaterialTheme.colorScheme.secondary,
+        level = level,
+        childCount = childCount,
+        onClick = onClick,
+        modifier = modifier,
+    )
+}
+
+@Composable
+fun NoBeaconRootHeaderRow(
+    level: Int,
+    childCount: Int = 0,
+    onClick: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    RootHeaderRow(
+        title = "No beacon",
+        subtitle = "Root contexts without a main beacon",
+        symbol = "NB",
+        tint = MaterialTheme.colorScheme.outline,
+        level = level,
+        childCount = childCount,
+        onClick = onClick,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun RootHeaderRow(
+    title: String,
+    subtitle: String,
+    symbol: String,
+    tint: Color,
+    level: Int,
+    childCount: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val indentation = (level * ROOT_LEVEL_INDENT_DP).dp
+    Surface(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(start = indentation, top = 4.dp, bottom = 2.dp),
+        shape = RoundedCornerShape(14.dp),
+        color = tint.copy(alpha = 0.10f),
+        tonalElevation = 0.dp,
+        border = BorderStroke(width = 1.dp, color = tint.copy(alpha = 0.20f)),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = tint.copy(alpha = 0.18f),
+                contentColor = tint,
+            ) {
+                Text(
+                    text = symbol,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                )
+            }
+            if (childCount > 0) {
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.72f),
+                    tonalElevation = 0.dp,
+                ) {
+                    Text(
+                        text = childCount.toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                    )
+                }
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun readinessTint(status: MainBeaconReadinessStatus): Color =
+    when (status) {
+        MainBeaconReadinessStatus.READY -> Color(0xFF2E7D32)
+        MainBeaconReadinessStatus.CONDITIONAL -> Color(0xFFB26A00)
+        MainBeaconReadinessStatus.BLOCKED -> Color(0xFFC62828)
+        MainBeaconReadinessStatus.DEFECTED -> Color(0xFF5F6368)
+    }
 
 @Composable
 fun ProjectRow(

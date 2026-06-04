@@ -6,14 +6,18 @@ import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextParentLink
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextParentLinkDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.AppStatistics
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BeaconRootedHierarchyItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextRoleOption
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextClipboardOperationUi
@@ -30,6 +34,8 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.SearchResultSort
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.createHierarchyDescendantOverflowMap
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.flattenHierarchyWithLevels
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconRepository
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconWithRelations
 import com.romankozak.forwardappmobile.ui.dialogs.UiContextMarker
 import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.CoroutineScope
@@ -58,6 +64,9 @@ class ProjectHierarchyScreenStateUseCase
         private val structurePresetDao: StructurePresetDao,
         private val contextMarkerHandler: ContextMarkerHandler,
         private val recentItemsRepository: RecentItemsRepository,
+        private val mainBeaconRepository: MainBeaconRepository,
+        private val contextParentLinkDao: ContextParentLinkDao,
+        private val beaconRootedHierarchyBuilder: BeaconRootedHierarchyBuilder,
     ) {
         data class NavigationSnapshot(
             val canGoBack: Boolean = false,
@@ -98,6 +107,22 @@ class ProjectHierarchyScreenStateUseCase
                         scope = scope,
                         filterStates = planningUseCase.filterStateFlow,
                     )
+            val mainBeaconDetailsFlow =
+                mainBeaconRepository
+                    .observeMainBeaconDetails()
+                    .stateIn(scope, SharingStarted.WhileSubscribed(5_000), emptyList())
+            val mainBeaconGroupsFlow =
+                mainBeaconRepository
+                    .observeGroups()
+                    .stateIn(scope, SharingStarted.WhileSubscribed(5_000), emptyList())
+            val contextParentLinksFlow =
+                contextParentLinkDao
+                    .observeActiveLinks()
+                    .stateIn(scope, SharingStarted.WhileSubscribed(5_000), emptyList())
+            val beaconHierarchyInputsFlow =
+                combine(mainBeaconDetailsFlow, mainBeaconGroupsFlow, contextParentLinksFlow) { beacons, groups, parentLinks ->
+                    BeaconHierarchyInputs(beacons = beacons, groups = groups, parentLinks = parentLinks)
+                }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), BeaconHierarchyInputs())
 
             scope.launch {
                 hierarchyState.collect { hierarchy ->
@@ -147,12 +172,20 @@ class ProjectHierarchyScreenStateUseCase
                     searchUseCase.subStateStack,
                     searchUseCase.searchQuery,
                     hierarchyState,
+                    beaconHierarchyInputsFlow,
                     searchUseCase.currentBreadcrumbs,
-                ) { subStateStack, searchQuery, hierarchy, breadcrumbs ->
+                ) { subStateStack, searchQuery, hierarchy, beaconHierarchyInputs, breadcrumbs ->
                     CoreUiState(
                         subStateStack = subStateStack,
                         searchQuery = searchQuery,
                         projectHierarchy = hierarchy,
+                        beaconRootedHierarchy =
+                            beaconRootedHierarchyBuilder.build(
+                                hierarchy = hierarchy,
+                                beacons = beaconHierarchyInputs.beacons,
+                                groups = beaconHierarchyInputs.groups,
+                                parentLinks = beaconHierarchyInputs.parentLinks,
+                            ),
                         currentBreadcrumbs = breadcrumbs,
                         searchResultFilter = SearchResultFilter.All,
                         searchResultSort = SearchResultSort.Relevance,
@@ -253,6 +286,7 @@ class ProjectHierarchyScreenStateUseCase
                         searchHistory = searchHistory,
                         projectHierarchy = coreState.projectHierarchy,
                         flattenedHierarchy = coreState.flattenedHierarchy,
+                        beaconRootedHierarchy = coreState.beaconRootedHierarchy,
                         longDescendantsMap = coreState.longDescendantsMap,
                         currentBreadcrumbs = coreState.currentBreadcrumbs,
                         planningSettings = planningSettings,
@@ -303,10 +337,17 @@ class ProjectHierarchyScreenStateUseCase
         val searchResults: StateFlow<List<SearchResult>>
             get() = searchResultsInternal
 
+private data class BeaconHierarchyInputs(
+    val beacons: List<MainBeaconWithRelations> = emptyList(),
+    val groups: List<MainBeaconGroup> = emptyList(),
+    val parentLinks: List<ContextParentLink> = emptyList(),
+)
+
         private data class CoreUiState(
             val subStateStack: List<ProjectHierarchyScreenSubState>,
             val searchQuery: TextFieldValue,
             val projectHierarchy: ContextHierarchyData,
+            val beaconRootedHierarchy: List<BeaconRootedHierarchyItem>,
             val currentBreadcrumbs: List<BreadcrumbItem>,
             val searchResultFilter: SearchResultFilter,
             val searchResultSort: SearchResultSort,
@@ -330,12 +371,14 @@ class ProjectHierarchyScreenStateUseCase
             val rolesByCode = linkedMapOf<String, ContextRoleOption>()
 
             ContextRoleRegistry.getReservedBaseRoleDefinitions().forEach { definition ->
+                if (definition.code == ContextRoleRegistry.ROLE_MAIN_BEACON) return@forEach
                 rolesByCode[definition.code] = ContextRoleOption(code = definition.code, label = definition.label)
             }
 
             presets.forEach { preset ->
                 val code = preset.code.trim()
                 if (code.isEmpty()) return@forEach
+                if (code == ContextRoleRegistry.ROLE_MAIN_BEACON) return@forEach
                 val label = preset.label.trim().ifBlank { code }
                 rolesByCode[code] = ContextRoleOption(code = code, label = label)
             }

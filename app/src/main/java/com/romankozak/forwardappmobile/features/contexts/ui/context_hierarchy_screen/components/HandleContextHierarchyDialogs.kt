@@ -61,6 +61,9 @@ fun HandleProjectHierarchyDialogs(
                 onCopyContextLinkRequest = { project -> onEvent(ContextHierarchyScreenEvent.CopyContextLink(project)) },
                 onCutContextLinkRequest = { project -> onEvent(ContextHierarchyScreenEvent.CutContextLink(project)) },
                 onPasteContextLinkRequest = { project -> onEvent(ContextHierarchyScreenEvent.PasteContextLink(project)) },
+                onAddContextAppearanceRequest = { project ->
+                    onEvent(ContextHierarchyScreenEvent.AddContextAppearanceHere(project))
+                },
                 onAddNoteDocumentRequest = { project ->
                     onEvent(ContextHierarchyScreenEvent.AddNoteDocumentToContextRequest(project))
                 },

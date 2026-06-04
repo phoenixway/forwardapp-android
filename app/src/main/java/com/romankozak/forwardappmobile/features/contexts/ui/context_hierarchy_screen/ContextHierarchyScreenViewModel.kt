@@ -30,8 +30,12 @@ import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BeaconRootedHierarchyNode
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BeaconRootedHierarchyItem
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbTarget
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextClipboardOperationUi
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
@@ -49,6 +53,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.UtilityDialogRequest
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.buildPathToProject
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.flattenHierarchy
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
@@ -91,6 +96,7 @@ class ContextHierarchyScreenViewModel
         private val themingUseCase: ThemingUseCase,
         private val settingsUseCase: SettingsUseCase,
         private val projectHierarchyScreenStateUseCase: ProjectHierarchyScreenStateUseCase,
+        private val mainBeaconRepository: MainBeaconRepository,
     ) : ViewModel() {
         companion object {
             private const val PROJECT_BEING_MOVED_ID_KEY = "projectBeingMovedId"
@@ -439,6 +445,10 @@ class ContextHierarchyScreenViewModel
                         onProjectClicked(event.projectId)
                     }
                 }
+                is ContextHierarchyScreenEvent.BeaconRootClick -> {
+                    searchUseCase.currentBreadcrumbs.value = beaconBreadcrumbsFor(event.nodeId)
+                    searchUseCase.pushSubState(ProjectHierarchyScreenSubState.BeaconFocused(event.nodeId))
+                }
                 is ContextHierarchyScreenEvent.StartContextSelection -> {
                     selectedContextIds.update { current -> current + event.projectId }
                 }
@@ -612,7 +622,11 @@ class ContextHierarchyScreenViewModel
                 }
                 is ContextHierarchyScreenEvent.FocusContext -> {
                     viewModelScope.launch {
-                        searchUseCase.navigateToProject(event.project.id, uiState.value.projectHierarchy)
+                        searchUseCase.navigateToProject(
+                            projectId = event.project.id,
+                            currentHierarchy = uiState.value.projectHierarchy,
+                            breadcrumbPrefix = currentBeaconBreadcrumbPrefix(),
+                        )
                         searchUseCase.enterProjectFocus(event.project.id)
                         dialogUseCase.dismissDialog()
                     }
@@ -731,6 +745,88 @@ class ContextHierarchyScreenViewModel
                                 )
                             }
                         }
+                    }
+                }
+                is ContextHierarchyScreenEvent.PasteContextLinksIntoBeacon -> {
+                    viewModelScope.launch {
+                        val payload = contextClipboard.value
+                        if (payload == null) {
+                            _uiEventChannel.send(ProjectUiEvent.ShowToast("Буфер порожній"))
+                            return@launch
+                        }
+
+                        val beaconNode =
+                            uiState.value.beaconRootedHierarchy
+                                .firstOrNull { it.node.id == event.beaconNodeId }
+                                ?.node
+                        if (beaconNode !is BeaconRootedHierarchyNode.Beacon) {
+                            _uiEventChannel.send(ProjectUiEvent.ShowToast("Вставка доступна тільки в головний орієнтир"))
+                            return@launch
+                        }
+
+                        val allProjects = _allProjectsFlat.value
+                        val sources = resolveClipboardContexts(allProjects, payload)
+                        if (sources.isEmpty()) {
+                            contextClipboard.value = null
+                            _uiEventChannel.send(ProjectUiEvent.ShowToast("Контекст у буфері більше не існує"))
+                            return@launch
+                        }
+
+                        val addedCount =
+                            withContext(ioDispatcher) {
+                                mainBeaconRepository.addRelatedContexts(
+                                    beaconId = beaconNode.id,
+                                    contextIds = sources.mapTo(linkedSetOf()) { it.id },
+                                )
+                            }
+                        if (payload.operation == ContextClipboardOperation.CUT) {
+                            contextClipboard.value = null
+                        }
+                        _uiEventChannel.send(
+                            ProjectUiEvent.ShowToast(
+                                if (addedCount == 0) {
+                                    "Нові зв'язки з головним орієнтиром не додано"
+                                } else {
+                                    "Додано контексти до головного орієнтира: $addedCount"
+                                },
+                            ),
+                        )
+                    }
+                }
+                is ContextHierarchyScreenEvent.AddContextAppearanceHere -> {
+                    viewModelScope.launch {
+                        val payload = contextClipboard.value
+                        if (payload == null) {
+                            dialogUseCase.dismissDialog()
+                            _uiEventChannel.send(ProjectUiEvent.ShowToast("Буфер порожній"))
+                            return@launch
+                        }
+
+                        val allProjects = _allProjectsFlat.value
+                        val sources = resolveClipboardContexts(allProjects, payload)
+                        if (sources.isEmpty()) {
+                            contextClipboard.value = null
+                            dialogUseCase.dismissDialog()
+                            _uiEventChannel.send(ProjectUiEvent.ShowToast("Контекст у буфері більше не існує"))
+                            return@launch
+                        }
+
+                        val addedCount =
+                            contextActionsUseCase.addAdditionalParentLinks(
+                                parentContextId = event.parentProject.id,
+                                childContextIds = sources.mapTo(linkedSetOf()) { it.id },
+                                allProjects = allProjects,
+                            )
+                        dialogUseCase.dismissDialog()
+                        _uiEventChannel.send(
+                            ProjectUiEvent.ShowToast(
+                                if (addedCount == 0) {
+                                    "Нові появи не додано"
+                                } else {
+                                    "Додано появи контекстів: $addedCount"
+                                },
+                            ),
+                        )
                     }
                 }
                 is ContextHierarchyScreenEvent.CopySelectedContexts -> {
@@ -1144,6 +1240,55 @@ class ContextHierarchyScreenViewModel
             viewModelScope.launch {
                 contextRepository.getContextById(projectId)?.let { recentItemsRepository.logProjectAccess(it) }
                 navigationUseCase.onNavigateToProject(viewModelScope, projectId)
+            }
+        }
+
+        private fun currentBeaconBreadcrumbPrefix(): List<BreadcrumbItem> {
+            val existingBeaconPrefix =
+                uiState.value.currentBreadcrumbs
+                    .takeWhile { it.target == BreadcrumbTarget.BeaconRoot }
+            if (existingBeaconPrefix.isNotEmpty()) {
+                return existingBeaconPrefix
+            }
+
+            val beaconState = uiState.value.currentSubState as? ProjectHierarchyScreenSubState.BeaconFocused ?: return emptyList()
+            val rootNode =
+                uiState.value.beaconRootedHierarchy
+                    .firstOrNull { item -> item.node.id == beaconState.nodeId }
+                    ?.node
+                    ?: return emptyList()
+            return listOf(
+                BreadcrumbItem(
+                    id = rootNode.id,
+                    name = rootNode.title,
+                    level = 0,
+                    target = BreadcrumbTarget.BeaconRoot,
+                ),
+            )
+        }
+
+        private fun beaconBreadcrumbsFor(nodeId: String): List<BreadcrumbItem> {
+            val items = uiState.value.beaconRootedHierarchy
+            val nodeIndex = items.indexOfFirst { it.node.id == nodeId }
+            if (nodeIndex == -1) return emptyList()
+            val targetItem = items[nodeIndex]
+            val ancestors = ArrayDeque<BeaconRootedHierarchyItem>()
+            var expectedLevel = targetItem.level - 1
+            for (index in nodeIndex - 1 downTo 0) {
+                val item = items[index]
+                if (item.level == expectedLevel) {
+                    ancestors.addFirst(item)
+                    expectedLevel--
+                }
+                if (expectedLevel < 0) break
+            }
+            return (ancestors + targetItem).mapIndexed { index, item ->
+                BreadcrumbItem(
+                    id = item.node.id,
+                    name = item.node.title,
+                    level = index,
+                    target = BreadcrumbTarget.BeaconRoot,
+                )
             }
         }
 

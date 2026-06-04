@@ -10,6 +10,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfigur
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextInboxSortingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextKeyProblemsEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfileItem
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
@@ -24,6 +25,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.LifeManagementL
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconContextCrossRef
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroupMember
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
@@ -73,6 +76,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.C
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextInboxSortingSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextKeyProblemsSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextLogSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextParentLinkSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextRoleProfileItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextRoleProfileSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextStructureItemSnapshot
@@ -92,6 +96,8 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.Focu
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.LifeManagementLevelStatusSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconAttachmentCrossRefSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconContextCrossRefSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconGroupMemberSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconGroupSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconLevelStatusSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.RecentProjectEntrySnapshot
@@ -114,6 +120,30 @@ fun BacklogOrder.toSnapshot(): BacklogOrderSnapshot = BacklogOrderSnapshot(
 )
 fun BacklogOrderSnapshot.toEntity(): BacklogOrder =
     BacklogOrder(id, listId, itemId, order, orderVersion, updatedAt, isDeleted = isDeleted)
+
+fun ContextParentLink.toSnapshot(): ContextParentLinkSnapshot =
+    ContextParentLinkSnapshot(
+        parentContextId = parentContextId,
+        childContextId = childContextId,
+        order = order,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        syncedAt = syncedAt,
+        isDeleted = isDeleted,
+        version = version,
+    )
+
+fun ContextParentLinkSnapshot.toEntity(): ContextParentLink =
+    ContextParentLink(
+        parentContextId = parentContextId,
+        childContextId = childContextId,
+        order = order,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        syncedAt = syncedAt,
+        isDeleted = isDeleted,
+        version = version,
+    )
 
 fun DirectionItemEntity.toSnapshot(): DirectionItemSnapshot =
     DirectionItemSnapshot(
@@ -563,6 +593,32 @@ fun MainBeaconSnapshot.toEntity(): MainBeacon =
         updatedAt = updatedAt,
         createdAt = createdAt,
     )
+
+fun MainBeaconGroup.toSnapshot(): MainBeaconGroupSnapshot =
+    MainBeaconGroupSnapshot(
+        id = id,
+        title = title,
+        description = description,
+        order = order,
+        updatedAt = updatedAt,
+        createdAt = createdAt,
+    )
+
+fun MainBeaconGroupSnapshot.toEntity(): MainBeaconGroup =
+    MainBeaconGroup(
+        id = id,
+        title = title,
+        description = description,
+        order = order,
+        updatedAt = updatedAt,
+        createdAt = createdAt,
+    )
+
+fun MainBeaconGroupMember.toSnapshot(): MainBeaconGroupMemberSnapshot =
+    MainBeaconGroupMemberSnapshot(groupId = groupId, beaconId = beaconId, order = order)
+
+fun MainBeaconGroupMemberSnapshot.toEntity(): MainBeaconGroupMember =
+    MainBeaconGroupMember(groupId = groupId, beaconId = beaconId, order = order)
 
 fun MainBeaconContextCrossRef.toSnapshot(): MainBeaconContextCrossRefSnapshot =
     MainBeaconContextCrossRefSnapshot(beaconId = beaconId, contextId = contextId)

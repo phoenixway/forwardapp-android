@@ -23,6 +23,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.B
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.BacklogOrderSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextConfigurationSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextLogSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextParentLinkSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextInboxSortingSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextKeyProblemsSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextRoleProfileItemSnapshot
@@ -45,6 +46,8 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.Life
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.LifeSystemStateSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconAttachmentCrossRefSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconContextCrossRefSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconGroupMemberSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconGroupSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconLevelStatusSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.RecentProjectEntrySnapshot
@@ -63,6 +66,7 @@ data class SnapshotBundle(
     val exportedAt: Long = System.currentTimeMillis(),
 
     @SerializedName("contexts") val contexts: List<ContextSnapshot> = emptyList(),
+    @SerializedName("contextParentLinks") val contextParentLinks: List<ContextParentLinkSnapshot> = emptyList(),
     @SerializedName("goals") val goals: List<GoalSnapshot> = emptyList(),
     @SerializedName("backlogItems") val backlogItems: List<BacklogItemSnapshot> = emptyList(),
     @SerializedName("backlogOrders") val backlogOrders: List<BacklogOrderSnapshot> = emptyList(),
@@ -96,6 +100,8 @@ data class SnapshotBundle(
     @SerializedName("aiEvents") val aiEvents: List<AiEventSnapshot> = emptyList(),
     @SerializedName("aiInsights") val aiInsights: List<AiInsightSnapshot> = emptyList(),
     @SerializedName("mainBeacons") val mainBeacons: List<MainBeaconSnapshot> = emptyList(),
+    @SerializedName("mainBeaconGroups") val mainBeaconGroups: List<MainBeaconGroupSnapshot> = emptyList(),
+    @SerializedName("mainBeaconGroupMembers") val mainBeaconGroupMembers: List<MainBeaconGroupMemberSnapshot> = emptyList(),
     @SerializedName("mainBeaconContextCrossRefs") val mainBeaconContextCrossRefs: List<MainBeaconContextCrossRefSnapshot> = emptyList(),
     @SerializedName("mainBeaconAttachmentCrossRefs") val mainBeaconAttachmentCrossRefs: List<MainBeaconAttachmentCrossRefSnapshot> = emptyList(),
     @SerializedName("mainBeaconLevelStatuses") val mainBeaconLevelStatuses: List<MainBeaconLevelStatusSnapshot> = emptyList(),

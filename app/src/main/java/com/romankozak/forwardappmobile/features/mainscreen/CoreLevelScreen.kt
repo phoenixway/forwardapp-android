@@ -13,16 +13,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.DragIndicator
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
@@ -41,6 +38,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -49,7 +47,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,8 +57,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.buildAnnotatedString
@@ -84,6 +79,7 @@ import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconEditor
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconCardUi
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconCardLinkUi
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconLevelStatusSheet
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconGroupUi
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconMultiSelectDialog
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconSelectableItem
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentChooserScreen
@@ -101,8 +97,6 @@ import com.romankozak.forwardappmobile.ui.components.orderToken
 import java.net.URLEncoder
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import sh.calvin.reorderable.ReorderableItem
-import sh.calvin.reorderable.rememberReorderableLazyListState
 
 private const val ATTACHMENT_ID_PREVIEW_LENGTH = 8
 private const val PICKER_OPEN_DELAY_MILLIS = 160L
@@ -127,7 +121,6 @@ fun CoreLevelScreen(
     val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsState()
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsState()
     val scope = rememberCoroutineScope()
-    val hapticFeedback = LocalHapticFeedback.current
 
     var showAttachmentChooser by remember { mutableStateOf(false) }
     var activeLinkPickerTab by remember { mutableStateOf<LinkPickerTab?>(null) }
@@ -136,24 +129,19 @@ fun CoreLevelScreen(
     var showAddObsidianDialog by remember { mutableStateOf(false) }
     var isFabMenuExpanded by remember { mutableStateOf(false) }
     var editingBeacon by remember { mutableStateOf<MainBeaconEditorState?>(null) }
+    var editingGroup by remember { mutableStateOf<MainBeaconGroupUi?>(null) }
+    var isCreatingGroup by remember { mutableStateOf(false) }
     var showContextPicker by remember { mutableStateOf(false) }
     var showDocumentPicker by remember { mutableStateOf(false) }
+    var showGroupPicker by remember { mutableStateOf(false) }
     var beaconPendingDeleteId by remember { mutableStateOf<String?>(null) }
+    var groupPendingDeleteId by remember { mutableStateOf<String?>(null) }
     var editingLevelIndex by remember { mutableStateOf<Int?>(null) }
     var linkActionTarget by remember { mutableStateOf(MainBeaconLinkActionTarget.CORE_SCOPE) }
     val beaconListState = rememberLazyListState()
-    val internalBeacons = remember { mutableStateListOf<MainBeaconCardUi>() }
     val expandedBeaconIds = remember { mutableStateMapOf<String, Boolean>() }
-    val beaconReorderState =
-        rememberReorderableLazyListState(beaconListState) { from, to ->
-            internalBeacons.add(to.index, internalBeacons.removeAt(from.index))
-            viewModel.reorderBeacons(internalBeacons.map { it.id })
-            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-        }
 
     LaunchedEffect(uiState.beacons) {
-        internalBeacons.clear()
-        internalBeacons.addAll(uiState.beacons)
         val validIds = uiState.beacons.mapTo(mutableSetOf()) { it.id }
         expandedBeaconIds.keys.toList().forEach { beaconId ->
             if (beaconId !in validIds) expandedBeaconIds.remove(beaconId)
@@ -238,7 +226,13 @@ fun CoreLevelScreen(
                     openTarget(NavTarget.ContextDetail(contextId = option.target), true)
                 (option?.linkType == LinkType.URL || option?.linkType == LinkType.OBSIDIAN) &&
                     !option.target.isNullOrBlank() -> {
-                    val resolvedTarget = buildExternalTarget(option.linkType, option.target, option.vault, obsidianVaultName)
+                    val resolvedTarget =
+                        buildExternalTarget(
+                            option.linkType,
+                            option.target,
+                            option.vault,
+                            obsidianVaultName,
+                        )
                     runCatching {
                         context.startActivity(
                             Intent(Intent.ACTION_VIEW, Uri.parse(resolvedTarget)).apply {
@@ -272,6 +266,12 @@ fun CoreLevelScreen(
                 MainBeaconSelectableItem(id = option.id, label = option.name)
             }
         }
+    val allGroupOptions =
+        remember(uiState.groups) {
+            uiState.groups.map { group ->
+                MainBeaconSelectableItem(id = group.id, label = group.title)
+            }
+        }
     Scaffold(
         containerColor = Color.Transparent,
         floatingActionButton = {
@@ -295,6 +295,14 @@ fun CoreLevelScreen(
                             onClick = {
                                 isFabMenuExpanded = false
                                 editingBeacon = viewModel.buildEditorState(null)
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Нова група") },
+                            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
+                            onClick = {
+                                isFabMenuExpanded = false
+                                isCreatingGroup = true
                             },
                         )
                         DropdownMenuItem(
@@ -327,7 +335,7 @@ fun CoreLevelScreen(
                     )
                 }
                 else -> {
-                    if (uiState.beacons.isEmpty()) {
+                    if (uiState.beacons.isEmpty() && uiState.groups.isEmpty()) {
                         Column(
                             modifier =
                                 Modifier
@@ -360,36 +368,22 @@ fun CoreLevelScreen(
                             ),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            items(internalBeacons, key = { it.id }) { beacon ->
-                                ReorderableItem(beaconReorderState, key = beacon.id) {
-                                    val relatedContexts =
-                                        beacon.relatedContextIds.mapNotNull { relatedId ->
-                                            uiState.allProjects.firstOrNull { it.id == relatedId }?.let { contextItem ->
-                                                MainBeaconCardLinkUi(
-                                                    id = contextItem.id,
-                                                    title = contextItem.name,
-                                                )
-                                            }
-                                        }
-                                    val relatedDocuments =
-                                        beacon.relatedAttachmentIds.mapNotNull { relatedId ->
-                                            attachmentOptions.firstOrNull { it.id == relatedId }?.let { option ->
-                                                MainBeaconCardLinkUi(
-                                                    id = option.id,
-                                                    title = option.name,
-                                                )
-                                            }
-                                        }
-                                    MainBeaconCard(
-                                        title = beacon.title,
-                                        readinessStatus = beacon.readinessStatus,
-                                        highestCompletedLevel = beacon.highestCompletedLevel,
-                                        breakPointLevel = beacon.breakPointLevel,
-                                        blockReason = beacon.blockReason,
-                                        nextRequiredAction = beacon.nextRequiredAction,
+                            uiState.groups.forEach { group ->
+                                val groupBeacons = uiState.beacons.filter { group.id in it.groupIds }
+                                item(key = "group-${group.id}") {
+                                    MainBeaconGroupHeader(
+                                        title = group.title,
+                                        count = groupBeacons.size,
+                                        onEditClick = { editingGroup = group },
+                                    )
+                                }
+                                items(groupBeacons, key = { "${group.id}-${it.id}" }) { beacon ->
+                                    MainBeaconCardFromUi(
+                                        beacon = beacon,
+                                        allProjects = uiState.allProjects,
+                                        attachmentOptions = attachmentOptions,
+                                        connectionItems = connectionItems,
                                         isExpanded = expandedBeaconIds[beacon.id] == true,
-                                        relatedContexts = relatedContexts,
-                                        relatedDocuments = relatedDocuments,
                                         onToggleExpanded = {
                                             expandedBeaconIds[beacon.id] = expandedBeaconIds[beacon.id] != true
                                         },
@@ -397,46 +391,35 @@ fun CoreLevelScreen(
                                         onContextClick = { contextId ->
                                             openTarget(NavTarget.ContextDetail(contextId = contextId), true)
                                         },
-                                        onDocumentClick = { attachmentId ->
-                                            connectionItems
-                                                .firstOrNull { it.id == attachmentId }
-                                                ?.let(onConnectionClick)
-                                                ?: attachmentOptions
-                                                    .firstOrNull { it.id == attachmentId }
-                                                    ?.let { option ->
-                                                        onConnectionClick(
-                                                            ConnectionItemUi(
-                                                                id = option.id,
-                                                                title = option.name,
-                                                                type =
-                                                                    when {
-                                                                        option.linkType == LinkType.URL -> ConnectionType.URL
-                                                                        option.linkType == LinkType.OBSIDIAN ->
-                                                                            ConnectionType.OBSIDIAN_NOTE
-                                                                        option.attachmentType == "NOTE_DOCUMENT" ->
-                                                                            ConnectionType.NOTE_DOCUMENT
-                                                                        option.attachmentType == "MUSIC_NOTE" ->
-                                                                            ConnectionType.MUSIC_NOTE
-                                                                        option.attachmentType == "CHECKLIST" ->
-                                                                            ConnectionType.CHECKLIST
-                                                                        option.attachmentType == "SCRIPT" -> ConnectionType.SCRIPT
-                                                                        else -> ConnectionType.ATTACHMENT
-                                                                    },
-                                                                vault = option.vault,
-                                                            ),
-                                                        )
-                                                    }
+                                        onConnectionClick = onConnectionClick,
+                                    )
+                                }
+                            }
+
+                            val noGroupBeacons = uiState.beacons.filter { it.groupIds.isEmpty() }
+                            if (noGroupBeacons.isNotEmpty()) {
+                                item(key = "group-no-group") {
+                                    MainBeaconGroupHeader(
+                                        title = "No group",
+                                        count = noGroupBeacons.size,
+                                        onEditClick = null,
+                                    )
+                                }
+                                items(noGroupBeacons, key = { "no-group-${it.id}" }) { beacon ->
+                                    MainBeaconCardFromUi(
+                                        beacon = beacon,
+                                        allProjects = uiState.allProjects,
+                                        attachmentOptions = attachmentOptions,
+                                        connectionItems = connectionItems,
+                                        isExpanded = expandedBeaconIds[beacon.id] == true,
+                                        onToggleExpanded = {
+                                            expandedBeaconIds[beacon.id] = expandedBeaconIds[beacon.id] != true
                                         },
-                                        dragHandleModifier =
-                                            with(this@ReorderableItem) {
-                                                Modifier
-                                                    .clip(CircleShape)
-                                                    .longPressDraggableHandle(
-                                                        onDragStarted = {
-                                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                        },
-                                                    )
-                                            },
+                                        onEditClick = { editingBeacon = viewModel.buildEditorState(beacon.id) },
+                                        onContextClick = { contextId ->
+                                            openTarget(NavTarget.ContextDetail(contextId = contextId), true)
+                                        },
+                                        onConnectionClick = onConnectionClick,
                                     )
                                 }
                             }
@@ -478,12 +461,19 @@ fun CoreLevelScreen(
                         }
                     },
                 )
-            }
+        }
         MainBeaconEditorSheet(
             state = editor,
             connectionItems = editorConnectionItems,
+            groupItems =
+                editor.groupIds.mapNotNull { groupId ->
+                    uiState.groups.firstOrNull { it.id == groupId }?.let { group ->
+                        MainBeaconCardLinkUi(id = group.id, title = group.title)
+                    }
+                },
             onDismiss = { editingBeacon = null },
             onStateChange = { editingBeacon = it },
+            onEditGroups = { showGroupPicker = true },
             onConnectionClick = { item ->
                 if (item.type == ConnectionType.CONTEXT) {
                     openTarget(NavTarget.ContextDetail(contextId = item.id), true)
@@ -600,6 +590,44 @@ fun CoreLevelScreen(
         )
     }
 
+    if (showGroupPicker && editingBeacon != null) {
+        MainBeaconMultiSelectDialog(
+            title = "Groups",
+            options = allGroupOptions,
+            selectedIds = editingBeacon?.groupIds.orEmpty(),
+            onDismiss = { showGroupPicker = false },
+            onConfirm = { selected ->
+                editingBeacon = editingBeacon?.copy(groupIds = selected)
+                showGroupPicker = false
+            },
+        )
+    }
+
+    if (isCreatingGroup || editingGroup != null) {
+        MainBeaconGroupEditorDialog(
+            group = editingGroup,
+            onDismiss = {
+                isCreatingGroup = false
+                editingGroup = null
+            },
+            onSave = { title, description ->
+                editingGroup?.let { group ->
+                    viewModel.updateBeaconGroup(group.id, title, description)
+                } ?: viewModel.createBeaconGroup(title, description)
+                isCreatingGroup = false
+                editingGroup = null
+            },
+            onDelete =
+                editingGroup?.let { group ->
+                    {
+                        groupPendingDeleteId = group.id
+                        editingGroup = null
+                        isCreatingGroup = false
+                    }
+                },
+        )
+    }
+
     beaconPendingDeleteId?.let { beaconId ->
         AlertDialog(
             onDismissRequest = { beaconPendingDeleteId = null },
@@ -618,6 +646,31 @@ fun CoreLevelScreen(
             },
             dismissButton = {
                 TextButton(onClick = { beaconPendingDeleteId = null }) {
+                    Text("Скасувати")
+                }
+            },
+        )
+    }
+
+    groupPendingDeleteId?.let { groupId ->
+        AlertDialog(
+            onDismissRequest = { groupPendingDeleteId = null },
+            title = { Text("Видалити групу?") },
+            text = { Text("Орієнтири залишаться без цієї групи.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteBeaconGroup(groupId)
+                        editingGroup = null
+                        isCreatingGroup = false
+                        groupPendingDeleteId = null
+                    },
+                ) {
+                    Text("Видалити")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { groupPendingDeleteId = null }) {
                     Text("Скасувати")
                 }
             },
@@ -830,6 +883,175 @@ fun CoreLevelScreen(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
+private fun MainBeaconGroupHeader(
+    title: String,
+    count: Int,
+    onEditClick: (() -> Unit)?,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = RoundedCornerShape(14.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer,
+            ) {
+                Text(
+                    text = count.toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                )
+            }
+            onEditClick?.let {
+                IconButton(onClick = it) {
+                    Icon(Icons.Outlined.Edit, contentDescription = "Edit group")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MainBeaconGroupEditorDialog(
+    group: MainBeaconGroupUi?,
+    onDismiss: () -> Unit,
+    onSave: (title: String, description: String?) -> Unit,
+    onDelete: (() -> Unit)?,
+) {
+    var title by remember(group) { mutableStateOf(group?.title.orEmpty()) }
+    var description by remember(group) { mutableStateOf(group?.description.orEmpty()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (group == null) "Нова група" else "Група") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title") },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description") },
+                    minLines = 2,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = title.trim().isNotBlank(),
+                onClick = { onSave(title, description.ifBlank { null }) },
+            ) {
+                Text("Зберегти")
+            }
+        },
+        dismissButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                onDelete?.let {
+                    TextButton(onClick = it) {
+                        Text("Видалити")
+                    }
+                }
+                TextButton(onClick = onDismiss) {
+                    Text("Скасувати")
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun MainBeaconCardFromUi(
+    beacon: MainBeaconCardUi,
+    allProjects: List<com.romankozak.forwardappmobile.core.data.models.entities.Context>,
+    attachmentOptions: List<com.romankozak.forwardappmobile.features.mainscreen.scopelinks.ScopeAttachmentOption>,
+    connectionItems: List<ConnectionItemUi>,
+    isExpanded: Boolean,
+    onToggleExpanded: () -> Unit,
+    onEditClick: () -> Unit,
+    onContextClick: (String) -> Unit,
+    onConnectionClick: (ConnectionItemUi) -> Unit,
+) {
+    val relatedContexts =
+        beacon.relatedContextIds.mapNotNull { relatedId ->
+            allProjects.firstOrNull { it.id == relatedId }?.let { contextItem ->
+                MainBeaconCardLinkUi(
+                    id = contextItem.id,
+                    title = contextItem.name,
+                )
+            }
+        }
+    val relatedDocuments =
+        beacon.relatedAttachmentIds.mapNotNull { relatedId ->
+            attachmentOptions.firstOrNull { it.id == relatedId }?.let { option ->
+                MainBeaconCardLinkUi(
+                    id = option.id,
+                    title = option.name,
+                )
+            }
+        }
+
+    MainBeaconCard(
+        title = beacon.title,
+        readinessStatus = beacon.readinessStatus,
+        highestCompletedLevel = beacon.highestCompletedLevel,
+        breakPointLevel = beacon.breakPointLevel,
+        blockReason = beacon.blockReason,
+        nextRequiredAction = beacon.nextRequiredAction,
+        isExpanded = isExpanded,
+        relatedContexts = relatedContexts,
+        relatedDocuments = relatedDocuments,
+        onToggleExpanded = onToggleExpanded,
+        onEditClick = onEditClick,
+        onContextClick = onContextClick,
+        onDocumentClick = { attachmentId ->
+            connectionItems
+                .firstOrNull { it.id == attachmentId }
+                ?.let(onConnectionClick)
+                ?: attachmentOptions
+                    .firstOrNull { it.id == attachmentId }
+                    ?.let { option ->
+                        onConnectionClick(
+                            ConnectionItemUi(
+                                id = option.id,
+                                title = option.name,
+                                type =
+                                    when {
+                                        option.linkType == LinkType.URL -> ConnectionType.URL
+                                        option.linkType == LinkType.OBSIDIAN -> ConnectionType.OBSIDIAN_NOTE
+                                        option.attachmentType == "NOTE_DOCUMENT" -> ConnectionType.NOTE_DOCUMENT
+                                        option.attachmentType == "MUSIC_NOTE" -> ConnectionType.MUSIC_NOTE
+                                        option.attachmentType == "CHECKLIST" -> ConnectionType.CHECKLIST
+                                        option.attachmentType == "SCRIPT" -> ConnectionType.SCRIPT
+                                        else -> ConnectionType.ATTACHMENT
+                                    },
+                                vault = option.vault,
+                            ),
+                        )
+                    }
+        },
+    )
+}
+
+@Composable
 private fun MainBeaconCard(
     title: String,
     readinessStatus: MainBeaconReadinessStatus,
@@ -844,7 +1066,6 @@ private fun MainBeaconCard(
     onEditClick: () -> Unit,
     onContextClick: (String) -> Unit,
     onDocumentClick: (String) -> Unit,
-    dragHandleModifier: Modifier = Modifier,
 ) {
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
@@ -877,7 +1098,6 @@ private fun MainBeaconCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    DragHandle(modifier = dragHandleModifier)
                     Row(
                         modifier =
                             Modifier
@@ -1014,23 +1234,6 @@ private fun MainBeaconLinksSection(
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun DragHandle(modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier.size(32.dp),
-        shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = Icons.Outlined.DragIndicator,
-                contentDescription = "Перетягнути картку",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
-            )
         }
     }
 }

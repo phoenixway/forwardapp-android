@@ -4,10 +4,12 @@ import android.net.Uri
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextParentLink
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextParentLinkDao
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.displayParentId
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.findDescendantsForDeletion
@@ -22,6 +24,7 @@ class ContextActionsUseCase
     @Inject
     constructor(
         private val contextRepository: ContextRepository,
+        private val contextParentLinkDao: ContextParentLinkDao,
         private val syncRepository: SyncRepository,
         private val settingsRepository: SettingsRepository,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
@@ -169,6 +172,54 @@ class ContextActionsUseCase
             }
         }
 
+        suspend fun addAdditionalParentLinks(
+            parentContextId: String,
+            childContextIds: Set<String>,
+            allProjects: List<Context>,
+        ): Int = withContext(ioDispatcher) {
+            if (childContextIds.isEmpty()) return@withContext 0
+            val contextsById = allProjects.associateBy { it.id }
+            if (parentContextId !in contextsById) return@withContext 0
+
+            val activeLinks = contextParentLinkDao.getActiveLinks()
+            val existingPairs = activeLinks.mapTo(hashSetOf()) { it.parentContextId to it.childContextId }
+            var nextOrder = contextParentLinkDao.getMaxOrderForParent(parentContextId) + 1L
+            val acceptedLinks = mutableListOf<ContextParentLink>()
+
+            childContextIds.forEach { childContextId ->
+                if (childContextId !in contextsById) return@forEach
+                if (childContextId == parentContextId) return@forEach
+                if (contextsById[childContextId]?.parentId == parentContextId) return@forEach
+                if ((parentContextId to childContextId) in existingPairs) return@forEach
+
+                val candidateLinks =
+                    activeLinks + acceptedLinks
+                if (wouldCreateParentLinkCycle(
+                        parentContextId = parentContextId,
+                        childContextId = childContextId,
+                        allProjects = allProjects,
+                        parentLinks = candidateLinks,
+                    )
+                ) {
+                    return@forEach
+                }
+
+                acceptedLinks +=
+                    ContextParentLink(
+                        parentContextId = parentContextId,
+                        childContextId = childContextId,
+                        order = nextOrder++,
+                        createdAt = System.currentTimeMillis(),
+                    )
+                existingPairs += parentContextId to childContextId
+            }
+
+            if (acceptedLinks.isNotEmpty()) {
+                contextParentLinkDao.insertAll(acceptedLinks)
+            }
+            acceptedLinks.size
+        }
+
         suspend fun exportToFile() = withContext(ioDispatcher) { syncRepository.exportFullBackupToFile() }
 
         suspend fun exportToFileV2() = withContext(ioDispatcher) { syncRepository.exportFullBackupToFileV2() }
@@ -197,4 +248,36 @@ class ContextActionsUseCase
 
         suspend fun onBottomNavExpandedChange(expanded: Boolean) =
             withContext(ioDispatcher) { settingsRepository.saveBottomNavExpanded(expanded) }
+
+        private fun wouldCreateParentLinkCycle(
+            parentContextId: String,
+            childContextId: String,
+            allProjects: List<Context>,
+            parentLinks: List<ContextParentLink>,
+        ): Boolean {
+            val childrenByParentId = mutableMapOf<String, MutableList<String>>()
+            allProjects.forEach { context ->
+                context.parentId?.let { parentId ->
+                    childrenByParentId.getOrPut(parentId) { mutableListOf() } += context.id
+                }
+            }
+            parentLinks
+                .asSequence()
+                .filterNot { it.isDeleted }
+                .filter { it.parentContextId != parentContextId || it.childContextId != childContextId }
+                .forEach { link ->
+                    childrenByParentId.getOrPut(link.parentContextId) { mutableListOf() } += link.childContextId
+                }
+
+            val pending = ArrayDeque<String>()
+            val visited = mutableSetOf<String>()
+            pending += childContextId
+            while (pending.isNotEmpty()) {
+                val currentId = pending.removeFirst()
+                if (!visited.add(currentId)) continue
+                if (currentId == parentContextId) return true
+                childrenByParentId[currentId].orEmpty().forEach(pending::add)
+            }
+            return false
+        }
     }

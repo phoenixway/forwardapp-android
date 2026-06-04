@@ -10,6 +10,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconContextCrossRef
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroupMember
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
 import kotlinx.coroutines.flow.Flow
 
@@ -18,6 +20,7 @@ data class MainBeaconWithRelations(
     val relatedContexts: List<Context>,
     val relatedAttachments: List<AttachmentEntity>,
     val levelStatuses: List<MainBeaconLevelStatus>,
+    val groupIds: List<String>,
 )
 
 @Dao
@@ -27,6 +30,27 @@ interface MainBeaconDao {
 
     @Query("SELECT * FROM main_beacons ORDER BY beacon_order ASC, updatedAt DESC, createdAt DESC")
     suspend fun getAllBeaconsSync(): List<MainBeacon>
+
+    @Query("SELECT * FROM main_beacon_groups ORDER BY group_order ASC, title COLLATE NOCASE ASC")
+    fun observeGroups(): Flow<List<MainBeaconGroup>>
+
+    @Query("SELECT * FROM main_beacon_groups ORDER BY group_order ASC, title COLLATE NOCASE ASC")
+    suspend fun getAllGroupsSync(): List<MainBeaconGroup>
+
+    @Query("SELECT * FROM main_beacon_group_members ORDER BY group_id ASC, member_order ASC")
+    suspend fun getAllGroupMembersSync(): List<MainBeaconGroupMember>
+
+    @Query("SELECT * FROM main_beacon_group_members ORDER BY group_id ASC, member_order ASC")
+    fun observeGroupMembers(): Flow<List<MainBeaconGroupMember>>
+
+    @Query("SELECT * FROM main_beacon_context_cross_ref")
+    fun observeContextCrossRefs(): Flow<List<MainBeaconContextCrossRef>>
+
+    @Query("SELECT * FROM main_beacon_attachment_cross_ref")
+    fun observeAttachmentCrossRefs(): Flow<List<MainBeaconAttachmentCrossRef>>
+
+    @Query("SELECT group_id FROM main_beacon_group_members WHERE beacon_id = :beaconId ORDER BY member_order ASC")
+    suspend fun getGroupIdsForBeacon(beaconId: String): List<String>
 
     @Query("SELECT * FROM main_beacon_context_cross_ref")
     suspend fun getAllContextCrossRefsSync(): List<MainBeaconContextCrossRef>
@@ -43,17 +67,41 @@ interface MainBeaconDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBeacons(beacons: List<MainBeacon>)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertGroup(group: MainBeaconGroup)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertGroups(groups: List<MainBeaconGroup>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertGroupMembers(members: List<MainBeaconGroupMember>)
+
     @Update
     suspend fun updateBeacon(beacon: MainBeacon)
+
+    @Update
+    suspend fun updateGroup(group: MainBeaconGroup)
 
     @Query("SELECT COALESCE(MAX(beacon_order), -1) FROM main_beacons")
     suspend fun getMaxOrder(): Long
 
+    @Query("SELECT COALESCE(MAX(group_order), -1) FROM main_beacon_groups")
+    suspend fun getMaxGroupOrder(): Long
+
     @Query("UPDATE main_beacons SET beacon_order = :order WHERE id = :beaconId")
     suspend fun updateBeaconOrder(beaconId: String, order: Long)
 
+    @Query("UPDATE main_beacon_groups SET group_order = :order WHERE id = :groupId")
+    suspend fun updateGroupOrder(groupId: String, order: Long)
+
     @Query("DELETE FROM main_beacons WHERE id = :beaconId")
     suspend fun deleteBeacon(beaconId: String)
+
+    @Query("DELETE FROM main_beacon_groups WHERE id = :groupId")
+    suspend fun deleteGroup(groupId: String)
+
+    @Query("DELETE FROM main_beacon_group_members WHERE beacon_id = :beaconId")
+    suspend fun deleteGroupMembersForBeacon(beaconId: String)
 
     @Query(
         """

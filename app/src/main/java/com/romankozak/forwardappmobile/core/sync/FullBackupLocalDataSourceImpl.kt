@@ -35,6 +35,7 @@ class FullBackupLocalDataSourceImpl
         private val db: AppDatabase,
         val settingsRepository: SettingsRepository,
         private val contextDao: ContextDao,
+        private val contextParentLinkDao: ContextParentLinkDao,
         private val goalDao: GoalDao,
         private val listItemDao: ListItemDao,
         private val noteDocumentDao: NoteDocumentDao,
@@ -85,6 +86,7 @@ class FullBackupLocalDataSourceImpl
                 exportedAt = System.currentTimeMillis(),
                 // Core & Structure
                 contexts = contextDao.getAllRaw().map { it.toSnapshot() },
+                contextParentLinks = contextParentLinkDao.getAllRaw().map { it.toSnapshot() },
                 goals = goalDao.getAllRaw().map { it.toSnapshot() },
                 backlogItems = backlogItemDao.getAllRaw().map { it.toSnapshot() },
                 backlogOrders = backlogOrderDao.getAllRaw().map { it.toSnapshot() },
@@ -115,6 +117,8 @@ class FullBackupLocalDataSourceImpl
                 aiInsights = aiInsightDao.getAllSync().map { it.toSnapshot() },
                 aiEvents = aiEventDao.getAllSync().map { it.toSnapshot() },
                 mainBeacons = mainBeaconDao.getAllBeaconsSync().map { it.toSnapshot() },
+                mainBeaconGroups = mainBeaconDao.getAllGroupsSync().map { it.toSnapshot() },
+                mainBeaconGroupMembers = mainBeaconDao.getAllGroupMembersSync().map { it.toSnapshot() },
                 mainBeaconContextCrossRefs = mainBeaconDao.getAllContextCrossRefsSync().map { it.toSnapshot() },
                 mainBeaconAttachmentCrossRefs = mainBeaconDao.getAllAttachmentCrossRefsSync().map { it.toSnapshot() },
                 mainBeaconLevelStatuses = mainBeaconDao.getAllLevelStatusesSync().map { it.toSnapshot() },
@@ -159,6 +163,9 @@ class FullBackupLocalDataSourceImpl
 
             Log.d("SyncV2", "Inserting Contexts: ${bundle.contexts.size}")
             contextDao.insertAll(bundle.contexts.map { it.toEntity() })
+
+            Log.d("SyncV2", "Inserting ContextParentLinks: ${bundle.contextParentLinks.size}")
+            contextParentLinkDao.insertAll(bundle.contextParentLinks.map { it.toEntity() })
 
             Log.d("SyncV2", "Inserting DirectionItems: ${bundle.directionItems.size}")
             directionDao.insertAll(bundle.directionItems.map { it.toEntity() })
@@ -223,6 +230,9 @@ class FullBackupLocalDataSourceImpl
 
             Log.d("SyncV2", "Inserting AiEvents: ${bundle.aiEvents.size}")
             aiEventDao.insertAll(bundle.aiEvents.map { it.toEntity() })
+
+            Log.d("SyncV2", "Inserting MainBeaconGroups: ${bundle.mainBeaconGroups.size}")
+            mainBeaconDao.insertGroups(bundle.mainBeaconGroups.map { it.toEntity() })
 
             Log.d("SyncV2", "Inserting MainBeacons: ${bundle.mainBeacons.size}")
             mainBeaconDao.insertBeacons(bundle.mainBeacons.map { it.toEntity() })
@@ -361,6 +371,9 @@ class FullBackupLocalDataSourceImpl
 
             Log.d("SyncV2", "Inserting MainBeaconContextCrossRefs: ${bundle.mainBeaconContextCrossRefs.size}")
             mainBeaconDao.insertContextCrossRefs(bundle.mainBeaconContextCrossRefs.map { it.toEntity() })
+
+            Log.d("SyncV2", "Inserting MainBeaconGroupMembers: ${bundle.mainBeaconGroupMembers.size}")
+            mainBeaconDao.insertGroupMembers(bundle.mainBeaconGroupMembers.map { it.toEntity() })
 
             Log.d("SyncV2", "Inserting MainBeaconAttachmentCrossRefs: ${bundle.mainBeaconAttachmentCrossRefs.size}")
             mainBeaconDao.insertAttachmentCrossRefs(bundle.mainBeaconAttachmentCrossRefs.map { it.toEntity() })

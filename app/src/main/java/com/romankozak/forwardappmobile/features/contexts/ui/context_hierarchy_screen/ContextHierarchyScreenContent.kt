@@ -75,7 +75,9 @@ fun ProjectHierarchyScreenContent(
     val isFocusMode =
         rememberHierarchyFocusMode(
             breadcrumbs = uiState.currentBreadcrumbs,
-            hasFocusedProject = currentSubState is ProjectHierarchyScreenSubState.ProjectFocused,
+            hasFocusedProject =
+                currentSubState is ProjectHierarchyScreenSubState.ProjectFocused ||
+                    currentSubState is ProjectHierarchyScreenSubState.BeaconFocused,
         )
 
     Column(
@@ -183,11 +185,21 @@ fun ProjectHierarchyScreenContent(
                     modifier = Modifier.weight(1f),
                     hierarchy = uiState.projectHierarchy,
                     flattenedHierarchy = uiState.flattenedHierarchy,
+                    beaconRootedHierarchy = uiState.beaconRootedHierarchy,
                     breadcrumbs = uiState.currentBreadcrumbs,
                     focusedProjectId =
                         if (isFocusMode) {
                             when (currentSubState) {
                                 is ProjectHierarchyScreenSubState.ProjectFocused -> currentSubState.projectId
+                                else -> null
+                            }
+                        } else {
+                            null
+                        },
+                    focusedBeaconNodeId =
+                        if (isFocusMode) {
+                            when (currentSubState) {
+                                is ProjectHierarchyScreenSubState.BeaconFocused -> currentSubState.nodeId
                                 else -> null
                             }
                         } else {

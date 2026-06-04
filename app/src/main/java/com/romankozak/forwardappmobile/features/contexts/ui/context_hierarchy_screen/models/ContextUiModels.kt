@@ -12,7 +12,13 @@ data class BreadcrumbItem(
     val id: String,
     val name: String,
     val level: Int,
+    val target: BreadcrumbTarget = BreadcrumbTarget.Context,
 )
+
+enum class BreadcrumbTarget {
+    Context,
+    BeaconRoot,
+}
 
 data class HierarchyDisplaySettings(
     val maxCollapsibleLevels: Int = 3,

@@ -86,6 +86,65 @@ data class MainBeacon(
 )
 
 @Entity(
+    tableName = "main_beacon_groups",
+    indices = [
+        Index(value = ["group_order"]),
+    ],
+)
+data class MainBeaconGroup(
+    @PrimaryKey
+    @SerializedName("id")
+    val id: String = UUID.randomUUID().toString(),
+    @SerializedName("title")
+    val title: String,
+    @SerializedName("description")
+    val description: String? = null,
+    @ColumnInfo(name = "group_order", defaultValue = "0")
+    @SerializedName("order")
+    val order: Long = 0L,
+    @ColumnInfo(name = "updatedAt")
+    @SerializedName("updatedAt")
+    val updatedAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(name = "createdAt")
+    @SerializedName("createdAt")
+    val createdAt: Long = System.currentTimeMillis(),
+)
+
+@Entity(
+    tableName = "main_beacon_group_members",
+    primaryKeys = ["group_id", "beacon_id"],
+    foreignKeys = [
+        ForeignKey(
+            entity = MainBeaconGroup::class,
+            parentColumns = ["id"],
+            childColumns = ["group_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+        ForeignKey(
+            entity = MainBeacon::class,
+            parentColumns = ["id"],
+            childColumns = ["beacon_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [
+        Index(value = ["beacon_id"]),
+        Index(value = ["group_id", "member_order"]),
+    ],
+)
+data class MainBeaconGroupMember(
+    @ColumnInfo(name = "group_id")
+    @SerializedName("groupId")
+    val groupId: String,
+    @ColumnInfo(name = "beacon_id")
+    @SerializedName("beaconId")
+    val beaconId: String,
+    @ColumnInfo(name = "member_order", defaultValue = "0")
+    @SerializedName("order")
+    val order: Long = 0L,
+)
+
+@Entity(
     tableName = "main_beacon_context_cross_ref",
     primaryKeys = ["beacon_id", "context_id"],
     foreignKeys = [

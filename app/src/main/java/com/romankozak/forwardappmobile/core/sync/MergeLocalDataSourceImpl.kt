@@ -35,6 +35,7 @@ class MergeLocalDataSourceImpl
     constructor(
         private val db: AppDatabase,
         private val contextDao: ContextDao,
+        private val contextParentLinkDao: ContextParentLinkDao,
         private val goalDao: GoalDao,
         private val listItemDao: ListItemDao,
         private val attachmentDao: AttachmentDao,
@@ -173,6 +174,7 @@ class MergeLocalDataSourceImpl
 
             db.withTransaction {
                 contextDao.insertAll(bundle.contexts.map { it.toEntity() })
+                contextParentLinkDao.insertAll(bundle.contextParentLinks.map { it.toEntity() })
                 directionDao.insertAll(bundle.directionItems.map { it.toEntity() })
                 goalDao.insertAll(bundle.goals.map { it.toEntity() })
                 noteDocumentDao.insertAllDocuments(bundle.documents.map { it.toEntity() })
@@ -219,6 +221,7 @@ class MergeLocalDataSourceImpl
                 tacticalMissionDao.insertMissionAttachments(bundle.tacticalMissionAttachments.map { it.toEntity() })
                 aiEventDao.insertAll(bundle.aiEvents.map { it.toEntity() })
                 aiInsightDao.upsertAll(bundle.aiInsights.map { it.toEntity() })
+                mainBeaconDao.insertGroups(bundle.mainBeaconGroups.map { it.toEntity() })
                 mainBeaconDao.insertBeacons(bundle.mainBeacons.map { it.toEntity() })
                 lifeManagementLevelStatusDao.upsertAll(bundle.lifeManagementLevelStatuses.map { it.toEntity() })
                 lifeSystemStateDao.insertAll(bundle.lifeSystemStates.map { it.toEntity() })
@@ -253,6 +256,7 @@ class MergeLocalDataSourceImpl
                 contextKeyProblemsDao.insertAll(bundle.contextKeyProblems.map { it.toEntity() })
                 focusContextIntervalDao.insertAll(bundle.focusContextIntervals.map { it.toEntity() })
                 userStateIntervalDao.insertAll(bundle.userStateIntervals.map { it.toEntity() })
+                mainBeaconDao.insertGroupMembers(bundle.mainBeaconGroupMembers.map { it.toEntity() })
                 mainBeaconDao.insertContextCrossRefs(bundle.mainBeaconContextCrossRefs.map { it.toEntity() })
                 mainBeaconDao.insertAttachmentCrossRefs(bundle.mainBeaconAttachmentCrossRefs.map { it.toEntity() })
                 mainBeaconDao.insertLevelStatuses(bundle.mainBeaconLevelStatuses.map { it.toEntity() })

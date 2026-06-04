@@ -89,6 +89,7 @@ fun ContextMenuDialog(
     onCopyContextLinkRequest: (Context) -> Unit,
     onCutContextLinkRequest: (Context) -> Unit,
     onPasteContextLinkRequest: (Context) -> Unit,
+    onAddContextAppearanceRequest: (Context) -> Unit,
     onAddNoteDocumentRequest: (Context) -> Unit,
     onAddChecklistRequest: (Context) -> Unit,
     canPasteContextLinks: Boolean,
@@ -186,6 +187,14 @@ fun ContextMenuDialog(
                 ),
             )
             if (canPasteContextLinks) {
+                add(
+                    ContextActionItem(
+                        title = "Додати появу тут",
+                        icon = Icons.Outlined.AccountTree,
+                        tint = colorScheme.tertiary,
+                        onClick = { onAddContextAppearanceRequest(project) },
+                    ),
+                )
                 add(
                     ContextActionItem(
                         title = "Вставити посилання",

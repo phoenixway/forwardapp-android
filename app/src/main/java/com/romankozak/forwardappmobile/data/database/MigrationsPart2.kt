@@ -1115,3 +1115,87 @@ val MIGRATION_125_126 =
             )
         }
     }
+
+val MIGRATION_126_127 =
+    object : Migration(126, 127) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `context_parent_links` (
+                    `parent_context_id` TEXT NOT NULL,
+                    `child_context_id` TEXT NOT NULL,
+                    `link_order` INTEGER NOT NULL DEFAULT 0,
+                    `createdAt` INTEGER NOT NULL,
+                    `updatedAt` INTEGER,
+                    `synced_at` INTEGER,
+                    `is_deleted` INTEGER NOT NULL DEFAULT 0,
+                    `version` INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY(`parent_context_id`, `child_context_id`),
+                    FOREIGN KEY(`parent_context_id`) REFERENCES `contexts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(`child_context_id`) REFERENCES `contexts`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS `index_context_parent_links_parent_context_id_link_order`
+                ON `context_parent_links` (`parent_context_id`, `link_order`)
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS `index_context_parent_links_child_context_id`
+                ON `context_parent_links` (`child_context_id`)
+                """.trimIndent(),
+            )
+        }
+    }
+
+val MIGRATION_127_128 =
+    object : Migration(127, 128) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `main_beacon_groups` (
+                    `id` TEXT NOT NULL,
+                    `title` TEXT NOT NULL,
+                    `description` TEXT,
+                    `group_order` INTEGER NOT NULL DEFAULT 0,
+                    `updatedAt` INTEGER NOT NULL,
+                    `createdAt` INTEGER NOT NULL,
+                    PRIMARY KEY(`id`)
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS `index_main_beacon_groups_group_order`
+                ON `main_beacon_groups` (`group_order`)
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `main_beacon_group_members` (
+                    `group_id` TEXT NOT NULL,
+                    `beacon_id` TEXT NOT NULL,
+                    `member_order` INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY(`group_id`, `beacon_id`),
+                    FOREIGN KEY(`group_id`) REFERENCES `main_beacon_groups`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(`beacon_id`) REFERENCES `main_beacons`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS `index_main_beacon_group_members_beacon_id`
+                ON `main_beacon_group_members` (`beacon_id`)
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS `index_main_beacon_group_members_group_id_member_order`
+                ON `main_beacon_group_members` (`group_id`, `member_order`)
+                """.trimIndent(),
+            )
+        }
+    }

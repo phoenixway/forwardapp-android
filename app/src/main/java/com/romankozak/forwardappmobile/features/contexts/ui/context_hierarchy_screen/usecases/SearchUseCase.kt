@@ -9,6 +9,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarch
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbItem
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.BreadcrumbTarget
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.HierarchyDisplaySettings
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.MainSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
@@ -220,21 +221,35 @@ class SearchUseCase
         fun navigateToProject(
             projectId: String,
             currentHierarchy: ContextHierarchyData,
+            breadcrumbPrefix: List<BreadcrumbItem> = emptyList(),
         ) {
             scope.launch {
                 val targetProject = contextRepository.getContextById(projectId)
                 targetProject?.let { recentItemsRepository.logProjectAccess(it) }
 
                 val path = buildPathToProject(projectId, currentHierarchy)
-                currentBreadcrumbs.value = path
+                currentBreadcrumbs.value =
+                    if (breadcrumbPrefix.isEmpty()) {
+                        path
+                    } else {
+                        breadcrumbPrefix + path.map { it.copy(level = it.level + breadcrumbPrefix.size) }
+                    }
                 focusedProjectId.value = projectId
             }
         }
 
         fun navigateToBreadcrumb(breadcrumbItem: BreadcrumbItem) {
             currentBreadcrumbs.update { it.take(breadcrumbItem.level + 1) }
-            focusedProjectId.value = breadcrumbItem.id
-            replaceCurrentSubState(ProjectHierarchyScreenSubState.ProjectFocused(breadcrumbItem.id))
+            when (breadcrumbItem.target) {
+                BreadcrumbTarget.BeaconRoot -> {
+                    focusedProjectId.value = null
+                    navigateToExistingOrReplace(ProjectHierarchyScreenSubState.BeaconFocused(breadcrumbItem.id))
+                }
+                BreadcrumbTarget.Context -> {
+                    focusedProjectId.value = breadcrumbItem.id
+                    navigateToExistingOrReplace(ProjectHierarchyScreenSubState.ProjectFocused(breadcrumbItem.id))
+                }
+            }
         }
 
         fun clearNavigation() {
@@ -331,6 +346,16 @@ class SearchUseCase
             _subStateStack.value = currentStack.dropLast(1) + newState
         }
 
+        private fun navigateToExistingOrReplace(targetState: MainSubState) {
+            val currentStack = _subStateStack.value
+            val targetIndex = currentStack.indexOfLast { it == targetState }
+            if (targetIndex >= 0) {
+                _subStateStack.value = currentStack.take(targetIndex + 1)
+            } else {
+                replaceCurrentSubState(targetState)
+            }
+        }
+
         override fun popToSubState(targetState: MainSubState) {
             val currentStack = _subStateStack.value
             val targetIndex = currentStack.indexOfLast { it == targetState }
@@ -350,15 +375,33 @@ class SearchUseCase
             goBack: () -> Unit,
         ) {
             val currentStack = _subStateStack.value
+            val beaconBreadcrumbPrefix =
+                currentBreadcrumbs.value
+                    .takeWhile { it.target == BreadcrumbTarget.BeaconRoot }
             when {
                 currentStack.lastOrNull() is ProjectHierarchyScreenSubState.ProjectFocused -> {
                     popSubState()
-                    val previousFocusedState = _subStateStack.value.lastOrNull() as? ProjectHierarchyScreenSubState.ProjectFocused
-                    if (previousFocusedState != null) {
-                        navigateToProject(previousFocusedState.projectId, currentHierarchy)
-                    } else {
-                        clearNavigation()
+                    when (val previousFocusedState = _subStateStack.value.lastOrNull()) {
+                        is ProjectHierarchyScreenSubState.ProjectFocused -> {
+                            navigateToProject(
+                                projectId = previousFocusedState.projectId,
+                                currentHierarchy = currentHierarchy,
+                                breadcrumbPrefix = beaconBreadcrumbPrefix,
+                            )
+                        }
+                        is ProjectHierarchyScreenSubState.BeaconFocused -> {
+                            focusedProjectId.value = null
+                            currentBreadcrumbs.value =
+                                currentBreadcrumbs.value
+                                    .takeWhile { it.target == BreadcrumbTarget.BeaconRoot }
+                        }
+                        else -> clearNavigation()
                     }
+                }
+                currentStack.lastOrNull() is ProjectHierarchyScreenSubState.BeaconFocused -> {
+                    popSubState()
+                    focusedProjectId.value = null
+                    currentBreadcrumbs.value = emptyList()
                 }
                 currentStack.lastOrNull() is ProjectHierarchyScreenSubState.LocalSearch -> {
                     onCloseSearch()

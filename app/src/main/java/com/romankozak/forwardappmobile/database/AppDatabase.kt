@@ -19,6 +19,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfigur
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextInboxSortingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextKeyProblemsEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfileItem
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
@@ -37,6 +38,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconContextCrossRef
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroupMember
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.MusicNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
@@ -87,6 +90,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextInboxSo
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextKeyProblemsDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextTagRefDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextParentLinkDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.DirectionDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
@@ -113,6 +117,8 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         ActivityRecord::class,
         LinkItemEntity::class,
         MainBeacon::class,
+        MainBeaconGroup::class,
+        MainBeaconGroupMember::class,
         MainBeaconContextCrossRef::class,
         MainBeaconAttachmentCrossRef::class,
         MainBeaconLevelStatus::class,
@@ -121,6 +127,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         InboxRecordLink::class,
         ChatMessageEntity::class,
         ContextLog::class,
+        ContextParentLink::class,
         ContextInboxSortingEntity::class,
         ContextKeyProblemsEntity::class,
         FocusContextIntervalEntity::class,
@@ -158,7 +165,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 126,
+    version = 128,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -184,6 +191,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun inboxRecordLinkDao(): InboxRecordLinkDao
 
     abstract fun contextManagementDao(): ContextManagementDao
+
+    abstract fun contextParentLinkDao(): ContextParentLinkDao
 
     abstract fun contextKeyProblemsDao(): ContextKeyProblemsDao
 

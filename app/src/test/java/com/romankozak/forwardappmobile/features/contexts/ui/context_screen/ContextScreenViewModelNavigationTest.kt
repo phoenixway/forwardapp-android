@@ -17,7 +17,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfigur
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.core.navigation.ClearAndNavigateHomeUseCase
 import com.romankozak.forwardappmobile.core.navigation.capability.actions.CapabilityViewActionRegistry
-import com.romankozak.forwardappmobile.data.logic.ContextHandler
+import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.ContextArtifactRepository
 import com.romankozak.forwardappmobile.data.repository.ContextKeyProblemsRepository
@@ -40,6 +40,7 @@ import com.romankozak.forwardappmobile.domain.ner.ReminderParser
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.ContextMarkdownExporter
+import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -94,7 +95,7 @@ class ContextScreenViewModelNavigationTest {
                 application = mockk<Application>(relaxed = true),
                 contextRepository = contextRepository,
                 settingsRepository = mockk(relaxed = true),
-                contextHandler = mockk<ContextHandler>(relaxed = true),
+                contextHandler = mockk<ContextMarkerHandler>(relaxed = true),
                 alarmScheduler = mockk<AlarmScheduler>(relaxed = true),
                 nerManager = mockk<NerManager>(relaxed = true),
                 reminderParser = mockk<ReminderParser>(relaxed = true),
@@ -105,6 +106,7 @@ class ContextScreenViewModelNavigationTest {
                 clearAndNavigateHomeUseCase = mockk<ClearAndNavigateHomeUseCase>(relaxed = true),
                 ioDispatcher = dispatcher,
                 goalRepository = goalRepository,
+                missionRepository = mockk<MissionRepository>(relaxed = true),
                 listItemRepository = listItemRepository,
                 noteDocumentRepository = noteDocumentRepository,
                 musicNoteRepository = mockk<MusicNoteRepository>(relaxed = true),

@@ -19,6 +19,21 @@ data class MainBeaconSnapshot(
     @SerializedName("createdAt") val createdAt: Long,
 )
 
+data class MainBeaconGroupSnapshot(
+    @SerializedName("id") val id: String,
+    @SerializedName("title") val title: String,
+    @SerializedName("description") val description: String?,
+    @SerializedName("order") val order: Long,
+    @SerializedName("updatedAt") val updatedAt: Long,
+    @SerializedName("createdAt") val createdAt: Long,
+)
+
+data class MainBeaconGroupMemberSnapshot(
+    @SerializedName("groupId") val groupId: String,
+    @SerializedName("beaconId") val beaconId: String,
+    @SerializedName("order") val order: Long,
+)
+
 data class MainBeaconContextCrossRefSnapshot(
     @SerializedName("beaconId") val beaconId: String,
     @SerializedName("contextId") val contextId: String,

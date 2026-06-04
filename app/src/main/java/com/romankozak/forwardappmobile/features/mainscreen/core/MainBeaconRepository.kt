@@ -4,12 +4,15 @@ import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconContextCrossRef
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroupMember
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelType
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadinessStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconSyncStatus
 import com.romankozak.forwardappmobile.database.AppDatabase
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -43,7 +46,12 @@ class MainBeaconRepository
         }
 
         fun observeMainBeaconDetails(): Flow<List<MainBeaconWithRelations>> =
-            mainBeaconDao.observeMainBeacons().map { beacons ->
+            combine(
+                mainBeaconDao.observeMainBeacons(),
+                mainBeaconDao.observeGroupMembers(),
+                mainBeaconDao.observeContextCrossRefs(),
+                mainBeaconDao.observeAttachmentCrossRefs(),
+            ) { beacons, _, _, _ ->
                 beacons.map { beacon ->
                     val ensuredStatuses =
                         ensureAllLevelStatuses(
@@ -55,14 +63,18 @@ class MainBeaconRepository
                         relatedContexts = mainBeaconDao.getContextsForBeacon(beacon.id),
                         relatedAttachments = mainBeaconDao.getAttachmentsForBeacon(beacon.id),
                         levelStatuses = ensuredStatuses,
+                        groupIds = mainBeaconDao.getGroupIdsForBeacon(beacon.id),
                     )
                 }
             }
+
+        fun observeGroups(): Flow<List<MainBeaconGroup>> = mainBeaconDao.observeGroups()
 
         suspend fun createBeacon(
             beacon: MainBeacon,
             relatedContextIds: Set<String>,
             relatedAttachmentIds: Set<String>,
+            groupIds: Set<String>,
             levelStatuses: List<MainBeaconLevelStatus>,
         ) {
             val nextOrder = mainBeaconDao.getMaxOrder() + 1L
@@ -70,6 +82,7 @@ class MainBeaconRepository
                 beacon = beacon.copy(order = nextOrder),
                 relatedContextIds = relatedContextIds,
                 relatedAttachmentIds = relatedAttachmentIds,
+                groupIds = groupIds,
                 levelStatuses = levelStatuses,
                 exists = false,
             )
@@ -79,13 +92,75 @@ class MainBeaconRepository
             beacon: MainBeacon,
             relatedContextIds: Set<String>,
             relatedAttachmentIds: Set<String>,
+            groupIds: Set<String>,
             levelStatuses: List<MainBeaconLevelStatus>,
         ) {
-            upsertBeacon(beacon, relatedContextIds, relatedAttachmentIds, levelStatuses, exists = true)
+            upsertBeacon(beacon, relatedContextIds, relatedAttachmentIds, groupIds, levelStatuses, exists = true)
         }
 
         suspend fun deleteBeacon(beaconId: String) {
             mainBeaconDao.deleteBeacon(beaconId)
+        }
+
+        suspend fun createGroup(
+            title: String,
+            description: String? = null,
+        ) {
+            val normalizedTitle = title.trim()
+            if (normalizedTitle.isBlank()) return
+            val now = System.currentTimeMillis()
+            val nextOrder = mainBeaconDao.getMaxGroupOrder() + 1L
+            mainBeaconDao.insertGroup(
+                MainBeaconGroup(
+                    title = normalizedTitle,
+                    description = description?.trim()?.ifBlank { null },
+                    order = nextOrder,
+                    updatedAt = now,
+                    createdAt = now,
+                ),
+            )
+        }
+
+        suspend fun updateGroup(group: MainBeaconGroup) {
+            val normalizedTitle = group.title.trim()
+            if (normalizedTitle.isBlank()) return
+            mainBeaconDao.updateGroup(
+                group.copy(
+                    title = normalizedTitle,
+                    description = group.description?.trim()?.ifBlank { null },
+                    updatedAt = System.currentTimeMillis(),
+                ),
+            )
+        }
+
+        suspend fun deleteGroup(groupId: String) {
+            mainBeaconDao.deleteGroup(groupId)
+        }
+
+        suspend fun addRelatedContexts(
+            beaconId: String,
+            contextIds: Set<String>,
+        ): Int {
+            if (contextIds.isEmpty()) {
+                return 0
+            }
+            val existingContextIds =
+                mainBeaconDao
+                    .getAllContextCrossRefsSync()
+                    .asSequence()
+                    .filter { it.beaconId == beaconId }
+                    .mapTo(mutableSetOf()) { it.contextId }
+            val newContextIds = contextIds.filterNot { it in existingContextIds }
+            return if (newContextIds.isEmpty()) {
+                0
+            } else {
+                mainBeaconDao.insertContextCrossRefs(
+                    newContextIds.map { contextId ->
+                        MainBeaconContextCrossRef(beaconId = beaconId, contextId = contextId)
+                    },
+                )
+                newContextIds.size
+            }
         }
 
         suspend fun reorderBeacons(beaconIdsInOrder: List<String>) {
@@ -101,6 +176,7 @@ class MainBeaconRepository
             beacon: MainBeacon,
             relatedContextIds: Set<String>,
             relatedAttachmentIds: Set<String>,
+            groupIds: Set<String>,
             levelStatuses: List<MainBeaconLevelStatus>,
             exists: Boolean,
         ) {
@@ -113,6 +189,7 @@ class MainBeaconRepository
 
                 mainBeaconDao.deleteContextCrossRefsForBeacon(beacon.id)
                 mainBeaconDao.deleteAttachmentCrossRefsForBeacon(beacon.id)
+                mainBeaconDao.deleteGroupMembersForBeacon(beacon.id)
 
                 if (relatedContextIds.isNotEmpty()) {
                     mainBeaconDao.insertContextCrossRefs(
@@ -126,6 +203,18 @@ class MainBeaconRepository
                     mainBeaconDao.insertAttachmentCrossRefs(
                         relatedAttachmentIds.map { attachmentId ->
                             MainBeaconAttachmentCrossRef(beaconId = beacon.id, attachmentId = attachmentId)
+                        },
+                    )
+                }
+
+                if (groupIds.isNotEmpty()) {
+                    mainBeaconDao.insertGroupMembers(
+                        groupIds.mapIndexed { index, groupId ->
+                            MainBeaconGroupMember(
+                                groupId = groupId,
+                                beaconId = beacon.id,
+                                order = index.toLong(),
+                            )
                         },
                     )
                 }

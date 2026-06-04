@@ -51,9 +51,6 @@ class HierarchyUseCaseTest {
         val hierarchy =
             useCase.createProjectHierarchy(
                 filterState = filterState,
-                expandedDaily = null,
-                expandedMedium = null,
-                expandedLong = null,
             )
 
         assertEquals(listOf("root"), hierarchy.topLevelProjects.map { it.id })
@@ -91,9 +88,6 @@ class HierarchyUseCaseTest {
         val hierarchy =
             useCase.createProjectHierarchy(
                 filterState = filterState,
-                expandedDaily = null,
-                expandedMedium = null,
-                expandedLong = null,
             )
 
         assertEquals(listOf("orphan"), hierarchy.topLevelProjects.map { it.id })

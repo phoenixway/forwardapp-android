@@ -75,8 +75,10 @@ private const val DEFECTED_COLOR_HEX = 0xFF5F6368
 fun MainBeaconEditorSheet(
     state: MainBeaconEditorState,
     connectionItems: List<ConnectionItemUi>,
+    groupItems: List<MainBeaconCardLinkUi>,
     onDismiss: () -> Unit,
     onStateChange: (MainBeaconEditorState) -> Unit,
+    onEditGroups: () -> Unit,
     onConnectionClick: (ConnectionItemUi) -> Unit,
     onConnectionRemove: (ConnectionItemUi) -> Unit,
     onAddConnection: (AddConnectionType) -> Unit,
@@ -150,6 +152,10 @@ fun MainBeaconEditorSheet(
                                     value = state.description,
                                     onValueChange = { onStateChange(state.copy(description = it)) },
                                     supportingText = "What this beacon means for you",
+                                )
+                                GroupsRow(
+                                    groups = groupItems,
+                                    onEditGroups = onEditGroups,
                                 )
                                 MainBeaconTextField(
                                     label = "Why it matters",
@@ -251,6 +257,52 @@ fun MainBeaconEditorSheet(
                             )
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GroupsRow(
+    groups: List<MainBeaconCardLinkUi>,
+    onEditGroups: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Groups",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Button(onClick = onEditGroups) {
+                Text("Edit")
+            }
+        }
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            if (groups.isEmpty()) {
+                FilterChip(
+                    selected = false,
+                    onClick = onEditGroups,
+                    label = { Text("No group") },
+                )
+            } else {
+                groups.forEach { group ->
+                    FilterChip(
+                        selected = true,
+                        onClick = onEditGroups,
+                        label = { Text(group.title) },
+                    )
                 }
             }
         }

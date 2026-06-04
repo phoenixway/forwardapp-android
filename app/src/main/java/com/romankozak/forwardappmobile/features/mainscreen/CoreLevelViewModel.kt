@@ -7,6 +7,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemType
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
@@ -17,6 +18,7 @@ import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconCardUi
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconEditorState
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconGroupUi
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconRepository
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconWithRelations
 import com.romankozak.forwardappmobile.features.mainscreen.core.deriveMainBeaconCompactCardSummary
@@ -47,6 +49,7 @@ data class CoreLevelUiState(
     val allProjects: List<Context> = emptyList(),
     val projects: List<Context> = emptyList(),
     val beacons: List<MainBeaconCardUi> = emptyList(),
+    val groups: List<MainBeaconGroupUi> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
 )
@@ -79,8 +82,16 @@ class CoreLevelViewModel
                     initialValue = emptyList(),
                 )
 
+        private val mainBeaconGroups: StateFlow<List<MainBeaconGroup>> =
+            mainBeaconRepository.observeGroups()
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS),
+                    initialValue = emptyList(),
+                )
+
         val uiState: StateFlow<CoreLevelUiState> =
-            combine(allContexts, mainBeaconDetails) { projects, beacons ->
+            combine(allContexts, mainBeaconDetails, mainBeaconGroups) { projects, beacons, groups ->
                 val coreProjects =
                     projects.filter {
                         it.tags?.contains("main-beacons") == true || it.tags?.contains("core") == true
@@ -88,6 +99,14 @@ class CoreLevelViewModel
                 CoreLevelUiState(
                     allProjects = projects,
                     projects = coreProjects,
+                    groups =
+                        groups.map { group ->
+                            MainBeaconGroupUi(
+                                id = group.id,
+                                title = group.title,
+                                description = group.description,
+                            )
+                        },
                     beacons =
                         beacons.map { details ->
                             val compactSummary = deriveMainBeaconCompactCardSummary(details.levelStatuses)
@@ -101,6 +120,7 @@ class CoreLevelViewModel
                                 nextRequiredAction = compactSummary.nextRequiredAction,
                                 relatedContextIds = details.relatedContexts.map { it.id },
                                 relatedAttachmentIds = details.relatedAttachments.map { it.id },
+                                groupIds = details.groupIds,
                             )
                         },
                 )
@@ -174,6 +194,7 @@ class CoreLevelViewModel
                             details.relatedContexts.mapTo(linkedSetOf()) { it.id },
                         relatedAttachmentIds =
                             details.relatedAttachments.mapTo(linkedSetOf()) { it.id },
+                        groupIds = details.groupIds.toSet(),
                         levelStatuses = details.levelStatuses.map { it.toEditorState() },
                         createdAt = details.beacon.createdAt,
                         updatedAt = details.beacon.updatedAt,
@@ -226,6 +247,7 @@ class CoreLevelViewModel
                         beacon = beacon,
                         relatedContextIds = editor.relatedContextIds,
                         relatedAttachmentIds = editor.relatedAttachmentIds,
+                        groupIds = editor.groupIds,
                         levelStatuses = levelStatuses,
                     )
                 } else {
@@ -233,9 +255,41 @@ class CoreLevelViewModel
                         beacon = beacon,
                         relatedContextIds = editor.relatedContextIds,
                         relatedAttachmentIds = editor.relatedAttachmentIds,
+                        groupIds = editor.groupIds,
                         levelStatuses = levelStatuses,
                     )
                 }
+            }
+        }
+
+        fun createBeaconGroup(
+            title: String,
+            description: String? = null,
+        ) {
+            viewModelScope.launch {
+                mainBeaconRepository.createGroup(title, description)
+            }
+        }
+
+        fun updateBeaconGroup(
+            groupId: String,
+            title: String,
+            description: String? = null,
+        ) {
+            val current = mainBeaconGroups.value.firstOrNull { it.id == groupId } ?: return
+            viewModelScope.launch {
+                mainBeaconRepository.updateGroup(
+                    current.copy(
+                        title = title,
+                        description = description,
+                    ),
+                )
+            }
+        }
+
+        fun deleteBeaconGroup(groupId: String) {
+            viewModelScope.launch {
+                mainBeaconRepository.deleteGroup(groupId)
             }
         }
 

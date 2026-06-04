@@ -17,6 +17,7 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextInboxSortingDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextKeyProblemsDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextParentLinkDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextTagRefDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.DirectionDao
@@ -94,6 +95,10 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideContextManagementDao(appDatabase: AppDatabase): ContextManagementDao = appDatabase.contextManagementDao()
+
+    @Provides
+    @Singleton
+    fun provideContextParentLinkDao(appDatabase: AppDatabase): ContextParentLinkDao = appDatabase.contextParentLinkDao()
 
     @Provides
     @Singleton

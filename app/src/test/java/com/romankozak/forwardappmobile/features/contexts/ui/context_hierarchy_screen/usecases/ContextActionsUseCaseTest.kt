@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_s
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextParentLinkDao
 import com.romankozak.forwardappmobile.sync.SyncRepository
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -11,12 +12,14 @@ import org.junit.Test
 
 class ContextActionsUseCaseTest {
     private val contextRepository = mockk<ContextRepository>(relaxed = true)
+    private val contextParentLinkDao = mockk<ContextParentLinkDao>(relaxed = true)
     private val syncRepository = mockk<SyncRepository>(relaxed = true)
     private val settingsRepository = mockk<SettingsRepository>(relaxed = true)
 
     private val useCase =
         ContextActionsUseCase(
             contextRepository = contextRepository,
+            contextParentLinkDao = contextParentLinkDao,
             syncRepository = syncRepository,
             settingsRepository = settingsRepository,
             ioDispatcher = kotlinx.coroutines.Dispatchers.Unconfined,
