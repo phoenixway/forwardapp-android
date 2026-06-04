@@ -1199,3 +1199,16 @@ val MIGRATION_127_128 =
             )
         }
     }
+
+val MIGRATION_128_129 =
+    object : Migration(128, 129) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE main_beacons ADD COLUMN parent_beacon_id TEXT")
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS `index_main_beacons_parent_beacon_id`
+                ON `main_beacons` (`parent_beacon_id`)
+                """.trimIndent(),
+            )
+        }
+    }

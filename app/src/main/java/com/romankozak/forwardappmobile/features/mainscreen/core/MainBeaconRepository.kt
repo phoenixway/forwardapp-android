@@ -178,6 +178,101 @@ class MainBeaconRepository
             }
         }
 
+        suspend fun moveBeaconToParent(
+            beaconId: String,
+            parentBeaconId: String?,
+        ): Boolean {
+            val canMove =
+                beaconId != parentBeaconId &&
+                    (parentBeaconId == null || !wouldCreateBeaconParentCycle(beaconId, parentBeaconId))
+            if (canMove) {
+                mainBeaconDao.updateBeaconParent(
+                    beaconId = beaconId,
+                    parentBeaconId = parentBeaconId,
+                    updatedAt = System.currentTimeMillis(),
+                )
+            }
+            return canMove
+        }
+
+        suspend fun moveBeaconToGroup(
+            beaconId: String,
+            groupId: String?,
+        ) {
+            appDatabase.withTransaction {
+                mainBeaconDao.updateBeaconParent(
+                    beaconId = beaconId,
+                    parentBeaconId = null,
+                    updatedAt = System.currentTimeMillis(),
+                )
+                mainBeaconDao.deleteGroupMembersForBeacon(beaconId)
+                groupId?.let {
+                    mainBeaconDao.insertGroupMembers(
+                        listOf(
+                            MainBeaconGroupMember(
+                                groupId = it,
+                                beaconId = beaconId,
+                                order = mainBeaconDao.getMaxOrder() + 1L,
+                            ),
+                        ),
+                    )
+                }
+            }
+        }
+
+        suspend fun duplicateBeacon(
+            sourceBeaconId: String,
+            parentBeaconId: String?,
+            groupId: String?,
+        ): Boolean {
+            val source = mainBeaconDao.getBeaconById(sourceBeaconId) ?: return false
+            val now = System.currentTimeMillis()
+            val targetId = java.util.UUID.randomUUID().toString()
+            val sourceContexts = mainBeaconDao.getContextsForBeacon(sourceBeaconId).mapTo(linkedSetOf()) { it.id }
+            val sourceAttachments =
+                mainBeaconDao.getAttachmentsForBeacon(sourceBeaconId).mapTo(linkedSetOf()) { it.id }
+            val sourceStatuses =
+                mainBeaconDao.getLevelStatusesForBeacon(sourceBeaconId).map { status ->
+                    status.copy(
+                        id = java.util.UUID.randomUUID().toString(),
+                        mainBeaconId = targetId,
+                        updatedAt = now,
+                    )
+                }
+            val target =
+                source.copy(
+                    id = targetId,
+                    title = "${source.title} copy".trim(),
+                    parentBeaconId = parentBeaconId,
+                    order = mainBeaconDao.getMaxOrder() + 1L,
+                    updatedAt = now,
+                    createdAt = now,
+                )
+            upsertBeacon(
+                beacon = target,
+                relatedContextIds = sourceContexts,
+                relatedAttachmentIds = sourceAttachments,
+                groupIds = groupId?.let { setOf(it) }.orEmpty(),
+                levelStatuses = sourceStatuses,
+                exists = false,
+            )
+            return true
+        }
+
+        private suspend fun wouldCreateBeaconParentCycle(
+            beaconId: String,
+            requestedParentId: String,
+        ): Boolean {
+            val byId = mainBeaconDao.getAllBeaconsSync().associateBy { it.id }
+            var cursor: String? = requestedParentId
+            val visited = mutableSetOf<String>()
+            while (cursor != null && visited.add(cursor)) {
+                if (cursor == beaconId) return true
+                cursor = byId[cursor]?.parentBeaconId
+            }
+            return requestedParentId !in byId
+        }
+
         private suspend fun upsertBeacon(
             beacon: MainBeacon,
             relatedContextIds: Set<String>,

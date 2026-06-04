@@ -37,6 +37,7 @@ import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -76,9 +77,12 @@ fun MainBeaconEditorSheet(
     state: MainBeaconEditorState,
     connectionItems: List<ConnectionItemUi>,
     groupItems: List<MainBeaconCardLinkUi>,
+    parentBeaconItem: MainBeaconCardLinkUi?,
     onDismiss: () -> Unit,
     onStateChange: (MainBeaconEditorState) -> Unit,
     onEditGroups: () -> Unit,
+    onEditParentBeacon: () -> Unit,
+    onClearParentBeacon: () -> Unit,
     onConnectionClick: (ConnectionItemUi) -> Unit,
     onConnectionRemove: (ConnectionItemUi) -> Unit,
     onAddConnection: (AddConnectionType) -> Unit,
@@ -156,6 +160,11 @@ fun MainBeaconEditorSheet(
                                 GroupsRow(
                                     groups = groupItems,
                                     onEditGroups = onEditGroups,
+                                )
+                                ParentBeaconRow(
+                                    parentBeacon = parentBeaconItem,
+                                    onEditParentBeacon = onEditParentBeacon,
+                                    onClearParentBeacon = onClearParentBeacon,
                                 )
                                 MainBeaconTextField(
                                     label = "Why it matters",
@@ -260,6 +269,42 @@ fun MainBeaconEditorSheet(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ParentBeaconRow(
+    parentBeacon: MainBeaconCardLinkUi?,
+    onEditParentBeacon: () -> Unit,
+    onClearParentBeacon: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Parent beacon",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (parentBeacon != null) {
+                    TextButton(onClick = onClearParentBeacon) {
+                        Text("Clear")
+                    }
+                }
+                Button(onClick = onEditParentBeacon) {
+                    Text("Edit")
+                }
+            }
+        }
+        FilterChip(
+            selected = parentBeacon != null,
+            onClick = onEditParentBeacon,
+            label = { Text(parentBeacon?.title ?: "Root beacon") },
+        )
     }
 }
 

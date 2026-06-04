@@ -180,6 +180,9 @@ fun ProjectHierarchyView(
                                     level = item.level,
                                     childCount = rootChildCounts[node.id] ?: 0,
                                     onClick = { onEvent(ContextHierarchyScreenEvent.OrientationNodeClick(node.id)) },
+                                    onPasteBeacon = {
+                                        onEvent(ContextHierarchyScreenEvent.PasteBeaconIntoGroup(node.id))
+                                    },
                                 )
                             is OrientationHierarchyNode.Beacon ->
                                 BeaconRootHeaderRow(
@@ -187,12 +190,20 @@ fun ProjectHierarchyView(
                                     level = item.level,
                                     childCount = rootChildCounts[node.id] ?: 0,
                                     onClick = { onEvent(ContextHierarchyScreenEvent.OrientationNodeClick(node.id)) },
+                                    onCopyBeacon = { onEvent(ContextHierarchyScreenEvent.CopyBeacon(node.id)) },
+                                    onCutBeacon = { onEvent(ContextHierarchyScreenEvent.CutBeacon(node.id)) },
+                                    onPasteBeacon = {
+                                        onEvent(ContextHierarchyScreenEvent.PasteBeaconIntoBeacon(node.id))
+                                    },
                                 )
                             OrientationHierarchyNode.NoGroup ->
                                 NoGroupRootHeaderRow(
                                     level = item.level,
                                     childCount = rootChildCounts[node.id] ?: 0,
                                     onClick = { onEvent(ContextHierarchyScreenEvent.OrientationNodeClick(node.id)) },
+                                    onPasteBeacon = {
+                                        onEvent(ContextHierarchyScreenEvent.PasteBeaconIntoGroup(null))
+                                    },
                                 )
                             OrientationHierarchyNode.NoBeacon ->
                                 NoBeaconRootHeaderRow(
@@ -202,7 +213,12 @@ fun ProjectHierarchyView(
                                 )
                             is OrientationHierarchyNode.ContextNode ->
                                 HierarchyListItem(
-                                    item = FlatHierarchyItem(project = node.context, level = item.level),
+                                    item =
+                                        FlatHierarchyItem(
+                                            project = node.context,
+                                            level = item.level,
+                                            isLinkedAppearance = node.isLinkedAppearance,
+                                        ),
                                     childMap = displayChildMap,
                                     dragAndDropState = dragAndDropState,
                                     isSearchActive = isSearchActive,

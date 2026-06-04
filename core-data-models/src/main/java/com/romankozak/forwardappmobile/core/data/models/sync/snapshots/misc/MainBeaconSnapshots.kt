@@ -14,6 +14,7 @@ data class MainBeaconSnapshot(
     @SerializedName("readinessStatus") val readinessStatus: String,
     @SerializedName("blockerText") val blockerText: String?,
     @SerializedName("nextActionText") val nextActionText: String?,
+    @SerializedName("parentBeaconId") val parentBeaconId: String?,
     @SerializedName("order") val order: Long,
     @SerializedName("updatedAt") val updatedAt: Long,
     @SerializedName("createdAt") val createdAt: Long,

@@ -100,6 +100,7 @@ import kotlinx.coroutines.launch
 
 private const val ATTACHMENT_ID_PREVIEW_LENGTH = 8
 private const val PICKER_OPEN_DELAY_MILLIS = 160L
+private const val NO_GROUP_ID = "no-group"
 
 private enum class MainBeaconLinkActionTarget {
     CORE_SCOPE,
@@ -118,6 +119,7 @@ fun CoreLevelScreen(
     val attachmentOptions by viewModel.attachmentOptions.collectAsState()
     val linkedAttachmentIds by viewModel.linkedAttachmentIds.collectAsState()
     val connectionsOrder by viewModel.connectionsOrder.collectAsState()
+    val collapsedGroupIds by viewModel.collapsedGroupIds.collectAsState()
     val isScopeLinksSheetVisible by viewModel.isScopeLinksSheetVisible.collectAsState()
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsState()
     val scope = rememberCoroutineScope()
@@ -134,6 +136,7 @@ fun CoreLevelScreen(
     var showContextPicker by remember { mutableStateOf(false) }
     var showDocumentPicker by remember { mutableStateOf(false) }
     var showGroupPicker by remember { mutableStateOf(false) }
+    var showParentBeaconPicker by remember { mutableStateOf(false) }
     var beaconPendingDeleteId by remember { mutableStateOf<String?>(null) }
     var groupPendingDeleteId by remember { mutableStateOf<String?>(null) }
     var editingLevelIndex by remember { mutableStateOf<Int?>(null) }
@@ -142,9 +145,9 @@ fun CoreLevelScreen(
     val expandedBeaconIds = remember { mutableStateMapOf<String, Boolean>() }
 
     LaunchedEffect(uiState.beacons) {
-        val validIds = uiState.beacons.mapTo(mutableSetOf()) { it.id }
+        val validBeaconIds = uiState.beacons.mapTo(mutableSetOf()) { it.id }
         expandedBeaconIds.keys.toList().forEach { beaconId ->
-            if (beaconId !in validIds) expandedBeaconIds.remove(beaconId)
+            if (beaconId !in validBeaconIds) expandedBeaconIds.remove(beaconId)
         }
     }
 
@@ -272,6 +275,19 @@ fun CoreLevelScreen(
                 MainBeaconSelectableItem(id = group.id, label = group.title)
             }
         }
+    val parentBeaconOptions =
+        remember(uiState.beacons, editingBeacon?.id) {
+            val editingBeaconId = editingBeacon?.id
+            val excludedIds =
+                if (editingBeaconId == null) {
+                    emptySet()
+                } else {
+                    collectBeaconDescendantIds(uiState.beacons, editingBeaconId) + editingBeaconId
+                }
+            uiState.beacons
+                .filterNot { it.id in excludedIds }
+                .map { beacon -> MainBeaconSelectableItem(id = beacon.id, label = beacon.title) }
+        }
     Scaffold(
         containerColor = Color.Transparent,
         floatingActionButton = {
@@ -370,57 +386,107 @@ fun CoreLevelScreen(
                         ) {
                             uiState.groups.forEach { group ->
                                 val groupBeacons = uiState.beacons.filter { group.id in it.groupIds }
+                                val groupBeaconIds = groupBeacons.mapTo(hashSetOf()) { it.id }
+                                val groupRootBeacons =
+                                    groupBeacons.filter { it.parentBeaconId !in groupBeaconIds }
+                                val isGroupExpanded = group.id !in collapsedGroupIds
                                 item(key = "group-${group.id}") {
                                     MainBeaconGroupHeader(
                                         title = group.title,
                                         count = groupBeacons.size,
+                                        isExpanded = isGroupExpanded,
+                                        onToggleExpanded = {
+                                            viewModel.setGroupExpanded(group.id, !isGroupExpanded)
+                                        },
                                         onEditClick = { editingGroup = group },
                                     )
                                 }
-                                items(groupBeacons, key = { "${group.id}-${it.id}" }) { beacon ->
-                                    MainBeaconCardFromUi(
-                                        beacon = beacon,
-                                        allProjects = uiState.allProjects,
-                                        attachmentOptions = attachmentOptions,
-                                        connectionItems = connectionItems,
-                                        isExpanded = expandedBeaconIds[beacon.id] == true,
-                                        onToggleExpanded = {
-                                            expandedBeaconIds[beacon.id] = expandedBeaconIds[beacon.id] != true
-                                        },
-                                        onEditClick = { editingBeacon = viewModel.buildEditorState(beacon.id) },
-                                        onContextClick = { contextId ->
-                                            openTarget(NavTarget.ContextDetail(contextId = contextId), true)
-                                        },
-                                        onConnectionClick = onConnectionClick,
-                                    )
+                                if (isGroupExpanded) {
+                                    items(groupRootBeacons, key = { "${group.id}-${it.id}" }) { beacon ->
+                                        MainBeaconCardFromUi(
+                                            beacon = beacon,
+                                            allProjects = uiState.allProjects,
+                                            attachmentOptions = attachmentOptions,
+                                            connectionItems = connectionItems,
+                                            isExpanded = expandedBeaconIds[beacon.id] == true,
+                                            onToggleExpanded = {
+                                                expandedBeaconIds[beacon.id] = expandedBeaconIds[beacon.id] != true
+                                            },
+                                            onEditClick = { editingBeacon = viewModel.buildEditorState(beacon.id) },
+                                            onContextClick = { contextId ->
+                                                openTarget(NavTarget.ContextDetail(contextId = contextId), true)
+                                            },
+                                            onConnectionClick = onConnectionClick,
+                                        )
+                                        NestedBeaconCards(
+                                            parentBeaconId = beacon.id,
+                                            beacons = groupBeacons,
+                                            allProjects = uiState.allProjects,
+                                            attachmentOptions = attachmentOptions,
+                                            connectionItems = connectionItems,
+                                            expandedBeaconIds = expandedBeaconIds,
+                                            onEditBeacon = { beaconId ->
+                                                editingBeacon = viewModel.buildEditorState(beaconId)
+                                            },
+                                            onContextClick = { contextId ->
+                                                openTarget(NavTarget.ContextDetail(contextId = contextId), true)
+                                            },
+                                            onConnectionClick = onConnectionClick,
+                                        )
+                                    }
                                 }
                             }
 
                             val noGroupBeacons = uiState.beacons.filter { it.groupIds.isEmpty() }
                             if (noGroupBeacons.isNotEmpty()) {
+                                val noGroupBeaconIds = noGroupBeacons.mapTo(hashSetOf()) { it.id }
+                                val noGroupRootBeacons =
+                                    noGroupBeacons.filter { it.parentBeaconId !in noGroupBeaconIds }
+                                val isNoGroupExpanded = NO_GROUP_ID !in collapsedGroupIds
                                 item(key = "group-no-group") {
                                     MainBeaconGroupHeader(
                                         title = "No group",
                                         count = noGroupBeacons.size,
+                                        isExpanded = isNoGroupExpanded,
+                                        onToggleExpanded = {
+                                            viewModel.setGroupExpanded(NO_GROUP_ID, !isNoGroupExpanded)
+                                        },
                                         onEditClick = null,
                                     )
                                 }
-                                items(noGroupBeacons, key = { "no-group-${it.id}" }) { beacon ->
-                                    MainBeaconCardFromUi(
-                                        beacon = beacon,
-                                        allProjects = uiState.allProjects,
-                                        attachmentOptions = attachmentOptions,
-                                        connectionItems = connectionItems,
-                                        isExpanded = expandedBeaconIds[beacon.id] == true,
-                                        onToggleExpanded = {
-                                            expandedBeaconIds[beacon.id] = expandedBeaconIds[beacon.id] != true
-                                        },
-                                        onEditClick = { editingBeacon = viewModel.buildEditorState(beacon.id) },
-                                        onContextClick = { contextId ->
-                                            openTarget(NavTarget.ContextDetail(contextId = contextId), true)
-                                        },
-                                        onConnectionClick = onConnectionClick,
-                                    )
+                                if (isNoGroupExpanded) {
+                                    items(noGroupRootBeacons, key = { "no-group-${it.id}" }) { beacon ->
+                                        MainBeaconCardFromUi(
+                                            beacon = beacon,
+                                            allProjects = uiState.allProjects,
+                                            attachmentOptions = attachmentOptions,
+                                            connectionItems = connectionItems,
+                                            isExpanded = expandedBeaconIds[beacon.id] == true,
+                                            onToggleExpanded = {
+                                                expandedBeaconIds[beacon.id] = expandedBeaconIds[beacon.id] != true
+                                            },
+                                            onEditClick = { editingBeacon = viewModel.buildEditorState(beacon.id) },
+                                            onContextClick = { contextId ->
+                                                openTarget(NavTarget.ContextDetail(contextId = contextId), true)
+                                            },
+                                            onConnectionClick = onConnectionClick,
+                                        )
+                                        NestedBeaconCards(
+                                            parentBeaconId = beacon.id,
+                                            beacons = noGroupBeacons,
+                                            allProjects = uiState.allProjects,
+                                            attachmentOptions = attachmentOptions,
+                                            connectionItems = connectionItems,
+                                            expandedBeaconIds = expandedBeaconIds,
+                                            onEditBeacon = { beaconId ->
+                                                editingBeacon = viewModel.buildEditorState(beaconId)
+                                            },
+                                            onContextClick = { contextId ->
+                                                openTarget(NavTarget.ContextDetail(contextId = contextId), true)
+                                            },
+                                            onConnectionClick = onConnectionClick,
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -471,9 +537,19 @@ fun CoreLevelScreen(
                         MainBeaconCardLinkUi(id = group.id, title = group.title)
                     }
                 },
+            parentBeaconItem =
+                editor.parentBeaconId?.let { parentId ->
+                    uiState.beacons.firstOrNull { it.id == parentId }?.let { parent ->
+                        MainBeaconCardLinkUi(id = parent.id, title = parent.title)
+                    }
+                },
             onDismiss = { editingBeacon = null },
             onStateChange = { editingBeacon = it },
             onEditGroups = { showGroupPicker = true },
+            onEditParentBeacon = { showParentBeaconPicker = true },
+            onClearParentBeacon = {
+                editingBeacon = editingBeacon?.copy(parentBeaconId = null)
+            },
             onConnectionClick = { item ->
                 if (item.type == ConnectionType.CONTEXT) {
                     openTarget(NavTarget.ContextDetail(contextId = item.id), true)
@@ -599,6 +675,19 @@ fun CoreLevelScreen(
             onConfirm = { selected ->
                 editingBeacon = editingBeacon?.copy(groupIds = selected)
                 showGroupPicker = false
+            },
+        )
+    }
+
+    if (showParentBeaconPicker && editingBeacon != null) {
+        MainBeaconMultiSelectDialog(
+            title = "Parent beacon",
+            options = parentBeaconOptions,
+            selectedIds = editingBeacon?.parentBeaconId?.let { setOf(it) }.orEmpty(),
+            onDismiss = { showParentBeaconPicker = false },
+            onConfirm = { selected ->
+                editingBeacon = editingBeacon?.copy(parentBeaconId = selected.firstOrNull())
+                showParentBeaconPicker = false
             },
         )
     }
@@ -886,10 +975,15 @@ fun CoreLevelScreen(
 private fun MainBeaconGroupHeader(
     title: String,
     count: Int,
+    isExpanded: Boolean,
+    onToggleExpanded: () -> Unit,
     onEditClick: (() -> Unit)?,
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onToggleExpanded),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = RoundedCornerShape(14.dp),
     ) {
@@ -898,6 +992,12 @@ private fun MainBeaconGroupHeader(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            IconButton(onClick = onToggleExpanded) {
+                Icon(
+                    imageVector = if (isExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                    contentDescription = if (isExpanded) "Collapse group" else "Expand group",
+                )
+            }
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleSmall,
@@ -976,6 +1076,67 @@ private fun MainBeaconGroupEditorDialog(
             }
         },
     )
+}
+
+@Composable
+private fun NestedBeaconCards(
+    parentBeaconId: String,
+    beacons: List<MainBeaconCardUi>,
+    allProjects: List<com.romankozak.forwardappmobile.core.data.models.entities.Context>,
+    attachmentOptions: List<com.romankozak.forwardappmobile.features.mainscreen.scopelinks.ScopeAttachmentOption>,
+    connectionItems: List<ConnectionItemUi>,
+    expandedBeaconIds: MutableMap<String, Boolean>,
+    onEditBeacon: (String) -> Unit,
+    onContextClick: (String) -> Unit,
+    onConnectionClick: (ConnectionItemUi) -> Unit,
+    level: Int = 1,
+    visitedIds: Set<String> = emptySet(),
+) {
+    if (parentBeaconId in visitedIds) return
+    val childBeacons =
+        remember(beacons, parentBeaconId) {
+            beacons
+                .filter { it.parentBeaconId == parentBeaconId }
+                .sortedWith(compareBy<MainBeaconCardUi> { it.title.lowercase() })
+        }
+    if (childBeacons.isEmpty()) return
+
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(start = (level * 16).dp, top = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        childBeacons.forEach { beacon ->
+            MainBeaconCardFromUi(
+                beacon = beacon,
+                allProjects = allProjects,
+                attachmentOptions = attachmentOptions,
+                connectionItems = connectionItems,
+                isExpanded = expandedBeaconIds[beacon.id] == true,
+                onToggleExpanded = {
+                    expandedBeaconIds[beacon.id] = expandedBeaconIds[beacon.id] != true
+                },
+                onEditClick = { onEditBeacon(beacon.id) },
+                onContextClick = onContextClick,
+                onConnectionClick = onConnectionClick,
+            )
+            NestedBeaconCards(
+                parentBeaconId = beacon.id,
+                beacons = beacons,
+                allProjects = allProjects,
+                attachmentOptions = attachmentOptions,
+                connectionItems = connectionItems,
+                expandedBeaconIds = expandedBeaconIds,
+                onEditBeacon = onEditBeacon,
+                onContextClick = onContextClick,
+                onConnectionClick = onConnectionClick,
+                level = level + 1,
+                visitedIds = visitedIds + parentBeaconId,
+            )
+        }
+    }
 }
 
 @Composable
@@ -1371,6 +1532,22 @@ private fun summarizeSelection(
         labels.size <= 2 -> labels.joinToString(", ")
         else -> "${labels.take(2).joinToString(", ")} +${labels.size - 2}"
     }
+}
+
+private fun collectBeaconDescendantIds(
+    beacons: List<MainBeaconCardUi>,
+    beaconId: String,
+): Set<String> {
+    val childrenByParent = beacons.groupBy { it.parentBeaconId }
+    val descendants = linkedSetOf<String>()
+    val pending = ArrayDeque<String>()
+    childrenByParent[beaconId].orEmpty().forEach { pending += it.id }
+    while (pending.isNotEmpty()) {
+        val childId = pending.removeFirst()
+        if (!descendants.add(childId)) continue
+        childrenByParent[childId].orEmpty().forEach { pending += it.id }
+    }
+    return descendants
 }
 
 private fun buildExternalTarget(

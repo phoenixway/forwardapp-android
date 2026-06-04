@@ -121,6 +121,7 @@ class CoreLevelViewModel
                                 relatedContextIds = details.relatedContexts.map { it.id },
                                 relatedAttachmentIds = details.relatedAttachments.map { it.id },
                                 groupIds = details.groupIds,
+                                parentBeaconId = details.beacon.parentBeaconId,
                             )
                         },
                 )
@@ -138,6 +139,10 @@ class CoreLevelViewModel
 
         private val _connectionsOrder = MutableStateFlow<List<String>>(emptyList())
         val connectionsOrder: StateFlow<List<String>> = _connectionsOrder.asStateFlow()
+
+        val collapsedGroupIds: StateFlow<Set<String>> =
+            settingsRepository.coreBeaconCollapsedGroupIdsFlow
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS), emptySet())
 
         private val _isScopeLinksSheetVisible = MutableStateFlow(false)
         val isScopeLinksSheetVisible: StateFlow<Boolean> = _isScopeLinksSheetVisible.asStateFlow()
@@ -195,6 +200,7 @@ class CoreLevelViewModel
                         relatedAttachmentIds =
                             details.relatedAttachments.mapTo(linkedSetOf()) { it.id },
                         groupIds = details.groupIds.toSet(),
+                        parentBeaconId = details.beacon.parentBeaconId,
                         levelStatuses = details.levelStatuses.map { it.toEditorState() },
                         createdAt = details.beacon.createdAt,
                         updatedAt = details.beacon.updatedAt,
@@ -212,9 +218,11 @@ class CoreLevelViewModel
                     editor.id?.let { id ->
                         mainBeaconDetails.value.firstOrNull { it.beacon.id == id }?.beacon
                     }
+                val beaconId = existing?.id ?: editor.id ?: UUID.randomUUID().toString()
+                val parentBeaconId = normalizedParentBeaconId(beaconId, editor.parentBeaconId)
                 val beacon =
                     MainBeacon(
-                        id = existing?.id ?: editor.id ?: UUID.randomUUID().toString(),
+                        id = beaconId,
                         title = title,
                         description = editor.description.trim().ifBlank { null },
                         whyItMatters = editor.whyItMatters.trim().ifBlank { null },
@@ -225,6 +233,7 @@ class CoreLevelViewModel
                         readinessStatus = editor.readinessStatus,
                         blockerText = editor.blockerText.trim().ifBlank { null },
                         nextActionText = editor.nextActionText.trim().ifBlank { null },
+                        parentBeaconId = parentBeaconId,
                         order = existing?.order ?: 0L,
                         updatedAt = now,
                         createdAt = existing?.createdAt ?: now,
@@ -260,6 +269,24 @@ class CoreLevelViewModel
                     )
                 }
             }
+        }
+
+        private fun normalizedParentBeaconId(
+            beaconId: String,
+            requestedParentId: String?,
+        ): String? {
+            val parentId = requestedParentId?.takeIf { it != beaconId }
+            val byId = mainBeaconDetails.value.associateBy { it.beacon.id }
+            var cursor = parentId
+            val visited = mutableSetOf<String>()
+            var createsCycle = parentId == null || parentId !in byId
+            while (cursor != null && visited.add(cursor)) {
+                if (cursor == beaconId) {
+                    createsCycle = true
+                }
+                cursor = byId[cursor]?.beacon?.parentBeaconId
+            }
+            return parentId.takeUnless { createsCycle }
         }
 
         fun createBeaconGroup(
@@ -362,7 +389,13 @@ class CoreLevelViewModel
                 val attachmentId =
                     attachmentsRepository.createLinkAttachment(
                         contextId = SystemContexts.MAIN_BEACONS.raw,
-                        link = RelatedLink(type = LinkType.OBSIDIAN, target = target, displayName = display, vault = vault),
+                        link =
+                            RelatedLink(
+                                type = LinkType.OBSIDIAN,
+                                target = target,
+                                displayName = display,
+                                vault = vault,
+                            ),
                     )
                 addAttachmentLink(attachmentId)
             }
@@ -450,6 +483,21 @@ class CoreLevelViewModel
             }
         }
 
+        fun setGroupExpanded(
+            groupId: String,
+            expanded: Boolean,
+        ) {
+            viewModelScope.launch {
+                val nextCollapsedIds =
+                    if (expanded) {
+                        collapsedGroupIds.value - groupId
+                    } else {
+                        collapsedGroupIds.value + groupId
+                    }
+                settingsRepository.setCoreBeaconCollapsedGroupIds(nextCollapsedIds)
+            }
+        }
+
         private suspend fun updateTags(
             contextId: String,
             addTag: String? = null,
@@ -479,7 +527,13 @@ class CoreLevelViewModel
             if (target.isBlank()) return null
             return attachmentsRepository.createLinkAttachment(
                 contextId = contextId,
-                link = RelatedLink(type = type, target = target, displayName = displayName, vault = vault?.trim()?.ifBlank { null }),
+                link =
+                    RelatedLink(
+                        type = type,
+                        target = target,
+                        displayName = displayName,
+                        vault = vault?.trim()?.ifBlank { null },
+                    ),
             )
         }
     }

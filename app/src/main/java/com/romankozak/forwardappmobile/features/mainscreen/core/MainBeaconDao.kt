@@ -69,6 +69,9 @@ interface MainBeaconDao {
     @Query("SELECT * FROM main_beacons ORDER BY beacon_order ASC, updatedAt DESC, createdAt DESC")
     suspend fun getAllBeaconsSync(): List<MainBeacon>
 
+    @Query("SELECT * FROM main_beacons WHERE id = :beaconId LIMIT 1")
+    suspend fun getBeaconById(beaconId: String): MainBeacon?
+
     @Query("SELECT * FROM main_beacon_groups ORDER BY group_order ASC, title COLLATE NOCASE ASC")
     fun observeGroups(): Flow<List<MainBeaconGroup>>
 
@@ -128,6 +131,13 @@ interface MainBeaconDao {
 
     @Query("UPDATE main_beacons SET beacon_order = :order WHERE id = :beaconId")
     suspend fun updateBeaconOrder(beaconId: String, order: Long)
+
+    @Query("UPDATE main_beacons SET parent_beacon_id = :parentBeaconId, updatedAt = :updatedAt WHERE id = :beaconId")
+    suspend fun updateBeaconParent(
+        beaconId: String,
+        parentBeaconId: String?,
+        updatedAt: Long,
+    )
 
     @Query("UPDATE main_beacon_groups SET group_order = :order WHERE id = :groupId")
     suspend fun updateGroupOrder(groupId: String, order: Long)

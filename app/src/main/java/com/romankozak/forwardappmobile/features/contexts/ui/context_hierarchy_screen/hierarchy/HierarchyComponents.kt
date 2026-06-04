@@ -38,6 +38,8 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,6 +51,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -176,6 +179,9 @@ fun BeaconRootHeaderRow(
     level: Int,
     childCount: Int = 0,
     onClick: () -> Unit = {},
+    onCopyBeacon: (() -> Unit)? = null,
+    onCutBeacon: (() -> Unit)? = null,
+    onPasteBeacon: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     RootHeaderRow(
@@ -186,6 +192,13 @@ fun BeaconRootHeaderRow(
         level = level,
         childCount = childCount,
         onClick = onClick,
+        actionMenu = {
+            BeaconHeaderActionMenu(
+                onCopyBeacon = onCopyBeacon,
+                onCutBeacon = onCutBeacon,
+                onPasteBeacon = onPasteBeacon,
+            )
+        },
         modifier = modifier,
     )
 }
@@ -196,6 +209,7 @@ fun BeaconGroupRootHeaderRow(
     level: Int,
     childCount: Int = 0,
     onClick: () -> Unit = {},
+    onPasteBeacon: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     RootHeaderRow(
@@ -206,6 +220,9 @@ fun BeaconGroupRootHeaderRow(
         level = level,
         childCount = childCount,
         onClick = onClick,
+        actionMenu = {
+            PasteBeaconHeaderActionMenu(onPasteBeacon = onPasteBeacon)
+        },
         modifier = modifier,
     )
 }
@@ -215,6 +232,7 @@ fun NoGroupRootHeaderRow(
     level: Int,
     childCount: Int = 0,
     onClick: () -> Unit = {},
+    onPasteBeacon: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     RootHeaderRow(
@@ -225,6 +243,9 @@ fun NoGroupRootHeaderRow(
         level = level,
         childCount = childCount,
         onClick = onClick,
+        actionMenu = {
+            PasteBeaconHeaderActionMenu(onPasteBeacon = onPasteBeacon)
+        },
         modifier = modifier,
     )
 }
@@ -258,6 +279,7 @@ private fun RootHeaderRow(
     childCount: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    actionMenu: (@Composable () -> Unit)? = null,
 ) {
     val indentation = (level * ROOT_LEVEL_INDENT_DP).dp
     Surface(
@@ -318,6 +340,55 @@ private fun RootHeaderRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+            actionMenu?.invoke()
+        }
+    }
+}
+
+@Composable
+private fun BeaconHeaderActionMenu(
+    onCopyBeacon: (() -> Unit)?,
+    onCutBeacon: (() -> Unit)?,
+    onPasteBeacon: (() -> Unit)?,
+) {
+    HeaderActionMenu(
+        items =
+            listOfNotNull(
+                onCopyBeacon?.let { "Copy" to it },
+                onCutBeacon?.let { "Cut" to it },
+                onPasteBeacon?.let { "Paste here" to it },
+            ),
+    )
+}
+
+@Composable
+private fun PasteBeaconHeaderActionMenu(onPasteBeacon: (() -> Unit)?) {
+    HeaderActionMenu(
+        items = listOfNotNull(onPasteBeacon?.let { "Paste beacon" to it }),
+    )
+}
+
+@Composable
+private fun HeaderActionMenu(items: List<Pair<String, () -> Unit>>) {
+    if (items.isEmpty()) return
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(Icons.Default.MoreVert, contentDescription = "Beacon actions")
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            items.forEach { (label, action) ->
+                DropdownMenuItem(
+                    text = { Text(label) },
+                    onClick = {
+                        expanded = false
+                        action()
+                    },
+                )
+            }
         }
     }
 }
@@ -337,6 +408,7 @@ fun ProjectRow(
     level: Int,
     hasChildren: Boolean,
     childCount: Int,
+    isLinkedAppearance: Boolean = false,
     onProjectClick: (String) -> Unit,
     onProjectFocus: (Context) -> Unit,
     isCurrentlyDragging: Boolean,
@@ -456,6 +528,10 @@ fun ProjectRow(
                         )
                     }
                 }
+                if (isLinkedAppearance) {
+                    LinkAppearanceBadge()
+                    Spacer(modifier = Modifier.width(6.dp))
+                }
                 Text(
                     text = displayName ?: AnnotatedString(project.name),
                     modifier = Modifier.padding(start = 2.dp),
@@ -495,6 +571,7 @@ fun SwipeableProjectRow(
     level: Int,
     hasChildren: Boolean,
     childCount: Int,
+    isLinkedAppearance: Boolean = false,
     onProjectClick: (String) -> Unit,
     onProjectFocus: (Context) -> Unit,
     isCurrentlyDragging: Boolean,
@@ -658,6 +735,7 @@ fun SwipeableProjectRow(
             level = level,
             hasChildren = hasChildren,
             childCount = childCount,
+            isLinkedAppearance = isLinkedAppearance,
             onProjectClick = onProjectClick,
             onProjectFocus = onProjectFocus,
             isCurrentlyDragging = isCurrentlyDragging,
@@ -672,6 +750,22 @@ fun SwipeableProjectRow(
             isSelected = isSelected,
             onToggleSelection = onToggleSelection,
             onStartSelection = onStartSelection,
+        )
+    }
+}
+
+@Composable
+private fun LinkAppearanceBadge() {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.78f),
+        tonalElevation = 0.dp,
+    ) {
+        Text(
+            text = "link",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onTertiaryContainer,
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
         )
     }
 }
@@ -883,6 +977,7 @@ fun HierarchyListItem(
                 level = item.level,
                 hasChildren = hasChildren,
                 childCount = children.size,
+                isLinkedAppearance = item.isLinkedAppearance,
                 onProjectClick = onProjectClick,
                 onProjectFocus = onFocusProject,
                 isCurrentlyDragging = isCurrentlyDragging,

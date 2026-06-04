@@ -16,6 +16,7 @@ data class MainBeaconCardUi(
     val relatedContextIds: List<String>,
     val relatedAttachmentIds: List<String>,
     val groupIds: List<String>,
+    val parentBeaconId: String?,
 )
 
 data class MainBeaconGroupUi(
@@ -44,6 +45,7 @@ data class MainBeaconEditorState(
     val relatedContextIds: Set<String> = emptySet(),
     val relatedAttachmentIds: Set<String> = emptySet(),
     val groupIds: Set<String> = emptySet(),
+    val parentBeaconId: String? = null,
     val levelStatuses: List<MainBeaconLevelEditorState> = emptyList(),
     val createdAt: Long? = null,
     val updatedAt: Long? = null,

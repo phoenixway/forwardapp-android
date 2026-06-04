@@ -9,6 +9,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadi
 data class FlatHierarchyItem(
     val project: Context,
     val level: Int,
+    val isLinkedAppearance: Boolean = false,
 )
 
 data class OrientationHierarchyItem(
@@ -46,6 +47,7 @@ sealed interface OrientationHierarchyNode {
     data class ContextNode(
         val context: Context,
         val linkedBeaconIds: Set<String>,
+        val isLinkedAppearance: Boolean = false,
     ) : OrientationHierarchyNode {
         override val id: String = context.id
         override val title: String = context.name

@@ -122,6 +122,14 @@ sealed interface ContextHierarchyScreenEvent {
 
     data class PasteContextLinksIntoBeacon(val beaconNodeId: String) : ContextHierarchyScreenEvent
 
+    data class CopyBeacon(val beaconNodeId: String) : ContextHierarchyScreenEvent
+
+    data class CutBeacon(val beaconNodeId: String) : ContextHierarchyScreenEvent
+
+    data class PasteBeaconIntoBeacon(val beaconNodeId: String) : ContextHierarchyScreenEvent
+
+    data class PasteBeaconIntoGroup(val groupNodeId: String?) : ContextHierarchyScreenEvent
+
     data class AddContextAppearanceHere(val parentProject: Context) : ContextHierarchyScreenEvent
 
     data class ToggleContextSelection(val projectId: String) : ContextHierarchyScreenEvent

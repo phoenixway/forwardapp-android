@@ -425,6 +425,7 @@ class SettingsRepository
         private val strategicArcConnectionsOrderKey = stringPreferencesKey("strategic_arc_connections_order")
         private val strategicConnectionsOrderKey = stringPreferencesKey("strategic_connections_order")
         private val coreLinkedAttachmentIdsKey = stringSetPreferencesKey("core_linked_attachment_ids")
+        private val coreBeaconCollapsedGroupIdsKey = stringSetPreferencesKey("core_beacon_collapsed_group_ids")
         private val strategicArcLinkedAttachmentIdsKey = stringSetPreferencesKey("strategic_arc_linked_attachment_ids")
         private val strategicLinkedAttachmentIdsKey = stringSetPreferencesKey("strategic_linked_attachment_ids")
         private val dayScopeContextsExpandedKey = booleanPreferencesKey("day_scope_contexts_expanded")
@@ -1042,6 +1043,16 @@ class SettingsRepository
                     }
                 }
 
+        val coreBeaconCollapsedGroupIdsFlow: Flow<Set<String>> =
+            context.dataStore.data
+                .map { preferences ->
+                    try {
+                        preferences[coreBeaconCollapsedGroupIdsKey] ?: emptySet()
+                    } catch (e: ClassCastException) {
+                        parseSet(preferences[stringPreferencesKey(coreBeaconCollapsedGroupIdsKey.name)])
+                    }
+                }
+
         val strategicArcLinkedAttachmentIdsFlow: Flow<Set<String>> =
             context.dataStore.data
                 .map { preferences ->
@@ -1125,6 +1136,12 @@ class SettingsRepository
         suspend fun setCoreLinkedAttachmentIds(ids: Set<String>) {
             context.dataStore.edit { settings ->
                 settings[coreLinkedAttachmentIdsKey] = ids
+            }
+        }
+
+        suspend fun setCoreBeaconCollapsedGroupIds(ids: Set<String>) {
+            context.dataStore.edit { settings ->
+                settings[coreBeaconCollapsedGroupIdsKey] = ids
             }
         }
 

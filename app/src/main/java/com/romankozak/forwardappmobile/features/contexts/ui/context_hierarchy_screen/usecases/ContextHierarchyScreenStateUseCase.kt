@@ -353,6 +353,7 @@ class ProjectHierarchyScreenStateUseCase
                 title = beacon.title,
                 order = beacon.order,
                 readinessStatus = beacon.readinessStatus,
+                parentBeaconId = beacon.parentBeaconId,
                 relatedContexts = relatedContexts,
                 groupIds = groupIds,
             )

@@ -206,8 +206,12 @@ fun FocusedOrientationNodeView(
     val childItems =
         remember(directChildren) {
             directChildren.mapNotNull { item ->
-                (item.node as? OrientationHierarchyNode.ContextNode)?.context?.let { context ->
-                    FlatHierarchyItem(project = context, level = 0)
+                (item.node as? OrientationHierarchyNode.ContextNode)?.let { node ->
+                    FlatHierarchyItem(
+                        project = node.context,
+                        level = 0,
+                        isLinkedAppearance = node.isLinkedAppearance,
+                    )
                 }
             }
         }
@@ -228,17 +232,28 @@ fun FocusedOrientationNodeView(
                             node = node,
                             level = 0,
                             childCount = directChildren.size,
+                            onPasteBeacon = {
+                                onEvent(ContextHierarchyScreenEvent.PasteBeaconIntoGroup(node.id))
+                            },
                         )
                     is OrientationHierarchyNode.Beacon ->
                         BeaconRootHeaderRow(
                             node = node,
                             level = 0,
                             childCount = directChildren.size,
+                            onCopyBeacon = { onEvent(ContextHierarchyScreenEvent.CopyBeacon(node.id)) },
+                            onCutBeacon = { onEvent(ContextHierarchyScreenEvent.CutBeacon(node.id)) },
+                            onPasteBeacon = {
+                                onEvent(ContextHierarchyScreenEvent.PasteBeaconIntoBeacon(node.id))
+                            },
                         )
                     OrientationHierarchyNode.NoGroup ->
                         NoGroupRootHeaderRow(
                             level = 0,
                             childCount = directChildren.size,
+                            onPasteBeacon = {
+                                onEvent(ContextHierarchyScreenEvent.PasteBeaconIntoGroup(null))
+                            },
                         )
                     OrientationHierarchyNode.NoBeacon ->
                         NoBeaconRootHeaderRow(
@@ -259,6 +274,9 @@ fun FocusedOrientationNodeView(
                     level = 0,
                     childCount = directChildrenByNodeId[node.id].orEmpty().size,
                     onClick = { onEvent(ContextHierarchyScreenEvent.OrientationNodeClick(node.id)) },
+                    onCopyBeacon = { onEvent(ContextHierarchyScreenEvent.CopyBeacon(node.id)) },
+                    onCutBeacon = { onEvent(ContextHierarchyScreenEvent.CutBeacon(node.id)) },
+                    onPasteBeacon = { onEvent(ContextHierarchyScreenEvent.PasteBeaconIntoBeacon(node.id)) },
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                 )
             }

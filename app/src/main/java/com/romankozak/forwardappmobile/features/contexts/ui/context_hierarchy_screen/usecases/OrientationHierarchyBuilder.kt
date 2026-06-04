@@ -14,6 +14,7 @@ data class OrientationBeaconInput(
     val title: String,
     val order: Long,
     val readinessStatus: MainBeaconReadinessStatus,
+    val parentBeaconId: String?,
     val relatedContexts: List<Context>,
     val groupIds: List<String>,
 )
@@ -39,6 +40,7 @@ class OrientationHierarchyBuilder
                 beacons.sortedWith(
                     compareBy<OrientationBeaconInput> { it.order }.thenBy { it.title.lowercase() },
                 )
+            val childBeaconsByParentId = sortedBeacons.groupBy { it.parentBeaconId }
             val knownGroupIds = groups.mapTo(hashSetOf()) { it.id }
             val beaconsByGroupId = sortedBeacons.mapNotNull { details ->
                 details.groupIds.firstOrNull { it in knownGroupIds }?.let { groupId -> groupId to details }
@@ -49,6 +51,8 @@ class OrientationHierarchyBuilder
                 .sortedWith(compareBy<MainBeaconGroup> { it.order }.thenBy { it.title.lowercase() })
                 .forEach { group ->
                     val groupBeacons = beaconsByGroupId[group.id].orEmpty()
+                    val groupBeaconIds = groupBeacons.mapTo(hashSetOf()) { it.id }
+                    val rootGroupBeacons = groupBeacons.filter { it.parentBeaconId !in groupBeaconIds }
                     result +=
                         OrientationHierarchyItem(
                             node =
@@ -59,37 +63,43 @@ class OrientationHierarchyBuilder
                                 ),
                             level = 0,
                         )
-                    groupBeacons.forEach { details ->
+                    rootGroupBeacons.forEach { details ->
                         appendBeaconSubtree(
                             details = details,
                             level = 1,
+                            childBeaconsByParentId = childBeaconsByParentId,
                             contextsById = contextsById,
                             additionalChildrenByParentId = additionalChildrenByParentId,
                             additionalParentsByChildId = additionalParentsByChildId,
                             beaconIdsByContextId = beaconIdsByContextId,
                             hierarchy = hierarchy,
                             result = result,
+                            visitedBeaconIds = linkedSetOf(),
                         )
                     }
                 }
 
             val noGroupBeacons = sortedBeacons.filter { details -> details.groupIds.none { it in knownGroupIds } }
             if (noGroupBeacons.isNotEmpty()) {
+                val noGroupBeaconIds = noGroupBeacons.mapTo(hashSetOf()) { it.id }
+                val rootNoGroupBeacons = noGroupBeacons.filter { it.parentBeaconId !in noGroupBeaconIds }
                 result +=
                     OrientationHierarchyItem(
                         node = OrientationHierarchyNode.NoGroup,
                         level = 0,
                     )
-                noGroupBeacons.forEach { details ->
+                rootNoGroupBeacons.forEach { details ->
                     appendBeaconSubtree(
                         details = details,
                         level = 1,
+                        childBeaconsByParentId = childBeaconsByParentId,
                         contextsById = contextsById,
                         additionalChildrenByParentId = additionalChildrenByParentId,
                         additionalParentsByChildId = additionalParentsByChildId,
                         beaconIdsByContextId = beaconIdsByContextId,
                         hierarchy = hierarchy,
                         result = result,
+                        visitedBeaconIds = linkedSetOf(),
                     )
                 }
             }
@@ -115,6 +125,7 @@ class OrientationHierarchyBuilder
                         result = result,
                         visited = linkedSetOf(),
                         skipDirectBeaconLinkedContexts = true,
+                        isLinkedAppearance = false,
                     )
                 }
             }
@@ -125,13 +136,16 @@ class OrientationHierarchyBuilder
         private fun appendBeaconSubtree(
             details: OrientationBeaconInput,
             level: Int,
+            childBeaconsByParentId: Map<String?, List<OrientationBeaconInput>>,
             contextsById: Map<String, Context>,
             additionalChildrenByParentId: Map<String, List<Context>>,
             additionalParentsByChildId: Map<String, List<String>>,
             beaconIdsByContextId: Map<String, Set<String>>,
             hierarchy: ContextHierarchyData,
             result: MutableList<OrientationHierarchyItem>,
+            visitedBeaconIds: LinkedHashSet<String>,
         ) {
+            if (!visitedBeaconIds.add(details.id)) return
             result +=
                 OrientationHierarchyItem(
                     node =
@@ -143,6 +157,22 @@ class OrientationHierarchyBuilder
                         ),
                     level = level,
                 )
+
+            childBeaconsByParentId[details.id].orEmpty()
+                .forEach { child ->
+                    appendBeaconSubtree(
+                        details = child,
+                        level = level + 1,
+                        childBeaconsByParentId = childBeaconsByParentId,
+                        contextsById = contextsById,
+                        additionalChildrenByParentId = additionalChildrenByParentId,
+                        additionalParentsByChildId = additionalParentsByChildId,
+                        beaconIdsByContextId = beaconIdsByContextId,
+                        hierarchy = hierarchy,
+                        result = result,
+                        visitedBeaconIds = LinkedHashSet(visitedBeaconIds),
+                    )
+                }
 
             val linkedIdsForBeacon = details.relatedContexts.mapTo(linkedSetOf()) { it.id }
             val entryPoints =
@@ -170,6 +200,7 @@ class OrientationHierarchyBuilder
                     result = result,
                     visited = linkedSetOf(),
                     skipDirectBeaconLinkedContexts = false,
+                    isLinkedAppearance = true,
                 )
             }
         }
@@ -193,6 +224,7 @@ class OrientationHierarchyBuilder
             result: MutableList<OrientationHierarchyItem>,
             visited: LinkedHashSet<String>,
             skipDirectBeaconLinkedContexts: Boolean,
+            isLinkedAppearance: Boolean,
         ) {
             if (!visited.add(context.id)) return
             if (skipDirectBeaconLinkedContexts && beaconIdsByContextId.containsKey(context.id)) return
@@ -203,6 +235,7 @@ class OrientationHierarchyBuilder
                         OrientationHierarchyNode.ContextNode(
                             context = context,
                             linkedBeaconIds = beaconIdsByContextId[context.id].orEmpty(),
+                            isLinkedAppearance = isLinkedAppearance,
                         ),
                     level = level,
                 )
@@ -214,7 +247,7 @@ class OrientationHierarchyBuilder
                     .orEmpty()
                     .filterNot { it.id in canonicalChildIds }
 
-            (canonicalChildren.sortedWith(contextSort()) + additionalChildren)
+            canonicalChildren.sortedWith(contextSort())
                 .forEach { child ->
                     appendContextSubtree(
                         context = child,
@@ -225,8 +258,23 @@ class OrientationHierarchyBuilder
                         result = result,
                         visited = LinkedHashSet(visited),
                         skipDirectBeaconLinkedContexts = skipDirectBeaconLinkedContexts,
+                        isLinkedAppearance = false,
                     )
                 }
+
+            additionalChildren.forEach { child ->
+                appendContextSubtree(
+                    context = child,
+                    level = level + 1,
+                    hierarchy = hierarchy,
+                    additionalChildrenByParentId = additionalChildrenByParentId,
+                    beaconIdsByContextId = beaconIdsByContextId,
+                    result = result,
+                    visited = LinkedHashSet(visited),
+                    skipDirectBeaconLinkedContexts = skipDirectBeaconLinkedContexts,
+                    isLinkedAppearance = true,
+                )
+            }
         }
 
         private fun hasAncestorInSet(
