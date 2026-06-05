@@ -42,9 +42,13 @@ class OrientationHierarchyBuilder
                 )
             val childBeaconsByParentId = sortedBeacons.groupBy { it.parentBeaconId }
             val knownGroupIds = groups.mapTo(hashSetOf()) { it.id }
-            val beaconsByGroupId = sortedBeacons.mapNotNull { details ->
-                details.groupIds.firstOrNull { it in knownGroupIds }?.let { groupId -> groupId to details }
-            }
+            val beaconsByGroupId =
+                sortedBeacons
+                    .flatMap { details ->
+                        details.groupIds
+                            .filter { it in knownGroupIds }
+                            .map { groupId -> groupId to details }
+                    }
                 .groupBy(keySelector = { it.first }, valueTransform = { it.second })
 
             groups
@@ -200,7 +204,7 @@ class OrientationHierarchyBuilder
                     result = result,
                     visited = linkedSetOf(),
                     skipDirectBeaconLinkedContexts = false,
-                    isLinkedAppearance = true,
+                    isLinkedAppearance = false,
                 )
             }
         }

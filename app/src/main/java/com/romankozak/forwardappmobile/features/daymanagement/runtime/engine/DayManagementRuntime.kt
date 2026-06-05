@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.features.daymanagement.runtime.domain.Day
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.domain.DayManagementRuntimeEvent
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.domain.DayManagementRuntimeEventType
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.domain.DayManagementRuntimeState
+import com.romankozak.forwardappmobile.features.daymanagement.utils.DayManagementUtils
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -24,6 +25,7 @@ class DayManagementRuntime
                 is DayManagementRuntimeCommand.FinalizePlan -> finalizePlan(state, command.now)
                 is DayManagementRuntimeCommand.ActivatePhase -> activatePhase(state, command.phase, command.now)
                 is DayManagementRuntimeCommand.Sleep -> sleep(state, command.now)
+                is DayManagementRuntimeCommand.AutoCloseStaleOpenDay -> autoCloseStaleOpenDay(state, command.now)
             }
 
         private fun wakeUp(now: Long): DayManagementRuntimeDecision {
@@ -162,6 +164,50 @@ class DayManagementRuntime
                         DayManagementRuntimeEvent(
                             type = DayManagementRuntimeEventType.WENT_TO_SLEEP,
                             timestamp = now,
+                        ),
+                    ),
+            )
+        }
+
+        private fun autoCloseStaleOpenDay(
+            state: DayManagementRuntimeState,
+            now: Long,
+        ): DayManagementRuntimeDecision {
+            if (!state.hasOpenOperationalDay) {
+                return DayManagementRuntimeDecision(
+                    newState = state,
+                    events = emptyList(),
+                )
+            }
+
+            val anchor = state.calendarAnchorDate ?: state.wokeAt ?: return DayManagementRuntimeDecision(state, emptyList())
+            val anchorDayStart = DayManagementUtils.getDayStart(anchor)
+            val todayStart = DayManagementUtils.getDayStart(now)
+            if (anchorDayStart >= todayStart) {
+                return DayManagementRuntimeDecision(
+                    newState = state,
+                    events = emptyList(),
+                )
+            }
+
+            val autoSleepAt = DayManagementUtils.getDayEnd(anchor)
+            val newState =
+                state.copy(
+                    sleepAt = autoSleepAt,
+                    currentPhase = DayManagementPhase.CLOSED,
+                    phaseStartedAt = autoSleepAt,
+                    activeAlarmIds = emptySet(),
+                    riskFlags = emptySet(),
+                    updatedAt = now,
+                )
+            return DayManagementRuntimeDecision(
+                newState = newState,
+                events =
+                    listOf(
+                        DayManagementRuntimeEvent(
+                            type = DayManagementRuntimeEventType.AUTO_CLOSED_STALE_DAY,
+                            timestamp = autoSleepAt,
+                            payload = mapOf("closedAtRuntime" to now.toString()),
                         ),
                     ),
             )

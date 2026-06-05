@@ -1212,3 +1212,11 @@ val MIGRATION_128_129 =
             )
         }
     }
+
+val MIGRATION_129_130 =
+    object : Migration(129, 130) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE recurring_tasks ADD COLUMN linkedProjectIds TEXT")
+            db.execSQL("ALTER TABLE recurring_tasks ADD COLUMN linkedAttachmentIds TEXT")
+        }
+    }

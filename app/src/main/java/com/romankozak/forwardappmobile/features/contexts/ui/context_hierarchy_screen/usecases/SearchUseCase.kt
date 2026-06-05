@@ -238,6 +238,21 @@ class SearchUseCase
             }
         }
 
+        fun navigateToProjectWithBreadcrumbs(
+            projectId: String,
+            breadcrumbs: List<BreadcrumbItem>,
+        ) {
+            scope.launch {
+                val targetProject = contextRepository.getContextById(projectId)
+                targetProject?.let { recentItemsRepository.logProjectAccess(it) }
+                currentBreadcrumbs.value =
+                    breadcrumbs.mapIndexed { index, breadcrumb ->
+                        breadcrumb.copy(level = index)
+                    }
+                focusedProjectId.value = projectId
+            }
+        }
+
         fun navigateToBreadcrumb(breadcrumbItem: BreadcrumbItem) {
             currentBreadcrumbs.update { it.take(breadcrumbItem.level + 1) }
             when (breadcrumbItem.target) {

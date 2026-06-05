@@ -44,9 +44,11 @@ fun DayManagementScreen(
     val screenLogTag = "NAV_DEBUG"
 
     val uiState by viewModel.uiState.collectAsState()
+    val runtimeUiState by runtimeViewModel.uiState.collectAsState()
+    val runtimeDefaultTodayTab = defaultTodayTabForRuntimeState(runtimeUiState.runtimeState)
     val requestedStartTab =
-        remember(startTab, currentDayManagementTab) {
-            currentDayManagementTab ?: DayManagementTab.fromRouteValue(startTab) ?: DayManagementTab.DAY_PLAN
+        remember(startTab, currentDayManagementTab, runtimeDefaultTodayTab) {
+            currentDayManagementTab ?: DayManagementTab.fromRouteValue(startTab) ?: runtimeDefaultTodayTab
         }
     val tabs =
         remember(requestedStartTab) {

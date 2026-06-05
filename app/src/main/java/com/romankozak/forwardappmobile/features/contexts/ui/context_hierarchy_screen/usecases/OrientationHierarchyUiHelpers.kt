@@ -33,6 +33,49 @@ internal fun buildOrientationBreadcrumbs(
     }
 }
 
+internal fun buildOrientationBreadcrumbsToContext(
+    items: List<OrientationHierarchyItem>,
+    contextId: String,
+): List<BreadcrumbItem> {
+    val nodeIndex =
+        items.indexOfFirst { item ->
+            (item.node as? OrientationHierarchyNode.ContextNode)?.context?.id == contextId
+        }
+    if (nodeIndex == -1) return emptyList()
+    return buildDisplayedOrientationBreadcrumbs(items, nodeIndex)
+}
+
+private fun buildDisplayedOrientationBreadcrumbs(
+    items: List<OrientationHierarchyItem>,
+    nodeIndex: Int,
+): List<BreadcrumbItem> {
+    val targetItem = items[nodeIndex]
+    val ancestors = ArrayDeque<OrientationHierarchyItem>()
+    var expectedLevel = targetItem.level - 1
+    for (index in nodeIndex - 1 downTo 0) {
+        val item = items[index]
+        if (item.level == expectedLevel) {
+            ancestors.addFirst(item)
+            expectedLevel--
+        }
+        if (expectedLevel < 0) break
+    }
+    return (ancestors + targetItem).mapIndexed { index, item ->
+        val contextNode = item.node as? OrientationHierarchyNode.ContextNode
+        BreadcrumbItem(
+            id = contextNode?.context?.id ?: item.node.id,
+            name = item.node.title,
+            level = index,
+            target =
+                if (contextNode == null) {
+                    BreadcrumbTarget.OrientationNode
+                } else {
+                    BreadcrumbTarget.Context
+                },
+        )
+    }
+}
+
 internal fun buildDirectChildrenByOrientationNodeId(
     items: List<OrientationHierarchyItem>,
 ): Map<String, List<OrientationHierarchyItem>> {

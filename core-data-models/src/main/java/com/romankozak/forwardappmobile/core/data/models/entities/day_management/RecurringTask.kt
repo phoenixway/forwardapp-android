@@ -19,6 +19,10 @@ data class RecurringTask(
     val description: String?,
     @SerializedName("goalId")
     val goalId: String? = null,
+    @SerializedName("linkedProjectIds")
+    val linkedProjectIds: List<String>? = emptyList(),
+    @SerializedName("linkedAttachmentIds")
+    val linkedAttachmentIds: List<String>? = emptyList(),
     @SerializedName("duration")
     val duration: Int?,
     @SerializedName("priority")

@@ -7,6 +7,8 @@ data class RecurringTaskSnapshot(
     @SerializedName("title") val title: String,
     @SerializedName("description") val description: String?,
     @SerializedName("goalId") val goalId: String?,
+    @SerializedName("linkedProjectIds") val linkedProjectIds: List<String>?,
+    @SerializedName("linkedAttachmentIds") val linkedAttachmentIds: List<String>?,
     @SerializedName("duration") val duration: Int?,
     @SerializedName("priority") val priority: String,
     @SerializedName("points") val points: Int,

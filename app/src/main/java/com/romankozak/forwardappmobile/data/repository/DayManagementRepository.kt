@@ -93,6 +93,8 @@ class DayManagementRepository
             val executionStrictness: TaskExecutionStrictness,
             val points: Int,
             val taskType: String,
+            val linkedProjectIds: List<String>,
+            val linkedAttachmentIds: List<String>,
         )
 
         data class AddRecurringTaskParams(
@@ -110,6 +112,8 @@ class DayManagementRepository
             val executionStrictness: TaskExecutionStrictness = TaskExecutionStrictness.NORMAL,
             val points: Int = 0,
             val order: Long? = null,
+            val linkedProjectIds: List<String>? = null,
+            val linkedAttachmentIds: List<String>? = null,
         )
 
         data class UpdateTaskParams(
@@ -278,6 +282,8 @@ class DayManagementRepository
                         title = params.title,
                         description = params.description,
                         goalId = params.goalId,
+                        linkedProjectIds = params.linkedProjectIds?.distinct().orEmpty(),
+                        linkedAttachmentIds = params.linkedAttachmentIds?.distinct().orEmpty(),
                         duration = params.duration?.toInt(),
                         priority = params.priority,
                         points = params.points,
@@ -301,6 +307,8 @@ class DayManagementRepository
                         taskType = resolvedTaskType,
                         points = params.points,
                         order = params.order,
+                        linkedProjectIds = params.linkedProjectIds,
+                        linkedAttachmentIds = params.linkedAttachmentIds,
                     )
                 val dayTask =
                     addTaskToDayPlan(taskParams).copy(
@@ -828,6 +836,8 @@ class DayManagementRepository
                         executionStrictness = templateData.executionStrictness,
                         taskType = templateData.taskType,
                         points = templateData.points,
+                        linkedProjectIds = templateData.linkedProjectIds,
+                        linkedAttachmentIds = templateData.linkedAttachmentIds,
                     ),
             )
         }
@@ -845,6 +855,19 @@ class DayManagementRepository
                 templateTask?.estimatedDurationMinutes ?: recurringTask.duration?.toLong()
             val dueTime = templateTask?.dueTime
             val executionStrictness = templateTask?.executionStrictness ?: TaskExecutionStrictness.NORMAL
+            val linkedProjectIds =
+                recurringTask.linkedProjectIds
+                    ?.takeIf { it.isNotEmpty() }
+                    ?: templateTask?.linkedProjectIds.orEmpty()
+            val linkedAttachmentIds =
+                recurringTask.linkedAttachmentIds
+                    ?.takeIf { it.isNotEmpty() }
+                    ?: templateTask?.linkedAttachmentIds.orEmpty()
+            persistRecurringLinksFromTemplateIfMissing(
+                recurringTask = recurringTask,
+                linkedProjectIds = linkedProjectIds,
+                linkedAttachmentIds = linkedAttachmentIds,
+            )
 
             val titleData =
                 if (templateGoalId != null) {
@@ -879,6 +902,39 @@ class DayManagementRepository
                 executionStrictness = executionStrictness,
                 points = points,
                 taskType = resolvedTaskType,
+                linkedProjectIds = linkedProjectIds.distinct(),
+                linkedAttachmentIds = linkedAttachmentIds.distinct(),
+            )
+        }
+
+        private suspend fun persistRecurringLinksFromTemplateIfMissing(
+            recurringTask: RecurringTask,
+            linkedProjectIds: List<String>,
+            linkedAttachmentIds: List<String>,
+        ) {
+            val hasRecurringProjectLinks = !recurringTask.linkedProjectIds.isNullOrEmpty()
+            val hasRecurringAttachmentLinks = !recurringTask.linkedAttachmentIds.isNullOrEmpty()
+            if ((hasRecurringProjectLinks || linkedProjectIds.isEmpty()) &&
+                (hasRecurringAttachmentLinks || linkedAttachmentIds.isEmpty())
+            ) {
+                return
+            }
+
+            recurringTaskDao.update(
+                recurringTask.copy(
+                    linkedProjectIds =
+                        if (hasRecurringProjectLinks) {
+                            recurringTask.linkedProjectIds
+                        } else {
+                            linkedProjectIds.distinct()
+                        },
+                    linkedAttachmentIds =
+                        if (hasRecurringAttachmentLinks) {
+                            recurringTask.linkedAttachmentIds
+                        } else {
+                            linkedAttachmentIds.distinct()
+                        },
+                ),
             )
         }
 

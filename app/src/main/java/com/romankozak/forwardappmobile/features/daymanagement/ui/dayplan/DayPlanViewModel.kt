@@ -756,6 +756,7 @@ class DayPlanViewModel
                                 executionStrictness = strictness,
                                 points = points,
                                 order = topOrder,
+                                linkedProjectIds = linkedProjectIds,
                             ),
                         )
                     } else {
@@ -832,6 +833,7 @@ class DayPlanViewModel
                             dayPlanId = dayPlanId,
                             goalId = goalId,
                             projectId = projectId,
+                            linkedProjectIds = projectId?.let(::listOf),
                         ),
                     )
                 } catch (e: Exception) {

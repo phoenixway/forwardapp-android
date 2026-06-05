@@ -15,6 +15,7 @@ enum class DayManagementRuntimeEventType {
     PLAN_FINALIZED,
     PHASE_ACTIVATED,
     WENT_TO_SLEEP,
+    AUTO_CLOSED_STALE_DAY,
 }
 
 data class DayManagementRuntimeState(
@@ -49,6 +50,8 @@ sealed interface DayManagementRuntimeCommand {
     ) : DayManagementRuntimeCommand
 
     data class Sleep(val now: Long) : DayManagementRuntimeCommand
+
+    data class AutoCloseStaleOpenDay(val now: Long) : DayManagementRuntimeCommand
 }
 
 data class DayManagementRuntimeEvent(

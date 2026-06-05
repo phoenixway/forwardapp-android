@@ -43,17 +43,49 @@ class HierarchyFocusCoordinator
             currentBreadcrumbs: List<BreadcrumbItem>,
             orientationHierarchy: List<OrientationHierarchyItem>,
         ) {
-            searchUseCase.navigateToProject(
-                projectId = context.id,
+            revealContext(
+                context = context,
                 currentHierarchy = currentHierarchy,
-                breadcrumbPrefix =
-                    currentOrientationBreadcrumbPrefix(
-                        currentSubState = currentSubState,
-                        currentBreadcrumbs = currentBreadcrumbs,
-                        orientationHierarchy = orientationHierarchy,
-                    ),
+                currentSubState = currentSubState,
+                currentBreadcrumbs = currentBreadcrumbs,
+                orientationHierarchy = orientationHierarchy,
+                enterFocus = true,
             )
-            searchUseCase.enterProjectFocus(context.id)
+        }
+
+        fun revealContext(
+            context: Context,
+            currentHierarchy: ContextHierarchyData,
+            currentSubState: MainSubState,
+            currentBreadcrumbs: List<BreadcrumbItem>,
+            orientationHierarchy: List<OrientationHierarchyItem>,
+            enterFocus: Boolean,
+        ) {
+            val orientationBreadcrumbs =
+                buildOrientationBreadcrumbsToContext(
+                    items = orientationHierarchy,
+                    contextId = context.id,
+                )
+            if (orientationBreadcrumbs.isNotEmpty()) {
+                searchUseCase.navigateToProjectWithBreadcrumbs(
+                    projectId = context.id,
+                    breadcrumbs = orientationBreadcrumbs,
+                )
+            } else {
+                searchUseCase.navigateToProject(
+                    projectId = context.id,
+                    currentHierarchy = currentHierarchy,
+                    breadcrumbPrefix =
+                        currentOrientationBreadcrumbPrefix(
+                            currentSubState = currentSubState,
+                            currentBreadcrumbs = currentBreadcrumbs,
+                            orientationHierarchy = orientationHierarchy,
+                        ),
+                )
+            }
+            if (enterFocus) {
+                searchUseCase.enterProjectFocus(context.id)
+            }
         }
 
         fun handleBackNavigation(

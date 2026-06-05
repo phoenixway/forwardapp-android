@@ -102,22 +102,17 @@ class ListItemRepository
                 listItemDao.updateItems(bumped)
                 // Пишемо порядок у backlog_orders як канонічний
                 val orders =
-                    bumped.mapNotNull { bi ->
-                        val entityId = bi.entityId
-                        if (entityId == null) {
-                            null
-                        } else {
-                            BacklogOrder(
-                                id = bi.id,
-                                listId = bi.contextId,
-                                itemId = entityId,
-                                order = bi.order,
-                                orderVersion = bi.version,
-                                updatedAt = bi.updatedAt,
-                                syncedAt = bi.syncedAt,
-                                isDeleted = bi.isDeleted,
-                            )
-                        }
+                    bumped.map { bi ->
+                        BacklogOrder(
+                            id = bi.id,
+                            listId = bi.contextId,
+                            itemId = bi.entityId,
+                            order = bi.order,
+                            orderVersion = bi.version,
+                            updatedAt = bi.updatedAt,
+                            syncedAt = bi.syncedAt,
+                            isDeleted = bi.isDeleted,
+                        )
                     }
                 backlogOrderRepository.upsertOrders(orders)
             }
@@ -126,7 +121,7 @@ class ListItemRepository
         suspend fun doesLinkExist(
             entityId: String,
             contextId: String,
-        ): Boolean = listItemDao.getLinkCount(entityId, contextId) > 0
+        ): Boolean = listItemDao.getLinkCount(entityId, contextId, BacklogItemTypeValues.SUBLIST) > 0
 
         suspend fun deleteLinkByEntityIdAndContextId(
             entityId: String,

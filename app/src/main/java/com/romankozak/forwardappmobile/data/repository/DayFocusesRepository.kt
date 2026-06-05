@@ -16,6 +16,12 @@ class DayFocusesRepository
     ) {
         fun getItemsForDayPlan(dayPlanId: String): Flow<List<DayFocusItem>> = dayFocusItemDao.getItemsForDayPlan(dayPlanId)
 
+        suspend fun nextOrderForDayPlan(dayPlanId: String): Long =
+            dayFocusItemDao.getItemsForDayPlanSync(dayPlanId)
+                .filterNot { it.isDeleted }
+                .size
+                .toLong()
+
         suspend fun addItem(
             dayPlanId: String,
             title: String,

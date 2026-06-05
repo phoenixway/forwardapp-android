@@ -32,10 +32,19 @@ interface ListItemDao {
     @Query("SELECT * FROM list_items")
     suspend fun getAll(): List<BacklogItem>
 
-    @Query("SELECT COUNT(*) FROM list_items WHERE entityId = :entityId AND context_id = :contextId")
+    @Query(
+        """
+        SELECT COUNT(*) FROM list_items
+        WHERE entityId = :entityId
+          AND context_id = :contextId
+          AND itemType = :itemType
+          AND is_deleted = 0
+        """,
+    )
     suspend fun getLinkCount(
         entityId: String,
         contextId: String,
+        itemType: String,
     ): Int
 
     @Query(

@@ -69,6 +69,7 @@ import com.romankozak.forwardappmobile.features.daymanagement.runtime.presentati
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementTab
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementViewModel
+import com.romankozak.forwardappmobile.features.daymanagement.ui.defaultTodayTabForRuntimeState
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayfocus.DayFocusesViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.CoreBottomPanel
@@ -170,6 +171,7 @@ fun MainScreenLayout(
     val dayFocusesViewModel: DayFocusesViewModel = hiltViewModel()
     val dayManagementUiState by dayManagementViewModel.uiState.collectAsStateWithLifecycle()
     val dayManagementRuntimeUiState by dayManagementRuntimeViewModel.uiState.collectAsStateWithLifecycle()
+    val defaultTodayTab = defaultTodayTabForRuntimeState(dayManagementRuntimeUiState.runtimeState)
     val context = LocalContext.current
     val userAwarenessViewModel: UserAwarenessViewModel = hiltViewModel()
     val aiInsightsViewModel: AiInsightsViewModel = hiltViewModel()
@@ -178,6 +180,12 @@ fun MainScreenLayout(
     val tacticalObsidianVaultName by tacticalMissionViewModel.obsidianVaultName.collectAsStateWithLifecycle()
     val activeUserAwarenessState by userAwarenessViewModel.activeState.collectAsStateWithLifecycle()
     val sessionModeState by commandDeckViewModel.sessionModeState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(currentRoute, defaultTodayTab) {
+        if (currentRoute == MAIN_SCREEN_TODAY_ROUTE && dayManagementUiState.selectedTab != defaultTodayTab) {
+            dayManagementViewModel.selectTab(defaultTodayTab)
+        }
+    }
     val latestSessionReason by commandDeckViewModel.latestSessionReason.collectAsStateWithLifecycle()
     var isSessionModeCardExpanded by remember { mutableStateOf(commandDeckViewModel.isSessionModeCardExpanded()) }
     var showAboutDialog by remember { mutableStateOf(false) }
@@ -368,6 +376,7 @@ fun MainScreenLayout(
                     dayManagementViewModel = dayManagementViewModel,
                     dayManagementRuntimeViewModel = dayManagementRuntimeViewModel,
                     dayManagementRuntimeUiState = dayManagementRuntimeUiState,
+                    defaultTodayTab = defaultTodayTab,
                     dayPlanViewModel = dayPlanViewModel,
                     activityTrackerViewModel = activityTrackerViewModel,
                     dayFocusesViewModel = dayFocusesViewModel,
@@ -414,6 +423,7 @@ fun MainScreenLayout(
                     tacticalObsidianVaultName = tacticalObsidianVaultName,
                     dayManagementViewModel = dayManagementViewModel,
                     currentDayManagementTab = dayManagementUiState.selectedTab,
+                    defaultTodayTab = defaultTodayTab,
                     dayManagementRuntimeViewModel = dayManagementRuntimeViewModel,
                     dayPlanViewModel = dayPlanViewModel,
                     activityTrackerViewModel = activityTrackerViewModel,
@@ -582,6 +592,7 @@ private fun MainScreenBottomBar(
     dayManagementViewModel: DayManagementViewModel,
     dayManagementRuntimeViewModel: DayManagementRuntimeViewModel,
     dayManagementRuntimeUiState: DayManagementRuntimeUiState,
+    defaultTodayTab: DayManagementTab,
     dayPlanViewModel: DayPlanViewModel,
     activityTrackerViewModel: ActivityTrackerViewModel,
     dayFocusesViewModel: DayFocusesViewModel,
@@ -649,7 +660,7 @@ private fun MainScreenBottomBar(
                 currentTab =
                     dayManagementUiState.selectedTab
                         .takeIf { it in DayManagementTab.todaySubTabs() }
-                        ?: DayManagementTab.DAY_PLAN,
+                        ?: defaultTodayTab,
                 onSelectTodayTab = dayManagementViewModel::selectTab,
                 runtimeUiState = dayManagementRuntimeUiState,
                 onWakeUp = dayManagementRuntimeViewModel::wakeUp,
@@ -819,6 +830,7 @@ private fun MainScreenPagerContent(
     tacticalObsidianVaultName: String,
     dayManagementViewModel: DayManagementViewModel,
     currentDayManagementTab: DayManagementTab,
+    defaultTodayTab: DayManagementTab,
     dayManagementRuntimeViewModel: DayManagementRuntimeViewModel,
     dayPlanViewModel: DayPlanViewModel,
     activityTrackerViewModel: ActivityTrackerViewModel,
@@ -1023,7 +1035,7 @@ private fun MainScreenPagerContent(
                     currentDayManagementTab =
                         currentDayManagementTab
                             .takeIf { it in DayManagementTab.todaySubTabs() }
-                            ?: DayManagementTab.DAY_PLAN,
+                            ?: defaultTodayTab,
                     showFabMenu = false,
                 )
         }

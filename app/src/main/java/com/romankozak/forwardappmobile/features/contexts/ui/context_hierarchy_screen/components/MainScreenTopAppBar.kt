@@ -46,7 +46,7 @@ fun ProjectHierarchyScreenTopAppBar(
             )
         }
         Text(
-            text = if (isSelectionMode) "Вибрано: $selectedCount" else "Context Hierarchy",
+            text = if (isSelectionMode) "Вибрано: $selectedCount" else "Orientation Hierarchy",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),

@@ -214,7 +214,7 @@ class EnhancedNavigationManager(
                 NavigationEntry(
                     type = NavigationType.PROJECT_HIERARCHY_SCREEN,
                     id = "main",
-                    title = titleOverride ?: "Contexts",
+                    title = titleOverride ?: "Orientations",
                     route = NavigationRoutes.GOAL_LISTS,
                 )
 

@@ -191,6 +191,7 @@ fun BeaconRootHeaderRow(
         tint = readinessTint(node.readinessStatus),
         level = level,
         childCount = childCount,
+        showChildCountBadge = false,
         onClick = onClick,
         actionMenu = {
             BeaconHeaderActionMenu(
@@ -277,6 +278,7 @@ private fun RootHeaderRow(
     tint: Color,
     level: Int,
     childCount: Int,
+    showChildCountBadge: Boolean = true,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     actionMenu: (@Composable () -> Unit)? = null,
@@ -310,7 +312,7 @@ private fun RootHeaderRow(
                     modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
                 )
             }
-            if (childCount > 0) {
+            if (showChildCountBadge && childCount > 0) {
                 Surface(
                     shape = RoundedCornerShape(999.dp),
                     color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.72f),
@@ -489,11 +491,7 @@ fun ProjectRow(
                                 if (isSelectionMode) {
                                     onToggleSelection?.invoke(project.id)
                                 } else {
-                                    if (hasChildren) {
-                                        onProjectFocus(project)
-                                    } else {
-                                        onProjectClick(project.id)
-                                    }
+                                    onProjectFocus(project)
                                 }
                             },
                             onLongClick = {

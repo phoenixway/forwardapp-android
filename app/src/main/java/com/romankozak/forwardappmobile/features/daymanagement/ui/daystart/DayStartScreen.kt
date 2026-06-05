@@ -127,25 +127,33 @@ private fun RuntimeStatusCard(
                 text = "Поточна фаза: ${runtimeState.currentPhase.title()}",
                 style = MaterialTheme.typography.titleSmall,
             )
-            StatusLine(
-                title = "Пробудження",
-                value = runtimeState.wokeAt?.let(::formatTimestamp) ?: "Ще не зафіксоване",
-            )
-            StatusLine(
-                title = "Фокус дня",
-                value = runtimeState.dayFocusFinalizedAt?.let(::formatTimestamp) ?: "Ще не зафіксований",
-            )
-            StatusLine(
-                title = "План дня",
-                value = runtimeState.dayPlanFinalizedAt?.let(::formatTimestamp) ?: "Ще не зафіксований",
-            )
-            Text(
-                text = "Фази дня",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            phaseItems.forEach { item ->
-                PhaseDurationRow(item = item, now = now)
+            if (!runtimeState.hasOpenOperationalDay) {
+                Text(
+                    text = "Поточний день ще не розпочато.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                StatusLine(
+                    title = "Пробудження",
+                    value = runtimeState.wokeAt?.let(::formatTimestamp) ?: "Ще не зафіксоване",
+                )
+                StatusLine(
+                    title = "Фокус дня",
+                    value = runtimeState.dayFocusFinalizedAt?.let(::formatTimestamp) ?: "Ще не зафіксований",
+                )
+                StatusLine(
+                    title = "План дня",
+                    value = runtimeState.dayPlanFinalizedAt?.let(::formatTimestamp) ?: "Ще не зафіксований",
+                )
+                Text(
+                    text = "Фази дня",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                phaseItems.forEach { item ->
+                    PhaseDurationRow(item = item, now = now)
+                }
             }
         }
     }

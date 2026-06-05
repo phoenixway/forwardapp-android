@@ -40,6 +40,10 @@ class DayManagementRuntimeViewModel
                     initialValue = DayManagementRuntimeUiState(),
                 )
 
+        init {
+            launchCommand(DayManagementRuntimeCommand.AutoCloseStaleOpenDay(now()))
+        }
+
         fun wakeUp() {
             launchCommand(DayManagementRuntimeCommand.WakeUp(now()))
         }

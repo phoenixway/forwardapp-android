@@ -14,8 +14,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -53,6 +56,7 @@ fun FocusedProjectView(
     longDescendantsMap: Map<String, Boolean>,
     isSelectionMode: Boolean,
     selectedContextIds: Set<String>,
+    clipboardContextIds: Set<String>,
     onEvent: (ContextHierarchyScreenEvent) -> Unit,
     onToggleSelection: (String) -> Unit,
     onStartSelection: (String) -> Unit,
@@ -67,6 +71,8 @@ fun FocusedProjectView(
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
     val focusedProject = hierarchy.allProjects.find { it.id == focusedProjectId }
+    val canPasteIntoFocusedProject =
+        clipboardContextIds.isNotEmpty() && focusedProjectId !in clipboardContextIds
     val children =
         remember(directChildrenByNodeId, focusedProjectId, displayChildMap) {
             directChildrenByNodeId[focusedProjectId].orEmpty()
@@ -148,6 +154,23 @@ fun FocusedProjectView(
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
+                            if (canPasteIntoFocusedProject) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Button(
+                                    onClick = {
+                                        onEvent(ContextHierarchyScreenEvent.PasteContextLink(focusedProject))
+                                    },
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.ContentPaste,
+                                        contentDescription = null,
+                                    )
+                                    Text(
+                                        text = "Вставити сюди",
+                                        modifier = Modifier.padding(start = 8.dp),
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -213,7 +236,7 @@ fun FocusedOrientationNodeView(
                         isLinkedAppearance = node.isLinkedAppearance,
                     )
                 }
-            }
+            }.distinctBy { it.project.id }
         }
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -265,9 +288,12 @@ fun FocusedOrientationNodeView(
             }
         }
 
-        val beaconChildren = directChildren.filter { it.node is OrientationHierarchyNode.Beacon }
+        val beaconChildren =
+            directChildren
+                .filter { it.node is OrientationHierarchyNode.Beacon }
+                .distinctBy { it.node.id }
         if (beaconChildren.isNotEmpty()) {
-            items(beaconChildren, key = { "beacon-${it.node.id}" }) { item ->
+            itemsIndexed(beaconChildren, key = { index, item -> "beacon-${item.node.id}-$index" }) { _, item ->
                 val node = item.node as OrientationHierarchyNode.Beacon
                 BeaconRootHeaderRow(
                     node = node,
@@ -283,7 +309,7 @@ fun FocusedOrientationNodeView(
         }
 
         if (childItems.isNotEmpty()) {
-            items(childItems, key = { it.project.id }) { item ->
+            itemsIndexed(childItems, key = { index, item -> "context-${item.project.id}-$index" }) { _, item ->
                 HierarchyListItem(
                     item = item,
                     childMap = displayChildMap,

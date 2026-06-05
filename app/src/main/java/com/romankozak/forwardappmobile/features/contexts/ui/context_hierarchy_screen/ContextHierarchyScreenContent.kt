@@ -212,6 +212,7 @@ fun ProjectHierarchyScreenContent(
                     listState = listState,
                     longDescendantsMap = uiState.longDescendantsMap,
                     selectedContextIds = uiState.selectedContextIds,
+                    clipboardContextIds = uiState.clipboardContextIds,
                     isSelectionMode = uiState.isSelectionMode,
                     onEvent = onEvent,
                     sharedTransitionScope = sharedTransitionScope,

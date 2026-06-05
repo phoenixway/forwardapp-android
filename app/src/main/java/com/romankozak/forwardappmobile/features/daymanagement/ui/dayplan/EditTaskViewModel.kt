@@ -198,6 +198,8 @@ class EditTaskViewModel
                     dueTime = state.dueTime,
                     executionStrictness = state.executionStrictness,
                     points = state.points,
+                    linkedProjectIds = originalTask.linkedProjectIds,
+                    linkedAttachmentIds = originalTask.linkedAttachmentIds,
                 ),
             )
             dayManagementRepository.deleteTask(originalTask.id)

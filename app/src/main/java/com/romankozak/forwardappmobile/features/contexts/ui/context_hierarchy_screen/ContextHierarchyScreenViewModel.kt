@@ -14,6 +14,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusType
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
@@ -23,6 +24,7 @@ import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.repository.DayFocusesRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.FocusContextRepository
 import com.romankozak.forwardappmobile.data.repository.LegacyNoteRepository
@@ -78,6 +80,7 @@ class ContextHierarchyScreenViewModel
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
         private val contextMarkerHandler: ContextMarkerHandler,
         private val dayManagementRepository: DayManagementRepository,
+        private val dayFocusesRepository: DayFocusesRepository,
         private val focusContextRepository: FocusContextRepository,
         private val activityRepository: ActivityRepository,
         private val recentItemsRepository: RecentItemsRepository,
@@ -287,15 +290,27 @@ class ContextHierarchyScreenViewModel
                         "ProjectRevealDebug",
                         "revealProjectInHierarchy result: Success, shouldFocus=${result.shouldFocus}",
                     )
-                    if (forceFocusMode || result.shouldFocus) {
-                        searchUseCase.enterProjectFocus(result.projectId)
-                    }
                     val hierarchyForReveal = awaitHierarchyForProjectPath(result.projectId)
-                    Log.d("ProjectRevealDebug", "Calling navigateToProject for ${result.projectId}")
-                    searchUseCase.navigateToProject(
-                        result.projectId,
-                        hierarchyForReveal,
-                    )
+                    val contextToReveal =
+                        _allProjectsFlat.value.firstOrNull { it.id == result.projectId }
+                            ?: contextRepository.getContextById(result.projectId)
+                    if (contextToReveal != null) {
+                        Log.d("ProjectRevealDebug", "Calling revealContext for ${result.projectId}")
+                        hierarchyFocusCoordinator.revealContext(
+                            context = contextToReveal,
+                            currentHierarchy = hierarchyForReveal,
+                            currentSubState = uiState.value.currentSubState,
+                            currentBreadcrumbs = uiState.value.currentBreadcrumbs,
+                            orientationHierarchy = uiState.value.orientationHierarchy,
+                            enterFocus = forceFocusMode || result.shouldFocus,
+                        )
+                    } else {
+                        Log.d("ProjectRevealDebug", "Calling navigateToProject for ${result.projectId}")
+                        searchUseCase.navigateToProject(
+                            result.projectId,
+                            hierarchyForReveal,
+                        )
+                    }
                 }
                 is RevealResult.Failure -> {
                     Log.d("ProjectRevealDebug", "revealProjectInHierarchy result: Failure")
@@ -449,6 +464,8 @@ class ContextHierarchyScreenViewModel
                 is ContextHierarchyScreenEvent.AddNewContextRequest -> {
                     contextDialogActionCoordinator.requestAddContext(
                         currentSubState = uiState.value.currentSubState,
+                        currentBreadcrumbs = uiState.value.currentBreadcrumbs,
+                        orientationHierarchy = uiState.value.orientationHierarchy,
                         allProjects = _allProjectsFlat.value,
                     )
                 }
@@ -549,12 +566,39 @@ class ContextHierarchyScreenViewModel
                         _uiEventChannel.send(ProjectUiEvent.NavigateToEditProjectScreen(event.project.id))
                     }
                 }
+                is ContextHierarchyScreenEvent.OpenContextRequest -> {
+                    dialogUseCase.dismissDialog()
+                    onNavigateToProject(event.project.id)
+                }
                 is ContextHierarchyScreenEvent.AddToDayPlanRequest -> {
                     viewModelScope.launch {
                         val today = System.currentTimeMillis()
                         val dayPlan = dayManagementRepository.createOrUpdateDayPlan(today)
                         dayManagementRepository.addProjectToDayPlan(dayPlan.id, event.project.id)
                         _uiEventChannel.send(ProjectUiEvent.ShowToast("Проект додано до плану дня"))
+                    }
+                }
+                is ContextHierarchyScreenEvent.AddToDayFocusRequest -> {
+                    viewModelScope.launch {
+                        val today = System.currentTimeMillis()
+                        val dayPlan = dayManagementRepository.createOrUpdateDayPlan(today)
+                        dayFocusesRepository.addItem(
+                            dayPlanId = dayPlan.id,
+                            title = event.project.name,
+                            notes = null,
+                            relatedLinks =
+                                listOf(
+                                    RelatedLink(
+                                        type = LinkType.CONTEXT,
+                                        target = event.project.id,
+                                        displayName = event.project.name,
+                                    ),
+                                ),
+                            type = DayFocusType.FOCUS,
+                            order = dayFocusesRepository.nextOrderForDayPlan(dayPlan.id),
+                            isEveryday = false,
+                        )
+                        _uiEventChannel.send(ProjectUiEvent.ShowToast("Контекст додано у фокус дня"))
                     }
                 }
                 is ContextHierarchyScreenEvent.SetReminderRequest -> {

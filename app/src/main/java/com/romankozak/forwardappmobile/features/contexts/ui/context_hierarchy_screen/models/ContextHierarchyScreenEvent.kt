@@ -103,7 +103,11 @@ sealed interface ContextHierarchyScreenEvent {
 
     data class EditRequest(val project: Context) : ContextHierarchyScreenEvent
 
+    data class OpenContextRequest(val project: Context) : ContextHierarchyScreenEvent
+
     data class AddToDayPlanRequest(val project: Context) : ContextHierarchyScreenEvent
+
+    data class AddToDayFocusRequest(val project: Context) : ContextHierarchyScreenEvent
 
     data class SetReminderRequest(val project: Context) : ContextHierarchyScreenEvent
 

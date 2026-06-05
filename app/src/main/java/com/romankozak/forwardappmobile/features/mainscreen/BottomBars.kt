@@ -39,7 +39,6 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.MoveToInbox
 import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.Radar
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SwapVert
@@ -111,9 +110,9 @@ fun DashboardBottomBar(
     quickActionIcon: ImageVector = Icons.Outlined.History,
     quickActionLabel: String = "Recent",
     onQuickActionClick: (() -> Unit)? = null,
-    middleLeftIcon: ImageVector = Icons.Outlined.Radar,
-    middleLeftLabel: String = "Tracker",
-    onMiddleLeftClick: () -> Unit = onNavigateToTracker,
+    middleLeftIcon: ImageVector = Icons.Outlined.AccountTree,
+    middleLeftLabel: String = "Hierarchy",
+    onMiddleLeftClick: () -> Unit = onNavigateToProjectHierarchy,
     middleLeftEnabled: Boolean = true,
     middleCenterIcon: ImageVector = Icons.Outlined.Search,
     middleCenterLabel: String = "Search",

@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -83,7 +85,9 @@ fun ContextMenuDialog(
     onAddSubprojectRequest: (Context) -> Unit,
     onDeleteRequest: (Context) -> Unit,
     onEditRequest: (Context) -> Unit,
+    onOpenContextRequest: (Context) -> Unit,
     onAddToDayPlanRequest: (Context) -> Unit,
+    onAddToDayFocusRequest: (Context) -> Unit,
     onSetReminderRequest: (Context) -> Unit,
     onToggleUserFocusRequest: (Context) -> Unit,
     onCopyContextLinkRequest: (Context) -> Unit,
@@ -119,6 +123,14 @@ fun ContextMenuDialog(
             title = "Організація",
             items =
                 buildList {
+                    add(
+                            ContextActionItem(
+                                title = "Відкрити контекст",
+                                icon = Icons.AutoMirrored.Filled.OpenInNew,
+                                tint = colorScheme.primary,
+                                onClick = { onOpenContextRequest(project) },
+                            ),
+                    )
                     if (canRenameOrMove) {
                         add(
                             ContextActionItem(
@@ -158,6 +170,12 @@ fun ContextMenuDialog(
                         icon = Icons.AutoMirrored.Filled.PlaylistAdd,
                         tint = colorScheme.secondary,
                         onClick = { onAddToDayPlanRequest(project) },
+                    ),
+                    ContextActionItem(
+                        title = "Додати у фокус дня",
+                        icon = Icons.Outlined.Flag,
+                        tint = colorScheme.secondary,
+                        onClick = { onAddToDayFocusRequest(project) },
                     ),
                     ContextActionItem(
                         title = "Нагадування",
