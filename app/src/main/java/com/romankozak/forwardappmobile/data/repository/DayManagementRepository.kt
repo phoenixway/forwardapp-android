@@ -213,6 +213,7 @@ class DayManagementRepository
                         dayPlanId = targetPlan.id,
                         title = item.title,
                         notes = item.notes,
+                        relatedLinks = item.relatedLinks,
                         type = item.type,
                         isEveryday = true,
                         recurringKey = item.recurringKey ?: item.id,

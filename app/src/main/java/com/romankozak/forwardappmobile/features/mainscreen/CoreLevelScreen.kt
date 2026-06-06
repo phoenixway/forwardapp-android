@@ -38,7 +38,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -78,6 +77,7 @@ import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconEditor
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconEditorState
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconCardUi
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconCardLinkUi
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconGroupEditorDialog
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconLevelStatusSheet
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconGroupUi
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconMultiSelectDialog
@@ -1024,58 +1024,6 @@ private fun MainBeaconGroupHeader(
             }
         }
     }
-}
-
-@Composable
-private fun MainBeaconGroupEditorDialog(
-    group: MainBeaconGroupUi?,
-    onDismiss: () -> Unit,
-    onSave: (title: String, description: String?) -> Unit,
-    onDelete: (() -> Unit)?,
-) {
-    var title by remember(group) { mutableStateOf(group?.title.orEmpty()) }
-    var description by remember(group) { mutableStateOf(group?.description.orEmpty()) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (group == null) "Нова група" else "Група") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text("Title") },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Description") },
-                    minLines = 2,
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = title.trim().isNotBlank(),
-                onClick = { onSave(title, description.ifBlank { null }) },
-            ) {
-                Text("Зберегти")
-            }
-        },
-        dismissButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                onDelete?.let {
-                    TextButton(onClick = it) {
-                        Text("Видалити")
-                    }
-                }
-                TextButton(onClick = onDismiss) {
-                    Text("Скасувати")
-                }
-            }
-        },
-    )
 }
 
 @Composable

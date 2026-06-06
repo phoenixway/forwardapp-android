@@ -22,7 +22,18 @@ import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.ProjectHierarchyScreenScaffold
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyItem
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
+import com.romankozak.forwardappmobile.features.mainscreen.CoreLevelViewModel
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconCardLinkUi
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconEditorSheet
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconEditorState
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconGroupEditorDialog
+import com.romankozak.forwardappmobile.ui.components.ConnectionItemUi
+import com.romankozak.forwardappmobile.ui.components.ConnectionType
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import kotlinx.coroutines.flow.collectLatest
 import java.net.URLEncoder
@@ -35,16 +46,20 @@ fun ProjectHierarchyScreen(
     navController: NavController,
     syncDataViewModel: SyncDataViewModel,
     viewModel: ContextHierarchyScreenViewModel = hiltViewModel(),
+    coreLevelViewModel: CoreLevelViewModel = hiltViewModel(),
     navigationManager: EnhancedNavigationManager? = null,
     projectIdToReveal: String? = null,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val coreUiState by coreLevelViewModel.uiState.collectAsStateWithLifecycle()
     val lastOngoingActivity by viewModel.lastOngoingActivity.collectAsStateWithLifecycle()
     val focusedContextIds by viewModel.focusedContextIds.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
     val focusManager = LocalFocusManager.current
+    var editingBeacon by remember { mutableStateOf<MainBeaconEditorState?>(null) }
+    var showCreateGroupDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.uiEventFlow.collectLatest { event ->
@@ -170,6 +185,20 @@ fun ProjectHierarchyScreen(
             viewModel = viewModel,
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = animatedVisibilityScope,
+            onEditBeacon = { beaconId ->
+                editingBeacon = coreLevelViewModel.buildEditorState(beaconId)
+            },
+            onAddMainBeacon = {
+                val parentBeaconId = parentBeaconIdForNewBeacon(uiState)
+                val groupIds = groupIdsForNewBeacon(uiState)
+                editingBeacon =
+                    coreLevelViewModel.buildEditorState(null)
+                        .copy(
+                            parentBeaconId = parentBeaconId,
+                            groupIds = groupIds,
+                        )
+            },
+            onAddMainBeaconGroup = { showCreateGroupDialog = true },
         )
     } ?: Box(
         modifier = Modifier.fillMaxSize(),
@@ -177,4 +206,143 @@ fun ProjectHierarchyScreen(
     ) {
         CircularProgressIndicator()
     }
+
+    editingBeacon?.let { editor ->
+        val connectionItems =
+            buildList {
+                addAll(
+                    editor.relatedContextIds.mapNotNull { contextId ->
+                        coreUiState.allProjects.firstOrNull { it.id == contextId }?.let { context ->
+                            ConnectionItemUi(
+                                id = context.id,
+                                title = context.name,
+                                type = ConnectionType.CONTEXT,
+                            )
+                        }
+                    },
+                )
+                addAll(
+                    editor.relatedAttachmentIds.map { attachmentId ->
+                        ConnectionItemUi(
+                            id = attachmentId,
+                            title = "Attachment ${attachmentId.take(8)}",
+                            type = ConnectionType.ATTACHMENT,
+                        )
+                    },
+                )
+            }
+        MainBeaconEditorSheet(
+            state = editor,
+            connectionItems = connectionItems,
+            groupItems =
+                editor.groupIds.mapNotNull { groupId ->
+                    coreUiState.groups.firstOrNull { it.id == groupId }?.let { group ->
+                        MainBeaconCardLinkUi(id = group.id, title = group.title)
+                    }
+                },
+            parentBeaconItem =
+                editor.parentBeaconId?.let { parentId ->
+                    coreUiState.beacons.firstOrNull { it.id == parentId }?.let { parent ->
+                        MainBeaconCardLinkUi(id = parent.id, title = parent.title)
+                    }
+                },
+            onDismiss = { editingBeacon = null },
+            onStateChange = { editingBeacon = it },
+            onEditGroups = {
+                Toast.makeText(navController.context, "Group picker is available on Core tab", Toast.LENGTH_SHORT).show()
+            },
+            onEditParentBeacon = {
+                Toast.makeText(navController.context, "Parent beacon picker is available on Core tab", Toast.LENGTH_SHORT).show()
+            },
+            onClearParentBeacon = { editingBeacon = editingBeacon?.copy(parentBeaconId = null) },
+            onConnectionClick = { item ->
+                if (item.type == ConnectionType.CONTEXT) {
+                    navigationManager.navigateOrFallback(
+                        navController = navController,
+                        target = NavTarget.ContextDetail(contextId = item.id),
+                        recordInHistory = true,
+                    )
+                }
+            },
+            onConnectionRemove = { item ->
+                editingBeacon =
+                    if (item.type == ConnectionType.CONTEXT) {
+                        editingBeacon?.copy(relatedContextIds = editingBeacon?.relatedContextIds.orEmpty() - item.id)
+                    } else {
+                        editingBeacon?.copy(relatedAttachmentIds = editingBeacon?.relatedAttachmentIds.orEmpty() - item.id)
+                    }
+            },
+            onAddConnection = {
+                Toast.makeText(navController.context, "Connection picker is available on Core tab", Toast.LENGTH_SHORT).show()
+            },
+            onCreateConnection = {
+                Toast.makeText(navController.context, "Connection creation is available on Core tab", Toast.LENGTH_SHORT).show()
+            },
+            onEditLevel = {
+                Toast.makeText(navController.context, "Level editor is available on Core tab", Toast.LENGTH_SHORT).show()
+            },
+            onSave = {
+                coreLevelViewModel.saveBeacon(editor)
+                editingBeacon = null
+            },
+            onDuplicate = null,
+            onDelete = null,
+        )
+    }
+
+    if (showCreateGroupDialog) {
+        MainBeaconGroupEditorDialog(
+            group = null,
+            onDismiss = { showCreateGroupDialog = false },
+            onSave = { title, description ->
+                coreLevelViewModel.createBeaconGroup(title, description)
+                showCreateGroupDialog = false
+            },
+            onDelete = null,
+        )
+    }
+}
+
+private fun parentBeaconIdForNewBeacon(uiState: ProjectHierarchyScreenUiState): String? {
+    val activeNodeId =
+        when (val subState = uiState.currentSubState) {
+            is ProjectHierarchyScreenSubState.ProjectFocused -> subState.projectId
+            is ProjectHierarchyScreenSubState.OrientationFocused -> subState.nodeId
+            else -> null
+        } ?: return null
+
+    val activeItem = uiState.orientationHierarchy.firstOrNull { it.node.id == activeNodeId }
+    return when (activeItem?.node) {
+        is OrientationHierarchyNode.Beacon -> activeItem.node.id
+        is OrientationHierarchyNode.ContextNode -> nearestAncestorBeaconId(uiState.orientationHierarchy, activeNodeId)
+        else -> nearestAncestorBeaconId(uiState.orientationHierarchy, activeNodeId)
+    }
+}
+
+private fun groupIdsForNewBeacon(uiState: ProjectHierarchyScreenUiState): Set<String> {
+    val activeNodeId =
+        (uiState.currentSubState as? ProjectHierarchyScreenSubState.OrientationFocused)?.nodeId
+            ?: return emptySet()
+    val activeNode = uiState.orientationHierarchy.firstOrNull { it.node.id == activeNodeId }?.node
+    return if (activeNode is OrientationHierarchyNode.Group) {
+        setOf(activeNode.id)
+    } else {
+        emptySet()
+    }
+}
+
+private fun nearestAncestorBeaconId(
+    orientationHierarchy: List<OrientationHierarchyItem>,
+    nodeId: String,
+): String? {
+    val nodeIndex = orientationHierarchy.indexOfFirst { it.node.id == nodeId }
+    if (nodeIndex <= 0) return null
+    val nodeLevel = orientationHierarchy[nodeIndex].level
+    for (index in nodeIndex - 1 downTo 0) {
+        val candidate = orientationHierarchy[index]
+        if (candidate.level < nodeLevel && candidate.node is OrientationHierarchyNode.Beacon) {
+            return candidate.node.id
+        }
+    }
+    return null
 }

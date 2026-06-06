@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.FilterCenterFocus
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -62,6 +63,11 @@ import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
 
 private const val UI_TAG = "ProjectHierarchyScreenUI_DEBUG"
 
+private data class HierarchyAddAction(
+    val item: HoldMenuItem,
+    val action: () -> Unit,
+)
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun ProjectHierarchyScreenScaffold(
@@ -73,6 +79,9 @@ fun ProjectHierarchyScreenScaffold(
     viewModel: ContextHierarchyScreenViewModel,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
+    onEditBeacon: (String) -> Unit = {},
+    onAddMainBeacon: () -> Unit = {},
+    onAddMainBeaconGroup: () -> Unit = {},
 ) {
     val holdMenuController = rememberHoldMenu2()
     val listState = rememberLazyListState()
@@ -199,45 +208,76 @@ fun ProjectHierarchyScreenScaffold(
 
             AnimatedVisibility(visible = !isSearchActiveFab && !uiState.isSelectionMode) {
                 val scriptsEnabled = uiState.featureToggles[FeatureFlag.ScriptsLibrary] == true
-                val menuItems =
+                val addActions =
                     buildList {
                         add(
-                            HoldMenuItem(
-                                label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_project),
-                                icon = Icons.Default.FolderOpen,
+                            HierarchyAddAction(
+                                item =
+                                    HoldMenuItem(
+                                        label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_project),
+                                        icon = Icons.Default.FolderOpen,
+                                    ),
+                                action = { onEvent(ContextHierarchyScreenEvent.AddNewContextRequest) },
                             ),
                         )
                         add(
-                            HoldMenuItem(
-                                label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_note),
-                                icon = Icons.Default.Description,
+                            HierarchyAddAction(
+                                item =
+                                    HoldMenuItem(
+                                        label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_note),
+                                        icon = Icons.Default.Description,
+                                    ),
+                                action = { onEvent(ContextHierarchyScreenEvent.AddNoteDocumentRequest) },
                             ),
                         )
                         add(
-                            HoldMenuItem(
-                                label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_checklist),
-                                icon = Icons.AutoMirrored.Filled.FormatListBulleted,
+                            HierarchyAddAction(
+                                item =
+                                    HoldMenuItem(
+                                        label = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_checklist),
+                                        icon = Icons.AutoMirrored.Filled.FormatListBulleted,
+                                    ),
+                                action = { onEvent(ContextHierarchyScreenEvent.AddChecklistRequest) },
                             ),
                         )
                         if (scriptsEnabled) {
                             add(
-                                HoldMenuItem(
-                                    label = "Скрипт",
-                                    icon = Icons.Default.Code,
+                                HierarchyAddAction(
+                                    item =
+                                        HoldMenuItem(
+                                            label = "Скрипт",
+                                            icon = Icons.Default.Code,
+                                        ),
+                                    action = { onEvent(ContextHierarchyScreenEvent.AddScriptRequest) },
                                 ),
                             )
                         }
+                        add(
+                            HierarchyAddAction(
+                                item =
+                                    HoldMenuItem(
+                                        label = "Головний орієнтир",
+                                        icon = Icons.Default.FilterCenterFocus,
+                                    ),
+                                action = onAddMainBeacon,
+                            ),
+                        )
+                        add(
+                            HierarchyAddAction(
+                                item =
+                                    HoldMenuItem(
+                                        label = "Група орієнтирів",
+                                        icon = Icons.Default.FolderOpen,
+                                    ),
+                                action = onAddMainBeaconGroup,
+                            ),
+                        )
                     }
                 HoldMenu2Button(
-                    items = menuItems,
+                    items = addActions.map { it.item },
                     controller = holdMenuController,
                     onSelect = { index ->
-                        when (index) {
-                            0 -> onEvent(ContextHierarchyScreenEvent.AddNewContextRequest)
-                            1 -> onEvent(ContextHierarchyScreenEvent.AddNoteDocumentRequest)
-                            2 -> onEvent(ContextHierarchyScreenEvent.AddChecklistRequest)
-                            3 -> onEvent(ContextHierarchyScreenEvent.AddScriptRequest)
-                        }
+                        addActions.getOrNull(index)?.action?.invoke()
                     },
                     onTap = { showAddMenu = !showAddMenu },
                     menuAlignment = com.romankozak.forwardappmobile.features.common.components.holdmenu2.MenuAlignment.END,
@@ -251,37 +291,16 @@ fun ProjectHierarchyScreenScaffold(
                             expanded = showAddMenu,
                             onDismissRequest = { showAddMenu = false },
                         ) {
-                            DropdownMenuItem(
-                                leadingIcon = { Icon(Icons.Default.FolderOpen, contentDescription = null) },
-                                text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_project)) },
-                                onClick = {
-                                    showAddMenu = false
-                                    onEvent(ContextHierarchyScreenEvent.AddNewContextRequest)
-                                },
-                            )
-                            DropdownMenuItem(
-                                leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
-                                text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_note)) },
-                                onClick = {
-                                    showAddMenu = false
-                                    onEvent(ContextHierarchyScreenEvent.AddNoteDocumentRequest)
-                                },
-                            )
-                            DropdownMenuItem(
-                                leadingIcon = { Icon(Icons.AutoMirrored.Filled.FormatListBulleted, contentDescription = null) },
-                                text = { Text(text = stringResource(id = com.romankozak.forwardappmobile.R.string.add_action_checklist)) },
-                                onClick = {
-                                    showAddMenu = false
-                                    onEvent(ContextHierarchyScreenEvent.AddChecklistRequest)
-                                },
-                            )
-                            if (scriptsEnabled) {
+                            addActions.forEach { addAction ->
                                 DropdownMenuItem(
-                                    leadingIcon = { Icon(Icons.Default.Code, contentDescription = null) },
-                                    text = { Text(text = "Скрипт") },
+                                    leadingIcon =
+                                        addAction.item.icon?.let { icon ->
+                                            { Icon(icon, contentDescription = null) }
+                                        },
+                                    text = { Text(text = addAction.item.label) },
                                     onClick = {
                                         showAddMenu = false
-                                        onEvent(ContextHierarchyScreenEvent.AddScriptRequest)
+                                        addAction.action()
                                     },
                                 )
                             }
@@ -298,6 +317,7 @@ fun ProjectHierarchyScreenScaffold(
             listState = listState,
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = animatedVisibilityScope,
+            onEditBeacon = onEditBeacon,
         )
     }
 

@@ -56,6 +56,7 @@ fun ProjectHierarchyScreenContent(
     listState: LazyListState,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
+    onEditBeacon: (String) -> Unit = {},
 ) {
     val currentSubState =
         remember(uiState.subStateStack) {
@@ -215,6 +216,7 @@ fun ProjectHierarchyScreenContent(
                     clipboardContextIds = uiState.clipboardContextIds,
                     isSelectionMode = uiState.isSelectionMode,
                     onEvent = onEvent,
+                    onEditBeacon = onEditBeacon,
                     sharedTransitionScope = sharedTransitionScope,
                     animatedVisibilityScope = animatedVisibilityScope,
                     onProjectClicked = { onEvent(ContextHierarchyScreenEvent.ContextClick(it)) },

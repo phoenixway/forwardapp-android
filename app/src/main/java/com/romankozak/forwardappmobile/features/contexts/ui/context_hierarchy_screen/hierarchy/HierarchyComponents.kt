@@ -179,6 +179,7 @@ fun BeaconRootHeaderRow(
     level: Int,
     childCount: Int = 0,
     onClick: () -> Unit = {},
+    onEditBeacon: (() -> Unit)? = null,
     onCopyBeacon: (() -> Unit)? = null,
     onCutBeacon: (() -> Unit)? = null,
     onPasteBeacon: (() -> Unit)? = null,
@@ -195,6 +196,7 @@ fun BeaconRootHeaderRow(
         onClick = onClick,
         actionMenu = {
             BeaconHeaderActionMenu(
+                onEditBeacon = onEditBeacon,
                 onCopyBeacon = onCopyBeacon,
                 onCutBeacon = onCutBeacon,
                 onPasteBeacon = onPasteBeacon,
@@ -349,6 +351,7 @@ private fun RootHeaderRow(
 
 @Composable
 private fun BeaconHeaderActionMenu(
+    onEditBeacon: (() -> Unit)?,
     onCopyBeacon: (() -> Unit)?,
     onCutBeacon: (() -> Unit)?,
     onPasteBeacon: (() -> Unit)?,
@@ -356,6 +359,7 @@ private fun BeaconHeaderActionMenu(
     HeaderActionMenu(
         items =
             listOfNotNull(
+                onEditBeacon?.let { "Edit" to it },
                 onCopyBeacon?.let { "Copy" to it },
                 onCutBeacon?.let { "Cut" to it },
                 onPasteBeacon?.let { "Paste here" to it },
