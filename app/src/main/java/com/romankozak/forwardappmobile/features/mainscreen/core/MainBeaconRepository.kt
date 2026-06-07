@@ -169,6 +169,35 @@ class MainBeaconRepository
             }
         }
 
+        suspend fun addRelatedContextsToGroup(
+            groupId: String,
+            contextIds: Set<String>,
+        ): Int {
+            if (contextIds.isEmpty()) return 0
+            val beaconIds =
+                mainBeaconDao
+                    .getAllGroupMembersSync()
+                    .asSequence()
+                    .filter { it.groupId == groupId }
+                    .mapTo(linkedSetOf()) { it.beaconId }
+            if (beaconIds.isEmpty()) return 0
+
+            val existingPairs =
+                mainBeaconDao
+                    .getAllContextCrossRefsSync()
+                    .asSequence()
+                    .mapTo(hashSetOf()) { it.beaconId to it.contextId }
+            val newCrossRefs =
+                beaconIds.flatMap { beaconId ->
+                    contextIds
+                        .filterNot { contextId -> beaconId to contextId in existingPairs }
+                        .map { contextId -> MainBeaconContextCrossRef(beaconId = beaconId, contextId = contextId) }
+                }
+            if (newCrossRefs.isEmpty()) return 0
+            mainBeaconDao.insertContextCrossRefs(newCrossRefs)
+            return newCrossRefs.size
+        }
+
         suspend fun reorderBeacons(beaconIdsInOrder: List<String>) {
             if (beaconIdsInOrder.isEmpty()) return
             appDatabase.withTransaction {

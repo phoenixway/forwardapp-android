@@ -266,6 +266,45 @@ class ContextClipboardCoordinator
                         "Нові зв'язки з головним орієнтиром не додано"
                     } else {
                         "Додано контексти до головного орієнтира: $addedCount"
+                },
+            )
+        }
+
+        suspend fun pasteIntoGroup(
+            groupNodeId: String,
+            orientationHierarchy: List<OrientationHierarchyItem>,
+            allProjects: List<Context>,
+        ): ContextClipboardResult {
+            val current = payload.value ?: return ContextClipboardResult("Буфер порожній")
+            val groupNode =
+                orientationHierarchy
+                    .firstOrNull { it.node.id == groupNodeId }
+                    ?.node
+            if (groupNode !is OrientationHierarchyNode.Group) {
+                return ContextClipboardResult("Вставка доступна тільки в групу орієнтирів")
+            }
+
+            val sources = resolveClipboardContexts(allProjects, current)
+            if (sources.isEmpty()) {
+                clear()
+                return ContextClipboardResult("Контекст у буфері більше не існує")
+            }
+
+            val addedCount =
+                withContext(ioDispatcher) {
+                    mainBeaconRepository.addRelatedContextsToGroup(
+                        groupId = groupNode.id,
+                        contextIds = sources.mapTo(linkedSetOf()) { it.id },
+                    )
+                }
+            if (current.operation == Operation.CUT) {
+                clear()
+            }
+            return ContextClipboardResult(
+                toast =
+                    when (addedCount) {
+                        0 -> "У групі немає орієнтирів або нові зв'язки не додано"
+                        else -> "Додано контексти до орієнтирів групи: $addedCount"
                     },
             )
         }

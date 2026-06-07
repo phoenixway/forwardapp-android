@@ -666,6 +666,17 @@ class ContextHierarchyScreenViewModel
                         )
                     }
                 }
+                is ContextHierarchyScreenEvent.PasteContextLinksIntoGroup -> {
+                    viewModelScope.launch {
+                        emitClipboardResult(
+                            contextClipboardCoordinator.pasteIntoGroup(
+                                groupNodeId = event.groupNodeId,
+                                orientationHierarchy = uiState.value.orientationHierarchy,
+                                allProjects = _allProjectsFlat.value,
+                            ),
+                        )
+                    }
+                }
                 is ContextHierarchyScreenEvent.CopyBeacon -> {
                     val toast = contextClipboardCoordinator.copyBeacon(event.beaconNodeId)
                     viewModelScope.launch {
