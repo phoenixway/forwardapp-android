@@ -7,6 +7,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -17,10 +18,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -55,10 +59,12 @@ fun FocusedProjectView(
     searchQuery: String,
     longDescendantsMap: Map<String, Boolean>,
     isSelectionMode: Boolean,
+    isSiblingReorderMode: Boolean,
     selectedContextIds: Set<String>,
     clipboardContextIds: Set<String>,
     onEvent: (ContextHierarchyScreenEvent) -> Unit,
     onEditBeacon: (String) -> Unit = {},
+    onDeleteBeacon: (String) -> Unit = {},
     onToggleSelection: (String) -> Unit,
     onStartSelection: (String) -> Unit,
     onFocusProject: (Context) -> Unit,
@@ -107,10 +113,14 @@ fun FocusedProjectView(
             }
 
             if (children.isNotEmpty()) {
-                items(children, key = { it.project.id }) { item ->
-                    HierarchyListItem(
+                itemsIndexed(children, key = { index, item -> "${item.project.id}-$index" }) { index, item ->
+                    ReorderableContextRow(
                         item = item,
-                        childMap = displayChildMap,
+                        siblings = children,
+                        index = index,
+                        isSiblingReorderMode = isSiblingReorderMode,
+                        parentContextId = focusedProjectId,
+                        displayChildMap = displayChildMap,
                         dragAndDropState = dragAndDropState,
                         isSearchActive = isSearchActive,
                         highlightedProjectId = highlightedProjectId,
@@ -120,6 +130,7 @@ fun FocusedProjectView(
                         longDescendantsMap = longDescendantsMap,
                         isSelectionMode = isSelectionMode,
                         selectedContextIds = selectedContextIds,
+                        onEvent = onEvent,
                         onProjectClick = onProjectClick,
                         onToggleSelection = onToggleSelection,
                         onStartSelection = onStartSelection,
@@ -199,9 +210,11 @@ fun FocusedOrientationNodeView(
     searchQuery: String,
     longDescendantsMap: Map<String, Boolean>,
     isSelectionMode: Boolean,
+    isSiblingReorderMode: Boolean,
     selectedContextIds: Set<String>,
     onEvent: (ContextHierarchyScreenEvent) -> Unit,
     onEditBeacon: (String) -> Unit = {},
+    onDeleteBeacon: (String) -> Unit = {},
     onToggleSelection: (String) -> Unit,
     onStartSelection: (String) -> Unit,
     onFocusProject: (Context) -> Unit,
@@ -240,6 +253,16 @@ fun FocusedOrientationNodeView(
                 }
             }.distinctBy { it.project.id }
         }
+    val canReorderContextChildren =
+        (
+            focusedRoot.node is OrientationHierarchyNode.NoBeacon ||
+                focusedRoot.node is OrientationHierarchyNode.Beacon
+        ) && childItems.size > 1
+    val beaconChildren =
+        directChildren
+            .filter { it.node is OrientationHierarchyNode.Beacon }
+            .distinctBy { it.node.id }
+    val canReorderBeaconChildren = beaconChildren.size > 1
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         stickyHeader(key = "focused-orientation-header") {
@@ -267,7 +290,9 @@ fun FocusedOrientationNodeView(
                             level = 0,
                             childCount = directChildren.size,
                             onEditBeacon = { onEditBeacon(node.id) },
+                            onDeleteBeacon = { onDeleteBeacon(node.id) },
                             onCopyBeacon = { onEvent(ContextHierarchyScreenEvent.CopyBeacon(node.id)) },
+                            onCopyBeaconAsLink = { onEvent(ContextHierarchyScreenEvent.CopyBeaconAsLink(node.id)) },
                             onCutBeacon = { onEvent(ContextHierarchyScreenEvent.CutBeacon(node.id)) },
                             onPasteBeacon = {
                                 onEvent(ContextHierarchyScreenEvent.PasteBeaconIntoBeacon(node.id))
@@ -291,32 +316,65 @@ fun FocusedOrientationNodeView(
             }
         }
 
-        val beaconChildren =
-            directChildren
-                .filter { it.node is OrientationHierarchyNode.Beacon }
-                .distinctBy { it.node.id }
         if (beaconChildren.isNotEmpty()) {
             itemsIndexed(beaconChildren, key = { index, item -> "beacon-${item.node.id}-$index" }) { _, item ->
+                val index = beaconChildren.indexOfFirst { it.node.id == item.node.id }
                 val node = item.node as OrientationHierarchyNode.Beacon
-                BeaconRootHeaderRow(
-                    node = node,
-                    level = 0,
-                    childCount = directChildrenByNodeId[node.id].orEmpty().size,
-                    onClick = { onEvent(ContextHierarchyScreenEvent.OrientationNodeClick(node.id)) },
-                    onEditBeacon = { onEditBeacon(node.id) },
-                    onCopyBeacon = { onEvent(ContextHierarchyScreenEvent.CopyBeacon(node.id)) },
-                    onCutBeacon = { onEvent(ContextHierarchyScreenEvent.CutBeacon(node.id)) },
-                    onPasteBeacon = { onEvent(ContextHierarchyScreenEvent.PasteBeaconIntoBeacon(node.id)) },
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    BeaconRootHeaderRow(
+                        node = node,
+                        level = 0,
+                        childCount = directChildrenByNodeId[node.id].orEmpty().size,
+                        onClick = { onEvent(ContextHierarchyScreenEvent.OrientationNodeClick(node.id)) },
+                        onEditBeacon = { onEditBeacon(node.id) },
+                        onDeleteBeacon = { onDeleteBeacon(node.id) },
+                        onCopyBeacon = { onEvent(ContextHierarchyScreenEvent.CopyBeacon(node.id)) },
+                        onCopyBeaconAsLink = { onEvent(ContextHierarchyScreenEvent.CopyBeaconAsLink(node.id)) },
+                        onCutBeacon = { onEvent(ContextHierarchyScreenEvent.CutBeacon(node.id)) },
+                        onPasteBeacon = { onEvent(ContextHierarchyScreenEvent.PasteBeaconIntoBeacon(node.id)) },
+                        modifier = Modifier.weight(1f).padding(horizontal = 10.dp, vertical = 4.dp),
+                    )
+                    if (isSiblingReorderMode && canReorderBeaconChildren) {
+                        ReorderControls(
+                            canMoveUp = index > 0,
+                            canMoveDown = index < beaconChildren.lastIndex,
+                            onMoveUp = {
+                                onEvent(
+                                    ContextHierarchyScreenEvent.ReorderOrientationBeaconSiblings(
+                                        parentNodeId = focusedRoot.node.id,
+                                        orderedBeaconIds = moveItem(beaconChildren, index, -1).map { it.node.id },
+                                    ),
+                                )
+                            },
+                            onMoveDown = {
+                                onEvent(
+                                    ContextHierarchyScreenEvent.ReorderOrientationBeaconSiblings(
+                                        parentNodeId = focusedRoot.node.id,
+                                        orderedBeaconIds = moveItem(beaconChildren, index, 1).map { it.node.id },
+                                    ),
+                                )
+                            },
+                        )
+                    }
+                }
             }
         }
 
         if (childItems.isNotEmpty()) {
-            itemsIndexed(childItems, key = { index, item -> "context-${item.project.id}-$index" }) { _, item ->
-                HierarchyListItem(
+            itemsIndexed(childItems, key = { index, item -> "context-${item.project.id}-$index" }) { index, item ->
+                val parentContextId =
+                    if (focusedRoot.node is OrientationHierarchyNode.NoBeacon) {
+                        null
+                    } else {
+                        focusedRoot.node.id
+                    }
+                ReorderableContextRow(
                     item = item,
-                    childMap = displayChildMap,
+                    siblings = childItems,
+                    index = index,
+                    isSiblingReorderMode = isSiblingReorderMode && canReorderContextChildren,
+                    parentContextId = parentContextId,
+                    displayChildMap = displayChildMap,
                     dragAndDropState = dragAndDropState,
                     isSearchActive = isSearchActive,
                     highlightedProjectId = highlightedProjectId,
@@ -326,6 +384,7 @@ fun FocusedOrientationNodeView(
                     longDescendantsMap = longDescendantsMap,
                     isSelectionMode = isSelectionMode,
                     selectedContextIds = selectedContextIds,
+                    onEvent = onEvent,
                     onProjectClick = onProjectClick,
                     onToggleSelection = onToggleSelection,
                     onStartSelection = onStartSelection,
@@ -339,11 +398,124 @@ fun FocusedOrientationNodeView(
                     animatedVisibilityScope = animatedVisibilityScope,
                 )
             }
-        } else if (beaconChildren.isEmpty()) {
+        }
+        if (childItems.isEmpty() && beaconChildren.isEmpty()) {
             item(key = "empty_state") {
                 FocusedEmptyState(text = "No contexts")
             }
         }
+    }
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+private fun ReorderableContextRow(
+    item: FlatHierarchyItem,
+    siblings: List<FlatHierarchyItem>,
+    index: Int,
+    isSiblingReorderMode: Boolean,
+    parentContextId: String?,
+    displayChildMap: Map<String, List<Context>>,
+    dragAndDropState: DragAndDropState<Context>,
+    isSearchActive: Boolean,
+    highlightedProjectId: String?,
+    settings: HierarchyDisplaySettings,
+    searchQuery: String,
+    focusedProjectId: String?,
+    longDescendantsMap: Map<String, Boolean>,
+    isSelectionMode: Boolean,
+    selectedContextIds: Set<String>,
+    onEvent: (ContextHierarchyScreenEvent) -> Unit,
+    onProjectClick: (String) -> Unit,
+    onToggleSelection: (String) -> Unit,
+    onStartSelection: (String) -> Unit,
+    onMenuRequested: (Context) -> Unit,
+    onProjectReorder: (fromId: String, toId: String, position: DropPosition) -> Unit,
+    onFocusProject: (Context) -> Unit,
+    onAddSubproject: (Context) -> Unit,
+    onDeleteProject: (Context) -> Unit,
+    onEditProject: (Context) -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        HierarchyListItem(
+            item = item,
+            childMap = displayChildMap,
+            dragAndDropState = dragAndDropState,
+            isSearchActive = isSearchActive,
+            highlightedProjectId = highlightedProjectId,
+            settings = settings,
+            searchQuery = searchQuery,
+            focusedProjectId = focusedProjectId,
+            longDescendantsMap = longDescendantsMap,
+            isSelectionMode = isSelectionMode,
+            selectedContextIds = selectedContextIds,
+            onProjectClick = onProjectClick,
+            onToggleSelection = onToggleSelection,
+            onStartSelection = onStartSelection,
+            onMenuRequested = onMenuRequested,
+            onProjectReorder = onProjectReorder,
+            onFocusProject = onFocusProject,
+            onAddSubproject = onAddSubproject,
+            onDeleteProject = onDeleteProject,
+            onEditProject = onEditProject,
+            sharedTransitionScope = sharedTransitionScope,
+            animatedVisibilityScope = animatedVisibilityScope,
+            modifier = Modifier.weight(1f),
+        )
+        if (isSiblingReorderMode) {
+            ReorderControls(
+                canMoveUp = index > 0,
+                canMoveDown = index < siblings.lastIndex,
+                onMoveUp = {
+                    onEvent(
+                        ContextHierarchyScreenEvent.ReorderContextSiblings(
+                            parentContextId = parentContextId,
+                            orderedContextIds = moveItem(siblings, index, -1).map { it.project.id },
+                        ),
+                    )
+                },
+                onMoveDown = {
+                    onEvent(
+                        ContextHierarchyScreenEvent.ReorderContextSiblings(
+                            parentContextId = parentContextId,
+                            orderedContextIds = moveItem(siblings, index, 1).map { it.project.id },
+                        ),
+                    )
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ReorderControls(
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+) {
+    Column(modifier = Modifier.padding(end = 4.dp)) {
+        IconButton(onClick = onMoveUp, enabled = canMoveUp, modifier = Modifier.size(36.dp)) {
+            Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Move up")
+        }
+        IconButton(onClick = onMoveDown, enabled = canMoveDown, modifier = Modifier.size(36.dp)) {
+            Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Move down")
+        }
+    }
+}
+
+private fun <T> moveItem(
+    items: List<T>,
+    fromIndex: Int,
+    delta: Int,
+): List<T> {
+    val targetIndex = (fromIndex + delta).coerceIn(items.indices)
+    if (targetIndex == fromIndex) return items
+    return items.toMutableList().also { mutable ->
+        val item = mutable.removeAt(fromIndex)
+        mutable.add(targetIndex, item)
     }
 }
 

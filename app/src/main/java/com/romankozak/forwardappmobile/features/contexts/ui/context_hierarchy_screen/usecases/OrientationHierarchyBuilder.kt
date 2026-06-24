@@ -4,6 +4,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadinessStatus
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyItem
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
@@ -17,6 +18,7 @@ data class OrientationBeaconInput(
     val parentBeaconId: String?,
     val relatedContexts: List<Context>,
     val groupIds: List<String>,
+    val groupOrders: Map<String, Long> = emptyMap(),
 )
 
 class OrientationHierarchyBuilder
@@ -27,6 +29,7 @@ class OrientationHierarchyBuilder
             beacons: List<OrientationBeaconInput>,
             groups: List<MainBeaconGroup> = emptyList(),
             parentLinks: List<ContextParentLink> = emptyList(),
+            beaconParentLinks: List<MainBeaconParentLink> = emptyList(),
         ): List<OrientationHierarchyItem> {
             if (hierarchy.allProjects.isEmpty() && beacons.isEmpty()) return emptyList()
 
@@ -40,23 +43,33 @@ class OrientationHierarchyBuilder
                 beacons.sortedWith(
                     compareBy<OrientationBeaconInput> { it.order }.thenBy { it.title.lowercase() },
                 )
-            val childBeaconsByParentId = sortedBeacons.groupBy { it.parentBeaconId }
+            val childBeaconsByParentId = buildChildBeaconsByParentId(sortedBeacons, beaconParentLinks)
+            val linkedParentBeaconIdsByChildId = buildLinkedParentBeaconIdsByChildId(beaconParentLinks)
             val knownGroupIds = groups.mapTo(hashSetOf()) { it.id }
             val beaconsByGroupId =
                 sortedBeacons
                     .flatMap { details ->
                         details.groupIds
                             .filter { it in knownGroupIds }
-                            .map { groupId -> groupId to details }
+                            .map { groupId -> groupId to GroupedBeacon(details, details.groupOrders[groupId] ?: details.order) }
                     }
-                .groupBy(keySelector = { it.first }, valueTransform = { it.second })
+                    .groupBy(keySelector = { it.first }, valueTransform = { it.second })
+                    .mapValues { (_, groupBeacons) ->
+                        groupBeacons
+                            .sortedWith(compareBy<GroupedBeacon> { it.order }.thenBy { it.details.title.lowercase() })
+                            .map { it.details }
+                    }
 
             groups
                 .sortedWith(compareBy<MainBeaconGroup> { it.order }.thenBy { it.title.lowercase() })
                 .forEach { group ->
                     val groupBeacons = beaconsByGroupId[group.id].orEmpty()
                     val groupBeaconIds = groupBeacons.mapTo(hashSetOf()) { it.id }
-                    val rootGroupBeacons = groupBeacons.filter { it.parentBeaconId !in groupBeaconIds }
+                    val rootGroupBeacons =
+                        groupBeacons.filter { details ->
+                            details.parentBeaconId !in groupBeaconIds &&
+                                linkedParentBeaconIdsByChildId[details.id].orEmpty().none { it in groupBeaconIds }
+                        }
                     result +=
                         OrientationHierarchyItem(
                             node =
@@ -86,7 +99,11 @@ class OrientationHierarchyBuilder
             val noGroupBeacons = sortedBeacons.filter { details -> details.groupIds.none { it in knownGroupIds } }
             if (noGroupBeacons.isNotEmpty()) {
                 val noGroupBeaconIds = noGroupBeacons.mapTo(hashSetOf()) { it.id }
-                val rootNoGroupBeacons = noGroupBeacons.filter { it.parentBeaconId !in noGroupBeaconIds }
+                val rootNoGroupBeacons =
+                    noGroupBeacons.filter { details ->
+                        details.parentBeaconId !in noGroupBeaconIds &&
+                            linkedParentBeaconIdsByChildId[details.id].orEmpty().none { it in noGroupBeaconIds }
+                    }
                 result +=
                     OrientationHierarchyItem(
                         node = OrientationHierarchyNode.NoGroup,
@@ -191,7 +208,6 @@ class OrientationHierarchyBuilder
                             additionalParentsByChildId = additionalParentsByChildId,
                         )
                     }
-                    .sortedWith(contextSort())
                     .toList()
 
             entryPoints.forEach { context ->
@@ -218,6 +234,46 @@ class OrientationHierarchyBuilder
             }
             return mutable.mapValues { (_, ids) -> ids.toSet() }
         }
+
+        private data class GroupedBeacon(
+            val details: OrientationBeaconInput,
+            val order: Long,
+        )
+
+        private fun buildChildBeaconsByParentId(
+            beacons: List<OrientationBeaconInput>,
+            parentLinks: List<MainBeaconParentLink>,
+        ): Map<String?, List<OrientationBeaconInput>> {
+            val byId = beacons.associateBy { it.id }
+            val childrenByParentId = linkedMapOf<String?, MutableList<OrientationBeaconInput>>()
+            beacons.forEach { beacon ->
+                childrenByParentId.getOrPut(beacon.parentBeaconId) { mutableListOf() } += beacon
+            }
+            parentLinks
+                .asSequence()
+                .filter { it.parentBeaconId != it.childBeaconId }
+                .sortedWith(compareBy<MainBeaconParentLink> { it.parentBeaconId }.thenBy { it.order })
+                .forEach { link ->
+                    val child = byId[link.childBeaconId] ?: return@forEach
+                    val parentChildren = childrenByParentId.getOrPut(link.parentBeaconId) { mutableListOf() }
+                    if (parentChildren.none { it.id == child.id }) {
+                        parentChildren += child
+                    }
+                }
+            return childrenByParentId
+        }
+
+        private fun buildLinkedParentBeaconIdsByChildId(
+            parentLinks: List<MainBeaconParentLink>,
+        ): Map<String, Set<String>> =
+            parentLinks
+                .asSequence()
+                .filter { it.parentBeaconId != it.childBeaconId }
+                .groupBy(
+                    keySelector = { it.childBeaconId },
+                    valueTransform = { it.parentBeaconId },
+                )
+                .mapValues { (_, parentIds) -> parentIds.toSet() }
 
         private fun appendContextSubtree(
             context: Context,

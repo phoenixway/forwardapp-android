@@ -41,6 +41,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconConte
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroupMember
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.MusicNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
@@ -119,6 +120,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         MainBeacon::class,
         MainBeaconGroup::class,
         MainBeaconGroupMember::class,
+        MainBeaconParentLink::class,
         MainBeaconContextCrossRef::class,
         MainBeaconAttachmentCrossRef::class,
         MainBeaconLevelStatus::class,
@@ -165,7 +167,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 130,
+    version = 133,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)

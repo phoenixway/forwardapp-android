@@ -80,6 +80,7 @@ class SettingsRepository
         private val wifiSyncServerEnabledKey = booleanPreferencesKey("wifi_sync_server_enabled")
         private val desktopSyncAddressKey = stringPreferencesKey("desktop_sync_address")
         private val globalSearchSelectedTypesKey = stringSetPreferencesKey("global_search_selected_types")
+        private val globalSearchCurrentModeKey = stringPreferencesKey("global_search_current_mode")
         private val goalBeaconProgressExpandedKey = booleanPreferencesKey("goal_beacon_progress_expanded")
         private val goalRelativeSizeExpandedKey = booleanPreferencesKey("goal_relative_size_expanded")
 
@@ -905,6 +906,19 @@ class SettingsRepository
         suspend fun saveGlobalSearchSelectedTypes(types: Set<GlobalSearchType>) {
             context.dataStore.edit { settings ->
                 settings[globalSearchSelectedTypesKey] = types.mapTo(linkedSetOf()) { it.name }
+            }
+        }
+
+        val globalSearchCurrentModeFlow: Flow<OmniboxMode> =
+            context.dataStore.data.map { preferences ->
+                preferences[globalSearchCurrentModeKey]
+                    ?.let { storedMode -> runCatching { OmniboxMode.valueOf(storedMode) }.getOrNull() }
+                    ?: OmniboxMode.DataSearch
+            }
+
+        suspend fun saveGlobalSearchCurrentMode(mode: OmniboxMode) {
+            context.dataStore.edit { settings ->
+                settings[globalSearchCurrentModeKey] = mode.name
             }
         }
 

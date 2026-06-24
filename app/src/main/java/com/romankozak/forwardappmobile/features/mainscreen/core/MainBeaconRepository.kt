@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.features.mainscreen.core
 
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconContextCrossRef
@@ -9,6 +10,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroupMember
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelType
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadinessStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconSyncStatus
 import com.romankozak.forwardappmobile.database.AppDatabase
@@ -56,13 +58,19 @@ class MainBeaconRepository
                                 beacon.id,
                                 row.levelStatuses.sortedBy { it.levelType },
                             )
-                        val relatedContexts = row.relatedContexts.sortedBy { it.name.lowercase() }
+                        val contextOrders = row.contextCrossRefs.associate { it.contextId to it.order }
+                        val relatedContexts =
+                            row.relatedContexts.sortedWith(
+                                compareBy<Context> { contextOrders[it.id] ?: Long.MAX_VALUE }
+                                    .thenBy { it.name.lowercase() },
+                            )
                         val relatedAttachments =
                             row.relatedAttachments.sortedWith(
                                 compareByDescending<AttachmentEntity> { it.updatedAt }
                                     .thenByDescending { it.createdAt },
                             )
                         val groupIds = row.groupMembers.sortedBy { it.order }.map { it.groupId }
+                        val groupOrders = row.groupMembers.associate { it.groupId to it.order }
 
                         MainBeaconWithRelations(
                             beacon = beacon,
@@ -70,11 +78,16 @@ class MainBeaconRepository
                             relatedAttachments = relatedAttachments,
                             levelStatuses = ensuredStatuses,
                             groupIds = groupIds,
+                            groupOrders = groupOrders,
                         )
                     }
                 }
 
         fun observeGroups(): Flow<List<MainBeaconGroup>> = mainBeaconDao.observeGroups()
+
+        fun observeParentLinks(): Flow<List<MainBeaconParentLink>> = mainBeaconDao.observeParentLinks()
+
+        suspend fun getBeaconById(beaconId: String): MainBeacon? = mainBeaconDao.getBeaconById(beaconId)
 
         suspend fun createBeacon(
             beacon: MainBeacon,
@@ -160,42 +173,14 @@ class MainBeaconRepository
             return if (newContextIds.isEmpty()) {
                 0
             } else {
+                var nextOrder = mainBeaconDao.getMaxContextCrossRefOrder(beaconId) + 1L
                 mainBeaconDao.insertContextCrossRefs(
                     newContextIds.map { contextId ->
-                        MainBeaconContextCrossRef(beaconId = beaconId, contextId = contextId)
+                        MainBeaconContextCrossRef(beaconId = beaconId, contextId = contextId, order = nextOrder++)
                     },
                 )
                 newContextIds.size
             }
-        }
-
-        suspend fun addRelatedContextsToGroup(
-            groupId: String,
-            contextIds: Set<String>,
-        ): Int {
-            if (contextIds.isEmpty()) return 0
-            val beaconIds =
-                mainBeaconDao
-                    .getAllGroupMembersSync()
-                    .asSequence()
-                    .filter { it.groupId == groupId }
-                    .mapTo(linkedSetOf()) { it.beaconId }
-            if (beaconIds.isEmpty()) return 0
-
-            val existingPairs =
-                mainBeaconDao
-                    .getAllContextCrossRefsSync()
-                    .asSequence()
-                    .mapTo(hashSetOf()) { it.beaconId to it.contextId }
-            val newCrossRefs =
-                beaconIds.flatMap { beaconId ->
-                    contextIds
-                        .filterNot { contextId -> beaconId to contextId in existingPairs }
-                        .map { contextId -> MainBeaconContextCrossRef(beaconId = beaconId, contextId = contextId) }
-                }
-            if (newCrossRefs.isEmpty()) return 0
-            mainBeaconDao.insertContextCrossRefs(newCrossRefs)
-            return newCrossRefs.size
         }
 
         suspend fun reorderBeacons(beaconIdsInOrder: List<String>) {
@@ -203,6 +188,82 @@ class MainBeaconRepository
             appDatabase.withTransaction {
                 beaconIdsInOrder.forEachIndexed { index, beaconId ->
                     mainBeaconDao.updateBeaconOrder(beaconId, index.toLong())
+                }
+            }
+        }
+
+        suspend fun reorderGroups(groupIdsInOrder: List<String>) {
+            if (groupIdsInOrder.isEmpty()) return
+            appDatabase.withTransaction {
+                groupIdsInOrder.forEachIndexed { index, groupId ->
+                    mainBeaconDao.updateGroupOrder(groupId, index.toLong())
+                }
+            }
+        }
+
+        suspend fun reorderBeaconGroupMembers(
+            groupId: String,
+            beaconIdsInOrder: List<String>,
+        ) {
+            if (beaconIdsInOrder.isEmpty()) return
+            appDatabase.withTransaction {
+                beaconIdsInOrder.forEachIndexed { index, beaconId ->
+                    mainBeaconDao.updateGroupMemberOrder(
+                        groupId = groupId,
+                        beaconId = beaconId,
+                        order = index.toLong(),
+                    )
+                }
+            }
+        }
+
+        suspend fun reorderBeaconParentChildren(
+            parentBeaconId: String,
+            beaconIdsInOrder: List<String>,
+        ) {
+            if (beaconIdsInOrder.isEmpty()) return
+            val beaconsById = mainBeaconDao.getAllBeaconsSync().associateBy { it.id }
+            val linkedChildIds =
+                mainBeaconDao
+                    .getAllParentLinksSync()
+                    .filter { it.parentBeaconId == parentBeaconId }
+                    .mapTo(hashSetOf()) { it.childBeaconId }
+            val now = System.currentTimeMillis()
+            appDatabase.withTransaction {
+                beaconIdsInOrder.forEachIndexed { index, beaconId ->
+                    if (beaconsById[beaconId]?.parentBeaconId == parentBeaconId) {
+                        mainBeaconDao.updateBeaconOrder(beaconId, index.toLong())
+                    } else if (beaconId in linkedChildIds) {
+                        mainBeaconDao.updateParentLinkOrder(
+                            parentBeaconId = parentBeaconId,
+                            childBeaconId = beaconId,
+                            order = index.toLong(),
+                            updatedAt = now,
+                        )
+                    }
+                }
+            }
+        }
+
+        suspend fun reorderBeaconContexts(
+            beaconId: String,
+            contextIdsInOrder: List<String>,
+        ) {
+            if (contextIdsInOrder.isEmpty()) return
+            val linkedContextIds =
+                mainBeaconDao
+                    .getAllContextCrossRefsSync()
+                    .filter { it.beaconId == beaconId }
+                    .mapTo(hashSetOf()) { it.contextId }
+            appDatabase.withTransaction {
+                contextIdsInOrder.forEachIndexed { index, contextId ->
+                    if (contextId in linkedContextIds) {
+                        mainBeaconDao.updateContextCrossRefOrder(
+                            beaconId = beaconId,
+                            contextId = contextId,
+                            order = index.toLong(),
+                        )
+                    }
                 }
             }
         }
@@ -249,6 +310,54 @@ class MainBeaconRepository
             }
         }
 
+        suspend fun addBeaconToGroup(
+            beaconId: String,
+            groupId: String?,
+        ): Boolean {
+            if (groupId == null || mainBeaconDao.getBeaconById(beaconId) == null) return false
+            val alreadyInGroup =
+                mainBeaconDao
+                    .getAllGroupMembersSync()
+                    .any { it.groupId == groupId && it.beaconId == beaconId }
+            if (alreadyInGroup) return false
+            mainBeaconDao.insertGroupMembers(
+                listOf(
+                    MainBeaconGroupMember(
+                        groupId = groupId,
+                        beaconId = beaconId,
+                        order = mainBeaconDao.getMaxOrder() + 1L,
+                    ),
+                ),
+            )
+            return true
+        }
+
+        suspend fun addBeaconParentLink(
+            childBeaconId: String,
+            parentBeaconId: String,
+        ): Boolean {
+            if (childBeaconId == parentBeaconId) return false
+            val beaconsById = mainBeaconDao.getAllBeaconsSync().associateBy { it.id }
+            if (childBeaconId !in beaconsById || parentBeaconId !in beaconsById) return false
+            val existingLinks = mainBeaconDao.getAllParentLinksSync()
+            if (beaconsById[childBeaconId]?.parentBeaconId == parentBeaconId) return false
+            if (existingLinks.any { it.parentBeaconId == parentBeaconId && it.childBeaconId == childBeaconId }) return false
+            if (wouldCreateBeaconParentCycle(childBeaconId, parentBeaconId, beaconsById.values.toList(), existingLinks)) {
+                return false
+            }
+
+            val now = System.currentTimeMillis()
+            return mainBeaconDao.insertParentLink(
+                MainBeaconParentLink(
+                    parentBeaconId = parentBeaconId,
+                    childBeaconId = childBeaconId,
+                    order = mainBeaconDao.getMaxParentLinkOrder(parentBeaconId) + 1L,
+                    updatedAt = now,
+                    createdAt = now,
+                ),
+            ) != -1L
+        }
+
         suspend fun duplicateBeacon(
             sourceBeaconId: String,
             parentBeaconId: String?,
@@ -292,14 +401,44 @@ class MainBeaconRepository
             beaconId: String,
             requestedParentId: String,
         ): Boolean {
-            val byId = mainBeaconDao.getAllBeaconsSync().associateBy { it.id }
-            var cursor: String? = requestedParentId
-            val visited = mutableSetOf<String>()
-            while (cursor != null && visited.add(cursor)) {
-                if (cursor == beaconId) return true
-                cursor = byId[cursor]?.parentBeaconId
+            val beacons = mainBeaconDao.getAllBeaconsSync()
+            return wouldCreateBeaconParentCycle(
+                beaconId = beaconId,
+                requestedParentId = requestedParentId,
+                beacons = beacons,
+                parentLinks = mainBeaconDao.getAllParentLinksSync(),
+            )
+        }
+
+        private fun wouldCreateBeaconParentCycle(
+            beaconId: String,
+            requestedParentId: String,
+            beacons: List<MainBeacon>,
+            parentLinks: List<MainBeaconParentLink>,
+        ): Boolean {
+            val byId = beacons.associateBy { it.id }
+            if (requestedParentId !in byId) return true
+
+            val childrenByParentId = linkedMapOf<String, MutableList<String>>()
+            beacons.forEach { beacon ->
+                beacon.parentBeaconId?.let { parentId ->
+                    childrenByParentId.getOrPut(parentId) { mutableListOf() } += beacon.id
+                }
             }
-            return requestedParentId !in byId
+            parentLinks.forEach { link ->
+                childrenByParentId.getOrPut(link.parentBeaconId) { mutableListOf() } += link.childBeaconId
+            }
+
+            val pending = ArrayDeque<String>()
+            pending += beaconId
+            val visited = mutableSetOf<String>()
+            while (pending.isNotEmpty()) {
+                val cursor = pending.removeFirst()
+                if (!visited.add(cursor)) continue
+                if (cursor == requestedParentId) return true
+                childrenByParentId[cursor].orEmpty().forEach(pending::add)
+            }
+            return false
         }
 
         private suspend fun upsertBeacon(
@@ -311,6 +450,13 @@ class MainBeaconRepository
             exists: Boolean,
         ) {
             appDatabase.withTransaction {
+                val existingContextOrders =
+                    mainBeaconDao
+                        .getAllContextCrossRefsSync()
+                        .filter { it.beaconId == beacon.id }
+                        .associate { it.contextId to it.order }
+                var nextContextOrder = (existingContextOrders.values.maxOrNull() ?: -1L) + 1L
+
                 if (exists) {
                     mainBeaconDao.updateBeacon(beacon)
                 } else {
@@ -324,7 +470,11 @@ class MainBeaconRepository
                 if (relatedContextIds.isNotEmpty()) {
                     mainBeaconDao.insertContextCrossRefs(
                         relatedContextIds.map { contextId ->
-                            MainBeaconContextCrossRef(beaconId = beacon.id, contextId = contextId)
+                            MainBeaconContextCrossRef(
+                                beaconId = beacon.id,
+                                contextId = contextId,
+                                order = existingContextOrders[contextId] ?: nextContextOrder++,
+                            )
                         },
                     )
                 }

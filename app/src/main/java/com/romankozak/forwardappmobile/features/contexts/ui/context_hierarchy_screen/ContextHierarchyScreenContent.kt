@@ -57,6 +57,7 @@ fun ProjectHierarchyScreenContent(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     onEditBeacon: (String) -> Unit = {},
+    onDeleteBeacon: (String) -> Unit = {},
 ) {
     val currentSubState =
         remember(uiState.subStateStack) {
@@ -215,8 +216,10 @@ fun ProjectHierarchyScreenContent(
                     selectedContextIds = uiState.selectedContextIds,
                     clipboardContextIds = uiState.clipboardContextIds,
                     isSelectionMode = uiState.isSelectionMode,
+                    isSiblingReorderMode = uiState.isSiblingReorderMode,
                     onEvent = onEvent,
                     onEditBeacon = onEditBeacon,
+                    onDeleteBeacon = onDeleteBeacon,
                     sharedTransitionScope = sharedTransitionScope,
                     animatedVisibilityScope = animatedVisibilityScope,
                     onProjectClicked = { onEvent(ContextHierarchyScreenEvent.ContextClick(it)) },
@@ -318,7 +321,6 @@ private fun StableHomeButton(
 
 @Composable
 internal fun OptimizedExpandingProjectHierarchyBottomNav(
-    onToggleSearch: (Boolean) -> Unit,
     onGlobalSearchClick: () -> Unit,
     onShowCommandDeck: () -> Unit,
     onRecentsClick: () -> Unit,
@@ -333,13 +335,11 @@ internal fun OptimizedExpandingProjectHierarchyBottomNav(
 ) {
     val stableOnHomeClick = remember { { onHomeClick() } }
     val stableOnDayPlanClick = remember { { onDayPlanClick() } }
-    val stableOnToggleSearch = remember { onToggleSearch }
     val stableOnRecentsClick = remember { { onRecentsClick() } }
     val stableOnActivityTrackerClick = remember { { onActivityTrackerClick() } }
     val stableOnShowCommandDeck = remember { { onShowCommandDeck() } }
 
     ExpandingProjectHierarchyBottomNav(
-        onToggleSearch = stableOnToggleSearch,
         onGlobalSearchClick = onGlobalSearchClick,
         onShowCommandDeck = stableOnShowCommandDeck,
         onRecentsClick = stableOnRecentsClick,

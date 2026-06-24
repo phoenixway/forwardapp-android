@@ -232,51 +232,70 @@ data class GlobalAttachmentSearchResult(
     @SerializedName("title") val title: String,
     @SerializedName("subtitle") val subtitle: String?,
     @SerializedName("contextName") val contextName: String?,
+    @SerializedName("searchText") val searchText: String? = null,
     @SerializedName("updatedAt") val updatedAt: Long,
 )
 
 sealed class GlobalSearchResultItem {
     abstract val timestamp: Long
     abstract val uniqueId: String
+    abstract val matchedTags: List<String>
 
     data class GoalItem(
         @SerializedName("goal") val goal: Goal,
         @SerializedName("backlogItem") val backlogItem: BacklogItem,
         @SerializedName("projectName") val projectName: String,
         @SerializedName("pathSegments") val pathSegments: List<String>,
+        @SerializedName("matchedTags") override val matchedTags: List<String> = emptyList(),
     ) : GlobalSearchResultItem() {
         override val timestamp: Long get() = goal.updatedAt ?: goal.createdAt
         override val uniqueId: String get() = "goal_${goal.id}_${backlogItem.contextId}"
     }
 
-    data class LinkItem(@SerializedName("searchResult") val searchResult: GlobalLinkSearchResult) : GlobalSearchResultItem() {
+    data class LinkItem(
+        @SerializedName("searchResult") val searchResult: GlobalLinkSearchResult,
+        @SerializedName("matchedTags") override val matchedTags: List<String> = emptyList(),
+    ) : GlobalSearchResultItem() {
         override val timestamp: Long get() = searchResult.link.createdAt
         override val uniqueId: String get() = "link_${searchResult.link.id}_${searchResult.contextId}"
     }
 
-    data class SubcontextItem(@SerializedName("searchResult") val searchResult: GlobalSubcontextSearchResult) : GlobalSearchResultItem() {
+    data class SubcontextItem(
+        @SerializedName("searchResult") val searchResult: GlobalSubcontextSearchResult,
+        @SerializedName("matchedTags") override val matchedTags: List<String> = emptyList(),
+    ) : GlobalSearchResultItem() {
         override val timestamp: Long get() = searchResult.subcontext.updatedAt ?: searchResult.subcontext.createdAt
         override val uniqueId: String get() = "sublist_${searchResult.subcontext.id}_${searchResult.parentContextId}"
     }
 
     data class ContextItem(
         @SerializedName("searchResult") val searchResult: GlobalContextSearchResult,
+        @SerializedName("matchedTags") override val matchedTags: List<String> = emptyList(),
     ) : GlobalSearchResultItem() {
         override val timestamp: Long get() = searchResult.context.updatedAt ?: searchResult.context.createdAt
         override val uniqueId: String get() = "context_${searchResult.context.id}"
     }
 
-    data class ActivityItem(@SerializedName("record") val record: ActivityRecord) : GlobalSearchResultItem() {
+    data class ActivityItem(
+        @SerializedName("record") val record: ActivityRecord,
+        @SerializedName("matchedTags") override val matchedTags: List<String> = emptyList(),
+    ) : GlobalSearchResultItem() {
         override val timestamp: Long get() = record.startTime ?: record.createdAt
         override val uniqueId: String get() = "activity_${record.id}"
     }
 
-    data class InboxItem(@SerializedName("record") val record: InboxRecord) : GlobalSearchResultItem() {
+    data class InboxItem(
+        @SerializedName("record") val record: InboxRecord,
+        @SerializedName("matchedTags") override val matchedTags: List<String> = emptyList(),
+    ) : GlobalSearchResultItem() {
         override val timestamp: Long get() = record.createdAt
         override val uniqueId: String get() = "inbox_${record.id}"
     }
 
-    data class AttachmentItem(@SerializedName("searchResult") val searchResult: GlobalAttachmentSearchResult) : GlobalSearchResultItem() {
+    data class AttachmentItem(
+        @SerializedName("searchResult") val searchResult: GlobalAttachmentSearchResult,
+        @SerializedName("matchedTags") override val matchedTags: List<String> = emptyList(),
+    ) : GlobalSearchResultItem() {
         override val timestamp: Long get() = searchResult.updatedAt
         override val uniqueId: String get() = "attachment_${searchResult.attachmentId}"
     }

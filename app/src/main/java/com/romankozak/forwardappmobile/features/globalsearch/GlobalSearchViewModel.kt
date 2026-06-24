@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.context.SystemContexts
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
@@ -11,6 +12,7 @@ import com.romankozak.forwardappmobile.data.repository.ActivityRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.InboxRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.domain.search.StructuredSearchQuery
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -250,6 +252,11 @@ class GlobalSearchViewModel
                     recentCommands = recentCommands,
                 )
             }
+            if (initialQuery.isBlank()) {
+                viewModelScope.launch {
+                    applyMode(settingsRepository.globalSearchCurrentModeFlow.first(), persist = false)
+                }
+            }
             viewModelScope.launch {
                 val storedTypes = settingsRepository.globalSearchSelectedTypesFlow.first()
                 val resolvedTypes =
@@ -397,6 +404,13 @@ class GlobalSearchViewModel
         }
 
         fun setMode(mode: OmniboxMode) {
+            applyMode(mode, persist = true)
+        }
+
+        private fun applyMode(
+            mode: OmniboxMode,
+            persist: Boolean,
+        ) {
             _uiState.update { current ->
                 current.copy(
                     mode = mode,
@@ -415,6 +429,11 @@ class GlobalSearchViewModel
                             emptyList()
                         },
                 )
+            }
+            if (persist) {
+                viewModelScope.launch {
+                    settingsRepository.saveGlobalSearchCurrentMode(mode)
+                }
             }
         }
 
@@ -438,6 +457,31 @@ class GlobalSearchViewModel
             dataUsage[resultUniqueId] = (dataUsage[resultUniqueId] ?: 0) + 1
             trimUsageMap(dataUsage)
             savedStateHandle[DATA_USAGE_KEY] = dataUsage.toMap()
+        }
+
+        fun openAttachmentResult(result: GlobalSearchResultItem.AttachmentItem) {
+            val searchResult = result.searchResult
+            val target =
+                when (searchResult.attachmentType) {
+                    BacklogItemTypeValues.NOTE_DOCUMENT -> NavTarget.NoteDocument(id = searchResult.entityId)
+                    BacklogItemTypeValues.JOURNAL_DOCUMENT -> NavTarget.JournalDocument(id = searchResult.entityId)
+                    BacklogItemTypeValues.CHECKLIST -> NavTarget.Checklist(id = searchResult.entityId)
+                    BacklogItemTypeValues.MUSIC_NOTE -> NavTarget.MusicNote(id = searchResult.entityId)
+                    BacklogItemTypeValues.SCRIPT ->
+                        NavTarget.ScriptEditor(
+                            contextId = searchResult.ownerContextId,
+                            scriptId = searchResult.entityId,
+                        )
+                    else -> null
+                }
+            onDataResultOpened(result.uniqueId)
+            if (target != null) {
+                enhancedNavigationManager.navigate(target = target)
+            } else {
+                searchResult.ownerContextId?.let { contextId ->
+                    navigateToProjectForResult(contextId, searchResult.contextName)
+                }
+            }
         }
 
         fun quickCatchCurrentQuery() {
@@ -583,22 +627,27 @@ class GlobalSearchViewModel
 
             _uiState.update { it.copy(isLoading = true) }
             viewModelScope.launch {
+                val structuredQuery = StructuredSearchQuery.parse(query)
                 val strictResults = contextRepository.searchGlobal("%$query%")
                 val strictDistinct = strictResults.distinctBy { it.uniqueId }
                 val rankedStrict =
-                    strictDistinct
-                        .mapNotNull { item ->
-                            val score = fuzzyScoreForData(query, item)
-                            if (score < 0) null else item to score
-                        }
-                        .sortedWith(
-                            compareByDescending<Pair<GlobalSearchResultItem, Int>> { it.second }
-                                .thenByDescending { it.first.timestamp },
-                        )
-                        .map { it.first }
+                    if (structuredQuery.hasTags) {
+                        rankStructuredResults(strictDistinct, structuredQuery)
+                    } else {
+                        strictDistinct
+                            .mapNotNull { item ->
+                                val score = fuzzyScoreForData(query, item)
+                                if (score < 0) null else item to score
+                            }
+                            .sortedWith(
+                                compareByDescending<Pair<GlobalSearchResultItem, Int>> { it.second }
+                                    .thenByDescending { it.first.timestamp },
+                            )
+                            .map { it.first }
+                    }
 
                 val finalResults =
-                    if (rankedStrict.isNotEmpty()) {
+                    if (rankedStrict.isNotEmpty() || structuredQuery.hasTags) {
                         rankedStrict
                     } else {
                         val allCandidates = getAllSearchCandidatesForFuzzy()
@@ -624,6 +673,26 @@ class GlobalSearchViewModel
                     )
                 }
             }
+        }
+
+        private fun rankStructuredResults(
+            results: List<GlobalSearchResultItem>,
+            query: StructuredSearchQuery,
+        ): List<GlobalSearchResultItem> {
+            if (query.textQuery.isBlank()) {
+                return results.sortedWith(
+                    compareByDescending<GlobalSearchResultItem> { it.matchedTags.size }
+                        .thenByDescending { it.timestamp },
+                )
+            }
+            return results
+                .map { item -> item to fuzzyScoreForData(query.textQuery, item).coerceAtLeast(0) }
+                .sortedWith(
+                    compareByDescending<Pair<GlobalSearchResultItem, Int>> { it.first.matchedTags.size }
+                        .thenByDescending { it.second }
+                        .thenByDescending { it.first.timestamp },
+                )
+                .map { it.first }
         }
 
         private fun submitQuickCatch(rawQuery: String) {
@@ -968,6 +1037,7 @@ class GlobalSearchViewModel
                     listOf(
                         item.searchResult.context.name,
                         item.searchResult.context.description ?: "",
+                        item.searchResult.context.tags.orEmpty().joinToString(" "),
                         item.searchResult.pathSegments.joinToString(" "),
                     )
                 is GlobalSearchResultItem.ActivityItem ->
@@ -982,6 +1052,7 @@ class GlobalSearchViewModel
                         item.searchResult.title,
                         item.searchResult.subtitle ?: "",
                         item.searchResult.contextName ?: "",
+                        item.searchResult.searchText ?: "",
                     )
             }
 

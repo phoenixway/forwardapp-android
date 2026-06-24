@@ -149,6 +149,46 @@ data class MainBeaconGroupMember(
 )
 
 @Entity(
+    tableName = "main_beacon_parent_links",
+    primaryKeys = ["parent_beacon_id", "child_beacon_id"],
+    foreignKeys = [
+        ForeignKey(
+            entity = MainBeacon::class,
+            parentColumns = ["id"],
+            childColumns = ["parent_beacon_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+        ForeignKey(
+            entity = MainBeacon::class,
+            parentColumns = ["id"],
+            childColumns = ["child_beacon_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [
+        Index(value = ["child_beacon_id"]),
+        Index(value = ["parent_beacon_id", "link_order"]),
+    ],
+)
+data class MainBeaconParentLink(
+    @ColumnInfo(name = "parent_beacon_id")
+    @SerializedName("parentBeaconId")
+    val parentBeaconId: String,
+    @ColumnInfo(name = "child_beacon_id")
+    @SerializedName("childBeaconId")
+    val childBeaconId: String,
+    @ColumnInfo(name = "link_order", defaultValue = "0")
+    @SerializedName("order")
+    val order: Long = 0L,
+    @ColumnInfo(name = "updatedAt")
+    @SerializedName("updatedAt")
+    val updatedAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(name = "createdAt")
+    @SerializedName("createdAt")
+    val createdAt: Long = System.currentTimeMillis(),
+)
+
+@Entity(
     tableName = "main_beacon_context_cross_ref",
     primaryKeys = ["beacon_id", "context_id"],
     foreignKeys = [
@@ -167,6 +207,7 @@ data class MainBeaconGroupMember(
     ],
     indices = [
         Index(value = ["context_id"]),
+        Index(value = ["beacon_id", "ref_order"]),
     ],
 )
 data class MainBeaconContextCrossRef(
@@ -176,6 +217,9 @@ data class MainBeaconContextCrossRef(
     @ColumnInfo(name = "context_id")
     @SerializedName("contextId")
     val contextId: String,
+    @ColumnInfo(name = "ref_order", defaultValue = "0")
+    @SerializedName("order")
+    val order: Long = 0L,
 )
 
 @Entity(

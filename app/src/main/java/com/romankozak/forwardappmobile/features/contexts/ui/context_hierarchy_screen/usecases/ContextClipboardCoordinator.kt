@@ -34,6 +34,7 @@ class ContextClipboardCoordinator
         private enum class Operation {
             COPY,
             CUT,
+            LINK,
         }
 
         private data class Payload(
@@ -48,9 +49,11 @@ class ContextClipboardCoordinator
 
         private val payload = MutableStateFlow<Payload?>(null)
         private val beaconPayload = MutableStateFlow<BeaconPayload?>(null)
+        private val _hasBeaconPayload = MutableStateFlow(false)
         private val _uiState = MutableStateFlow(emptySet<String>() to null as ContextClipboardOperationUi?)
 
         val uiState: StateFlow<Pair<Set<String>, ContextClipboardOperationUi?>> = _uiState.asStateFlow()
+        val hasBeaconPayload: StateFlow<Boolean> = _hasBeaconPayload.asStateFlow()
 
         fun retainExistingContextIds(existingIds: Set<String>) {
             payload.update { current ->
@@ -74,6 +77,11 @@ class ContextClipboardCoordinator
             return "Контекст скопійовано"
         }
 
+        fun copyContextAsLink(contextId: String): String {
+            setPayload(Payload(contextIds = setOf(contextId), operation = Operation.LINK))
+            return "Посилання на контекст скопійовано"
+        }
+
         fun cutContext(contextId: String): String {
             setPayload(Payload(contextIds = setOf(contextId), operation = Operation.CUT))
             return "Контекст вирізано"
@@ -92,12 +100,26 @@ class ContextClipboardCoordinator
         }
 
         fun copyBeacon(beaconId: String): String {
+            payload.value = null
+            syncUiState()
             beaconPayload.value = BeaconPayload(beaconId = beaconId, operation = Operation.COPY)
+            syncBeaconUiState()
             return "Головний орієнтир скопійовано"
         }
 
+        fun copyBeaconAsLink(beaconId: String): String {
+            payload.value = null
+            syncUiState()
+            beaconPayload.value = BeaconPayload(beaconId = beaconId, operation = Operation.LINK)
+            syncBeaconUiState()
+            return "Посилання на головний орієнтир скопійовано"
+        }
+
         fun cutBeacon(beaconId: String): String {
+            payload.value = null
+            syncUiState()
             beaconPayload.value = BeaconPayload(beaconId = beaconId, operation = Operation.CUT)
+            syncBeaconUiState()
             return "Головний орієнтир вирізано"
         }
 
@@ -111,25 +133,30 @@ class ContextClipboardCoordinator
                                 beaconId = current.beaconId,
                                 parentBeaconId = targetBeaconId,
                             )
-                        }
+                    }
                     if (moved) {
                         beaconPayload.value = null
+                        syncBeaconUiState()
                         ContextClipboardResult("Головний орієнтир переміщено")
                     } else {
                         ContextClipboardResult("Неможливо вставити головний орієнтир сюди")
                     }
                 }
-                Operation.COPY -> {
-                    val copied =
+                Operation.COPY,
+                Operation.LINK -> {
+                    val linked =
                         withContext(ioDispatcher) {
-                            mainBeaconRepository.duplicateBeacon(
-                                sourceBeaconId = current.beaconId,
+                            mainBeaconRepository.addBeaconParentLink(
+                                childBeaconId = current.beaconId,
                                 parentBeaconId = targetBeaconId,
-                                groupId = null,
                             )
                         }
                     ContextClipboardResult(
-                        if (copied) "Копію головного орієнтира створено" else "Орієнтир у буфері більше не існує",
+                        if (linked) {
+                            "Посилання на головний орієнтир додано"
+                        } else {
+                            "Орієнтир уже є тут, більше не існує або створив би цикл"
+                        },
                     )
                 }
             }
@@ -146,19 +173,21 @@ class ContextClipboardCoordinator
                         )
                     }
                     beaconPayload.value = null
+                    syncBeaconUiState()
                     ContextClipboardResult("Головний орієнтир переміщено в групу")
                 }
-                Operation.COPY -> {
-                    val copied =
+                Operation.COPY,
+                Operation.LINK -> {
+                    val added =
                         withContext(ioDispatcher) {
-                            mainBeaconRepository.duplicateBeacon(
-                                sourceBeaconId = current.beaconId,
-                                parentBeaconId = null,
-                                groupId = groupId,
-                            )
+                            mainBeaconRepository.addBeaconToGroup(current.beaconId, groupId)
                         }
                     ContextClipboardResult(
-                        if (copied) "Копію головного орієнтира створено" else "Орієнтир у буфері більше не існує",
+                        if (added) {
+                            "Головний орієнтир додано в групу"
+                        } else {
+                            "Орієнтир уже є в цій групі або більше не існує"
+                        },
                     )
                 }
             }
@@ -227,6 +256,19 @@ class ContextClipboardCoordinator
                         dismissDialog = true,
                     )
                 }
+
+                Operation.LINK -> {
+                    val addedCount =
+                        contextActionsUseCase.addAdditionalParentLinks(
+                            parentContextId = targetContext.id,
+                            childContextIds = sources.mapTo(linkedSetOf()) { it.id },
+                            allProjects = allProjects,
+                        )
+                    ContextClipboardResult(
+                        toast = if (addedCount == 0) "Нові посилання не додано" else "Додано посилання контекстів: $addedCount",
+                        dismissDialog = true,
+                    )
+                }
             }
         }
 
@@ -270,45 +312,6 @@ class ContextClipboardCoordinator
             )
         }
 
-        suspend fun pasteIntoGroup(
-            groupNodeId: String,
-            orientationHierarchy: List<OrientationHierarchyItem>,
-            allProjects: List<Context>,
-        ): ContextClipboardResult {
-            val current = payload.value ?: return ContextClipboardResult("Буфер порожній")
-            val groupNode =
-                orientationHierarchy
-                    .firstOrNull { it.node.id == groupNodeId }
-                    ?.node
-            if (groupNode !is OrientationHierarchyNode.Group) {
-                return ContextClipboardResult("Вставка доступна тільки в групу орієнтирів")
-            }
-
-            val sources = resolveClipboardContexts(allProjects, current)
-            if (sources.isEmpty()) {
-                clear()
-                return ContextClipboardResult("Контекст у буфері більше не існує")
-            }
-
-            val addedCount =
-                withContext(ioDispatcher) {
-                    mainBeaconRepository.addRelatedContextsToGroup(
-                        groupId = groupNode.id,
-                        contextIds = sources.mapTo(linkedSetOf()) { it.id },
-                    )
-                }
-            if (current.operation == Operation.CUT) {
-                clear()
-            }
-            return ContextClipboardResult(
-                toast =
-                    when (addedCount) {
-                        0 -> "У групі немає орієнтирів або нові зв'язки не додано"
-                        else -> "Додано контексти до орієнтирів групи: $addedCount"
-                    },
-            )
-        }
-
         suspend fun addContextAppearance(
             parentContext: Context,
             allProjects: List<Context>,
@@ -333,6 +336,8 @@ class ContextClipboardCoordinator
         }
 
         private fun setPayload(newPayload: Payload) {
+            beaconPayload.value = null
+            syncBeaconUiState()
             payload.value = newPayload
             syncUiState()
         }
@@ -349,8 +354,13 @@ class ContextClipboardCoordinator
                         when (current.operation) {
                             Operation.COPY -> ContextClipboardOperationUi.COPY
                             Operation.CUT -> ContextClipboardOperationUi.CUT
+                            Operation.LINK -> ContextClipboardOperationUi.COPY
                         }
                 } ?: (emptySet<String>() to null)
+        }
+
+        private fun syncBeaconUiState() {
+            _hasBeaconPayload.value = beaconPayload.value != null
         }
 
         private fun canPasteInto(
@@ -364,7 +374,8 @@ class ContextClipboardCoordinator
             if (sources.isEmpty()) return false
 
             return when (payload.operation) {
-                Operation.COPY -> sources.none { it.id == target.id }
+                Operation.COPY,
+                Operation.LINK -> sources.none { it.id == target.id }
                 Operation.CUT ->
                     sources.none { it.id == target.id } &&
                         sources.none { source ->

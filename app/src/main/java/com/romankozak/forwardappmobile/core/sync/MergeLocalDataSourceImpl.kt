@@ -257,6 +257,7 @@ class MergeLocalDataSourceImpl
                 focusContextIntervalDao.insertAll(bundle.focusContextIntervals.map { it.toEntity() })
                 userStateIntervalDao.insertAll(bundle.userStateIntervals.map { it.toEntity() })
                 mainBeaconDao.insertGroupMembers(bundle.mainBeaconGroupMembers.map { it.toEntity() })
+                mainBeaconDao.insertParentLinks(bundle.mainBeaconParentLinks.map { it.toEntity() })
                 mainBeaconDao.insertContextCrossRefs(bundle.mainBeaconContextCrossRefs.map { it.toEntity() })
                 mainBeaconDao.insertAttachmentCrossRefs(bundle.mainBeaconAttachmentCrossRefs.map { it.toEntity() })
                 mainBeaconDao.insertLevelStatuses(bundle.mainBeaconLevelStatuses.map { it.toEntity() })

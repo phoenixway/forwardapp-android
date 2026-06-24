@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecordKind
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.repository.ContextLogRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -200,6 +201,7 @@ class SessionModeRepository
                     text = text,
                     rawNoteText = text,
                     noteText = text,
+                    recordKind = ActivityRecordKind.EVENT,
                     createdAt = now,
                     updatedAt = now,
                     targetType = targetType,

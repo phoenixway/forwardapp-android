@@ -59,6 +59,7 @@ fun ProjectHierarchyScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val focusManager = LocalFocusManager.current
     var editingBeacon by remember { mutableStateOf<MainBeaconEditorState?>(null) }
+    var beaconPendingDeleteId by remember { mutableStateOf<String?>(null) }
     var showCreateGroupDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -188,6 +189,9 @@ fun ProjectHierarchyScreen(
             onEditBeacon = { beaconId ->
                 editingBeacon = coreLevelViewModel.buildEditorState(beaconId)
             },
+            onDeleteBeacon = { beaconId ->
+                beaconPendingDeleteId = beaconId
+            },
             onAddMainBeacon = {
                 val parentBeaconId = parentBeaconIdForNewBeacon(uiState)
                 val groupIds = groupIdsForNewBeacon(uiState)
@@ -287,6 +291,32 @@ fun ProjectHierarchyScreen(
             },
             onDuplicate = null,
             onDelete = null,
+        )
+    }
+
+    beaconPendingDeleteId?.let { beaconId ->
+        AlertDialog(
+            onDismissRequest = { beaconPendingDeleteId = null },
+            title = { Text("Видалити головний орієнтир?") },
+            text = { Text("Цю дію не буде скасовано.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        coreLevelViewModel.deleteBeacon(beaconId)
+                        if (editingBeacon?.id == beaconId) {
+                            editingBeacon = null
+                        }
+                        beaconPendingDeleteId = null
+                    },
+                ) {
+                    Text("Видалити")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { beaconPendingDeleteId = null }) {
+                    Text("Скасувати")
+                }
+            },
         )
     }
 

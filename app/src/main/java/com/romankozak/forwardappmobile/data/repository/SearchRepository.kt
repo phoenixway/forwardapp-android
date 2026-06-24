@@ -7,6 +7,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.GlobalContextSe
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.domain.search.StructuredSearchQuery
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
@@ -61,6 +62,10 @@ class SearchRepository
         private val attachmentsRepository: AttachmentsRepository,
     ) {
         suspend fun searchGlobal(query: String): List<GlobalSearchResultItem> {
+            val structuredQuery = StructuredSearchQuery.parse(query)
+            if (structuredQuery.hasTags) {
+                return searchStructured(structuredQuery)
+            }
             val sanitizedQuery = query.removePrefix("%").removeSuffix("%").trim()
             val activityQuery = buildSafeActivityFtsQuery(query)
             val combinedResults =
@@ -76,6 +81,30 @@ class SearchRepository
                 compareBy<GlobalSearchResultItem> { it.typeOrder }
                     .thenByDescending { it.timestamp },
             )
+        }
+
+        private suspend fun searchStructured(query: StructuredSearchQuery): List<GlobalSearchResultItem> {
+            val allQuery = "%%"
+            val candidates =
+                buildGoalResults(allQuery) +
+                    buildLinkResults(allQuery) +
+                    buildSubcontextResults(allQuery) +
+                    buildContextResults(allQuery) +
+                    buildAllActivityResults() +
+                    buildInboxResults(allQuery) +
+                    buildAttachmentResults("")
+
+            return candidates
+                .asSequence()
+                .filter { item -> query.matches(item.searchableTexts()) }
+                .map { item -> item.withMatchedTags(query.matchedTags(item.searchableTexts())) }
+                .distinctBy { it.uniqueId }
+                .sortedWith(
+                    compareByDescending<GlobalSearchResultItem> { it.matchedTags.size }
+                        .thenBy { it.typeOrder }
+                        .thenByDescending { it.timestamp },
+                )
+                .toList()
         }
 
         private suspend fun buildGoalResults(query: String): List<GlobalSearchResultItem.GoalItem> =
@@ -111,6 +140,9 @@ class SearchRepository
                 }
                 ?: emptyList()
 
+        private suspend fun buildAllActivityResults(): List<GlobalSearchResultItem.ActivityItem> =
+            activityRepository.getAllActivitiesForSearch().map { GlobalSearchResultItem.ActivityItem(it) }
+
         private suspend fun buildInboxResults(query: String): List<GlobalSearchResultItem.InboxItem> =
             inboxRecordDao.searchInboxRecordsGlobal(query).map { GlobalSearchResultItem.InboxItem(it) }
 
@@ -128,7 +160,8 @@ class SearchRepository
         ): GlobalSearchResultItem.AttachmentItem? {
             val title = resolveAttachmentTitle(result) ?: return null
             val subtitle = resolveAttachmentSubtitle(result)
-            val matches = attachmentMatchesQuery(result, title, subtitle, sanitizedQuery)
+            val searchText = resolveAttachmentSearchText(result)
+            val matches = attachmentMatchesQuery(result, title, subtitle, searchText, sanitizedQuery)
             if (!matches) return null
 
             return GlobalSearchResultItem.AttachmentItem(
@@ -140,6 +173,7 @@ class SearchRepository
                     title = title,
                     subtitle = subtitle,
                     contextName = result.contextName,
+                    searchText = searchText,
                     updatedAt =
                         result.linkCreatedAt
                             ?: result.noteUpdatedAt
@@ -170,16 +204,29 @@ class SearchRepository
                 result.contextName
             }
 
+        private fun resolveAttachmentSearchText(result: AttachmentLibraryQueryResult): String? =
+            listOfNotNull(
+                result.noteContent,
+                result.musicNoteContent,
+                result.checklistContent,
+                result.scriptDescription,
+                result.scriptContent,
+            ).filter { it.isNotBlank() }
+                .joinToString("\n")
+                .ifBlank { null }
+
         private fun attachmentMatchesQuery(
             result: AttachmentLibraryQueryResult,
             title: String,
             subtitle: String?,
+            searchText: String?,
             sanitizedQuery: String,
         ): Boolean =
             sanitizedQuery.isBlank() ||
                 title.contains(sanitizedQuery, ignoreCase = true) ||
                 (subtitle?.contains(sanitizedQuery, ignoreCase = true) == true) ||
-                (result.contextName?.contains(sanitizedQuery, ignoreCase = true) == true)
+                (result.contextName?.contains(sanitizedQuery, ignoreCase = true) == true) ||
+                (searchText?.contains(sanitizedQuery, ignoreCase = true) == true)
 
         private fun extractLinkTitle(linkDisplayName: String?): String? {
             val relatedLink =
@@ -228,4 +275,62 @@ class SearchRepository
                 matchedTags = matchedTags,
             )
         }
+
+        private fun GlobalSearchResultItem.searchableTexts(): List<String> =
+            when (this) {
+                is GlobalSearchResultItem.GoalItem ->
+                    listOf(
+                        goal.text,
+                        goal.description.orEmpty(),
+                        projectName,
+                        pathSegments.joinToString(" "),
+                    )
+                is GlobalSearchResultItem.LinkItem ->
+                    listOf(
+                        searchResult.link.linkData.displayName.orEmpty(),
+                        searchResult.link.linkData.target,
+                        searchResult.contextName,
+                        searchResult.pathSegments.joinToString(" "),
+                    )
+                is GlobalSearchResultItem.SubcontextItem ->
+                    listOf(
+                        searchResult.subcontext.name,
+                        searchResult.subcontext.description.orEmpty(),
+                        searchResult.subcontext.tags.orEmpty().joinToString(" "),
+                        searchResult.parentContextName,
+                        searchResult.pathSegments.joinToString(" "),
+                    )
+                is GlobalSearchResultItem.ContextItem ->
+                    listOf(
+                        searchResult.context.name,
+                        searchResult.context.description.orEmpty(),
+                        searchResult.context.tags.orEmpty().joinToString(" "),
+                        searchResult.pathSegments.joinToString(" "),
+                    )
+                is GlobalSearchResultItem.ActivityItem ->
+                    listOf(record.text, record.noteText.orEmpty(), record.rawNoteText.orEmpty())
+                is GlobalSearchResultItem.InboxItem -> listOf(record.text)
+                is GlobalSearchResultItem.AttachmentItem ->
+                    listOf(
+                        searchResult.title,
+                        searchResult.subtitle.orEmpty(),
+                        searchResult.contextName.orEmpty(),
+                        searchResult.searchText.orEmpty(),
+                    )
+            }
+
+        private fun GlobalSearchResultItem.withMatchedTags(tags: List<String>): GlobalSearchResultItem =
+            when (this) {
+                is GlobalSearchResultItem.GoalItem -> copy(matchedTags = tags)
+                is GlobalSearchResultItem.LinkItem -> copy(matchedTags = tags)
+                is GlobalSearchResultItem.SubcontextItem -> copy(matchedTags = tags)
+                is GlobalSearchResultItem.ContextItem ->
+                    copy(
+                        searchResult = searchResult.copy(matchedTags = tags),
+                        matchedTags = tags,
+                    )
+                is GlobalSearchResultItem.ActivityItem -> copy(matchedTags = tags)
+                is GlobalSearchResultItem.InboxItem -> copy(matchedTags = tags)
+                is GlobalSearchResultItem.AttachmentItem -> copy(matchedTags = tags)
+            }
     }

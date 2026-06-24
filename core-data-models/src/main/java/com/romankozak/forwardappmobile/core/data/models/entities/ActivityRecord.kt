@@ -3,17 +3,30 @@ package com.romankozak.forwardappmobile.core.data.models.entities
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Fts4
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.google.gson.annotations.SerializedName
 import java.util.UUID
 
-@Entity(tableName = "activity_records")
+object ActivityRecordKind {
+    const val TIMED_ACTIVITY = "TIMED_ACTIVITY"
+    const val EVENT = "EVENT"
+    const val COMMENT = "COMMENT"
+    const val DAY_SUMMARY = "DAY_SUMMARY"
+}
+
+@Entity(
+    tableName = "activity_records",
+    indices = [Index(value = ["record_kind"])],
+)
 data class ActivityRecord(
     @PrimaryKey
     @SerializedName("id") val id: String = UUID.randomUUID().toString(),
     @SerializedName("text") val text: String,
     @SerializedName("rawNoteText") val rawNoteText: String? = null,
     @SerializedName("noteText") val noteText: String? = null,
+    @ColumnInfo(name = "record_kind")
+    @SerializedName("recordKind") val recordKind: String = ActivityRecordKind.TIMED_ACTIVITY,
     @SerializedName("stateEventType") val stateEventType: String? = null,
     @SerializedName("stateEventCrisisLevel") val stateEventCrisisLevel: Int? = null,
     @SerializedName("stateEventLabel") val stateEventLabel: String? = null,
@@ -41,7 +54,10 @@ data class ActivityRecord(
     @SerializedName("version") val version: Long = 0,
 ) {
     val isTimeless: Boolean
-        get() = startTime == null && endTime == null
+        get() =
+            recordKind == ActivityRecordKind.COMMENT ||
+                recordKind == ActivityRecordKind.DAY_SUMMARY ||
+                (startTime == null && endTime == null)
 
     val isOngoing: Boolean
         get() = startTime != null && endTime == null

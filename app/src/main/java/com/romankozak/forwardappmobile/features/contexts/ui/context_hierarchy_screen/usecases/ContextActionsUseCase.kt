@@ -11,11 +11,14 @@ import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextParentLinkDao
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.DropPosition
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.NO_GROUP_NODE_ID
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.displayParentId
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.findDescendantsForDeletion
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.utils.getDescendantIds
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconRepository
 import com.romankozak.forwardappmobile.sync.SyncRepository
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
@@ -27,6 +30,7 @@ class ContextActionsUseCase
         private val contextParentLinkDao: ContextParentLinkDao,
         private val syncRepository: SyncRepository,
         private val settingsRepository: SettingsRepository,
+        private val mainBeaconRepository: MainBeaconRepository,
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) {
         suspend fun addNewProject(
@@ -171,6 +175,71 @@ class ContextActionsUseCase
                 contextRepository.updateContexts(updates)
             }
         }
+
+        suspend fun reorderContextSiblings(
+            parentContextId: String?,
+            orderedContextIds: List<String>,
+            allProjects: List<Context>,
+        ) = withContext(ioDispatcher) {
+            if (orderedContextIds.isEmpty()) return@withContext
+            if (parentContextId != null && mainBeaconRepository.getBeaconById(parentContextId) != null) {
+                mainBeaconRepository.reorderBeaconContexts(parentContextId, orderedContextIds)
+                return@withContext
+            }
+            val contextsById = allProjects.associateBy { it.id }
+            val activeLinks = contextParentLinkDao.getActiveLinks()
+            val linkedChildIds =
+                parentContextId
+                    ?.let { parentId ->
+                        activeLinks
+                            .filter { it.parentContextId == parentId }
+                            .mapTo(hashSetOf()) { it.childContextId }
+                    }
+                    .orEmpty()
+            val now = System.currentTimeMillis()
+            val contextUpdates = mutableListOf<Context>()
+
+            orderedContextIds.forEachIndexed { index, contextId ->
+                val context = contextsById[contextId] ?: return@forEachIndexed
+                if (context.parentId == parentContextId) {
+                    contextUpdates += context.copy(order = index.toLong(), updatedAt = now)
+                } else if (parentContextId != null && contextId in linkedChildIds) {
+                    contextParentLinkDao.updateOrder(
+                        parentContextId = parentContextId,
+                        childContextId = contextId,
+                        order = index.toLong(),
+                        updatedAt = now,
+                    )
+                }
+            }
+
+            if (contextUpdates.isNotEmpty()) {
+                contextRepository.updateContexts(contextUpdates)
+            }
+        }
+
+        suspend fun reorderOrientationBeaconSiblings(
+            parentNodeId: String,
+            orderedBeaconIds: List<String>,
+        ) = withContext(ioDispatcher) {
+            if (orderedBeaconIds.isEmpty()) return@withContext
+            when (parentNodeId) {
+                NO_GROUP_NODE_ID -> mainBeaconRepository.reorderBeacons(orderedBeaconIds)
+                else -> {
+                    val groups = mainBeaconRepository.observeGroups().first()
+                    if (groups.any { it.id == parentNodeId }) {
+                        mainBeaconRepository.reorderBeaconGroupMembers(parentNodeId, orderedBeaconIds)
+                    } else {
+                        mainBeaconRepository.reorderBeaconParentChildren(parentNodeId, orderedBeaconIds)
+                    }
+                }
+            }
+        }
+
+        suspend fun reorderOrientationGroups(orderedGroupIds: List<String>) =
+            withContext(ioDispatcher) {
+                mainBeaconRepository.reorderGroups(orderedGroupIds)
+            }
 
         suspend fun addAdditionalParentLinks(
             parentContextId: String,

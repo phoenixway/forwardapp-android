@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
+import com.romankozak.forwardappmobile.domain.search.StructuredSearchQuery
 import java.text.SimpleDateFormat
 import java.util.Date
 
@@ -107,8 +108,9 @@ private fun buildSearchResultCardSpec(
     result: GlobalSearchResultItem,
     typePresentation: ResultTypePresentation,
     renderContext: SearchResultRenderContext,
-): SearchResultCardSpec =
-    when (result) {
+): SearchResultCardSpec {
+    val spec =
+        when (result) {
         is GlobalSearchResultItem.GoalItem -> goalCardSpec(result, typePresentation, renderContext)
         is GlobalSearchResultItem.LinkItem -> linkCardSpec(result, typePresentation, renderContext)
         is GlobalSearchResultItem.SubcontextItem -> subcontextCardSpec(result, typePresentation, renderContext)
@@ -117,6 +119,8 @@ private fun buildSearchResultCardSpec(
         is GlobalSearchResultItem.InboxItem -> inboxCardSpec(result, typePresentation, renderContext)
         is GlobalSearchResultItem.AttachmentItem -> attachmentCardSpec(result, typePresentation, renderContext)
     }
+    return spec.copy(matchedTags = result.matchedTags)
+}
 
 private fun goalCardSpec(
     result: GlobalSearchResultItem.GoalItem,
@@ -321,20 +325,18 @@ private fun attachmentCardSpec(
         isSelected = result.uniqueId == renderContext.selectedResultUniqueId,
         query = renderContext.query,
         title = result.searchResult.title,
-        subtitle = result.searchResult.subtitle,
+        subtitle =
+            buildMatchingSnippet(
+                text = result.searchResult.searchText,
+                rawQuery = renderContext.query,
+                matchedTags = result.matchedTags,
+            ) ?: result.searchResult.subtitle,
         supporting = "Контекст: ${result.searchResult.contextName ?: "не вказано"}",
         onClick = {
             renderContext.haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-            val contextId = result.searchResult.ownerContextId
-            if (!contextId.isNullOrBlank()) {
-                renderContext.viewModel.onDataResultOpened(result.uniqueId)
-                renderContext.viewModel.navigateToProjectForResult(
-                    contextId,
-                    result.searchResult.contextName,
-                )
-            }
+            renderContext.viewModel.openAttachmentResult(result)
         },
-        secondaryActionIcon = Icons.Default.ChevronRight,
+        secondaryActionIcon = Icons.Default.Navigation,
         secondaryActionDescription = "Відкрити контекст",
         onSecondaryAction = {
             renderContext.haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -348,3 +350,30 @@ private fun attachmentCardSpec(
             }
         },
     )
+
+private fun buildMatchingSnippet(
+    text: String?,
+    rawQuery: String,
+    matchedTags: List<String>,
+): String? {
+    if (text.isNullOrBlank()) return null
+    val parsed = StructuredSearchQuery.parse(rawQuery)
+    val needles =
+        buildList {
+            if (parsed.textQuery.isNotBlank()) add(parsed.textQuery)
+            addAll(matchedTags.map { "#$it" })
+        }
+    val matchIndex =
+        needles
+            .map { needle -> text.indexOf(needle, ignoreCase = true) }
+            .filter { it >= 0 }
+            .minOrNull()
+            ?: return null
+    val start = (matchIndex - 48).coerceAtLeast(0)
+    val end = (matchIndex + 120).coerceAtMost(text.length)
+    return buildString {
+        if (start > 0) append("...")
+        append(text.substring(start, end).replace(Regex("\\s+"), " ").trim())
+        if (end < text.length) append("...")
+    }
+}

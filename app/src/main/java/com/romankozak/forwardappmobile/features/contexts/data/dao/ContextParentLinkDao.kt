@@ -43,6 +43,24 @@ interface ContextParentLinkDao {
     @Query(
         """
         UPDATE context_parent_links
+        SET link_order = :order,
+            updatedAt = :updatedAt,
+            version = version + 1
+        WHERE parent_context_id = :parentContextId
+            AND child_context_id = :childContextId
+            AND is_deleted = 0
+        """,
+    )
+    suspend fun updateOrder(
+        parentContextId: String,
+        childContextId: String,
+        order: Long,
+        updatedAt: Long = System.currentTimeMillis(),
+    )
+
+    @Query(
+        """
+        UPDATE context_parent_links
         SET is_deleted = 1,
             updatedAt = :updatedAt,
             version = version + 1

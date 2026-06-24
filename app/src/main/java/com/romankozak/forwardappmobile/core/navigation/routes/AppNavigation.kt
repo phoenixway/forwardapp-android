@@ -52,8 +52,8 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.inbox.InboxEditorScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.EditTaskScreen
 import com.romankozak.forwardappmobile.features.dev_task.KanbanScreen
-import com.romankozak.forwardappmobile.features.globalsearch.GlobalSearchScreen
 import com.romankozak.forwardappmobile.features.globalsearch.GlobalSearchViewModel
+import com.romankozak.forwardappmobile.features.globalsearch.MagicBoxScreen
 import com.romankozak.forwardappmobile.features.lifestate.LifeStateScreen
 import com.romankozak.forwardappmobile.features.mainscreen.CharacterScreen
 import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckEvent
@@ -359,14 +359,14 @@ private fun NavGraphBuilder.mainGraph(
         val viewModel: GlobalSearchViewModel = hiltViewModel()
         viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
 
-        GlobalSearchScreen(viewModel = viewModel, navController = navController)
+        MagicBoxScreen(viewModel = viewModel, navController = navController)
     }
 
     composable(NavigationRoutes.GLOBAL_SEARCH_HOME) {
         val viewModel: GlobalSearchViewModel = hiltViewModel()
         viewModel.enhancedNavigationManager = appNavigationViewModel.navigationManager
 
-        GlobalSearchScreen(viewModel = viewModel, navController = navController)
+        MagicBoxScreen(viewModel = viewModel, navController = navController)
     }
 
     composable(NavigationRoutes.ATTACHMENTS_LIBRARY) {

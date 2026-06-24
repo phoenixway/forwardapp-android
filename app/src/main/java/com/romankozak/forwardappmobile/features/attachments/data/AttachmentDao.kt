@@ -113,14 +113,23 @@ interface AttachmentDao {
             a.entity_id AS entityId,
             a.owner_context_id AS ownerContextId,
             a.updatedAt AS attachmentUpdatedAt,
-            n.name AS noteName, 
+            n.name AS noteName,
+            n.content AS noteContent,
             mn.name AS musicNoteName,
+            mn.content AS musicNoteContent,
             n.updatedAt AS noteUpdatedAt,
-            c.name AS checklistName, 
+            c.name AS checklistName,
+            (
+                SELECT GROUP_CONCAT(ci.content, char(10))
+                FROM checklist_items AS ci
+                WHERE ci.checklistId = c.id AND ci.isDeleted = 0
+            ) AS checklistContent,
             l.link_data AS linkDisplayName, 
             NULL as linkTarget,
             l.createdAt AS linkCreatedAt,
             s.name AS scriptName,
+            s.description AS scriptDescription,
+            s.content AS scriptContent,
             linked_ctx.name AS contextName, 
             linked_ctx.updatedAt AS contextUpdatedAt
         FROM attachments AS a

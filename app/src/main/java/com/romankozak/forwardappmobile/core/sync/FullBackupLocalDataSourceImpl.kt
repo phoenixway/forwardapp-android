@@ -119,6 +119,7 @@ class FullBackupLocalDataSourceImpl
                 mainBeacons = mainBeaconDao.getAllBeaconsSync().map { it.toSnapshot() },
                 mainBeaconGroups = mainBeaconDao.getAllGroupsSync().map { it.toSnapshot() },
                 mainBeaconGroupMembers = mainBeaconDao.getAllGroupMembersSync().map { it.toSnapshot() },
+                mainBeaconParentLinks = mainBeaconDao.getAllParentLinksSync().map { it.toSnapshot() },
                 mainBeaconContextCrossRefs = mainBeaconDao.getAllContextCrossRefsSync().map { it.toSnapshot() },
                 mainBeaconAttachmentCrossRefs = mainBeaconDao.getAllAttachmentCrossRefsSync().map { it.toSnapshot() },
                 mainBeaconLevelStatuses = mainBeaconDao.getAllLevelStatusesSync().map { it.toSnapshot() },
@@ -374,6 +375,9 @@ class FullBackupLocalDataSourceImpl
 
             Log.d("SyncV2", "Inserting MainBeaconGroupMembers: ${bundle.mainBeaconGroupMembers.size}")
             mainBeaconDao.insertGroupMembers(bundle.mainBeaconGroupMembers.map { it.toEntity() })
+
+            Log.d("SyncV2", "Inserting MainBeaconParentLinks: ${bundle.mainBeaconParentLinks.size}")
+            mainBeaconDao.insertParentLinks(bundle.mainBeaconParentLinks.map { it.toEntity() })
 
             Log.d("SyncV2", "Inserting MainBeaconAttachmentCrossRefs: ${bundle.mainBeaconAttachmentCrossRefs.size}")
             mainBeaconDao.insertAttachmentCrossRefs(bundle.mainBeaconAttachmentCrossRefs.map { it.toEntity() })

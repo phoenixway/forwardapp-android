@@ -171,6 +171,7 @@ class ContextHierarchyScreenViewModel
         private val _showRecentListsSheet = MutableStateFlow(false)
         private val _isBottomNavExpanded = MutableStateFlow(false)
         private val _showSearchDialog = MutableStateFlow(false)
+        private val _isSiblingReorderMode = MutableStateFlow(false)
 
         init {
             searchUseCase.initialize(
@@ -196,6 +197,8 @@ class ContextHierarchyScreenViewModel
                 navigationSnapshot = navigationSnapshot,
                 selectedContextIds = contextSelectionCoordinator.selectedIds,
                 clipboardState = contextClipboardCoordinator.uiState,
+                hasBeaconClipboard = contextClipboardCoordinator.hasBeaconPayload,
+                isSiblingReorderMode = _isSiblingReorderMode,
             )
             initializeAndCollectStates()
             viewModelScope.launch {
@@ -373,6 +376,16 @@ class ContextHierarchyScreenViewModel
             }
 
             viewModelScope.launch {
+                searchUseCase.subStateStack
+                    .map { stack -> stack.lastOrNull() }
+                    .distinctUntilChanged()
+                    .drop(1)
+                    .collect {
+                        _isSiblingReorderMode.value = false
+                    }
+            }
+
+            viewModelScope.launch {
                 combine(
                     projectHierarchyScreenStateUseCase.projectHierarchy,
                     planningUseCase.filterStateFlow,
@@ -453,6 +466,31 @@ class ContextHierarchyScreenViewModel
                             isSearchActive = searchUseCase.isSearchActive(),
                             allProjects = _allProjectsFlat.value,
                         )
+                    }
+                }
+                ContextHierarchyScreenEvent.ToggleSiblingReorderMode -> {
+                    _isSiblingReorderMode.update { !it }
+                }
+                is ContextHierarchyScreenEvent.ReorderContextSiblings -> {
+                    viewModelScope.launch {
+                        contextActionsUseCase.reorderContextSiblings(
+                            parentContextId = event.parentContextId,
+                            orderedContextIds = event.orderedContextIds,
+                            allProjects = _allProjectsFlat.value,
+                        )
+                    }
+                }
+                is ContextHierarchyScreenEvent.ReorderOrientationBeaconSiblings -> {
+                    viewModelScope.launch {
+                        contextActionsUseCase.reorderOrientationBeaconSiblings(
+                            parentNodeId = event.parentNodeId,
+                            orderedBeaconIds = event.orderedBeaconIds,
+                        )
+                    }
+                }
+                is ContextHierarchyScreenEvent.ReorderOrientationGroups -> {
+                    viewModelScope.launch {
+                        contextActionsUseCase.reorderOrientationGroups(event.orderedGroupIds)
                     }
                 }
 
@@ -632,7 +670,7 @@ class ContextHierarchyScreenViewModel
                     }
                 }
                 is ContextHierarchyScreenEvent.CopyContextLink -> {
-                    val toast = contextClipboardCoordinator.copyContext(event.project.id)
+                    val toast = contextClipboardCoordinator.copyContextAsLink(event.project.id)
                     dialogUseCase.dismissDialog()
                     viewModelScope.launch {
                         _uiEventChannel.send(ProjectUiEvent.ShowToast(toast))
@@ -666,19 +704,14 @@ class ContextHierarchyScreenViewModel
                         )
                     }
                 }
-                is ContextHierarchyScreenEvent.PasteContextLinksIntoGroup -> {
-                    viewModelScope.launch {
-                        emitClipboardResult(
-                            contextClipboardCoordinator.pasteIntoGroup(
-                                groupNodeId = event.groupNodeId,
-                                orientationHierarchy = uiState.value.orientationHierarchy,
-                                allProjects = _allProjectsFlat.value,
-                            ),
-                        )
-                    }
-                }
                 is ContextHierarchyScreenEvent.CopyBeacon -> {
                     val toast = contextClipboardCoordinator.copyBeacon(event.beaconNodeId)
+                    viewModelScope.launch {
+                        _uiEventChannel.send(ProjectUiEvent.ShowToast(toast))
+                    }
+                }
+                is ContextHierarchyScreenEvent.CopyBeaconAsLink -> {
+                    val toast = contextClipboardCoordinator.copyBeaconAsLink(event.beaconNodeId)
                     viewModelScope.launch {
                         _uiEventChannel.send(ProjectUiEvent.ShowToast(toast))
                     }

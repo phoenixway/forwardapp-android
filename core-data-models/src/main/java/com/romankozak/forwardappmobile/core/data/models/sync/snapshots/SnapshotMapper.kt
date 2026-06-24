@@ -28,6 +28,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconConte
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroupMember
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItemType
@@ -99,6 +100,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.Main
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconGroupMemberSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconGroupSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconLevelStatusSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconParentLinkSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.RecentProjectEntrySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.UserStateIntervalSnapshot
@@ -411,6 +413,7 @@ fun ActivityRecord.toSnapshot(): ActivityRecordSnapshot = ActivityRecordSnapshot
     text = this.text,
     rawNoteText = this.rawNoteText,
     noteText = this.noteText,
+    recordKind = this.recordKind,
     stateEventType = this.stateEventType,
     stateEventCrisisLevel = this.stateEventCrisisLevel,
     stateEventLabel = this.stateEventLabel,
@@ -437,6 +440,7 @@ fun ActivityRecordSnapshot.toEntity(): ActivityRecord = ActivityRecord(
     text = this.text,
     rawNoteText = this.rawNoteText,
     noteText = this.noteText,
+    recordKind = this.recordKind,
     stateEventType = this.stateEventType,
     stateEventCrisisLevel = this.stateEventCrisisLevel,
     stateEventLabel = this.stateEventLabel,
@@ -622,11 +626,29 @@ fun MainBeaconGroupMember.toSnapshot(): MainBeaconGroupMemberSnapshot =
 fun MainBeaconGroupMemberSnapshot.toEntity(): MainBeaconGroupMember =
     MainBeaconGroupMember(groupId = groupId, beaconId = beaconId, order = order)
 
+fun MainBeaconParentLink.toSnapshot(): MainBeaconParentLinkSnapshot =
+    MainBeaconParentLinkSnapshot(
+        parentBeaconId = parentBeaconId,
+        childBeaconId = childBeaconId,
+        order = order,
+        updatedAt = updatedAt,
+        createdAt = createdAt,
+    )
+
+fun MainBeaconParentLinkSnapshot.toEntity(): MainBeaconParentLink =
+    MainBeaconParentLink(
+        parentBeaconId = parentBeaconId,
+        childBeaconId = childBeaconId,
+        order = order,
+        updatedAt = updatedAt,
+        createdAt = createdAt,
+    )
+
 fun MainBeaconContextCrossRef.toSnapshot(): MainBeaconContextCrossRefSnapshot =
-    MainBeaconContextCrossRefSnapshot(beaconId = beaconId, contextId = contextId)
+    MainBeaconContextCrossRefSnapshot(beaconId = beaconId, contextId = contextId, order = order)
 
 fun MainBeaconContextCrossRefSnapshot.toEntity(): MainBeaconContextCrossRef =
-    MainBeaconContextCrossRef(beaconId = beaconId, contextId = contextId)
+    MainBeaconContextCrossRef(beaconId = beaconId, contextId = contextId, order = order)
 
 fun MainBeaconAttachmentCrossRef.toSnapshot(): MainBeaconAttachmentCrossRefSnapshot =
     MainBeaconAttachmentCrossRefSnapshot(beaconId = beaconId, attachmentId = attachmentId)

@@ -202,6 +202,7 @@ class OrientationHierarchyBuilderTest {
             title = title,
             order = order,
             readinessStatus = MainBeaconReadinessStatus.READY,
+            parentBeaconId = null,
             relatedContexts = relatedContexts,
             groupIds = groupIds,
         )

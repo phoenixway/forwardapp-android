@@ -4,6 +4,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextParentLinkDao
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconRepository
 import com.romankozak.forwardappmobile.sync.SyncRepository
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -15,6 +16,7 @@ class ContextActionsUseCaseTest {
     private val contextParentLinkDao = mockk<ContextParentLinkDao>(relaxed = true)
     private val syncRepository = mockk<SyncRepository>(relaxed = true)
     private val settingsRepository = mockk<SettingsRepository>(relaxed = true)
+    private val mainBeaconRepository = mockk<MainBeaconRepository>(relaxed = true)
 
     private val useCase =
         ContextActionsUseCase(
@@ -22,6 +24,7 @@ class ContextActionsUseCaseTest {
             contextParentLinkDao = contextParentLinkDao,
             syncRepository = syncRepository,
             settingsRepository = settingsRepository,
+            mainBeaconRepository = mainBeaconRepository,
             ioDispatcher = kotlinx.coroutines.Dispatchers.Unconfined,
         )
 

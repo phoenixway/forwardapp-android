@@ -161,6 +161,7 @@ internal fun CommandResultsContent(
                         HighlightedText(
                             text = item.title,
                             query = args.query,
+                            matchedTags = emptyList(),
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 2,
@@ -372,6 +373,7 @@ internal fun CommandSearchResultCard(
                 HighlightedText(
                     text = command.title,
                     query = query,
+                    matchedTags = emptyList(),
                     style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,

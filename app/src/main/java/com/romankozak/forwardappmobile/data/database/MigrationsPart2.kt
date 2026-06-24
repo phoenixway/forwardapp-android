@@ -1220,3 +1220,81 @@ val MIGRATION_129_130 =
             db.execSQL("ALTER TABLE recurring_tasks ADD COLUMN linkedAttachmentIds TEXT")
         }
     }
+
+val MIGRATION_130_131 =
+    object : Migration(130, 131) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `main_beacon_parent_links` (
+                    `parent_beacon_id` TEXT NOT NULL,
+                    `child_beacon_id` TEXT NOT NULL,
+                    `link_order` INTEGER NOT NULL DEFAULT 0,
+                    `updatedAt` INTEGER NOT NULL,
+                    `createdAt` INTEGER NOT NULL,
+                    PRIMARY KEY(`parent_beacon_id`, `child_beacon_id`),
+                    FOREIGN KEY(`parent_beacon_id`) REFERENCES `main_beacons`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(`child_beacon_id`) REFERENCES `main_beacons`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS `index_main_beacon_parent_links_child_beacon_id`
+                ON `main_beacon_parent_links` (`child_beacon_id`)
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS `index_main_beacon_parent_links_parent_beacon_id_link_order`
+                ON `main_beacon_parent_links` (`parent_beacon_id`, `link_order`)
+                """.trimIndent(),
+            )
+        }
+    }
+
+val MIGRATION_131_132 =
+    object : Migration(131, 132) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                ALTER TABLE main_beacon_context_cross_ref
+                ADD COLUMN ref_order INTEGER NOT NULL DEFAULT 0
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS `index_main_beacon_context_cross_ref_beacon_id_ref_order`
+                ON `main_beacon_context_cross_ref` (`beacon_id`, `ref_order`)
+                """.trimIndent(),
+            )
+        }
+    }
+
+val MIGRATION_132_133 =
+    object : Migration(132, 133) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                ALTER TABLE activity_records
+                ADD COLUMN record_kind TEXT NOT NULL DEFAULT 'TIMED_ACTIVITY'
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                UPDATE activity_records
+                SET record_kind = CASE
+                    WHEN startTime IS NULL AND endTime IS NULL THEN 'COMMENT'
+                    WHEN startTime IS NOT NULL AND endTime IS NOT NULL AND startTime = endTime THEN 'EVENT'
+                    ELSE 'TIMED_ACTIVITY'
+                END
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS `index_activity_records_record_kind`
+                ON `activity_records` (`record_kind`)
+                """.trimIndent(),
+            )
+        }
+    }

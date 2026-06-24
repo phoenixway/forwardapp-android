@@ -55,6 +55,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecordKind
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
@@ -160,13 +161,10 @@ private fun rememberJournalUiConfig(): JournalUiConfig {
     }
 }
 
-private val ActivityRecord.isTimeless: Boolean
-    get() = this.startTime == null
+private val ActivityRecord.isDaySummary: Boolean
+    get() = this.recordKind == ActivityRecordKind.DAY_SUMMARY
 
-private val ActivityRecord.isOngoing: Boolean
-    get() = this.startTime != null && this.endTime == null
-
-private enum class ActivityRecordType { COMMENT, TIMED, INSTANT }
+private enum class ActivityRecordType { COMMENT, TIMED, INSTANT, DAY_SUMMARY }
 
 @Composable
 fun ActivityTrackerScreen(
@@ -252,6 +250,7 @@ fun ActivityTrackerScreen(
                             onToggleStartStop = viewModel::onToggleStartStop,
                             onTimelessClick = viewModel::onTimelessRecordClick,
                             onQuickDoneClick = { textValue -> quickDoneDialogState = textValue },
+                            onDaySummaryClick = viewModel::onAddTodaySummary,
                             holdMenuController = holdMenuController,
                         )
                     }
@@ -497,7 +496,8 @@ private fun ActivityLog(
                 item(key = "day_header_gap_$dateHeader") {
                     Spacer(modifier = Modifier.height(uiConfig.headerBottomSpacing))
                 }
-                itemsIndexed(records, key = { _, record -> record.id }) { recordIndex, record ->
+                val sortedRecords = sortRecordsForDay(records)
+                itemsIndexed(sortedRecords, key = { _, record -> record.id }) { recordIndex, record ->
                     JournalEntryCard(
                         record = record,
                         onEdit = onEdit,
@@ -507,7 +507,7 @@ private fun ActivityLog(
                         onTagClick = onTagSelected,
                         uiConfig = uiConfig,
                     )
-                    if (recordIndex < records.lastIndex) {
+                    if (recordIndex < sortedRecords.lastIndex) {
                         Spacer(modifier = Modifier.height(uiConfig.itemSpacing))
                     }
                 }
@@ -515,6 +515,12 @@ private fun ActivityLog(
         }
     }
 }
+
+private fun sortRecordsForDay(records: List<ActivityRecord>): List<ActivityRecord> =
+    records.sortedWith(
+        compareByDescending<ActivityRecord> { it.isDaySummary }
+            .thenBy { it.startTime ?: it.createdAt },
+    )
 
 private fun buildJournalListKeys(
     groupedByDate: Map<String, List<ActivityRecord>>,
@@ -1099,7 +1105,9 @@ private fun buildRecordTimeLabel(
 
 private fun recordTypeLabel(record: ActivityRecord): String? =
     when {
-        record.isTimeless -> "коментар"
+        record.recordKind == ActivityRecordKind.DAY_SUMMARY -> "резюме дня"
+        record.recordKind == ActivityRecordKind.EVENT -> "подія"
+        record.recordKind == ActivityRecordKind.COMMENT -> "коментар"
         record.isOngoing -> "триває"
         record.startTime != null && record.endTime != null && record.startTime == record.endTime -> "подія"
         else -> null
@@ -1123,6 +1131,7 @@ fun ActivityInputBar(
     onToggleStartStop: () -> Unit,
     onTimelessClick: () -> Unit,
     onQuickDoneClick: (String) -> Unit,
+    onDaySummaryClick: (String) -> Unit,
     holdMenuController: HoldMenu2Controller,
     showMoreMenu: Boolean = true,
     trailingContent: @Composable (() -> Unit)? = null,
@@ -1177,12 +1186,14 @@ fun ActivityInputBar(
                     listOf(
                         HoldMenuItem(label = "Події", icon = Icons.Default.CheckCircle),
                         HoldMenuItem(label = "Коментар", icon = Icons.Default.AddComment),
+                        HoldMenuItem(label = "Резюме дня", icon = Icons.Default.Summarize),
                     )
                 }
             val onMenuSelect: (Int) -> Unit = { index ->
                 when (index) {
                     0 -> if (text.isNotBlank()) onQuickDoneClick(text)
                     1 -> onTimelessClick()
+                    2 -> if (text.isNotBlank()) onDaySummaryClick(text)
                 }
             }
 
@@ -1275,6 +1286,14 @@ fun ActivityInputBar(
                                 onTimelessClick()
                             },
                         )
+                        DropdownMenuItem(
+                            text = { Text("Резюме дня") },
+                            leadingIcon = { Icon(Icons.Default.Summarize, contentDescription = null) },
+                            onClick = {
+                                moreMenuExpanded = false
+                                if (text.isNotBlank()) onDaySummaryClick(text)
+                            },
+                        )
                     }
                 }
             }
@@ -1290,14 +1309,25 @@ fun exportLogToMarkdown(log: List<ActivityRecord>): String {
     return buildString {
         groupedByDate.forEach { (dateHeader, records) ->
             append("## $dateHeader\n\n")
-            val (timeless, timed) = records.partition { it.isTimeless }
+            val summaries = records.filter { it.isDaySummary }
+            if (summaries.isNotEmpty()) {
+                append("### Summary\n\n")
+                summaries.forEach { record ->
+                    append("- ${record.text}\n")
+                }
+                append("\n")
+            }
+            append("### Timeline\n\n")
+            val (timeless, timed) = records.filterNot { it.isDaySummary }.partition { it.isTimeless }
             timeless.forEach { record ->
                 append("- ${record.text}\n")
             }
             timed.forEach { record ->
                 val timeText =
                     when {
+                        record.startTime == null -> "`${sdfTime.format(Date(record.createdAt))}`"
                         record.isOngoing -> "`${sdfTime.format(Date(record.startTime!!))} - ...`"
+                        record.startTime == record.endTime -> "`${sdfTime.format(Date(record.startTime!!))}`"
                         else -> "`${sdfTime.format(Date(record.startTime!!))} - ${sdfTime.format(Date(record.endTime!!))}`"
                     }
                 append("- $timeText ${record.text}\n".trim())
@@ -1322,12 +1352,14 @@ fun copyToClipboard(
 private fun EditRecordDialog(
     record: ActivityRecord,
     onDismiss: () -> Unit,
-    onConfirm: (String, Long?, Long?, Int?, Int?) -> Unit,
+    onConfirm: (String, String, Long?, Long?, Int?, Int?) -> Unit,
     isLastTimedRecord: Boolean,
 ) {
     val initialType =
         when {
-            record.isTimeless -> ActivityRecordType.COMMENT
+            record.recordKind == ActivityRecordKind.DAY_SUMMARY -> ActivityRecordType.DAY_SUMMARY
+            record.recordKind == ActivityRecordKind.COMMENT -> ActivityRecordType.COMMENT
+            record.recordKind == ActivityRecordKind.EVENT -> ActivityRecordType.INSTANT
             record.endTime != null && record.startTime == record.endTime -> ActivityRecordType.INSTANT
             else -> ActivityRecordType.TIMED
         }
@@ -1366,9 +1398,15 @@ private fun EditRecordDialog(
                         colors = chipColors,
                     )
                     FilterChip(
+                        selected = recordType == ActivityRecordType.DAY_SUMMARY,
+                        onClick = { recordType = ActivityRecordType.DAY_SUMMARY },
+                        label = { Text("Резюме дня") },
+                        colors = chipColors,
+                    )
+                    FilterChip(
                         selected = recordType == ActivityRecordType.INSTANT,
                         onClick = { recordType = ActivityRecordType.INSTANT },
-                        label = { Text("Минулі дії") },
+                        label = { Text("Подія") },
                         colors = chipColors,
                     )
                     FilterChip(
@@ -1384,7 +1422,7 @@ private fun EditRecordDialog(
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text("Текст запису") },
                 )
-                if (recordType != ActivityRecordType.COMMENT) {
+                if (recordType != ActivityRecordType.COMMENT && recordType != ActivityRecordType.DAY_SUMMARY) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1452,14 +1490,23 @@ private fun EditRecordDialog(
                     val actualStart =
                         when (recordType) {
                             ActivityRecordType.COMMENT -> null
+                            ActivityRecordType.DAY_SUMMARY -> null
                             ActivityRecordType.INSTANT -> startTime ?: record.createdAt
                             ActivityRecordType.TIMED -> startTime ?: record.createdAt
                         }
                     val actualEnd =
                         when (recordType) {
                             ActivityRecordType.COMMENT -> null
+                            ActivityRecordType.DAY_SUMMARY -> null
                             ActivityRecordType.INSTANT -> actualStart
                             ActivityRecordType.TIMED -> endTime
+                        }
+                    val recordKind =
+                        when (recordType) {
+                            ActivityRecordType.COMMENT -> ActivityRecordKind.COMMENT
+                            ActivityRecordType.DAY_SUMMARY -> ActivityRecordKind.DAY_SUMMARY
+                            ActivityRecordType.INSTANT -> ActivityRecordKind.EVENT
+                            ActivityRecordType.TIMED -> ActivityRecordKind.TIMED_ACTIVITY
                         }
                     val isTimeInvalid =
                         recordType == ActivityRecordType.TIMED &&
@@ -1469,7 +1516,7 @@ private fun EditRecordDialog(
                     val adjustedEnd = if (isTimeInvalid) actualStart else actualEnd
                     val xp = xpText.toIntOrNull()
                     val antyXp = antyXpText.toIntOrNull()
-                    onConfirm(text, actualStart, adjustedEnd, xp, antyXp)
+                    onConfirm(text, recordKind, actualStart, adjustedEnd, xp, antyXp)
                 },
                 enabled = text.isNotBlank(),
             ) {

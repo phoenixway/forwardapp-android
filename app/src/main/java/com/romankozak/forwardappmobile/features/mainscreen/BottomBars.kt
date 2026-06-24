@@ -114,7 +114,7 @@ fun DashboardBottomBar(
     middleLeftLabel: String = "Hierarchy",
     onMiddleLeftClick: () -> Unit = onNavigateToProjectHierarchy,
     middleLeftEnabled: Boolean = true,
-    middleCenterIcon: ImageVector = Icons.Outlined.Search,
+    middleCenterIcon: ImageVector = Icons.Outlined.AutoAwesome,
     middleCenterLabel: String = "Search",
     onMiddleCenterClick: () -> Unit = onNavigateToProjectHierarchy,
     middleCenterEnabled: Boolean = true,

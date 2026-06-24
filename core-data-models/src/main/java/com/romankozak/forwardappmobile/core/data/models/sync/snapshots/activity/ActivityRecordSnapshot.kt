@@ -11,6 +11,7 @@ data class ActivityRecordSnapshot(
     @SerializedName("text") val text: String,
     @SerializedName("rawNoteText") val rawNoteText: String? = null,
     @SerializedName("noteText") val noteText: String? = null,
+    @SerializedName("recordKind") val recordKind: String = "TIMED_ACTIVITY",
     @SerializedName("stateEventType") val stateEventType: String? = null,
     @SerializedName("stateEventCrisisLevel") val stateEventCrisisLevel: Int? = null,
     @SerializedName("stateEventLabel") val stateEventLabel: String? = null,

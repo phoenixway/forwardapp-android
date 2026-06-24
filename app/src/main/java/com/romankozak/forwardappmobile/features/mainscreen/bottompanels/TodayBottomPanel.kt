@@ -300,6 +300,7 @@ fun TodayBottomPanel(
                         onToggleStartStop = activityTrackerViewModel::onToggleStartStop,
                         onTimelessClick = activityTrackerViewModel::onTimelessRecordClick,
                         onQuickDoneClick = { textValue -> journalQuickDoneDialogState = textValue },
+                        onDaySummaryClick = activityTrackerViewModel::onAddTodaySummary,
                         holdMenuController = journalHoldMenuController,
                         showMoreMenu = false,
                         trailingContent = {

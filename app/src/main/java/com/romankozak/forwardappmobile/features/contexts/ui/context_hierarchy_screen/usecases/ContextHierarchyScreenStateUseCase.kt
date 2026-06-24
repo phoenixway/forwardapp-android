@@ -8,6 +8,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextHierarchyData
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
@@ -93,6 +94,8 @@ class ProjectHierarchyScreenStateUseCase
             navigationSnapshot: StateFlow<NavigationSnapshot>,
             selectedContextIds: StateFlow<Set<String>>,
             clipboardState: StateFlow<Pair<Set<String>, ContextClipboardOperationUi?>>,
+            hasBeaconClipboard: StateFlow<Boolean>,
+            isSiblingReorderMode: StateFlow<Boolean>,
         ) {
             if (isInitialized) return
 
@@ -119,12 +122,22 @@ class ProjectHierarchyScreenStateUseCase
                 contextParentLinkDao
                     .observeActiveLinks()
                     .stateIn(scope, SharingStarted.WhileSubscribed(5_000), emptyList())
+            val mainBeaconParentLinksFlow =
+                mainBeaconRepository
+                    .observeParentLinks()
+                    .stateIn(scope, SharingStarted.WhileSubscribed(5_000), emptyList())
             val orientationHierarchyInputsFlow =
-                combine(mainBeaconDetailsFlow, mainBeaconGroupsFlow, contextParentLinksFlow) { beacons, groups, parentLinks ->
+                combine(
+                    mainBeaconDetailsFlow,
+                    mainBeaconGroupsFlow,
+                    contextParentLinksFlow,
+                    mainBeaconParentLinksFlow,
+                ) { beacons, groups, parentLinks, beaconParentLinks ->
                     OrientationHierarchyInputs(
                         beacons = beacons.map { it.toOrientationBeaconInput() },
                         groups = groups,
                         parentLinks = parentLinks,
+                        beaconParentLinks = beaconParentLinks,
                     )
                 }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), OrientationHierarchyInputs())
 
@@ -189,6 +202,7 @@ class ProjectHierarchyScreenStateUseCase
                                 beacons = orientationHierarchyInputs.beacons,
                                 groups = orientationHierarchyInputs.groups,
                                 parentLinks = orientationHierarchyInputs.parentLinks,
+                                beaconParentLinks = orientationHierarchyInputs.beaconParentLinks,
                             ),
                         currentBreadcrumbs = breadcrumbs,
                         searchResultFilter = SearchResultFilter.All,
@@ -252,6 +266,8 @@ class ProjectHierarchyScreenStateUseCase
                     FeatureToggles.overrides,
                     selectedContextIds,
                     clipboardState,
+                    hasBeaconClipboard,
+                    isSiblingReorderMode,
                 ) { values ->
                     val coreState = values[0] as CoreUiState
                     val dialogState = values[1] as DialogUiState
@@ -283,6 +299,8 @@ class ProjectHierarchyScreenStateUseCase
                     val selectedIds = values[15] as Set<String>
                     @Suppress("UNCHECKED_CAST")
                     val clipboard = values[16] as Pair<Set<String>, ContextClipboardOperationUi?>
+                    val hasBeaconPayload = values[17] as Boolean
+                    val siblingReorderMode = values[18] as Boolean
 
                     ProjectHierarchyScreenUiState(
                         subStateStack = coreState.subStateStack,
@@ -322,6 +340,8 @@ class ProjectHierarchyScreenStateUseCase
                         selectedContextIds = selectedIds,
                         clipboardContextIds = clipboard.first,
                         clipboardOperation = clipboard.second,
+                        hasBeaconClipboard = hasBeaconPayload,
+                        isSiblingReorderMode = siblingReorderMode,
                     )
                 }
                     .stateIn(scope, SharingStarted.Eagerly, MainScreenUiState())
@@ -345,6 +365,7 @@ class ProjectHierarchyScreenStateUseCase
             val beacons: List<OrientationBeaconInput> = emptyList(),
             val groups: List<MainBeaconGroup> = emptyList(),
             val parentLinks: List<ContextParentLink> = emptyList(),
+            val beaconParentLinks: List<MainBeaconParentLink> = emptyList(),
         )
 
         private fun MainBeaconWithRelations.toOrientationBeaconInput(): OrientationBeaconInput =
@@ -356,6 +377,7 @@ class ProjectHierarchyScreenStateUseCase
                 parentBeaconId = beacon.parentBeaconId,
                 relatedContexts = relatedContexts,
                 groupIds = groupIds,
+                groupOrders = groupOrders,
             )
 
         private data class CoreUiState(

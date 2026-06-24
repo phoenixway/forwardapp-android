@@ -8,7 +8,6 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -49,7 +48,6 @@ import com.romankozak.forwardappmobile.features.common.components.holdmenu2.Hold
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenuItem
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ContextHierarchyScreenViewModel
-import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.OptimizedExpandingProjectHierarchyBottomNav
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.ProjectHierarchyScreenContent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.SearchProjectHierarchyBottomBar
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
@@ -59,7 +57,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
 import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 import com.romankozak.forwardappmobile.ui.components.header.CommandDeckBackgroundModifier
-import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
 
 private const val UI_TAG = "ProjectHierarchyScreenUI_DEBUG"
 
@@ -80,6 +77,7 @@ fun ProjectHierarchyScreenScaffold(
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
     onEditBeacon: (String) -> Unit = {},
+    onDeleteBeacon: (String) -> Unit = {},
     onAddMainBeacon: () -> Unit = {},
     onAddMainBeaconGroup: () -> Unit = {},
 ) {
@@ -101,8 +99,6 @@ fun ProjectHierarchyScreenScaffold(
         Log.i(UI_TAG, "Custom BackHandler INVOKED")
         onEvent(ContextHierarchyScreenEvent.BackClick)
     }
-
-    val indicatorState = remember { com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState(isInitiallyExpanded = false) }
 
     Scaffold(
         modifier = Modifier.imePadding(),
@@ -128,8 +124,14 @@ fun ProjectHierarchyScreenScaffold(
                             ?.node as? OrientationHierarchyNode.Group
                     }
             val canPasteToFocusedNode =
-                uiState.clipboardContextIds.isNotEmpty() &&
-                    (focusedProject != null || focusedBeaconNode != null || focusedGroupNode != null)
+                (
+                    uiState.clipboardContextIds.isNotEmpty() &&
+                        (focusedProject != null || focusedBeaconNode != null)
+                ) ||
+                    (
+                        uiState.hasBeaconClipboard &&
+                            (focusedBeaconNode != null || focusedGroupNode != null)
+                    )
             ProjectHierarchyScreenTopAppBar(
                 onBackClick = {
                     if (uiState.isSelectionMode) {
@@ -147,24 +149,28 @@ fun ProjectHierarchyScreenScaffold(
                 onCutSelection = { onEvent(ContextHierarchyScreenEvent.CutSelectedContexts) },
                 onPasteToFocusedContext = {
                     when {
-                        focusedProject != null -> onEvent(ContextHierarchyScreenEvent.PasteContextLink(focusedProject))
-                        focusedBeaconNode != null -> onEvent(ContextHierarchyScreenEvent.PasteContextLinksIntoBeacon(focusedBeaconNode.id))
-                        focusedGroupNode != null -> onEvent(ContextHierarchyScreenEvent.PasteContextLinksIntoGroup(focusedGroupNode.id))
+                        uiState.clipboardContextIds.isNotEmpty() && focusedProject != null ->
+                            onEvent(ContextHierarchyScreenEvent.PasteContextLink(focusedProject))
+                        uiState.clipboardContextIds.isNotEmpty() && focusedBeaconNode != null ->
+                            onEvent(ContextHierarchyScreenEvent.PasteContextLinksIntoBeacon(focusedBeaconNode.id))
+                        uiState.hasBeaconClipboard && focusedBeaconNode != null ->
+                            onEvent(ContextHierarchyScreenEvent.PasteBeaconIntoBeacon(focusedBeaconNode.id))
+                        uiState.hasBeaconClipboard && focusedGroupNode != null ->
+                            onEvent(ContextHierarchyScreenEvent.PasteBeaconIntoGroup(focusedGroupNode.id))
                     }
+                },
+                isSiblingReorderMode = uiState.isSiblingReorderMode,
+                onToggleSiblingReorderMode = {
+                    onEvent(ContextHierarchyScreenEvent.ToggleSiblingReorderMode)
+                },
+                onSearchClick = {
+                    onEvent(ContextHierarchyScreenEvent.SearchQueryChanged(TextFieldValue("")))
                 },
             )
         },
         bottomBar = {
-            Column {
-                InProgressIndicator(
-                    ongoingActivity = lastOngoingActivity,
-                    onStopClick = { viewModel.stopOngoingActivity() },
-                    onReminderClick = { viewModel.setReminderForOngoingActivity() },
-                    onIndicatorClick = { onEvent(ContextHierarchyScreenEvent.NavigateToActivityTracker) },
-                    indicatorState = indicatorState,
-                )
-                val isSearchActive = uiState.subStateStack.any { it is ProjectHierarchyScreenSubState.LocalSearch }
-
+            val isSearchActive = uiState.subStateStack.any { it is ProjectHierarchyScreenSubState.LocalSearch }
+            if (isSearchActive) {
                 Box(
                     modifier =
                         Modifier
@@ -180,34 +186,15 @@ fun ProjectHierarchyScreenScaffold(
                                 vertical = if (isSearchActive) 4.dp else 12.dp,
                             ),
                 ) {
-                    if (isSearchActive) {
-                        SearchProjectHierarchyBottomBar(
-                            searchQuery = uiState.searchQuery,
-                            onQueryChange = { onEvent(ContextHierarchyScreenEvent.SearchQueryChanged(it)) },
-                            onCloseSearch = {
-                                onEvent(ContextHierarchyScreenEvent.CloseSearch)
-                            },
-                            onPerformGlobalSearch = { onEvent(ContextHierarchyScreenEvent.GlobalSearchPerform(it)) },
-                            onShowSearchHistory = { showSearchHistorySheet = true },
-                        )
-                    } else {
-                        OptimizedExpandingProjectHierarchyBottomNav(
-                            onToggleSearch = { _ ->
-                                onEvent(ContextHierarchyScreenEvent.SearchQueryChanged(TextFieldValue("")))
-                            },
-                            onGlobalSearchClick = { onEvent(ContextHierarchyScreenEvent.ShowSearchDialog) },
-                            onShowCommandDeck = { onEvent(ContextHierarchyScreenEvent.CommandDeckClick) },
-                            onRecentsClick = { onEvent(ContextHierarchyScreenEvent.ShowRecentLists) },
-                            onDayPlanClick = { onEvent(ContextHierarchyScreenEvent.DayPlanClick) },
-                            onHomeClick = { onEvent(ContextHierarchyScreenEvent.HomeClick) },
-                            onStrManagementClick = { onEvent(ContextHierarchyScreenEvent.NavigateToStrategicManagement) },
-                            strategicManagementEnabled = uiState.featureToggles[FeatureFlag.StrategicManagement] == true,
-                            isExpanded = uiState.isBottomNavExpanded,
-                            onExpandedChange = { expanded -> onEvent(ContextHierarchyScreenEvent.BottomNavExpandedChange(expanded)) },
-                            onActivityTrackerClick = { onEvent(ContextHierarchyScreenEvent.NavigateToActivityTracker) },
-                            onEvent = onEvent,
-                        )
-                    }
+                    SearchProjectHierarchyBottomBar(
+                        searchQuery = uiState.searchQuery,
+                        onQueryChange = { onEvent(ContextHierarchyScreenEvent.SearchQueryChanged(it)) },
+                        onCloseSearch = {
+                            onEvent(ContextHierarchyScreenEvent.CloseSearch)
+                        },
+                        onPerformGlobalSearch = { onEvent(ContextHierarchyScreenEvent.GlobalSearchPerform(it)) },
+                        onShowSearchHistory = { showSearchHistorySheet = true },
+                    )
                 }
             }
         },
@@ -327,6 +314,7 @@ fun ProjectHierarchyScreenScaffold(
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = animatedVisibilityScope,
             onEditBeacon = onEditBeacon,
+            onDeleteBeacon = onDeleteBeacon,
         )
     }
 

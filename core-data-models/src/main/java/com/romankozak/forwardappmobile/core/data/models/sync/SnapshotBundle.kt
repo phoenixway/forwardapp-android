@@ -49,6 +49,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.Main
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconGroupMemberSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconGroupSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconLevelStatusSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconParentLinkSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.RecentProjectEntrySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.UserStateIntervalSnapshot
@@ -102,6 +103,7 @@ data class SnapshotBundle(
     @SerializedName("mainBeacons") val mainBeacons: List<MainBeaconSnapshot> = emptyList(),
     @SerializedName("mainBeaconGroups") val mainBeaconGroups: List<MainBeaconGroupSnapshot> = emptyList(),
     @SerializedName("mainBeaconGroupMembers") val mainBeaconGroupMembers: List<MainBeaconGroupMemberSnapshot> = emptyList(),
+    @SerializedName("mainBeaconParentLinks") val mainBeaconParentLinks: List<MainBeaconParentLinkSnapshot> = emptyList(),
     @SerializedName("mainBeaconContextCrossRefs") val mainBeaconContextCrossRefs: List<MainBeaconContextCrossRefSnapshot> = emptyList(),
     @SerializedName("mainBeaconAttachmentCrossRefs") val mainBeaconAttachmentCrossRefs: List<MainBeaconAttachmentCrossRefSnapshot> = emptyList(),
     @SerializedName("mainBeaconLevelStatuses") val mainBeaconLevelStatuses: List<MainBeaconLevelStatusSnapshot> = emptyList(),

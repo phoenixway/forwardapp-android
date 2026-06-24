@@ -152,6 +152,22 @@ interface ActivityRecordDao {
     @Query(
         """
         SELECT * FROM activity_records
+        WHERE record_kind = :recordKind
+          AND target_type = :targetType
+          AND target_id = :targetId
+        ORDER BY updatedAt DESC, createdAt DESC
+        LIMIT 1
+        """,
+    )
+    suspend fun findByKindAndTarget(
+        recordKind: String,
+        targetType: String,
+        targetId: String,
+    ): ActivityRecord?
+
+    @Query(
+        """
+        SELECT * FROM activity_records
         WHERE createdAt >= :fromTimestamp
         ORDER BY COALESCE(startTime, createdAt) DESC
         """,

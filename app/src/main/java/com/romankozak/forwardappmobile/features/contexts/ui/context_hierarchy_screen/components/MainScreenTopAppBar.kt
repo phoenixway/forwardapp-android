@@ -10,11 +10,19 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -28,7 +36,12 @@ fun ProjectHierarchyScreenTopAppBar(
     onCopySelection: () -> Unit,
     onCutSelection: () -> Unit,
     onPasteToFocusedContext: () -> Unit,
+    isSiblingReorderMode: Boolean,
+    onToggleSiblingReorderMode: () -> Unit,
+    onSearchClick: () -> Unit,
 ) {
+    var showMoreMenu by remember { mutableStateOf(false) }
+
     Row(
         modifier =
             Modifier
@@ -72,6 +85,41 @@ fun ProjectHierarchyScreenTopAppBar(
                     imageVector = Icons.Default.ContentPaste,
                     contentDescription = "Вставити у вибраний контекст",
                     tint = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+        if (!isSelectionMode) {
+            IconButton(onClick = { showMoreMenu = true }) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More actions",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            DropdownMenu(
+                expanded = showMoreMenu,
+                onDismissRequest = { showMoreMenu = false },
+                containerColor = MaterialTheme.colorScheme.surface,
+            ) {
+                DropdownMenuItem(
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Outlined.Search,
+                            contentDescription = null,
+                        )
+                    },
+                    text = { Text("Search") },
+                    onClick = {
+                        showMoreMenu = false
+                        onSearchClick()
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(if (isSiblingReorderMode) "Done" else "Reorder siblings") },
+                    onClick = {
+                        showMoreMenu = false
+                        onToggleSiblingReorderMode()
+                    },
                 )
             }
         }

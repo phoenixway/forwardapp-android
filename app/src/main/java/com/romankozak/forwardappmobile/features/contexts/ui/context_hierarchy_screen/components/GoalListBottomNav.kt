@@ -25,7 +25,6 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_sc
 
 @Composable
 internal fun ExpandingProjectHierarchyBottomNav(
-    onToggleSearch: (Boolean) -> Unit,
     onGlobalSearchClick: () -> Unit,
     onShowCommandDeck: () -> Unit,
     onRecentsClick: () -> Unit,
@@ -56,7 +55,6 @@ internal fun ExpandingProjectHierarchyBottomNav(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceAround,
             ) {
-                ModernBottomNavButton(text = "Search", icon = Icons.Outlined.Search, isSelected = false, onClick = { onToggleSearch(true) })
                 ModernBottomNavButton(text = "Згорнути", icon = Icons.Filled.UnfoldLess, onClick = onHomeClick)
                 CommandDeckNavButton(onClick = onShowCommandDeck)
                 ModernBottomNavButton(text = "Recent", icon = Icons.Outlined.History, onClick = onRecentsClick)

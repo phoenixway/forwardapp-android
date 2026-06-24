@@ -222,6 +222,7 @@ class ActivityTrackerViewModel
 
         fun onRecordUpdated(
             newText: String,
+            recordKind: String,
             newStartTime: Long?,
             newEndTime: Long?,
             xpGained: Int?,
@@ -242,6 +243,7 @@ class ActivityTrackerViewModel
                     val updatedRecord =
                         recordToUpdate.copy(
                             text = newText,
+                            recordKind = recordKind,
                             startTime = newStartTime,
                             endTime = newEndTime,
                             xpGained = xpGained,
@@ -265,6 +267,12 @@ class ActivityTrackerViewModel
         ) = viewModelScope.launch {
             repository.addCompletedActivity(text, xpGained, antyXp)
         }
+
+        fun onAddTodaySummary(text: String) =
+            viewModelScope.launch {
+                repository.upsertTodaySummary(text)
+                clearInput()
+            }
 
         fun onRestartActivity(record: ActivityRecord) =
             viewModelScope.launch {

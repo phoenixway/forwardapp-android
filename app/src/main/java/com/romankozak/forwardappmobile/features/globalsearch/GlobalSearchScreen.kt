@@ -61,6 +61,15 @@ fun GlobalSearchScreen(
     navController: NavController,
     viewModel: GlobalSearchViewModel = hiltViewModel(),
 ) {
+    MagicBoxScreen(navController = navController, viewModel = viewModel)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MagicBoxScreen(
+    navController: NavController,
+    viewModel: GlobalSearchViewModel = hiltViewModel(),
+) {
     val uiState by viewModel.uiState.collectAsState()
     val obsidianVaultName by viewModel.obsidianVaultName.collectAsState()
     val context = LocalContext.current
@@ -212,11 +221,7 @@ fun GlobalSearchScreen(
                 viewModel.navigateToProjectForResult(result.record.contextId, null)
             }
             is GlobalSearchResultItem.AttachmentItem -> {
-                val contextId = result.searchResult.ownerContextId
-                if (!contextId.isNullOrBlank()) {
-                    viewModel.onDataResultOpened(result.uniqueId)
-                    viewModel.navigateToProjectForResult(contextId, result.searchResult.contextName)
-                }
+                viewModel.openAttachmentResult(result)
             }
         }
     }
@@ -573,20 +578,9 @@ private fun CompactOmnibox(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 2.dp, end = 2.dp, bottom = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = when (currentMode) {
-                        OmniboxMode.DataSearch -> "search query"
-                        OmniboxMode.Command -> "command query"
-                        OmniboxMode.QuickCatchInbox -> "quick catch"
-                        OmniboxMode.StartActivity -> "activity start"
-                        OmniboxMode.AddActivityEvent -> "activity event"
-                    },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = modePalette.iconTint.copy(alpha = 0.72f),
-                )
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,

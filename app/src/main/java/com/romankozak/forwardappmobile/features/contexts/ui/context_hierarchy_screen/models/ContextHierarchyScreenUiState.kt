@@ -55,6 +55,8 @@ data class ProjectHierarchyScreenUiState(
     val selectedContextIds: Set<String> = emptySet(),
     val clipboardContextIds: Set<String> = emptySet(),
     val clipboardOperation: ContextClipboardOperationUi? = null,
+    val hasBeaconClipboard: Boolean = false,
+    val isSiblingReorderMode: Boolean = false,
 ) {
     val currentSubState: MainSubState
         get() = subStateStack.last()

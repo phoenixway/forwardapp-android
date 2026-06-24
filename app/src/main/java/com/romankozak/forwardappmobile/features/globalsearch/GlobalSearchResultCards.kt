@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.romankozak.forwardappmobile.features.globalsearch
 
 import androidx.compose.animation.core.animateFloatAsState
@@ -8,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -43,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.domain.search.StructuredSearchQuery
 import java.util.Locale
 
 internal data class SearchResultCardSpec(
@@ -52,6 +56,7 @@ internal data class SearchResultCardSpec(
     val title: String,
     val subtitle: String?,
     val supporting: String?,
+    val matchedTags: List<String> = emptyList(),
     val onClick: () -> Unit,
     val secondaryActionIcon: ImageVector?,
     val secondaryActionDescription: String?,
@@ -176,27 +181,55 @@ internal fun UnifiedSearchResultCard(spec: SearchResultCardSpec) {
 internal fun HighlightedText(
     text: String,
     query: String,
+    matchedTags: List<String>,
     style: TextStyle,
     color: Color,
     maxLines: Int,
 ) {
     val annotated =
-        remember(text, query) {
+        remember(text, query, matchedTags) {
             if (query.isBlank()) return@remember buildAnnotatedString { append(text) }
+            val parsedQuery = StructuredSearchQuery.parse(query)
+            val terms =
+                buildList {
+                    addAll(parsedQuery.textQuery.split(Regex("\\s+")).filter { it.isNotBlank() })
+                    addAll(matchedTags.map { "#$it" })
+                }.distinctBy { it.lowercase(Locale.getDefault()) }
+            if (terms.isEmpty()) return@remember buildAnnotatedString { append(text) }
+
             val loweredText = text.lowercase(Locale.getDefault())
-            val loweredQuery = query.lowercase(Locale.getDefault())
-            val start = loweredText.indexOf(loweredQuery)
-            if (start < 0) {
-                buildAnnotatedString { append(text) }
-            } else {
-                val end = start + query.length
-                buildAnnotatedString {
-                    append(text.substring(0, start))
-                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                        append(text.substring(start, end))
+            val ranges =
+                terms
+                    .flatMap { term ->
+                        val loweredTerm = term.lowercase(Locale.getDefault())
+                        buildList {
+                            var start = loweredText.indexOf(loweredTerm)
+                            while (start >= 0) {
+                                add(start until (start + loweredTerm.length))
+                                start = loweredText.indexOf(loweredTerm, start + loweredTerm.length)
+                            }
+                        }
+                    }.sortedBy { it.first }
+                    .fold(mutableListOf<IntRange>()) { merged, range ->
+                        val previous = merged.lastOrNull()
+                        if (previous != null && range.first <= previous.last + 1) {
+                            merged[merged.lastIndex] = previous.first..maxOf(previous.last, range.last)
+                        } else {
+                            merged += range
+                        }
+                        merged
                     }
-                    append(text.substring(end))
+
+            buildAnnotatedString {
+                var cursor = 0
+                ranges.forEach { range ->
+                    if (range.first > cursor) append(text.substring(cursor, range.first))
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                        append(text.substring(range.first, range.last + 1))
+                    }
+                    cursor = range.last + 1
                 }
+                if (cursor < text.length) append(text.substring(cursor))
             }
         }
 
@@ -308,6 +341,7 @@ private fun RowScope.SearchResultTextContent(spec: SearchResultCardSpec) {
         HighlightedText(
             text = spec.title,
             query = spec.query,
+            matchedTags = spec.matchedTags,
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 2,
@@ -317,6 +351,7 @@ private fun RowScope.SearchResultTextContent(spec: SearchResultCardSpec) {
             HighlightedText(
                 text = spec.subtitle,
                 query = spec.query,
+                matchedTags = spec.matchedTags,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
@@ -327,10 +362,32 @@ private fun RowScope.SearchResultTextContent(spec: SearchResultCardSpec) {
             HighlightedText(
                 text = spec.supporting,
                 query = spec.query,
+                matchedTags = spec.matchedTags,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
             )
+        }
+        if (spec.matchedTags.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(6.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                spec.matchedTags.take(4).forEach { tag ->
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.65f),
+                    ) {
+                        Text(
+                            text = "#$tag",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        )
+                    }
+                }
+            }
         }
         Spacer(modifier = Modifier.height(8.dp))
         ResultTypeBadge(

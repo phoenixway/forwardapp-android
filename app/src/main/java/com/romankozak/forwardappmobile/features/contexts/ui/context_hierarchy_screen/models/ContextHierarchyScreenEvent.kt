@@ -39,6 +39,22 @@ sealed interface ContextHierarchyScreenEvent {
         val position: DropPosition,
     ) : ContextHierarchyScreenEvent
 
+    data object ToggleSiblingReorderMode : ContextHierarchyScreenEvent
+
+    data class ReorderContextSiblings(
+        val parentContextId: String?,
+        val orderedContextIds: List<String>,
+    ) : ContextHierarchyScreenEvent
+
+    data class ReorderOrientationBeaconSiblings(
+        val parentNodeId: String,
+        val orderedBeaconIds: List<String>,
+    ) : ContextHierarchyScreenEvent
+
+    data class ReorderOrientationGroups(
+        val orderedGroupIds: List<String>,
+    ) : ContextHierarchyScreenEvent
+
     data class BreadcrumbNavigation(val breadcrumb: BreadcrumbItem) : ContextHierarchyScreenEvent
 
     data object ClearBreadcrumbNavigation : ContextHierarchyScreenEvent
@@ -126,9 +142,9 @@ sealed interface ContextHierarchyScreenEvent {
 
     data class PasteContextLinksIntoBeacon(val beaconNodeId: String) : ContextHierarchyScreenEvent
 
-    data class PasteContextLinksIntoGroup(val groupNodeId: String) : ContextHierarchyScreenEvent
-
     data class CopyBeacon(val beaconNodeId: String) : ContextHierarchyScreenEvent
+
+    data class CopyBeaconAsLink(val beaconNodeId: String) : ContextHierarchyScreenEvent
 
     data class CutBeacon(val beaconNodeId: String) : ContextHierarchyScreenEvent
 

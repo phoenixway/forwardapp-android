@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.data.repository
 
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecordKind
 import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.database.AppDatabase
@@ -14,6 +15,7 @@ import com.romankozak.forwardappmobile.domain.userawareness.UserStateChange
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -30,6 +32,7 @@ data class ActivityInputResult(
 )
 
 private const val MINUTES_IN_MILLIS = 60_000L
+private const val TARGET_TYPE_DAY = "DAY"
 
 @Singleton
 class ActivityRepository
@@ -90,6 +93,7 @@ class ActivityRepository
                     text = parsed.cleanedText,
                     rawNoteText = text,
                     noteText = parsed.cleanedText,
+                    recordKind = ActivityRecordKind.TIMED_ACTIVITY,
                     stateEventType = parsed.detectedChange?.type?.name,
                     stateEventCrisisLevel = parsed.detectedChange?.crisisLevel,
                     stateEventLabel = parsed.detectedChange?.label,
@@ -159,6 +163,7 @@ class ActivityRepository
                     text = goal.text,
                     rawNoteText = goal.text,
                     noteText = goal.text,
+                    recordKind = ActivityRecordKind.TIMED_ACTIVITY,
                     startTime = now,
                     goalId = goalId,
                     createdAt = now,
@@ -230,6 +235,7 @@ class ActivityRepository
                     text = context.name,
                     rawNoteText = context.name,
                     noteText = context.name,
+                    recordKind = ActivityRecordKind.TIMED_ACTIVITY,
                     startTime = now,
                     contextId = contextId,
                     createdAt = now,
@@ -281,6 +287,7 @@ class ActivityRepository
                     text = parsed.cleanedText,
                     rawNoteText = text,
                     noteText = parsed.cleanedText,
+                    recordKind = ActivityRecordKind.EVENT,
                     stateEventType = parsed.detectedChange?.type?.name,
                     stateEventCrisisLevel = parsed.detectedChange?.crisisLevel,
                     stateEventLabel = parsed.detectedChange?.label,
@@ -346,6 +353,41 @@ class ActivityRepository
             activityRecordDao.update(record.bumpSync())
         }
 
+        suspend fun upsertTodaySummary(text: String) {
+            if (text.isBlank()) return
+            val now = System.currentTimeMillis()
+            val dayId = LocalDate.now().toString()
+            val existing =
+                activityRecordDao.findByKindAndTarget(
+                    recordKind = ActivityRecordKind.DAY_SUMMARY,
+                    targetType = TARGET_TYPE_DAY,
+                    targetId = dayId,
+                )
+            val record =
+                existing?.copy(
+                    text = text.trim(),
+                    rawNoteText = text,
+                    noteText = text.trim(),
+                    updatedAt = now,
+                    syncedAt = null,
+                    version = existing.version + 1,
+                ) ?: ActivityRecord(
+                    text = text.trim(),
+                    rawNoteText = text,
+                    noteText = text.trim(),
+                    recordKind = ActivityRecordKind.DAY_SUMMARY,
+                    createdAt = now,
+                    startTime = null,
+                    endTime = null,
+                    targetId = dayId,
+                    targetType = TARGET_TYPE_DAY,
+                    updatedAt = now,
+                    syncedAt = null,
+                    version = 1,
+                )
+            activityRecordDao.insert(record)
+        }
+
         suspend fun clearLog() {
             activityRecordDao.clearAll()
         }
@@ -356,6 +398,9 @@ class ActivityRepository
         }
 
         suspend fun searchActivities(query: String): List<ActivityRecord> = activityRecordDao.search(query)
+
+        suspend fun getAllActivitiesForSearch(): List<ActivityRecord> =
+            activityRecordDao.getAllRaw().filterNot { it.isDeleted }
 
         suspend fun getCompletedActivitiesForContext(
             contextId: String,
@@ -454,6 +499,7 @@ class ActivityRepository
                     text = cleanedText,
                     rawNoteText = originalText,
                     noteText = cleanedText,
+                    recordKind = ActivityRecordKind.COMMENT,
                     stateEventType = detectedChange?.type?.name,
                     stateEventCrisisLevel = detectedChange?.crisisLevel,
                     stateEventLabel = detectedChange?.label,

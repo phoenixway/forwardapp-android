@@ -17,6 +17,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconConte
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroupMember
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconParentLink
 import kotlinx.coroutines.flow.Flow
 
 data class MainBeaconWithRelations(
@@ -25,6 +26,7 @@ data class MainBeaconWithRelations(
     val relatedAttachments: List<AttachmentEntity>,
     val levelStatuses: List<MainBeaconLevelStatus>,
     val groupIds: List<String>,
+    val groupOrders: Map<String, Long>,
 )
 
 data class MainBeaconRelationEntity(
@@ -40,6 +42,8 @@ data class MainBeaconRelationEntity(
             ),
     )
     val relatedContexts: List<Context>,
+    @Relation(parentColumn = "id", entityColumn = "beacon_id")
+    val contextCrossRefs: List<MainBeaconContextCrossRef>,
     @Relation(
         parentColumn = "id",
         entityColumn = "id",
@@ -81,10 +85,16 @@ interface MainBeaconDao {
     @Query("SELECT * FROM main_beacon_group_members ORDER BY group_id ASC, member_order ASC")
     suspend fun getAllGroupMembersSync(): List<MainBeaconGroupMember>
 
+    @Query("SELECT * FROM main_beacon_parent_links ORDER BY parent_beacon_id ASC, link_order ASC")
+    suspend fun getAllParentLinksSync(): List<MainBeaconParentLink>
+
     @Query("SELECT * FROM main_beacon_group_members ORDER BY group_id ASC, member_order ASC")
     fun observeGroupMembers(): Flow<List<MainBeaconGroupMember>>
 
-    @Query("SELECT * FROM main_beacon_context_cross_ref")
+    @Query("SELECT * FROM main_beacon_parent_links ORDER BY parent_beacon_id ASC, link_order ASC")
+    fun observeParentLinks(): Flow<List<MainBeaconParentLink>>
+
+    @Query("SELECT * FROM main_beacon_context_cross_ref ORDER BY beacon_id ASC, ref_order ASC")
     fun observeContextCrossRefs(): Flow<List<MainBeaconContextCrossRef>>
 
     @Query("SELECT * FROM main_beacon_attachment_cross_ref")
@@ -93,7 +103,7 @@ interface MainBeaconDao {
     @Query("SELECT group_id FROM main_beacon_group_members WHERE beacon_id = :beaconId ORDER BY member_order ASC")
     suspend fun getGroupIdsForBeacon(beaconId: String): List<String>
 
-    @Query("SELECT * FROM main_beacon_context_cross_ref")
+    @Query("SELECT * FROM main_beacon_context_cross_ref ORDER BY beacon_id ASC, ref_order ASC")
     suspend fun getAllContextCrossRefsSync(): List<MainBeaconContextCrossRef>
 
     @Query("SELECT * FROM main_beacon_attachment_cross_ref")
@@ -117,6 +127,12 @@ interface MainBeaconDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertGroupMembers(members: List<MainBeaconGroupMember>)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertParentLink(link: MainBeaconParentLink): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertParentLinks(links: List<MainBeaconParentLink>)
+
     @Update
     suspend fun updateBeacon(beacon: MainBeacon)
 
@@ -129,8 +145,70 @@ interface MainBeaconDao {
     @Query("SELECT COALESCE(MAX(group_order), -1) FROM main_beacon_groups")
     suspend fun getMaxGroupOrder(): Long
 
+    @Query(
+        """
+        SELECT COALESCE(MAX(link_order), -1)
+        FROM main_beacon_parent_links
+        WHERE parent_beacon_id = :parentBeaconId
+        """,
+    )
+    suspend fun getMaxParentLinkOrder(parentBeaconId: String): Long
+
+    @Query(
+        """
+        SELECT COALESCE(MAX(ref_order), -1)
+        FROM main_beacon_context_cross_ref
+        WHERE beacon_id = :beaconId
+        """,
+    )
+    suspend fun getMaxContextCrossRefOrder(beaconId: String): Long
+
     @Query("UPDATE main_beacons SET beacon_order = :order WHERE id = :beaconId")
     suspend fun updateBeaconOrder(beaconId: String, order: Long)
+
+    @Query(
+        """
+        UPDATE main_beacon_group_members
+        SET member_order = :order
+        WHERE group_id = :groupId
+            AND beacon_id = :beaconId
+        """,
+    )
+    suspend fun updateGroupMemberOrder(
+        groupId: String,
+        beaconId: String,
+        order: Long,
+    )
+
+    @Query(
+        """
+        UPDATE main_beacon_parent_links
+        SET link_order = :order,
+            updatedAt = :updatedAt
+        WHERE parent_beacon_id = :parentBeaconId
+            AND child_beacon_id = :childBeaconId
+        """,
+    )
+    suspend fun updateParentLinkOrder(
+        parentBeaconId: String,
+        childBeaconId: String,
+        order: Long,
+        updatedAt: Long = System.currentTimeMillis(),
+    )
+
+    @Query(
+        """
+        UPDATE main_beacon_context_cross_ref
+        SET ref_order = :order
+        WHERE beacon_id = :beaconId
+            AND context_id = :contextId
+        """,
+    )
+    suspend fun updateContextCrossRefOrder(
+        beaconId: String,
+        contextId: String,
+        order: Long,
+    )
 
     @Query("UPDATE main_beacons SET parent_beacon_id = :parentBeaconId, updatedAt = :updatedAt WHERE id = :beaconId")
     suspend fun updateBeaconParent(
@@ -158,7 +236,7 @@ interface MainBeaconDao {
         INNER JOIN main_beacon_context_cross_ref AS cross_ref
             ON cross_ref.context_id = c.id
         WHERE cross_ref.beacon_id = :beaconId
-        ORDER BY c.name COLLATE NOCASE ASC
+        ORDER BY cross_ref.ref_order ASC, c.name COLLATE NOCASE ASC
         """,
     )
     suspend fun getContextsForBeacon(beaconId: String): List<Context>

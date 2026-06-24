@@ -180,7 +180,9 @@ fun BeaconRootHeaderRow(
     childCount: Int = 0,
     onClick: () -> Unit = {},
     onEditBeacon: (() -> Unit)? = null,
+    onDeleteBeacon: (() -> Unit)? = null,
     onCopyBeacon: (() -> Unit)? = null,
+    onCopyBeaconAsLink: (() -> Unit)? = null,
     onCutBeacon: (() -> Unit)? = null,
     onPasteBeacon: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
@@ -197,7 +199,9 @@ fun BeaconRootHeaderRow(
         actionMenu = {
             BeaconHeaderActionMenu(
                 onEditBeacon = onEditBeacon,
+                onDeleteBeacon = onDeleteBeacon,
                 onCopyBeacon = onCopyBeacon,
+                onCopyBeaconAsLink = onCopyBeaconAsLink,
                 onCutBeacon = onCutBeacon,
                 onPasteBeacon = onPasteBeacon,
             )
@@ -333,7 +337,7 @@ private fun RootHeaderRow(
                     text = title,
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
+                    maxLines = 4,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
@@ -352,7 +356,9 @@ private fun RootHeaderRow(
 @Composable
 private fun BeaconHeaderActionMenu(
     onEditBeacon: (() -> Unit)?,
+    onDeleteBeacon: (() -> Unit)?,
     onCopyBeacon: (() -> Unit)?,
+    onCopyBeaconAsLink: (() -> Unit)?,
     onCutBeacon: (() -> Unit)?,
     onPasteBeacon: (() -> Unit)?,
 ) {
@@ -360,7 +366,9 @@ private fun BeaconHeaderActionMenu(
         items =
             listOfNotNull(
                 onEditBeacon?.let { "Edit" to it },
+                onDeleteBeacon?.let { "Delete" to it },
                 onCopyBeacon?.let { "Copy" to it },
+                onCopyBeaconAsLink?.let { "Copy as link" to it },
                 onCutBeacon?.let { "Cut" to it },
                 onPasteBeacon?.let { "Paste here" to it },
             ),
@@ -537,7 +545,7 @@ fun ProjectRow(
                 Text(
                     text = displayName ?: AnnotatedString(project.name),
                     modifier = Modifier.padding(start = 2.dp),
-                    maxLines = 1,
+                    maxLines = 4,
                     overflow = TextOverflow.Ellipsis,
                     style =
                         MaterialTheme.typography.bodyMedium.copy(
@@ -930,6 +938,7 @@ fun HierarchyListItem(
     onEditProject: (Context) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
+    modifier: Modifier = Modifier,
 ) {
     @Suppress("UNUSED_VARIABLE")
     val unusedInputs = Triple(settings, longDescendantsMap, animatedVisibilityScope)
@@ -973,7 +982,7 @@ fun HierarchyListItem(
                 isDropAllowed && hoveredDropTargetKey == "after-${project.id}"
             }
 
-        Box(modifier = Modifier.fillMaxWidth()) {
+        Box(modifier = modifier.fillMaxWidth()) {
             SwipeableProjectRow(
                 project = project,
                 level = item.level,
