@@ -9,7 +9,6 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.romankozak.forwardappmobile.core.theme.LocalInputPanelColors
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.InputSuggestionActions
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelGlobalActions
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticsWorkspaceMode
@@ -26,7 +25,6 @@ fun TacticsBottomPanel(
     val selectedMode by viewModel.selectedMode.collectAsStateWithLifecycle()
     val selectedSlotId by viewModel.selectedActivitySlotContextId.collectAsStateWithLifecycle()
     val activitySlotContexts by viewModel.activitySlotContexts.collectAsStateWithLifecycle()
-    val panelStyle = LocalInputPanelColors.current.addProjectLog
     val inputSuggestionActions = remember { InputSuggestionActions() }
     var inputValue by remember { mutableStateOf(TextFieldValue("")) }
     var showContextPicker by remember { mutableStateOf(false) }
@@ -78,7 +76,6 @@ fun TacticsBottomPanel(
         onAddMissionFromContext = { showContextPicker = true },
         onToggleScopeLinksSheet = viewModel::toggleScopeLinksSheet,
         globalActions = globalActions,
-        panelStyle = panelStyle,
     )
 
     TacticsContextPickerHost(

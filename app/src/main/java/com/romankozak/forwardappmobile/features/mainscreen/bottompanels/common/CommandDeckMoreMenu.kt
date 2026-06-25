@@ -74,7 +74,7 @@ fun CommandDeckMoreActionButton(
         modifier = modifier,
         colors =
             IconButtonDefaults.iconButtonColors(
-                contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
+                contentColor = bottomPanelColors().action,
             ),
     ) {
         Icon(

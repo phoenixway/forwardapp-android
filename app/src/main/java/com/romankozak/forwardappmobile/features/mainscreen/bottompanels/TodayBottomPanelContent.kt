@@ -6,7 +6,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.core.theme.InputModeColors
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityInputBar
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.presentation.DayManagementRuntimeUiState
@@ -19,7 +18,6 @@ import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.M
 @Composable
 @Suppress("LongParameterList")
 internal fun TodayBottomPanelContent(
-    panelStyle: InputModeColors,
     currentTab: DayManagementTab,
     inputValue: TextFieldValue,
     allTags: List<String>,
@@ -41,7 +39,7 @@ internal fun TodayBottomPanelContent(
     onStartFinalization: () -> Unit,
     onSleep: () -> Unit,
 ) {
-    BottomPanelSurface(panelStyle = panelStyle) {
+    BottomPanelSurface {
         TodayAutocompleteHost(
             visible = currentTab != DayManagementTab.JOURNAL && currentTab != DayManagementTab.DAY_FOCUSES,
             inputValue = inputValue,
@@ -73,7 +71,6 @@ internal fun TodayBottomPanelContent(
                 inputValue = inputValue,
                 onValueChange = onInputValueChange,
                 onSubmit = onSubmitInput,
-                panelStyle = panelStyle,
                 placeholderText =
                     if (currentTab == DayManagementTab.DAY_FOCUSES) {
                         "Новий фокус дня..."

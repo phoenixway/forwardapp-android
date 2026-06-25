@@ -8,7 +8,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.romankozak.forwardappmobile.core.theme.LocalInputPanelColors
 import com.romankozak.forwardappmobile.features.mainscreen.StrategicArcViewModel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelGlobalActions
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
@@ -20,7 +19,6 @@ fun StrategicArcBottomPanel(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
-    val panelStyle = LocalInputPanelColors.current.addProjectLog
     var inputValue by remember { mutableStateOf(TextFieldValue("")) }
     var showContextPicker by remember { mutableStateOf(false) }
 
@@ -40,7 +38,6 @@ fun StrategicArcBottomPanel(
         onShowContextPicker = { showContextPicker = true },
         onClearInput = { inputValue = TextFieldValue("") },
         globalActions = globalActions,
-        panelStyle = panelStyle,
     )
 
     StrategicArcContextPickerHost(

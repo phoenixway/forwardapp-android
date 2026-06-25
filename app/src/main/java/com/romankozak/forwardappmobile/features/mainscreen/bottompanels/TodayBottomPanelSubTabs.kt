@@ -14,8 +14,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementTab
+import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelTokens
 
 @Composable
 fun TodaySubTabs(
@@ -45,27 +45,27 @@ private fun TodaySubTabButton(
 ) {
     val colorScheme = MaterialTheme.colorScheme
     Surface(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(BottomPanelTokens.SubTabCornerRadius),
         color =
             if (selected) {
-                colorScheme.primary.copy(alpha = 0.18f)
+                colorScheme.primary.copy(alpha = BottomPanelTokens.SubTabSelectedContainerAlpha)
             } else {
                 Color.Transparent
             },
         border =
             BorderStroke(
-                width = 1.dp,
+                width = BottomPanelTokens.BorderWidth,
                 color =
                     if (selected) {
-                        colorScheme.primary.copy(alpha = 0.45f)
+                        colorScheme.primary.copy(alpha = BottomPanelTokens.SubTabSelectedBorderAlpha)
                     } else {
-                        colorScheme.onSurface.copy(alpha = 0.08f)
+                        colorScheme.onSurface.copy(alpha = BottomPanelTokens.SubTabBorderAlpha)
                     },
             ),
     ) {
         IconButton(
             onClick = onClick,
-            modifier = Modifier.size(42.dp),
+            modifier = Modifier.size(BottomPanelTokens.SubTabButtonSize),
             colors =
                 IconButtonDefaults.iconButtonColors(
                     contentColor =
@@ -79,7 +79,7 @@ private fun TodaySubTabButton(
             Icon(
                 imageVector = tab.icon,
                 contentDescription = tab.title,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(BottomPanelTokens.SubTabIconSize),
             )
         }
     }

@@ -17,8 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.romankozak.forwardappmobile.core.theme.InputModeColors
-import com.romankozak.forwardappmobile.core.theme.LocalInputPanelColors
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.ui.components.NewRecentListsSheet
 
@@ -32,8 +30,7 @@ fun CommandDeckGlobalRailPanel(
     actions: BottomPanelGlobalActions,
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
-    val panelStyle = LocalInputPanelColors.current.addProjectLog
-    CommandDeckPanelSurface {
+    BottomPanelSurface {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceAround,
@@ -41,7 +38,6 @@ fun CommandDeckGlobalRailPanel(
         ) {
             BottomPanelGlobalRail(
                 actions = actions,
-                panelStyle = panelStyle,
                 mode = BottomPanelGlobalRailMode.FULL,
                 recentViewModel = recentViewModel,
             )
@@ -52,7 +48,6 @@ fun CommandDeckGlobalRailPanel(
 @Composable
 fun BottomPanelGlobalRail(
     actions: BottomPanelGlobalActions,
-    panelStyle: InputModeColors,
     mode: BottomPanelGlobalRailMode = BottomPanelGlobalRailMode.COMPACT,
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
@@ -62,28 +57,24 @@ fun BottomPanelGlobalRail(
     BottomPanelIconButton(
         imageVector = Icons.Outlined.AutoAwesome,
         contentDescription = "Magicbox",
-        panelStyle = panelStyle,
         onClick = actions.onNavigateToGlobalSearch,
     )
     if (mode == BottomPanelGlobalRailMode.FULL) {
         BottomPanelIconButton(
             imageVector = Icons.Outlined.MoveToInbox,
             contentDescription = "Inbox",
-            panelStyle = panelStyle,
             onClick = actions.onNavigateToInbox,
         )
     }
     BottomPanelIconButton(
         imageVector = Icons.Outlined.AccountTree,
         contentDescription = "Ієрархія орієнтирів",
-        panelStyle = panelStyle,
         onClick = actions.onNavigateToProjectHierarchy,
     )
     if (mode == BottomPanelGlobalRailMode.FULL) {
         BottomPanelIconButton(
             imageVector = Icons.Outlined.History,
             contentDescription = "Недавні",
-            panelStyle = panelStyle,
             onClick = { showRecentSheet = true },
         )
     }

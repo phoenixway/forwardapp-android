@@ -31,21 +31,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.core.theme.InputModeColors
 
 @Composable
 fun BottomPanelComposer(
     inputValue: TextFieldValue,
     onValueChange: (TextFieldValue) -> Unit,
     onSubmit: () -> Unit,
-    panelStyle: InputModeColors,
     placeholderText: String,
     modifier: Modifier = Modifier,
     maxHeightScreenFraction: Int = 3,
@@ -53,6 +49,7 @@ fun BottomPanelComposer(
     secondarySubmitActions: @Composable (() -> Unit)? = null,
     trailingContent: @Composable (() -> Unit)? = null,
 ) {
+    val colors = bottomPanelColors()
     Row(
         modifier = modifier.fillMaxWidth().defaultMinSize(minHeight = BottomPanelTokens.ComposerMinHeight),
         verticalAlignment = Alignment.Bottom,
@@ -64,8 +61,8 @@ fun BottomPanelComposer(
                     .heightIn(max = LocalConfiguration.current.screenHeightDp.dp / maxHeightScreenFraction)
                     .defaultMinSize(minHeight = BottomPanelTokens.InputMinHeight),
             shape = RoundedCornerShape(BottomPanelTokens.InputCornerRadius),
-            color = panelStyle.inputFieldColor,
-            border = BorderStroke(1.dp, panelStyle.textColor.copy(alpha = 0.3f)),
+            color = colors.inputContainer,
+            border = BorderStroke(BottomPanelTokens.BorderWidth, colors.inputBorder),
         ) {
             BasicTextField(
                 value = inputValue,
@@ -77,18 +74,18 @@ fun BottomPanelComposer(
                             horizontal = BottomPanelTokens.InputHorizontalPadding,
                             vertical = BottomPanelTokens.InputVerticalPadding,
                         ),
-                textStyle = MaterialTheme.typography.bodyLarge.copy(color = panelStyle.textColor),
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = colors.content),
                 singleLine = false,
                 maxLines = 6,
                 keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(onSend = { onSubmit() }),
-                cursorBrush = SolidColor(panelStyle.textColor),
+                cursorBrush = SolidColor(colors.primaryActionContainer),
                 decorationBox = { innerTextField ->
                     Box {
                         if (inputValue.text.isBlank()) {
                             Text(
                                 text = placeholderText,
-                                color = panelStyle.textColor.copy(alpha = 0.6f),
+                                color = colors.mutedContent.copy(alpha = BottomPanelTokens.PlaceholderAlpha),
                                 style = MaterialTheme.typography.bodyLarge,
                             )
                         }
@@ -116,17 +113,12 @@ fun BottomPanelComposer(
                         Modifier
                             .size(BottomPanelTokens.PrimaryActionButtonSize)
                             .background(
-                                color = panelStyle.textColor,
+                                color = colors.primaryActionContainer,
                                 shape = RoundedCornerShape(BottomPanelTokens.PrimaryActionButtonSize / 2),
                             ),
                     colors =
                         IconButtonDefaults.iconButtonColors(
-                            contentColor =
-                                if (panelStyle.textColor.luminance() > 0.5f) {
-                                    Color.Black
-                                } else {
-                                    Color.White
-                                },
+                            contentColor = colors.primaryActionContent,
                         ),
                 ) {
                     Icon(

@@ -7,7 +7,6 @@ import androidx.compose.material.icons.outlined.Link
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
-import com.romankozak.forwardappmobile.core.theme.InputModeColors
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.AutocompleteSuggestions
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelActionRow
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelComposer
@@ -27,28 +26,24 @@ internal fun TacticsBottomPanelContent(
     onAddMissionFromContext: () -> Unit,
     onToggleScopeLinksSheet: () -> Unit,
     globalActions: BottomPanelGlobalActions,
-    panelStyle: InputModeColors,
 ) {
-    BottomPanelSurface(panelStyle = panelStyle) {
+    BottomPanelSurface {
         BottomPanelActionRow(
             leadingContent = {
                 BottomPanelIconButton(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Додати місію",
-                    panelStyle = panelStyle,
                     onClick = onAddMissionFromContext,
                 )
                 BottomPanelIconButton(
                     imageVector = Icons.Outlined.Link,
                     contentDescription = "Показати зв'язки",
-                    panelStyle = panelStyle,
                     onClick = onToggleScopeLinksSheet,
                 )
             },
             trailingContent = {
                 BottomPanelGlobalRail(
                     actions = globalActions,
-                    panelStyle = panelStyle,
                 )
             },
         )
@@ -63,7 +58,6 @@ internal fun TacticsBottomPanelContent(
             inputValue = inputValue,
             onValueChange = onValueChange,
             onSubmit = onSubmit,
-            panelStyle = panelStyle,
             placeholderText = placeholder,
             sendContentDescription = "Створити місію",
         )

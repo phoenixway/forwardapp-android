@@ -7,7 +7,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.input.TextFieldValue
-import com.romankozak.forwardappmobile.core.theme.InputModeColors
 import com.romankozak.forwardappmobile.features.mainscreen.StrategicArcTab
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelActionRow
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelComposer
@@ -27,23 +26,20 @@ internal fun StrategicArcBottomPanelContent(
     onShowContextPicker: () -> Unit,
     onClearInput: () -> Unit,
     globalActions: BottomPanelGlobalActions,
-    panelStyle: InputModeColors,
 ) {
-    BottomPanelSurface(panelStyle = panelStyle) {
+    BottomPanelSurface {
         BottomPanelActionRow(
             leadingContent = {
                 BottomPanelToggleButton(
                     imageVector = Icons.AutoMirrored.Outlined.FormatListBulleted,
                     contentDescription = "ArcQuest",
                     selected = selectedTab == StrategicArcTab.QUESTS,
-                    panelStyle = panelStyle,
                     onClick = { onSelectTab(StrategicArcTab.QUESTS) },
                 )
                 BottomPanelToggleButton(
                     imageVector = Icons.AutoMirrored.Outlined.Article,
                     contentDescription = "Артефакт",
                     selected = selectedTab == StrategicArcTab.ARTIFACT,
-                    panelStyle = panelStyle,
                     onClick = { onSelectTab(StrategicArcTab.ARTIFACT) },
                 )
             },
@@ -51,12 +47,10 @@ internal fun StrategicArcBottomPanelContent(
                 BottomPanelIconButton(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Додати контекст як ArcQuest",
-                    panelStyle = panelStyle,
                     onClick = onShowContextPicker,
                 )
                 BottomPanelGlobalRail(
                     actions = globalActions,
-                    panelStyle = panelStyle,
                 )
             },
         )
@@ -66,7 +60,6 @@ internal fun StrategicArcBottomPanelContent(
                 inputValue = inputValue,
                 onValueChange = onInputChange,
                 onSubmit = onSubmitQuest,
-                panelStyle = panelStyle,
                 placeholderText = "Новий ArcQuest...",
                 maxHeightScreenFraction = 4,
                 sendContentDescription = "Створити ArcQuest",
@@ -74,7 +67,6 @@ internal fun StrategicArcBottomPanelContent(
                     BottomPanelIconButton(
                         imageVector = Icons.Outlined.Close,
                         contentDescription = "Очистити ArcQuest",
-                        panelStyle = panelStyle,
                         onClick = onClearInput,
                     )
                 },

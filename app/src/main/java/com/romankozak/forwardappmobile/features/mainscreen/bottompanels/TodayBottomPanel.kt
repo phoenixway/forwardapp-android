@@ -10,7 +10,6 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusType
-import com.romankozak.forwardappmobile.core.theme.LocalInputPanelColors
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerViewModel
 import com.romankozak.forwardappmobile.features.activitytracker.copyToClipboard
 import com.romankozak.forwardappmobile.features.activitytracker.exportLogToMarkdown
@@ -45,7 +44,6 @@ fun TodayBottomPanel(
     val activityInputText by activityTrackerViewModel.inputText.collectAsStateWithLifecycle()
     val lastOngoingActivity by activityTrackerViewModel.lastOngoingActivity.collectAsStateWithLifecycle()
     val dayFocusesUiState by dayFocusesViewModel.uiState.collectAsStateWithLifecycle()
-    val panelStyle = LocalInputPanelColors.current.addGoal
     val context = androidx.compose.ui.platform.LocalContext.current
     var inputValue by remember { mutableStateOf(TextFieldValue("")) }
     var showContextPicker by remember { mutableStateOf(false) }
@@ -103,7 +101,6 @@ fun TodayBottomPanel(
     }
 
     TodayBottomPanelContent(
-        panelStyle = panelStyle,
         currentTab = currentTab,
         inputValue = inputValue,
         allTags = allTags,
