@@ -4,10 +4,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.context.SystemContexts
+import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestSourceType
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionSourceType
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
@@ -16,7 +22,11 @@ import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
+import com.romankozak.forwardappmobile.features.mainscreen.arc.ArcQuestRepository
+import com.romankozak.forwardappmobile.features.missions.domain.repository.TacticalActivitySlotRepository
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.AddTacticalMissionUseCase
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.DeleteTacticalMissionUseCase
@@ -30,9 +40,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -41,9 +54,25 @@ import kotlinx.coroutines.launch
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.NewTaskParameters
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionPriority
+import java.time.LocalDate
+import java.time.YearMonth
+import java.time.temporal.WeekFields
 import java.util.UUID
 import javax.inject.Inject
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.NO_DEADLINE
+
+enum class TacticsWorkspaceMode {
+    SLOTS,
+    ALL,
+    PLAN,
+}
+
+data class TacticalPlanBacklogItem(
+    val item: BacklogItem,
+    val title: String,
+    val description: String?,
+    val alreadyInWeek: Boolean,
+)
 
 @HiltViewModel
 class TacticalMissionViewModel
@@ -63,6 +92,10 @@ class TacticalMissionViewModel
         private val settingsRepository: SettingsRepository,
         private val backlogClipboardUseCase: BacklogClipboardUseCase,
         private val reminderRepository: ReminderRepository,
+        private val arcQuestRepository: ArcQuestRepository,
+        private val tacticalActivitySlotRepository: TacticalActivitySlotRepository,
+        private val listItemDao: ListItemDao,
+        private val goalDao: GoalDao,
     ) : ViewModel() {
         companion object {
             const val MISSION_REMINDER_ENTITY_TYPE = "TACTICAL_MISSION"
@@ -70,6 +103,13 @@ class TacticalMissionViewModel
 
         private val _missions = MutableStateFlow<List<TacticalMission>>(emptyList())
         val missions: StateFlow<List<TacticalMission>> = _missions.asStateFlow()
+        private val _selectedMode = MutableStateFlow(TacticsWorkspaceMode.SLOTS)
+        val selectedMode: StateFlow<TacticsWorkspaceMode> = _selectedMode.asStateFlow()
+        private val _selectedActivitySlotContextId = MutableStateFlow<String?>(null)
+        val selectedActivitySlotContextId: StateFlow<String?> = _selectedActivitySlotContextId.asStateFlow()
+        private val _selectedPlanningContextId = MutableStateFlow<String?>(null)
+        val selectedPlanningContextId: StateFlow<String?> = _selectedPlanningContextId.asStateFlow()
+        val currentWeekKey: String = currentIsoWeekKey()
         private val allContexts =
             contextRepository
                 .getAllContextsFlow()
@@ -78,6 +118,76 @@ class TacticalMissionViewModel
                     started = SharingStarted.Eagerly,
                     initialValue = emptyList(),
                 )
+        val activitySlotContexts: StateFlow<List<Context>> =
+            combine(allContexts, tacticalActivitySlotRepository.observeSlots()) { contexts, slots ->
+                val contextById = contexts.associateBy { it.id }
+                slots.mapNotNull { slot -> contextById[slot.contextId] }
+            }
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.Eagerly,
+                    initialValue = emptyList(),
+                )
+        val visibleMissions: StateFlow<List<TacticalMission>> =
+            combine(missions, selectedMode, selectedActivitySlotContextId) { allMissions, mode, selectedSlotId ->
+                val weekMissions =
+                    allMissions
+                        .filter { it.isCurrentWeekMission(currentWeekKey) }
+                        .filter { it.sourceBacklogItemId == null }
+                when (mode) {
+                    TacticsWorkspaceMode.SLOTS ->
+                        weekMissions
+                            .filter { it.activitySlotContextId == selectedSlotId }
+                            .sortedWith(compareBy<TacticalMission> { it.orderInSlot ?: it.orderInWeek }.thenBy { it.createdAt })
+                    TacticsWorkspaceMode.ALL ->
+                        weekMissions.sortedWith(
+                            compareBy<TacticalMission> { it.activitySlotContextId ?: "" }
+                                .thenBy { it.orderInSlot ?: it.orderInWeek }
+                                .thenBy { it.createdAt },
+                        )
+                    TacticsWorkspaceMode.PLAN -> emptyList()
+                }
+            }.stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.Eagerly,
+                initialValue = emptyList(),
+            )
+        @OptIn(ExperimentalCoroutinesApi::class)
+        val planningBacklogItems: StateFlow<List<TacticalPlanBacklogItem>> =
+            combine(
+                selectedPlanningContextId.flatMapLatest { contextId ->
+                    if (contextId == null) {
+                        flowOf(emptyList())
+                    } else {
+                        listItemDao.getItemsForContextStream(contextId)
+                    }
+                },
+                goalDao.getAllVisibleGoalsFlow(),
+                allContexts,
+                missions,
+                selectedPlanningContextId,
+            ) { backlogItems, goals, contexts, allMissions, contextId ->
+                val goalById = goals.associateBy { it.id }
+                val contextById = contexts.associateBy { it.id }
+                val selectedBacklogIds =
+                    allMissions
+                        .asSequence()
+                        .filter { it.isCurrentWeekMission(currentWeekKey) }
+                        .mapNotNull { it.sourceBacklogItemId }
+                        .toSet()
+                backlogItems.map { item ->
+                    item.toPlanBacklogItem(
+                        goalsById = goalById,
+                        contextsById = contextById,
+                        alreadyInWeek = item.id in selectedBacklogIds,
+                        fallbackContextId = contextId,
+                    )
+                }
+            }.stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.Eagerly,
+                initialValue = emptyList(),
+            )
         private val allAttachmentLibraryItems =
             attachmentsRepository
                 .getAttachmentLibraryItems()
@@ -218,6 +328,16 @@ class TacticalMissionViewModel
                 .launchIn(viewModelScope)
         }
 
+        private fun nextSlotOrder(activitySlotContextId: String?): Long? {
+            if (activitySlotContextId == null) return null
+            val minOrder =
+                _missions.value
+                    .filter { it.isCurrentWeekMission(currentWeekKey) && it.activitySlotContextId == activitySlotContextId }
+                    .mapNotNull { it.orderInSlot }
+                    .minOrNull() ?: 0L
+            return minOrder - 1L
+        }
+
         fun addMission(
             title: String,
             description: String,
@@ -235,6 +355,8 @@ class TacticalMissionViewModel
                     projectId = null,
                     linkedProjectIds = projectLinks,
                     linkedAttachmentIds = attachmentLinks,
+                    weekKey = currentWeekKey,
+                    sourceType = MissionSourceType.MANUAL,
                 )
             addMission(newMission)
         }
@@ -249,6 +371,23 @@ class TacticalMissionViewModel
         }
 
         fun addQuickMission(title: String) {
+            addQuickMission(title = title, activitySlotContextId = null)
+        }
+
+        fun addQuickMissionForCurrentSlot(title: String) {
+            val activitySlotContextId =
+                if (_selectedMode.value == TacticsWorkspaceMode.SLOTS) {
+                    _selectedActivitySlotContextId.value
+                } else {
+                    null
+                }
+            addQuickMission(title = title, activitySlotContextId = activitySlotContextId)
+        }
+
+        fun addQuickMission(
+            title: String,
+            activitySlotContextId: String?,
+        ) {
             val trimmedTitle = title.trim()
             if (trimmedTitle.isBlank()) return
             addMission(
@@ -260,12 +399,17 @@ class TacticalMissionViewModel
                     projectId = null,
                     linkedProjectIds = emptyList(),
                     linkedAttachmentIds = emptyList(),
+                    weekKey = currentWeekKey,
+                    activitySlotContextId = activitySlotContextId,
+                    orderInSlot = nextSlotOrder(activitySlotContextId),
+                    sourceType = MissionSourceType.MANUAL,
                 ),
             )
         }
 
         fun addWeeklyMissionFromContext(contextId: String) {
             val context = allContexts.value.firstOrNull { it.id == contextId } ?: return
+            val activitySlotContextId = context.id.takeIf { isKnownActivitySlot(it) }
             val now = System.currentTimeMillis()
             val oneWeekMs = 7L * 24L * 60L * 60L * 1000L
             addMission(
@@ -279,6 +423,11 @@ class TacticalMissionViewModel
                     projectId = context.id,
                     linkedProjectIds = listOf(context.id),
                     linkedAttachmentIds = emptyList(),
+                    weekKey = currentWeekKey,
+                    activitySlotContextId = activitySlotContextId,
+                    orderInSlot = nextSlotOrder(activitySlotContextId),
+                    sourceType = MissionSourceType.MANUAL,
+                    sourceContextId = context.id,
                 ),
             )
         }
@@ -305,6 +454,109 @@ class TacticalMissionViewModel
                     ),
                 )
             }
+        }
+
+        fun addMissionToCurrentArc(mission: TacticalMission) {
+            val trimmedTitle = mission.title.trim()
+            if (trimmedTitle.isBlank()) return
+            viewModelScope.launch {
+                arcQuestRepository.addQuest(
+                    ArcQuestEntity(
+                        arcKey = YearMonth.now().toString(),
+                        title = trimmedTitle,
+                        description = mission.description,
+                        linkedContextId = mission.projectId,
+                        linkedMissionId = mission.id,
+                        sourceType = ArcQuestSourceType.MISSION.name,
+                        sourceId = mission.id.toString(),
+                    ),
+                )
+            }
+        }
+
+        fun selectMode(mode: TacticsWorkspaceMode) {
+            _selectedMode.value = mode
+        }
+
+        fun selectActivitySlot(contextId: String?) {
+            _selectedActivitySlotContextId.value = contextId
+        }
+
+        fun addActivitySlot(contextId: String) {
+            viewModelScope.launch {
+                tacticalActivitySlotRepository.addSlot(contextId)
+                _selectedActivitySlotContextId.value = contextId
+            }
+        }
+
+        fun removeActivitySlot(contextId: String) {
+            viewModelScope.launch {
+                tacticalActivitySlotRepository.removeSlot(contextId)
+                if (_selectedActivitySlotContextId.value == contextId) {
+                    _selectedActivitySlotContextId.value = null
+                }
+                if (_selectedPlanningContextId.value == contextId) {
+                    _selectedPlanningContextId.value = null
+                }
+            }
+        }
+
+        fun selectPlanningContext(contextId: String?) {
+            _selectedPlanningContextId.value = contextId
+        }
+
+        fun assignMissionToActivitySlot(
+            mission: TacticalMission,
+            activitySlotContextId: String?,
+        ) {
+            updateMission(
+                mission.copy(
+                    activitySlotContextId = activitySlotContextId,
+                    orderInSlot = nextSlotOrder(activitySlotContextId),
+                ),
+            )
+        }
+
+        fun reorderVisibleMissions(reordered: List<TacticalMission>) {
+            viewModelScope.launch {
+                reordered.forEachIndexed { index, mission ->
+                    updateTacticalMissionUseCase(
+                        if (_selectedMode.value == TacticsWorkspaceMode.SLOTS) {
+                            mission.copy(orderInSlot = index.toLong())
+                        } else {
+                            mission.copy(orderInWeek = index.toLong(), order = index.toLong())
+                        },
+                    )
+                }
+            }
+        }
+
+        fun createMissionFromBacklogItem(planItem: TacticalPlanBacklogItem) {
+            if (planItem.alreadyInWeek) return
+            val sourceContextId = _selectedPlanningContextId.value ?: planItem.item.contextId
+            val activitySlotContextId = sourceContextId.takeIf { isKnownActivitySlot(it) }
+            addMission(
+                TacticalMission(
+                    title = planItem.title,
+                    description = planItem.description,
+                    deadline = NO_DEADLINE,
+                    status = MissionStatus.ACTIVE,
+                    projectId = sourceContextId.takeUnless { activitySlotContextId != null },
+                    linkedProjectIds = listOf(sourceContextId),
+                    linkedAttachmentIds = emptyList(),
+                    weekKey = currentWeekKey,
+                    activitySlotContextId = activitySlotContextId,
+                    orderInSlot = nextSlotOrder(activitySlotContextId),
+                    sourceType =
+                        if (activitySlotContextId != null) {
+                            MissionSourceType.SLOT_BACKLOG_ITEM
+                        } else {
+                            MissionSourceType.CONTEXT_BACKLOG_ITEM
+                        },
+                    sourceContextId = sourceContextId,
+                    sourceBacklogItemId = planItem.item.id,
+                ),
+            )
         }
 
         fun updateMission(
@@ -368,6 +620,9 @@ class TacticalMissionViewModel
                 reminderRepository.clearRemindersForEntity(missionId.toString())
             }
         }
+
+        private fun isKnownActivitySlot(contextId: String): Boolean =
+            activitySlotContexts.value.any { it.id == contextId }
 
         fun copyMissionToEntityClipboard(mission: TacticalMission) {
             backlogClipboardUseCase.copyTacticalMissions(
@@ -637,5 +892,44 @@ private fun AttachmentLibraryQueryResult.toAttachmentOption(): AttachmentOption 
         entityId = entityId,
         target = relatedLink?.target,
         vault = relatedLink?.vault,
+    )
+}
+
+private fun currentIsoWeekKey(): String {
+    val now = LocalDate.now()
+    val weekFields = WeekFields.ISO
+    val weekBasedYear = now.get(weekFields.weekBasedYear())
+    val week = now.get(weekFields.weekOfWeekBasedYear())
+    return "%04d-W%02d".format(weekBasedYear, week)
+}
+
+fun TacticalMission.isCurrentWeekMission(currentWeekKey: String): Boolean = weekKey.isBlank() || weekKey == currentWeekKey
+
+private fun BacklogItem.toPlanBacklogItem(
+    goalsById: Map<String, Goal>,
+    contextsById: Map<String, Context>,
+    alreadyInWeek: Boolean,
+    fallbackContextId: String?,
+): TacticalPlanBacklogItem {
+    val goal = goalsById[entityId]
+    val context = contextsById[entityId]
+    val fallbackContext = fallbackContextId?.let(contextsById::get)
+    val title =
+        when (itemType) {
+            BacklogItemTypeValues.GOAL -> goal?.text
+            BacklogItemTypeValues.CONTEXT -> context?.name
+            else -> null
+        }?.takeIf { it.isNotBlank() } ?: entityId
+    val description =
+        when (itemType) {
+            BacklogItemTypeValues.GOAL -> goal?.description
+            BacklogItemTypeValues.CONTEXT -> context?.description
+            else -> fallbackContext?.name
+        }
+    return TacticalPlanBacklogItem(
+        item = this,
+        title = title,
+        description = description,
+        alreadyInWeek = alreadyInWeek,
     )
 }

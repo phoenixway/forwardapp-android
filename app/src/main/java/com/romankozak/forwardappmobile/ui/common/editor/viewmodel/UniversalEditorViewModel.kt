@@ -80,11 +80,6 @@ class UniversalEditorViewModel
                 it.copy(content = textFieldValue, toolbarState = computeToolbarState(textFieldValue, editingMode))
             }
             pushUndo(textFieldValue)
-
-            viewModelScope.launch {
-                delay(400)
-                _uiState.update { it.copy(content = it.content.copy()) }
-            }
         }
 
         fun onContentChange(newValue: TextFieldValue) {

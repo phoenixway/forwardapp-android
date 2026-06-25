@@ -58,6 +58,7 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.compo
 import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckMoreActionButton
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
 import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTargetsPickerDialog
+import com.romankozak.forwardappmobile.features.missions.presentation.TacticsWorkspaceMode
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalMissionViewModel
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.ui.components.CommonBottomPanelLayout
@@ -104,6 +105,9 @@ fun TacticsBottomPanel(
     val allTags by viewModel.allTags.collectAsStateWithLifecycle()
     val contextMarkerNames by viewModel.contextMarkerNames.collectAsStateWithLifecycle()
     val projectOptions by viewModel.projectOptions.collectAsStateWithLifecycle()
+    val selectedMode by viewModel.selectedMode.collectAsStateWithLifecycle()
+    val selectedSlotId by viewModel.selectedActivitySlotContextId.collectAsStateWithLifecycle()
+    val activitySlotContexts by viewModel.activitySlotContexts.collectAsStateWithLifecycle()
     val panelStyle = LocalInputPanelColors.current.addProjectLog
     val inputSuggestionActions = remember { InputSuggestionActions() }
     var inputValue by remember { mutableStateOf(TextFieldValue("")) }
@@ -121,9 +125,17 @@ fun TacticsBottomPanel(
     fun submitMission() {
         val title = inputValue.text.trim()
         if (title.isBlank()) return
-        viewModel.addQuickMission(title)
+        viewModel.addQuickMissionForCurrentSlot(title)
         inputValue = TextFieldValue("")
     }
+
+    val selectedSlotName = activitySlotContexts.firstOrNull { it.id == selectedSlotId }?.name
+    val placeholder =
+        if (selectedMode == TacticsWorkspaceMode.SLOTS && selectedSlotName != null) {
+            "Нова місія для: $selectedSlotName..."
+        } else {
+            "Нова місія тижня..."
+        }
 
     CommonBottomPanelLayout {
         Surface(
@@ -261,7 +273,7 @@ fun TacticsBottomPanel(
                                 Box {
                                     if (inputValue.text.isBlank()) {
                                         Text(
-                                            text = "Нова місія...",
+                                            text = placeholder,
                                             color = panelStyle.textColor.copy(alpha = 0.6f),
                                             style = MaterialTheme.typography.bodyLarge,
                                         )

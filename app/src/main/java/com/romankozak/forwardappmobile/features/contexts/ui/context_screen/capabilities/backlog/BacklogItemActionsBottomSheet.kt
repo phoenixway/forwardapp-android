@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material.icons.filled.Tune
@@ -63,6 +64,8 @@ fun BacklogItemActionsBottomSheet(
     onRemindersClick: () -> Unit,
     onAddToDayPlan: () -> Unit,
     onAddAsMission: () -> Unit,
+    isTacticalPriority: Boolean,
+    onToggleTacticalPriority: () -> Unit,
     onStartTracking: () -> Unit,
     onCopyTransport: (() -> Unit)? = null,
     onCutTransport: (() -> Unit)? = null,
@@ -116,6 +119,18 @@ fun BacklogItemActionsBottomSheet(
                                 icon = Icons.Default.AddCircle,
                                 tint = colorScheme.secondary,
                                 onClick = onAddAsMission,
+                            ),
+                            BacklogActionItem(
+                                title =
+                                    if (isTacticalPriority) {
+                                        "Зняти з тактичного періоду"
+                                    } else {
+                                        "Позначити на тактичний період"
+                                    },
+                                subtitle = "Показати у беклозі як тактичний пріоритет",
+                                icon = Icons.Default.Flag,
+                                tint = colorScheme.primary,
+                                onClick = onToggleTacticalPriority,
                             ),
                             BacklogActionItem(
                                 title = "Почати трекінг",

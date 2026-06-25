@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.domain.lifestate
 import android.util.Log
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.aichat.Message
+import com.romankozak.forwardappmobile.domain.aichat.OllamaRuntimeOptions
 import com.romankozak.forwardappmobile.domain.aichat.OllamaService
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.collect
@@ -60,6 +61,14 @@ class OllamaLlmApi
                 return Result.failure(IllegalStateException("Ollama model is not set"))
             }
             val tempValue = temperature ?: settingsRepository.temperatureFlow.first()
+            val runtimeOptions =
+                OllamaRuntimeOptions(
+                    numCtx = settingsRepository.ollamaNumCtxFlow.first(),
+                    numPredict = settingsRepository.ollamaNumPredictFlow.first(),
+                    numBatch = settingsRepository.ollamaNumBatchFlow.first(),
+                    numGpu = settingsRepository.ollamaNumGpuFlow.first(),
+                    numThread = settingsRepository.ollamaNumThreadFlow.first(),
+                )
             val messages =
                 listOf(
                     Message(role = "system", content = systemPrompt),
@@ -71,7 +80,7 @@ class OllamaLlmApi
                 Log.d(tag, "[LifeState LLM] call url=$baseUrl model=$model temp=$tempValue")
                 withTimeout(110_000) {
                     ollamaService
-                        .generateChatResponseStream(baseUrl, model, messages, tempValue)
+                        .generateChatResponseStream(baseUrl, model, messages, tempValue, runtimeOptions)
                         .collect { chunk: String -> responseBuilder.append(chunk) }
                 }
                 Log.d(tag, "[LifeState LLM] response chars=${responseBuilder.length}")

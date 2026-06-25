@@ -69,6 +69,13 @@ class SettingsRepository
         private val wifiSyncPortKey = intPreferencesKey("wifi_sync_port")
         private val ollamaPortKey = intPreferencesKey("ollama_port")
         private val fastApiPortKey = intPreferencesKey("fastapi_port")
+        private val ollamaNumCtxKey = intPreferencesKey("ollama_num_ctx")
+        private val ollamaNumPredictKey = intPreferencesKey("ollama_num_predict")
+        private val ollamaNumBatchKey = intPreferencesKey("ollama_num_batch")
+        private val ollamaNumGpuKey = intPreferencesKey("ollama_num_gpu")
+        private val ollamaNumThreadKey = intPreferencesKey("ollama_num_thread")
+        private val ollamaAutoCompressContextKey = booleanPreferencesKey("ollama_auto_compress_context")
+        private val ollamaCompressThresholdPercentKey = intPreferencesKey("ollama_compress_threshold_percent")
         private val ringtoneTypeKey = stringPreferencesKey("ringtone_type")
         private val ringtoneEnergeticKey = stringPreferencesKey("ringtone_uri_energetic")
         private val ringtoneModerateKey = stringPreferencesKey("ringtone_uri_moderate")
@@ -120,6 +127,28 @@ class SettingsRepository
                     it[stringPreferencesKey(fastApiPortKey.name)]?.toIntOrNull() ?: 8000
                 }
             }
+
+        val ollamaNumCtxFlow: Flow<Int> = intSettingFlow(ollamaNumCtxKey, 8192)
+
+        val ollamaNumPredictFlow: Flow<Int> = intSettingFlow(ollamaNumPredictKey, -1)
+
+        val ollamaNumBatchFlow: Flow<Int> = intSettingFlow(ollamaNumBatchKey, 0)
+
+        val ollamaNumGpuFlow: Flow<Int> = intSettingFlow(ollamaNumGpuKey, -1)
+
+        val ollamaNumThreadFlow: Flow<Int> = intSettingFlow(ollamaNumThreadKey, 0)
+
+        val ollamaAutoCompressContextFlow: Flow<Boolean> =
+            context.dataStore.data.map { preferences ->
+                try {
+                    preferences[ollamaAutoCompressContextKey] ?: true
+                } catch (e: ClassCastException) {
+                    preferences[stringPreferencesKey(ollamaAutoCompressContextKey.name)]?.toBooleanStrictOrNull() ?: true
+                }
+            }
+
+        val ollamaCompressThresholdPercentFlow: Flow<Int> =
+            intSettingFlow(ollamaCompressThresholdPercentKey, 70)
 
         val ringtoneTypeFlow: Flow<RingtoneType> =
             context.dataStore.data.map { prefs ->
@@ -445,6 +474,7 @@ class SettingsRepository
             val ROLE_TITLE_KEY = stringPreferencesKey("role_title")
             val TEMPERATURE_KEY = floatPreferencesKey("temperature")
             val ROLES_FOLDER_URI_KEY = stringPreferencesKey("roles_folder_uri")
+            val CHAT_EXPORT_FOLDER_URI_KEY = stringPreferencesKey("chat_export_folder_uri")
             val NER_MODEL_URI_KEY = stringPreferencesKey("ner_model_uri")
             val NER_TOKENIZER_URI_KEY = stringPreferencesKey("ner_tokenizer_uri")
             val NER_LABELS_URI_KEY = stringPreferencesKey("ner_labels_uri")
@@ -596,6 +626,38 @@ class SettingsRepository
                 settings[OLLAMA_SMART_MODEL_KEY] = smartModel
             }
         }
+
+        suspend fun saveOllamaRuntimeSettings(
+            numCtx: Int,
+            numPredict: Int,
+            numBatch: Int,
+            numGpu: Int,
+            numThread: Int,
+            autoCompressContext: Boolean,
+            compressThresholdPercent: Int,
+        ) {
+            context.dataStore.edit { settings ->
+                settings[ollamaNumCtxKey] = numCtx
+                settings[ollamaNumPredictKey] = numPredict
+                settings[ollamaNumBatchKey] = numBatch
+                settings[ollamaNumGpuKey] = numGpu
+                settings[ollamaNumThreadKey] = numThread
+                settings[ollamaAutoCompressContextKey] = autoCompressContext
+                settings[ollamaCompressThresholdPercentKey] = compressThresholdPercent
+            }
+        }
+
+        private fun intSettingFlow(
+            key: Preferences.Key<Int>,
+            defaultValue: Int,
+        ): Flow<Int> =
+            context.dataStore.data.map { preferences ->
+                try {
+                    preferences[key] ?: defaultValue
+                } catch (e: ClassCastException) {
+                    preferences[stringPreferencesKey(key.name)]?.toIntOrNull() ?: defaultValue
+                }
+            }
 
         val nerModelUriFlow: Flow<String> =
             context.dataStore.data
@@ -844,6 +906,14 @@ class SettingsRepository
 
         suspend fun saveRolesFolderUri(uri: String) {
             context.dataStore.edit { settings -> settings[ROLES_FOLDER_URI_KEY] = uri }
+        }
+
+        val chatExportFolderUriFlow: Flow<String> =
+            context.dataStore.data
+                .map { preferences -> preferences[CHAT_EXPORT_FOLDER_URI_KEY] ?: "" }
+
+        suspend fun saveChatExportFolderUri(uri: String) {
+            context.dataStore.edit { settings -> settings[CHAT_EXPORT_FOLDER_URI_KEY] = uri }
         }
 
         val isBottomNavExpandedFlow: Flow<Boolean> =

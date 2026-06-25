@@ -40,6 +40,7 @@ class ContextClipboardCoordinator
         private data class Payload(
             val contextIds: Set<String>,
             val operation: Operation,
+            val sourceParentIds: Map<String, String?> = emptyMap(),
         )
 
         private data class BeaconPayload(
@@ -82,8 +83,17 @@ class ContextClipboardCoordinator
             return "Посилання на контекст скопійовано"
         }
 
-        fun cutContext(contextId: String): String {
-            setPayload(Payload(contextIds = setOf(contextId), operation = Operation.CUT))
+        fun cutContext(
+            contextId: String,
+            sourceParentId: String? = null,
+        ): String {
+            setPayload(
+                Payload(
+                    contextIds = setOf(contextId),
+                    operation = Operation.CUT,
+                    sourceParentIds = mapOf(contextId to sourceParentId),
+                ),
+            )
             return "Контекст вирізано"
         }
 
@@ -93,9 +103,18 @@ class ContextClipboardCoordinator
             return ContextClipboardResult(toast = "Контексти скопійовано: ${contextIds.size}")
         }
 
-        fun cutContexts(contextIds: Set<String>): ContextClipboardResult? {
+        fun cutContexts(
+            contextIds: Set<String>,
+            sourceParentIds: Map<String, String?> = emptyMap(),
+        ): ContextClipboardResult? {
             if (contextIds.isEmpty()) return null
-            setPayload(Payload(contextIds = contextIds, operation = Operation.CUT))
+            setPayload(
+                Payload(
+                    contextIds = contextIds,
+                    operation = Operation.CUT,
+                    sourceParentIds = sourceParentIds.filterKeys { it in contextIds },
+                ),
+            )
             return ContextClipboardResult(toast = "Контексти вирізано: ${contextIds.size}")
         }
 
@@ -211,6 +230,14 @@ class ContextClipboardCoordinator
                 Operation.CUT -> {
                     withContext(ioDispatcher) {
                         sources.forEach { source ->
+                            current.sourceParentIds[source.id]?.let { sourceParentId ->
+                                if (sourceParentId != source.parentId && sourceParentId != targetContext.id) {
+                                    contextActionsUseCase.removeAdditionalParentLink(
+                                        parentContextId = sourceParentId,
+                                        childContextId = source.id,
+                                    )
+                                }
+                            }
                             contextRepository.moveContext(
                                 contextToMove = source,
                                 newParentId = targetContext.id,
@@ -292,23 +319,44 @@ class ContextClipboardCoordinator
                 return ContextClipboardResult("Контекст у буфері більше не існує")
             }
 
+            val contextIds = sources.mapTo(linkedSetOf()) { it.id }
             val addedCount =
                 withContext(ioDispatcher) {
-                    mainBeaconRepository.addRelatedContexts(
-                        beaconId = beaconNode.id,
-                        contextIds = sources.mapTo(linkedSetOf()) { it.id },
-                    )
+                    when (current.operation) {
+                        Operation.CUT -> {
+                            sources.forEach { source ->
+                                detachContextFromDisplayedLocation(
+                                    source = source,
+                                    sourceParentId = current.sourceParentIds[source.id],
+                                )
+                            }
+                            mainBeaconRepository.moveRelatedContextsToBeacon(
+                                beaconId = beaconNode.id,
+                                contextIds = contextIds,
+                            )
+                        }
+                        Operation.COPY,
+                        Operation.LINK ->
+                            mainBeaconRepository.addRelatedContexts(
+                                beaconId = beaconNode.id,
+                                contextIds = contextIds,
+                            )
+                    }
                 }
-            if (current.operation == Operation.CUT) {
-                clear()
-            }
+            if (current.operation == Operation.CUT) clear()
             return ContextClipboardResult(
                 toast =
-                    if (addedCount == 0) {
+                    if (current.operation == Operation.CUT) {
+                        if (addedCount == 0) {
+                            "Контекст не вдалося перемістити до головного орієнтира"
+                        } else {
+                            "Контекст переміщено до головного орієнтира"
+                        }
+                    } else if (addedCount == 0) {
                         "Нові зв'язки з головним орієнтиром не додано"
                     } else {
                         "Додано контексти до головного орієнтира: $addedCount"
-                },
+                    },
             )
         }
 
@@ -393,8 +441,13 @@ class ContextClipboardCoordinator
             payload: Payload,
         ): List<Context> {
             val contextsById = allProjects.associateBy { it.id }
-            return payload.contextIds
-                .mapNotNull(contextsById::get)
+            val resolvedContexts =
+                payload.contextIds
+                    .mapNotNull(contextsById::get)
+            if (payload.operation == Operation.CUT) {
+                return resolvedContexts
+            }
+            return resolvedContexts
                 .filterNot { candidate ->
                     payload.contextIds.any { otherId ->
                         otherId != candidate.id &&
@@ -405,6 +458,25 @@ class ContextClipboardCoordinator
                             )
                     }
                 }
+        }
+
+        private suspend fun detachContextFromDisplayedLocation(
+            source: Context,
+            sourceParentId: String?,
+        ) {
+            if (sourceParentId != null && sourceParentId != source.parentId) {
+                contextActionsUseCase.removeAdditionalParentLink(
+                    parentContextId = sourceParentId,
+                    childContextId = source.id,
+                )
+            }
+            if (source.parentId != null) {
+                contextRepository.moveContext(
+                    contextToMove = source,
+                    newParentId = null,
+                    allowSystemMoves = true,
+                )
+            }
         }
 
         private fun isDescendantOrSelf(

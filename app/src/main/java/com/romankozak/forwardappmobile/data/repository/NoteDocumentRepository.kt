@@ -46,8 +46,22 @@ class NoteDocumentRepository
         ): String {
             Log.d(TAG, "createDocument called with name: $name, contextId: $contextId, content: $content")
             val now = System.currentTimeMillis()
+            val resolvedName = name.trim().ifBlank { DEFAULT_NOTE_NAME }
+            val resolvedContent =
+                if (attachmentType == BacklogItemTypeValues.NOTE_DOCUMENT && content.isNullOrBlank()) {
+                    markdownTitleContent(resolvedName)
+                } else {
+                    content
+                }
             val document =
-                NoteDocumentEntity(name = name, contextId = contextId, content = content, updatedAt = now, syncedAt = null, version = 1)
+                NoteDocumentEntity(
+                    name = resolvedName,
+                    contextId = contextId,
+                    content = resolvedContent,
+                    updatedAt = now,
+                    syncedAt = null,
+                    version = 1,
+                )
             Log.d(TAG, "Inserting new note document: $document")
             noteDocumentDao.insertDocument(document)
             attachmentRepository.ensureAttachmentLinkedToContext(
@@ -62,6 +76,8 @@ class NoteDocumentRepository
             Log.d(TAG, "createDocument finished")
             return document.id
         }
+
+        private fun markdownTitleContent(title: String): String = "# $title\n"
 
         suspend fun createDetachedDocument(
             id: String,
@@ -144,5 +160,9 @@ class NoteDocumentRepository
                     ),
                 )
             }
+        }
+
+        private companion object {
+            private const val DEFAULT_NOTE_NAME = "Default note"
         }
     }

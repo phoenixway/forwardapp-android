@@ -272,6 +272,9 @@ interface MainBeaconDao {
     @Query("DELETE FROM main_beacon_context_cross_ref WHERE beacon_id = :beaconId")
     suspend fun deleteContextCrossRefsForBeacon(beaconId: String)
 
+    @Query("DELETE FROM main_beacon_context_cross_ref WHERE context_id IN (:contextIds)")
+    suspend fun deleteContextCrossRefsForContexts(contextIds: Set<String>)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAttachmentCrossRefs(crossRefs: List<MainBeaconAttachmentCrossRef>)
 

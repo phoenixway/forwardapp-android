@@ -16,11 +16,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -32,20 +31,28 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -62,11 +69,53 @@ import com.romankozak.forwardappmobile.domain.aichat.RoleFolder
 import com.romankozak.forwardappmobile.domain.aichat.RoleItem
 import com.romankozak.forwardappmobile.ui.ModelsState
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
 private const val TAG = "AI_CHAT_DEBUG"
+private const val CHAT_BOTTOM_SCROLL_OFFSET = 100_000
+
+private data class ChatScrollSnapshot(
+    val isAtBottom: Boolean,
+    val isUserScrollingAwayFromBottom: Boolean,
+    val isScrolling: Boolean,
+)
+
+private fun LazyListState.toChatScrollSnapshot(): ChatScrollSnapshot {
+    val totalItems = layoutInfo.totalItemsCount
+    val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()
+    val lastItemBottom = lastVisibleItem?.let { it.offset + it.size }
+    val isAtBottom =
+        totalItems == 0 ||
+            (
+                lastVisibleItem?.index == totalItems - 1 &&
+                    lastItemBottom != null &&
+                    lastItemBottom <= layoutInfo.viewportEndOffset
+            )
+    return ChatScrollSnapshot(
+        isAtBottom = isAtBottom,
+        isUserScrollingAwayFromBottom = isScrollInProgress && !isAtBottom,
+        isScrolling = isScrollInProgress,
+    )
+}
+
+private suspend fun LazyListState.animateToChatBottom(lastIndex: Int) {
+    if (lastIndex < 0) return
+    animateScrollToItem(
+        index = lastIndex,
+        scrollOffset = CHAT_BOTTOM_SCROLL_OFFSET,
+    )
+}
+
+private suspend fun LazyListState.scrollToChatBottom(lastIndex: Int) {
+    if (lastIndex < 0) return
+    scrollToItem(
+        index = lastIndex,
+        scrollOffset = CHAT_BOTTOM_SCROLL_OFFSET,
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -88,8 +137,12 @@ fun ChatScreen(
     var showModelSelectorDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
     var showEditTitleDialog by remember { mutableStateOf(false) }
+    var autoScrollToBottom by remember { mutableStateOf(true) }
+    var showScrollControls by remember { mutableStateOf(false) }
+    val isAtChatBottom by remember {
+        derivedStateOf { listState.toChatScrollSnapshot().isAtBottom }
+    }
 
-    val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val coroutineScope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val snackbarHostState = remember { SnackbarHostState() }
@@ -106,22 +159,43 @@ fun ChatScreen(
             }
     }
 
-    LaunchedEffect(uiState.messages.size) {
-        if (uiState.messages.isNotEmpty()) {
-            coroutineScope.launch {
-                delay(150)
-                Log.d(TAG, "[EFFECT 1] Scrolling to new message, index: ${uiState.messages.size - 1}")
-                listState.animateScrollToItem(uiState.messages.size - 1)
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.toChatScrollSnapshot() }
+            .distinctUntilChanged()
+            .collect { snapshot ->
+                when {
+                    snapshot.isAtBottom -> autoScrollToBottom = true
+                    snapshot.isUserScrollingAwayFromBottom -> autoScrollToBottom = false
+                }
+                if (snapshot.isScrolling || !snapshot.isAtBottom) {
+                    showScrollControls = true
+                }
+            }
+    }
+
+    LaunchedEffect(showScrollControls, listState.isScrollInProgress, isAtChatBottom) {
+        if (showScrollControls && !listState.isScrollInProgress) {
+            delay(3_000)
+            if (!listState.isScrollInProgress) {
+                showScrollControls = false
             }
         }
     }
 
-    LaunchedEffect(uiState.messages.lastOrNull()?.text) {
-        if (uiState.messages.isNotEmpty()) {
-            coroutineScope.launch {
-                Log.d(TAG, "[EFFECT 2] Bringing streaming text into view.")
-                bringIntoViewRequester.bringIntoView()
+    LaunchedEffect(uiState.messages.size, autoScrollToBottom) {
+        if (uiState.messages.isNotEmpty() && autoScrollToBottom && !listState.isScrollInProgress) {
+            delay(150)
+            if (autoScrollToBottom && !listState.isScrollInProgress) {
+                Log.d(TAG, "[EFFECT 1] Scrolling to new message, index: ${uiState.messages.size - 1}")
+                listState.animateToChatBottom(uiState.messages.size - 1)
             }
+        }
+    }
+
+    LaunchedEffect(uiState.messages.lastOrNull()?.text, autoScrollToBottom) {
+        if (uiState.messages.isNotEmpty() && autoScrollToBottom && !listState.isScrollInProgress) {
+            Log.d(TAG, "[EFFECT 2] Keeping latest streaming message visible.")
+            listState.scrollToChatBottom(uiState.messages.lastIndex)
         }
     }
 
@@ -221,7 +295,7 @@ fun ChatScreen(
                                     Text(uiState.currentConversation?.title ?: "Chat", fontSize = 18.sp, fontWeight = FontWeight.Medium)
                                     if (uiState.messages.any { it.isStreaming }) {
                                         Text(
-                                            "Typing...",
+                                            "Preparing response…",
                                             fontSize = 12.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
@@ -245,6 +319,7 @@ fun ChatScreen(
                                 DropdownMenu(
                                     expanded = showMenu,
                                     onDismissRequest = { showMenu = false },
+                                    modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh),
                                 ) {
                                     DropdownMenuItem(
                                         text = { Text("New Chat") },
@@ -282,16 +357,28 @@ fun ChatScreen(
                                     DropdownMenuItem(
                                         text = { Text("Export Chat") },
                                         onClick = {
-                                            val chatText = viewModel.exportChat()
-                                            val sendIntent =
-                                                Intent().apply {
-                                                    action = Intent.ACTION_SEND
-                                                    putExtra(Intent.EXTRA_TEXT, chatText)
-                                                    type = "text/plain"
-                                                }
-                                            val shareIntent = Intent.createChooser(sendIntent, null)
-                                            context.startActivity(shareIntent)
                                             showMenu = false
+                                            coroutineScope.launch {
+                                                val result = viewModel.exportChatMarkdownToConfiguredFolder()
+                                                result
+                                                    .onSuccess { fileName ->
+                                                        snackbarHostState.showSnackbar("Chat exported: $fileName")
+                                                    }
+                                                    .onFailure { error ->
+                                                        snackbarHostState.showSnackbar(
+                                                            error.message ?: "Chat export folder is unavailable",
+                                                        )
+                                                        val chatText = viewModel.exportChat()
+                                                        val sendIntent =
+                                                            Intent().apply {
+                                                                action = Intent.ACTION_SEND
+                                                                putExtra(Intent.EXTRA_TEXT, chatText)
+                                                                type = "text/plain"
+                                                            }
+                                                        val shareIntent = Intent.createChooser(sendIntent, null)
+                                                        context.startActivity(shareIntent)
+                                                    }
+                                            }
                                         },
                                     )
                                     HorizontalDivider()
@@ -323,42 +410,87 @@ fun ChatScreen(
                             .padding(paddingValues)
                             .imePadding(),
                 ) {
-                    val hasPendingStreaming = uiState.messages.any { !it.isFromUser && it.isStreaming && it.text.isBlank() }
-                    LazyColumn(
-                        state = listState,
+                    Box(
                         modifier =
                             Modifier
                                 .weight(1f)
-                                .padding(horizontal = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(top = 16.dp, bottom = 4.dp),
+                                .fillMaxWidth(),
                     ) {
-                        if (uiState.messages.isEmpty() && !uiState.messages.any { it.isStreaming }) {
-                            item { EmptyStateMessage() }
-                        }
+                        LazyColumn(
+                            state = listState,
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(top = 16.dp, bottom = 56.dp),
+                        ) {
+                            if (uiState.messages.isEmpty() && !uiState.messages.any { it.isStreaming }) {
+                                item { EmptyStateMessage() }
+                            }
 
-                        if (hasPendingStreaming) {
-                            item(key = "pending_indicator") {
-                                PendingResponseIndicator()
+                            itemsIndexed(uiState.messages, key = { _, msg -> msg.id }) { index, message ->
+                                val isLastAssistantMessage = !message.isFromUser && index == uiState.messages.lastIndex
+
+                                MessageBubble(
+                                    message = message,
+                                    isLastAssistantMessage = isLastAssistantMessage,
+                                    onCopyToClipboard = { text ->
+                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                        val clip = ClipData.newPlainText("chat_message", text)
+                                        clipboard.setPrimaryClip(clip)
+                                    },
+                                    onRegenerate = viewModel::regenerateLastResponse,
+                                    onTranslate = { viewModel.translateMessage(message.id) },
+                                )
                             }
                         }
 
-                        itemsIndexed(uiState.messages, key = { _, msg -> msg.id }) { index, message ->
-                            val isLastAssistantMessage = !message.isFromUser && index == uiState.messages.lastIndex
-                            val isLastMessage = index == uiState.messages.lastIndex
-
-                            MessageBubble(
-                                message = message,
-                                isLastAssistantMessage = isLastAssistantMessage,
-                                bringIntoViewRequester = if (isLastMessage) bringIntoViewRequester else null,
-                                onCopyToClipboard = { text ->
-                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    val clip = ClipData.newPlainText("chat_message", text)
-                                    clipboard.setPrimaryClip(clip)
-                                },
-                                onRegenerate = viewModel::regenerateLastResponse,
-                                onTranslate = { viewModel.translateMessage(message.id) },
-                            )
+                        if (uiState.messages.isNotEmpty() && showScrollControls) {
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(end = 18.dp, bottom = 12.dp),
+                            ) {
+                                ChatScrollControls(
+                                    canScrollDown = !isAtChatBottom,
+                                    onTopClick = {
+                                        autoScrollToBottom = false
+                                        showScrollControls = true
+                                        coroutineScope.launch {
+                                            listState.animateScrollToItem(0)
+                                        }
+                                    },
+                                    onPreviousClick = {
+                                        autoScrollToBottom = false
+                                        showScrollControls = true
+                                        val targetIndex = maxOf(0, listState.firstVisibleItemIndex - 1)
+                                        coroutineScope.launch {
+                                            listState.animateScrollToItem(targetIndex)
+                                        }
+                                    },
+                                    onNextClick = {
+                                        autoScrollToBottom = false
+                                        showScrollControls = true
+                                        val targetIndex = minOf(uiState.messages.lastIndex, listState.firstVisibleItemIndex + 1)
+                                        coroutineScope.launch {
+                                            if (targetIndex == uiState.messages.lastIndex) {
+                                                listState.animateToChatBottom(targetIndex)
+                                            } else {
+                                                listState.animateScrollToItem(targetIndex)
+                                            }
+                                        }
+                                    },
+                                    onBottomClick = {
+                                        autoScrollToBottom = true
+                                        showScrollControls = true
+                                        coroutineScope.launch {
+                                            listState.animateToChatBottom(uiState.messages.lastIndex)
+                                        }
+                                    },
+                                )
+                            }
                         }
                     }
 
@@ -396,31 +528,13 @@ fun MessageBubble(
     onCopyToClipboard: (String) -> Unit,
     onRegenerate: () -> Unit,
     onTranslate: () -> Unit,
-    bringIntoViewRequester: BringIntoViewRequester? = null,
 ) {
     val isUser = message.isFromUser
     val isStreaming = message.isStreaming && !isUser
     var animatedText by remember(message.id) { mutableStateOf(if (isUser) message.text else "") }
 
     LaunchedEffect(message.text, message.isStreaming) {
-        if (!isStreaming) {
-            animatedText = message.text
-            return@LaunchedEffect
-        }
-        if (isUser) {
-            animatedText = message.text
-            return@LaunchedEffect
-        }
-        val target = message.text
-        if (!target.startsWith(animatedText)) {
-            animatedText = ""
-        }
-        var currentLength = animatedText.length
-        while (currentLength < target.length) {
-            currentLength += 1
-            animatedText = target.take(currentLength)
-            delay(12L)
-        }
+        animatedText = message.text
     }
 
     Column(
@@ -477,7 +591,7 @@ fun MessageBubble(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                 ) {
                     Row(verticalAlignment = Alignment.Top) {
-                        Text(
+                        ChatMessageBody(
                             text = animatedText.ifBlank { if (isStreaming) "…" else message.text },
                             modifier = Modifier.weight(1f, fill = false),
                             color =
@@ -486,8 +600,7 @@ fun MessageBubble(
                                     isUser -> MaterialTheme.colorScheme.onPrimaryContainer
                                     else -> MaterialTheme.colorScheme.onSurface
                                 },
-                            fontSize = 15.sp,
-                            lineHeight = 20.sp,
+                            renderMarkdown = !isUser && !message.isError && !isStreaming,
                         )
                         if (isStreaming) {
                             Spacer(modifier = Modifier.width(8.dp))
@@ -506,6 +619,12 @@ fun MessageBubble(
                     }
 
                     if (!message.isStreaming) {
+                        val footerTint =
+                            if (isUser) {
+                                MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.72f)
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -515,18 +634,20 @@ fun MessageBubble(
                             Text(
                                 text = formatTime(message.timestamp),
                                 fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = footerTint,
                             )
-                            if (!message.isError && !isUser) {
+                            if (!message.isError) {
                                 Spacer(modifier = Modifier.width(8.dp))
                                 IconButton(onClick = { onCopyToClipboard(message.text) }, modifier = Modifier.size(28.dp)) {
                                     Icon(
                                         Icons.Default.ContentCopy,
                                         "Copy",
                                         modifier = Modifier.size(16.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        tint = footerTint,
                                     )
                                 }
+                            }
+                            if (!message.isError && !isUser) {
                                 if (message.isTranslating) {
                                     CircularProgressIndicator(modifier = Modifier.size(28.dp).padding(6.dp), strokeWidth = 1.5.dp)
                                 } else {
@@ -535,7 +656,7 @@ fun MessageBubble(
                                             Icons.Default.Translate,
                                             "Translate",
                                             modifier = Modifier.size(16.dp),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            tint = footerTint,
                                         )
                                     }
                                 }
@@ -545,7 +666,7 @@ fun MessageBubble(
                                             Icons.Default.Refresh,
                                             "Regenerate",
                                             modifier = Modifier.size(16.dp),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            tint = footerTint,
                                         )
                                     }
                                 }
@@ -571,16 +692,421 @@ fun MessageBubble(
                 }
             }
         }
-        bringIntoViewRequester?.let {
-            Box(
-                modifier =
-                    Modifier
-                        .height(1.dp)
-                        .fillMaxWidth()
-                        .bringIntoViewRequester(it),
+    }
+}
+
+@Composable
+private fun ChatScrollControls(
+    canScrollDown: Boolean,
+    onTopClick: () -> Unit,
+    onPreviousClick: () -> Unit,
+    onNextClick: () -> Unit,
+    onBottomClick: () -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(22.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        tonalElevation = 6.dp,
+        shadowElevation = 4.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            ChatScrollIconButton(
+                icon = Icons.Default.VerticalAlignTop,
+                contentDescription = "Scroll to top",
+                onClick = onTopClick,
+            )
+            ChatScrollIconButton(
+                icon = Icons.Default.KeyboardArrowUp,
+                contentDescription = "Previous message",
+                onClick = onPreviousClick,
+            )
+            ChatScrollIconButton(
+                icon = Icons.Default.KeyboardArrowDown,
+                contentDescription = "Next message",
+                onClick = onNextClick,
+            )
+            ChatScrollIconButton(
+                icon = Icons.Default.VerticalAlignBottom,
+                contentDescription = "Scroll to bottom",
+                enabled = canScrollDown,
+                onClick = onBottomClick,
             )
         }
     }
+}
+
+@Composable
+private fun ChatScrollIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+) {
+    IconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.size(40.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint =
+                if (enabled) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                },
+            modifier = Modifier.size(22.dp),
+        )
+    }
+}
+
+@Composable
+private fun ChatMessageBody(
+    text: String,
+    color: Color,
+    renderMarkdown: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    if (!renderMarkdown) {
+        Text(
+            text = text,
+            modifier = modifier,
+            color = color,
+            fontSize = 15.sp,
+            lineHeight = 20.sp,
+        )
+        return
+    }
+
+    ChatMarkdownText(
+        text = text,
+        color = color,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun ChatMarkdownText(
+    text: String,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    val blocks = remember(text) { parseChatMarkdownBlocks(text) }
+
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        blocks.forEach { block ->
+            when (block) {
+                is ChatMarkdownBlock.Paragraph -> {
+                    ChatMarkdownInlineText(
+                        text = block.text,
+                        color = color,
+                        fontSize = 15,
+                        lineHeight = 20,
+                    )
+                }
+                is ChatMarkdownBlock.Heading -> {
+                    ChatMarkdownInlineText(
+                        text = block.text,
+                        color = color,
+                        fontSize = when (block.level) {
+                            1 -> 19
+                            2 -> 17
+                            else -> 16
+                        },
+                        lineHeight = when (block.level) {
+                            1 -> 24
+                            2 -> 22
+                            else -> 21
+                        },
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                is ChatMarkdownBlock.Bullet -> {
+                    Row(verticalAlignment = Alignment.Top) {
+                        Text(
+                            text = "•",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontSize = 15.sp,
+                            lineHeight = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        ChatMarkdownInlineText(
+                            text = block.text,
+                            color = color,
+                            fontSize = 15,
+                            lineHeight = 20,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                    }
+                }
+                is ChatMarkdownBlock.Numbered -> {
+                    Row(verticalAlignment = Alignment.Top) {
+                        Text(
+                            text = "${block.number}.",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontSize = 15.sp,
+                            lineHeight = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        ChatMarkdownInlineText(
+                            text = block.text,
+                            color = color,
+                            fontSize = 15,
+                            lineHeight = 20,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                    }
+                }
+                is ChatMarkdownBlock.Code -> {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = block.text,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                            color = color,
+                            fontSize = 13.sp,
+                            lineHeight = 18.sp,
+                            fontFamily = FontFamily.Monospace,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChatMarkdownInlineText(
+    text: String,
+    color: Color,
+    fontSize: Int,
+    lineHeight: Int,
+    modifier: Modifier = Modifier,
+    fontWeight: FontWeight? = null,
+) {
+    val codeBackground = MaterialTheme.colorScheme.surfaceContainerHigh
+    val annotatedText =
+        remember(text, color, codeBackground, fontWeight) {
+            buildChatInlineMarkdown(text, color, codeBackground, fontWeight)
+        }
+
+    Text(
+        text = annotatedText,
+        modifier = modifier,
+        fontSize = fontSize.sp,
+        lineHeight = lineHeight.sp,
+        color = color,
+    )
+}
+
+private sealed interface ChatMarkdownBlock {
+    data class Paragraph(val text: String) : ChatMarkdownBlock
+
+    data class Heading(
+        val level: Int,
+        val text: String,
+    ) : ChatMarkdownBlock
+
+    data class Bullet(val text: String) : ChatMarkdownBlock
+
+    data class Numbered(
+        val number: String,
+        val text: String,
+    ) : ChatMarkdownBlock
+
+    data class Code(val text: String) : ChatMarkdownBlock
+}
+
+private fun parseChatMarkdownBlocks(text: String): List<ChatMarkdownBlock> {
+    if (text.isBlank()) return listOf(ChatMarkdownBlock.Paragraph(text))
+
+    val blocks = mutableListOf<ChatMarkdownBlock>()
+    val paragraphLines = mutableListOf<String>()
+    val codeLines = mutableListOf<String>()
+    var insideCodeBlock = false
+
+    fun flushParagraph() {
+        if (paragraphLines.isNotEmpty()) {
+            blocks += ChatMarkdownBlock.Paragraph(paragraphLines.joinToString("\n"))
+            paragraphLines.clear()
+        }
+    }
+
+    fun flushCode() {
+        blocks += ChatMarkdownBlock.Code(codeLines.joinToString("\n").trimEnd())
+        codeLines.clear()
+    }
+
+    text.lines().forEach { rawLine ->
+        val line = rawLine.trimEnd()
+        if (line.trimStart().startsWith("```")) {
+            if (insideCodeBlock) {
+                flushCode()
+            } else {
+                flushParagraph()
+            }
+            insideCodeBlock = !insideCodeBlock
+            return@forEach
+        }
+
+        if (insideCodeBlock) {
+            codeLines += rawLine
+            return@forEach
+        }
+
+        if (line.isBlank()) {
+            flushParagraph()
+            return@forEach
+        }
+
+        val headingMatch = Regex("""^(#{1,6})\s+(.*)$""").find(line)
+        val bulletMatch = Regex("""^\s*[-*+]\s+(.*)$""").find(line)
+        val numberedMatch = Regex("""^\s*(\d+)[.)]\s+(.*)$""").find(line)
+
+        when {
+            headingMatch != null -> {
+                flushParagraph()
+                blocks +=
+                    ChatMarkdownBlock.Heading(
+                        level = headingMatch.groupValues[1].length,
+                        text = headingMatch.groupValues[2].trim(),
+                    )
+            }
+            bulletMatch != null -> {
+                flushParagraph()
+                blocks += ChatMarkdownBlock.Bullet(bulletMatch.groupValues[1].trim())
+            }
+            numberedMatch != null -> {
+                flushParagraph()
+                blocks +=
+                    ChatMarkdownBlock.Numbered(
+                        number = numberedMatch.groupValues[1],
+                        text = numberedMatch.groupValues[2].trim(),
+                    )
+            }
+            else -> paragraphLines += line
+        }
+    }
+
+    if (insideCodeBlock) {
+        flushCode()
+    } else {
+        flushParagraph()
+    }
+
+    return blocks.ifEmpty { listOf(ChatMarkdownBlock.Paragraph(text)) }
+}
+
+private fun buildChatInlineMarkdown(
+    text: String,
+    color: Color,
+    codeBackground: Color,
+    baseFontWeight: FontWeight?,
+): AnnotatedString =
+    buildAnnotatedString {
+        var cursor = 0
+        while (cursor < text.length) {
+            val codeRange = findDelimitedRange(text, cursor, "`", "`")
+            val boldRange = findDelimitedRange(text, cursor, "**", "**")
+            val italicRange = findDelimitedRange(text, cursor, "*", "*")
+            val nextRange =
+                listOfNotNull(
+                    codeRange?.let { InlineRange.Code(it) },
+                    boldRange?.let { InlineRange.Bold(it) },
+                    italicRange?.let { InlineRange.Italic(it) },
+                ).minByOrNull { it.range.first }
+
+            if (nextRange == null) {
+                appendStyledPlain(text.substring(cursor), color, baseFontWeight)
+                break
+            }
+
+            if (nextRange.range.first > cursor) {
+                appendStyledPlain(text.substring(cursor, nextRange.range.first), color, baseFontWeight)
+            }
+
+            when (nextRange) {
+                is InlineRange.Code -> {
+                    withStyle(
+                        SpanStyle(
+                            color = color,
+                            background = codeBackground,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = baseFontWeight,
+                        ),
+                    ) {
+                        append(nextRange.content(text))
+                    }
+                }
+                is InlineRange.Bold -> {
+                    withStyle(SpanStyle(color = color, fontWeight = FontWeight.Bold)) {
+                        append(nextRange.content(text))
+                    }
+                }
+                is InlineRange.Italic -> {
+                    withStyle(SpanStyle(color = color, fontStyle = FontStyle.Italic, fontWeight = baseFontWeight)) {
+                        append(nextRange.content(text))
+                    }
+                }
+            }
+
+            cursor = nextRange.range.last + 1
+        }
+    }
+
+private fun AnnotatedString.Builder.appendStyledPlain(
+    text: String,
+    color: Color,
+    fontWeight: FontWeight?,
+) {
+    withStyle(SpanStyle(color = color, fontWeight = fontWeight)) {
+        append(text)
+    }
+}
+
+private sealed class InlineRange(
+    val range: IntRange,
+    private val delimiterLength: Int,
+) {
+    class Code(range: IntRange) : InlineRange(range, delimiterLength = 1)
+
+    class Bold(range: IntRange) : InlineRange(range, delimiterLength = 2)
+
+    class Italic(range: IntRange) : InlineRange(range, delimiterLength = 1)
+
+    fun content(source: String): String =
+        source.substring(range.first + delimiterLength, range.last + 1 - delimiterLength)
+}
+
+private fun findDelimitedRange(
+    text: String,
+    startIndex: Int,
+    startDelimiter: String,
+    endDelimiter: String,
+): IntRange? {
+    var start = text.indexOf(startDelimiter, startIndex)
+    while (start >= 0) {
+        if (startDelimiter == "*" && text.getOrNull(start + 1) == '*') {
+            start = text.indexOf(startDelimiter, start + 1)
+            continue
+        }
+        val end = text.indexOf(endDelimiter, start + startDelimiter.length)
+        if (end >= 0) return start until end + endDelimiter.length
+        start = text.indexOf(startDelimiter, start + startDelimiter.length)
+    }
+    return null
 }
 
 @Composable

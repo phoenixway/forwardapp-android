@@ -33,6 +33,7 @@ import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
+import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.OrientationHierarchyNode
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenSubState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectHierarchyScreenUiState
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
@@ -677,7 +678,11 @@ class ContextHierarchyScreenViewModel
                     }
                 }
                 is ContextHierarchyScreenEvent.CutContextLink -> {
-                    val toast = contextClipboardCoordinator.cutContext(event.project.id)
+                    val toast =
+                        contextClipboardCoordinator.cutContext(
+                            contextId = event.project.id,
+                            sourceParentId = displayedContextParentIds(setOf(event.project.id))[event.project.id],
+                        )
                     dialogUseCase.dismissDialog()
                     viewModelScope.launch {
                         _uiEventChannel.send(ProjectUiEvent.ShowToast(toast))
@@ -755,7 +760,11 @@ class ContextHierarchyScreenViewModel
                 }
                 is ContextHierarchyScreenEvent.CutSelectedContexts -> {
                     val selectedIds = contextSelectionCoordinator.takeSelection()
-                    val result = contextClipboardCoordinator.cutContexts(selectedIds) ?: return
+                    val result =
+                        contextClipboardCoordinator.cutContexts(
+                            contextIds = selectedIds,
+                            sourceParentIds = displayedContextParentIds(selectedIds),
+                        ) ?: return
                     viewModelScope.launch {
                         emitClipboardResult(result)
                     }
@@ -971,6 +980,28 @@ class ContextHierarchyScreenViewModel
                 _isBottomNavExpanded.value = isExpanded
                 contextActionsUseCase.onBottomNavExpandedChange(isExpanded)
             }
+        }
+
+        private fun displayedContextParentIds(contextIds: Set<String>): Map<String, String?> {
+            if (contextIds.isEmpty()) return emptyMap()
+            val result = linkedMapOf<String, String?>()
+            val stack = ArrayDeque<Pair<Int, String?>>()
+            uiState.value.orientationHierarchy.forEach { item ->
+                while (stack.isNotEmpty() && stack.last().first >= item.level) {
+                    stack.removeLast()
+                }
+                val contextNode = item.node as? OrientationHierarchyNode.ContextNode
+                if (contextNode != null) {
+                    val contextId = contextNode.context.id
+                    if (contextId in contextIds && contextId !in result) {
+                        result[contextId] = stack.lastOrNull()?.second
+                    }
+                    stack.addLast(item.level to contextId)
+                } else {
+                    stack.addLast(item.level to null)
+                }
+            }
+            return result
         }
 
         private fun onRecentItemSelected(item: RecentItem) {

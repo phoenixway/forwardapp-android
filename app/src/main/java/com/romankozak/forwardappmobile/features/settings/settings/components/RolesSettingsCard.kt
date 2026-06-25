@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -53,6 +54,39 @@ fun RolesSettingsCard(
         FileSelector(
             label = "Roles Folder",
             selectedFileUri = state.rolesFolderUri,
+            onSelectClick = { folderPickerLauncher.launch(null) },
+            context = context,
+            isFolder = true,
+        )
+    }
+}
+
+@Composable
+fun ChatExportSettingsCard(
+    state: SettingsUiState,
+    onFolderSelected: (Uri, Context) -> Unit,
+) {
+    val context = LocalContext.current
+
+    val folderPickerLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocumentTree(),
+            onResult = { uri: Uri? ->
+                uri?.let {
+                    onFolderSelected(it, context)
+                }
+            },
+        )
+
+    SettingsCard(
+        title = "Chat Export",
+        icon = Icons.Default.Archive,
+    ) {
+        Text("Select where AI chats should be exported as Markdown files.")
+        Spacer(modifier = Modifier.height(8.dp))
+        FileSelector(
+            label = "Markdown Export Folder",
+            selectedFileUri = state.chatExportFolderUri,
             onSelectClick = { folderPickerLauncher.launch(null) },
             context = context,
             isFolder = true,

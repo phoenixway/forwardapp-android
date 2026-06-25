@@ -24,9 +24,17 @@ class MissionRepository
             return tacticalMissionDao.getAllMissions()
         }
 
+        fun observeBacklogMissionIdsForWeek(weekKey: String): Flow<List<String>> =
+            tacticalMissionDao.observeBacklogMissionIdsForWeek(weekKey)
+
         suspend fun getMissionById(missionId: Long): TacticalMission? {
             return tacticalMissionDao.getMissionById(missionId)
         }
+
+        suspend fun getMissionForBacklogItemInWeek(
+            backlogItemId: String,
+            weekKey: String,
+        ): TacticalMission? = tacticalMissionDao.getMissionForBacklogItemInWeek(backlogItemId, weekKey)
 
         suspend fun insertMission(mission: TacticalMission): Long {
             return tacticalMissionDao.insertMission(mission)
@@ -34,11 +42,27 @@ class MissionRepository
 
         suspend fun insertMissionWithAutoOrder(mission: TacticalMission): Long {
             val topOrder = tacticalMissionDao.getMinMissionOrder() - 1
-            return tacticalMissionDao.insertMission(mission.copy(order = topOrder))
+            val now = System.currentTimeMillis()
+            return tacticalMissionDao.insertMission(
+                mission.copy(
+                    order = topOrder,
+                    orderInWeek = topOrder,
+                    createdAt = mission.createdAt.takeIf { it > 0L } ?: now,
+                    updatedAt = now,
+                    syncedAt = null,
+                    version = mission.version + 1,
+                ),
+            )
         }
 
         suspend fun updateMission(mission: TacticalMission) {
-            tacticalMissionDao.updateMission(mission)
+            tacticalMissionDao.updateMission(
+                mission.copy(
+                    updatedAt = System.currentTimeMillis(),
+                    syncedAt = null,
+                    version = mission.version + 1,
+                ),
+            )
         }
 
         suspend fun deleteMissionById(missionId: Long) {

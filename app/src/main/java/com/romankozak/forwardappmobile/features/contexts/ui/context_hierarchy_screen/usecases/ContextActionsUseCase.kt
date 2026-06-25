@@ -289,6 +289,16 @@ class ContextActionsUseCase
             acceptedLinks.size
         }
 
+        suspend fun removeAdditionalParentLink(
+            parentContextId: String,
+            childContextId: String,
+        ) = withContext(ioDispatcher) {
+            contextParentLinkDao.softDelete(
+                parentContextId = parentContextId,
+                childContextId = childContextId,
+            )
+        }
+
         suspend fun exportToFile() = withContext(ioDispatcher) { syncRepository.exportFullBackupToFile() }
 
         suspend fun exportToFileV2() = withContext(ioDispatcher) { syncRepository.exportFullBackupToFileV2() }

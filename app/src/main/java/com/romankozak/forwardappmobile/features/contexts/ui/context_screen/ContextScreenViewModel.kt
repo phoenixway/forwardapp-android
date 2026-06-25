@@ -82,6 +82,8 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.useca
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.usecases.ContextScreenDataObserverDependencies
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.*
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionSourceType
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.NO_DEADLINE
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
@@ -96,6 +98,8 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Calendar
+import java.time.LocalDate
+import java.time.temporal.WeekFields
 import javax.inject.Inject
 
 @HiltViewModel
@@ -347,6 +351,12 @@ class ContextScreenViewModel
                 extraBufferCapacity = 64,
             )
         val uiEventFlow = _uiEventFlow.asSharedFlow()
+        private val currentWeekKey: String = currentIsoWeekKey()
+        val tacticalBacklogItemIds: StateFlow<Set<String>> =
+            missionRepository
+                .observeBacklogMissionIdsForWeek(currentWeekKey)
+                .map { ids -> ids.toSet() }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
         private val _allProjects =
             contextRepository
                 .getAllContextsFlow()
@@ -1602,6 +1612,19 @@ class ContextScreenViewModel
                 showSnackbar("Додано як місію. Перевір на головному екрані у вкладці Тактики.", null)
             }
 
+        fun toggleItemTacticalPriority(item: BacklogItemContent) =
+            viewModelScope.launch(ioDispatcher) {
+                val backlogItemId = item.backlogItem.id
+                val existing = missionRepository.getMissionForBacklogItemInWeek(backlogItemId, currentWeekKey)
+                if (existing != null) {
+                    missionRepository.deleteMissionById(existing.id)
+                    showSnackbar("Знято тактичну позначку.", null)
+                    return@launch
+                }
+                missionRepository.insertMissionWithAutoOrder(item.toTacticalPriorityMission(currentWeekKey))
+                showSnackbar("Позначено для поточного тактичного періоду.", null)
+            }
+
         fun onStartTrackingRequest(item: BacklogItemContent) =
             viewModelScope.launch {
                 showSnackbar(backlogItemActions.startTracking(item), null)
@@ -1802,7 +1825,26 @@ class ContextScreenViewModel
                 linkedProjectIds = linkedProjectIds,
                 linkedAttachmentIds = emptyList(),
             )
+
+        private fun BacklogItemContent.toTacticalPriorityMission(weekKey: String): TacticalMission {
+            val mission = toTacticalMission()
+            return mission.copy(
+                deadline = NO_DEADLINE,
+                weekKey = weekKey,
+                sourceType = MissionSourceType.CONTEXT_BACKLOG_ITEM,
+                sourceContextId = backlogItem.contextId.takeIf { it.isNotBlank() },
+                sourceBacklogItemId = backlogItem.id,
+            )
+        }
     }
+
+private fun currentIsoWeekKey(): String {
+    val now = LocalDate.now()
+    val weekFields = WeekFields.ISO
+    val weekBasedYear = now.get(weekFields.weekBasedYear())
+    val week = now.get(weekFields.weekOfWeekBasedYear())
+    return "%04d-W%02d".format(weekBasedYear, week)
+}
 
 private fun AttachmentLibraryQueryResult.toAttachmentOption(): AttachmentOption {
     val relatedLink =

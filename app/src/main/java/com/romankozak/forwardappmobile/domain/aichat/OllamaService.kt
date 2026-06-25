@@ -22,10 +22,21 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 private val TAG = "AI_CHAT_DEBUG"
+const val DEFAULT_OLLAMA_NUM_PREDICT = -1
+const val DEFAULT_OLLAMA_NUM_CTX = 8192
+
+data class OllamaRuntimeOptions(
+    val numCtx: Int = DEFAULT_OLLAMA_NUM_CTX,
+    val numPredict: Int = DEFAULT_OLLAMA_NUM_PREDICT,
+    val numBatch: Int = 0,
+    val numGpu: Int = -1,
+    val numThread: Int = 0,
+)
 
 private data class ParsedStreamLine(
     val content: String,
     val done: Boolean,
+    val doneReason: String? = null,
 )
 
 @Singleton
@@ -67,6 +78,7 @@ class OllamaService
             model: String,
             messages: List<Message>,
             temperature: Float,
+            runtimeOptions: OllamaRuntimeOptions = OllamaRuntimeOptions(),
         ): Flow<String> =
             flow {
                 if (baseUrl.isBlank() || model.isBlank()) {
@@ -74,7 +86,15 @@ class OllamaService
                 }
 
                 val api = buildRetrofitApi(baseUrl)
-                val requestOptions = OllamaOptions(temperature = temperature)
+                val requestOptions =
+                    OllamaOptions(
+                        numPredict = runtimeOptions.numPredict,
+                        numCtx = runtimeOptions.numCtx.takeIf { it > 0 },
+                        numBatch = runtimeOptions.numBatch.takeIf { it > 0 },
+                        numGpu = runtimeOptions.numGpu.takeIf { it >= 0 },
+                        numThread = runtimeOptions.numThread.takeIf { it > 0 },
+                        temperature = temperature,
+                    )
 
                 try {
                     Log.d(TAG, "Trying /api/chat endpoint for streaming with temperature: $temperature...")
@@ -121,7 +141,8 @@ class OllamaService
             model: String,
             messages: List<Message>,
             temperature: Float,
-        ): Flow<String> = streamChatResponses(baseUrl, model, messages, temperature)
+            runtimeOptions: OllamaRuntimeOptions = OllamaRuntimeOptions(),
+        ): Flow<String> = streamChatResponses(baseUrl, model, messages, temperature, runtimeOptions)
 
         private suspend fun FlowCollector<String>.processStreamingResponse(
             responseBody: ResponseBody,
@@ -147,6 +168,10 @@ class OllamaService
                             isGenerateEndpoint = isGenerateEndpoint,
                         ) ?: continue
                     if (parsedLine.content.isNotEmpty()) emit(parsedLine.content)
+                    if (parsedLine.done) {
+                        Log.d(TAG, "Ollama stream done. reason=${parsedLine.doneReason ?: "unknown"}")
+                        contextExhaustionNotice(parsedLine.doneReason)?.let { emit(it) }
+                    }
                     shouldContinue = !parsedLine.done
                 }
                 Log.d(TAG, "Stream reading completed. Total lines processed: $lineCount")
@@ -203,6 +228,7 @@ class OllamaService
             return ParsedStreamLine(
                 content = ollamaResponse.response,
                 done = ollamaResponse.done,
+                doneReason = ollamaResponse.doneReason,
             )
         }
 
@@ -220,7 +246,18 @@ class OllamaService
                 }
             return ParsedStreamLine(
                 content = ollamaResponse.message.content,
-                done = done,
+                done = ollamaResponse.done || done,
+                doneReason = ollamaResponse.doneReason,
             )
+        }
+
+        private fun contextExhaustionNotice(doneReason: String?): String? {
+            val normalizedReason = doneReason?.trim()?.lowercase().orEmpty()
+            val isContextOrLengthLimit =
+                normalizedReason == "length" ||
+                    "context" in normalizedReason ||
+                    "limit" in normalizedReason
+            if (!isContextOrLengthLimit) return null
+            return "\n\n[Генерацію зупинено: Ollama вичерпала контекстне вікно або ліміт довжини відповіді.]"
         }
     }

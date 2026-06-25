@@ -89,6 +89,9 @@ class MainBeaconRepository
 
         suspend fun getBeaconById(beaconId: String): MainBeacon? = mainBeaconDao.getBeaconById(beaconId)
 
+        suspend fun getGroupById(groupId: String): MainBeaconGroup? =
+            mainBeaconDao.getAllGroupsSync().firstOrNull { it.id == groupId }
+
         suspend fun createBeacon(
             beacon: MainBeacon,
             relatedContextIds: Set<String>,
@@ -180,6 +183,25 @@ class MainBeaconRepository
                     },
                 )
                 newContextIds.size
+            }
+        }
+
+        suspend fun moveRelatedContextsToBeacon(
+            beaconId: String,
+            contextIds: Set<String>,
+        ): Int {
+            if (contextIds.isEmpty() || mainBeaconDao.getBeaconById(beaconId) == null) {
+                return 0
+            }
+            return appDatabase.withTransaction {
+                mainBeaconDao.deleteContextCrossRefsForContexts(contextIds)
+                var nextOrder = mainBeaconDao.getMaxContextCrossRefOrder(beaconId) + 1L
+                mainBeaconDao.insertContextCrossRefs(
+                    contextIds.map { contextId ->
+                        MainBeaconContextCrossRef(beaconId = beaconId, contextId = contextId, order = nextOrder++)
+                    },
+                )
+                contextIds.size
             }
         }
 

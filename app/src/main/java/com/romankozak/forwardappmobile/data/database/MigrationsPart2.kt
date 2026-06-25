@@ -1298,3 +1298,110 @@ val MIGRATION_132_133 =
             )
         }
     }
+
+val MIGRATION_133_134 =
+    object : Migration(133, 134) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `arc_quests` (
+                    `id` TEXT NOT NULL,
+                    `arc_key` TEXT NOT NULL,
+                    `title` TEXT NOT NULL,
+                    `description` TEXT,
+                    `linked_context_id` TEXT,
+                    `linked_mission_id` INTEGER,
+                    `source_type` TEXT NOT NULL DEFAULT 'MANUAL',
+                    `source_id` TEXT,
+                    `status` TEXT NOT NULL DEFAULT 'ACTIVE',
+                    `quest_order` INTEGER NOT NULL DEFAULT 0,
+                    `createdAt` INTEGER NOT NULL,
+                    `updatedAt` INTEGER,
+                    `synced_at` INTEGER,
+                    `is_deleted` INTEGER NOT NULL DEFAULT 0,
+                    `version` INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY(`id`)
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS `index_arc_quests_arc_key_quest_order`
+                ON `arc_quests` (`arc_key`, `quest_order`)
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS `index_arc_quests_linked_context_id`
+                ON `arc_quests` (`linked_context_id`)
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS `index_arc_quests_linked_mission_id`
+                ON `arc_quests` (`linked_mission_id`)
+                """.trimIndent(),
+            )
+        }
+    }
+
+val MIGRATION_134_135 =
+    object : Migration(134, 135) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE tactical_missions ADD COLUMN week_key TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE tactical_missions ADD COLUMN order_in_week INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE tactical_missions ADD COLUMN order_in_slot INTEGER")
+            db.execSQL("ALTER TABLE tactical_missions ADD COLUMN activity_slot_context_id TEXT")
+            db.execSQL("ALTER TABLE tactical_missions ADD COLUMN source_type TEXT NOT NULL DEFAULT 'MANUAL'")
+            db.execSQL("ALTER TABLE tactical_missions ADD COLUMN source_context_id TEXT")
+            db.execSQL("ALTER TABLE tactical_missions ADD COLUMN source_backlog_item_id TEXT")
+            db.execSQL("ALTER TABLE tactical_missions ADD COLUMN source_arc_quest_id TEXT")
+            db.execSQL("ALTER TABLE tactical_missions ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE tactical_missions ADD COLUMN updated_at INTEGER")
+            db.execSQL("ALTER TABLE tactical_missions ADD COLUMN synced_at INTEGER")
+            db.execSQL("ALTER TABLE tactical_missions ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE tactical_missions ADD COLUMN version INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("UPDATE tactical_missions SET order_in_week = mission_order WHERE order_in_week = 0")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_tactical_missions_week_key ON tactical_missions(week_key)")
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS index_tactical_missions_activity_slot_context_id
+                ON tactical_missions(activity_slot_context_id)
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS index_tactical_missions_source_backlog_item_id_week_key
+                ON tactical_missions(source_backlog_item_id, week_key)
+                """.trimIndent(),
+            )
+        }
+    }
+
+val MIGRATION_135_136 =
+    object : Migration(135, 136) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS tactical_activity_slots (
+                    id TEXT NOT NULL,
+                    context_id TEXT NOT NULL,
+                    slot_order INTEGER NOT NULL DEFAULT 0,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER,
+                    synced_at INTEGER,
+                    is_deleted INTEGER NOT NULL DEFAULT 0,
+                    version INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY(id),
+                    FOREIGN KEY(context_id) REFERENCES contexts(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS index_tactical_activity_slots_context_id
+                ON tactical_activity_slots(context_id)
+                """.trimIndent(),
+            )
+        }
+    }

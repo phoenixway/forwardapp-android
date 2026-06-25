@@ -34,11 +34,17 @@ data class OllamaTagsResponse(
 @Serializable
 data class OllamaChatResponse(
     val message: Message,
+    val done: Boolean = false,
+    @SerialName("done_reason") val doneReason: String? = null,
 )
 
 @Serializable
 data class OllamaOptions(
     @SerialName("num_predict") val numPredict: Int? = null,
+    @SerialName("num_ctx") val numCtx: Int? = null,
+    @SerialName("num_batch") val numBatch: Int? = null,
+    @SerialName("num_gpu") val numGpu: Int? = null,
+    @SerialName("num_thread") val numThread: Int? = null,
     @SerialName("temperature") val temperature: Float? = null,
 )
 

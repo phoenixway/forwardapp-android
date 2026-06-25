@@ -20,14 +20,44 @@ interface TacticalMissionDao {
     @Query("DELETE FROM tactical_missions WHERE id = :missionId")
     suspend fun deleteMissionById(missionId: Long)
 
-    @Query("SELECT * FROM tactical_missions WHERE projectId = :projectId ORDER BY mission_order ASC, deadline DESC")
+    @Query(
+        """
+        SELECT * FROM tactical_missions
+        WHERE projectId = :projectId AND is_deleted = 0
+        ORDER BY mission_order ASC, deadline DESC
+        """,
+    )
     fun getMissionsForProject(projectId: String): Flow<List<TacticalMission>>
 
-    @Query("SELECT * FROM tactical_missions ORDER BY mission_order ASC, deadline DESC")
+    @Query("SELECT * FROM tactical_missions WHERE is_deleted = 0 ORDER BY mission_order ASC, deadline DESC")
     fun getAllMissions(): Flow<List<TacticalMission>>
 
     @Query("SELECT * FROM tactical_missions WHERE id = :missionId")
     suspend fun getMissionById(missionId: Long): TacticalMission?
+
+    @Query(
+        """
+        SELECT source_backlog_item_id FROM tactical_missions
+        WHERE week_key = :weekKey
+            AND source_backlog_item_id IS NOT NULL
+            AND is_deleted = 0
+        """,
+    )
+    fun observeBacklogMissionIdsForWeek(weekKey: String): Flow<List<String>>
+
+    @Query(
+        """
+        SELECT * FROM tactical_missions
+        WHERE week_key = :weekKey
+            AND source_backlog_item_id = :backlogItemId
+            AND is_deleted = 0
+        LIMIT 1
+        """,
+    )
+    suspend fun getMissionForBacklogItemInWeek(
+        backlogItemId: String,
+        weekKey: String,
+    ): TacticalMission?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMissionAttachmentCrossRef(crossRef: TacticalMissionAttachmentCrossRef)
@@ -77,7 +107,7 @@ interface TacticalMissionDao {
     @Query("SELECT COALESCE(MIN(mission_order), 0) FROM tactical_missions")
     suspend fun getMinMissionOrder(): Long
 
-    @Query("UPDATE tactical_missions SET mission_order = :order WHERE id = :missionId")
+    @Query("UPDATE tactical_missions SET mission_order = :order, order_in_week = :order WHERE id = :missionId")
     suspend fun updateMissionOrder(
         missionId: Long,
         order: Long,

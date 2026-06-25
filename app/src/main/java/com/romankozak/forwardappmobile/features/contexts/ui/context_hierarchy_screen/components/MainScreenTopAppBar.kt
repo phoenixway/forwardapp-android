@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.ContentPaste
@@ -30,6 +31,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun ProjectHierarchyScreenTopAppBar(
     onBackClick: () -> Unit,
+    showHierarchyBack: Boolean,
+    onHierarchyBackClick: () -> Unit,
     isSelectionMode: Boolean,
     selectedCount: Int,
     canPasteToFocusedContext: Boolean,
@@ -57,6 +60,15 @@ fun ProjectHierarchyScreenTopAppBar(
                 contentDescription = "Back",
                 tint = MaterialTheme.colorScheme.onSurface,
             )
+        }
+        if (showHierarchyBack) {
+            IconButton(onClick = onHierarchyBackClick) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Undo,
+                    contentDescription = "Повернутися в ієрархії",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         Text(
             text = if (isSelectionMode) "Вибрано: $selectedCount" else "Orientation Hierarchy",

@@ -59,7 +59,8 @@ private val DefaultDarkColorScheme =
         primary = Purple80,
         secondary = PurpleGrey80,
         tertiary = Pink80,
-        surfaceContainer = PurpleGrey80.copy(alpha = 0.1f),
+        surfaceContainer = Color(0xFF211F26),
+        surfaceContainerHigh = Color(0xFF2B2930),
     )
 
 private val DefaultLightColorScheme =
@@ -67,7 +68,8 @@ private val DefaultLightColorScheme =
         primary = Purple40,
         secondary = PurpleGrey40,
         tertiary = Pink40,
-        surfaceContainer = PurpleGrey40.copy(alpha = 0.1f),
+        surfaceContainer = Color(0xFFE7E0EC),
+        surfaceContainerHigh = Color(0xFFECE6F0),
     )
 
 private val CyberpunkDarkColorScheme =
@@ -82,7 +84,7 @@ private val CyberpunkDarkColorScheme =
         onTertiary = Color.Black,
         onBackground = CyberLightGray,
         onSurface = CyberLightGray,
-        surfaceContainer = CyberDarkBlue.copy(alpha = 0.8f),
+        surfaceContainer = CyberDarkBlue,
     )
 
 private val CyberpunkLightColorScheme =
@@ -97,7 +99,7 @@ private val CyberpunkLightColorScheme =
         onTertiary = Color.White,
         onBackground = CyberDarkGray,
         onSurface = CyberDarkGray,
-        surfaceContainer = CyberLightBlue.copy(alpha = 0.8f),
+        surfaceContainer = CyberLightBlue,
     )
 
 private val SciFiDarkColorScheme =
@@ -112,7 +114,7 @@ private val SciFiDarkColorScheme =
         onTertiary = Color.Black,
         onBackground = SciFiSilver,
         onSurface = SciFiSilver,
-        surfaceContainer = SciFiDeepBlue.copy(alpha = 0.8f),
+        surfaceContainer = SciFiDeepBlue,
     )
 
 private val SciFiLightColorScheme =
@@ -127,7 +129,7 @@ private val SciFiLightColorScheme =
         onTertiary = Color.White,
         onBackground = Color.Black,
         onSurface = Color.Black,
-        surfaceContainer = SciFiLightBlue.copy(alpha = 0.8f),
+        surfaceContainer = SciFiLightBlue,
     )
 
 private val DraculaColorScheme =
@@ -142,7 +144,7 @@ private val DraculaColorScheme =
         onTertiary = Color.Black,
         onBackground = DraculaForeground,
         onSurface = DraculaForeground,
-        surfaceContainer = DraculaCurrentLine.copy(alpha = 0.8f),
+        surfaceContainer = DraculaCurrentLine,
     )
 
 private val NordColorScheme =
@@ -157,7 +159,7 @@ private val NordColorScheme =
         onTertiary = Color.Black,
         onBackground = Nord4,
         onSurface = Nord4,
-        surfaceContainer = Nord1.copy(alpha = 0.8f),
+        surfaceContainer = Nord1,
     )
 
 private val SolarizedDarkColorScheme =
@@ -172,7 +174,7 @@ private val SolarizedDarkColorScheme =
         onTertiary = SolarizedBase0,
         onBackground = SolarizedBase0,
         onSurface = SolarizedBase0,
-        surfaceContainer = SolarizedBase02.copy(alpha = 0.8f),
+        surfaceContainer = SolarizedBase02,
     )
 
 private val TerminalGreenDarkColorScheme =
@@ -245,7 +247,7 @@ private val EmeraldDarkColorScheme =
         onTertiary = Color.Black,
         onBackground = EmeraldGray,
         onSurface = EmeraldGray,
-        surfaceContainer = EmeraldSurface.copy(alpha = 0.9f),
+        surfaceContainer = EmeraldSurface,
         surfaceContainerHigh = EmeraldSurface,
         outlineVariant = EmeraldMint.copy(alpha = 0.3f),
         scrim = Color(0x66020813),

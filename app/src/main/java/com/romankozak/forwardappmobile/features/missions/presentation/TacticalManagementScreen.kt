@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.features.missions.presentation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,13 +15,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.ContentCut
@@ -33,6 +38,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -60,6 +66,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckFabDefaults
@@ -87,6 +94,8 @@ private data class TacticalManagementUiState(
     val selectedMissionIds: Set<Long>,
     val statusMenuExpanded: Boolean,
     val isFabMenuExpanded: Boolean,
+    val isActivitySlotsSheetVisible: Boolean,
+    val isActivitySlotPickerVisible: Boolean,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -114,6 +123,12 @@ private fun TacticalManagementRoute(
     showFabMenu: Boolean,
 ) {
     val missions by viewModel.missions.collectAsStateWithLifecycle()
+    val visibleMissions by viewModel.visibleMissions.collectAsStateWithLifecycle()
+    val selectedMode by viewModel.selectedMode.collectAsStateWithLifecycle()
+    val activitySlotContexts by viewModel.activitySlotContexts.collectAsStateWithLifecycle()
+    val selectedActivitySlotContextId by viewModel.selectedActivitySlotContextId.collectAsStateWithLifecycle()
+    val selectedPlanningContextId by viewModel.selectedPlanningContextId.collectAsStateWithLifecycle()
+    val planningBacklogItems by viewModel.planningBacklogItems.collectAsStateWithLifecycle()
     val attachmentOptions by viewModel.attachmentOptions.collectAsStateWithLifecycle()
     val projectOptions by viewModel.projectOptions.collectAsStateWithLifecycle()
     val boardLinkedProjectIds by viewModel.boardLinkedProjectIds.collectAsStateWithLifecycle()
@@ -126,6 +141,7 @@ private fun TacticalManagementRoute(
     val pendingScrollToMissionId by viewModel.pendingScrollToMissionId.collectAsStateWithLifecycle()
     var editingMission by remember { mutableStateOf<TacticalMission?>(null) }
     var actionMenuMission by remember { mutableStateOf<TacticalMission?>(null) }
+    var slotPickerMission by remember { mutableStateOf<TacticalMission?>(null) }
     var activeLinkPickerTab by remember { mutableStateOf<LinkPickerTab?>(null) }
     var pendingCreateAction by remember { mutableStateOf<PickerCreateAction?>(null) }
     var showAddUrlDialog by remember { mutableStateOf(false) }
@@ -133,19 +149,21 @@ private fun TacticalManagementRoute(
     var selectedMissionIds by remember { mutableStateOf(setOf<Long>()) }
     var statusMenuExpanded by remember { mutableStateOf(false) }
     var isFabMenuExpanded by remember { mutableStateOf(false) }
+    var isActivitySlotsSheetVisible by remember { mutableStateOf(false) }
+    var isActivitySlotPickerVisible by remember { mutableStateOf(false) }
     val missionListState = rememberLazyListState()
     val selectionMode = selectedMissionIds.isNotEmpty()
     val canPasteAsMissions by viewModel.canPasteAsMissions.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(missions) {
-        val existingIds = missions.map { it.id }.toSet()
+    LaunchedEffect(visibleMissions) {
+        val existingIds = visibleMissions.map { it.id }.toSet()
         selectedMissionIds = selectedMissionIds.filter { it in existingIds }.toSet()
     }
 
-    LaunchedEffect(pendingScrollToMissionId, missions) {
+    LaunchedEffect(pendingScrollToMissionId, visibleMissions) {
         val targetId = pendingScrollToMissionId ?: return@LaunchedEffect
-        val targetIndex = missions.indexOfFirst { it.id == targetId }
+        val targetIndex = visibleMissions.indexOfFirst { it.id == targetId }
         if (targetIndex >= 0) {
             missionListState.animateScrollToItem(targetIndex)
             viewModel.consumePendingScrollToMission()
@@ -169,12 +187,20 @@ private fun TacticalManagementRoute(
             selectedMissionIds = selectedMissionIds,
             statusMenuExpanded = statusMenuExpanded,
             isFabMenuExpanded = isFabMenuExpanded,
+            isActivitySlotsSheetVisible = isActivitySlotsSheetVisible,
+            isActivitySlotPickerVisible = isActivitySlotPickerVisible,
         )
 
     TacticalManagementContent(
-        missions = missions,
+        missions = visibleMissions,
+        allMissions = missions,
         attachmentOptions = attachmentOptions,
         projectOptions = projectOptions,
+        selectedMode = selectedMode,
+        activitySlotContexts = activitySlotContexts,
+        selectedActivitySlotContextId = selectedActivitySlotContextId,
+        selectedPlanningContextId = selectedPlanningContextId,
+        planningBacklogItems = planningBacklogItems,
         uiState = uiState,
         selectionMode = selectionMode,
         missionListState = missionListState,
@@ -191,6 +217,11 @@ private fun TacticalManagementRoute(
         onPasteMissions = viewModel::pasteClipboardAsMissions,
         onOpenAddMission = viewModel::openAddMissionDialog,
         onToggleScopeLinksSheet = viewModel::toggleScopeLinksSheet,
+        onOpenActivitySlotsSheet = { isActivitySlotsSheetVisible = true },
+        onModeSelected = viewModel::selectMode,
+        onActivitySlotSelected = viewModel::selectActivitySlot,
+        onPlanningContextSelected = viewModel::selectPlanningContext,
+        onTakeBacklogItem = viewModel::createMissionFromBacklogItem,
         onMissionStatusUpdate = { mission, status ->
             viewModel.updateMission(mission.copy(status = status))
         },
@@ -200,7 +231,7 @@ private fun TacticalManagementRoute(
         onCopySelectedMissions = viewModel::copyMissionsToEntityClipboard,
         onCutSelectedMissions = viewModel::cutMissionsToEntityClipboard,
         onMissionToggle = { mission -> viewModel.toggleMissionCompleted(mission) },
-        onMissionsReordered = viewModel::reorderMissions,
+        onMissionsReordered = viewModel::reorderVisibleMissions,
     )
 
     actionMenuMission?.let { mission ->
@@ -226,6 +257,20 @@ private fun TacticalManagementRoute(
             },
             onAddToToday = {
                 viewModel.addMissionToTodayPlan(mission)
+                actionMenuMission = null
+            },
+            onAddToArc = {
+                viewModel.addMissionToCurrentArc(mission)
+                actionMenuMission = null
+            },
+            activitySlotContexts = activitySlotContexts,
+            selectedActivitySlotContextId = selectedActivitySlotContextId,
+            onAssignActivitySlot = { slotId ->
+                viewModel.assignMissionToActivitySlot(mission, slotId)
+                actionMenuMission = null
+            },
+            onOpenSlotPicker = {
+                slotPickerMission = mission
                 actionMenuMission = null
             },
             onPostpone = {
@@ -256,6 +301,18 @@ private fun TacticalManagementRoute(
         )
     }
 
+    slotPickerMission?.let { mission ->
+        MissionSlotPickerSheet(
+            mission = mission,
+            activitySlotContexts = activitySlotContexts,
+            onDismiss = { slotPickerMission = null },
+            onAssignActivitySlot = { slotId ->
+                viewModel.assignMissionToActivitySlot(mission, slotId)
+                slotPickerMission = null
+            },
+        )
+    }
+
     val availableProjectIds = projectOptions.map { it.id }.toSet()
     val availableAttachmentIds = attachmentOptions.map { it.id }.toSet()
     val validBoardLinkedProjectIds = boardLinkedProjectIds.filter { it in availableProjectIds }
@@ -265,6 +322,7 @@ private fun TacticalManagementRoute(
         missions = missions,
         attachmentOptions = attachmentOptions,
         projectOptions = projectOptions,
+        activitySlotContexts = activitySlotContexts,
         boardLinkedProjectIds = boardLinkedProjectIds,
         boardLinkedAttachmentIds = boardLinkedAttachmentIds,
         connectionsOrder = connectionsOrder,
@@ -300,6 +358,10 @@ private fun TacticalManagementRoute(
         onAddBoardAttachmentLink = viewModel::addBoardAttachmentLink,
         onAddBoardUrlLink = viewModel::addBoardUrlLink,
         onAddBoardObsidianLink = viewModel::addBoardObsidianLink,
+        onAddActivitySlot = viewModel::addActivitySlot,
+        onRemoveActivitySlot = viewModel::removeActivitySlot,
+        onActivitySlotsSheetVisibleChange = { isActivitySlotsSheetVisible = it },
+        onActivitySlotPickerVisibleChange = { isActivitySlotPickerVisible = it },
         scope = scope,
     )
 }
@@ -307,8 +369,14 @@ private fun TacticalManagementRoute(
 @Composable
 private fun TacticalManagementContent(
     missions: List<TacticalMission>,
+    allMissions: List<TacticalMission>,
     attachmentOptions: List<AttachmentOption>,
     projectOptions: List<ProjectOption>,
+    selectedMode: TacticsWorkspaceMode,
+    activitySlotContexts: List<Context>,
+    selectedActivitySlotContextId: String?,
+    selectedPlanningContextId: String?,
+    planningBacklogItems: List<TacticalPlanBacklogItem>,
     uiState: TacticalManagementUiState,
     selectionMode: Boolean,
     missionListState: androidx.compose.foundation.lazy.LazyListState,
@@ -325,6 +393,11 @@ private fun TacticalManagementContent(
     onPasteMissions: () -> Unit,
     onOpenAddMission: () -> Unit,
     onToggleScopeLinksSheet: () -> Unit,
+    onOpenActivitySlotsSheet: () -> Unit,
+    onModeSelected: (TacticsWorkspaceMode) -> Unit,
+    onActivitySlotSelected: (String?) -> Unit,
+    onPlanningContextSelected: (String?) -> Unit,
+    onTakeBacklogItem: (TacticalPlanBacklogItem) -> Unit,
     onMissionStatusUpdate: (TacticalMission, MissionStatus) -> Unit,
     onDeleteSelectedMissions: (Set<Long>) -> Unit,
     onCopySelectedMissions: (Set<Long>) -> Unit,
@@ -334,6 +407,17 @@ private fun TacticalManagementContent(
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
+            TacticsWorkspaceHeader(
+                selectedMode = selectedMode,
+                activitySlotContexts = activitySlotContexts,
+                selectedActivitySlotContextId = selectedActivitySlotContextId,
+                selectedPlanningContextId = selectedPlanningContextId,
+                projectOptions = projectOptions,
+                onModeSelected = onModeSelected,
+                onActivitySlotSelected = onActivitySlotSelected,
+                onPlanningContextSelected = onPlanningContextSelected,
+                onOpenActivitySlotsSheet = onOpenActivitySlotsSheet,
+            )
             if (selectionMode) {
                 SelectionToolbar(
                     selectedMissionIds = uiState.selectedMissionIds,
@@ -348,54 +432,72 @@ private fun TacticalManagementContent(
                 )
             }
 
-            TacticalMissionList(
-                missions = missions,
-                lookups =
-                    TacticalMissionListLookups(
-                        projectOptions = projectOptions,
-                        attachmentOptions = attachmentOptions,
-                    ),
-                selectionState =
-                    TacticalMissionSelectionState(
-                        selectedMissionIds = uiState.selectedMissionIds,
-                        selectionMode = selectionMode,
-                    ),
-                callbacks =
-                    TacticalMissionListCallbacks(
-                        onMissionToggled = onMissionToggle,
-                        onMissionSelectionToggle = { mission ->
-                            onSelectedMissionIdsChange(toggleMissionSelection(uiState.selectedMissionIds, mission.id))
-                        },
-                        onMissionClick = { mission ->
-                            if (!selectionMode) {
-                                onEditingMissionChange(mission)
-                            }
-                        },
-                        onMissionLongPress = { mission ->
-                            onSelectedMissionIdsChange(
-                                if (mission.id in uiState.selectedMissionIds) {
-                                    uiState.selectedMissionIds
-                                } else {
-                                    uiState.selectedMissionIds + mission.id
-                                },
-                            )
-                        },
-                        onMissionMoreClick = onActionMenuMissionChange,
-                        onLinkedContextClick = onLinkedProjectClick,
-                        onLinkedAttachmentClick = { attachmentId ->
-                            onLinkedAttachmentClick(resolveAttachmentOption(attachmentOptions, attachmentId))
-                        },
-                        onMissionsReordered = onMissionsReordered,
-                    ),
-                listState = missionListState,
-                modifier = Modifier.weight(1f),
-            )
+            if (selectedMode == TacticsWorkspaceMode.PLAN) {
+                TacticsPlanningList(
+                    planningBacklogItems = planningBacklogItems,
+                    selectedPlanningContextId = selectedPlanningContextId,
+                    onTakeBacklogItem = onTakeBacklogItem,
+                    modifier = Modifier.weight(1f),
+                )
+            } else if (missions.isEmpty()) {
+                TacticsEmptyState(
+                    selectedMode = selectedMode,
+                    selectedSlotId = selectedActivitySlotContextId,
+                    activitySlotContexts = activitySlotContexts,
+                    totalWeekMissions = allMissions.size,
+                    modifier = Modifier.weight(1f),
+                )
+            } else {
+                TacticalMissionList(
+                    missions = missions,
+                    lookups =
+                        TacticalMissionListLookups(
+                            projectOptions = projectOptions,
+                            attachmentOptions = attachmentOptions,
+                        ),
+                    selectionState =
+                        TacticalMissionSelectionState(
+                            selectedMissionIds = uiState.selectedMissionIds,
+                            selectionMode = selectionMode,
+                        ),
+                    callbacks =
+                        TacticalMissionListCallbacks(
+                            onMissionToggled = onMissionToggle,
+                            onMissionSelectionToggle = { mission ->
+                                onSelectedMissionIdsChange(toggleMissionSelection(uiState.selectedMissionIds, mission.id))
+                            },
+                            onMissionClick = { mission ->
+                                if (!selectionMode) {
+                                    onEditingMissionChange(mission)
+                                }
+                            },
+                            onMissionLongPress = { mission ->
+                                onSelectedMissionIdsChange(
+                                    if (mission.id in uiState.selectedMissionIds) {
+                                        uiState.selectedMissionIds
+                                    } else {
+                                        uiState.selectedMissionIds + mission.id
+                                    },
+                                )
+                            },
+                            onMissionMoreClick = onActionMenuMissionChange,
+                            onLinkedContextClick = onLinkedProjectClick,
+                            onLinkedAttachmentClick = { attachmentId ->
+                                onLinkedAttachmentClick(resolveAttachmentOption(attachmentOptions, attachmentId))
+                            },
+                            onMissionsReordered = onMissionsReordered,
+                        ),
+                    listState = missionListState,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
 
         if (showFabMenu) {
             TacticalFabMenu(
                 expanded = uiState.isFabMenuExpanded,
                 canPasteAsMissions = canPasteAsMissions,
+                selectedMode = selectedMode,
                 modifier =
                     Modifier
                         .align(Alignment.BottomEnd)
@@ -403,6 +505,8 @@ private fun TacticalManagementContent(
                 onExpandedChange = onFabMenuExpandedChange,
                 onPasteMissions = onPasteMissions,
                 onOpenAddMission = onOpenAddMission,
+                onModeSelected = onModeSelected,
+                onOpenActivitySlotsSheet = onOpenActivitySlotsSheet,
                 onToggleScopeLinksSheet = onToggleScopeLinksSheet,
             )
         }
@@ -414,6 +518,210 @@ private fun TacticalManagementContent(
                     .align(Alignment.BottomCenter)
                     .padding(horizontal = 16.dp, vertical = 24.dp),
         )
+    }
+}
+
+@Composable
+private fun TacticsWorkspaceHeader(
+    selectedMode: TacticsWorkspaceMode,
+    activitySlotContexts: List<Context>,
+    selectedActivitySlotContextId: String?,
+    selectedPlanningContextId: String?,
+    projectOptions: List<ProjectOption>,
+    onModeSelected: (TacticsWorkspaceMode) -> Unit,
+    onActivitySlotSelected: (String?) -> Unit,
+    onPlanningContextSelected: (String?) -> Unit,
+    onOpenActivitySlotsSheet: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            TacticsModeChip("По слотах", selectedMode == TacticsWorkspaceMode.SLOTS) {
+                onModeSelected(TacticsWorkspaceMode.SLOTS)
+            }
+            TacticsModeChip("Усі", selectedMode == TacticsWorkspaceMode.ALL) {
+                onModeSelected(TacticsWorkspaceMode.ALL)
+            }
+            TacticsModeChip("Слоти", selected = false) {
+                onOpenActivitySlotsSheet()
+            }
+        }
+
+        when (selectedMode) {
+            TacticsWorkspaceMode.SLOTS ->
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    FilterChip(
+                        selected = selectedActivitySlotContextId == null,
+                        onClick = { onActivitySlotSelected(null) },
+                        label = { Text("Без слота") },
+                    )
+                    activitySlotContexts.forEach { context ->
+                        FilterChip(
+                            selected = selectedActivitySlotContextId == context.id,
+                            onClick = { onActivitySlotSelected(context.id) },
+                            label = { Text(context.name, maxLines = 1) },
+                        )
+                    }
+                }
+            TacticsWorkspaceMode.PLAN ->
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    activitySlotContexts.forEach { context ->
+                        FilterChip(
+                            selected = selectedPlanningContextId == context.id,
+                            onClick = { onPlanningContextSelected(context.id) },
+                            label = { Text(context.name, maxLines = 1) },
+                        )
+                    }
+                    projectOptions.forEach { option ->
+                        FilterChip(
+                            selected = selectedPlanningContextId == option.id,
+                            onClick = { onPlanningContextSelected(option.id) },
+                            label = { Text(option.name, maxLines = 1) },
+                        )
+                    }
+                }
+            TacticsWorkspaceMode.ALL -> Unit
+        }
+    }
+}
+
+@Composable
+private fun TacticsModeChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label) },
+    )
+}
+
+@Composable
+private fun TacticsPlanningList(
+    planningBacklogItems: List<TacticalPlanBacklogItem>,
+    selectedPlanningContextId: String?,
+    onTakeBacklogItem: (TacticalPlanBacklogItem) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (selectedPlanningContextId == null) {
+        Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Text(
+                text = "Вибери слот або проєкт для планування тижня",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        return
+    }
+
+    if (planningBacklogItems.isEmpty()) {
+        Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Text(
+                text = "У цьому беклозі немає елементів",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        return
+    }
+
+    LazyColumn(
+        modifier = modifier.padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items(planningBacklogItems, key = { it.item.id }) { planItem ->
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = planItem.title,
+                            style = MaterialTheme.typography.titleSmall,
+                            maxLines = 3,
+                        )
+                        if (!planItem.description.isNullOrBlank()) {
+                            Text(
+                                text = planItem.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2,
+                            )
+                        }
+                        if (planItem.alreadyInWeek) {
+                            Text(
+                                text = "Вже в тижні",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                    TextButton(
+                        enabled = !planItem.alreadyInWeek,
+                        onClick = { onTakeBacklogItem(planItem) },
+                    ) {
+                        Text("Взяти")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TacticsEmptyState(
+    selectedMode: TacticsWorkspaceMode,
+    selectedSlotId: String?,
+    activitySlotContexts: List<Context>,
+    totalWeekMissions: Int,
+    modifier: Modifier = Modifier,
+) {
+    val slotName = activitySlotContexts.firstOrNull { it.id == selectedSlotId }?.name
+    val text =
+        when (selectedMode) {
+            TacticsWorkspaceMode.SLOTS ->
+                if (slotName == null) {
+                    "Немає місій без слота"
+                } else {
+                    "Немає місій у слоті: $slotName"
+                }
+            TacticsWorkspaceMode.ALL -> "Немає місій цього тижня"
+            TacticsWorkspaceMode.PLAN -> "Вибери беклог для планування"
+        }
+    Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (selectedMode == TacticsWorkspaceMode.SLOTS && totalWeekMissions > 0) {
+                Text(
+                    text = "Перемкнись на “Усі”, щоб побачити місії в інших слотах",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 
@@ -552,10 +860,13 @@ private fun SelectionStatusMenu(
 private fun TacticalFabMenu(
     expanded: Boolean,
     canPasteAsMissions: Boolean,
+    selectedMode: TacticsWorkspaceMode,
     modifier: Modifier = Modifier,
     onExpandedChange: (Boolean) -> Unit,
     onPasteMissions: () -> Unit,
     onOpenAddMission: () -> Unit,
+    onModeSelected: (TacticsWorkspaceMode) -> Unit,
+    onOpenActivitySlotsSheet: () -> Unit,
     onToggleScopeLinksSheet: () -> Unit,
 ) {
     Box(modifier = modifier) {
@@ -589,6 +900,41 @@ private fun TacticalFabMenu(
                 },
             )
             DropdownMenuItem(
+                text = { Text("Слоти") },
+                leadingIcon = { Icon(Icons.Outlined.AccountTree, contentDescription = null) },
+                enabled = selectedMode != TacticsWorkspaceMode.SLOTS,
+                onClick = {
+                    onExpandedChange(false)
+                    onModeSelected(TacticsWorkspaceMode.SLOTS)
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Усі місії") },
+                leadingIcon = { Icon(Icons.Outlined.CheckCircle, contentDescription = null) },
+                enabled = selectedMode != TacticsWorkspaceMode.ALL,
+                onClick = {
+                    onExpandedChange(false)
+                    onModeSelected(TacticsWorkspaceMode.ALL)
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("План тижня") },
+                leadingIcon = { Icon(Icons.Outlined.Today, contentDescription = null) },
+                enabled = selectedMode != TacticsWorkspaceMode.PLAN,
+                onClick = {
+                    onExpandedChange(false)
+                    onModeSelected(TacticsWorkspaceMode.PLAN)
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Керувати слотами") },
+                leadingIcon = { Icon(Icons.Outlined.AccountTree, contentDescription = null) },
+                onClick = {
+                    onExpandedChange(false)
+                    onOpenActivitySlotsSheet()
+                },
+            )
+            DropdownMenuItem(
                 text = { Text("Показати зв'язки") },
                 leadingIcon = { Icon(Icons.Outlined.Link, contentDescription = null) },
                 onClick = {
@@ -607,6 +953,7 @@ private fun TacticalManagementOverlays(
     missions: List<TacticalMission>,
     attachmentOptions: List<AttachmentOption>,
     projectOptions: List<ProjectOption>,
+    activitySlotContexts: List<Context>,
     boardLinkedProjectIds: List<String>,
     boardLinkedAttachmentIds: List<String>,
     connectionsOrder: List<String>,
@@ -637,6 +984,10 @@ private fun TacticalManagementOverlays(
     onAddBoardAttachmentLink: (String) -> Unit,
     onAddBoardUrlLink: (String, String) -> Unit,
     onAddBoardObsidianLink: (String, String, String) -> Unit,
+    onAddActivitySlot: (String) -> Unit,
+    onRemoveActivitySlot: (String) -> Unit,
+    onActivitySlotsSheetVisibleChange: (Boolean) -> Unit,
+    onActivitySlotPickerVisibleChange: (Boolean) -> Unit,
     scope: kotlinx.coroutines.CoroutineScope,
 ) {
     val availableProjectIds = projectOptions.map { it.id }.toSet()
@@ -701,6 +1052,15 @@ private fun TacticalManagementOverlays(
         )
     }
 
+    if (uiState.isActivitySlotsSheetVisible) {
+        ActivitySlotsSheet(
+            activitySlotContexts = activitySlotContexts,
+            onDismiss = { onActivitySlotsSheetVisibleChange(false) },
+            onAddSlotClick = { onActivitySlotPickerVisibleChange(true) },
+            onRemoveSlot = onRemoveActivitySlot,
+        )
+    }
+
     uiState.editingMission?.let { mission ->
         ModalBottomSheet(
             onDismissRequest = { onEditingMissionChange(null) },
@@ -761,6 +1121,25 @@ private fun TacticalManagementOverlays(
         )
     }
 
+    if (uiState.isActivitySlotPickerVisible) {
+        LinkedTargetsPickerDialog(
+            contextOptions = projectOptions,
+            attachmentOptions = emptyList(),
+            preselectedContextIds = activitySlotContexts.map { it.id }.toSet(),
+            preselectedAttachmentIds = emptySet(),
+            initialTab = LinkPickerTab.CONTEXTS,
+            allowedTabs = setOf(LinkPickerTab.CONTEXTS),
+            onDismiss = { onActivitySlotPickerVisibleChange(false) },
+            onContextSelected = { id ->
+                onAddActivitySlot(id)
+                onActivitySlotPickerVisibleChange(false)
+            },
+            onAttachmentSelected = {},
+            onCreateRootContext = onCreateRootContext,
+            onCreateDocument = onCreateDocument,
+        )
+    }
+
     if (uiState.showAddUrlDialog) {
         TacticalAddUrlDialog(
             onDismiss = { onShowAddUrlDialogChange(false) },
@@ -784,12 +1163,95 @@ private fun TacticalManagementOverlays(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun ActivitySlotsSheet(
+    activitySlotContexts: List<Context>,
+    onDismiss: () -> Unit,
+    onAddSlotClick: () -> Unit,
+    onRemoveSlot: (String) -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = "Слоти активності",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = "Це контексти, які використовуються як режими виконання у тактичному просторі.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            HorizontalDivider()
+            if (activitySlotContexts.isEmpty()) {
+                Text(
+                    text = "Слотів ще немає",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 8.dp),
+                )
+            } else {
+                activitySlotContexts.forEach { context ->
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.AccountTree,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            text = context.name,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 2,
+                        )
+                        TextButton(onClick = { onRemoveSlot(context.id) }) {
+                            Text("Прибрати")
+                        }
+                    }
+                }
+            }
+            Button(
+                onClick = onAddSlotClick,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Додати контекст як слот")
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun MissionActionSheet(
     mission: TacticalMission,
+    activitySlotContexts: List<Context>,
+    selectedActivitySlotContextId: String?,
     onDismiss: () -> Unit,
     onEdit: () -> Unit,
     onToggleCompleted: () -> Unit,
     onAddToToday: () -> Unit,
+    onAddToArc: () -> Unit,
+    onAssignActivitySlot: (String?) -> Unit,
+    onOpenSlotPicker: () -> Unit,
     onPostpone: () -> Unit,
     onContinue: () -> Unit,
     onCopyMission: () -> Unit,
@@ -804,6 +1266,7 @@ private fun MissionActionSheet(
             modifier =
                 Modifier
                     .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
@@ -834,6 +1297,32 @@ private fun MissionActionSheet(
                 icon = Icons.Outlined.Today,
                 text = "Додати місію в план дня",
                 onClick = onAddToToday,
+            )
+            SubtleActionDivider()
+            MissionActionSheetItem(
+                icon = Icons.Outlined.AccountTree,
+                text = "Додати як ArcQuest",
+                onClick = onAddToArc,
+            )
+            SubtleActionDivider()
+            if (selectedActivitySlotContextId != null && mission.activitySlotContextId != selectedActivitySlotContextId) {
+                MissionActionSheetItem(
+                    icon = Icons.Outlined.AccountTree,
+                    text = "Перемістити в поточний слот",
+                    onClick = { onAssignActivitySlot(selectedActivitySlotContextId) },
+                )
+                SubtleActionDivider()
+            }
+            MissionActionSheetItem(
+                icon = Icons.Outlined.ChevronRight,
+                text =
+                    if (mission.activitySlotContextId == null) {
+                        "Додати в слот"
+                    } else {
+                        "Змінити слот"
+                    },
+                enabled = activitySlotContexts.isNotEmpty() || mission.activitySlotContextId != null,
+                onClick = onOpenSlotPicker,
             )
             SubtleActionDivider()
             MissionActionSheetItem(
@@ -877,6 +1366,83 @@ private fun MissionActionSheet(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MissionSlotPickerSheet(
+    mission: TacticalMission,
+    activitySlotContexts: List<Context>,
+    onDismiss: () -> Unit,
+    onAssignActivitySlot: (String?) -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = "Додати в слот",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = mission.title,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+            )
+            HorizontalDivider()
+            MissionActionSheetItem(
+                icon = Icons.Outlined.Close,
+                text =
+                    if (mission.activitySlotContextId == null) {
+                        "Без слота · поточно"
+                    } else {
+                        "Без слота"
+                    },
+                enabled = mission.activitySlotContextId != null,
+                onClick = { onAssignActivitySlot(null) },
+            )
+            SubtleActionDivider()
+            if (activitySlotContexts.isEmpty()) {
+                Text(
+                    text = "Слоти активності ще не додані.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 12.dp),
+                )
+            } else {
+                activitySlotContexts.forEach { slot ->
+                    MissionActionSheetItem(
+                        icon = Icons.Outlined.AccountTree,
+                        text =
+                            if (mission.activitySlotContextId == slot.id) {
+                                "${slot.name} · поточно"
+                            } else {
+                                slot.name
+                            },
+                        enabled = mission.activitySlotContextId != slot.id,
+                        onClick = { onAssignActivitySlot(slot.id) },
+                    )
+                    SubtleActionDivider()
+                }
+            }
+            MissionActionSheetItem(
+                icon = Icons.Outlined.Close,
+                text = "Скасувати",
+                onClick = onDismiss,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
 private fun toggleMissionSelection(
     selectedMissionIds: Set<Long>,
     missionId: Long,
@@ -899,13 +1465,20 @@ private fun MissionActionSheetItem(
     icon: ImageVector,
     text: String,
     textColor: Color = MaterialTheme.colorScheme.onSurface,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
+    val resolvedTextColor =
+        if (enabled) {
+            textColor
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
+        }
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick)
+                .clickable(enabled = enabled, onClick = onClick)
                 .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -914,12 +1487,12 @@ private fun MissionActionSheetItem(
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(18.dp),
-            tint = textColor.copy(alpha = 0.9f),
+            tint = resolvedTextColor.copy(alpha = 0.9f),
         )
         Text(
             text = text,
             style = MaterialTheme.typography.bodyLarge,
-            color = textColor,
+            color = resolvedTextColor,
         )
     }
 }

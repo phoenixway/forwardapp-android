@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.capability.CapabilityRegistry
+import com.romankozak.forwardappmobile.core.context.ContextCapabilitiesResolver
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
@@ -58,6 +59,7 @@ class ContextSettingsViewModel
         private val contextStructureRepository: ContextStructureRepository,
         private val structurePresetService: StructurePresetService,
         private val capabilityRegistry: CapabilityRegistry,
+        private val contextCapabilitiesResolver: ContextCapabilitiesResolver,
         private val capabilitySettingsRegistry: CapabilitySettingsRegistry,
         private val attachmentsRepository: AttachmentsRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
@@ -133,12 +135,14 @@ class ContextSettingsViewModel
                         structurePresetDao.getByCode(code)?.label
                     } ?: "Стандартний (Default)"
 
-                // 3. Формуємо мапу фіч, використовуючи CapabilityGate для перевірки реального стану
-                val allKnownCapabilities = ContextRoleRegistry.getAllKnownCapabilities()
+                // 3. Формуємо мапу фіч через той самий resolver, що й runtime екрану контексту.
+                val resolvedConfig = structure ?: ContextConfiguration.default(project.id)
+                val enabledCapabilities = contextCapabilitiesResolver.resolve(resolvedConfig)
+                val allKnownCapabilities = ContextRoleRegistry.getAllKnownCapabilities() + enabledCapabilities
                 val structureFeatures =
                     allKnownCapabilities.associate { capId ->
                         val key = featureLabelForCapability(capId)
-                        key to isEnabledForConfig(capId, structure)
+                        key to enabledCapabilities.contains(capId)
                     }.toSortedMap()
 
                 // 4. Оновлюємо стан UI одним атомарним блоком
@@ -167,10 +171,10 @@ class ContextSettingsViewModel
                         scoringStatus = project.scoringStatus,
                         isScoringEnabled = project.scoringStatus != ScoringStatusValues.IMPOSSIBLE_TO_ASSESS,
                         // Системна конфігурація
-                        basePresetCode = structure?.basePresetCode,
-                        capabilityApplyMode = structure?.applyMode ?: APPLY_MODE_ADDITIVE,
-                        enabledCapabilityIds = structureFeatures.filterValues { it }.keys.map(::featureLabelToCapabilityId).toSet(),
-                        experimentalCapabilityIds = structure?.experimentalCapabilityIds ?: emptyList(),
+                        basePresetCode = resolvedConfig.basePresetCode,
+                        capabilityApplyMode = resolvedConfig.applyMode,
+                        enabledCapabilityIds = enabledCapabilities,
+                        experimentalCapabilityIds = resolvedConfig.experimentalCapabilityIds,
                         currentPresetLabel = presetLabel,
                         features = structureFeatures,
                         // Синхронізація ключових прапорців для UI-логіки
@@ -182,38 +186,6 @@ class ContextSettingsViewModel
                 // Якщо проект видалено або не знайдено — повертаємо користувача назад
                 _events.send(ContextSettingsEvent.NavigateBack("Проект не знайдено"))
             }
-        }
-
-        /**
-         * Перевірка стану можливості через конфігурацію (роль + експериментальні ID + legacy прапорці)
-         */
-        private fun isEnabledForConfig(
-            id: CapabilityId,
-            config: ContextConfiguration?,
-        ): Boolean {
-            if (id.raw == "dashboard") return true
-            if (config == null) return true
-
-            // Перевірка через роль
-            val useRoleDefaults = !config.applyMode.equals(APPLY_MODE_OVERRIDE, ignoreCase = true)
-            val roleCapabilities = if (useRoleDefaults) ContextRoleRegistry.getCapabilitiesForRole(config.basePresetCode) else emptySet()
-            val enabledByRole = roleCapabilities.contains(id)
-
-            // Перевірка через legacy прапорці
-            val isLegacy =
-                when (id.raw) {
-                    "inbox" -> config.enableInbox ?: enabledByRole
-                    "log" -> config.enableLog ?: enabledByRole
-                    "artifact" -> config.enableArtifact ?: enabledByRole
-                    "dashboard" -> config.enableDashboard ?: enabledByRole
-                    "backlog" -> config.enableBacklog ?: enabledByRole
-                    "attachments" -> config.enableAttachments ?: enabledByRole
-                    "connections" -> config.enableAttachments ?: enabledByRole
-                    else -> false
-                }
-
-            // Перевірка через експериментальні ID або старі прапорці
-            return enabledByRole || config.experimentalCapabilityIds.contains(id) || isLegacy
         }
 
         fun onSave() {

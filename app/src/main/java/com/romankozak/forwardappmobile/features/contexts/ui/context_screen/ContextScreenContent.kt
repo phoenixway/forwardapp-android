@@ -102,6 +102,7 @@ fun GoalDetailContent(
     val allContexts by viewModel.allContextsForPicker.collectAsStateWithLifecycle()
     val pickerAttachmentOptions by viewModel.pickerAttachmentOptions.collectAsStateWithLifecycle()
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
+    val tacticalBacklogItemIds by viewModel.tacticalBacklogItemIds.collectAsStateWithLifecycle()
     val enableKeyProblems = uiState.experimentalCapabilityIds.contains(CapabilityId("key_problems"))
 
     when (currentViewMode) {
@@ -164,6 +165,8 @@ fun GoalDetailContent(
                         onDeleteEverywhere = { item -> viewModel.onDeleteEverywhere(item) },
                         onAddToDayPlan = { item -> viewModel.addItemToDailyPlan(item) },
                         onAddAsMission = { item -> viewModel.addItemAsMission(item) },
+                        isTacticalPriority = { item -> item.backlogItem.id in tacticalBacklogItemIds },
+                        onToggleTacticalPriority = { item -> viewModel.toggleItemTacticalPriority(item) },
                         onStartTracking = { item -> viewModel.onStartTrackingRequest(item) },
                         onCopyTransport = { item -> viewModel.itemActionHandler.onTransportCopyRequested(item) },
                         onCutTransport = { item -> viewModel.itemActionHandler.onTransportCutRequested(item) },

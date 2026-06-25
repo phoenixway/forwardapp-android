@@ -60,6 +60,7 @@ import com.romankozak.forwardappmobile.core.config.FeatureFlag
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.PlanningSettingsState
 import com.romankozak.forwardappmobile.features.settings.settings.components.AnimatedTextField
+import com.romankozak.forwardappmobile.features.settings.settings.components.ChatExportSettingsCard
 import com.romankozak.forwardappmobile.features.settings.settings.components.NerSettingsCard
 import com.romankozak.forwardappmobile.features.settings.settings.components.PermissionsSettingsCard
 import com.romankozak.forwardappmobile.features.settings.settings.components.RingtoneSettingsCard
@@ -142,6 +143,7 @@ fun SettingsScreen(
                         uiState.nerTokenizerUri != initial.nerTokenizerUri ||
                         uiState.nerLabelsUri != initial.nerLabelsUri ||
                         uiState.rolesFolderUri != initial.rolesFolderUri ||
+                        uiState.chatExportFolderUri != initial.chatExportFolderUri ||
                         uiState.themeSettings != initial.themeSettings ||
                         uiState.ringtoneType != initial.ringtoneType ||
                         uiState.ringtoneUris != initial.ringtoneUris ||
@@ -157,7 +159,14 @@ fun SettingsScreen(
                         uiState.strategicManagementEnabled != initial.strategicManagementEnabled ||
                         uiState.aiChatEnabled != initial.aiChatEnabled ||
                         uiState.aiInsightsEnabled != initial.aiInsightsEnabled ||
-                        uiState.aiLifeManagementEnabled != initial.aiLifeManagementEnabled
+                        uiState.aiLifeManagementEnabled != initial.aiLifeManagementEnabled ||
+                        uiState.ollamaNumCtx != initial.ollamaNumCtx ||
+                        uiState.ollamaNumPredict != initial.ollamaNumPredict ||
+                        uiState.ollamaNumBatch != initial.ollamaNumBatch ||
+                        uiState.ollamaNumGpu != initial.ollamaNumGpu ||
+                        uiState.ollamaNumThread != initial.ollamaNumThread ||
+                        uiState.ollamaAutoCompressContext != initial.ollamaAutoCompressContext ||
+                        uiState.ollamaCompressThresholdPercent != initial.ollamaCompressThresholdPercent
                 } ?: false
 
             planningIsDirty || viewModelIsDirty
@@ -346,10 +355,21 @@ fun SettingsScreen(
                                 onFetchClick = viewModel::fetchAvailableModels,
                                 onFastModelSelect = viewModel::onFastModelSelected,
                                 onSmartModelSelect = viewModel::onSmartModelSelected,
+                                onNumCtxChange = viewModel::onOllamaNumCtxChanged,
+                                onNumPredictChange = viewModel::onOllamaNumPredictChanged,
+                                onNumBatchChange = viewModel::onOllamaNumBatchChanged,
+                                onNumGpuChange = viewModel::onOllamaNumGpuChanged,
+                                onNumThreadChange = viewModel::onOllamaNumThreadChanged,
+                                onAutoCompressChange = viewModel::onOllamaAutoCompressChanged,
+                                onCompressThresholdChange = viewModel::onOllamaCompressThresholdChanged,
                             )
                             RolesSettingsCard(
                                 state = uiState,
                                 onFolderSelected = viewModel::onRolesFolderSelected,
+                            )
+                            ChatExportSettingsCard(
+                                state = uiState,
+                                onFolderSelected = viewModel::onChatExportFolderSelected,
                             )
                             NerSettingsCard(
                                 state = uiState,

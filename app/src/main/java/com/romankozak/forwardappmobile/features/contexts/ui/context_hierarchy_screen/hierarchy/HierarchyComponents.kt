@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FilterCenterFocus
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.ArrowOutward
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material3.Checkbox
@@ -768,14 +769,14 @@ fun SwipeableProjectRow(
 private fun LinkAppearanceBadge() {
     Surface(
         shape = RoundedCornerShape(999.dp),
-        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.78f),
+        color = MaterialTheme.colorScheme.tertiaryContainer,
         tonalElevation = 0.dp,
     ) {
-        Text(
-            text = "link",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onTertiaryContainer,
-            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+        Icon(
+            imageVector = Icons.Outlined.ArrowOutward,
+            contentDescription = "Посилання на контекст",
+            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+            modifier = Modifier.padding(4.dp).size(12.dp),
         )
     }
 }

@@ -31,7 +31,9 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDa
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconDao
+import com.romankozak.forwardappmobile.features.mainscreen.arc.ArcQuestDao
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
+import com.romankozak.forwardappmobile.features.missions.data.TacticalActivitySlotDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -146,6 +148,10 @@ object DatabaseModule {
 
     @Provides
     @Singleton
+    fun provideArcQuestDao(appDatabase: AppDatabase): ArcQuestDao = appDatabase.arcQuestDao()
+
+    @Provides
+    @Singleton
     fun provideInboxRecordDao(appDatabase: AppDatabase): InboxRecordDao = appDatabase.inboxRecordDao()
 
     @Provides
@@ -211,6 +217,10 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideTacticalMissionDao(appDatabase: AppDatabase): TacticalMissionDao = appDatabase.tacticalMissionDao()
+
+    @Provides
+    @Singleton
+    fun provideTacticalActivitySlotDao(appDatabase: AppDatabase): TacticalActivitySlotDao = appDatabase.tacticalActivitySlotDao()
 
     @Provides
     @Singleton

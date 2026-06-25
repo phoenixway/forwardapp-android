@@ -19,6 +19,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
+import com.romankozak.forwardappmobile.core.navigation.routes.COMMAND_DECK_ROUTE
+import com.romankozak.forwardappmobile.core.navigation.routes.MAIN_GRAPH_ROUTE
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.components.ProjectHierarchyScreenScaffold
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ContextHierarchyScreenEvent
@@ -186,6 +188,14 @@ fun ProjectHierarchyScreen(
             viewModel = viewModel,
             sharedTransitionScope = sharedTransitionScope,
             animatedVisibilityScope = animatedVisibilityScope,
+            onCloseScreen = {
+                navController.navigate(COMMAND_DECK_ROUTE) {
+                    popUpTo(MAIN_GRAPH_ROUTE) {
+                        inclusive = false
+                    }
+                    launchSingleTop = true
+                }
+            },
             onEditBeacon = { beaconId ->
                 editingBeacon = coreLevelViewModel.buildEditorState(beaconId)
             },

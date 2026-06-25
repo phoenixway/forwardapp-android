@@ -76,6 +76,7 @@ fun ProjectHierarchyScreenScaffold(
     viewModel: ContextHierarchyScreenViewModel,
     sharedTransitionScope: SharedTransitionScope,
     animatedVisibilityScope: AnimatedVisibilityScope,
+    onCloseScreen: () -> Unit,
     onEditBeacon: (String) -> Unit = {},
     onDeleteBeacon: (String) -> Unit = {},
     onAddMainBeacon: () -> Unit = {},
@@ -103,26 +104,26 @@ fun ProjectHierarchyScreenScaffold(
     Scaffold(
         modifier = Modifier.imePadding(),
         topBar = {
+            val focusedOrientationNode =
+                (uiState.currentSubState as? ProjectHierarchyScreenSubState.OrientationFocused)
+                    ?.nodeId
+                    ?.let { focusedId ->
+                        uiState.orientationHierarchy
+                            .firstOrNull { it.node.id == focusedId }
+                            ?.node
+                    }
             val focusedProject =
-                (uiState.currentSubState as? ProjectHierarchyScreenSubState.ProjectFocused)
-                    ?.projectId
-                    ?.let { focusedId -> uiState.projectHierarchy.allProjects.find { it.id == focusedId } }
+                when (focusedOrientationNode) {
+                    is OrientationHierarchyNode.ContextNode -> focusedOrientationNode.context
+                    else ->
+                        (uiState.currentSubState as? ProjectHierarchyScreenSubState.ProjectFocused)
+                            ?.projectId
+                            ?.let { focusedId -> uiState.projectHierarchy.allProjects.find { it.id == focusedId } }
+                }
             val focusedBeaconNode =
-                (uiState.currentSubState as? ProjectHierarchyScreenSubState.OrientationFocused)
-                    ?.nodeId
-                    ?.let { focusedId ->
-                        uiState.orientationHierarchy
-                            .firstOrNull { it.node.id == focusedId }
-                            ?.node as? OrientationHierarchyNode.Beacon
-                    }
+                focusedOrientationNode as? OrientationHierarchyNode.Beacon
             val focusedGroupNode =
-                (uiState.currentSubState as? ProjectHierarchyScreenSubState.OrientationFocused)
-                    ?.nodeId
-                    ?.let { focusedId ->
-                        uiState.orientationHierarchy
-                            .firstOrNull { it.node.id == focusedId }
-                            ?.node as? OrientationHierarchyNode.Group
-                    }
+                focusedOrientationNode as? OrientationHierarchyNode.Group
             val canPasteToFocusedNode =
                 (
                     uiState.clipboardContextIds.isNotEmpty() &&
@@ -133,13 +134,13 @@ fun ProjectHierarchyScreenScaffold(
                             (focusedBeaconNode != null || focusedGroupNode != null)
                     )
             ProjectHierarchyScreenTopAppBar(
-                onBackClick = {
+                onBackClick = onCloseScreen,
+                showHierarchyBack = uiState.isSelectionMode || backHandlerEnabled,
+                onHierarchyBackClick = {
                     if (uiState.isSelectionMode) {
                         onEvent(ContextHierarchyScreenEvent.ClearContextSelection)
-                    } else if (backHandlerEnabled) {
-                        onEvent(ContextHierarchyScreenEvent.BackClick)
                     } else {
-                        enhancedNavigationManager.goBack()
+                        onEvent(ContextHierarchyScreenEvent.BackClick)
                     }
                 },
                 isSelectionMode = uiState.isSelectionMode,

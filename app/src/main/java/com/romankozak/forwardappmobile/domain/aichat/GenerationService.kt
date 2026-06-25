@@ -90,6 +90,7 @@ class GenerationService : Service() {
         val url = resolveBaseUrl()
         val model = resolveModel()
         val temperature = settingsRepo.temperatureFlow.first()
+        val runtimeOptions = resolveRuntimeOptions()
         if (url.isNullOrBlank() || model.isNullOrBlank()) {
             Log.e(TAG, "Server or model is not configured. url=$url model=$model")
             markAssistantError(
@@ -103,7 +104,7 @@ class GenerationService : Service() {
 
         val messages = buildMessages(request)
         logGenerationRequest(url = url, model = model, temperature = temperature, messageCount = messages.size)
-        val responseText = streamAssistantResponse(request.assistantMessageId, url, model, messages, temperature)
+        val responseText = streamAssistantResponse(request.assistantMessageId, url, model, messages, temperature, runtimeOptions)
         chatRepo.updateMessageContent(
             messageId = request.assistantMessageId,
             text = responseText,
@@ -144,10 +145,11 @@ class GenerationService : Service() {
         model: String,
         messages: List<Message>,
         temperature: Float,
+        runtimeOptions: OllamaRuntimeOptions,
     ): String {
         val responseBuilder = StringBuilder()
         ollamaService
-            .generateChatResponseStream(url, model, messages, temperature)
+            .generateChatResponseStream(url, model, messages, temperature, runtimeOptions)
             .collect { chunk ->
                 responseBuilder.append(chunk)
                 chatRepo.updateMessageContent(
@@ -158,6 +160,15 @@ class GenerationService : Service() {
             }
         return responseBuilder.toString()
     }
+
+    private suspend fun resolveRuntimeOptions(): OllamaRuntimeOptions =
+        OllamaRuntimeOptions(
+            numCtx = settingsRepo.ollamaNumCtxFlow.first(),
+            numPredict = settingsRepo.ollamaNumPredictFlow.first(),
+            numBatch = settingsRepo.ollamaNumBatchFlow.first(),
+            numGpu = settingsRepo.ollamaNumGpuFlow.first(),
+            numThread = settingsRepo.ollamaNumThreadFlow.first(),
+        )
 
     private fun notifyReady() {
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager

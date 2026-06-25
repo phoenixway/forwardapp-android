@@ -2,30 +2,48 @@ package com.romankozak.forwardappmobile.features.mainscreen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestSourceType
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionPriority
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionSourceType
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.NO_DEADLINE
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
+import com.romankozak.forwardappmobile.features.mainscreen.arc.ArcQuestRepository
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconRepository
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconWithRelations
 import com.romankozak.forwardappmobile.features.mainscreen.scopelinks.ScopeAttachmentOption
 import com.romankozak.forwardappmobile.features.mainscreen.scopelinks.toScopeAttachmentOption
+import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
 import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.YearMonth
+import java.time.LocalDate
+import java.time.temporal.WeekFields
 import java.util.UUID
 import javax.inject.Inject
 
@@ -35,9 +53,18 @@ private const val FLOW_STOP_TIMEOUT_MILLIS = 5000L
 data class StrategicArcUiState(
     val allProjects: List<Context> = emptyList(),
     val projects: List<Context> = emptyList(),
+    val beacons: List<MainBeaconWithRelations> = emptyList(),
+    val beaconGroups: List<MainBeaconGroup> = emptyList(),
+    val arcQuests: List<ArcQuestEntity> = emptyList(),
+    val currentArcKey: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
 )
+
+enum class StrategicArcTab {
+    QUESTS,
+    ARTIFACT,
+}
 
 @HiltViewModel
 class StrategicArcViewModel
@@ -49,10 +76,23 @@ class StrategicArcViewModel
         private val noteDocumentRepository: NoteDocumentRepository,
         private val musicNoteRepository: MusicNoteRepository,
         private val checklistRepository: ChecklistRepository,
+        private val arcQuestRepository: ArcQuestRepository,
+        private val mainBeaconRepository: MainBeaconRepository,
+        private val missionRepository: MissionRepository,
     ) : ViewModel() {
+        private val currentArcKey = MutableStateFlow(YearMonth.now().toString())
+        private val _selectedTab = MutableStateFlow(StrategicArcTab.QUESTS)
+        val selectedTab: StateFlow<StrategicArcTab> = _selectedTab.asStateFlow()
+
+        @OptIn(ExperimentalCoroutinesApi::class)
         val uiState: StateFlow<StrategicArcUiState> =
-            contextRepository.getAllContextsFlow()
-                .map { projects ->
+            combine(
+                contextRepository.getAllContextsFlow(),
+                mainBeaconRepository.observeMainBeaconDetails(),
+                mainBeaconRepository.observeGroups(),
+                currentArcKey.flatMapLatest { arcKey -> arcQuestRepository.observeArcQuests(arcKey) },
+                currentArcKey,
+            ) { projects, beacons, beaconGroups, arcQuests, arcKey ->
                     val arcProjects =
                         projects.filter {
                             it.tags?.contains("arc") == true
@@ -60,6 +100,10 @@ class StrategicArcViewModel
                     StrategicArcUiState(
                         allProjects = projects,
                         projects = arcProjects,
+                        beacons = beacons,
+                        beaconGroups = beaconGroups,
+                        arcQuests = arcQuests,
+                        currentArcKey = arcKey,
                     )
                 }
                 .stateIn(
@@ -273,6 +317,144 @@ class StrategicArcViewModel
             }
         }
 
+        fun selectTab(tab: StrategicArcTab) {
+            _selectedTab.value = tab
+        }
+
+        fun addArcQuest(title: String) {
+            val trimmed = title.trim()
+            if (trimmed.isBlank()) return
+            viewModelScope.launch {
+                arcQuestRepository.addQuest(
+                    ArcQuestEntity(
+                        arcKey = currentArcKey.value,
+                        title = trimmed,
+                    ),
+                )
+            }
+        }
+
+        fun addArcQuestFromContext(contextId: String) {
+            viewModelScope.launch {
+                val context = contextRepository.getContextById(contextId) ?: return@launch
+                arcQuestRepository.addQuest(
+                    ArcQuestEntity(
+                        arcKey = currentArcKey.value,
+                        title = context.name,
+                        linkedContextId = context.id,
+                        sourceType = ArcQuestSourceType.CONTEXT.name,
+                        sourceId = context.id,
+                    ),
+                )
+            }
+        }
+
+        fun addArcQuestFromBeacon(beaconId: String) {
+            viewModelScope.launch {
+                val beacon =
+                    mainBeaconRepository
+                        .getBeaconById(beaconId)
+                        ?: return@launch
+                arcQuestRepository.addQuest(
+                    ArcQuestEntity(
+                        arcKey = currentArcKey.value,
+                        title = beacon.title,
+                        description = beacon.description,
+                        sourceType = ArcQuestSourceType.BEACON.name,
+                        sourceId = beacon.id,
+                    ),
+                )
+            }
+        }
+
+        fun addArcQuestFromBeaconGroup(groupId: String) {
+            viewModelScope.launch {
+                val group =
+                    mainBeaconRepository
+                        .getGroupById(groupId)
+                        ?: return@launch
+                arcQuestRepository.addQuest(
+                    ArcQuestEntity(
+                        arcKey = currentArcKey.value,
+                        title = group.title,
+                        description = group.description,
+                        sourceType = ArcQuestSourceType.BEACON_GROUP.name,
+                        sourceId = group.id,
+                    ),
+                )
+            }
+        }
+
+        fun updateArcQuest(
+            quest: ArcQuestEntity,
+            title: String,
+            description: String?,
+        ) {
+            val trimmed = title.trim()
+            if (trimmed.isBlank()) return
+            viewModelScope.launch {
+                arcQuestRepository.updateQuest(
+                    quest.copy(
+                        title = trimmed,
+                        description = description?.trim()?.ifBlank { null },
+                    ),
+                )
+            }
+        }
+
+        fun deleteArcQuest(quest: ArcQuestEntity) {
+            viewModelScope.launch {
+                arcQuestRepository.deleteQuest(quest)
+            }
+        }
+
+        fun reorderArcQuests(quests: List<ArcQuestEntity>) {
+            viewModelScope.launch {
+                arcQuestRepository.reorder(quests)
+            }
+        }
+
+        fun createMissionFromArcQuest(quest: ArcQuestEntity) {
+            val title = quest.title.trim()
+            if (title.isBlank()) return
+            viewModelScope.launch {
+                val missionId =
+                    missionRepository.insertMissionWithAutoOrder(
+                        TacticalMission(
+                            title = title,
+                            description = quest.description,
+                            deadline = NO_DEADLINE,
+                            status = MissionStatus.ACTIVE,
+                            priority = MissionPriority.MEDIUM,
+                            projectId = quest.linkedContextId,
+                            linkedProjectIds = quest.linkedContextId?.let(::listOf).orEmpty(),
+                            linkedAttachmentIds = emptyList(),
+                            weekKey = currentIsoWeekKey(),
+                            sourceType = MissionSourceType.ARC_QUEST,
+                            sourceArcQuestId = quest.id,
+                        ),
+                    )
+                arcQuestRepository.updateQuest(quest.copy(linkedMissionId = missionId))
+            }
+        }
+
+        fun openOrCreateArcArtifact(onReady: (String) -> Unit) {
+            val arcKey = currentArcKey.value
+            val name = "Strategic Arc $arcKey"
+            viewModelScope.launch {
+                val documentId =
+                    noteDocumentRepository.findDocumentByName(name)?.id
+                        ?: noteDocumentRepository.createDocument(
+                            name = name,
+                            contextId = SystemContexts.STRATEGIC.raw,
+                            content = "# Strategic Arc $arcKey\n\n",
+                            roleCode = "strategic_arc_artifact",
+                            isSystem = false,
+                        )
+                onReady(documentId)
+            }
+        }
+
         private suspend fun updateTags(
             contextId: String,
             addTag: String? = null,
@@ -315,3 +497,11 @@ class StrategicArcViewModel
             )
         }
     }
+
+private fun currentIsoWeekKey(): String {
+    val now = LocalDate.now()
+    val weekFields = WeekFields.ISO
+    val weekBasedYear = now.get(weekFields.weekBasedYear())
+    val week = now.get(weekFields.weekOfWeekBasedYear())
+    return "%04d-W%02d".format(weekBasedYear, week)
+}

@@ -1,30 +1,8 @@
 package com.romankozak.forwardappmobile.core.data.models.entities
 
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
-import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
-// Переконайтеся, що цей імпорт правильний і модуль має доступ до цього пакета
-// import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
+import com.romankozak.forwardappmobile.core.context.ContextCapabilitiesResolver
 
 fun ContextConfiguration.has(id: CapabilityId): Boolean {
-    if (id.raw == "dashboard") return true
-    val useRoleDefaults = !applyMode.equals("OVERRIDE", ignoreCase = true)
-
-    // 1. Виправлено: activeCapabilities -> experimentalCapabilityIds
-    // 2. Виправлено: baseRoleCode -> basePresetCode
-    // 3. Додано перевірку на null для basePresetCode
-
-    val isExperimental = experimentalCapabilityIds.contains(id)
-
-    val isFromPreset =
-        if (!useRoleDefaults) {
-            false
-        } else {
-            basePresetCode?.let { preset ->
-                ContextRoleRegistry
-                    .getCapabilitiesForRole(preset)
-                    .contains(id)
-            } ?: false
-        }
-
-    return isExperimental || isFromPreset
+    return ContextCapabilitiesResolver().resolve(this).contains(id)
 }

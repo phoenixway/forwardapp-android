@@ -42,6 +42,14 @@ private const val RINGTONE_VOLUMES_INDEX = 15
 private const val REMINDER_VIBRATION_INDEX = 16
 private const val WIFI_SYNC_SERVER_ENABLED_INDEX = 17
 private const val DESKTOP_SYNC_ADDRESS_INDEX = 18
+private const val OLLAMA_NUM_CTX_INDEX = 19
+private const val OLLAMA_NUM_PREDICT_INDEX = 20
+private const val OLLAMA_NUM_BATCH_INDEX = 21
+private const val OLLAMA_NUM_GPU_INDEX = 22
+private const val OLLAMA_NUM_THREAD_INDEX = 23
+private const val OLLAMA_AUTO_COMPRESS_INDEX = 24
+private const val OLLAMA_COMPRESS_THRESHOLD_INDEX = 25
+private const val CHAT_EXPORT_FOLDER_URI_INDEX = 26
 private const val FULL_VOLUME = 1f
 private const val MODERATE_VOLUME = 0.8f
 private const val QUIET_VOLUME = 0.5f
@@ -55,6 +63,7 @@ data class SettingsUiState(
     val nerLabelsUri: String = "",
     val nerState: NerState = NerState.NotInitialized,
     val rolesFolderUri: String = "",
+    val chatExportFolderUri: String = "",
     val serverIpConfigurationMode: String = "auto",
     val manualServerIp: String = "",
     val wifiSyncPort: Int = DEFAULT_WIFI_SYNC_PORT,
@@ -88,6 +97,13 @@ data class SettingsUiState(
     val reminderVibrationEnabled: Boolean = true,
     val wifiSyncServerEnabled: Boolean = false,
     val desktopSyncAddress: String = "",
+    val ollamaNumCtx: Int = 8192,
+    val ollamaNumPredict: Int = -1,
+    val ollamaNumBatch: Int = 0,
+    val ollamaNumGpu: Int = -1,
+    val ollamaNumThread: Int = 0,
+    val ollamaAutoCompressContext: Boolean = true,
+    val ollamaCompressThresholdPercent: Int = 70,
 )
 
 @HiltViewModel
@@ -133,6 +149,14 @@ class SettingsViewModel
                         settingsRepo.reminderVibrationEnabledFlow,
                         settingsRepo.wifiSyncServerEnabledFlow,
                         settingsRepo.desktopSyncAddressFlow,
+                        settingsRepo.ollamaNumCtxFlow,
+                        settingsRepo.ollamaNumPredictFlow,
+                        settingsRepo.ollamaNumBatchFlow,
+                        settingsRepo.ollamaNumGpuFlow,
+                        settingsRepo.ollamaNumThreadFlow,
+                        settingsRepo.ollamaAutoCompressContextFlow,
+                        settingsRepo.ollamaCompressThresholdPercentFlow,
+                        settingsRepo.chatExportFolderUriFlow,
                     )
                 combine(settingsFlows) { values ->
                     val featureToggles = values[FEATURE_TOGGLES_INDEX] as Map<FeatureFlag, Boolean>
@@ -200,6 +224,14 @@ class SettingsViewModel
                             reminderVibrationEnabled = reminderVibrationEnabled,
                             wifiSyncServerEnabled = wifiSyncServerEnabled,
                             desktopSyncAddress = desktopSyncAddress,
+                            ollamaNumCtx = values[OLLAMA_NUM_CTX_INDEX] as Int,
+                            ollamaNumPredict = values[OLLAMA_NUM_PREDICT_INDEX] as Int,
+                            ollamaNumBatch = values[OLLAMA_NUM_BATCH_INDEX] as Int,
+                            ollamaNumGpu = values[OLLAMA_NUM_GPU_INDEX] as Int,
+                            ollamaNumThread = values[OLLAMA_NUM_THREAD_INDEX] as Int,
+                            ollamaAutoCompressContext = values[OLLAMA_AUTO_COMPRESS_INDEX] as Boolean,
+                            ollamaCompressThresholdPercent = values[OLLAMA_COMPRESS_THRESHOLD_INDEX] as Int,
+                            chatExportFolderUri = values[CHAT_EXPORT_FOLDER_URI_INDEX] as String,
                         )
                     }
                 }.collect {
@@ -313,6 +345,15 @@ class SettingsViewModel
             _uiState.update { it.copy(rolesFolderUri = uri.toString()) }
         }
 
+        fun onChatExportFolderSelected(
+            uri: Uri,
+            context: Context,
+        ) {
+            val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            context.contentResolver.takePersistableUriPermission(uri, takeFlags)
+            _uiState.update { it.copy(chatExportFolderUri = uri.toString()) }
+        }
+
         fun onLightThemeSelected(themeName: ThemeName) {
             _uiState.update { it.copy(themeSettings = it.themeSettings.copy(lightThemeName = themeName)) }
         }
@@ -339,6 +380,35 @@ class SettingsViewModel
 
         fun onOllamaPortChanged(port: String) {
             _uiState.update { it.copy(ollamaPort = port.toIntOrNull() ?: DEFAULT_OLLAMA_PORT) }
+        }
+
+        fun onOllamaNumCtxChanged(value: String) {
+            _uiState.update { it.copy(ollamaNumCtx = value.toIntOrNull() ?: 8192) }
+        }
+
+        fun onOllamaNumPredictChanged(value: String) {
+            _uiState.update { it.copy(ollamaNumPredict = value.toIntOrNull() ?: -1) }
+        }
+
+        fun onOllamaNumBatchChanged(value: String) {
+            _uiState.update { it.copy(ollamaNumBatch = value.toIntOrNull() ?: 0) }
+        }
+
+        fun onOllamaNumGpuChanged(value: String) {
+            _uiState.update { it.copy(ollamaNumGpu = value.toIntOrNull() ?: -1) }
+        }
+
+        fun onOllamaNumThreadChanged(value: String) {
+            _uiState.update { it.copy(ollamaNumThread = value.toIntOrNull() ?: 0) }
+        }
+
+        fun onOllamaAutoCompressChanged(enabled: Boolean) {
+            _uiState.update { it.copy(ollamaAutoCompressContext = enabled) }
+        }
+
+        fun onOllamaCompressThresholdChanged(value: String) {
+            val threshold = value.toIntOrNull()?.coerceIn(10, 95) ?: 70
+            _uiState.update { it.copy(ollamaCompressThresholdPercent = threshold) }
         }
 
         fun onFastApiPortChanged(port: String) {
@@ -455,12 +525,22 @@ class SettingsViewModel
                         "fastApiPort=${currentState.fastApiPort}",
                 )
                 settingsRepo.saveOllamaModels(currentState.fastModel, currentState.smartModel)
+                settingsRepo.saveOllamaRuntimeSettings(
+                    numCtx = currentState.ollamaNumCtx,
+                    numPredict = currentState.ollamaNumPredict,
+                    numBatch = currentState.ollamaNumBatch,
+                    numGpu = currentState.ollamaNumGpu,
+                    numThread = currentState.ollamaNumThread,
+                    autoCompressContext = currentState.ollamaAutoCompressContext,
+                    compressThresholdPercent = currentState.ollamaCompressThresholdPercent,
+                )
                 settingsRepo.saveNerUris(
                     modelUri = currentState.nerModelUri,
                     tokenizerUri = currentState.nerTokenizerUri,
                     labelsUri = currentState.nerLabelsUri,
                 )
                 settingsRepo.saveRolesFolderUri(currentState.rolesFolderUri)
+                settingsRepo.saveChatExportFolderUri(currentState.chatExportFolderUri)
                 settingsRepo.saveServerAddressSettings(
                     mode = currentState.serverIpConfigurationMode,
                     manualIp = currentState.manualServerIp,

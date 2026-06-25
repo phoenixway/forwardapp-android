@@ -22,7 +22,9 @@ import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -93,7 +95,20 @@ fun TacticalMissionList(
     modifier: Modifier = Modifier,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
-    var internalMissions by remember(missions) { mutableStateOf(sectionOrderedMissions(missions)) }
+    val internalMissions =
+        remember {
+            mutableStateListOf<TacticalMission>().apply {
+                addAll(sectionOrderedMissions(missions))
+            }
+        }
+    var isDragInProgress by remember { mutableStateOf(false) }
+    var hasPendingReorder by remember { mutableStateOf(false) }
+    LaunchedEffect(missions) {
+        if (!isDragInProgress) {
+            internalMissions.clear()
+            internalMissions.addAll(sectionOrderedMissions(missions))
+        }
+    }
     val projectNameById =
         remember(lookups.projectOptions) {
             lookups.projectOptions.associate { it.id to it.name }
@@ -103,6 +118,13 @@ fun TacticalMissionList(
             lookups.attachmentOptions.associate { it.id to it.name }
         }
     val lazyListState = listState ?: rememberLazyListState()
+    val onDragStopped = {
+        if (hasPendingReorder) {
+            callbacks.onMissionsReordered(internalMissions.toList())
+        }
+        isDragInProgress = false
+        hasPendingReorder = false
+    }
     val reorderableState =
         rememberReorderableLazyListState(lazyListState) { from, to ->
             val fromMission = internalMissions.getOrNull(from.index) ?: return@rememberReorderableLazyListState
@@ -111,12 +133,9 @@ fun TacticalMissionList(
                 return@rememberReorderableLazyListState
             }
 
-            internalMissions =
-                internalMissions.toMutableList().apply {
-                    add(to.index, removeAt(from.index))
-                }
-            callbacks.onMissionsReordered(internalMissions)
-            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+            isDragInProgress = true
+            hasPendingReorder = true
+            internalMissions.add(to.index, internalMissions.removeAt(from.index))
         }
 
     LazyColumn(
@@ -169,6 +188,7 @@ fun TacticalMissionList(
                                     onDragStarted = {
                                         hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                                     },
+                                    onDragStopped = { onDragStopped() },
                                 )
                             },
                     )

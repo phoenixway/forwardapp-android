@@ -88,6 +88,7 @@ fun BacklogItem(
     onRelatedLinkClick: (RelatedLink) -> Unit,
     showCheckbox: Boolean,
     isSelected: Boolean,
+    isTacticalPriority: Boolean,
     contextMarkerToEmojiMap: Map<String, String>,
     isInlineEditing: Boolean,
     onInlineEditSave: (String) -> Unit,
@@ -110,6 +111,7 @@ fun BacklogItem(
                 onRelatedLinkClick = onRelatedLinkClick,
                 showCheckbox = showCheckbox,
                 isSelected = isSelected,
+                isTacticalPriority = isTacticalPriority,
                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                 isInlineEditing = isInlineEditing,
                 onInlineEditSave = onInlineEditSave,
@@ -130,6 +132,7 @@ fun BacklogItem(
                 onRelatedLinkClick = onRelatedLinkClick,
                 showCheckbox = showCheckbox,
                 isSelected = isSelected,
+                isTacticalPriority = isTacticalPriority,
                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                 onDragStopped = onDragStopped,
             )
@@ -155,6 +158,7 @@ private fun InternalGoalItem(
     onRelatedLinkClick: (RelatedLink) -> Unit,
     showCheckbox: Boolean,
     isSelected: Boolean,
+    isTacticalPriority: Boolean,
     contextMarkerToEmojiMap: Map<String, String>,
     isInlineEditing: Boolean,
     onInlineEditSave: (String) -> Unit,
@@ -195,6 +199,15 @@ private fun InternalGoalItem(
             iconTint = MaterialTheme.colorScheme.tertiary,
             badgeBackground = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.28f),
             badgeText = MaterialTheme.colorScheme.tertiary,
+        )
+    val tacticalColors =
+        BacklogCompletedColors(
+            containerStart = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.54f),
+            containerEnd = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.34f),
+            border = MaterialTheme.colorScheme.primary.copy(alpha = 0.82f),
+            iconTint = MaterialTheme.colorScheme.primary,
+            badgeBackground = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+            badgeText = MaterialTheme.colorScheme.primary,
         )
     val isInWork = goal.goalStatus == GoalStatusValues.IN_WORK
 
@@ -238,6 +251,21 @@ private fun InternalGoalItem(
                                         ),
                                 ),
                         )
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                } else if (isTacticalPriority) {
+                    Modifier
+                        .background(
+                            brush =
+                                Brush.horizontalGradient(
+                                    colors =
+                                        listOf(
+                                            tacticalColors.containerStart,
+                                            tacticalColors.containerEnd,
+                                            tacticalColors.containerStart.copy(alpha = 0.24f),
+                                        ),
+                                ),
+                        )
+                        .background(color = tacticalColors.border.copy(alpha = 0.06f))
                         .padding(horizontal = 16.dp, vertical = 14.dp)
                 } else if (isInWork) {
                     Modifier
@@ -342,6 +370,13 @@ private fun InternalGoalItem(
                                 ),
                         )
                     } else {
+                        if (isTacticalPriority) {
+                            TacticalPriorityBadge(
+                                backgroundColor = tacticalColors.badgeBackground,
+                                textColor = tacticalColors.badgeText,
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
                         Box(
                             modifier =
                                 when {
@@ -439,6 +474,7 @@ private fun InternalGoalItem(
                                     when {
                                         goal.completed -> 0.42f
                                         isInWork -> 0.96f
+                                        isTacticalPriority -> 0.96f
                                         else -> 0.78f
                                     },
                                 )
@@ -468,6 +504,24 @@ private fun CompletedBadge(
 }
 
 @Composable
+private fun TacticalPriorityBadge(
+    backgroundColor: Color,
+    textColor: Color,
+) {
+    Surface(
+        color = backgroundColor,
+        contentColor = textColor,
+        shape = MaterialTheme.shapes.small,
+    ) {
+        Text(
+            text = "Тактика",
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+        )
+    }
+}
+
+@Composable
 private fun InternalSubprojectItem(
     subproject: Context,
     reminders: List<Reminder>,
@@ -480,6 +534,7 @@ private fun InternalSubprojectItem(
     onRelatedLinkClick: (RelatedLink) -> Unit,
     showCheckbox: Boolean,
     isSelected: Boolean,
+    isTacticalPriority: Boolean,
     contextMarkerToEmojiMap: Map<String, String>,
     onDragStopped: () -> Unit,
 ) {
@@ -514,6 +569,15 @@ private fun InternalSubprojectItem(
             badgeBackground = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f),
             badgeText = MaterialTheme.colorScheme.secondary,
         )
+    val tacticalColors =
+        BacklogCompletedColors(
+            containerStart = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.48f),
+            containerEnd = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
+            border = MaterialTheme.colorScheme.primary.copy(alpha = 0.76f),
+            iconTint = MaterialTheme.colorScheme.primary,
+            badgeBackground = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+            badgeText = MaterialTheme.colorScheme.primary,
+        )
 
     UnifiedListItemSurface(
         isSelected = isSelected,
@@ -543,6 +607,21 @@ private fun InternalSubprojectItem(
                                         ),
                                 ),
                         )
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                } else if (isTacticalPriority) {
+                    Modifier
+                        .background(
+                            brush =
+                                Brush.horizontalGradient(
+                                    colors =
+                                        listOf(
+                                            tacticalColors.containerStart,
+                                            tacticalColors.containerEnd,
+                                            tacticalColors.containerStart.copy(alpha = 0.22f),
+                                        ),
+                                ),
+                        )
+                        .background(color = tacticalColors.border.copy(alpha = 0.06f))
                         .padding(horizontal = 16.dp, vertical = 14.dp)
                 } else {
                     Modifier
@@ -591,6 +670,12 @@ private fun InternalSubprojectItem(
                         CompletedBadge(
                             backgroundColor = completedColors.badgeBackground,
                             textColor = completedColors.badgeText,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    } else if (isTacticalPriority) {
+                        TacticalPriorityBadge(
+                            backgroundColor = tacticalColors.badgeBackground,
+                            textColor = tacticalColors.badgeText,
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                     }

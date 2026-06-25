@@ -5,6 +5,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecordFts
+import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogOrder
@@ -63,6 +64,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurringTaskFts
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMissionAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalActivitySlot
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.dao.ChatDao
 import com.romankozak.forwardappmobile.data.dao.ConversationFolderDao
@@ -104,7 +106,9 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.NoteDocumentDa
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetItemDao
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconDao
+import com.romankozak.forwardappmobile.features.mainscreen.arc.ArcQuestDao
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
+import com.romankozak.forwardappmobile.features.missions.data.TacticalActivitySlotDao
 
 @Database(
     entities = [
@@ -113,6 +117,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         Context::class,
         ContextTagRef::class,
         DirectionItemEntity::class,
+        ArcQuestEntity::class,
         BacklogItem::class,
         BacklogOrder::class,
         ActivityRecord::class,
@@ -156,6 +161,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         SystemAppEntity::class,
         TacticalMission::class,
         TacticalMissionAttachmentCrossRef::class,
+        TacticalActivitySlot::class,
         AiEventEntity::class,
         LifeManagementLevelStatusEntity::class,
         LifeSystemStateEntity::class,
@@ -167,7 +173,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 133,
+    version = 136,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -187,6 +193,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun mainBeaconDao(): MainBeaconDao
 
     abstract fun directionDao(): DirectionDao
+
+    abstract fun arcQuestDao(): ArcQuestDao
 
     abstract fun inboxRecordDao(): InboxRecordDao
 
@@ -249,6 +257,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun lifeSystemStateDao(): LifeSystemStateDao
 
     abstract fun tacticalMissionDao(): TacticalMissionDao
+
+    abstract fun tacticalActivitySlotDao(): TacticalActivitySlotDao
 
     abstract fun attachmentDao(): AttachmentDao
 
