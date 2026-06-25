@@ -575,6 +575,13 @@ private fun ArcQuestList(
 ) {
     val lazyListState = rememberLazyListState()
     var internalQuests by remember(quests) { mutableStateOf(quests) }
+    var hasPendingReorder by remember { mutableStateOf(false) }
+    val persistPendingReorder = {
+        if (hasPendingReorder) {
+            onReorder(internalQuests)
+        }
+        hasPendingReorder = false
+    }
     val reorderableState =
         rememberReorderableLazyListState(lazyListState) { from, to ->
             if (from.index == to.index) return@rememberReorderableLazyListState
@@ -585,7 +592,7 @@ private fun ArcQuestList(
                 internalQuests.toMutableList().apply {
                     add(to.index, removeAt(from.index))
                 }
-            onReorder(internalQuests)
+            hasPendingReorder = true
         }
 
     if (quests.isEmpty()) {
@@ -614,7 +621,12 @@ private fun ArcQuestList(
                     onCreateMission = { onCreateMission(quest) },
                     onEditQuest = { title, description -> onEditQuest(quest, title, description) },
                     onDeleteQuest = { onDeleteQuest(quest) },
-                    dragHandleModifier = with(this@ReorderableItem) { Modifier.longPressDraggableHandle() },
+                    dragHandleModifier =
+                        with(this@ReorderableItem) {
+                            Modifier.longPressDraggableHandle(
+                                onDragStopped = { persistPendingReorder() },
+                            )
+                        },
                 )
             }
         }

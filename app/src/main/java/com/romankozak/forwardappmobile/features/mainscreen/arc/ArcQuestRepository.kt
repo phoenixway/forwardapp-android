@@ -36,8 +36,6 @@ class ArcQuestRepository
 
         suspend fun reorder(quests: List<ArcQuestEntity>) {
             val now = System.currentTimeMillis()
-            quests.forEachIndexed { index, quest ->
-                dao.updateOrder(questId = quest.id, order = index.toLong(), updatedAt = now)
-            }
+            dao.updateOrders(questIds = quests.map { it.id }, updatedAt = now)
         }
     }

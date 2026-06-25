@@ -15,10 +15,6 @@ import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementTa
 fun TodayBottomPanelRuntimeActions(
     currentTab: DayManagementTab,
     runtimeUiState: DayManagementRuntimeUiState,
-    onWakeUp: () -> Unit,
-    onFinalizeFocus: () -> Unit,
-    onFinalizePlan: () -> Unit,
-    onStartImplementation: () -> Unit,
     onStartFinalization: () -> Unit,
     onSleep: () -> Unit,
     modifier: Modifier = Modifier,

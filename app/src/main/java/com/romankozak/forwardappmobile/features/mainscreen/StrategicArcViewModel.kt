@@ -29,6 +29,7 @@ import com.romankozak.forwardappmobile.features.missions.domain.repository.Missi
 import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -128,6 +129,7 @@ class StrategicArcViewModel
 
         private val _isScopeLinksSheetVisible = MutableStateFlow(false)
         val isScopeLinksSheetVisible: StateFlow<Boolean> = _isScopeLinksSheetVisible.asStateFlow()
+        private var arcQuestReorderJob: Job? = null
         val obsidianVaultName: StateFlow<String> =
             settingsRepository.obsidianVaultNameFlow
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS), "")
@@ -409,9 +411,12 @@ class StrategicArcViewModel
         }
 
         fun reorderArcQuests(quests: List<ArcQuestEntity>) {
-            viewModelScope.launch {
-                arcQuestRepository.reorder(quests)
-            }
+            val reorderedQuests = quests.toList()
+            arcQuestReorderJob?.cancel()
+            arcQuestReorderJob =
+                viewModelScope.launch {
+                    arcQuestRepository.reorder(reorderedQuests)
+                }
         }
 
         fun createMissionFromArcQuest(quest: ArcQuestEntity) {

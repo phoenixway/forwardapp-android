@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestEntity
 import kotlinx.coroutines.flow.Flow
@@ -43,4 +44,14 @@ interface ArcQuestDao {
         order: Long,
         updatedAt: Long,
     )
+
+    @Transaction
+    suspend fun updateOrders(
+        questIds: List<String>,
+        updatedAt: Long,
+    ) {
+        questIds.forEachIndexed { index, questId ->
+            updateOrder(questId = questId, order = index.toLong(), updatedAt = updatedAt)
+        }
+    }
 }
