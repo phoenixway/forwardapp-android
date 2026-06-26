@@ -7,6 +7,9 @@ object BottomPanelTokens {
     const val ActionContentAlpha = 0.82f
     const val InputBorderAlpha = 0.72f
     const val PlaceholderAlpha = 0.68f
+    const val ContainerPrimaryTint = 0.10f
+    const val InputPrimaryTint = 0.16f
+    const val BorderPrimaryTint = 0.35f
     const val SubTabSelectedContainerAlpha = 0.18f
     const val SubTabSelectedBorderAlpha = 0.45f
     const val SubTabBorderAlpha = 0.08f

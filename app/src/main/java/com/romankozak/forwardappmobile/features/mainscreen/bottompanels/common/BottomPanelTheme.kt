@@ -4,6 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 
 @Immutable
 data class BottomPanelColors(
@@ -23,16 +24,34 @@ data class BottomPanelColors(
 @Composable
 fun bottomPanelColors(): BottomPanelColors {
     val colorScheme = MaterialTheme.colorScheme
+    val tintedContainer =
+        lerp(
+            colorScheme.surfaceContainerLow,
+            colorScheme.primaryContainer,
+            BottomPanelTokens.ContainerPrimaryTint,
+        )
+    val tintedInput =
+        lerp(
+            colorScheme.surfaceContainerHigh,
+            colorScheme.primaryContainer,
+            BottomPanelTokens.InputPrimaryTint,
+        )
+    val tintedBorder =
+        lerp(
+            colorScheme.outlineVariant,
+            colorScheme.primary,
+            BottomPanelTokens.BorderPrimaryTint,
+        )
     return BottomPanelColors(
-        container = colorScheme.surfaceContainerLow,
+        container = tintedContainer,
         content = colorScheme.onSurface,
         mutedContent = colorScheme.onSurfaceVariant,
-        border = colorScheme.outlineVariant.copy(alpha = BottomPanelTokens.ContainerBorderAlpha),
-        action = colorScheme.onSurfaceVariant.copy(alpha = BottomPanelTokens.ActionContentAlpha),
+        border = tintedBorder.copy(alpha = BottomPanelTokens.ContainerBorderAlpha),
+        action = colorScheme.primary.copy(alpha = BottomPanelTokens.ActionContentAlpha),
         selectedActionContainer = colorScheme.primaryContainer,
         selectedActionContent = colorScheme.onPrimaryContainer,
-        inputContainer = colorScheme.surfaceContainerHigh,
-        inputBorder = colorScheme.outlineVariant.copy(alpha = BottomPanelTokens.InputBorderAlpha),
+        inputContainer = tintedInput,
+        inputBorder = colorScheme.primary.copy(alpha = BottomPanelTokens.InputBorderAlpha),
         primaryActionContainer = colorScheme.primary,
         primaryActionContent = colorScheme.onPrimary,
     )
