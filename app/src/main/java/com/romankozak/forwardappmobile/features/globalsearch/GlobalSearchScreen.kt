@@ -325,7 +325,7 @@ fun MagicBoxScreen(
         },
         floatingActionButtonPosition = FabPosition.End,
     ) { paddingValues ->
-        val contentBottomPadding = 220.dp
+        val contentBottomPadding = 208.dp
 
         Box(
             modifier = Modifier
@@ -448,30 +448,18 @@ fun MagicBoxScreen(
                 }
             }
 
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .height(156.dp),
-                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                color = modePalette.searchSurface.copy(alpha = 0.98f),
-                tonalElevation = 6.dp,
-                shadowElevation = 0.dp,
-            ) {}
-
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .navigationBarsPadding()
-                    .height(196.dp)
+                    .height(232.dp)
                     .background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                modePalette.searchSurface.copy(alpha = 0f),
-                                modePalette.searchSurface.copy(alpha = 0.56f),
-                                modePalette.searchSurface.copy(alpha = 0.98f),
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0f),
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.26f),
+                                modePalette.searchSurface.copy(alpha = 0.76f),
                             ),
                         ),
                     ),
