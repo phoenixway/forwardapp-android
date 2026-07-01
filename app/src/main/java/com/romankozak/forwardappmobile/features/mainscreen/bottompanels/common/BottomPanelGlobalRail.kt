@@ -54,11 +54,13 @@ fun BottomPanelGlobalRail(
     var showRecentSheet by remember { mutableStateOf(false) }
     val recentItems by recentViewModel.recentItems.collectAsStateWithLifecycle()
 
-    BottomPanelIconButton(
-        imageVector = Icons.Outlined.AutoAwesome,
-        contentDescription = "Magicbox",
-        onClick = actions.onNavigateToGlobalSearch,
-    )
+    if (mode == BottomPanelGlobalRailMode.FULL) {
+        BottomPanelIconButton(
+            imageVector = Icons.Outlined.History,
+            contentDescription = "Недавні",
+            onClick = { showRecentSheet = true },
+        )
+    }
     if (mode == BottomPanelGlobalRailMode.FULL) {
         BottomPanelIconButton(
             imageVector = Icons.Outlined.MoveToInbox,
@@ -67,17 +69,15 @@ fun BottomPanelGlobalRail(
         )
     }
     BottomPanelIconButton(
+        imageVector = Icons.Outlined.AutoAwesome,
+        contentDescription = "Magicbox",
+        onClick = actions.onNavigateToGlobalSearch,
+    )
+    BottomPanelIconButton(
         imageVector = Icons.Outlined.AccountTree,
         contentDescription = "Ієрархія орієнтирів",
         onClick = actions.onNavigateToProjectHierarchy,
     )
-    if (mode == BottomPanelGlobalRailMode.FULL) {
-        BottomPanelIconButton(
-            imageVector = Icons.Outlined.History,
-            contentDescription = "Недавні",
-            onClick = { showRecentSheet = true },
-        )
-    }
     BottomPanelMoreActionButton(actions = actions)
 
     NewRecentListsSheet(

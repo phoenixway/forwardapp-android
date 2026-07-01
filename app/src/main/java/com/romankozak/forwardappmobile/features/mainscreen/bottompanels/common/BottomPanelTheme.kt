@@ -32,7 +32,7 @@ fun bottomPanelColors(): BottomPanelColors {
         )
     val tintedInput =
         lerp(
-            colorScheme.surfaceContainerHigh,
+            colorScheme.surfaceContainerHighest,
             colorScheme.primaryContainer,
             BottomPanelTokens.InputPrimaryTint,
         )

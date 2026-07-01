@@ -1,1285 +1,1289 @@
 TABLE OF CONTENTS
 ================================================================================
 
-- [/home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/listitem/UnifiedStatusChipSpec.kt](##<<FILE_1>>)
-- [/home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/backlogitems/Badges.kt](##<<FILE_2>>)
-- [/home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/backlogitems/StatusIconsRow.kt](##<<FILE_3>>)
-- [/home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/backlogitems/GoalItem.kt](##<<FILE_4>>)
-- [/home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/BacklogItem.kt](##<<FILE_5>>)
+- [/home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/globalsearch/GlobalSearchScreen.kt](##<<FILE_1>>)
+- [/home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/mainscreen/bottompanels/common/BottomPanelTokens.kt](##<<FILE_2>>)
+- [/home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/mainscreen/bottompanels/common/BottomPanelTheme.kt](##<<FILE_3>>)
 
 ================================================================================
 
 ## <<FILE_1>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/listitem/UnifiedStatusChipSpec.kt (ID: FILE_1)
+BEGIN FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/globalsearch/GlobalSearchScreen.kt (ID: FILE_1)
 ================================================================================
 
-package com.romankozak.forwardappmobile.ui.components.listitem
+@file:Suppress("MaxLineLength", "WildcardImport")
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.FlowRowScope
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+package com.romankozak.forwardappmobile.features.globalsearch
+
+import android.content.res.Configuration
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.MoveToInbox
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.input.key.*
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
+import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchResultItem
+import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.bottomPanelColors
+import kotlinx.coroutines.launch
+import java.util.Locale
 
-data class UnifiedStatusChipSpec(
-    val text: String,
-    val icon: ImageVector? = null,
-    val contentColor: Color? = null,
-    val onClick: (() -> Unit)? = null,
-)
+private const val SCROLL_TO_TOP_VISIBILITY_INDEX = 5
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UnifiedStatusRow(
-    modifier: Modifier = Modifier,
-    content: @Composable FlowRowScope.() -> Unit,
+fun GlobalSearchScreen(
+    navController: NavController,
+    viewModel: GlobalSearchViewModel = hiltViewModel(),
 ) {
-    FlowRow(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-        content = content,
-    )
+    MagicBoxScreen(navController = navController, viewModel = viewModel)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UnifiedStatusRow(
-    items: List<UnifiedStatusChipSpec>,
-    modifier: Modifier = Modifier,
-    defaultContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+fun MagicBoxScreen(
+    navController: NavController,
+    viewModel: GlobalSearchViewModel = hiltViewModel(),
 ) {
-    UnifiedStatusRow(modifier = modifier) {
-        items.forEach { item ->
-            UnifiedMetaChip(
-                text = item.text,
-                icon = item.icon,
-                contentColor = item.contentColor ?: defaultContentColor,
-                onClick = item.onClick,
+    val uiState by viewModel.uiState.collectAsState()
+    val obsidianVaultName by viewModel.obsidianVaultName.collectAsState()
+    val context = LocalContext.current
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
+    val showScrollToTopButton by remember {
+        derivedStateOf { listState.firstVisibleItemIndex > SCROLL_TO_TOP_VISIBILITY_INDEX }
+    }
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val configuration = LocalConfiguration.current
+    val typeOptions = remember { GlobalSearchType.entries }
+    val selectedTypes = uiState.selectedTypes
+    var selectedSort by remember { mutableStateOf(GlobalSearchSort.Relevance) }
+    var showSortSheet by remember { mutableStateOf(false) }
+    var showSearchSettingsSheet by remember { mutableStateOf(false) }
+    var showModeMenu by remember { mutableStateOf(false) }
+    var showCreateSheet by remember { mutableStateOf(false) }
+    var selectedCommandIndex by remember { mutableStateOf<Int?>(null) }
+    var selectedDataIndex by remember { mutableStateOf<Int?>(null) }
+    var selectionArea by remember { mutableStateOf(OmniboxSelectionArea.None) }
+    var submittedQuery by rememberSaveable { mutableStateOf(uiState.query.takeIf { it.isNotBlank() }) }
+    val currentMode = uiState.mode
+    val modePalette = rememberModePalette(currentMode)
+    val currentModePrefs = uiState.modeDisplayPrefs[currentMode]
+    val hasQuery = uiState.query.isNotBlank()
+
+    val submitCommandIndex = selectedCommandIndex.takeIf { selectionArea == OmniboxSelectionArea.Command }
+    val submitWithKeyboardHide: () -> Unit = {
+        submittedQuery = uiState.query.takeIf { it.isNotBlank() }
+        viewModel.onSubmitSearch(submitCommandIndex)
+        keyboardController?.hide()
+    }
+
+    val showActionResults = GlobalSearchType.Actions in selectedTypes
+    val visibleHybridCommandResults by remember(uiState.hybridCommandResults, showActionResults) {
+        derivedStateOf {
+            if (showActionResults) uiState.hybridCommandResults else emptyList()
+        }
+    }
+
+    val filteredResults by remember(uiState.results, selectedSort, uiState.query) {
+        derivedStateOf {
+            uiState.results
+                .let { results ->
+                    when (selectedSort) {
+                        GlobalSearchSort.Relevance -> results
+                        GlobalSearchSort.Type -> results.sortedBy { it.groupKey() }
+                        GlobalSearchSort.Alphabetical -> results.sortedBy { resultTitle(it).lowercase(Locale.getDefault()) }
+                    }
+                }
+        }
+    }
+    val firstResultsSectionHeaderIndex by remember(visibleHybridCommandResults, filteredResults) {
+        derivedStateOf {
+            if (filteredResults.isEmpty()) {
+                0
+            } else if (visibleHybridCommandResults.isNotEmpty()) {
+                visibleHybridCommandResults.size + 2
+            } else {
+                0
+            }
+        }
+    }
+    val resultCount =
+        when (currentMode) {
+            OmniboxMode.DataSearch -> filteredResults.size
+            OmniboxMode.Command -> uiState.commandResults.size
+            else -> 0
+        }
+    val hasVisibleResults = !uiState.isLoading && resultCount > 0
+    val hasSubmittedCurrentQuery = hasQuery && submittedQuery == uiState.query
+    val hasResultContent by remember(
+        currentMode,
+        filteredResults,
+        hasSubmittedCurrentQuery,
+        uiState.commandResults,
+        visibleHybridCommandResults,
+    ) {
+        derivedStateOf {
+            hasSubmittedCurrentQuery &&
+                when (currentMode) {
+                    OmniboxMode.DataSearch -> filteredResults.isNotEmpty() || visibleHybridCommandResults.isNotEmpty()
+                    OmniboxMode.Command -> uiState.commandResults.isNotEmpty()
+                    OmniboxMode.QuickCatchInbox,
+                    OmniboxMode.StartActivity,
+                    OmniboxMode.AddActivityEvent -> false
+                }
+        }
+    }
+
+    val loadingScale by animateFloatAsState(
+        targetValue = if (uiState.isLoading) 1f else 0.8f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        label = "loading_scale",
+    )
+    val resultsAlpha by animateFloatAsState(
+        targetValue = if (!uiState.isLoading && uiState.results.isNotEmpty()) 1f else 0f,
+        animationSpec = tween(durationMillis = 400, easing = EaseOutCubic),
+        label = "results_alpha",
+    )
+
+    val selectedDataResultUniqueId = remember(filteredResults, selectedDataIndex) {
+        selectedDataIndex?.let { index -> filteredResults.getOrNull(index)?.uniqueId }
+    }
+
+    LaunchedEffect(currentMode, uiState.commandResults, visibleHybridCommandResults, filteredResults) {
+        when (currentMode) {
+            OmniboxMode.Command -> {
+                val size = uiState.commandResults.size
+                selectedCommandIndex = if (size > 0) 0 else null
+                selectedDataIndex = null
+                selectionArea = if (size > 0) OmniboxSelectionArea.Command else OmniboxSelectionArea.None
+            }
+            OmniboxMode.DataSearch -> {
+                val commandSize = visibleHybridCommandResults.size
+                val dataSize = filteredResults.size
+                when {
+                    commandSize > 0 -> {
+                        selectedCommandIndex = 0
+                        selectedDataIndex = if (dataSize > 0) 0 else null
+                        selectionArea = OmniboxSelectionArea.Command
+                    }
+                    dataSize > 0 -> {
+                        selectedCommandIndex = null
+                        selectedDataIndex = 0
+                        selectionArea = OmniboxSelectionArea.Data
+                    }
+                    else -> {
+                        selectedCommandIndex = null
+                        selectedDataIndex = null
+                        selectionArea = OmniboxSelectionArea.None
+                    }
+                }
+            }
+            else -> {
+                selectedCommandIndex = null
+                selectedDataIndex = null
+                selectionArea = OmniboxSelectionArea.None
+            }
+        }
+    }
+
+    LaunchedEffect(currentMode, uiState.query, filteredResults, visibleHybridCommandResults) {
+        if (currentMode == OmniboxMode.DataSearch && uiState.query.isNotBlank() && filteredResults.isNotEmpty()) {
+            listState.scrollToItem(firstResultsSectionHeaderIndex)
+        }
+    }
+
+    fun openDataResultPrimary(result: GlobalSearchResultItem) {
+        when (result) {
+            is GlobalSearchResultItem.GoalItem -> {
+                viewModel.onDataResultOpened(result.uniqueId)
+                viewModel.navigateToProjectForResult(result.backlogItem.contextId, result.projectName)
+            }
+            is GlobalSearchResultItem.LinkItem -> {
+                viewModel.onDataResultOpened(result.uniqueId)
+                viewModel.navigateToProjectForResult(result.searchResult.contextId, result.searchResult.contextName)
+            }
+            is GlobalSearchResultItem.SubcontextItem -> {
+                viewModel.onDataResultOpened(result.uniqueId)
+                viewModel.navigateToProjectForResult(result.searchResult.subcontext.id, result.searchResult.subcontext.name)
+            }
+            is GlobalSearchResultItem.ContextItem -> {
+                viewModel.onDataResultOpened(result.uniqueId)
+                viewModel.navigateToProjectForResult(result.searchResult.context.id, result.searchResult.context.name)
+            }
+            is GlobalSearchResultItem.ActivityItem -> {
+                val contextId = result.record.contextId
+                if (!contextId.isNullOrBlank()) {
+                    viewModel.onDataResultOpened(result.uniqueId)
+                    viewModel.navigateToProjectForResult(contextId, null)
+                }
+            }
+            is GlobalSearchResultItem.InboxItem -> {
+                viewModel.onDataResultOpened(result.uniqueId)
+                viewModel.navigateToProjectForResult(result.record.contextId, null)
+            }
+            is GlobalSearchResultItem.AttachmentItem -> {
+                viewModel.openAttachmentResult(result)
+            }
+        }
+    }
+
+    BackHandler {
+        if (!navController.popBackStack()) {
+            viewModel.enhancedNavigationManager.goBack()
+        }
+    }
+
+    LaunchedEffect(configuration.keyboard, configuration.hardKeyboardHidden) {
+        focusRequester.requestFocus()
+        val hasVisibleHardwareKeyboard =
+            configuration.keyboard != Configuration.KEYBOARD_NOKEYS &&
+                configuration.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO
+        if (!hasVisibleHardwareKeyboard) {
+            keyboardController?.show()
+        }
+    }
+
+    if (showSortSheet) {
+        SortBottomSheet(
+            selectedSort = selectedSort,
+            onSortSelected = { selectedSort = it; showSortSheet = false },
+            onDismiss = { showSortSheet = false },
+        )
+    }
+    if (showCreateSheet) {
+        CreateFromSearchBottomSheet(
+            onCreateContext = { showCreateSheet = false; viewModel.createContextFromSearch() },
+            onCreateDocument = { showCreateSheet = false; viewModel.createDocumentFromSearch() },
+            onDismiss = { showCreateSheet = false },
+        )
+    }
+    if (showSearchSettingsSheet) {
+        SearchPreferencesBottomSheet(
+            currentMode = currentMode,
+            prefs = uiState.modeDisplayPrefs,
+            typeOptions = typeOptions,
+            selectedTypes = selectedTypes,
+            onToggleType = { type ->
+                val current = selectedTypes.toMutableSet()
+                if (type in current && current.size > 1) current.remove(type)
+                else if (type !in current) current.add(type)
+                viewModel.updateSelectedTypes(current)
+            },
+            onSelectAllTypes = { viewModel.updateSelectedTypes(typeOptions.toSet()) },
+            selectedSort = selectedSort,
+            onSortSelected = { selectedSort = it },
+            onPreviewChanged = viewModel::setModePreview,
+            onRecentsChanged = viewModel::setModeRecents,
+            onDismiss = { showSearchSettingsSheet = false },
+        )
+    }
+
+    Scaffold(
+        floatingActionButton = {
+            AnimatedVisibility(
+                visible = showScrollToTopButton,
+                enter = scaleIn() + fadeIn(),
+                exit = scaleOut() + fadeOut(),
+            ) {
+                FloatingActionButton(
+                    onClick = { coroutineScope.launch { listState.animateScrollToItem(0) } },
+                    shape = RoundedCornerShape(16.dp),
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                ) {
+                    Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Нагору")
+                }
+            }
+        },
+        floatingActionButtonPosition = FabPosition.End,
+    ) { paddingValues ->
+        val contentBottomPadding = 220.dp
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(MaterialTheme.colorScheme.surface, modePalette.screenBottomTint),
+                        startY = 0.1f,
+                    ),
+                )
+                .padding(paddingValues)
+                .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 8.dp),
+        ) {
+            if (hasResultContent) {
+                // ── Content area ──────────────────────────────────────────────
+                Surface(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 6.dp, bottom = contentBottomPadding),
+                    shape = RoundedCornerShape(28.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                    tonalElevation = 2.dp,
+                    shadowElevation = 0.dp,
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f),
+                    ),
+                ) {
+                    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 6.dp)) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            when (currentMode) {
+                                OmniboxMode.DataSearch -> {
+                                    when {
+                                        uiState.isLoading -> {
+                                            DataSearchLoadingContent(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .graphicsLayer(scaleX = loadingScale, scaleY = loadingScale),
+                                            )
+                                        }
+                                        filteredResults.isEmpty() -> {
+                                            EmptyDataSearchContent(
+                                                args = EmptyDataSearchArgs(
+                                                    query = uiState.query,
+                                                    commandResults = uiState.hybridCommandResults,
+                                                    selectedCommandIndex = selectedCommandIndex,
+                                                    accentColor = modePalette.iconTint,
+                                                    onCommandClick = viewModel::onCommandClick,
+                                                    actions = EmptyDataSearchActions(
+                                                        onQuickCatch = viewModel::quickCatchCurrentQuery,
+                                                        onStartActivity = viewModel::startActivityFromCurrentQuery,
+                                                        onAddActivityEvent = viewModel::addActivityEventFromCurrentQuery,
+                                                        onCreateContext = viewModel::createContextFromSearch,
+                                                        onCreateDocument = viewModel::createDocumentFromSearch,
+                                                        onRunBestCommand = viewModel::runBestCommandForCurrentQuery,
+                                                    ),
+                                                ),
+                                                modifier = Modifier.fillMaxSize(),
+                                            )
+                                        }
+                                        else -> {
+                                            SearchResultsContent(
+                                                args = SearchResultsContentArgs(
+                                                    commandResults = visibleHybridCommandResults,
+                                                    selectedCommandIndex = selectedCommandIndex.takeIf {
+                                                        selectionArea == OmniboxSelectionArea.Command
+                                                    },
+                                                    onCommandClick = viewModel::onCommandClick,
+                                                    accentColor = modePalette.iconTint,
+                                                    results = filteredResults,
+                                                    query = uiState.query,
+                                                    viewModel = viewModel,
+                                                    obsidianVaultName = obsidianVaultName,
+                                                    context = context,
+                                                    listState = listState,
+                                                    selectedResultUniqueId = selectedDataResultUniqueId,
+                                                    navController = navController,
+                                                ),
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .graphicsLayer(alpha = resultsAlpha),
+                                            )
+                                        }
+                                    }
+                                }
+                                OmniboxMode.Command -> {
+                                    CommandResultsContent(
+                                        args = CommandResultsArgs(
+                                            results = uiState.commandResults,
+                                            query = uiState.query,
+                                            recentCommands = uiState.recentCommands,
+                                            showPreview = currentModePrefs.showPreview,
+                                            showRecents = currentModePrefs.showRecents,
+                                            selectedCommandIndex = selectedCommandIndex,
+                                            onCommandClick = viewModel::onCommandClick,
+                                            accentColor = modePalette.iconTint,
+                                        ),
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                }
+                                OmniboxMode.QuickCatchInbox,
+                                OmniboxMode.StartActivity,
+                                OmniboxMode.AddActivityEvent -> {
+                                    ModeRecentInputsContent(
+                                        args = ModeRecentInputsArgs(
+                                            mode = currentMode,
+                                            recents = uiState.recentModeInputs[currentMode].orEmpty(),
+                                            showPreview = currentModePrefs.showPreview,
+                                            showRecents = currentModePrefs.showRecents,
+                                            onRecentClick = { viewModel.applyRecentInputForMode(currentMode, it) },
+                                            onRemoveRecentEntry = { viewModel.removeRecentInput(currentMode, it) },
+                                            onClearRecentEntries = { viewModel.clearRecentInputs(currentMode) },
+                                        ),
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .height(156.dp),
+                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                color = modePalette.searchSurface.copy(alpha = 0.98f),
+                tonalElevation = 6.dp,
+                shadowElevation = 0.dp,
+            ) {}
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .height(196.dp)
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                modePalette.searchSurface.copy(alpha = 0f),
+                                modePalette.searchSurface.copy(alpha = 0.56f),
+                                modePalette.searchSurface.copy(alpha = 0.98f),
+                            ),
+                        ),
+                    ),
+            )
+
+            MagicBoxActionStrip(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .imePadding()
+                    .padding(bottom = 204.dp),
+                palette = modePalette,
+                hasVisibleResults = hasVisibleResults,
+                resultCount = resultCount,
+                onNavigateBack = {
+                    if (!navController.popBackStack()) viewModel.enhancedNavigationManager.goBack()
+                },
+                onShowCreate = { showCreateSheet = true },
+                onShowSettings = { showSearchSettingsSheet = true },
+            )
+
+            // ── Compact Omnibox ───────────────────────────────────────────────
+            CompactOmnibox(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .imePadding(),
+                uiState = uiState,
+                currentMode = currentMode,
+                modePalette = modePalette,
+                showModeMenu = showModeMenu,
+                onShowModeMenu = { showModeMenu = true },
+                onDismissModeMenu = { showModeMenu = false },
+                onSetMode = {
+                    submittedQuery = null
+                    viewModel.setMode(it)
+                    showModeMenu = false
+                },
+                onCycleMode = {
+                    submittedQuery = null
+                    viewModel.cycleMode(it)
+                },
+                onQueryChange = {
+                    submittedQuery = null
+                    viewModel.onQueryChange(it)
+                },
+                onClearQuery = { viewModel.onQueryChange("") },
+                onSubmit = submitWithKeyboardHide,
+                onKeyDown = { keyEvent ->
+                    handleOmniboxKeyEvent(
+                        keyEvent = keyEvent,
+                        currentMode = currentMode,
+                        uiState = uiState,
+                        hybridCommandResults = visibleHybridCommandResults,
+                        filteredResults = filteredResults,
+                        selectedCommandIndex = selectedCommandIndex,
+                        selectedDataIndex = selectedDataIndex,
+                        selectionArea = selectionArea,
+                        onSelectedCommandIndex = { selectedCommandIndex = it },
+                        onSelectedDataIndex = { selectedDataIndex = it },
+                        onSelectionArea = { selectionArea = it },
+                    )
+                },
+                focusRequester = focusRequester,
             )
         }
     }
 }
 
+// ── Compact Omnibox ───────────────────────────────────────────────────────────
+
 @Composable
-fun UnifiedMetaChip(
-    text: String,
-    icon: ImageVector? = null,
-    contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    onClick: (() -> Unit)? = null,
+private fun MagicBoxActionStrip(
+    palette: OmniboxModePalette,
+    hasVisibleResults: Boolean,
+    resultCount: Int,
+    onNavigateBack: () -> Unit,
+    onShowCreate: () -> Unit,
+    onShowSettings: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.68f),
-        border = null,
-        tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
-        onClick = onClick ?: {},
-        enabled = onClick != null,
+        modifier = modifier
+            .shadow(
+                elevation = 10.dp,
+                shape = RoundedCornerShape(18.dp),
+                ambientColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.10f),
+                spotColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.16f),
+            ),
+        shape = RoundedCornerShape(18.dp),
+        color = palette.searchSurface.copy(alpha = 0.94f),
+        tonalElevation = 4.dp,
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = palette.panelOutline,
+        ),
     ) {
         Row(
-            modifier =
-                if (text.isBlank()) {
-                    Modifier
-                        .height(24.dp)
-                        .heightIn(min = 24.dp)
-                        .padding(horizontal = 6.dp, vertical = 4.dp)
-                } else {
-                    Modifier
-                        .height(24.dp)
-                        .heightIn(min = 24.dp)
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 7.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            if (icon != null) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(12.dp),
-                    tint = contentColor,
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ActionStripButton(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close",
+                    palette = palette,
+                    onClick = onNavigateBack,
+                )
+                ActionStripButton(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Створити",
+                    palette = palette,
+                    emphasized = true,
+                    onClick = onShowCreate,
                 )
             }
-            if (text.isNotBlank()) {
-                Text(
-                    text = text,
-                    color = contentColor,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AnimatedVisibility(
+                    visible = hasVisibleResults,
+                    enter = fadeIn(animationSpec = tween(delayMillis = 200)) + scaleIn(),
+                    exit = fadeOut() + scaleOut(),
+                ) {
+                    ResultsCountBadge(count = resultCount)
+                }
+                ActionStripButton(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Налаштування пошуку",
+                    palette = palette,
+                    onClick = onShowSettings,
                 )
             }
         }
     }
 }
 
+@Composable
+private fun ActionStripButton(
+    imageVector: ImageVector,
+    contentDescription: String,
+    palette: OmniboxModePalette,
+    onClick: () -> Unit,
+    emphasized: Boolean = false,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.size(38.dp),
+        shape = RoundedCornerShape(13.dp),
+        color = if (emphasized) palette.modeIconContainer.copy(alpha = 0.88f) else palette.secondaryActionContainer,
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = palette.iconTint.copy(alpha = if (emphasized) 0.30f else 0.14f),
+        ),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = imageVector,
+                contentDescription = contentDescription,
+                modifier = Modifier.size(20.dp),
+                tint = if (emphasized) palette.iconTint else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CompactOmnibox(
+    modifier: Modifier = Modifier,
+    uiState: GlobalSearchUiState,
+    currentMode: OmniboxMode,
+    modePalette: OmniboxModePalette,
+    showModeMenu: Boolean,
+    onShowModeMenu: () -> Unit,
+    onDismissModeMenu: () -> Unit,
+    onSetMode: (OmniboxMode) -> Unit,
+    onCycleMode: (Boolean) -> Unit,
+    onQueryChange: (String) -> Unit,
+    onClearQuery: () -> Unit,
+    onSubmit: () -> Unit,
+    onKeyDown: (androidx.compose.ui.input.key.KeyEvent) -> Boolean,
+    focusRequester: FocusRequester,
+) {
+    val isQuickCatchMode = currentMode == OmniboxMode.QuickCatchInbox
+    val hasQuery = uiState.query.isNotBlank()
+
+    Surface(
+        modifier =
+            modifier
+                .shadow(
+                    elevation = 20.dp,
+                    shape = RoundedCornerShape(22.dp),
+                    ambientColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.18f),
+                    spotColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.24f),
+                )
+                .border(
+                    width = 1.dp,
+                    color = modePalette.iconTint.copy(alpha = 0.18f),
+                    shape = RoundedCornerShape(22.dp),
+                ),
+        shape = RoundedCornerShape(22.dp),
+        color = modePalette.searchSurface.copy(alpha = 0.98f),
+        tonalElevation = 8.dp,
+        shadowElevation = 10.dp,
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp)) {
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = modePalette.panelChrome,
+                border = androidx.compose.foundation.BorderStroke(1.dp, modePalette.panelOutline),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    TextField(
+                        value = uiState.query,
+                        onValueChange = onQueryChange,
+                        modifier = Modifier
+                            .weight(1f)
+                            .then(
+                                if (isQuickCatchMode) Modifier.heightIn(min = 56.dp, max = 144.dp)
+                                else Modifier.heightIn(min = 56.dp)
+                            )
+                            .focusRequester(focusRequester)
+                            .onPreviewKeyEvent { onKeyDown(it) },
+                        singleLine = !isQuickCatchMode,
+                        maxLines = if (isQuickCatchMode) 6 else 1,
+                        placeholder = {
+                            Text(
+                                placeholderForMode(currentMode),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.68f),
+                            )
+                        },
+                        textStyle = MaterialTheme.typography.bodyLarge,
+                        keyboardOptions = KeyboardOptions(imeAction = if (isQuickCatchMode) ImeAction.Default else ImeAction.Done),
+                        keyboardActions = KeyboardActions(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = modePalette.inputFocusedContainer.copy(alpha = 1f),
+                            unfocusedContainerColor = modePalette.inputContainer.copy(alpha = 0.98f),
+                            disabledContainerColor = modePalette.inputContainer.copy(alpha = 0.98f),
+                            focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                            focusedLeadingIconColor = modePalette.iconTint,
+                            unfocusedLeadingIconColor = modePalette.iconTint,
+                            focusedTrailingIconColor = modePalette.iconTint,
+                            unfocusedTrailingIconColor = modePalette.iconTint,
+                        ),
+                        trailingIcon = if (hasQuery) {
+                            {
+                                Row(
+                                    modifier = Modifier.padding(end = 4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    IconButton(
+                                        onClick = onClearQuery,
+                                        modifier = Modifier.size(36.dp),
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Clear,
+                                            contentDescription = "очистити",
+                                            modifier = Modifier.size(18.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                    Surface(
+                                        onClick = onSubmit,
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = modePalette.primaryActionContainer,
+                                        tonalElevation = 0.dp,
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.size(40.dp),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Icon(
+                                                Icons.AutoMirrored.Filled.Send,
+                                                contentDescription = submitDescriptionForMode(currentMode),
+                                                modifier = Modifier.size(18.dp),
+                                                tint = MaterialTheme.colorScheme.onPrimary,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            null
+                        },
+                    )
+                }
+            }
+
+            Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp, start = 2.dp, end = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ModeIconDock(
+                    currentMode = currentMode,
+                    palette = modePalette,
+                    showModeMenu = showModeMenu,
+                    onShowModeMenu = onShowModeMenu,
+                    onDismissModeMenu = onDismissModeMenu,
+                    onSetMode = onSetMode,
+                    onCycleMode = onCycleMode,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModeIconDock(
+    currentMode: OmniboxMode,
+    palette: OmniboxModePalette,
+    showModeMenu: Boolean,
+    onShowModeMenu: () -> Unit,
+    onDismissModeMenu: () -> Unit,
+    onSetMode: (OmniboxMode) -> Unit,
+    onCycleMode: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .pointerInput(currentMode) {
+                var totalDrag = 0f
+                detectHorizontalDragGestures(
+                    onHorizontalDrag = { _, dragAmount -> totalDrag += dragAmount },
+                    onDragEnd = {
+                        when {
+                            totalDrag > 36f -> onCycleMode(false)
+                            totalDrag < -36f -> onCycleMode(true)
+                        }
+                        totalDrag = 0f
+                    },
+                )
+            },
+        shape = RoundedCornerShape(16.dp),
+        color = palette.panelChrome,
+        border = androidx.compose.foundation.BorderStroke(1.dp, palette.panelOutline),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OmniboxMode.entries.forEach { mode ->
+                ModeIconButton(
+                    mode = mode,
+                    selected = mode == currentMode,
+                    palette = palette,
+                    onClick = { onSetMode(mode) },
+                )
+            }
+            Box {
+                ModeDockActionButton(
+                    imageVector = Icons.Default.MoreHoriz,
+                    contentDescription = "Більше режимів",
+                    selected = false,
+                    palette = palette,
+                    onClick = onShowModeMenu,
+                )
+                DropdownMenu(
+                    expanded = showModeMenu,
+                    onDismissRequest = onDismissModeMenu,
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                ) {
+                    OmniboxMode.entries.forEach { mode ->
+                        DropdownMenuItem(
+                            text = { Text(modeTitle(mode), style = MaterialTheme.typography.bodyMedium) },
+                            leadingIcon = {
+                                Icon(modeIcon(mode), contentDescription = null, modifier = Modifier.size(16.dp))
+                            },
+                            onClick = { onSetMode(mode) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModeIconButton(
+    mode: OmniboxMode,
+    selected: Boolean,
+    palette: OmniboxModePalette,
+    onClick: () -> Unit,
+) {
+    ModeDockActionButton(
+        imageVector = modeIcon(mode),
+        contentDescription = modeTitle(mode),
+        selected = selected,
+        palette = palette,
+        onClick = onClick,
+    )
+}
+
+@Composable
+private fun ModeDockActionButton(
+    imageVector: ImageVector,
+    contentDescription: String,
+    selected: Boolean,
+    palette: OmniboxModePalette,
+    onClick: () -> Unit,
+) {
+    val containerColor =
+        if (selected) palette.modeIconContainer else MaterialTheme.colorScheme.surface.copy(alpha = 0.28f)
+    val borderColor =
+        if (selected) palette.iconTint.copy(alpha = 0.42f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.18f)
+    val iconColor = if (selected) palette.iconTint else MaterialTheme.colorScheme.onSurfaceVariant
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.size(42.dp),
+        shape = RoundedCornerShape(14.dp),
+        color = containerColor,
+        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor),
+        shadowElevation = if (selected) 4.dp else 0.dp,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = imageVector,
+                contentDescription = contentDescription,
+                modifier = Modifier.size(20.dp),
+                tint = iconColor,
+            )
+        }
+    }
+}
+
+// ── Key event handler (extracted to keep GlobalSearchScreen readable) ─────────
+
+@Suppress("ReturnCount")
+private fun handleOmniboxKeyEvent(
+    keyEvent: androidx.compose.ui.input.key.KeyEvent,
+    currentMode: OmniboxMode,
+    uiState: GlobalSearchUiState,
+    hybridCommandResults: List<OmniboxCommandResult>,
+    filteredResults: List<GlobalSearchResultItem>,
+    selectedCommandIndex: Int?,
+    selectedDataIndex: Int?,
+    selectionArea: OmniboxSelectionArea,
+    onSelectedCommandIndex: (Int?) -> Unit,
+    onSelectedDataIndex: (Int?) -> Unit,
+    onSelectionArea: (OmniboxSelectionArea) -> Unit,
+): Boolean {
+    if (keyEvent.type != KeyEventType.KeyDown) return false
+    return when (keyEvent.key) {
+        Key.DirectionDown -> {
+            when (currentMode) {
+                OmniboxMode.Command -> {
+                    val commands = uiState.commandResults
+                    if (commands.isEmpty()) return false
+                    val current = selectedCommandIndex ?: -1
+                    onSelectedCommandIndex((current + 1).coerceAtMost(commands.lastIndex))
+                    true
+                }
+                OmniboxMode.DataSearch -> {
+                    val commandSize = hybridCommandResults.size
+                    val dataSize = filteredResults.size
+                    if (commandSize == 0 && dataSize == 0) return false
+                    when (selectionArea) {
+                        OmniboxSelectionArea.Command -> {
+                            val current = selectedCommandIndex ?: 0
+                            if (current < commandSize - 1) onSelectedCommandIndex(current + 1)
+                            else if (dataSize > 0) { onSelectionArea(OmniboxSelectionArea.Data); onSelectedDataIndex(0) }
+                        }
+                        OmniboxSelectionArea.Data -> {
+                            val current = selectedDataIndex ?: -1
+                            onSelectedDataIndex((current + 1).coerceAtMost(dataSize - 1))
+                        }
+                        OmniboxSelectionArea.None -> {
+                            if (commandSize > 0) { onSelectionArea(OmniboxSelectionArea.Command); onSelectedCommandIndex(0) }
+                            else if (dataSize > 0) { onSelectionArea(OmniboxSelectionArea.Data); onSelectedDataIndex(0) }
+                        }
+                    }
+                    true
+                }
+                else -> false
+            }
+        }
+        Key.DirectionUp -> {
+            when (currentMode) {
+                OmniboxMode.Command -> {
+                    val commands = uiState.commandResults
+                    if (commands.isEmpty()) return false
+                    val current = selectedCommandIndex ?: commands.size
+                    onSelectedCommandIndex((current - 1).coerceAtLeast(0))
+                    true
+                }
+                OmniboxMode.DataSearch -> {
+                    val commandSize = hybridCommandResults.size
+                    val dataSize = filteredResults.size
+                    if (commandSize == 0 && dataSize == 0) return false
+                    when (selectionArea) {
+                        OmniboxSelectionArea.Command -> {
+                            val current = selectedCommandIndex ?: commandSize
+                            onSelectedCommandIndex((current - 1).coerceAtLeast(0))
+                        }
+                        OmniboxSelectionArea.Data -> {
+                            val current = selectedDataIndex ?: dataSize
+                            if (current > 0) onSelectedDataIndex(current - 1)
+                            else if (commandSize > 0) {
+                                onSelectionArea(OmniboxSelectionArea.Command)
+                                onSelectedCommandIndex(commandSize - 1)
+                            }
+                        }
+                        OmniboxSelectionArea.None -> {
+                            if (dataSize > 0) { onSelectionArea(OmniboxSelectionArea.Data); onSelectedDataIndex(dataSize - 1) }
+                            else if (commandSize > 0) { onSelectionArea(OmniboxSelectionArea.Command); onSelectedCommandIndex(commandSize - 1) }
+                        }
+                    }
+                    true
+                }
+                else -> false
+            }
+        }
+        Key.Enter, Key.NumPadEnter -> false
+        else -> false
+    }
+}
+
+// ── Helpers (unchanged from original) ────────────────────────────────────────
+
+private fun modeIcon(mode: OmniboxMode): ImageVector =
+    when (mode) {
+        OmniboxMode.DataSearch -> Icons.Default.Search
+        OmniboxMode.Command -> Icons.Default.Tune
+        OmniboxMode.QuickCatchInbox -> Icons.Outlined.MoveToInbox
+        OmniboxMode.StartActivity -> Icons.Default.History
+        OmniboxMode.AddActivityEvent -> Icons.Default.CheckCircle
+    }
+
+private fun modeTitle(mode: OmniboxMode): String =
+    when (mode) {
+        OmniboxMode.DataSearch -> "Пошук даних"
+        OmniboxMode.Command -> "Команди"
+        OmniboxMode.QuickCatchInbox -> "Quick catch to inbox"
+        OmniboxMode.StartActivity -> "Start record activity"
+        OmniboxMode.AddActivityEvent -> "Add tracker event"
+    }
+
+private enum class OmniboxSelectionArea { None, Command, Data }
+
+private fun placeholderForMode(mode: OmniboxMode): String =
+    when (mode) {
+        OmniboxMode.DataSearch -> "Пошук по контекстах, цілях, активностях..."
+        OmniboxMode.Command -> "Команда або екран (fuzzy)"
+        OmniboxMode.QuickCatchInbox -> "Швидкий запис в inbox..."
+        OmniboxMode.StartActivity -> "Назва нової активності..."
+        OmniboxMode.AddActivityEvent -> "Назва події трекера..."
+    }
+
+private fun submitDescriptionForMode(mode: OmniboxMode): String =
+    when (mode) {
+        OmniboxMode.DataSearch -> "Виконати пошук"
+        OmniboxMode.Command -> "Виконати команду"
+        OmniboxMode.QuickCatchInbox -> "Додати в inbox"
+        OmniboxMode.StartActivity -> "Почати активність"
+        OmniboxMode.AddActivityEvent -> "Додати подію"
+    }
+
+internal fun commandIcon(commandId: OmniboxCommandId): ImageVector =
+    when (commandId) {
+        OmniboxCommandId.OpenContexts -> Icons.Default.AccountTree
+        OmniboxCommandId.OpenInbox -> Icons.Outlined.MoveToInbox
+        OmniboxCommandId.OpenTracker -> Icons.Default.History
+        OmniboxCommandId.OpenReminders -> Icons.Default.History
+        OmniboxCommandId.OpenSettings -> Icons.Default.Tune
+        OmniboxCommandId.OpenSearch -> Icons.Default.Search
+        OmniboxCommandId.OpenAttachments -> Icons.Default.Description
+        OmniboxCommandId.OpenScripts -> Icons.Default.Tune
+        OmniboxCommandId.OpenAiChat -> Icons.Default.Navigation
+        OmniboxCommandId.OpenAiInsights -> Icons.Default.Navigation
+        OmniboxCommandId.OpenAiLife -> Icons.Default.Navigation
+        OmniboxCommandId.OpenStructurePresets -> Icons.Default.Tune
+    }
+
+internal fun commandTitle(commandId: OmniboxCommandId): String =
+    when (commandId) {
+        OmniboxCommandId.OpenContexts -> "Контексти"
+        OmniboxCommandId.OpenInbox -> "Inbox"
+        OmniboxCommandId.OpenTracker -> "Tracker"
+        OmniboxCommandId.OpenReminders -> "Reminders"
+        OmniboxCommandId.OpenSettings -> "Settings"
+        OmniboxCommandId.OpenSearch -> "Search"
+        OmniboxCommandId.OpenAttachments -> "Attachments"
+        OmniboxCommandId.OpenScripts -> "Scripts"
+        OmniboxCommandId.OpenAiChat -> "AI Chat"
+        OmniboxCommandId.OpenAiInsights -> "AI Insights"
+        OmniboxCommandId.OpenAiLife -> "AI Life"
+        OmniboxCommandId.OpenStructurePresets -> "Presets"
+    }
+
+private data class OmniboxModePalette(
+    val searchSurface: androidx.compose.ui.graphics.Color,
+    val screenBottomTint: androidx.compose.ui.graphics.Color,
+    val panelChrome: androidx.compose.ui.graphics.Color,
+    val panelOutline: androidx.compose.ui.graphics.Color,
+    val inputContainer: androidx.compose.ui.graphics.Color,
+    val inputFocusedContainer: androidx.compose.ui.graphics.Color,
+    val secondaryActionContainer: androidx.compose.ui.graphics.Color,
+    val primaryActionContainer: androidx.compose.ui.graphics.Color,
+    val modeIconContainer: androidx.compose.ui.graphics.Color,
+    val iconTint: androidx.compose.ui.graphics.Color,
+)
+
+@Composable
+private fun rememberModePalette(mode: OmniboxMode): OmniboxModePalette {
+    val scheme = MaterialTheme.colorScheme
+    val bottomColors = bottomPanelColors()
+    val accent = modeAccentColor(mode)
+    val accentContainer = modeAccentContainer(mode)
+    return remember(mode, scheme, bottomColors, accent, accentContainer) {
+        OmniboxModePalette(
+            searchSurface = lerp(bottomColors.container, accentContainer, 0.18f),
+            screenBottomTint = lerp(scheme.surfaceContainerLow, accentContainer, 0.10f),
+            panelChrome = lerp(bottomColors.container, scheme.surfaceContainerHigh, 0.34f),
+            panelOutline = lerp(bottomColors.border, accent, 0.24f).copy(alpha = 0.42f),
+            inputContainer = bottomColors.inputContainer,
+            inputFocusedContainer = lerp(bottomColors.inputContainer, accentContainer, 0.14f),
+            secondaryActionContainer = lerp(bottomColors.container, accentContainer, 0.10f),
+            primaryActionContainer = lerp(bottomColors.primaryActionContainer, accent, 0.34f),
+            modeIconContainer = lerp(bottomColors.selectedActionContainer, accentContainer, 0.42f),
+            iconTint = accent.copy(alpha = 0.92f),
+        )
+    }
+}
+
+@Composable
+private fun modeAccentColor(mode: OmniboxMode): Color {
+    val scheme = MaterialTheme.colorScheme
+    return when (mode) {
+        OmniboxMode.DataSearch -> scheme.primary
+        OmniboxMode.Command -> scheme.secondary
+        OmniboxMode.QuickCatchInbox -> scheme.tertiary
+        OmniboxMode.StartActivity -> scheme.primary
+        OmniboxMode.AddActivityEvent -> scheme.error
+    }
+}
+
+@Composable
+private fun modeAccentContainer(mode: OmniboxMode): Color {
+    val scheme = MaterialTheme.colorScheme
+    return when (mode) {
+        OmniboxMode.DataSearch -> scheme.primaryContainer
+        OmniboxMode.Command -> scheme.secondaryContainer
+        OmniboxMode.QuickCatchInbox -> scheme.tertiaryContainer
+        OmniboxMode.StartActivity -> scheme.primaryContainer
+        OmniboxMode.AddActivityEvent -> scheme.errorContainer
+    }
+}
+
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/ui/components/listitem/UnifiedStatusChipSpec.kt
+END FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/globalsearch/GlobalSearchScreen.kt
 ================================================================================
 
 ## <<FILE_2>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/backlogitems/Badges.kt (ID: FILE_2)
+BEGIN FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/mainscreen/bottompanels/common/BottomPanelTokens.kt (ID: FILE_2)
 ================================================================================
 
-package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems
+package com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ElectricBolt
-import androidx.compose.material.icons.filled.FlashOff
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
 
-@Composable
-fun EnhancedScoreStatusBadge(
-    scoringStatus: String,
-    displayScore: Int,
-) {
-    when (scoringStatus) {
-        ScoringStatusValues.ASSESSED -> {
-            if (displayScore > 0) {
-                val animatedColor by animateColorAsState(
-                    targetValue =
-                        when {
-                            displayScore >= 80 -> Color(0xFF4CAF50)
-                            displayScore >= 60 -> Color(0xFFFF9800)
-                            displayScore >= 40 -> Color(0xFFFFEB3B)
-                            else -> Color(0xFFE91E63)
-                        },
-                    label = "score_color",
-                )
+object BottomPanelTokens {
+    const val ContainerBorderAlpha = 0.45f
+    const val ActionContentAlpha = 0.82f
+    const val InputBorderAlpha = 0.72f
+    const val PlaceholderAlpha = 0.68f
+    const val ContainerPrimaryTint = 0.10f
+    const val InputPrimaryTint = 0.16f
+    const val BorderPrimaryTint = 0.35f
+    const val SubTabSelectedContainerAlpha = 0.18f
+    const val SubTabSelectedBorderAlpha = 0.45f
+    const val SubTabBorderAlpha = 0.08f
 
-                var isVisible by remember { mutableStateOf(value = false) }
+    val OuterHorizontalPadding = 16.dp
+    val OuterVerticalPadding = 12.dp
+    val ContainerCornerRadius = 28.dp
+    val ContainerHorizontalPadding = 8.dp
+    val ContainerVerticalPadding = 10.dp
+    val ContentHorizontalPadding = 4.dp
+    val RowSpacing = 6.dp
+    val BorderWidth = 1.dp
 
-                LaunchedEffect(Unit) {
-                    isVisible = true
-                }
+    val CommandDeckCornerRadius = 20.dp
+    val CommandDeckHorizontalPadding = 22.dp
+    val CommandDeckVerticalPadding = 12.dp
 
-                AnimatedVisibility(
-                    visible = isVisible,
-                    enter =
-                        slideInHorizontally(
-                            initialOffsetX = { fullWidth -> -fullWidth },
-                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                        ) + fadeIn(),
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = animatedColor.copy(alpha = 0.15f),
-                        border = BorderStroke(0.6.dp, animatedColor.copy(alpha = 0.3f)),
-                        modifier =
-                            Modifier.semantics {
-                                contentDescription = "Оцінка: $displayScore з 100"
-                            }.height(24.dp),
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.ElectricBolt,
-                                    contentDescription = null,
-                                    tint = animatedColor,
-                                    modifier = Modifier.size(12.dp),
-                                )
-                                Text(
-                                    text = "$displayScore/100",
-                                    style =
-                                        MaterialTheme.typography.labelSmall.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            letterSpacing = 0.1.sp,
-                                        ),
-                                    color = animatedColor,
-                                )
-                            }
-                        }
-                }
-            }
-        }
-        ScoringStatusValues.IMPOSSIBLE_TO_ASSESS -> {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                modifier =
-                    Modifier
-                        .semantics {
-                            contentDescription = "Неможливо оцінити"
-                        }
-                        .height(24.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.FlashOff,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier =
-                        Modifier
-                            .size(16.dp)
-                            .padding(horizontal = 4.dp),
-                )
-            }
-        }
-        ScoringStatusValues.NOT_ASSESSED -> {
-        }
-    }
-}
+    val ActionButtonSize = 40.dp
+    val PrimaryActionButtonSize = 44.dp
+    val ActionIconSize = 22.dp
+    val CompactActionButtonSize = 36.dp
+    val CompactActionIconSize = 20.dp
+    val SubTabButtonSize = 42.dp
+    val SubTabIconSize = 20.dp
+    val SubTabCornerRadius = 18.dp
 
-@Composable
-fun RelativeSizeBadge(relativeSize: Int) {
-    if (relativeSize <= 0) return
-
-    val tint = MaterialTheme.colorScheme.secondary
-    Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = tint.copy(alpha = 0.14f),
-        border = BorderStroke(0.6.dp, tint.copy(alpha = 0.28f)),
-        modifier =
-            Modifier.semantics {
-                contentDescription = "Відносний розмір: $relativeSize з 5"
-            }.height(24.dp),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            DiamondBadgeGlyph(
-                tint = tint,
-                modifier = Modifier.size(8.dp),
-            )
-            Text(
-                text = "$relativeSize/5",
-                style =
-                    MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.1.sp,
-                    ),
-                color = tint,
-            )
-        }
-    }
-}
-
-@Composable
-private fun DiamondBadgeGlyph(
-    tint: Color,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier.rotate(45f),
-        shape = RoundedCornerShape(2.dp),
-        color = tint,
-        border = null,
-    ) {}
+    val InputMinHeight = 44.dp
+    val InputCornerRadius = 20.dp
+    val InputHorizontalPadding = 16.dp
+    val InputVerticalPadding = 12.dp
+    val ComposerMinHeight = 64.dp
 }
 
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/backlogitems/Badges.kt
+END FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/mainscreen/bottompanels/common/BottomPanelTokens.kt
 ================================================================================
 
 ## <<FILE_3>>
 ================================================================================
-BEGIN FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/backlogitems/StatusIconsRow.kt (ID: FILE_3)
+BEGIN FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/mainscreen/bottompanels/common/BottomPanelTheme.kt (ID: FILE_3)
 ================================================================================
 
-package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems
+package com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.Goal
-import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
-import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
-import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.EnhancedRelatedLinkChip
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.NoteIndicatorBadge
-import com.romankozak.forwardappmobile.ui.common.ParsedTextData
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedMetaChip
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusRow
-import kotlinx.coroutines.delay
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun InternalStatusIconsRow(
-    relatedLinks: List<RelatedLink>?,
-    scoringStatus: String,
-    displayScore: Int,
-    relativeSize: Int,
-    description: String?,
-    parsedData: ParsedTextData,
-    reminder: Reminder?,
-    emojiToHide: String?,
-    leadingChips: List<UnifiedStatusChipSpec>,
-    onRelatedLinkClick: (RelatedLink) -> Unit,
-) {
-    UnifiedStatusRow(modifier = Modifier.fillMaxWidth()) {
-        leadingChips.forEach { chip ->
-            UnifiedMetaChip(
-                text = chip.text,
-                icon = chip.icon,
-                contentColor = chip.contentColor ?: androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
-                onClick = chip.onClick,
-            )
-        }
-
-        if (reminder != null) {
-            EnhancedReminderBadge(
-                reminder = reminder,
-            )
-        }
-
-        EnhancedScoreStatusBadge(
-            scoringStatus = scoringStatus,
-            displayScore = displayScore,
-        )
-
-        RelativeSizeBadge(relativeSize = relativeSize)
-
-        parsedData.icons
-            .filterNot { icon -> icon == emojiToHide }
-            .forEachIndexed { index, icon ->
-                key(icon) {
-                    var delayedVisible by remember { mutableStateOf(false) }
-                    LaunchedEffect(Unit) {
-                        delay(index * 50L)
-                        delayedVisible = true
-                    }
-                    AnimatedVisibility(
-                        visible = delayedVisible,
-                        enter = scaleIn(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) + fadeIn(),
-                    ) {
-                        AnimatedContextEmoji(
-                            emoji = icon,
-                            modifier = Modifier.align(Alignment.CenterVertically),
-                        )
-                    }
-                }
-            }
-
-        if (!description.isNullOrBlank()) {
-            NoteIndicatorBadge(modifier = Modifier.align(Alignment.CenterVertically))
-        }
-
-        parsedData.contextMarkers.forEachIndexed { index, marker ->
-            key(marker) {
-                var delayedVisible by remember { mutableStateOf(false) }
-                LaunchedEffect(Unit) {
-                    delay((parsedData.icons.size + index) * 50L)
-                    delayedVisible = true
-                }
-                AnimatedVisibility(
-                    visible = delayedVisible,
-                    enter = slideInHorizontally(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) { fullWidth -> fullWidth } + fadeIn(),
-                ) {
-                    UnifiedMetaChip(
-                        text = marker,
-                    )
-                }
-            }
-        }
-
-        relatedLinks?.filter { it.type != null }?.forEachIndexed { index, link ->
-            key(link.target + link.type?.name) {
-                var delayedVisible by remember { mutableStateOf(false) }
-                LaunchedEffect(Unit) {
-                    delay((parsedData.icons.size + parsedData.contextMarkers.size + index) * 50L)
-                    delayedVisible = true
-                }
-                AnimatedVisibility(
-                    visible = delayedVisible,
-                    enter = slideInHorizontally(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)) { fullWidth -> fullWidth } + fadeIn(),
-                ) {
-                    EnhancedRelatedLinkChip(
-                        link = link,
-                        onClick = { onRelatedLinkClick(link) },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun StatusIconsRow(
-    goal: Goal,
-    currentContextId: String? = null,
-    parsedData: ParsedTextData,
-    reminder: Reminder?,
-    emojiToHide: String?,
-    leadingChips: List<UnifiedStatusChipSpec> = emptyList(),
-    onRelatedLinkClick: (RelatedLink) -> Unit,
-) {
-    val visibleLinks =
-        goal.relatedLinks
-            ?.filterNot { link ->
-                link.type == LinkType.CONTEXT &&
-                    currentContextId != null &&
-                    link.target == currentContextId
-            }
-    InternalStatusIconsRow(
-        relatedLinks = visibleLinks,
-        scoringStatus = goal.scoringStatus,
-        displayScore = goal.displayScore,
-        relativeSize = goal.relativeSize,
-        description = goal.description,
-        parsedData = parsedData,
-        reminder = reminder,
-        emojiToHide = emojiToHide,
-        leadingChips = leadingChips,
-        onRelatedLinkClick = onRelatedLinkClick,
-    )
-}
-
-@Composable
-fun StatusIconsRow(
-    project: Context,
-    parsedData: ParsedTextData,
-    reminder: Reminder?,
-    emojiToHide: String?,
-    leadingChips: List<UnifiedStatusChipSpec> = emptyList(),
-    onRelatedLinkClick: (RelatedLink) -> Unit,
-) {
-    InternalStatusIconsRow(
-        relatedLinks = project.relatedLinks,
-        scoringStatus = project.scoringStatus,
-        displayScore = project.displayScore,
-        relativeSize = 0,
-        description = project.description,
-        parsedData = parsedData,
-        reminder = reminder,
-        emojiToHide = emojiToHide,
-        leadingChips = leadingChips,
-        onRelatedLinkClick = onRelatedLinkClick,
-    )
-}
-
-
-================================================================================
-END FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/backlogitems/StatusIconsRow.kt
-================================================================================
-
-## <<FILE_4>>
-================================================================================
-BEGIN FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/backlogitems/GoalItem.kt (ID: FILE_4)
-================================================================================
-
-package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems
-
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Flag
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.romankozak.forwardappmobile.core.data.models.entities.Goal
-import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
-import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownText
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownTextActions
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownTextState
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.GoalItemViewModelFactory
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.GoalItemViewModel
-import com.romankozak.forwardappmobile.ui.common.rememberParsedText
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurfaceLayout
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTokens
-
-@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
-@Composable
-fun GoalItem(
-    goal: Goal,
-    obsidianVaultName: String,
-    onCheckedChange: (Boolean) -> Unit,
-    onItemClick: () -> Unit,
-    onLongClick: () -> Unit,
-    onTagClick: (String) -> Unit,
-    onRelatedLinkClick: (RelatedLink) -> Unit,
-    modifier: Modifier = Modifier,
-    showCheckbox: Boolean = false,
-    emojiToHide: String? = null,
-    contextMarkerToEmojiMap: Map<String, String>,
-    isSelected: Boolean,
-    reminders: List<Reminder> = emptyList(),
-    endAction: @Composable () -> Unit = {},
-) {
-    val reminder = reminders.firstOrNull()
-    val parsedData = rememberParsedText(goal.text, contextMarkerToEmojiMap)
-    val viewModel: GoalItemViewModel =
-        viewModel(key = goal.hashCode().toString(), factory = GoalItemViewModelFactory(goal, parsedData, reminder))
-    val shouldShowStatusIcons by viewModel.shouldShowStatusIcons.collectAsState()
-
-    UnifiedListItemSurface(
-        isSelected = isSelected,
-        layout =
-            UnifiedListItemSurfaceLayout(
-                modifier =
-                    modifier
-                        .fillMaxWidth()
-                        .padding(
-                            vertical = UnifiedListItemTokens.OuterVerticalSpacing,
-                            horizontal = UnifiedListItemTokens.OuterHorizontalSpacing,
-                        ),
-                contentPadding = PaddingValues(0.dp),
-            ),
-    ) {
-        Box(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (showCheckbox) {
-                    Checkbox(
-                        checked = goal.completed,
-                        onCheckedChange = onCheckedChange,
-                        modifier = Modifier.size(24.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-                Icon(
-                    imageVector = Icons.Default.Flag,
-                    contentDescription = "Goal",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp),
-                )
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                Column(
-                    modifier =
-                        Modifier
-                            .padding(end = 48.dp) // Reserve space for the handle
-                            .pointerInput(onItemClick, onLongClick) {
-                                detectTapGestures(
-                                    onLongPress = { onLongClick() },
-                                    onTap = { onItemClick() },
-                                )
-                            },
-                ) {
-                    MarkdownText(
-                        state =
-                            MarkdownTextState(
-                                text = parsedData.mainText,
-                                style =
-                                    MaterialTheme.typography.bodySmall.copy(
-                                        lineHeight = 16.sp,
-                                        letterSpacing = 0.1.sp,
-                                        fontSize = 12.sp,
-                                        fontWeight = if (goal.completed) FontWeight.Normal else FontWeight.Medium,
-                                    ),
-                                isCompleted = goal.completed,
-                                obsidianVaultName = obsidianVaultName,
-                                maxLines = 4,
-                            ),
-                        actions =
-                            MarkdownTextActions(
-                                onTagClick = onTagClick,
-                                onTextClick = onItemClick,
-                                onLongClick = onLongClick,
-                            ),
-                    )
-
-                    AnimatedVisibility(
-                        visible = shouldShowStatusIcons,
-                        enter =
-                            slideInVertically(
-                                initialOffsetY = { height -> -height },
-                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                            ) + fadeIn(),
-                    ) {
-                        Column {
-                            Spacer(modifier = Modifier.height(6.dp))
-                            StatusIconsRow(
-                                goal = goal,
-                                parsedData = parsedData,
-                                reminder = reminder,
-                                emojiToHide = emojiToHide,
-                                onRelatedLinkClick = onRelatedLinkClick,
-                            )
-                        }
-                    }
-                }
-            }
-            Box(modifier = Modifier.align(Alignment.CenterEnd)) {
-                endAction()
-            }
-        }
-    }
-}
-
-
-================================================================================
-END FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/backlogitems/GoalItem.kt
-================================================================================
-
-## <<FILE_5>>
-================================================================================
-BEGIN FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/BacklogItem.kt (ID: FILE_5)
-================================================================================
-
-package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog
-
-import android.util.Log
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountTree
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Flag
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.entities.Goal
-import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
-import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
-import com.romankozak.forwardappmobile.core.data.models.entities.ScoringStatusValues
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownText
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownTextActions
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.MarkdownTextState
-import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.backlogitems.StatusIconsRow
-import com.romankozak.forwardappmobile.ui.common.rememberParsedText
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurfaceLayout
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTokens
-import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
-import kotlinx.coroutines.delay
-import sh.calvin.reorderable.ReorderableCollectionItemScope
+import androidx.compose.ui.graphics.lerp
 
-private const val BACKLOG_SWIPE_DEBUG_TAG = "BACKLOG_SWIPE_DEBUG"
-
-@Composable
-fun BacklogItem(
-    item: BacklogItemContent,
-    reorderableScope: ReorderableCollectionItemScope,
-    modifier: Modifier = Modifier,
-    onItemClick: () -> Unit,
-    onLongClick: () -> Unit,
-    onMoreClick: () -> Unit,
-    onCheckedChange: (Boolean) -> Unit,
-    onRelatedLinkClick: (RelatedLink) -> Unit,
-    showCheckbox: Boolean,
-    isSelected: Boolean,
-    contextMarkerToEmojiMap: Map<String, String>,
-    isInlineEditing: Boolean,
-    onInlineEditSave: (String) -> Unit,
-    onInlineEditCancel: () -> Unit,
-    onDragStopped: () -> Unit,
-) {
-    when (item) {
-        is BacklogItemContent.GoalItem -> {
-            InternalGoalItem(
-                goal = item.goal,
-                currentContextId = item.backlogItem.contextId,
-                reminders = item.reminders,
-                reorderableScope = reorderableScope,
-                modifier = modifier,
-                onItemClick = onItemClick,
-                onLongClick = onLongClick,
-                onMoreClick = onMoreClick,
-                onCheckedChange = onCheckedChange,
-                onRelatedLinkClick = onRelatedLinkClick,
-                showCheckbox = showCheckbox,
-                isSelected = isSelected,
-                contextMarkerToEmojiMap = contextMarkerToEmojiMap,
-                isInlineEditing = isInlineEditing,
-                onInlineEditSave = onInlineEditSave,
-                onInlineEditCancel = onInlineEditCancel,
-                onDragStopped = onDragStopped,
-            )
-        }
-        is BacklogItemContent.ContextLinkItem -> {
-            InternalSubprojectItem(
-                subproject = item.project,
-                reminders = item.reminders,
-                reorderableScope = reorderableScope,
-                modifier = modifier,
-                onItemClick = onItemClick,
-                onLongClick = onLongClick,
-                onMoreClick = onMoreClick,
-                onCheckedChange = onCheckedChange,
-                onRelatedLinkClick = onRelatedLinkClick,
-                showCheckbox = showCheckbox,
-                isSelected = isSelected,
-                contextMarkerToEmojiMap = contextMarkerToEmojiMap,
-                onDragStopped = onDragStopped,
-            )
-        }
-        else -> {
-            // Do nothing for other types for now
-        }
-    }
-}
-
-@Composable
-private fun InternalGoalItem(
-    goal: Goal,
-    currentContextId: String,
-    reminders: List<Reminder>,
-    reorderableScope: ReorderableCollectionItemScope,
-    modifier: Modifier = Modifier,
-    onItemClick: () -> Unit,
-    onLongClick: () -> Unit,
-    onMoreClick: () -> Unit,
-    onCheckedChange: (Boolean) -> Unit,
-    onRelatedLinkClick: (RelatedLink) -> Unit,
-    showCheckbox: Boolean,
-    isSelected: Boolean,
-    contextMarkerToEmojiMap: Map<String, String>,
-    isInlineEditing: Boolean,
-    onInlineEditSave: (String) -> Unit,
-    onInlineEditCancel: () -> Unit,
-    onDragStopped: () -> Unit,
-) {
-    val parsedData = rememberParsedText(goal.text, contextMarkerToEmojiMap)
-    val hapticFeedback = LocalHapticFeedback.current
-    val keyboardController = LocalSoftwareKeyboardController.current
-    val focusRequester = remember { FocusRequester() }
-    val bringIntoViewRequester = remember { BringIntoViewRequester() }
-    var textValue by remember(goal.id, isInlineEditing, goal.text) {
-        mutableStateOf(TextFieldValue(goal.text, TextRange(goal.text.length)))
-    }
-
-    LaunchedEffect(isInlineEditing) {
-        if (isInlineEditing) {
-            focusRequester.requestFocus()
-            delay(250)
-            bringIntoViewRequester.bringIntoView()
-        }
-    }
-
-    val completedColors =
-        BacklogCompletedColors(
-            containerStart = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f),
-            containerEnd = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.12f),
-            border = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
-            iconTint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-            badgeBackground = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-            badgeText = MaterialTheme.colorScheme.primary,
-        )
-
-    UnifiedListItemSurface(
-        isSelected = isSelected,
-        layout =
-            UnifiedListItemSurfaceLayout(
-                modifier =
-                    modifier
-                        .fillMaxWidth()
-                        .padding(
-                            vertical = UnifiedListItemTokens.OuterVerticalSpacing,
-                            horizontal = UnifiedListItemTokens.OuterHorizontalSpacing,
-                        )
-                        .combinedClickable(
-                            onClick = {
-                                if (!isInlineEditing) {
-                                    onItemClick()
-                                }
-                            },
-                            onLongClick = {
-                                if (!isInlineEditing) {
-                                    onLongClick()
-                                }
-                            },
-                        ),
-                contentPadding = PaddingValues(0.dp),
-            ),
-    ) {
-        Box(
-            modifier =
-                if (goal.completed) {
-                    Modifier
-                        .background(
-                            brush =
-                                Brush.horizontalGradient(
-                                    colors =
-                                        listOf(
-                                            completedColors.containerStart,
-                                            completedColors.containerEnd,
-                                        ),
-                                ),
-                        )
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
-                } else {
-                    Modifier
-                        .background(Color.Transparent)
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
-                },
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (showCheckbox) {
-                    Checkbox(
-                        checked = goal.completed,
-                        onCheckedChange = onCheckedChange,
-                        modifier = Modifier.size(24.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-
-                Column(modifier = Modifier.weight(1f)) {
-                    if (isInlineEditing) {
-                        OutlinedTextField(
-                            value = textValue,
-                            onValueChange = { textValue = it },
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .bringIntoViewRequester(bringIntoViewRequester)
-                                    .focusRequester(focusRequester),
-                            minLines = 1,
-                            maxLines = 4,
-                            singleLine = false,
-                            keyboardOptions =
-                                KeyboardOptions(
-                                    capitalization = KeyboardCapitalization.Sentences,
-                                    imeAction = ImeAction.Done,
-                                ),
-                            keyboardActions =
-                                androidx.compose.foundation.text.KeyboardActions(
-                                    onDone = {
-                                        keyboardController?.hide()
-                                        onInlineEditSave(textValue.text)
-                                    },
-                                ),
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Spacer(modifier = Modifier.weight(1f))
-                            IconButton(
-                                onClick = {
-                                    keyboardController?.hide()
-                                    onInlineEditCancel()
-                                },
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Скасувати",
-                                )
-                            }
-                            IconButton(
-                                onClick = {
-                                    keyboardController?.hide()
-                                    onInlineEditSave(textValue.text)
-                                },
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = "Зберегти",
-                                )
-                            }
-                        }
-                    } else {
-                        Box(modifier = if (goal.completed) Modifier.alpha(0.65f) else Modifier) {
-                            MarkdownText(
-                                state =
-                                    MarkdownTextState(
-                                        text = parsedData.mainText,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        isCompleted = goal.completed,
-                                        maxLines = 4,
-                                    ),
-                                actions =
-                                    MarkdownTextActions(
-                                        onTextClick = onItemClick,
-                                        onLongClick = onLongClick,
-                                    ),
-                            )
-                        }
-                    }
-
-                    val reminder = reminders.firstOrNull()
-                    val shouldShowStatusIcons =
-                        !isInlineEditing && ((goal.scoringStatus != ScoringStatusValues.NOT_ASSESSED) ||
-                            (goal.relativeSize > 0) ||
-                            (reminder != null) ||
-                            (parsedData.icons.isNotEmpty()) ||
-                            (!goal.description.isNullOrBlank()) ||
-                            (!goal.relatedLinks.isNullOrEmpty()))
-
-                    if (!isInlineEditing) {
-                        Column {
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Box(modifier = if (goal.completed) Modifier.alpha(0.6f) else Modifier) {
-                                StatusIconsRow(
-                                    goal = goal,
-                                    currentContextId = currentContextId,
-                                    parsedData = parsedData,
-                                    reminder = reminder,
-                                    emojiToHide = null,
-                                    leadingChips =
-                                        listOf(
-                                            UnifiedStatusChipSpec(
-                                                text = "",
-                                                icon = Icons.Default.Flag,
-                                                contentColor =
-                                                    if (goal.completed) completedColors.iconTint else MaterialTheme.colorScheme.primary,
-                                            ),
-                                        ),
-                                    onRelatedLinkClick = onRelatedLinkClick,
-                                )
-                            }
-                        }
-                    }
-                }
-
-                if (!isInlineEditing) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "More actions",
-                        modifier =
-                            with(reorderableScope) {
-                                Modifier.draggableHandle(
-                                    onDragStarted = {
-                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    },
-                                        onDragStopped = { onDragStopped() },
-                                    )
-                            }
-                                .size(20.dp)
-                                .alpha(if (goal.completed) 0.5f else 1f)
-                                .clickable(onClick = onMoreClick),
-                    )
-                }
-            }
-        }
-    }
-}
-
-private data class BacklogCompletedColors(
-    val containerStart: Color,
-    val containerEnd: Color,
+@Immutable
+data class BottomPanelColors(
+    val container: Color,
+    val content: Color,
+    val mutedContent: Color,
     val border: Color,
-    val iconTint: Color,
-    val badgeBackground: Color,
-    val badgeText: Color,
+    val action: Color,
+    val selectedActionContainer: Color,
+    val selectedActionContent: Color,
+    val inputContainer: Color,
+    val inputBorder: Color,
+    val primaryActionContainer: Color,
+    val primaryActionContent: Color,
 )
 
 @Composable
-private fun CompletedBadge(
-    backgroundColor: Color,
-    textColor: Color,
-) {
-    // Deprecated badge removed intentionally
-}
-
-@Composable
-private fun InternalSubprojectItem(
-    subproject: Context,
-    reminders: List<Reminder>,
-    reorderableScope: ReorderableCollectionItemScope,
-    modifier: Modifier = Modifier,
-    onItemClick: () -> Unit,
-    onLongClick: () -> Unit,
-    onMoreClick: () -> Unit,
-    onCheckedChange: (Boolean) -> Unit,
-    onRelatedLinkClick: (RelatedLink) -> Unit,
-    showCheckbox: Boolean,
-    isSelected: Boolean,
-    contextMarkerToEmojiMap: Map<String, String>,
-    onDragStopped: () -> Unit,
-) {
-    val parsedData = rememberParsedText(subproject.name, contextMarkerToEmojiMap)
-    val tagContextIcons =
-        remember(subproject.tags, contextMarkerToEmojiMap) {
-            subproject.tags.orEmpty().mapNotNull { rawTag ->
-                val normalized = rawTag.trim().removePrefix("#").removePrefix("@").lowercase()
-                listOf("@$normalized", "#$normalized", normalized).firstNotNullOfOrNull { candidate ->
-                    contextMarkerToEmojiMap[candidate]
-                }
-            }
-        }
-    val enrichedParsedData =
-        remember(parsedData, tagContextIcons) {
-            if (tagContextIcons.isEmpty()) {
-                parsedData
-            } else {
-                parsedData.copy(
-                    icons = (parsedData.icons + tagContextIcons).distinct(),
-                )
-            }
-        }
-    val hapticFeedback = LocalHapticFeedback.current
-
-    val completedColors =
-        BacklogCompletedColors(
-            containerStart = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.15f),
-            containerEnd = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.12f),
-            border = MaterialTheme.colorScheme.secondary.copy(alpha = 0.25f),
-            iconTint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
-            badgeBackground = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f),
-            badgeText = MaterialTheme.colorScheme.secondary,
+fun bottomPanelColors(): BottomPanelColors {
+    val colorScheme = MaterialTheme.colorScheme
+    val tintedContainer =
+        lerp(
+            colorScheme.surfaceContainerLow,
+            colorScheme.primaryContainer,
+            BottomPanelTokens.ContainerPrimaryTint,
         )
-
-    UnifiedListItemSurface(
-        isSelected = isSelected,
-        layout =
-            UnifiedListItemSurfaceLayout(
-                modifier =
-                    modifier
-                        .fillMaxWidth()
-                        .padding(
-                            vertical = UnifiedListItemTokens.OuterVerticalSpacing,
-                            horizontal = UnifiedListItemTokens.OuterHorizontalSpacing,
-                        ),
-                contentPadding = PaddingValues(0.dp),
-            ),
-    ) {
-        Box(
-            modifier =
-                if (subproject.isCompleted) {
-                    Modifier
-                        .background(
-                            brush =
-                                Brush.horizontalGradient(
-                                    colors =
-                                        listOf(
-                                            completedColors.containerStart,
-                                            completedColors.containerEnd,
-                                        ),
-                                ),
-                        )
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
-                } else {
-                    Modifier
-                        .background(Color.Transparent)
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
-                },
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (showCheckbox) {
-                    Checkbox(
-                        checked = subproject.isCompleted,
-                        onCheckedChange = {
-                            Log.d(
-                                BACKLOG_SWIPE_DEBUG_TAG,
-                                "subcontextCheckbox itemId=${subproject.id} checked=$it",
-                            )
-                            onCheckedChange(it)
-                        },
-                        modifier = Modifier.size(24.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-
-                Column(
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .combinedClickable(
-                                onClick = {
-                                    Log.d(
-                                        BACKLOG_SWIPE_DEBUG_TAG,
-                                        "subcontextTap itemId=${subproject.id} name=${subproject.name}",
-                                    )
-                                    onItemClick()
-                                },
-                                onLongClick = {
-                                    Log.d(
-                                        BACKLOG_SWIPE_DEBUG_TAG,
-                                        "subcontextLongTap itemId=${subproject.id} name=${subproject.name}",
-                                    )
-                                    onLongClick()
-                                },
-                            ),
-                ) {
-                    if (subproject.isCompleted) {
-                        CompletedBadge(
-                            backgroundColor = completedColors.badgeBackground,
-                            textColor = completedColors.badgeText,
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-
-                    Text(
-                        text = enrichedParsedData.mainText,
-                        style = MaterialTheme.typography.bodyLarge,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textDecoration = if (subproject.isCompleted) TextDecoration.LineThrough else null,
-                        modifier = if (subproject.isCompleted) Modifier.alpha(0.65f) else Modifier,
-                    )
-
-                    val reminder = reminders.firstOrNull()
-                    Column {
-                        Column {
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Box(modifier = if (subproject.isCompleted) Modifier.alpha(0.6f) else Modifier) {
-                                StatusIconsRow(
-                                    project = subproject,
-                                    parsedData = enrichedParsedData,
-                                    reminder = reminder,
-                                    emojiToHide = null,
-                                    leadingChips =
-                                        listOf(
-                                            UnifiedStatusChipSpec(
-                                                text = "",
-                                                icon = Icons.Default.AccountTree,
-                                                contentColor =
-                                                    if (subproject.isCompleted) completedColors.iconTint else MaterialTheme.colorScheme.secondary,
-                                            ),
-                                        ),
-                                    onRelatedLinkClick = onRelatedLinkClick,
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More actions",
-                    modifier =
-                        with(reorderableScope) {
-                            Modifier.draggableHandle(
-                                onDragStarted = {
-                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                },
-                                onDragStopped = { onDragStopped() },
-                            )
-                        }
-                            .size(20.dp)
-                            .alpha(if (subproject.isCompleted) 0.5f else 1f)
-                            .clickable(
-                                onClick = {
-                                    Log.d(
-                                        BACKLOG_SWIPE_DEBUG_TAG,
-                                        "subcontextMoreTap itemId=${subproject.id}",
-                                    )
-                                    onMoreClick()
-                                },
-                            ),
-                )
-            }
-        }
-    }
+    val tintedInput =
+        lerp(
+            colorScheme.surfaceContainerHighest,
+            colorScheme.primaryContainer,
+            BottomPanelTokens.InputPrimaryTint,
+        )
+    val tintedBorder =
+        lerp(
+            colorScheme.outlineVariant,
+            colorScheme.primary,
+            BottomPanelTokens.BorderPrimaryTint,
+        )
+    return BottomPanelColors(
+        container = tintedContainer,
+        content = colorScheme.onSurface,
+        mutedContent = colorScheme.onSurfaceVariant,
+        border = tintedBorder.copy(alpha = BottomPanelTokens.ContainerBorderAlpha),
+        action = colorScheme.primary.copy(alpha = BottomPanelTokens.ActionContentAlpha),
+        selectedActionContainer = colorScheme.primaryContainer,
+        selectedActionContent = colorScheme.onPrimaryContainer,
+        inputContainer = tintedInput,
+        inputBorder = colorScheme.primary.copy(alpha = BottomPanelTokens.InputBorderAlpha),
+        primaryActionContainer = colorScheme.primary,
+        primaryActionContent = colorScheme.onPrimary,
+    )
 }
 
 
 ================================================================================
-END FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/capabilities/backlog/BacklogItem.kt
+END FILE: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/src/main/java/com/romankozak/forwardappmobile/features/mainscreen/bottompanels/common/BottomPanelTheme.kt
 ================================================================================
 

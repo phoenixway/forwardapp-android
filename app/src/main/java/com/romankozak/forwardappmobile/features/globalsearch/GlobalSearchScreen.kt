@@ -16,7 +16,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,12 +43,13 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchResultItem
+import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.bottomPanelColors
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -92,12 +92,15 @@ fun MagicBoxScreen(
     var selectedCommandIndex by remember { mutableStateOf<Int?>(null) }
     var selectedDataIndex by remember { mutableStateOf<Int?>(null) }
     var selectionArea by remember { mutableStateOf(OmniboxSelectionArea.None) }
+    var submittedQuery by rememberSaveable { mutableStateOf(uiState.query.takeIf { it.isNotBlank() }) }
     val currentMode = uiState.mode
     val modePalette = rememberModePalette(currentMode)
     val currentModePrefs = uiState.modeDisplayPrefs[currentMode]
+    val hasQuery = uiState.query.isNotBlank()
 
     val submitCommandIndex = selectedCommandIndex.takeIf { selectionArea == OmniboxSelectionArea.Command }
     val submitWithKeyboardHide: () -> Unit = {
+        submittedQuery = uiState.query.takeIf { it.isNotBlank() }
         viewModel.onSubmitSearch(submitCommandIndex)
         keyboardController?.hide()
     }
@@ -130,6 +133,32 @@ fun MagicBoxScreen(
             } else {
                 0
             }
+        }
+    }
+    val resultCount =
+        when (currentMode) {
+            OmniboxMode.DataSearch -> filteredResults.size
+            OmniboxMode.Command -> uiState.commandResults.size
+            else -> 0
+        }
+    val hasVisibleResults = !uiState.isLoading && resultCount > 0
+    val hasSubmittedCurrentQuery = hasQuery && submittedQuery == uiState.query
+    val hasResultContent by remember(
+        currentMode,
+        filteredResults,
+        hasSubmittedCurrentQuery,
+        uiState.commandResults,
+        visibleHybridCommandResults,
+    ) {
+        derivedStateOf {
+            hasSubmittedCurrentQuery &&
+                when (currentMode) {
+                    OmniboxMode.DataSearch -> filteredResults.isNotEmpty() || visibleHybridCommandResults.isNotEmpty()
+                    OmniboxMode.Command -> uiState.commandResults.isNotEmpty()
+                    OmniboxMode.QuickCatchInbox,
+                    OmniboxMode.StartActivity,
+                    OmniboxMode.AddActivityEvent -> false
+                }
         }
     }
 
@@ -296,7 +325,7 @@ fun MagicBoxScreen(
         },
         floatingActionButtonPosition = FabPosition.End,
     ) { paddingValues ->
-        val contentBottomPadding = 148.dp
+        val contentBottomPadding = 220.dp
 
         Box(
             modifier = Modifier
@@ -310,141 +339,112 @@ fun MagicBoxScreen(
                 .padding(paddingValues)
                 .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 8.dp),
         ) {
-            // ── Content area ──────────────────────────────────────────────────
-            Surface(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = 6.dp, bottom = contentBottomPadding),
-                shape = RoundedCornerShape(28.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                tonalElevation = 2.dp,
-                shadowElevation = 0.dp,
-                border = androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f),
-                ),
-            ) {
-                Column(modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 6.dp)) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        when (currentMode) {
-                            OmniboxMode.DataSearch -> {
-                                when {
-                                    uiState.query.isBlank() -> {
-                                        SearchStartContent(
-                                            history = uiState.searchHistory,
-                                            showPreview = currentModePrefs.showPreview,
-                                            showRecents = currentModePrefs.showRecents,
-                                            onHistoryClick = viewModel::onSelectHistoryQuery,
-                                            onRemoveHistoryEntry = viewModel::removeSearchHistoryEntry,
-                                            onClearHistory = viewModel::clearSearchHistory,
-                                            modifier = Modifier.fillMaxSize(),
-                                        )
-                                    }
-                                    uiState.isLoading -> {
-                                        DataSearchLoadingContent(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .graphicsLayer(scaleX = loadingScale, scaleY = loadingScale),
-                                        )
-                                    }
-                                    filteredResults.isEmpty() -> {
-                                        EmptyDataSearchContent(
-                                            args = EmptyDataSearchArgs(
-                                                query = uiState.query,
-                                                commandResults = uiState.hybridCommandResults,
-                                                selectedCommandIndex = selectedCommandIndex,
-                                                accentColor = modePalette.iconTint,
-                                                onCommandClick = viewModel::onCommandClick,
-                                                actions = EmptyDataSearchActions(
-                                                    onQuickCatch = viewModel::quickCatchCurrentQuery,
-                                                    onStartActivity = viewModel::startActivityFromCurrentQuery,
-                                                    onAddActivityEvent = viewModel::addActivityEventFromCurrentQuery,
-                                                    onCreateContext = viewModel::createContextFromSearch,
-                                                    onCreateDocument = viewModel::createDocumentFromSearch,
-                                                    onRunBestCommand = viewModel::runBestCommandForCurrentQuery,
+            if (hasResultContent) {
+                // ── Content area ──────────────────────────────────────────────
+                Surface(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 6.dp, bottom = contentBottomPadding),
+                    shape = RoundedCornerShape(28.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                    tonalElevation = 2.dp,
+                    shadowElevation = 0.dp,
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f),
+                    ),
+                ) {
+                    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 6.dp)) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            when (currentMode) {
+                                OmniboxMode.DataSearch -> {
+                                    when {
+                                        uiState.isLoading -> {
+                                            DataSearchLoadingContent(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .graphicsLayer(scaleX = loadingScale, scaleY = loadingScale),
+                                            )
+                                        }
+                                        filteredResults.isEmpty() -> {
+                                            EmptyDataSearchContent(
+                                                args = EmptyDataSearchArgs(
+                                                    query = uiState.query,
+                                                    commandResults = uiState.hybridCommandResults,
+                                                    selectedCommandIndex = selectedCommandIndex,
+                                                    accentColor = modePalette.iconTint,
+                                                    onCommandClick = viewModel::onCommandClick,
+                                                    actions = EmptyDataSearchActions(
+                                                        onQuickCatch = viewModel::quickCatchCurrentQuery,
+                                                        onStartActivity = viewModel::startActivityFromCurrentQuery,
+                                                        onAddActivityEvent = viewModel::addActivityEventFromCurrentQuery,
+                                                        onCreateContext = viewModel::createContextFromSearch,
+                                                        onCreateDocument = viewModel::createDocumentFromSearch,
+                                                        onRunBestCommand = viewModel::runBestCommandForCurrentQuery,
+                                                    ),
                                                 ),
-                                            ),
-                                            modifier = Modifier.fillMaxSize(),
-                                        )
-                                    }
-                                    else -> {
-                                        SearchResultsContent(
-                                            args = SearchResultsContentArgs(
-                                                commandResults = visibleHybridCommandResults,
-                                                selectedCommandIndex = selectedCommandIndex.takeIf {
-                                                    selectionArea == OmniboxSelectionArea.Command
-                                                },
-                                                onCommandClick = viewModel::onCommandClick,
-                                                accentColor = modePalette.iconTint,
-                                                results = filteredResults,
-                                                query = uiState.query,
-                                                viewModel = viewModel,
-                                                obsidianVaultName = obsidianVaultName,
-                                                context = context,
-                                                listState = listState,
-                                                selectedResultUniqueId = selectedDataResultUniqueId,
-                                                navController = navController,
-                                            ),
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .graphicsLayer(alpha = resultsAlpha),
-                                        )
+                                                modifier = Modifier.fillMaxSize(),
+                                            )
+                                        }
+                                        else -> {
+                                            SearchResultsContent(
+                                                args = SearchResultsContentArgs(
+                                                    commandResults = visibleHybridCommandResults,
+                                                    selectedCommandIndex = selectedCommandIndex.takeIf {
+                                                        selectionArea == OmniboxSelectionArea.Command
+                                                    },
+                                                    onCommandClick = viewModel::onCommandClick,
+                                                    accentColor = modePalette.iconTint,
+                                                    results = filteredResults,
+                                                    query = uiState.query,
+                                                    viewModel = viewModel,
+                                                    obsidianVaultName = obsidianVaultName,
+                                                    context = context,
+                                                    listState = listState,
+                                                    selectedResultUniqueId = selectedDataResultUniqueId,
+                                                    navController = navController,
+                                                ),
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .graphicsLayer(alpha = resultsAlpha),
+                                            )
+                                        }
                                     }
                                 }
-                            }
-                            OmniboxMode.Command -> {
-                                CommandResultsContent(
-                                    args = CommandResultsArgs(
-                                        results = uiState.commandResults,
-                                        query = uiState.query,
-                                        recentCommands = uiState.recentCommands,
-                                        showPreview = currentModePrefs.showPreview,
-                                        showRecents = currentModePrefs.showRecents,
-                                        selectedCommandIndex = selectedCommandIndex,
-                                        onCommandClick = viewModel::onCommandClick,
-                                        accentColor = modePalette.iconTint,
-                                    ),
-                                    modifier = Modifier.fillMaxSize(),
-                                )
-                            }
-                            OmniboxMode.QuickCatchInbox,
-                            OmniboxMode.StartActivity,
-                            OmniboxMode.AddActivityEvent -> {
-                                ModeRecentInputsContent(
-                                    args = ModeRecentInputsArgs(
-                                        mode = currentMode,
-                                        recents = uiState.recentModeInputs[currentMode].orEmpty(),
-                                        showPreview = currentModePrefs.showPreview,
-                                        showRecents = currentModePrefs.showRecents,
-                                        onRecentClick = { viewModel.applyRecentInputForMode(currentMode, it) },
-                                        onRemoveRecentEntry = { viewModel.removeRecentInput(currentMode, it) },
-                                        onClearRecentEntries = { viewModel.clearRecentInputs(currentMode) },
-                                    ),
-                                    modifier = Modifier.fillMaxSize(),
-                                )
+                                OmniboxMode.Command -> {
+                                    CommandResultsContent(
+                                        args = CommandResultsArgs(
+                                            results = uiState.commandResults,
+                                            query = uiState.query,
+                                            recentCommands = uiState.recentCommands,
+                                            showPreview = currentModePrefs.showPreview,
+                                            showRecents = currentModePrefs.showRecents,
+                                            selectedCommandIndex = selectedCommandIndex,
+                                            onCommandClick = viewModel::onCommandClick,
+                                            accentColor = modePalette.iconTint,
+                                        ),
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                }
+                                OmniboxMode.QuickCatchInbox,
+                                OmniboxMode.StartActivity,
+                                OmniboxMode.AddActivityEvent -> {
+                                    ModeRecentInputsContent(
+                                        args = ModeRecentInputsArgs(
+                                            mode = currentMode,
+                                            recents = uiState.recentModeInputs[currentMode].orEmpty(),
+                                            showPreview = currentModePrefs.showPreview,
+                                            showRecents = currentModePrefs.showRecents,
+                                            onRecentClick = { viewModel.applyRecentInputForMode(currentMode, it) },
+                                            onRemoveRecentEntry = { viewModel.removeRecentInput(currentMode, it) },
+                                            onClearRecentEntries = { viewModel.clearRecentInputs(currentMode) },
+                                        ),
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                }
                             }
                         }
                     }
-                }
-            }
-
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 14.dp, end = 8.dp),
-                shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
-                shadowElevation = 2.dp,
-            ) {
-                IconButton(
-                    onClick = { showSearchSettingsSheet = true },
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Налаштування пошуку",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                 }
             }
 
@@ -477,6 +477,23 @@ fun MagicBoxScreen(
                     ),
             )
 
+            MagicBoxActionStrip(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .imePadding()
+                    .padding(bottom = 204.dp),
+                palette = modePalette,
+                hasVisibleResults = hasVisibleResults,
+                resultCount = resultCount,
+                onNavigateBack = {
+                    if (!navController.popBackStack()) viewModel.enhancedNavigationManager.goBack()
+                },
+                onShowCreate = { showCreateSheet = true },
+                onShowSettings = { showSearchSettingsSheet = true },
+            )
+
             // ── Compact Omnibox ───────────────────────────────────────────────
             CompactOmnibox(
                 modifier = Modifier
@@ -487,19 +504,24 @@ fun MagicBoxScreen(
                 uiState = uiState,
                 currentMode = currentMode,
                 modePalette = modePalette,
-                filteredResults = filteredResults,
                 showModeMenu = showModeMenu,
                 onShowModeMenu = { showModeMenu = true },
                 onDismissModeMenu = { showModeMenu = false },
-                onSetMode = { viewModel.setMode(it); showModeMenu = false },
-                onCycleMode = viewModel::cycleMode,
-                onQueryChange = viewModel::onQueryChange,
+                onSetMode = {
+                    submittedQuery = null
+                    viewModel.setMode(it)
+                    showModeMenu = false
+                },
+                onCycleMode = {
+                    submittedQuery = null
+                    viewModel.cycleMode(it)
+                },
+                onQueryChange = {
+                    submittedQuery = null
+                    viewModel.onQueryChange(it)
+                },
                 onClearQuery = { viewModel.onQueryChange("") },
                 onSubmit = submitWithKeyboardHide,
-                onShowCreate = { showCreateSheet = true },
-                onNavigateBack = {
-                    if (!navController.popBackStack()) viewModel.enhancedNavigationManager.goBack()
-                },
                 onKeyDown = { keyEvent ->
                     handleOmniboxKeyEvent(
                         keyEvent = keyEvent,
@@ -523,6 +545,108 @@ fun MagicBoxScreen(
 
 // ── Compact Omnibox ───────────────────────────────────────────────────────────
 
+@Composable
+private fun MagicBoxActionStrip(
+    palette: OmniboxModePalette,
+    hasVisibleResults: Boolean,
+    resultCount: Int,
+    onNavigateBack: () -> Unit,
+    onShowCreate: () -> Unit,
+    onShowSettings: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .shadow(
+                elevation = 10.dp,
+                shape = RoundedCornerShape(18.dp),
+                ambientColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.10f),
+                spotColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.16f),
+            ),
+        shape = RoundedCornerShape(18.dp),
+        color = palette.searchSurface.copy(alpha = 0.94f),
+        tonalElevation = 4.dp,
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = palette.panelOutline,
+        ),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 7.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ActionStripButton(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close",
+                    palette = palette,
+                    onClick = onNavigateBack,
+                )
+                ActionStripButton(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Створити",
+                    palette = palette,
+                    emphasized = true,
+                    onClick = onShowCreate,
+                )
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AnimatedVisibility(
+                    visible = hasVisibleResults,
+                    enter = fadeIn(animationSpec = tween(delayMillis = 200)) + scaleIn(),
+                    exit = fadeOut() + scaleOut(),
+                ) {
+                    ResultsCountBadge(count = resultCount)
+                }
+                ActionStripButton(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Налаштування пошуку",
+                    palette = palette,
+                    onClick = onShowSettings,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActionStripButton(
+    imageVector: ImageVector,
+    contentDescription: String,
+    palette: OmniboxModePalette,
+    onClick: () -> Unit,
+    emphasized: Boolean = false,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.size(38.dp),
+        shape = RoundedCornerShape(13.dp),
+        color = if (emphasized) palette.modeIconContainer.copy(alpha = 0.88f) else palette.secondaryActionContainer,
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = palette.iconTint.copy(alpha = if (emphasized) 0.30f else 0.14f),
+        ),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = imageVector,
+                contentDescription = contentDescription,
+                modifier = Modifier.size(20.dp),
+                tint = if (emphasized) palette.iconTint else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CompactOmnibox(
@@ -530,7 +654,6 @@ private fun CompactOmnibox(
     uiState: GlobalSearchUiState,
     currentMode: OmniboxMode,
     modePalette: OmniboxModePalette,
-    filteredResults: List<GlobalSearchResultItem>,
     showModeMenu: Boolean,
     onShowModeMenu: () -> Unit,
     onDismissModeMenu: () -> Unit,
@@ -539,20 +662,11 @@ private fun CompactOmnibox(
     onQueryChange: (String) -> Unit,
     onClearQuery: () -> Unit,
     onSubmit: () -> Unit,
-    onShowCreate: () -> Unit,
-    onNavigateBack: () -> Unit,
     onKeyDown: (androidx.compose.ui.input.key.KeyEvent) -> Boolean,
     focusRequester: FocusRequester,
 ) {
     val isQuickCatchMode = currentMode == OmniboxMode.QuickCatchInbox
     val hasQuery = uiState.query.isNotBlank()
-    val resultCount =
-        when (currentMode) {
-            OmniboxMode.DataSearch -> filteredResults.size
-            OmniboxMode.Command -> uiState.commandResults.size
-            else -> 0
-        }
-    val hasVisibleResults = !uiState.isLoading && resultCount > 0
 
     Surface(
         modifier =
@@ -574,39 +688,6 @@ private fun CompactOmnibox(
         shadowElevation = 10.dp,
     ) {
         Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp)) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 2.dp, end = 2.dp, bottom = 8.dp),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    AnimatedVisibility(
-                        visible = hasVisibleResults,
-                        enter = fadeIn(animationSpec = tween(delayMillis = 200)) + scaleIn(),
-                        exit = fadeOut() + scaleOut(),
-                    ) {
-                        ResultsCountBadge(count = resultCount)
-                    }
-                    if (uiState.query.isNotBlank()) {
-                        IconButton(
-                            onClick = onClearQuery,
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Clear,
-                                contentDescription = "очистити",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
-
             Surface(
                 shape = RoundedCornerShape(18.dp),
                 color = modePalette.panelChrome,
@@ -656,22 +737,39 @@ private fun CompactOmnibox(
                         ),
                         trailingIcon = if (hasQuery) {
                             {
-                                Surface(
-                                    onClick = onSubmit,
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = modePalette.primaryActionContainer,
-                                    tonalElevation = 0.dp,
+                                Row(
+                                    modifier = Modifier.padding(end = 4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Box(
-                                        modifier = Modifier.size(40.dp),
-                                        contentAlignment = Alignment.Center,
+                                    IconButton(
+                                        onClick = onClearQuery,
+                                        modifier = Modifier.size(36.dp),
                                     ) {
                                         Icon(
-                                            Icons.AutoMirrored.Filled.Send,
-                                            contentDescription = submitDescriptionForMode(currentMode),
+                                            imageVector = Icons.Default.Clear,
+                                            contentDescription = "очистити",
                                             modifier = Modifier.size(18.dp),
-                                            tint = modePalette.iconTint,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
+                                    }
+                                    Surface(
+                                        onClick = onSubmit,
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = modePalette.primaryActionContainer,
+                                        tonalElevation = 0.dp,
+                                    ) {
+                                        Box(
+                                            modifier = Modifier.size(40.dp),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Icon(
+                                                Icons.AutoMirrored.Filled.Send,
+                                                contentDescription = submitDescriptionForMode(currentMode),
+                                                modifier = Modifier.size(18.dp),
+                                                tint = MaterialTheme.colorScheme.onPrimary,
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -682,102 +780,143 @@ private fun CompactOmnibox(
                 }
             }
 
-                Row(
+            Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 8.dp, start = 2.dp, end = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Surface(
-                        onClick = onNavigateBack,
-                        shape = RoundedCornerShape(10.dp),
-                        color = modePalette.secondaryActionContainer,
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            modePalette.iconTint.copy(alpha = 0.16f),
-                        ),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Close",
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Box {
-                        ModePill(
-                            mode = currentMode,
-                            palette = modePalette,
-                            modifier = Modifier
-                                .pointerInput(currentMode) {
-                                    var totalDrag = 0f
-                                    detectHorizontalDragGestures(
-                                        onHorizontalDrag = { _, dragAmount -> totalDrag += dragAmount },
-                                        onDragEnd = {
-                                            when {
-                                                totalDrag > 36f -> onCycleMode(false)
-                                                totalDrag < -36f -> onCycleMode(true)
-                                            }
-                                            totalDrag = 0f
-                                        },
-                                    )
-                                }
-                                .pointerInput(Unit) {
-                                    detectTapGestures(onTap = { onShowModeMenu() })
-                                },
-                        )
-                        DropdownMenu(
-                            expanded = showModeMenu,
-                            onDismissRequest = onDismissModeMenu,
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        ) {
-                            OmniboxMode.entries.forEach { mode ->
-                                DropdownMenuItem(
-                                    text = { Text(modeTitle(mode), style = MaterialTheme.typography.bodyMedium) },
-                                    leadingIcon = {
-                                        Icon(modeIcon(mode), contentDescription = null, modifier = Modifier.size(16.dp))
-                                    },
-                                    onClick = { onSetMode(mode) },
-                                )
-                            }
-                        }
-                    }
-                }
+                ModeIconDock(
+                    currentMode = currentMode,
+                    palette = modePalette,
+                    showModeMenu = showModeMenu,
+                    onShowModeMenu = onShowModeMenu,
+                    onDismissModeMenu = onDismissModeMenu,
+                    onSetMode = onSetMode,
+                    onCycleMode = onCycleMode,
+                )
+            }
+        }
+    }
+}
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Surface(
-                        onClick = onShowCreate,
-                        shape = RoundedCornerShape(10.dp),
-                        color = modePalette.modeIconContainer.copy(alpha = 0.86f),
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = "Створити",
-                                modifier = Modifier.size(14.dp),
-                                tint = modePalette.iconTint,
-                            )
-                            Text(
-                                text = "new ctx",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = modePalette.iconTint,
-                            )
+@Composable
+private fun ModeIconDock(
+    currentMode: OmniboxMode,
+    palette: OmniboxModePalette,
+    showModeMenu: Boolean,
+    onShowModeMenu: () -> Unit,
+    onDismissModeMenu: () -> Unit,
+    onSetMode: (OmniboxMode) -> Unit,
+    onCycleMode: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .pointerInput(currentMode) {
+                var totalDrag = 0f
+                detectHorizontalDragGestures(
+                    onHorizontalDrag = { _, dragAmount -> totalDrag += dragAmount },
+                    onDragEnd = {
+                        when {
+                            totalDrag > 36f -> onCycleMode(false)
+                            totalDrag < -36f -> onCycleMode(true)
                         }
+                        totalDrag = 0f
+                    },
+                )
+            },
+        shape = RoundedCornerShape(16.dp),
+        color = palette.panelChrome,
+        border = androidx.compose.foundation.BorderStroke(1.dp, palette.panelOutline),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OmniboxMode.entries.forEach { mode ->
+                ModeIconButton(
+                    mode = mode,
+                    selected = mode == currentMode,
+                    palette = palette,
+                    onClick = { onSetMode(mode) },
+                )
+            }
+            Box {
+                ModeDockActionButton(
+                    imageVector = Icons.Default.MoreHoriz,
+                    contentDescription = "Більше режимів",
+                    selected = false,
+                    palette = palette,
+                    onClick = onShowModeMenu,
+                )
+                DropdownMenu(
+                    expanded = showModeMenu,
+                    onDismissRequest = onDismissModeMenu,
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                ) {
+                    OmniboxMode.entries.forEach { mode ->
+                        DropdownMenuItem(
+                            text = { Text(modeTitle(mode), style = MaterialTheme.typography.bodyMedium) },
+                            leadingIcon = {
+                                Icon(modeIcon(mode), contentDescription = null, modifier = Modifier.size(16.dp))
+                            },
+                            onClick = { onSetMode(mode) },
+                        )
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ModeIconButton(
+    mode: OmniboxMode,
+    selected: Boolean,
+    palette: OmniboxModePalette,
+    onClick: () -> Unit,
+) {
+    ModeDockActionButton(
+        imageVector = modeIcon(mode),
+        contentDescription = modeTitle(mode),
+        selected = selected,
+        palette = palette,
+        onClick = onClick,
+    )
+}
+
+@Composable
+private fun ModeDockActionButton(
+    imageVector: ImageVector,
+    contentDescription: String,
+    selected: Boolean,
+    palette: OmniboxModePalette,
+    onClick: () -> Unit,
+) {
+    val containerColor =
+        if (selected) palette.modeIconContainer else MaterialTheme.colorScheme.surface.copy(alpha = 0.28f)
+    val borderColor =
+        if (selected) palette.iconTint.copy(alpha = 0.42f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.18f)
+    val iconColor = if (selected) palette.iconTint else MaterialTheme.colorScheme.onSurfaceVariant
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.size(42.dp),
+        shape = RoundedCornerShape(14.dp),
+        color = containerColor,
+        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor),
+        shadowElevation = if (selected) 4.dp else 0.dp,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = imageVector,
+                contentDescription = contentDescription,
+                modifier = Modifier.size(20.dp),
+                tint = iconColor,
+            )
         }
     }
 }
@@ -894,37 +1033,6 @@ private fun modeTitle(mode: OmniboxMode): String =
         OmniboxMode.AddActivityEvent -> "Add tracker event"
     }
 
-@Composable
-private fun ModePill(
-    mode: OmniboxMode,
-    palette: OmniboxModePalette,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(999.dp),
-        color = palette.modeIconContainer,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = modeIcon(mode),
-                contentDescription = null,
-                tint = palette.iconTint,
-                modifier = Modifier.size(12.dp),
-            )
-            Text(
-                text = modeTitle(mode),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
 private enum class OmniboxSelectionArea { None, Command, Data }
 
 private fun placeholderForMode(mode: OmniboxMode): String =
@@ -993,69 +1101,45 @@ private data class OmniboxModePalette(
 @Composable
 private fun rememberModePalette(mode: OmniboxMode): OmniboxModePalette {
     val scheme = MaterialTheme.colorScheme
-    val isDarkTheme = isSystemInDarkTheme()
-    return remember(mode, scheme, isDarkTheme) {
-        when (mode) {
-            OmniboxMode.DataSearch -> OmniboxModePalette(
-                searchSurface = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.primaryContainer.copy(alpha = 0.58f),
-                screenBottomTint = scheme.surfaceContainerLow,
-                panelChrome = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.surface.copy(alpha = 0.22f),
-                panelOutline = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.primary.copy(alpha = 0.14f),
-                inputContainer = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.surfaceBright.copy(alpha = 0.94f),
-                inputFocusedContainer = if (isDarkTheme) scheme.surfaceContainerHighest else scheme.surface,
-                secondaryActionContainer = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.surface.copy(alpha = 0.42f),
-                primaryActionContainer = if (isDarkTheme) scheme.primaryContainer.copy(alpha = 0.44f) else scheme.primaryContainer.copy(alpha = 0.82f),
-                modeIconContainer = if (isDarkTheme) scheme.primaryContainer.copy(alpha = 0.34f) else scheme.primaryContainer.copy(alpha = 0.72f),
-                iconTint = scheme.primary.copy(alpha = 0.9f),
-            )
-            OmniboxMode.Command -> OmniboxModePalette(
-                searchSurface = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.secondaryContainer.copy(alpha = 0.62f),
-                screenBottomTint = scheme.secondaryContainer.copy(alpha = 0.16f),
-                panelChrome = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.surface.copy(alpha = 0.22f),
-                panelOutline = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.secondary.copy(alpha = 0.14f),
-                inputContainer = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.surfaceBright.copy(alpha = 0.94f),
-                inputFocusedContainer = if (isDarkTheme) scheme.surfaceContainerHighest else scheme.surface.copy(alpha = 0.98f),
-                secondaryActionContainer = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.surface.copy(alpha = 0.42f),
-                primaryActionContainer = if (isDarkTheme) scheme.secondaryContainer.copy(alpha = 0.44f) else scheme.secondaryContainer.copy(alpha = 0.82f),
-                modeIconContainer = if (isDarkTheme) scheme.secondaryContainer.copy(alpha = 0.34f) else scheme.secondaryContainer.copy(alpha = 0.72f),
-                iconTint = scheme.secondary.copy(alpha = 0.92f),
-            )
-            OmniboxMode.QuickCatchInbox -> OmniboxModePalette(
-                searchSurface = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.tertiaryContainer.copy(alpha = 0.60f),
-                screenBottomTint = scheme.tertiaryContainer.copy(alpha = 0.16f),
-                panelChrome = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.surface.copy(alpha = 0.22f),
-                panelOutline = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.tertiary.copy(alpha = 0.14f),
-                inputContainer = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.surfaceBright.copy(alpha = 0.94f),
-                inputFocusedContainer = if (isDarkTheme) scheme.surfaceContainerHighest else scheme.surface.copy(alpha = 0.98f),
-                secondaryActionContainer = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.surface.copy(alpha = 0.42f),
-                primaryActionContainer = if (isDarkTheme) scheme.tertiaryContainer.copy(alpha = 0.44f) else scheme.tertiaryContainer.copy(alpha = 0.82f),
-                modeIconContainer = if (isDarkTheme) scheme.tertiaryContainer.copy(alpha = 0.34f) else scheme.tertiaryContainer.copy(alpha = 0.74f),
-                iconTint = scheme.tertiary.copy(alpha = 0.92f),
-            )
-            OmniboxMode.StartActivity -> OmniboxModePalette(
-                searchSurface = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.primaryContainer.copy(alpha = 0.60f),
-                screenBottomTint = scheme.primaryContainer.copy(alpha = 0.16f),
-                panelChrome = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.surface.copy(alpha = 0.22f),
-                panelOutline = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.primary.copy(alpha = 0.14f),
-                inputContainer = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.surfaceBright.copy(alpha = 0.94f),
-                inputFocusedContainer = if (isDarkTheme) scheme.surfaceContainerHighest else scheme.surface.copy(alpha = 0.98f),
-                secondaryActionContainer = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.surface.copy(alpha = 0.42f),
-                primaryActionContainer = if (isDarkTheme) scheme.primaryContainer.copy(alpha = 0.44f) else scheme.primaryContainer.copy(alpha = 0.82f),
-                modeIconContainer = if (isDarkTheme) scheme.primaryContainer.copy(alpha = 0.34f) else scheme.primaryContainer.copy(alpha = 0.76f),
-                iconTint = scheme.primary.copy(alpha = 0.9f),
-            )
-            OmniboxMode.AddActivityEvent -> OmniboxModePalette(
-                searchSurface = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.errorContainer.copy(alpha = 0.56f),
-                screenBottomTint = scheme.errorContainer.copy(alpha = 0.14f),
-                panelChrome = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.surface.copy(alpha = 0.22f),
-                panelOutline = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.error.copy(alpha = 0.14f),
-                inputContainer = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.surfaceBright.copy(alpha = 0.94f),
-                inputFocusedContainer = if (isDarkTheme) scheme.surfaceContainerHighest else scheme.surface.copy(alpha = 0.98f),
-                secondaryActionContainer = if (isDarkTheme) scheme.surfaceContainerHigh else scheme.surface.copy(alpha = 0.42f),
-                primaryActionContainer = if (isDarkTheme) scheme.errorContainer.copy(alpha = 0.44f) else scheme.errorContainer.copy(alpha = 0.82f),
-                modeIconContainer = if (isDarkTheme) scheme.errorContainer.copy(alpha = 0.34f) else scheme.errorContainer.copy(alpha = 0.72f),
-                iconTint = scheme.error.copy(alpha = 0.9f),
-            )
-        }
+    val bottomColors = bottomPanelColors()
+    val accent = modeAccentColor(mode)
+    val accentContainer = modeAccentContainer(mode)
+    return remember(mode, scheme, bottomColors, accent, accentContainer) {
+        OmniboxModePalette(
+            searchSurface = lerp(bottomColors.container, accentContainer, 0.18f),
+            screenBottomTint = lerp(scheme.surfaceContainerLow, accentContainer, 0.10f),
+            panelChrome = lerp(bottomColors.container, scheme.surfaceContainerHigh, 0.34f),
+            panelOutline = lerp(bottomColors.border, accent, 0.24f).copy(alpha = 0.42f),
+            inputContainer = bottomColors.inputContainer,
+            inputFocusedContainer = lerp(bottomColors.inputContainer, accentContainer, 0.14f),
+            secondaryActionContainer = lerp(bottomColors.container, accentContainer, 0.10f),
+            primaryActionContainer = lerp(bottomColors.primaryActionContainer, accent, 0.34f),
+            modeIconContainer = lerp(bottomColors.selectedActionContainer, accentContainer, 0.42f),
+            iconTint = accent.copy(alpha = 0.92f),
+        )
+    }
+}
+
+@Composable
+private fun modeAccentColor(mode: OmniboxMode): Color {
+    val scheme = MaterialTheme.colorScheme
+    return when (mode) {
+        OmniboxMode.DataSearch -> scheme.primary
+        OmniboxMode.Command -> scheme.secondary
+        OmniboxMode.QuickCatchInbox -> scheme.tertiary
+        OmniboxMode.StartActivity -> scheme.primary
+        OmniboxMode.AddActivityEvent -> scheme.error
+    }
+}
+
+@Composable
+private fun modeAccentContainer(mode: OmniboxMode): Color {
+    val scheme = MaterialTheme.colorScheme
+    return when (mode) {
+        OmniboxMode.DataSearch -> scheme.primaryContainer
+        OmniboxMode.Command -> scheme.secondaryContainer
+        OmniboxMode.QuickCatchInbox -> scheme.tertiaryContainer
+        OmniboxMode.StartActivity -> scheme.primaryContainer
+        OmniboxMode.AddActivityEvent -> scheme.errorContainer
     }
 }
