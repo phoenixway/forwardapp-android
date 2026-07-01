@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -86,7 +87,7 @@ internal fun SearchResultGroupHeader(
     val (container, content) = resultBadgeColors(presentation.tone)
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+        color = lerp(MaterialTheme.colorScheme.surfaceContainerLow, container, 0.04f).copy(alpha = 0.96f),
     ) {
         Row(
             modifier =
@@ -139,6 +140,19 @@ internal fun UnifiedSearchResultCard(spec: SearchResultCardSpec) {
         animationSpec = tween(durationMillis = 170),
         label = "selected_result_scale",
     )
+    val (badgeContainer, badgeContent) = resultBadgeColors(spec.presentation.tone)
+    val cardContainer =
+        if (spec.isSelected) {
+            lerp(MaterialTheme.colorScheme.surfaceContainerLow, badgeContainer, 0.10f)
+        } else {
+            lerp(MaterialTheme.colorScheme.surfaceContainerLow, badgeContainer, 0.04f)
+        }
+    val cardBorder =
+        if (spec.isSelected) {
+            badgeContent.copy(alpha = 0.26f)
+        } else {
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.20f)
+        }
 
     Card(
         modifier =
@@ -148,22 +162,13 @@ internal fun UnifiedSearchResultCard(spec: SearchResultCardSpec) {
         onClick = spec.onClick,
         colors =
             CardDefaults.cardColors(
-                containerColor =
-                    if (spec.isSelected) {
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.22f)
-                    } else {
-                        MaterialTheme.colorScheme.surface
-                    },
+                containerColor = cardContainer,
             ),
         shape = RoundedCornerShape(16.dp),
         border =
             BorderStroke(
                 if (spec.isSelected) 1.35.dp else 1.dp,
-                if (spec.isSelected) {
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
-                } else {
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                },
+                cardBorder,
             ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {

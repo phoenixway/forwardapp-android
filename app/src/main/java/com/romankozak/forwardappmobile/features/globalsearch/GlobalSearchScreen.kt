@@ -14,10 +14,11 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -44,6 +45,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -143,6 +145,10 @@ fun MagicBoxScreen(
         }
     val hasVisibleResults = !uiState.isLoading && resultCount > 0
     val hasSubmittedCurrentQuery = hasQuery && submittedQuery == uiState.query
+    val showSearchHistoryHint =
+        currentMode == OmniboxMode.DataSearch &&
+            !hasSubmittedCurrentQuery &&
+            uiState.searchHistory.isNotEmpty()
     val hasResultContent by remember(
         currentMode,
         filteredResults,
@@ -325,7 +331,7 @@ fun MagicBoxScreen(
         },
         floatingActionButtonPosition = FabPosition.End,
     ) { paddingValues ->
-        val contentBottomPadding = 208.dp
+        val contentBottomPadding = if (showSearchHistoryHint) 278.dp else 224.dp
 
         Box(
             modifier = Modifier
@@ -346,12 +352,12 @@ fun MagicBoxScreen(
                         .fillMaxSize()
                         .padding(top = 6.dp, bottom = contentBottomPadding),
                     shape = RoundedCornerShape(28.dp),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                    tonalElevation = 2.dp,
+                    color = modePalette.contentSurface.copy(alpha = 0.96f),
+                    tonalElevation = 1.dp,
                     shadowElevation = 0.dp,
                     border = androidx.compose.foundation.BorderStroke(
                         1.dp,
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f),
+                        modePalette.panelOutline.copy(alpha = 0.10f),
                     ),
                 ) {
                     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 6.dp)) {
@@ -453,80 +459,96 @@ fun MagicBoxScreen(
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .navigationBarsPadding()
-                    .height(232.dp)
+                    .height(164.dp)
                     .background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
                                 MaterialTheme.colorScheme.surface.copy(alpha = 0f),
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.26f),
-                                modePalette.searchSurface.copy(alpha = 0.76f),
+                                modePalette.contentSurface.copy(alpha = 0.38f),
+                                modePalette.searchSurface.copy(alpha = 0.88f),
                             ),
                         ),
                     ),
             )
 
-            MagicBoxActionStrip(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .imePadding()
-                    .padding(bottom = 204.dp),
-                palette = modePalette,
-                hasVisibleResults = hasVisibleResults,
-                resultCount = resultCount,
-                onNavigateBack = {
-                    if (!navController.popBackStack()) viewModel.enhancedNavigationManager.goBack()
-                },
-                onShowCreate = { showCreateSheet = true },
-                onShowSettings = { showSearchSettingsSheet = true },
-            )
-
-            // ── Compact Omnibox ───────────────────────────────────────────────
-            CompactOmnibox(
+            Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .navigationBarsPadding()
                     .imePadding(),
-                uiState = uiState,
-                currentMode = currentMode,
-                modePalette = modePalette,
-                showModeMenu = showModeMenu,
-                onShowModeMenu = { showModeMenu = true },
-                onDismissModeMenu = { showModeMenu = false },
-                onSetMode = {
-                    submittedQuery = null
-                    viewModel.setMode(it)
-                    showModeMenu = false
-                },
-                onCycleMode = {
-                    submittedQuery = null
-                    viewModel.cycleMode(it)
-                },
-                onQueryChange = {
-                    submittedQuery = null
-                    viewModel.onQueryChange(it)
-                },
-                onClearQuery = { viewModel.onQueryChange("") },
-                onSubmit = submitWithKeyboardHide,
-                onKeyDown = { keyEvent ->
-                    handleOmniboxKeyEvent(
-                        keyEvent = keyEvent,
-                        currentMode = currentMode,
-                        uiState = uiState,
-                        hybridCommandResults = visibleHybridCommandResults,
-                        filteredResults = filteredResults,
-                        selectedCommandIndex = selectedCommandIndex,
-                        selectedDataIndex = selectedDataIndex,
-                        selectionArea = selectionArea,
-                        onSelectedCommandIndex = { selectedCommandIndex = it },
-                        onSelectedDataIndex = { selectedDataIndex = it },
-                        onSelectionArea = { selectionArea = it },
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                AnimatedVisibility(
+                    visible = showSearchHistoryHint,
+                    enter = fadeIn(animationSpec = tween(160)) + scaleIn(),
+                    exit = fadeOut(animationSpec = tween(120)) + scaleOut(),
+                ) {
+                    SearchHistoryHintStrip(
+                        history = uiState.searchHistory,
+                        palette = modePalette,
+                        onHistoryClick = { query ->
+                            submittedQuery = query
+                            viewModel.onSelectHistoryQuery(query)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                },
-                focusRequester = focusRequester,
-            )
+                }
+
+                MagicBoxActionStrip(
+                    modifier = Modifier.fillMaxWidth(),
+                    palette = modePalette,
+                    hasVisibleResults = hasVisibleResults,
+                    resultCount = resultCount,
+                    onNavigateBack = {
+                        if (!navController.popBackStack()) viewModel.enhancedNavigationManager.goBack()
+                    },
+                    onShowCreate = { showCreateSheet = true },
+                    onShowSettings = { showSearchSettingsSheet = true },
+                )
+
+                // ── Compact Omnibox ───────────────────────────────────────────
+                CompactOmnibox(
+                    modifier = Modifier.fillMaxWidth(),
+                    uiState = uiState,
+                    currentMode = currentMode,
+                    modePalette = modePalette,
+                    showModeMenu = showModeMenu,
+                    onShowModeMenu = { showModeMenu = true },
+                    onDismissModeMenu = { showModeMenu = false },
+                    onSetMode = {
+                        submittedQuery = null
+                        viewModel.setMode(it)
+                        showModeMenu = false
+                    },
+                    onCycleMode = {
+                        submittedQuery = null
+                        viewModel.cycleMode(it)
+                    },
+                    onQueryChange = {
+                        submittedQuery = null
+                        viewModel.onQueryChange(it)
+                    },
+                    onClearQuery = { viewModel.onQueryChange("") },
+                    onSubmit = submitWithKeyboardHide,
+                    onKeyDown = { keyEvent ->
+                        handleOmniboxKeyEvent(
+                            keyEvent = keyEvent,
+                            currentMode = currentMode,
+                            uiState = uiState,
+                            hybridCommandResults = visibleHybridCommandResults,
+                            filteredResults = filteredResults,
+                            selectedCommandIndex = selectedCommandIndex,
+                            selectedDataIndex = selectedDataIndex,
+                            selectionArea = selectionArea,
+                            onSelectedCommandIndex = { selectedCommandIndex = it },
+                            onSelectedDataIndex = { selectedDataIndex = it },
+                            onSelectionArea = { selectionArea = it },
+                        )
+                    },
+                    focusRequester = focusRequester,
+                )
+            }
         }
     }
 }
@@ -546,17 +568,17 @@ private fun MagicBoxActionStrip(
     Surface(
         modifier = modifier
             .shadow(
-                elevation = 10.dp,
+                elevation = 3.dp,
                 shape = RoundedCornerShape(18.dp),
-                ambientColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.10f),
-                spotColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.16f),
+                ambientColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.04f),
+                spotColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.08f),
             ),
         shape = RoundedCornerShape(18.dp),
-        color = palette.searchSurface.copy(alpha = 0.94f),
-        tonalElevation = 4.dp,
+        color = palette.searchSurface,
+        tonalElevation = 3.dp,
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
-            color = palette.panelOutline,
+            color = palette.panelOutline.copy(alpha = 0.32f),
         ),
     ) {
         Row(
@@ -621,7 +643,7 @@ private fun ActionStripButton(
         color = if (emphasized) palette.modeIconContainer.copy(alpha = 0.88f) else palette.secondaryActionContainer,
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
-            color = palette.iconTint.copy(alpha = if (emphasized) 0.30f else 0.14f),
+            color = palette.iconTint.copy(alpha = if (emphasized) 0.18f else 0.05f),
         ),
     ) {
         Box(contentAlignment = Alignment.Center) {
@@ -631,6 +653,63 @@ private fun ActionStripButton(
                 modifier = Modifier.size(20.dp),
                 tint = if (emphasized) palette.iconTint else MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+}
+
+@Composable
+private fun SearchHistoryHintStrip(
+    history: List<String>,
+    palette: OmniboxModePalette,
+    onHistoryClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.padding(horizontal = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            text = "Останні запити",
+            modifier = Modifier.padding(horizontal = 8.dp),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.58f),
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            history.take(6).forEach { query ->
+                Surface(
+                    onClick = { onHistoryClick(query) },
+                    shape = RoundedCornerShape(14.dp),
+                    color = palette.secondaryActionContainer.copy(alpha = 0.58f),
+                    tonalElevation = 0.dp,
+                    shadowElevation = 0.dp,
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.History,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.56f),
+                        )
+                        Text(
+                            text = query,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -660,113 +739,98 @@ private fun CompactOmnibox(
         modifier =
             modifier
                 .shadow(
-                    elevation = 20.dp,
+                    elevation = 8.dp,
                     shape = RoundedCornerShape(22.dp),
-                    ambientColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.18f),
-                    spotColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.24f),
-                )
-                .border(
-                    width = 1.dp,
-                    color = modePalette.iconTint.copy(alpha = 0.18f),
-                    shape = RoundedCornerShape(22.dp),
+                    ambientColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.08f),
+                    spotColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.12f),
                 ),
         shape = RoundedCornerShape(22.dp),
-        color = modePalette.searchSurface.copy(alpha = 0.98f),
-        tonalElevation = 8.dp,
-        shadowElevation = 10.dp,
+        color = modePalette.searchSurface,
+        tonalElevation = 5.dp,
+        shadowElevation = 5.dp,
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = modePalette.panelOutline.copy(alpha = 0.36f),
+        ),
     ) {
         Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp)) {
-            Surface(
+            TextField(
+                value = uiState.query,
+                onValueChange = onQueryChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (isQuickCatchMode) Modifier.heightIn(min = 56.dp, max = 144.dp)
+                        else Modifier.heightIn(min = 56.dp)
+                    )
+                    .focusRequester(focusRequester)
+                    .onPreviewKeyEvent { onKeyDown(it) },
+                singleLine = !isQuickCatchMode,
+                maxLines = if (isQuickCatchMode) 6 else 1,
+                placeholder = {
+                    Text(
+                        placeholderForMode(currentMode),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.68f),
+                    )
+                },
+                textStyle = MaterialTheme.typography.bodyLarge,
+                keyboardOptions = KeyboardOptions(imeAction = if (isQuickCatchMode) ImeAction.Default else ImeAction.Done),
+                keyboardActions = KeyboardActions(),
                 shape = RoundedCornerShape(18.dp),
-                color = modePalette.panelChrome,
-                border = androidx.compose.foundation.BorderStroke(1.dp, modePalette.panelOutline),
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.Bottom,
-                ) {
-                    TextField(
-                        value = uiState.query,
-                        onValueChange = onQueryChange,
-                        modifier = Modifier
-                            .weight(1f)
-                            .then(
-                                if (isQuickCatchMode) Modifier.heightIn(min = 56.dp, max = 144.dp)
-                                else Modifier.heightIn(min = 56.dp)
-                            )
-                            .focusRequester(focusRequester)
-                            .onPreviewKeyEvent { onKeyDown(it) },
-                        singleLine = !isQuickCatchMode,
-                        maxLines = if (isQuickCatchMode) 6 else 1,
-                        placeholder = {
-                            Text(
-                                placeholderForMode(currentMode),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.68f),
-                            )
-                        },
-                        textStyle = MaterialTheme.typography.bodyLarge,
-                        keyboardOptions = KeyboardOptions(imeAction = if (isQuickCatchMode) ImeAction.Default else ImeAction.Done),
-                        keyboardActions = KeyboardActions(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = modePalette.inputFocusedContainer.copy(alpha = 1f),
-                            unfocusedContainerColor = modePalette.inputContainer.copy(alpha = 0.98f),
-                            disabledContainerColor = modePalette.inputContainer.copy(alpha = 0.98f),
-                            focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                            focusedLeadingIconColor = modePalette.iconTint,
-                            unfocusedLeadingIconColor = modePalette.iconTint,
-                            focusedTrailingIconColor = modePalette.iconTint,
-                            unfocusedTrailingIconColor = modePalette.iconTint,
-                        ),
-                        trailingIcon = if (hasQuery) {
-                            {
-                                Row(
-                                    modifier = Modifier.padding(end = 4.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = modePalette.inputFocusedContainer.copy(alpha = 1f),
+                    unfocusedContainerColor = modePalette.inputContainer.copy(alpha = 0.98f),
+                    disabledContainerColor = modePalette.inputContainer.copy(alpha = 0.98f),
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    focusedLeadingIconColor = modePalette.iconTint,
+                    unfocusedLeadingIconColor = modePalette.iconTint,
+                    focusedTrailingIconColor = modePalette.iconTint,
+                    unfocusedTrailingIconColor = modePalette.iconTint,
+                ),
+                trailingIcon = if (hasQuery) {
+                    {
+                        Row(
+                            modifier = Modifier.padding(end = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            IconButton(
+                                onClick = onClearQuery,
+                                modifier = Modifier.size(36.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "очистити",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Surface(
+                                onClick = onSubmit,
+                                shape = RoundedCornerShape(12.dp),
+                                color = modePalette.primaryActionContainer,
+                                tonalElevation = 0.dp,
+                            ) {
+                                Box(
+                                    modifier = Modifier.size(40.dp),
+                                    contentAlignment = Alignment.Center,
                                 ) {
-                                    IconButton(
-                                        onClick = onClearQuery,
-                                        modifier = Modifier.size(36.dp),
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Clear,
-                                            contentDescription = "очистити",
-                                            modifier = Modifier.size(18.dp),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                    Surface(
-                                        onClick = onSubmit,
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = modePalette.primaryActionContainer,
-                                        tonalElevation = 0.dp,
-                                    ) {
-                                        Box(
-                                            modifier = Modifier.size(40.dp),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            Icon(
-                                                Icons.AutoMirrored.Filled.Send,
-                                                contentDescription = submitDescriptionForMode(currentMode),
-                                                modifier = Modifier.size(18.dp),
-                                                tint = MaterialTheme.colorScheme.onPrimary,
-                                            )
-                                        }
-                                    }
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.Send,
+                                        contentDescription = submitDescriptionForMode(currentMode),
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                    )
                                 }
                             }
-                        } else {
-                            null
-                        },
-                    )
-                }
-            }
+                        }
+                    }
+                } else {
+                    null
+                },
+            )
 
             Row(
                     modifier = Modifier
@@ -817,8 +881,8 @@ private fun ModeIconDock(
                 )
             },
         shape = RoundedCornerShape(16.dp),
-        color = palette.panelChrome,
-        border = androidx.compose.foundation.BorderStroke(1.dp, palette.panelOutline),
+        color = palette.panelChrome.copy(alpha = 0.92f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, palette.panelOutline.copy(alpha = 0.08f)),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp),
@@ -886,17 +950,18 @@ private fun ModeDockActionButton(
     onClick: () -> Unit,
 ) {
     val containerColor =
-        if (selected) palette.modeIconContainer else MaterialTheme.colorScheme.surface.copy(alpha = 0.28f)
+        if (selected) palette.modeIconContainer else Color.Transparent
     val borderColor =
-        if (selected) palette.iconTint.copy(alpha = 0.42f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.18f)
-    val iconColor = if (selected) palette.iconTint else MaterialTheme.colorScheme.onSurfaceVariant
+        if (selected) palette.iconTint.copy(alpha = 0.18f) else Color.Transparent
+    val iconColor =
+        if (selected) palette.iconTint else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.62f)
     Surface(
         onClick = onClick,
         modifier = Modifier.size(42.dp),
         shape = RoundedCornerShape(14.dp),
         color = containerColor,
         border = androidx.compose.foundation.BorderStroke(1.dp, borderColor),
-        shadowElevation = if (selected) 4.dp else 0.dp,
+        shadowElevation = 0.dp,
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
@@ -1006,10 +1071,10 @@ private fun handleOmniboxKeyEvent(
 private fun modeIcon(mode: OmniboxMode): ImageVector =
     when (mode) {
         OmniboxMode.DataSearch -> Icons.Default.Search
-        OmniboxMode.Command -> Icons.Default.Tune
+        OmniboxMode.Command -> Icons.Default.Terminal
         OmniboxMode.QuickCatchInbox -> Icons.Outlined.MoveToInbox
-        OmniboxMode.StartActivity -> Icons.Default.History
-        OmniboxMode.AddActivityEvent -> Icons.Default.CheckCircle
+        OmniboxMode.StartActivity -> Icons.Default.PlayArrow
+        OmniboxMode.AddActivityEvent -> Icons.Default.Event
     }
 
 private fun modeTitle(mode: OmniboxMode): String =
@@ -1025,11 +1090,11 @@ private enum class OmniboxSelectionArea { None, Command, Data }
 
 private fun placeholderForMode(mode: OmniboxMode): String =
     when (mode) {
-        OmniboxMode.DataSearch -> "Пошук по контекстах, цілях, активностях..."
-        OmniboxMode.Command -> "Команда або екран (fuzzy)"
-        OmniboxMode.QuickCatchInbox -> "Швидкий запис в inbox..."
-        OmniboxMode.StartActivity -> "Назва нової активності..."
-        OmniboxMode.AddActivityEvent -> "Назва події трекера..."
+        OmniboxMode.DataSearch -> "Шукай будь-що..."
+        OmniboxMode.Command -> "Команда..."
+        OmniboxMode.QuickCatchInbox -> "В Inbox..."
+        OmniboxMode.StartActivity -> "Почати активність..."
+        OmniboxMode.AddActivityEvent -> "Додати подію..."
     }
 
 private fun submitDescriptionForMode(mode: OmniboxMode): String =
@@ -1075,6 +1140,7 @@ internal fun commandTitle(commandId: OmniboxCommandId): String =
 
 private data class OmniboxModePalette(
     val searchSurface: androidx.compose.ui.graphics.Color,
+    val contentSurface: androidx.compose.ui.graphics.Color,
     val screenBottomTint: androidx.compose.ui.graphics.Color,
     val panelChrome: androidx.compose.ui.graphics.Color,
     val panelOutline: androidx.compose.ui.graphics.Color,
@@ -1094,16 +1160,21 @@ private fun rememberModePalette(mode: OmniboxMode): OmniboxModePalette {
     val accentContainer = modeAccentContainer(mode)
     return remember(mode, scheme, bottomColors, accent, accentContainer) {
         OmniboxModePalette(
-            searchSurface = lerp(bottomColors.container, accentContainer, 0.18f),
-            screenBottomTint = lerp(scheme.surfaceContainerLow, accentContainer, 0.10f),
-            panelChrome = lerp(bottomColors.container, scheme.surfaceContainerHigh, 0.34f),
-            panelOutline = lerp(bottomColors.border, accent, 0.24f).copy(alpha = 0.42f),
+            searchSurface = lerp(
+                bottomColors.container,
+                scheme.surfaceContainerHighest,
+                0.28f,
+            ),
+            contentSurface = lerp(bottomColors.container, scheme.surface, 0.38f),
+            screenBottomTint = lerp(bottomColors.container, accentContainer, 0.04f),
+            panelChrome = lerp(bottomColors.container, scheme.surfaceContainerHigh, 0.12f),
+            panelOutline = lerp(bottomColors.border, accent, 0.10f).copy(alpha = 0.32f),
             inputContainer = bottomColors.inputContainer,
-            inputFocusedContainer = lerp(bottomColors.inputContainer, accentContainer, 0.14f),
-            secondaryActionContainer = lerp(bottomColors.container, accentContainer, 0.10f),
-            primaryActionContainer = lerp(bottomColors.primaryActionContainer, accent, 0.34f),
-            modeIconContainer = lerp(bottomColors.selectedActionContainer, accentContainer, 0.42f),
-            iconTint = accent.copy(alpha = 0.92f),
+            inputFocusedContainer = lerp(bottomColors.inputContainer, accentContainer, 0.08f),
+            secondaryActionContainer = lerp(bottomColors.container, accentContainer, 0.05f),
+            primaryActionContainer = lerp(bottomColors.primaryActionContainer, accent, 0.16f),
+            modeIconContainer = lerp(bottomColors.selectedActionContainer, accentContainer, 0.18f),
+            iconTint = lerp(bottomColors.action, accent, 0.26f).copy(alpha = 0.92f),
         )
     }
 }

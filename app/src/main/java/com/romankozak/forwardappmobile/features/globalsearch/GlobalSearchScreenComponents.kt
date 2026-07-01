@@ -60,6 +60,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -133,14 +134,14 @@ internal fun CommandResultsContent(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { args.onCommandClick(item.id) },
                 shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                colors = CardDefaults.cardColors(containerColor = tintedResultSurface(args.accentColor)),
                 border =
                     androidx.compose.foundation.BorderStroke(
                         if (args.selectedCommandIndex == index) 1.4.dp else 1.dp,
                         if (args.selectedCommandIndex == index) {
                             args.accentColor.copy(alpha = 0.45f)
                         } else {
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.20f)
                         },
                     ),
             ) {
@@ -235,7 +236,7 @@ internal fun CommandStartContent(
         if (args.showRecents && args.recentCommands.isNotEmpty()) {
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                color = tintedResultSurface(args.accentColor),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(
@@ -292,14 +293,14 @@ internal fun HybridCommandSection(
             Surface(
                 onClick = { onCommandClick(command.id) },
                 shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                color = tintedResultSurface(accentColor),
                 border =
                     androidx.compose.foundation.BorderStroke(
                         1.dp,
                         if (selectedCommandIndex == index) {
                             accentColor.copy(alpha = 0.4f)
                         } else {
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f)
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.18f)
                         },
                     ),
             ) {
@@ -347,14 +348,14 @@ internal fun CommandSearchResultCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = { onCommandClick(command.id) },
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = tintedResultSurface(accentColor)),
         border =
             androidx.compose.foundation.BorderStroke(
                 if (isSelected) SELECTED_COMMAND_BORDER_WIDTH else 1.dp,
                 if (isSelected) {
                     accentColor.copy(alpha = 0.45f)
                 } else {
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.20f)
                 },
             ),
     ) {
@@ -411,7 +412,7 @@ internal fun EmptyDataSearchContent(
         EmptySearchContent(query = args.query, modifier = Modifier.weight(1f).fillMaxWidth())
         Surface(
             shape = RoundedCornerShape(14.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            color = tintedResultSurface(args.accentColor),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
@@ -638,6 +639,12 @@ internal fun SearchStartContent(
         }
     }
 }
+
+@Composable
+private fun tintedResultSurface(
+    accentColor: Color,
+    amount: Float = 0.035f,
+): Color = lerp(MaterialTheme.colorScheme.surfaceContainerLow, accentColor, amount)
 
 @Composable
 internal fun ModeRecentInputsContent(

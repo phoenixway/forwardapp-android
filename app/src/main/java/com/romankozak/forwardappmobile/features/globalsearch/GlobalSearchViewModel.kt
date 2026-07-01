@@ -288,6 +288,7 @@ class GlobalSearchViewModel
                         it.copy(
                             modeDisplayPrefs = prefs,
                             recentModeInputs = recentInputs,
+                            searchHistory = recentInputs[OmniboxMode.DataSearch].orEmpty(),
                         )
                     }
                 }
@@ -525,11 +526,17 @@ class GlobalSearchViewModel
             val updated = _uiState.value.searchHistory.filterNot { it.equals(query, ignoreCase = true) }
             _uiState.update { it.copy(searchHistory = updated) }
             savedStateHandle[SEARCH_HISTORY_KEY] = updated
+            viewModelScope.launch {
+                settingsRepository.saveGlobalSearchRecentInputs(OmniboxMode.DataSearch, updated)
+            }
         }
 
         fun clearSearchHistory() {
             _uiState.update { it.copy(searchHistory = emptyList()) }
             savedStateHandle[SEARCH_HISTORY_KEY] = emptyList<String>()
+            viewModelScope.launch {
+                settingsRepository.saveGlobalSearchRecentInputs(OmniboxMode.DataSearch, emptyList())
+            }
         }
 
         fun toggleCurrentModePreview() {
@@ -1142,6 +1149,9 @@ class GlobalSearchViewModel
 
             _uiState.update { it.copy(searchHistory = updated) }
             savedStateHandle[SEARCH_HISTORY_KEY] = updated
+            viewModelScope.launch {
+                settingsRepository.saveGlobalSearchRecentInputs(OmniboxMode.DataSearch, updated)
+            }
         }
 
         fun navigateToProjectForResult(
