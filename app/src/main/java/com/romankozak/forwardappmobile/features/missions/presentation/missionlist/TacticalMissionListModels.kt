@@ -23,4 +23,5 @@ data class TacticalMissionListCallbacks(
 data class TacticalMissionListLookups(
     val projectOptions: List<ProjectOption>,
     val attachmentOptions: List<AttachmentOption>,
+    val missionStreamTitleById: Map<String, String> = emptyMap(),
 )

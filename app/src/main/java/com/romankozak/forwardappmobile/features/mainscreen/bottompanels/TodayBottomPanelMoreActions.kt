@@ -8,6 +8,7 @@ import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.M
 internal data class TodayMoreActionCallbacks(
     val onWakeUp: () -> Unit,
     val onSleep: () -> Unit,
+    val onSetPredictedDayDuration: () -> Unit,
     val onFinalizePlan: () -> Unit,
     val onFinalizeFocus: () -> Unit,
     val onStartImplementation: () -> Unit,
@@ -28,8 +29,10 @@ internal fun buildTodayAdditionalMoreActions(
     when (currentTab) {
         DayManagementTab.DAY_START ->
             listOf(
-                MoreSheetAction(label = "Проснувся!", onClick = callbacks.onWakeUp),
-                MoreSheetAction(label = "Пішов спати", onClick = callbacks.onSleep),
+                MoreSheetAction(
+                    label = "Задати прогнозовану тривалість дня",
+                    onClick = callbacks.onSetPredictedDayDuration,
+                ),
             )
 
         DayManagementTab.DAY_PLAN ->

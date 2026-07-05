@@ -24,6 +24,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -125,6 +126,10 @@ private fun DayManagementPagerContent(
     args: DayManagementPagerArgs,
 ) {
     val runtimeUiState by args.runtimeViewModel.uiState.collectAsState()
+    val dayPlanUiState by args.dayPlanViewModel.uiState.collectAsState()
+    LaunchedEffect(args.planId) {
+        args.dayPlanViewModel.loadDataForPlan(args.planId)
+    }
     HorizontalPager(
         state = args.pagerState,
         modifier = Modifier.fillMaxSize(),
@@ -134,6 +139,7 @@ private fun DayManagementPagerContent(
             DayManagementTab.DAY_START ->
                 DayStartScreen(
                     runtimeState = runtimeUiState.runtimeState,
+                    predictedDurationMinutes = dayPlanUiState.dayPlan?.predictedDurationMinutes,
                     onWakeUp = args.runtimeViewModel::wakeUp,
                     onSleep = args.runtimeViewModel::sleep,
                 )
@@ -141,6 +147,7 @@ private fun DayManagementPagerContent(
                 DayFocusesScreen(
                     initialDayPlanId = args.planId,
                     navController = args.mainNavController,
+                    predictedDayDurationMinutes = dayPlanUiState.dayPlan?.predictedDurationMinutes,
                     viewModel = args.dayFocusesViewModel,
                 )
             DayManagementTab.DAY_PLAN ->

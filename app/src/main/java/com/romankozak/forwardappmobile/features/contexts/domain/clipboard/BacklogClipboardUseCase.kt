@@ -521,7 +521,10 @@ class BacklogClipboardUseCase
             }
         }
 
-        suspend fun pasteIntoTacticalMissions(): TacticalMissionPasteReport {
+        suspend fun pasteIntoTacticalMissions(
+            targetWeekKey: String,
+            targetMissionStreamId: String?,
+        ): TacticalMissionPasteReport {
             val payload = clipboardService.payload.value ?: return TacticalMissionPasteReport(totalRequested = 0, skippedInvalid = 1)
             val now = System.currentTimeMillis()
             val missionsToInsert = mutableListOf<TacticalMission>()
@@ -529,9 +532,14 @@ class BacklogClipboardUseCase
             val directionItemsToDelete = mutableListOf<String>()
             val checklistItemsToDelete = mutableListOf<String>()
             val dayTaskIdsToDelete = mutableListOf<String>()
-            val missionIdsToDelete = mutableListOf<Long>()
             val inboxRecordIdsToDelete = mutableListOf<String>()
             var skippedInvalid = 0
+            var movedMissions = 0
+            fun TacticalMission.asTargetMission(): TacticalMission =
+                copy(
+                    weekKey = targetWeekKey,
+                    missionStreamId = targetMissionStreamId,
+                )
 
             val copiedGoalRefs = payload.entities.filterIsInstance<ClipboardEntityRef.BacklogGoal>()
             copiedGoalRefs.forEach { ref ->
@@ -549,7 +557,7 @@ class BacklogClipboardUseCase
                             projectId = payload.sourceContextId.ifBlank { null },
                             linkedProjectIds = payload.sourceContextId.takeIf { it.isNotBlank() }?.let(::listOf) ?: emptyList(),
                             linkedAttachmentIds = emptyList(),
-                        )
+                        ).asTargetMission()
                 }
             }
 
@@ -569,7 +577,7 @@ class BacklogClipboardUseCase
                             projectId = ref.contextId,
                             linkedProjectIds = listOf(ref.contextId),
                             linkedAttachmentIds = emptyList(),
-                        )
+                        ).asTargetMission()
                 }
             }
 
@@ -590,7 +598,7 @@ class BacklogClipboardUseCase
                             projectId = item.linkedContextId,
                             linkedProjectIds = item.linkedContextId?.let(::listOf) ?: emptyList(),
                             linkedAttachmentIds = emptyList(),
-                        )
+                        ).asTargetMission()
                     if (payload.operation == ClipboardOperation.CUT) {
                         directionItemsToDelete += item.id
                     }
@@ -614,7 +622,7 @@ class BacklogClipboardUseCase
                             projectId = payload.sourceContextId.ifBlank { null },
                             linkedProjectIds = payload.sourceContextId.takeIf { it.isNotBlank() }?.let(::listOf) ?: emptyList(),
                             linkedAttachmentIds = emptyList(),
-                        )
+                        ).asTargetMission()
                     if (payload.operation == ClipboardOperation.CUT) {
                         checklistItemsToDelete += item.id
                     }
@@ -637,7 +645,7 @@ class BacklogClipboardUseCase
                             projectId = task?.projectId,
                             linkedProjectIds = task?.linkedProjectIds.orEmpty(),
                             linkedAttachmentIds = emptyList(),
-                        )
+                        ).asTargetMission()
                     if (payload.operation == ClipboardOperation.CUT) {
                         dayTaskIdsToDelete += ref.taskId
                     }
@@ -650,13 +658,20 @@ class BacklogClipboardUseCase
                 if (mission == null) {
                     skippedInvalid += 1
                 } else {
-                    missionsToInsert +=
-                        mission.copy(
-                            id = 0,
-                            order = 0L,
-                        )
                     if (payload.operation == ClipboardOperation.CUT) {
-                        missionIdsToDelete += mission.id
+                        val targetMission = mission.asTargetMission()
+                        if (targetMission.weekKey != mission.weekKey ||
+                            targetMission.missionStreamId != mission.missionStreamId
+                        ) {
+                            missionRepository.updateMission(targetMission)
+                            movedMissions += 1
+                        }
+                    } else {
+                        missionsToInsert +=
+                            mission.copy(
+                                id = 0,
+                                order = 0L,
+                            ).asTargetMission()
                     }
                 }
             }
@@ -676,7 +691,7 @@ class BacklogClipboardUseCase
                             projectId = payload.sourceContextId.ifBlank { null },
                             linkedProjectIds = payload.sourceContextId.takeIf { it.isNotBlank() }?.let(::listOf) ?: emptyList(),
                             linkedAttachmentIds = emptyList(),
-                        )
+                        ).asTargetMission()
                     if (payload.operation == ClipboardOperation.CUT) {
                         inboxRecordIdsToDelete += record.id
                     }
@@ -715,7 +730,7 @@ class BacklogClipboardUseCase
                             projectId = projectId,
                             linkedProjectIds = projectId?.let(::listOf) ?: emptyList(),
                             linkedAttachmentIds = emptyList(),
-                        )
+                        ).asTargetMission()
                     if (payload.operation == ClipboardOperation.CUT) {
                         backlogItemsToDelete += item.id
                     }
@@ -729,7 +744,7 @@ class BacklogClipboardUseCase
                 createdMissions += 1
             }
 
-            var moved = 0
+            var moved = movedMissions
             if (payload.operation == ClipboardOperation.CUT && createdMissions > 0) {
                 if (backlogItemsToDelete.isNotEmpty()) {
                     listItemRepository.deleteListItems(backlogItemsToDelete.distinct())
@@ -747,14 +762,13 @@ class BacklogClipboardUseCase
                     dayManagementRepository.deleteTask(taskId)
                     moved += 1
                 }
-                missionIdsToDelete.distinct().forEach { missionId ->
-                    missionRepository.deleteMissionById(missionId)
-                    moved += 1
-                }
                 inboxRecordIdsToDelete.distinct().forEach { recordId ->
                     inboxRepository.deleteInboxRecordById(recordId)
                     moved += 1
                 }
+                clipboardService.clear()
+            }
+            if (payload.operation == ClipboardOperation.CUT && movedMissions > 0) {
                 clipboardService.clear()
             }
 

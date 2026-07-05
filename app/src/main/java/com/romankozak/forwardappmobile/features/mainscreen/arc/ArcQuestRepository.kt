@@ -13,6 +13,8 @@ class ArcQuestRepository
     ) {
         fun observeArcQuests(arcKey: String): Flow<List<ArcQuestEntity>> = dao.observeArcQuests(arcKey)
 
+        fun observeNonEmptyArcKeys(): Flow<List<String>> = dao.observeNonEmptyArcKeys()
+
         suspend fun getById(id: String): ArcQuestEntity? = dao.getById(id)
 
         suspend fun addQuest(quest: ArcQuestEntity) {

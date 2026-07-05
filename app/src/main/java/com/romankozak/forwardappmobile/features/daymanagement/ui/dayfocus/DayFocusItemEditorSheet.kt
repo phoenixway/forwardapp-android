@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
@@ -51,12 +52,18 @@ import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTarg
 import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
 import com.romankozak.forwardappmobile.features.missions.presentation.PickerCreateAction
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
+import kotlin.math.roundToInt
 
 private enum class DayFocusEditorTab(
     val title: String,
 ) {
     GENERAL("General"),
     LINKS("Links"),
+}
+
+private enum class DayFocusBudgetInputMode {
+    PERCENT,
+    HOURS,
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,14 +73,29 @@ fun DayFocusItemEditorSheet(
     availableContexts: List<ProjectOption>,
     availableAttachments: List<AttachmentOption>,
     existingItem: DayFocusItem? = null,
+    otherBudgetPercent: Int = 0,
+    predictedDayDurationMinutes: Long? = null,
     onDismiss: () -> Unit,
-    onConfirm: (String, String?, List<RelatedLink>, DayFocusType, Boolean) -> Unit,
+    onConfirm: (String, String?, List<RelatedLink>, DayFocusType, Boolean, Int?) -> Unit,
     onCreateDocumentForPicker: suspend (NewDocumentDraft) -> String?,
 ) {
     var title by remember(existingItem?.id) { mutableStateOf(existingItem?.title.orEmpty()) }
     var notes by remember(existingItem?.id) { mutableStateOf(existingItem?.notes.orEmpty()) }
     var selectedType by remember(existingItem?.id, initialType) { mutableStateOf(existingItem?.type ?: initialType) }
     var isEveryday by remember(existingItem?.id) { mutableStateOf(existingItem?.isEveryday == true) }
+    var budgetPercentText by remember(existingItem?.id) {
+        mutableStateOf(existingItem?.budgetPercent?.toString().orEmpty())
+    }
+    var budgetInputMode by remember(existingItem?.id) { mutableStateOf(DayFocusBudgetInputMode.PERCENT) }
+    val normalizedDayDurationMinutes = predictedDayDurationMinutes?.takeIf { it > 0L }
+    val currentBudgetPercent =
+        when (budgetInputMode) {
+            DayFocusBudgetInputMode.PERCENT -> budgetPercentText.toBudgetPercentOrNull()
+            DayFocusBudgetInputMode.HOURS -> budgetPercentText.toBudgetPercentFromHours(normalizedDayDurationMinutes)
+        }
+    val isBudgetValid = budgetPercentText.isBlank() || currentBudgetPercent != null
+    val projectedBudgetPercent = otherBudgetPercent + (currentBudgetPercent ?: 0)
+    val isProjectedBudgetOverLimit = projectedBudgetPercent > 100
     var selectedTab by remember(existingItem?.id) { mutableStateOf(DayFocusEditorTab.GENERAL) }
     var links by remember(existingItem?.id) { mutableStateOf(existingItem?.relatedLinks.orEmpty()) }
     var activePickerTab by remember(existingItem?.id) { mutableStateOf<LinkPickerTab?>(null) }
@@ -159,6 +181,80 @@ fun DayFocusItemEditorSheet(
                             )
                         }
                         item {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    FilterChip(
+                                        selected = budgetInputMode == DayFocusBudgetInputMode.PERCENT,
+                                        onClick = {
+                                            budgetPercentText = currentBudgetPercent?.toString().orEmpty()
+                                            budgetInputMode = DayFocusBudgetInputMode.PERCENT
+                                        },
+                                        label = { Text("%") },
+                                    )
+                                    FilterChip(
+                                        selected = budgetInputMode == DayFocusBudgetInputMode.HOURS,
+                                        enabled = normalizedDayDurationMinutes != null,
+                                        onClick = {
+                                            budgetPercentText =
+                                                currentBudgetPercent
+                                                    ?.toHoursText(normalizedDayDurationMinutes)
+                                                    .orEmpty()
+                                            budgetInputMode = DayFocusBudgetInputMode.HOURS
+                                        },
+                                        label = { Text("год") },
+                                    )
+                                }
+                                OutlinedTextField(
+                                    value = budgetPercentText,
+                                    onValueChange = { input ->
+                                        budgetPercentText =
+                                            when (budgetInputMode) {
+                                                DayFocusBudgetInputMode.PERCENT -> input.filter(Char::isDigit).take(3)
+                                                DayFocusBudgetInputMode.HOURS -> input.toHoursInput()
+                                            }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    label = {
+                                        Text(
+                                            if (budgetInputMode == DayFocusBudgetInputMode.PERCENT) {
+                                                "Ліміт часу на сьогодні, %"
+                                            } else {
+                                                "Ліміт часу на сьогодні, год"
+                                            },
+                                        )
+                                    },
+                                    supportingText = {
+                                        Text(
+                                            text =
+                                                buildBudgetSupportingText(
+                                                    projectedBudgetPercent = projectedBudgetPercent,
+                                                    currentBudgetPercent = currentBudgetPercent,
+                                                    predictedDayDurationMinutes = normalizedDayDurationMinutes,
+                                                ),
+                                            color =
+                                                if (isProjectedBudgetOverLimit) {
+                                                    MaterialTheme.colorScheme.error
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                                },
+                                        )
+                                    },
+                                    isError = !isBudgetValid || isProjectedBudgetOverLimit,
+                                    singleLine = true,
+                                    keyboardOptions =
+                                        KeyboardOptions(
+                                            keyboardType =
+                                                if (budgetInputMode == DayFocusBudgetInputMode.PERCENT) {
+                                                    KeyboardType.Number
+                                                } else {
+                                                    KeyboardType.Decimal
+                                                },
+                                            imeAction = ImeAction.Next,
+                                        ),
+                                )
+                            }
+                        }
+                        item {
                             Surface(
                                 shape = MaterialTheme.shapes.large,
                                 color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -238,9 +334,10 @@ fun DayFocusItemEditorSheet(
                             links,
                             selectedType,
                             isEveryday,
+                            currentBudgetPercent,
                         )
                     },
-                    enabled = title.isNotBlank(),
+                    enabled = title.isNotBlank() && isBudgetValid,
                     modifier = Modifier.weight(1f),
                 ) {
                     Text("Зберегти")
@@ -342,3 +439,59 @@ private fun DayFocusType.title(): String =
         DayFocusType.FOCUS -> "Фокус"
         DayFocusType.RESPONSIBILITY -> "Зона відповідальності"
     }
+
+private fun String.toBudgetPercentOrNull(): Int? =
+    trim()
+        .takeIf { it.isNotEmpty() }
+        ?.toIntOrNull()
+        ?.takeIf { it in 0..100 }
+
+private fun String.toBudgetPercentFromHours(dayDurationMinutes: Long?): Int? {
+    val duration = dayDurationMinutes?.takeIf { it > 0L } ?: return null
+    val hours = trim().replace(',', '.').toDoubleOrNull() ?: return null
+    if (hours < 0.0) return null
+    return ((hours * 60.0 / duration) * 100.0)
+        .roundToInt()
+        .coerceIn(0, 100)
+}
+
+private fun Int.toHoursText(dayDurationMinutes: Long?): String {
+    val duration = dayDurationMinutes?.takeIf { it > 0L } ?: return ""
+    val hours = duration * this / 100.0 / 60.0
+    return if (hours % 1.0 == 0.0) {
+        hours.toInt().toString()
+    } else {
+        String.format(java.util.Locale.getDefault(), "%.1f", hours)
+    }
+}
+
+private fun String.toHoursInput(): String {
+    var hasDecimalSeparator = false
+    return buildString {
+        this@toHoursInput.forEach { char ->
+            when {
+                char.isDigit() -> append(char)
+                (char == '.' || char == ',') && !hasDecimalSeparator -> {
+                    append(char)
+                    hasDecimalSeparator = true
+                }
+            }
+        }
+    }.take(5)
+}
+
+private fun buildBudgetSupportingText(
+    projectedBudgetPercent: Int,
+    currentBudgetPercent: Int?,
+    predictedDayDurationMinutes: Long?,
+): String {
+    val current = currentBudgetPercent ?: 0
+    val hoursText =
+        current
+            .takeIf { predictedDayDurationMinutes != null }
+            ?.toHoursText(predictedDayDurationMinutes)
+            ?.takeIf { it.isNotBlank() }
+            ?.let { " · поточний: $current% / $it год" }
+            .orEmpty()
+    return "Сума фокусів і зон: $projectedBudgetPercent/100$hoursText"
+}

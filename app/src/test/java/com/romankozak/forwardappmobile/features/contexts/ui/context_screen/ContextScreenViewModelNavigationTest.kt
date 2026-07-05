@@ -41,6 +41,7 @@ import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.ContextMarkdownExporter
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
+import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionStreamRepository
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -87,6 +88,8 @@ class ContextScreenViewModelNavigationTest {
         val contextRepository = mockk<ContextRepository>(relaxed = true)
         val config = createConfig()
         stubFlows(contextRepository, config)
+        val missionStreamRepository = mockk<MissionStreamRepository>(relaxed = true)
+        every { missionStreamRepository.observeActiveStreams() } returns flowOf(emptyList())
 
         val contextSessionStore = createContextSessionStore(config)
         val viewModel =
@@ -107,6 +110,7 @@ class ContextScreenViewModelNavigationTest {
                 ioDispatcher = dispatcher,
                 goalRepository = goalRepository,
                 missionRepository = mockk<MissionRepository>(relaxed = true),
+                missionStreamRepository = missionStreamRepository,
                 listItemRepository = listItemRepository,
                 noteDocumentRepository = noteDocumentRepository,
                 musicNoteRepository = mockk<MusicNoteRepository>(relaxed = true),

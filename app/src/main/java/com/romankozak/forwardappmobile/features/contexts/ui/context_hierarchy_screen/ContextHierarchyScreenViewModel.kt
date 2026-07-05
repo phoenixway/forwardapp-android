@@ -636,6 +636,7 @@ class ContextHierarchyScreenViewModel
                             type = DayFocusType.FOCUS,
                             order = dayFocusesRepository.nextOrderForDayPlan(dayPlan.id),
                             isEveryday = false,
+                            budgetPercent = null,
                         )
                         _uiEventChannel.send(ProjectUiEvent.ShowToast("Контекст додано у фокус дня"))
                     }

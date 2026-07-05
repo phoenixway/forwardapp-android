@@ -216,6 +216,7 @@ class DayManagementRepository
                         relatedLinks = item.relatedLinks,
                         type = item.type,
                         isEveryday = true,
+                        budgetPercent = item.budgetPercent,
                         recurringKey = item.recurringKey ?: item.id,
                         order = index.toLong(),
                         createdAt = now,
@@ -232,6 +233,18 @@ class DayManagementRepository
             status: DayStatus,
         ) = withContext(ioDispatcher) {
             dayPlanDao.updatePlanStatus(planId, status, System.currentTimeMillis())
+        }
+
+        suspend fun updatePredictedDurationMinutes(
+            planId: String,
+            minutes: Long?,
+        ) = withContext(ioDispatcher) {
+            val normalizedMinutes = minutes?.takeIf { it > 0L }
+            dayPlanDao.updatePredictedDurationMinutes(
+                planId = planId,
+                minutes = normalizedMinutes,
+                updatedAt = System.currentTimeMillis(),
+            )
         }
 
         suspend fun updatePlanReflection(

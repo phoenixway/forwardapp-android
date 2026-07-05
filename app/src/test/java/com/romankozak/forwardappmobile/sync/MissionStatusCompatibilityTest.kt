@@ -3,8 +3,10 @@ package com.romankozak.forwardappmobile.sync
 import com.google.common.truth.Truth.assertThat
 import com.romankozak.forwardappmobile.core.data.models.entities.Converters
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.tactical.tactical.TacticalMissionSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toSnapshot
 import org.junit.Test
 
 class MissionStatusCompatibilityTest {
@@ -59,5 +61,27 @@ class MissionStatusCompatibilityTest {
 
         assertThat(active.status).isEqualTo(MissionStatus.ACTIVE)
         assertThat(pendingLegacy.status).isEqualTo(MissionStatus.INACTIVE)
+    }
+
+    @Test
+    fun `snapshot mapper preserves mission stream id`() {
+        val mission =
+            TacticalMission(
+                id = 10L,
+                title = "Manual work",
+                description = "Weekly manual stream item",
+                deadline = 1_000L,
+                projectId = null,
+                linkedProjectIds = emptyList(),
+                linkedAttachmentIds = emptyList(),
+                order = 3L,
+                missionStreamId = "manual-work",
+            )
+
+        val snapshot = mission.toSnapshot()
+        val restoredMission = snapshot.toEntity()
+
+        assertThat(snapshot.missionStreamId).isEqualTo("manual-work")
+        assertThat(restoredMission.missionStreamId).isEqualTo("manual-work")
     }
 }

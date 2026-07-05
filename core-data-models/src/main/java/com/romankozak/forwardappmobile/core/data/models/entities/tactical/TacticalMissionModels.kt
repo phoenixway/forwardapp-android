@@ -12,6 +12,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.Converters
 
 const val NO_DEADLINE = Long.MAX_VALUE
+const val GENERAL_MISSION_STREAM_ID = "general"
 
 @Entity(
     tableName = "tactical_missions",
@@ -26,6 +27,7 @@ const val NO_DEADLINE = Long.MAX_VALUE
     indices = [
         Index(value = ["projectId"]),
         Index(value = ["week_key"]),
+        Index(value = ["mission_stream_id"]),
         Index(value = ["activity_slot_context_id"]),
         Index(value = ["source_backlog_item_id", "week_key"]),
     ],
@@ -62,6 +64,9 @@ data class TacticalMission(
     @ColumnInfo(name = "order_in_slot")
     @SerializedName("orderInSlot")
     val orderInSlot: Long? = null,
+    @ColumnInfo(name = "mission_stream_id")
+    @SerializedName("missionStreamId")
+    val missionStreamId: String? = null,
     @ColumnInfo(name = "activity_slot_context_id")
     @SerializedName("activitySlotContextId")
     val activitySlotContextId: String? = null,
@@ -156,6 +161,56 @@ data class TacticalActivitySlot(
     @ColumnInfo(name = "slot_order", defaultValue = "0")
     @SerializedName("slotOrder")
     val slotOrder: Long = 0L,
+    @ColumnInfo(name = "created_at")
+    @SerializedName("createdAt")
+    val createdAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(name = "updated_at")
+    @SerializedName("updatedAt")
+    val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at")
+    @SerializedName("syncedAt")
+    val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0")
+    @SerializedName("isDeleted")
+    val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0")
+    @SerializedName("version")
+    val version: Long = 0L,
+)
+
+@Entity(
+    tableName = "mission_streams",
+    indices = [
+        Index(value = ["stream_order"]),
+        Index(value = ["is_default"]),
+    ],
+)
+data class MissionStream(
+    @PrimaryKey
+    @SerializedName("id")
+    val id: String,
+    @SerializedName("title")
+    val title: String,
+    @SerializedName("description")
+    val description: String? = null,
+    @ColumnInfo(name = "color_key")
+    @SerializedName("colorKey")
+    val colorKey: String? = null,
+    @ColumnInfo(name = "icon_key")
+    @SerializedName("iconKey")
+    val iconKey: String? = null,
+    @ColumnInfo(name = "budget_percent")
+    @SerializedName("budgetPercent")
+    val budgetPercent: Int? = null,
+    @ColumnInfo(name = "stream_order", defaultValue = "0")
+    @SerializedName("streamOrder")
+    val streamOrder: Long = 0L,
+    @ColumnInfo(name = "is_default", defaultValue = "0")
+    @SerializedName("isDefault")
+    val isDefault: Boolean = false,
+    @ColumnInfo(name = "is_archived", defaultValue = "0")
+    @SerializedName("isArchived")
+    val isArchived: Boolean = false,
     @ColumnInfo(name = "created_at")
     @SerializedName("createdAt")
     val createdAt: Long = System.currentTimeMillis(),

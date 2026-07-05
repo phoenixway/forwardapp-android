@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -24,6 +26,7 @@ import java.util.Locale
 @Composable
 fun DayStartScreen(
     runtimeState: DayManagementRuntimeState,
+    predictedDurationMinutes: Long?,
     onWakeUp: () -> Unit,
     onSleep: () -> Unit,
     modifier: Modifier = Modifier,
@@ -75,11 +78,20 @@ fun DayStartScreen(
         )
 
     Column(
-        modifier = modifier.fillMaxSize().padding(24.dp),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
         NeonTitle(text = "Day Start")
-        RuntimeStatusCard(runtimeState = runtimeState, phaseItems = phaseItems, now = now)
+        RuntimeStatusCard(
+            runtimeState = runtimeState,
+            phaseItems = phaseItems,
+            predictedDurationMinutes = predictedDurationMinutes,
+            now = now,
+        )
         Button(
             onClick = onWakeUp,
             modifier = Modifier.fillMaxWidth(),
@@ -113,6 +125,7 @@ private data class PhaseStatusItem(
 private fun RuntimeStatusCard(
     runtimeState: DayManagementRuntimeState,
     phaseItems: List<PhaseStatusItem>,
+    predictedDurationMinutes: Long?,
     now: Long,
 ) {
     Surface(
@@ -126,6 +139,10 @@ private fun RuntimeStatusCard(
             Text(
                 text = "Поточна фаза: ${runtimeState.currentPhase.title()}",
                 style = MaterialTheme.typography.titleSmall,
+            )
+            StatusLine(
+                title = "Прогноз тривалості дня",
+                value = predictedDurationMinutes?.let(::formatDurationMinutes) ?: "Не задано",
             )
             if (!runtimeState.hasOpenOperationalDay) {
                 Text(
@@ -230,6 +247,10 @@ private fun formatTimestamp(timestamp: Long): String =
 
 private fun formatDuration(durationMillis: Long): String {
     val totalMinutes = (durationMillis.coerceAtLeast(0L) / 60_000L).toInt()
+    return formatDurationMinutes(totalMinutes.toLong())
+}
+
+private fun formatDurationMinutes(totalMinutes: Long): String {
     val hours = totalMinutes / 60
     val minutes = totalMinutes % 60
     return when {

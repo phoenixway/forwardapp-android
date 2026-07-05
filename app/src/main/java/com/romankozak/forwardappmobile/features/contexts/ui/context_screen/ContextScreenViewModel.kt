@@ -81,11 +81,14 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.useca
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.usecases.ContextScreenDataObserver
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.usecases.ContextScreenDataObserverDependencies
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.viewmodel.*
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.GENERAL_MISSION_STREAM_ID
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStream
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionSourceType
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.NO_DEADLINE
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
+import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionStreamRepository
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
 import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
@@ -124,6 +127,7 @@ class ContextScreenViewModel
         @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
         private val goalRepository: GoalRepository,
         private val missionRepository: MissionRepository,
+        private val missionStreamRepository: MissionStreamRepository,
         private val listItemRepository: ListItemRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
         private val musicNoteRepository: MusicNoteRepository,
@@ -357,6 +361,31 @@ class ContextScreenViewModel
                 .observeBacklogMissionIdsForWeek(currentWeekKey)
                 .map { ids -> ids.toSet() }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+        val tacticalBacklogMissionStreamIds: StateFlow<Map<String, String>> =
+            missionRepository
+                .observeBacklogMissionsForWeek(currentWeekKey)
+                .map { missions ->
+                    missions.mapNotNull { mission ->
+                        val backlogItemId = mission.sourceBacklogItemId ?: return@mapNotNull null
+                        backlogItemId to (mission.missionStreamId ?: GENERAL_MISSION_STREAM_ID)
+                    }.toMap()
+                }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+        val missionStreams: StateFlow<List<MissionStream>> =
+            missionStreamRepository
+                .observeActiveStreams()
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(5000),
+                    listOf(
+                        MissionStream(
+                            id = GENERAL_MISSION_STREAM_ID,
+                            title = "General",
+                            isDefault = true,
+                            streamOrder = Long.MIN_VALUE,
+                        ),
+                    ),
+                )
         private val _allProjects =
             contextRepository
                 .getAllContextsFlow()
@@ -1604,24 +1633,25 @@ class ContextScreenViewModel
                 showSnackbar(backlogItemActions.addItemToDailyPlan(item), null)
             }
 
-        fun addItemAsMission(item: BacklogItemContent) =
-            viewModelScope.launch(ioDispatcher) {
-                val mission = item.toTacticalMission()
-                val missionId = missionRepository.insertMissionWithAutoOrder(mission)
-                missionRepository.setAttachments(missionId, mission.linkedAttachmentIds.orEmpty())
-                showSnackbar("Додано як місію. Перевір на головному екрані у вкладці Тактики.", null)
-            }
-
-        fun toggleItemTacticalPriority(item: BacklogItemContent) =
+        fun toggleItemTacticalPriority(
+            item: BacklogItemContent,
+            missionStreamId: String = GENERAL_MISSION_STREAM_ID,
+        ) =
             viewModelScope.launch(ioDispatcher) {
                 val backlogItemId = item.backlogItem.id
                 val existing = missionRepository.getMissionForBacklogItemInWeek(backlogItemId, currentWeekKey)
                 if (existing != null) {
+                    val currentStreamId = existing.missionStreamId ?: GENERAL_MISSION_STREAM_ID
+                    if (currentStreamId != missionStreamId) {
+                        missionRepository.updateMission(existing.copy(missionStreamId = missionStreamId))
+                        showSnackbar("Тактичний елемент перенесено в інший потік.", null)
+                        return@launch
+                    }
                     missionRepository.deleteMissionById(existing.id)
                     showSnackbar("Знято тактичну позначку.", null)
                     return@launch
                 }
-                missionRepository.insertMissionWithAutoOrder(item.toTacticalPriorityMission(currentWeekKey))
+                missionRepository.insertMissionWithAutoOrder(item.toBacklogSourceTacticalMission(currentWeekKey, missionStreamId))
                 showSnackbar("Позначено для поточного тактичного періоду.", null)
             }
 
@@ -1826,16 +1856,26 @@ class ContextScreenViewModel
                 linkedAttachmentIds = emptyList(),
             )
 
-        private fun BacklogItemContent.toTacticalPriorityMission(weekKey: String): TacticalMission {
-            val mission = toTacticalMission()
-            return mission.copy(
+        private fun BacklogItemContent.toBacklogSourceTacticalMission(
+            weekKey: String,
+            missionStreamId: String,
+        ): TacticalMission {
+            return toWeeklyTacticalMission(weekKey, missionStreamId).copy(
                 deadline = NO_DEADLINE,
-                weekKey = weekKey,
                 sourceType = MissionSourceType.CONTEXT_BACKLOG_ITEM,
                 sourceContextId = backlogItem.contextId.takeIf { it.isNotBlank() },
                 sourceBacklogItemId = backlogItem.id,
             )
         }
+
+        private fun BacklogItemContent.toWeeklyTacticalMission(
+            weekKey: String,
+            missionStreamId: String,
+        ): TacticalMission =
+            toTacticalMission().copy(
+                weekKey = weekKey,
+                missionStreamId = missionStreamId,
+            )
     }
 
 private fun currentIsoWeekKey(): String {

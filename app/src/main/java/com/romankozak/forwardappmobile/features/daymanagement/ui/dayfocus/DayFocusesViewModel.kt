@@ -154,6 +154,7 @@ class DayFocusesViewModel
             relatedLinks: List<RelatedLink>,
             type: DayFocusType,
             isEveryday: Boolean,
+            budgetPercent: Int?,
         ) {
             val trimmedTitle = title.trim()
             val planId = planIdFlow.value ?: return
@@ -161,26 +162,28 @@ class DayFocusesViewModel
 
             viewModelScope.launch {
                 when (val dialogMode = dialogModeFlow.value) {
-                    is DayFocusDialogMode.Edit ->
-                        repository.updateItem(
-                            item = dialogMode.item,
-                            title = trimmedTitle,
-                            notes = notes,
-                            relatedLinks = relatedLinks,
-                            type = type,
-                            isEveryday = isEveryday,
-                        )
+	                    is DayFocusDialogMode.Edit ->
+	                        repository.updateItem(
+	                            item = dialogMode.item,
+	                            title = trimmedTitle,
+	                            notes = notes,
+	                            relatedLinks = relatedLinks,
+	                            type = type,
+	                            isEveryday = isEveryday,
+	                            budgetPercent = budgetPercent,
+	                        )
 
                     else ->
                         repository.addItem(
-                            dayPlanId = planId,
-                            title = trimmedTitle,
-                            notes = notes,
-                            relatedLinks = relatedLinks,
-                            type = type,
-                            order = uiState.value.items.size.toLong(),
-                            isEveryday = isEveryday,
-                        )
+	                            dayPlanId = planId,
+	                            title = trimmedTitle,
+	                            notes = notes,
+	                            relatedLinks = relatedLinks,
+	                            type = type,
+	                            order = uiState.value.items.size.toLong(),
+	                            isEveryday = isEveryday,
+	                            budgetPercent = budgetPercent,
+	                        )
                 }
                 dialogModeFlow.value = null
             }
@@ -203,6 +206,7 @@ class DayFocusesViewModel
                     type = type,
                     order = uiState.value.items.size.toLong(),
                     isEveryday = false,
+                    budgetPercent = null,
                 )
             }
         }

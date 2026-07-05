@@ -24,6 +24,8 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -54,6 +56,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.material.icons.outlined.PlayCircle
+import androidx.compose.material.icons.outlined.TaskAlt
+import androidx.compose.material.icons.outlined.Today
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
@@ -340,10 +345,19 @@ fun MainScreenLayout(
                     dayManagementUiState.selectedTab in DayManagementTab.todaySubTabs() &&
                     dayManagementUiState.selectedTab != DayManagementTab.JOURNAL
                 ) {
-                    TodayDatePickerFab(
-                        selectedDate = dayManagementUiState.selectedDate,
-                        onDateSelected = dayManagementViewModel::navigateToDate,
-                    )
+                    if (dayManagementUiState.selectedTab == DayManagementTab.DAY_START) {
+                        TodayDayStartFab(
+                            selectedDate = dayManagementUiState.selectedDate,
+                            onDateSelected = dayManagementViewModel::navigateToDate,
+                            onWakeUp = dayManagementRuntimeViewModel::wakeUp,
+                            onSleep = dayManagementRuntimeViewModel::sleep,
+                        )
+                    } else {
+                        TodayDatePickerFab(
+                            selectedDate = dayManagementUiState.selectedDate,
+                            onDateSelected = dayManagementViewModel::navigateToDate,
+                        )
+                    }
                 }
             },
             bottomBar = {
@@ -505,6 +519,68 @@ fun MainScreenLayout(
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
+private fun TodayDayStartFab(
+    selectedDate: Long,
+    onDateSelected: (Long) -> Unit,
+    onWakeUp: () -> Unit,
+    onSleep: () -> Unit,
+) {
+    var isMenuExpanded by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    Box {
+        FloatingActionButton(onClick = { isMenuExpanded = true }) {
+            Icon(
+                imageVector = Icons.Outlined.Today,
+                contentDescription = "Меню дій початку дня",
+            )
+        }
+        DropdownMenu(
+            expanded = isMenuExpanded,
+            onDismissRequest = { isMenuExpanded = false },
+            modifier =
+                Modifier.background(
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                ),
+        ) {
+            DropdownMenuItem(
+                text = { Text("Вибрати день") },
+                leadingIcon = { Icon(Icons.Outlined.CalendarToday, contentDescription = null) },
+                onClick = {
+                    isMenuExpanded = false
+                    showDatePicker = true
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Проснувся!") },
+                leadingIcon = { Icon(Icons.Outlined.PlayCircle, contentDescription = null) },
+                onClick = {
+                    isMenuExpanded = false
+                    onWakeUp()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Пішов спати") },
+                leadingIcon = { Icon(Icons.Outlined.TaskAlt, contentDescription = null) },
+                onClick = {
+                    isMenuExpanded = false
+                    onSleep()
+                },
+            )
+        }
+    }
+
+    TodayDatePickerDialogHost(
+        visible = showDatePicker,
+        selectedDate = selectedDate,
+        onDateSelected = onDateSelected,
+        onDismiss = { showDatePicker = false },
+    )
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
 private fun TodayDatePickerFab(
     selectedDate: Long,
     onDateSelected: (Long) -> Unit,
@@ -518,28 +594,45 @@ private fun TodayDatePickerFab(
         )
     }
 
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDate)
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        datePickerState.selectedDateMillis?.let(onDateSelected)
-                        showDatePicker = false
-                    },
-                ) {
-                    Text("Обрати")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Скасувати")
-                }
-            },
-        ) {
-            DatePicker(state = datePickerState)
-        }
+    TodayDatePickerDialogHost(
+        visible = showDatePicker,
+        selectedDate = selectedDate,
+        onDateSelected = onDateSelected,
+        onDismiss = { showDatePicker = false },
+    )
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun TodayDatePickerDialogHost(
+    visible: Boolean,
+    selectedDate: Long,
+    onDateSelected: (Long) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    if (!visible) {
+        return
+    }
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDate)
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    datePickerState.selectedDateMillis?.let(onDateSelected)
+                    onDismiss()
+                },
+            ) {
+                Text("Обрати")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Скасувати")
+            }
+        },
+    ) {
+        DatePicker(state = datePickerState)
     }
 }
 

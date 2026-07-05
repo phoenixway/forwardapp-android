@@ -23,7 +23,10 @@ class BacklogDndCoordinator(
             expectedOrderIds != null -> {
                 val observedOrder = observed.map { it.backlogItem.id }
                 if (observedOrder != expectedOrderIds) {
-                    current
+                    mergeObservedIntoCurrentOrder(
+                        observed = observed,
+                        current = current,
+                    )
                 } else {
                     expectedOrderIds = null
                     observed
@@ -31,6 +34,26 @@ class BacklogDndCoordinator(
             }
             else -> observed
         }
+
+    private fun mergeObservedIntoCurrentOrder(
+        observed: List<BacklogItemContent>,
+        current: List<BacklogItemContent>,
+    ): List<BacklogItemContent> {
+        if (current.isEmpty()) return observed
+
+        val observedById = observed.associateBy { it.backlogItem.id }
+        val currentIds = current.map { it.backlogItem.id }.toSet()
+        val currentOrderWithFreshContent =
+            current.mapNotNull { currentItem ->
+                observedById[currentItem.backlogItem.id]
+            }
+        val newObservedItems =
+            observed.filterNot { observedItem ->
+                observedItem.backlogItem.id in currentIds
+            }
+
+        return currentOrderWithFreshContent + newObservedItems
+    }
 
     fun move(
         current: List<BacklogItemContent>,

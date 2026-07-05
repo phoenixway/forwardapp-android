@@ -15,6 +15,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionSourceType
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.GENERAL_MISSION_STREAM_ID
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStream
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
@@ -28,6 +30,7 @@ import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.Backlo
 import com.romankozak.forwardappmobile.features.mainscreen.arc.ArcQuestRepository
 import com.romankozak.forwardappmobile.features.missions.domain.repository.TacticalActivitySlotRepository
 import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionRepository
+import com.romankozak.forwardappmobile.features.missions.domain.repository.MissionStreamRepository
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.AddTacticalMissionUseCase
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.DeleteTacticalMissionUseCase
 import com.romankozak.forwardappmobile.features.missions.domain.usecase.GetTacticalMissionsUseCase
@@ -62,7 +65,7 @@ import javax.inject.Inject
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.NO_DEADLINE
 
 enum class TacticsWorkspaceMode {
-    SLOTS,
+    STREAMS,
     ALL,
     PLAN,
 }
@@ -92,23 +95,32 @@ class TacticalMissionViewModel
         private val settingsRepository: SettingsRepository,
         private val backlogClipboardUseCase: BacklogClipboardUseCase,
         private val reminderRepository: ReminderRepository,
-        private val arcQuestRepository: ArcQuestRepository,
-        private val tacticalActivitySlotRepository: TacticalActivitySlotRepository,
-        private val listItemDao: ListItemDao,
-        private val goalDao: GoalDao,
-    ) : ViewModel() {
+	        private val arcQuestRepository: ArcQuestRepository,
+	        private val tacticalActivitySlotRepository: TacticalActivitySlotRepository,
+	        private val missionStreamRepository: MissionStreamRepository,
+	        private val tacticsWorkspaceStateRepository: TacticsWorkspaceStateRepository,
+	        private val listItemDao: ListItemDao,
+	        private val goalDao: GoalDao,
+	    ) : ViewModel() {
         companion object {
             const val MISSION_REMINDER_ENTITY_TYPE = "TACTICAL_MISSION"
         }
 
         private val _missions = MutableStateFlow<List<TacticalMission>>(emptyList())
         val missions: StateFlow<List<TacticalMission>> = _missions.asStateFlow()
-        private val _selectedMode = MutableStateFlow(TacticsWorkspaceMode.SLOTS)
+        private val _selectedMode = MutableStateFlow(TacticsWorkspaceMode.STREAMS)
         val selectedMode: StateFlow<TacticsWorkspaceMode> = _selectedMode.asStateFlow()
         private val _selectedActivitySlotContextId = MutableStateFlow<String?>(null)
         val selectedActivitySlotContextId: StateFlow<String?> = _selectedActivitySlotContextId.asStateFlow()
+        private val _selectedMissionStreamId = MutableStateFlow(GENERAL_MISSION_STREAM_ID)
+        val selectedMissionStreamId: StateFlow<String> = _selectedMissionStreamId.asStateFlow()
         private val _selectedPlanningContextId = MutableStateFlow<String?>(null)
         val selectedPlanningContextId: StateFlow<String?> = _selectedPlanningContextId.asStateFlow()
+        private val _recentMissionStreamIds = MutableStateFlow(listOf(GENERAL_MISSION_STREAM_ID))
+        private val _iterationDurationDays = MutableStateFlow<Int?>(null)
+        val iterationDurationDays: StateFlow<Int?> = _iterationDurationDays.asStateFlow()
+        private val _isMissionStreamsSheetVisible = MutableStateFlow(false)
+	        val isMissionStreamsSheetVisible: StateFlow<Boolean> = _isMissionStreamsSheetVisible.asStateFlow()
         val currentWeekKey: String = currentIsoWeekKey()
         private val allContexts =
             contextRepository
@@ -118,8 +130,32 @@ class TacticalMissionViewModel
                     started = SharingStarted.Eagerly,
                     initialValue = emptyList(),
                 )
-        val activitySlotContexts: StateFlow<List<Context>> =
-            combine(allContexts, tacticalActivitySlotRepository.observeSlots()) { contexts, slots ->
+        val missionStreams: StateFlow<List<MissionStream>> =
+            missionStreamRepository
+                .observeActiveStreams()
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.Eagerly,
+                    initialValue =
+                        listOf(
+                            MissionStream(
+                                id = GENERAL_MISSION_STREAM_ID,
+                                title = "General",
+                                isDefault = true,
+                                streamOrder = Long.MIN_VALUE,
+                            ),
+                        ),
+	                )
+	        val recentMissionStreams: StateFlow<List<MissionStream>> =
+	            combine(missionStreams, _recentMissionStreamIds) { streams, recentIds ->
+	                streams.sortedByRecent(recentIds)
+	            }.stateIn(
+	                scope = viewModelScope,
+	                started = SharingStarted.Eagerly,
+	                initialValue = missionStreams.value,
+	            )
+	        val activitySlotContexts: StateFlow<List<Context>> =
+	            combine(allContexts, tacticalActivitySlotRepository.observeSlots()) { contexts, slots ->
                 val contextById = contexts.associateBy { it.id }
                 slots.mapNotNull { slot -> contextById[slot.contextId] }
             }
@@ -129,20 +165,28 @@ class TacticalMissionViewModel
                     initialValue = emptyList(),
                 )
         val visibleMissions: StateFlow<List<TacticalMission>> =
-            combine(missions, selectedMode, selectedActivitySlotContextId) { allMissions, mode, selectedSlotId ->
+            combine(
+                missions,
+                selectedMode,
+                selectedMissionStreamId,
+                missionStreams,
+            ) { allMissions, mode, selectedStreamId, streams ->
                 val weekMissions =
                     allMissions
                         .filter { it.isCurrentWeekMission(currentWeekKey) }
                         .filter { it.sourceBacklogItemId == null }
+                val streamOrderById = streams.mapIndexed { index, stream -> stream.id to index }.toMap()
                 when (mode) {
-                    TacticsWorkspaceMode.SLOTS ->
+                    TacticsWorkspaceMode.STREAMS ->
                         weekMissions
-                            .filter { it.activitySlotContextId == selectedSlotId }
-                            .sortedWith(compareBy<TacticalMission> { it.orderInSlot ?: it.orderInWeek }.thenBy { it.createdAt })
+                            .filter { it.normalizedMissionStreamId() == selectedStreamId }
+                            .sortedWith(compareBy<TacticalMission> { it.orderInWeek }.thenBy { it.createdAt })
                     TacticsWorkspaceMode.ALL ->
                         weekMissions.sortedWith(
-                            compareBy<TacticalMission> { it.activitySlotContextId ?: "" }
-                                .thenBy { it.orderInSlot ?: it.orderInWeek }
+                            compareBy<TacticalMission> {
+                                streamOrderById[it.normalizedMissionStreamId()] ?: Int.MAX_VALUE
+                            }
+                                .thenBy { it.orderInWeek }
                                 .thenBy { it.createdAt },
                         )
                     TacticsWorkspaceMode.PLAN -> emptyList()
@@ -152,6 +196,20 @@ class TacticalMissionViewModel
                 started = SharingStarted.Eagerly,
                 initialValue = emptyList(),
             )
+        val missionStreamCounts: StateFlow<Map<String, Int>> =
+            missions
+                .map { allMissions ->
+                    allMissions
+                        .filter { it.isCurrentWeekMission(currentWeekKey) }
+                        .filter { it.sourceBacklogItemId == null }
+                        .groupingBy { it.normalizedMissionStreamId() }
+                        .eachCount()
+                }
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.Eagerly,
+                    initialValue = emptyMap(),
+                )
         @OptIn(ExperimentalCoroutinesApi::class)
         val planningBacklogItems: StateFlow<List<TacticalPlanBacklogItem>> =
             combine(
@@ -293,6 +351,9 @@ class TacticalMissionViewModel
             )
 
         init {
+            viewModelScope.launch {
+                missionStreamRepository.ensureDefaultStream()
+            }
             loadMissions()
 
             settingsRepository.tacticalLinkedProjectIdsFlow
@@ -311,13 +372,31 @@ class TacticalMissionViewModel
                 .onEach { expanded -> _scopeAttachmentsExpanded.value = expanded }
                 .launchIn(viewModelScope)
 
-            settingsRepository.tacticalConnectionsOrderFlow
-                .onEach { order -> _connectionsOrder.value = order }
+	            settingsRepository.tacticalConnectionsOrderFlow
+	                .onEach { order -> _connectionsOrder.value = order }
+	                .launchIn(viewModelScope)
+
+	            tacticsWorkspaceStateRepository.state
+	                .onEach { state ->
+	                    _selectedMode.value = state.selectedMode
+                    _selectedMissionStreamId.value = state.selectedMissionStreamId
+                    _selectedPlanningContextId.value = state.selectedPlanningContextId
+                    _recentMissionStreamIds.value = state.recentMissionStreamIds
+                    _iterationDurationDays.value = state.iterationDurationDays
+                }
+	                .launchIn(viewModelScope)
+
+	            backlogClipboardUseCase.clipboardPayload
+	                .onEach { _canPasteAsMissions.value = backlogClipboardUseCase.canPasteIntoTacticalMissions() }
                 .launchIn(viewModelScope)
 
-            backlogClipboardUseCase.clipboardPayload
-                .onEach { _canPasteAsMissions.value = backlogClipboardUseCase.canPasteIntoTacticalMissions() }
-                .launchIn(viewModelScope)
+	            missionStreams
+	                .onEach { streams ->
+	                    if (streams.none { it.id == _selectedMissionStreamId.value }) {
+	                        selectMissionStream(GENERAL_MISSION_STREAM_ID)
+	                    }
+	                }
+	                .launchIn(viewModelScope)
         }
 
         private fun loadMissions(projectId: String? = null) {
@@ -332,11 +411,16 @@ class TacticalMissionViewModel
             if (activitySlotContextId == null) return null
             val minOrder =
                 _missions.value
-                    .filter { it.isCurrentWeekMission(currentWeekKey) && it.activitySlotContextId == activitySlotContextId }
+                    .filter {
+                        it.isCurrentWeekMission(currentWeekKey) &&
+                            it.activitySlotContextId == activitySlotContextId
+                    }
                     .mapNotNull { it.orderInSlot }
                     .minOrNull() ?: 0L
             return minOrder - 1L
         }
+
+        private fun activeMissionStreamId(): String = _selectedMissionStreamId.value
 
         fun addMission(
             title: String,
@@ -356,6 +440,7 @@ class TacticalMissionViewModel
                     linkedProjectIds = projectLinks,
                     linkedAttachmentIds = attachmentLinks,
                     weekKey = currentWeekKey,
+                    missionStreamId = activeMissionStreamId(),
                     sourceType = MissionSourceType.MANUAL,
                 )
             addMission(newMission)
@@ -374,14 +459,8 @@ class TacticalMissionViewModel
             addQuickMission(title = title, activitySlotContextId = null)
         }
 
-        fun addQuickMissionForCurrentSlot(title: String) {
-            val activitySlotContextId =
-                if (_selectedMode.value == TacticsWorkspaceMode.SLOTS) {
-                    _selectedActivitySlotContextId.value
-                } else {
-                    null
-                }
-            addQuickMission(title = title, activitySlotContextId = activitySlotContextId)
+        fun addQuickMissionForCurrentStream(title: String) {
+            addQuickMission(title = title, activitySlotContextId = null)
         }
 
         fun addQuickMission(
@@ -400,6 +479,7 @@ class TacticalMissionViewModel
                     linkedProjectIds = emptyList(),
                     linkedAttachmentIds = emptyList(),
                     weekKey = currentWeekKey,
+                    missionStreamId = activeMissionStreamId(),
                     activitySlotContextId = activitySlotContextId,
                     orderInSlot = nextSlotOrder(activitySlotContextId),
                     sourceType = MissionSourceType.MANUAL,
@@ -424,6 +504,7 @@ class TacticalMissionViewModel
                     linkedProjectIds = listOf(context.id),
                     linkedAttachmentIds = emptyList(),
                     weekKey = currentWeekKey,
+                    missionStreamId = activeMissionStreamId(),
                     activitySlotContextId = activitySlotContextId,
                     orderInSlot = nextSlotOrder(activitySlotContextId),
                     sourceType = MissionSourceType.MANUAL,
@@ -474,12 +555,77 @@ class TacticalMissionViewModel
             }
         }
 
-        fun selectMode(mode: TacticsWorkspaceMode) {
-            _selectedMode.value = mode
-        }
+	        fun selectMode(mode: TacticsWorkspaceMode) {
+	            _selectedMode.value = mode
+	            viewModelScope.launch {
+	                tacticsWorkspaceStateRepository.setSelectedMode(mode)
+	            }
+	        }
 
         fun selectActivitySlot(contextId: String?) {
             _selectedActivitySlotContextId.value = contextId
+        }
+
+	        fun selectMissionStream(streamId: String) {
+	            _selectedMissionStreamId.value = streamId
+	            _recentMissionStreamIds.value = _recentMissionStreamIds.value.withRecentFirst(streamId)
+	            viewModelScope.launch {
+	                tacticsWorkspaceStateRepository.setSelectedMissionStream(streamId)
+	            }
+	        }
+
+        fun openMissionStreamsSheet() {
+            _isMissionStreamsSheetVisible.value = true
+        }
+
+        fun dismissMissionStreamsSheet() {
+            _isMissionStreamsSheetVisible.value = false
+        }
+
+	        fun addMissionStream(title: String) {
+	            viewModelScope.launch {
+	                missionStreamRepository.addStream(title)?.let { streamId ->
+	                    selectMissionStream(streamId)
+	                }
+	            }
+	        }
+
+        fun updateMissionStream(
+            stream: MissionStream,
+            title: String,
+            description: String?,
+            budgetPercent: Int? = stream.budgetPercent,
+        ) {
+            viewModelScope.launch {
+                missionStreamRepository.updateStream(stream, title, description, budgetPercent)
+            }
+        }
+
+        fun setIterationDurationDays(days: Int?) {
+            viewModelScope.launch {
+                tacticsWorkspaceStateRepository.setIterationDurationDays(days?.takeIf { it > 0 })
+            }
+        }
+
+        fun archiveMissionStream(stream: MissionStream) {
+            if (stream.isDefault) return
+            viewModelScope.launch {
+                _missions.value
+                    .filter { it.normalizedMissionStreamId() == stream.id }
+                    .forEach { mission ->
+                        updateTacticalMissionUseCase(mission.copy(missionStreamId = GENERAL_MISSION_STREAM_ID))
+                    }
+	                missionStreamRepository.archiveStream(stream.id)
+	                if (_selectedMissionStreamId.value == stream.id) {
+	                    selectMissionStream(GENERAL_MISSION_STREAM_ID)
+	                }
+	            }
+	        }
+
+        fun reorderMissionStreams(streams: List<MissionStream>) {
+            viewModelScope.launch {
+                missionStreamRepository.reorder(streams)
+            }
         }
 
         fun addActivitySlot(contextId: String) {
@@ -501,9 +647,12 @@ class TacticalMissionViewModel
             }
         }
 
-        fun selectPlanningContext(contextId: String?) {
-            _selectedPlanningContextId.value = contextId
-        }
+	        fun selectPlanningContext(contextId: String?) {
+	            _selectedPlanningContextId.value = contextId
+	            viewModelScope.launch {
+	                tacticsWorkspaceStateRepository.setSelectedPlanningContext(contextId)
+	            }
+	        }
 
         fun assignMissionToActivitySlot(
             mission: TacticalMission,
@@ -517,16 +666,17 @@ class TacticalMissionViewModel
             )
         }
 
+        fun assignMissionToStream(
+            mission: TacticalMission,
+            streamId: String,
+        ) {
+            updateMission(mission.copy(missionStreamId = streamId))
+        }
+
         fun reorderVisibleMissions(reordered: List<TacticalMission>) {
             viewModelScope.launch {
                 reordered.forEachIndexed { index, mission ->
-                    updateTacticalMissionUseCase(
-                        if (_selectedMode.value == TacticsWorkspaceMode.SLOTS) {
-                            mission.copy(orderInSlot = index.toLong())
-                        } else {
-                            mission.copy(orderInWeek = index.toLong(), order = index.toLong())
-                        },
-                    )
+                    updateTacticalMissionUseCase(mission.copy(orderInWeek = index.toLong(), order = index.toLong()))
                 }
             }
         }
@@ -545,6 +695,7 @@ class TacticalMissionViewModel
                     linkedProjectIds = listOf(sourceContextId),
                     linkedAttachmentIds = emptyList(),
                     weekKey = currentWeekKey,
+                    missionStreamId = activeMissionStreamId(),
                     activitySlotContextId = activitySlotContextId,
                     orderInSlot = nextSlotOrder(activitySlotContextId),
                     sourceType =
@@ -664,7 +815,11 @@ class TacticalMissionViewModel
                 return
             }
             viewModelScope.launch {
-                val report = backlogClipboardUseCase.pasteIntoTacticalMissions()
+                val report =
+                    backlogClipboardUseCase.pasteIntoTacticalMissions(
+                        targetWeekKey = currentWeekKey,
+                        targetMissionStreamId = activeMissionStreamId(),
+                    )
                 _uiMessages.emit(report.toUserMessage())
             }
         }
@@ -903,7 +1058,22 @@ private fun currentIsoWeekKey(): String {
     return "%04d-W%02d".format(weekBasedYear, week)
 }
 
-fun TacticalMission.isCurrentWeekMission(currentWeekKey: String): Boolean = weekKey.isBlank() || weekKey == currentWeekKey
+fun TacticalMission.isCurrentWeekMission(currentWeekKey: String): Boolean =
+    weekKey.isBlank() || weekKey == currentWeekKey
+
+fun TacticalMission.normalizedMissionStreamId(): String = missionStreamId ?: GENERAL_MISSION_STREAM_ID
+
+private fun List<MissionStream>.sortedByRecent(recentIds: List<String>): List<MissionStream> {
+    val recentRankById = recentIds.withIndex().associate { it.value to it.index }
+    return sortedWith(
+        compareBy<MissionStream> { recentRankById[it.id] ?: Int.MAX_VALUE }
+            .thenBy { indexOf(it).takeIf { index -> index >= 0 } ?: Int.MAX_VALUE },
+    )
+}
+
+private fun List<String>.withRecentFirst(streamId: String): List<String> =
+    (listOf(streamId) + filterNot { it == streamId })
+        .take(30)
 
 private fun BacklogItem.toPlanBacklogItem(
     goalsById: Map<String, Goal>,

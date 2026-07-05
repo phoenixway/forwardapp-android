@@ -27,6 +27,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.GENERAL_MISSION_STREAM_ID
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStream
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import sh.calvin.reorderable.ReorderableItem
@@ -61,6 +63,7 @@ fun BacklogListScreen(
         }
     var showBottomSheet by remember { mutableStateOf(false) }
     var selectedItemForActions by remember { mutableStateOf<BacklogItemContent?>(null) }
+    var selectedMissionStreamId by remember { mutableStateOf(GENERAL_MISSION_STREAM_ID) }
     val completedStartIndex = remember(uiItems.toList()) { uiItems.indexOfFirst { it.isGroupedAtEnd() } }
     val completedCount =
         remember(uiItems.toList()) {
@@ -100,9 +103,12 @@ fun BacklogListScreen(
                 },
             onRemindersClick = { actions.onRemindersClick(selectedItem) },
             onAddToDayPlan = { actions.onAddToDayPlan(selectedItem) },
-            onAddAsMission = { actions.onAddAsMission(selectedItem) },
+            missionStreams = state.missionStreams,
+            selectedMissionStreamId = selectedMissionStreamId,
+            currentTacticalPriorityStreamId = state.tacticalPriorityStreamIdByItemId[selectedItem.backlogItem.id],
+            onMissionStreamSelected = { selectedMissionStreamId = it },
             isTacticalPriority = actions.isTacticalPriority(selectedItem),
-            onToggleTacticalPriority = { actions.onToggleTacticalPriority(selectedItem) },
+            onToggleTacticalPriority = { actions.onToggleTacticalPriority(selectedItem, selectedMissionStreamId) },
             onStartTracking = { actions.onStartTracking(selectedItem) },
             onCopyTransport = if (canTransport) ({ actions.onCopyTransport(selectedItem) }) else null,
             onCutTransport = if (canTransport) ({ actions.onCutTransport(selectedItem) }) else null,
@@ -132,6 +138,10 @@ fun BacklogListScreen(
             ),
         onShowItemActions = { item ->
             selectedItemForActions = item
+            selectedMissionStreamId =
+                state.tacticalPriorityStreamIdByItemId[item.backlogItem.id]
+                    ?: state.missionStreams.firstOrNull()?.id
+                    ?: GENERAL_MISSION_STREAM_ID
             showBottomSheet = true
         },
         onDragFinished = {
@@ -205,6 +215,7 @@ private fun BacklogListContent(
                         showCheckbox = state.showCheckboxes,
                         isSelected = isSelected,
                         isTacticalPriority = actions.isTacticalPriority(item),
+                        tacticalPriorityStreamTitle = state.tacticalPriorityStreamTitleByItemId[item.backlogItem.id],
                         contextMarkerToEmojiMap = state.contextMarkerToEmojiMap,
                         isInlineEditing = (item as? BacklogItemContent.GoalItem)?.goal?.id == state.editingGoalId,
                         onInlineEditSave = actions.onGoalInlineEditSave,
@@ -259,6 +270,9 @@ data class BacklogListState(
     val selectedItemIds: Set<String>,
     val contextMarkerToEmojiMap: Map<String, String>,
     val editingGoalId: String?,
+    val missionStreams: List<MissionStream>,
+    val tacticalPriorityStreamIdByItemId: Map<String, String>,
+    val tacticalPriorityStreamTitleByItemId: Map<String, String>,
 )
 
 data class BacklogListActions(
@@ -269,9 +283,8 @@ data class BacklogListActions(
     val onDelete: (BacklogItemContent) -> Unit,
     val onDeleteEverywhere: (BacklogItemContent) -> Unit,
     val onAddToDayPlan: (BacklogItemContent) -> Unit,
-    val onAddAsMission: (BacklogItemContent) -> Unit,
     val isTacticalPriority: (BacklogItemContent) -> Boolean,
-    val onToggleTacticalPriority: (BacklogItemContent) -> Unit,
+    val onToggleTacticalPriority: (BacklogItemContent, String) -> Unit,
     val onStartTracking: (BacklogItemContent) -> Unit,
     val onCopyTransport: (BacklogItemContent) -> Unit,
     val onCutTransport: (BacklogItemContent) -> Unit,

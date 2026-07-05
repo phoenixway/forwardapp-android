@@ -12,16 +12,20 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -43,8 +47,10 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -54,6 +60,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -62,11 +69,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStream
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckFabDefaults
@@ -81,6 +93,8 @@ import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
 import com.romankozak.forwardappmobile.ui.components.orderToken
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 private const val LINK_PICKER_OPEN_DELAY_MS = 160L
 
@@ -125,6 +139,9 @@ private fun TacticalManagementRoute(
     val missions by viewModel.missions.collectAsStateWithLifecycle()
     val visibleMissions by viewModel.visibleMissions.collectAsStateWithLifecycle()
     val selectedMode by viewModel.selectedMode.collectAsStateWithLifecycle()
+    val missionStreams by viewModel.missionStreams.collectAsStateWithLifecycle()
+    val selectedMissionStreamId by viewModel.selectedMissionStreamId.collectAsStateWithLifecycle()
+    val missionStreamCounts by viewModel.missionStreamCounts.collectAsStateWithLifecycle()
     val activitySlotContexts by viewModel.activitySlotContexts.collectAsStateWithLifecycle()
     val selectedActivitySlotContextId by viewModel.selectedActivitySlotContextId.collectAsStateWithLifecycle()
     val selectedPlanningContextId by viewModel.selectedPlanningContextId.collectAsStateWithLifecycle()
@@ -139,9 +156,11 @@ private fun TacticalManagementRoute(
     val scope = rememberCoroutineScope()
     val showAddDialog by viewModel.isAddMissionDialogOpen.collectAsStateWithLifecycle()
     val pendingScrollToMissionId by viewModel.pendingScrollToMissionId.collectAsStateWithLifecycle()
+    val isMissionStreamsSheetVisible by viewModel.isMissionStreamsSheetVisible.collectAsStateWithLifecycle()
     var editingMission by remember { mutableStateOf<TacticalMission?>(null) }
     var actionMenuMission by remember { mutableStateOf<TacticalMission?>(null) }
     var slotPickerMission by remember { mutableStateOf<TacticalMission?>(null) }
+    var streamPickerMission by remember { mutableStateOf<TacticalMission?>(null) }
     var activeLinkPickerTab by remember { mutableStateOf<LinkPickerTab?>(null) }
     var pendingCreateAction by remember { mutableStateOf<PickerCreateAction?>(null) }
     var showAddUrlDialog by remember { mutableStateOf(false) }
@@ -197,6 +216,9 @@ private fun TacticalManagementRoute(
         attachmentOptions = attachmentOptions,
         projectOptions = projectOptions,
         selectedMode = selectedMode,
+        missionStreams = missionStreams,
+        selectedMissionStreamId = selectedMissionStreamId,
+        missionStreamCounts = missionStreamCounts,
         activitySlotContexts = activitySlotContexts,
         selectedActivitySlotContextId = selectedActivitySlotContextId,
         selectedPlanningContextId = selectedPlanningContextId,
@@ -218,7 +240,9 @@ private fun TacticalManagementRoute(
         onOpenAddMission = viewModel::openAddMissionDialog,
         onToggleScopeLinksSheet = viewModel::toggleScopeLinksSheet,
         onOpenActivitySlotsSheet = { isActivitySlotsSheetVisible = true },
+        onOpenMissionStreamsSheet = viewModel::openMissionStreamsSheet,
         onModeSelected = viewModel::selectMode,
+        onMissionStreamSelected = viewModel::selectMissionStream,
         onActivitySlotSelected = viewModel::selectActivitySlot,
         onPlanningContextSelected = viewModel::selectPlanningContext,
         onTakeBacklogItem = viewModel::createMissionFromBacklogItem,
@@ -263,6 +287,16 @@ private fun TacticalManagementRoute(
                 viewModel.addMissionToCurrentArc(mission)
                 actionMenuMission = null
             },
+            missionStreams = missionStreams,
+            selectedMissionStreamId = selectedMissionStreamId,
+            onAssignMissionStream = { streamId ->
+                viewModel.assignMissionToStream(mission, streamId)
+                actionMenuMission = null
+            },
+            onOpenStreamPicker = {
+                streamPickerMission = mission
+                actionMenuMission = null
+            },
             activitySlotContexts = activitySlotContexts,
             selectedActivitySlotContextId = selectedActivitySlotContextId,
             onAssignActivitySlot = { slotId ->
@@ -301,6 +335,18 @@ private fun TacticalManagementRoute(
         )
     }
 
+    streamPickerMission?.let { mission ->
+        MissionStreamPickerSheet(
+            mission = mission,
+            missionStreams = missionStreams,
+            onDismiss = { streamPickerMission = null },
+            onAssignMissionStream = { streamId ->
+                viewModel.assignMissionToStream(mission, streamId)
+                streamPickerMission = null
+            },
+        )
+    }
+
     slotPickerMission?.let { mission ->
         MissionSlotPickerSheet(
             mission = mission,
@@ -319,7 +365,6 @@ private fun TacticalManagementRoute(
     val validBoardLinkedAttachmentIds = boardLinkedAttachmentIds.filter { it in availableAttachmentIds }
 
     TacticalManagementOverlays(
-        missions = missions,
         attachmentOptions = attachmentOptions,
         projectOptions = projectOptions,
         activitySlotContexts = activitySlotContexts,
@@ -333,7 +378,6 @@ private fun TacticalManagementRoute(
         onLinkedProjectClick = onLinkedProjectClick,
         onLinkedAttachmentClick = onLinkedAttachmentClick,
         onEditingMissionChange = { editingMission = it },
-        onActionMenuMissionChange = { actionMenuMission = it },
         onActiveLinkPickerTabChange = { activeLinkPickerTab = it },
         onPendingCreateActionChange = { pendingCreateAction = it },
         onShowAddUrlDialogChange = { showAddUrlDialog = it },
@@ -360,6 +404,16 @@ private fun TacticalManagementRoute(
         onAddBoardObsidianLink = viewModel::addBoardObsidianLink,
         onAddActivitySlot = viewModel::addActivitySlot,
         onRemoveActivitySlot = viewModel::removeActivitySlot,
+        missionStreams = missionStreams,
+        missionStreamCounts = missionStreamCounts,
+        isMissionStreamsSheetVisible = isMissionStreamsSheetVisible,
+        onAddMissionStream = viewModel::addMissionStream,
+        onUpdateMissionStream = viewModel::updateMissionStream,
+        onArchiveMissionStream = viewModel::archiveMissionStream,
+        onReorderMissionStreams = viewModel::reorderMissionStreams,
+        onMissionStreamsSheetVisibleChange = { visible ->
+            if (!visible) viewModel.dismissMissionStreamsSheet()
+        },
         onActivitySlotsSheetVisibleChange = { isActivitySlotsSheetVisible = it },
         onActivitySlotPickerVisibleChange = { isActivitySlotPickerVisible = it },
         scope = scope,
@@ -373,6 +427,9 @@ private fun TacticalManagementContent(
     attachmentOptions: List<AttachmentOption>,
     projectOptions: List<ProjectOption>,
     selectedMode: TacticsWorkspaceMode,
+    missionStreams: List<MissionStream>,
+    selectedMissionStreamId: String,
+    missionStreamCounts: Map<String, Int>,
     activitySlotContexts: List<Context>,
     selectedActivitySlotContextId: String?,
     selectedPlanningContextId: String?,
@@ -394,7 +451,9 @@ private fun TacticalManagementContent(
     onOpenAddMission: () -> Unit,
     onToggleScopeLinksSheet: () -> Unit,
     onOpenActivitySlotsSheet: () -> Unit,
+    onOpenMissionStreamsSheet: () -> Unit,
     onModeSelected: (TacticsWorkspaceMode) -> Unit,
+    onMissionStreamSelected: (String) -> Unit,
     onActivitySlotSelected: (String?) -> Unit,
     onPlanningContextSelected: (String?) -> Unit,
     onTakeBacklogItem: (TacticalPlanBacklogItem) -> Unit,
@@ -407,17 +466,6 @@ private fun TacticalManagementContent(
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            TacticsWorkspaceHeader(
-                selectedMode = selectedMode,
-                activitySlotContexts = activitySlotContexts,
-                selectedActivitySlotContextId = selectedActivitySlotContextId,
-                selectedPlanningContextId = selectedPlanningContextId,
-                projectOptions = projectOptions,
-                onModeSelected = onModeSelected,
-                onActivitySlotSelected = onActivitySlotSelected,
-                onPlanningContextSelected = onPlanningContextSelected,
-                onOpenActivitySlotsSheet = onOpenActivitySlotsSheet,
-            )
             if (selectionMode) {
                 SelectionToolbar(
                     selectedMissionIds = uiState.selectedMissionIds,
@@ -436,14 +484,16 @@ private fun TacticalManagementContent(
                 TacticsPlanningList(
                     planningBacklogItems = planningBacklogItems,
                     selectedPlanningContextId = selectedPlanningContextId,
+                    selectedMissionStreamTitle =
+                        missionStreams.firstOrNull { it.id == selectedMissionStreamId }?.title,
                     onTakeBacklogItem = onTakeBacklogItem,
                     modifier = Modifier.weight(1f),
                 )
             } else if (missions.isEmpty()) {
                 TacticsEmptyState(
                     selectedMode = selectedMode,
-                    selectedSlotId = selectedActivitySlotContextId,
-                    activitySlotContexts = activitySlotContexts,
+                    selectedMissionStreamId = selectedMissionStreamId,
+                    missionStreams = missionStreams,
                     totalWeekMissions = allMissions.size,
                     modifier = Modifier.weight(1f),
                 )
@@ -454,6 +504,12 @@ private fun TacticalManagementContent(
                         TacticalMissionListLookups(
                             projectOptions = projectOptions,
                             attachmentOptions = attachmentOptions,
+                            missionStreamTitleById =
+                                if (selectedMode == TacticsWorkspaceMode.ALL) {
+                                    missionStreams.associate { it.id to it.title }
+                                } else {
+                                    emptyMap()
+                                },
                         ),
                     selectionState =
                         TacticalMissionSelectionState(
@@ -464,7 +520,9 @@ private fun TacticalManagementContent(
                         TacticalMissionListCallbacks(
                             onMissionToggled = onMissionToggle,
                             onMissionSelectionToggle = { mission ->
-                                onSelectedMissionIdsChange(toggleMissionSelection(uiState.selectedMissionIds, mission.id))
+                                onSelectedMissionIdsChange(
+                                    toggleMissionSelection(uiState.selectedMissionIds, mission.id),
+                                )
                             },
                             onMissionClick = { mission ->
                                 if (!selectionMode) {
@@ -507,6 +565,7 @@ private fun TacticalManagementContent(
                 onOpenAddMission = onOpenAddMission,
                 onModeSelected = onModeSelected,
                 onOpenActivitySlotsSheet = onOpenActivitySlotsSheet,
+                onOpenMissionStreamsSheet = onOpenMissionStreamsSheet,
                 onToggleScopeLinksSheet = onToggleScopeLinksSheet,
             )
         }
@@ -522,104 +581,17 @@ private fun TacticalManagementContent(
 }
 
 @Composable
-private fun TacticsWorkspaceHeader(
-    selectedMode: TacticsWorkspaceMode,
-    activitySlotContexts: List<Context>,
-    selectedActivitySlotContextId: String?,
-    selectedPlanningContextId: String?,
-    projectOptions: List<ProjectOption>,
-    onModeSelected: (TacticsWorkspaceMode) -> Unit,
-    onActivitySlotSelected: (String?) -> Unit,
-    onPlanningContextSelected: (String?) -> Unit,
-    onOpenActivitySlotsSheet: () -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            TacticsModeChip("По слотах", selectedMode == TacticsWorkspaceMode.SLOTS) {
-                onModeSelected(TacticsWorkspaceMode.SLOTS)
-            }
-            TacticsModeChip("Усі", selectedMode == TacticsWorkspaceMode.ALL) {
-                onModeSelected(TacticsWorkspaceMode.ALL)
-            }
-            TacticsModeChip("Слоти", selected = false) {
-                onOpenActivitySlotsSheet()
-            }
-        }
-
-        when (selectedMode) {
-            TacticsWorkspaceMode.SLOTS ->
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    FilterChip(
-                        selected = selectedActivitySlotContextId == null,
-                        onClick = { onActivitySlotSelected(null) },
-                        label = { Text("Без слота") },
-                    )
-                    activitySlotContexts.forEach { context ->
-                        FilterChip(
-                            selected = selectedActivitySlotContextId == context.id,
-                            onClick = { onActivitySlotSelected(context.id) },
-                            label = { Text(context.name, maxLines = 1) },
-                        )
-                    }
-                }
-            TacticsWorkspaceMode.PLAN ->
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    activitySlotContexts.forEach { context ->
-                        FilterChip(
-                            selected = selectedPlanningContextId == context.id,
-                            onClick = { onPlanningContextSelected(context.id) },
-                            label = { Text(context.name, maxLines = 1) },
-                        )
-                    }
-                    projectOptions.forEach { option ->
-                        FilterChip(
-                            selected = selectedPlanningContextId == option.id,
-                            onClick = { onPlanningContextSelected(option.id) },
-                            label = { Text(option.name, maxLines = 1) },
-                        )
-                    }
-                }
-            TacticsWorkspaceMode.ALL -> Unit
-        }
-    }
-}
-
-@Composable
-private fun TacticsModeChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = { Text(label) },
-    )
-}
-
-@Composable
 private fun TacticsPlanningList(
     planningBacklogItems: List<TacticalPlanBacklogItem>,
     selectedPlanningContextId: String?,
+    selectedMissionStreamTitle: String?,
     onTakeBacklogItem: (TacticalPlanBacklogItem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (selectedPlanningContextId == null) {
         Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             Text(
-                text = "Вибери слот або проєкт для планування тижня",
+                text = "Вибери джерело беклогу для планування тижня",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -642,6 +614,20 @@ private fun TacticsPlanningList(
         modifier = modifier.padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        item(key = "target-stream") {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = "Взяті елементи підуть у потік: ${selectedMissionStreamTitle ?: "General"}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                )
+            }
+        }
         items(planningBacklogItems, key = { it.item.id }) { planItem ->
             Surface(
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -690,19 +676,19 @@ private fun TacticsPlanningList(
 @Composable
 private fun TacticsEmptyState(
     selectedMode: TacticsWorkspaceMode,
-    selectedSlotId: String?,
-    activitySlotContexts: List<Context>,
+    selectedMissionStreamId: String,
+    missionStreams: List<MissionStream>,
     totalWeekMissions: Int,
     modifier: Modifier = Modifier,
 ) {
-    val slotName = activitySlotContexts.firstOrNull { it.id == selectedSlotId }?.name
+    val streamName = missionStreams.firstOrNull { it.id == selectedMissionStreamId }?.title
     val text =
         when (selectedMode) {
-            TacticsWorkspaceMode.SLOTS ->
-                if (slotName == null) {
-                    "Немає місій без слота"
+            TacticsWorkspaceMode.STREAMS ->
+                if (streamName == null) {
+                    "Немає місій у цьому потоці"
                 } else {
-                    "Немає місій у слоті: $slotName"
+                    "Немає місій у потоці: $streamName"
                 }
             TacticsWorkspaceMode.ALL -> "Немає місій цього тижня"
             TacticsWorkspaceMode.PLAN -> "Вибери беклог для планування"
@@ -714,9 +700,9 @@ private fun TacticsEmptyState(
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (selectedMode == TacticsWorkspaceMode.SLOTS && totalWeekMissions > 0) {
+            if (selectedMode == TacticsWorkspaceMode.STREAMS && totalWeekMissions > 0) {
                 Text(
-                    text = "Перемкнись на “Усі”, щоб побачити місії в інших слотах",
+                    text = "Перемкнись на “Усі”, щоб побачити місії в інших потоках",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -867,6 +853,7 @@ private fun TacticalFabMenu(
     onOpenAddMission: () -> Unit,
     onModeSelected: (TacticsWorkspaceMode) -> Unit,
     onOpenActivitySlotsSheet: () -> Unit,
+    onOpenMissionStreamsSheet: () -> Unit,
     onToggleScopeLinksSheet: () -> Unit,
 ) {
     Box(modifier = modifier) {
@@ -900,12 +887,12 @@ private fun TacticalFabMenu(
                 },
             )
             DropdownMenuItem(
-                text = { Text("Слоти") },
+                text = { Text("Потоки") },
                 leadingIcon = { Icon(Icons.Outlined.AccountTree, contentDescription = null) },
-                enabled = selectedMode != TacticsWorkspaceMode.SLOTS,
+                enabled = selectedMode != TacticsWorkspaceMode.STREAMS,
                 onClick = {
                     onExpandedChange(false)
-                    onModeSelected(TacticsWorkspaceMode.SLOTS)
+                    onModeSelected(TacticsWorkspaceMode.STREAMS)
                 },
             )
             DropdownMenuItem(
@@ -927,7 +914,15 @@ private fun TacticalFabMenu(
                 },
             )
             DropdownMenuItem(
-                text = { Text("Керувати слотами") },
+                text = { Text("Керувати потоками") },
+                leadingIcon = { Icon(Icons.Outlined.AccountTree, contentDescription = null) },
+                onClick = {
+                    onExpandedChange(false)
+                    onOpenMissionStreamsSheet()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Режими активності") },
                 leadingIcon = { Icon(Icons.Outlined.AccountTree, contentDescription = null) },
                 onClick = {
                     onExpandedChange(false)
@@ -950,7 +945,6 @@ private fun TacticalFabMenu(
 @Composable
 @Suppress("LongParameterList")
 private fun TacticalManagementOverlays(
-    missions: List<TacticalMission>,
     attachmentOptions: List<AttachmentOption>,
     projectOptions: List<ProjectOption>,
     activitySlotContexts: List<Context>,
@@ -964,7 +958,6 @@ private fun TacticalManagementOverlays(
     onLinkedProjectClick: (String) -> Unit,
     onLinkedAttachmentClick: (AttachmentOption) -> Unit,
     onEditingMissionChange: (TacticalMission?) -> Unit,
-    onActionMenuMissionChange: (TacticalMission?) -> Unit,
     onActiveLinkPickerTabChange: (LinkPickerTab?) -> Unit,
     onPendingCreateActionChange: (PickerCreateAction?) -> Unit,
     onShowAddUrlDialogChange: (Boolean) -> Unit,
@@ -986,6 +979,14 @@ private fun TacticalManagementOverlays(
     onAddBoardObsidianLink: (String, String, String) -> Unit,
     onAddActivitySlot: (String) -> Unit,
     onRemoveActivitySlot: (String) -> Unit,
+    missionStreams: List<MissionStream>,
+    missionStreamCounts: Map<String, Int>,
+    isMissionStreamsSheetVisible: Boolean,
+    onAddMissionStream: (String) -> Unit,
+    onUpdateMissionStream: (MissionStream, String, String?, Int?) -> Unit,
+    onArchiveMissionStream: (MissionStream) -> Unit,
+    onReorderMissionStreams: (List<MissionStream>) -> Unit,
+    onMissionStreamsSheetVisibleChange: (Boolean) -> Unit,
     onActivitySlotsSheetVisibleChange: (Boolean) -> Unit,
     onActivitySlotPickerVisibleChange: (Boolean) -> Unit,
     scope: kotlinx.coroutines.CoroutineScope,
@@ -1058,6 +1059,18 @@ private fun TacticalManagementOverlays(
             onDismiss = { onActivitySlotsSheetVisibleChange(false) },
             onAddSlotClick = { onActivitySlotPickerVisibleChange(true) },
             onRemoveSlot = onRemoveActivitySlot,
+        )
+    }
+
+    if (isMissionStreamsSheetVisible) {
+        MissionStreamsSheet(
+            missionStreams = missionStreams,
+            missionStreamCounts = missionStreamCounts,
+            onDismiss = { onMissionStreamsSheetVisibleChange(false) },
+            onAddStream = onAddMissionStream,
+            onUpdateStream = onUpdateMissionStream,
+            onArchiveStream = onArchiveMissionStream,
+            onReorderStreams = onReorderMissionStreams,
         )
     }
 
@@ -1181,7 +1194,7 @@ private fun ActivitySlotsSheet(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                text = "Слоти активності",
+                text = "Режими активності",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -1193,7 +1206,7 @@ private fun ActivitySlotsSheet(
             HorizontalDivider()
             if (activitySlotContexts.isEmpty()) {
                 Text(
-                    text = "Слотів ще немає",
+                    text = "Режимів активності ще немає",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 8.dp),
@@ -1232,7 +1245,7 @@ private fun ActivitySlotsSheet(
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Додати контекст як слот")
+                Text("Додати контекст як режим")
             }
             Spacer(modifier = Modifier.height(8.dp))
         }
@@ -1241,8 +1254,336 @@ private fun ActivitySlotsSheet(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun MissionStreamsSheet(
+    missionStreams: List<MissionStream>,
+    missionStreamCounts: Map<String, Int>,
+    onDismiss: () -> Unit,
+    onAddStream: (String) -> Unit,
+    onUpdateStream: (MissionStream, String, String?, Int?) -> Unit,
+    onArchiveStream: (MissionStream) -> Unit,
+    onReorderStreams: (List<MissionStream>) -> Unit,
+) {
+    val hapticFeedback = LocalHapticFeedback.current
+    var newStreamTitle by remember { mutableStateOf("") }
+    var editingStreamId by remember { mutableStateOf<String?>(null) }
+    var editingTitle by remember { mutableStateOf("") }
+    var editingBudgetText by remember { mutableStateOf("") }
+    val defaultStreams = remember(missionStreams) { missionStreams.filter { it.isDefault } }
+    val isBudgetOverLimit = missionStreams.sumOf { it.budgetPercent ?: 0 } > 100
+    val reorderableStreams =
+        remember {
+            mutableStateListOf<MissionStream>()
+        }
+    LaunchedEffect(missionStreams) {
+        reorderableStreams.clear()
+        reorderableStreams.addAll(missionStreams.filterNot { it.isDefault })
+    }
+    val streamListState = rememberLazyListState()
+    val reorderableState =
+        rememberReorderableLazyListState(streamListState) { from, to ->
+            val fromStream = reorderableStreams.getOrNull(from.index) ?: return@rememberReorderableLazyListState
+            reorderableStreams.removeAt(from.index)
+            reorderableStreams.add(to.index, fromStream)
+            onReorderStreams(defaultStreams + reorderableStreams)
+        }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = "Потоки місій",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = newStreamTitle,
+                    onValueChange = { newStreamTitle = it },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    placeholder = { Text("Новий потік...") },
+                )
+                Button(
+                    enabled = newStreamTitle.isNotBlank(),
+                    onClick = {
+                        onAddStream(newStreamTitle)
+                        newStreamTitle = ""
+                    },
+                ) {
+                    Text("Додати")
+                }
+            }
+            HorizontalDivider()
+            if (isBudgetOverLimit) {
+                Text(
+                    text = "Сума бюджетів потоків перевищує 100%",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            defaultStreams.forEach { stream ->
+                MissionStreamSheetRow(
+                    stream = stream,
+                    missionCount = missionStreamCounts[stream.id] ?: 0,
+                    isBudgetOverLimit = isBudgetOverLimit,
+                    editingStreamId = editingStreamId,
+                    editingTitle = editingTitle,
+                    editingBudgetText = editingBudgetText,
+                    onEditingTitleChange = { editingTitle = it },
+                    onEditingBudgetChange = { editingBudgetText = it },
+                    onStartEdit = {
+                        editingStreamId = stream.id
+                        editingTitle = stream.title
+                        editingBudgetText = stream.budgetPercent?.toString().orEmpty()
+                    },
+                    onSaveEdit = {
+                        onUpdateStream(stream, editingTitle, stream.description, editingBudgetText.toBudgetPercentOrNull())
+                        editingStreamId = null
+                    },
+                    onArchive = { onArchiveStream(stream) },
+                    dragHandleModifier = Modifier,
+                )
+            }
+            if (defaultStreams.isNotEmpty() && reorderableStreams.isNotEmpty()) {
+                SubtleActionDivider()
+            }
+            LazyColumn(
+                state = streamListState,
+                modifier = Modifier.fillMaxWidth().heightIn(max = 360.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                itemsIndexed(reorderableStreams, key = { _, stream -> stream.id }) { _, stream ->
+                    ReorderableItem(reorderableState, key = stream.id) {
+                        MissionStreamSheetRow(
+                            stream = stream,
+                            missionCount = missionStreamCounts[stream.id] ?: 0,
+                            isBudgetOverLimit = isBudgetOverLimit,
+                            editingStreamId = editingStreamId,
+                            editingTitle = editingTitle,
+                            editingBudgetText = editingBudgetText,
+                            onEditingTitleChange = { editingTitle = it },
+                            onEditingBudgetChange = { editingBudgetText = it },
+                            onStartEdit = {
+                                editingStreamId = stream.id
+                                editingTitle = stream.title
+                                editingBudgetText = stream.budgetPercent?.toString().orEmpty()
+                            },
+                            onSaveEdit = {
+                                onUpdateStream(stream, editingTitle, stream.description, editingBudgetText.toBudgetPercentOrNull())
+                                editingStreamId = null
+                            },
+                            onArchive = { onArchiveStream(stream) },
+                            dragHandleModifier =
+                                with(this@ReorderableItem) {
+                                    Modifier.longPressDraggableHandle(
+                                        onDragStarted = {
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        },
+                                    )
+                                },
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun MissionStreamSheetRow(
+    stream: MissionStream,
+    missionCount: Int,
+    isBudgetOverLimit: Boolean,
+    editingStreamId: String?,
+    editingTitle: String,
+    editingBudgetText: String,
+    onEditingTitleChange: (String) -> Unit,
+    onEditingBudgetChange: (String) -> Unit,
+    onStartEdit: () -> Unit,
+    onSaveEdit: () -> Unit,
+    onArchive: () -> Unit,
+    dragHandleModifier: Modifier,
+) {
+    if (editingStreamId == stream.id) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = editingTitle,
+                    onValueChange = onEditingTitleChange,
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    label = { Text("Назва") },
+                )
+                OutlinedTextField(
+                    value = editingBudgetText,
+                    onValueChange = onEditingBudgetChange,
+                    modifier = Modifier.width(104.dp),
+                    singleLine = true,
+                    label = { Text("%") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    isError = editingBudgetText.isNotBlank() && editingBudgetText.toBudgetPercentOrNull() == null,
+                )
+            }
+            TextButton(
+                enabled = editingTitle.isNotBlank() &&
+                    (editingBudgetText.isBlank() || editingBudgetText.toBudgetPercentOrNull() != null),
+                onClick = onSaveEdit,
+            ) {
+                Text("Зберегти")
+            }
+        }
+    } else {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            tonalElevation = 1.dp,
+        ) {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(start = 10.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Default.Menu,
+                    contentDescription = "Змінити порядок",
+                    modifier = dragHandleModifier.size(22.dp),
+                    tint =
+                        if (stream.isDefault) {
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.42f)
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = stream.title,
+                            style = MaterialTheme.typography.bodyLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                        MissionStreamCountBadge(missionCount)
+                        stream.budgetPercent?.let { percent ->
+                            MissionStreamBudgetBadge(
+                                budgetPercent = percent,
+                                isOverLimit = isBudgetOverLimit,
+                            )
+                        }
+                    }
+                    if (stream.isDefault) {
+                        Text(
+                            text = "Default",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                IconButton(
+                    onClick = onStartEdit,
+                ) {
+                    Icon(
+                        Icons.Outlined.Edit,
+                        contentDescription = "Редагувати потік",
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                IconButton(
+                    enabled = !stream.isDefault,
+                    onClick = onArchive,
+                ) {
+                    Icon(
+                        Icons.Default.Archive,
+                        contentDescription = "Архівувати потік",
+                        tint =
+                            if (stream.isDefault) {
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                            } else {
+                                MaterialTheme.colorScheme.error
+                            },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MissionStreamCountBadge(missionCount: Int) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    ) {
+        Text(
+            text = missionCount.toString(),
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+        )
+    }
+}
+
+@Composable
+private fun MissionStreamBudgetBadge(
+    budgetPercent: Int,
+    isOverLimit: Boolean,
+) {
+    val color =
+        if (isOverLimit) {
+            MaterialTheme.colorScheme.error
+        } else {
+            MaterialTheme.colorScheme.secondary
+        }
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = color.copy(alpha = 0.14f),
+        contentColor = color,
+    ) {
+        Text(
+            text = "$budgetPercent%",
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+        )
+    }
+}
+
+private fun String.toBudgetPercentOrNull(): Int? {
+    if (isBlank()) return null
+    return trim().toIntOrNull()?.takeIf { it in 0..100 }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun MissionActionSheet(
     mission: TacticalMission,
+    missionStreams: List<MissionStream>,
+    selectedMissionStreamId: String,
     activitySlotContexts: List<Context>,
     selectedActivitySlotContextId: String?,
     onDismiss: () -> Unit,
@@ -1250,6 +1591,8 @@ private fun MissionActionSheet(
     onToggleCompleted: () -> Unit,
     onAddToToday: () -> Unit,
     onAddToArc: () -> Unit,
+    onAssignMissionStream: (String) -> Unit,
+    onOpenStreamPicker: () -> Unit,
     onAssignActivitySlot: (String?) -> Unit,
     onOpenSlotPicker: () -> Unit,
     onPostpone: () -> Unit,
@@ -1305,10 +1648,28 @@ private fun MissionActionSheet(
                 onClick = onAddToArc,
             )
             SubtleActionDivider()
-            if (selectedActivitySlotContextId != null && mission.activitySlotContextId != selectedActivitySlotContextId) {
+            if (mission.normalizedMissionStreamId() != selectedMissionStreamId) {
                 MissionActionSheetItem(
                     icon = Icons.Outlined.AccountTree,
-                    text = "Перемістити в поточний слот",
+                    text = "Перемістити в поточний потік",
+                    onClick = { onAssignMissionStream(selectedMissionStreamId) },
+                )
+                SubtleActionDivider()
+            }
+            MissionActionSheetItem(
+                icon = Icons.Outlined.ChevronRight,
+                text = "Перемістити в потік",
+                enabled = missionStreams.isNotEmpty(),
+                onClick = onOpenStreamPicker,
+            )
+            SubtleActionDivider()
+            if (
+                selectedActivitySlotContextId != null &&
+                mission.activitySlotContextId != selectedActivitySlotContextId
+            ) {
+                MissionActionSheetItem(
+                    icon = Icons.Outlined.AccountTree,
+                    text = "Перемістити в поточний режим активності",
                     onClick = { onAssignActivitySlot(selectedActivitySlotContextId) },
                 )
                 SubtleActionDivider()
@@ -1317,9 +1678,9 @@ private fun MissionActionSheet(
                 icon = Icons.Outlined.ChevronRight,
                 text =
                     if (mission.activitySlotContextId == null) {
-                        "Додати в слот"
+                        "Додати режим активності"
                     } else {
-                        "Змінити слот"
+                        "Змінити режим активності"
                     },
                 enabled = activitySlotContexts.isNotEmpty() || mission.activitySlotContextId != null,
                 onClick = onOpenSlotPicker,
@@ -1387,7 +1748,7 @@ private fun MissionSlotPickerSheet(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                text = "Додати в слот",
+                text = "Режим активності",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -1402,9 +1763,9 @@ private fun MissionSlotPickerSheet(
                 icon = Icons.Outlined.Close,
                 text =
                     if (mission.activitySlotContextId == null) {
-                        "Без слота · поточно"
+                        "Без режиму · поточно"
                     } else {
-                        "Без слота"
+                        "Без режиму"
                     },
                 enabled = mission.activitySlotContextId != null,
                 onClick = { onAssignActivitySlot(null) },
@@ -1412,7 +1773,7 @@ private fun MissionSlotPickerSheet(
             SubtleActionDivider()
             if (activitySlotContexts.isEmpty()) {
                 Text(
-                    text = "Слоти активності ще не додані.",
+                    text = "Режими активності ще не додані.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 12.dp),
@@ -1432,6 +1793,62 @@ private fun MissionSlotPickerSheet(
                     )
                     SubtleActionDivider()
                 }
+            }
+            MissionActionSheetItem(
+                icon = Icons.Outlined.Close,
+                text = "Скасувати",
+                onClick = onDismiss,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MissionStreamPickerSheet(
+    mission: TacticalMission,
+    missionStreams: List<MissionStream>,
+    onDismiss: () -> Unit,
+    onAssignMissionStream: (String) -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = "Перемістити в потік",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = mission.title,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+            )
+            HorizontalDivider()
+            missionStreams.forEach { stream ->
+                MissionActionSheetItem(
+                    icon = Icons.Outlined.AccountTree,
+                    text =
+                        if (mission.normalizedMissionStreamId() == stream.id) {
+                            "${stream.title} · поточний"
+                        } else {
+                            stream.title
+                        },
+                    enabled = mission.normalizedMissionStreamId() != stream.id,
+                    onClick = { onAssignMissionStream(stream.id) },
+                )
+                SubtleActionDivider()
             }
             MissionActionSheetItem(
                 icon = Icons.Outlined.Close,

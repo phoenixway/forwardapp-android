@@ -14,6 +14,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -1158,17 +1159,22 @@ private fun rememberModePalette(mode: OmniboxMode): OmniboxModePalette {
     val bottomColors = bottomPanelColors()
     val accent = modeAccentColor(mode)
     val accentContainer = modeAccentContainer(mode)
-    return remember(mode, scheme, bottomColors, accent, accentContainer) {
+    val isDarkTheme = isSystemInDarkTheme()
+    return remember(mode, scheme, bottomColors, accent, accentContainer, isDarkTheme) {
+        val dockSurfaceContrast = if (isDarkTheme) 0.28f else 0.54f
+        val contentSurfaceBlend = if (isDarkTheme) 0.38f else 0.68f
+        val panelChromeBlend = if (isDarkTheme) 0.12f else 0.30f
+        val panelOutlineAlpha = if (isDarkTheme) 0.32f else 0.56f
         OmniboxModePalette(
             searchSurface = lerp(
                 bottomColors.container,
                 scheme.surfaceContainerHighest,
-                0.28f,
+                dockSurfaceContrast,
             ),
-            contentSurface = lerp(bottomColors.container, scheme.surface, 0.38f),
+            contentSurface = lerp(bottomColors.container, scheme.surface, contentSurfaceBlend),
             screenBottomTint = lerp(bottomColors.container, accentContainer, 0.04f),
-            panelChrome = lerp(bottomColors.container, scheme.surfaceContainerHigh, 0.12f),
-            panelOutline = lerp(bottomColors.border, accent, 0.10f).copy(alpha = 0.32f),
+            panelChrome = lerp(bottomColors.container, scheme.surfaceContainerHigh, panelChromeBlend),
+            panelOutline = lerp(bottomColors.border, accent, 0.10f).copy(alpha = panelOutlineAlpha),
             inputContainer = bottomColors.inputContainer,
             inputFocusedContainer = lerp(bottomColors.inputContainer, accentContainer, 0.08f),
             secondaryActionContainer = lerp(bottomColors.container, accentContainer, 0.05f),

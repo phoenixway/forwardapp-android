@@ -103,6 +103,9 @@ fun GoalDetailContent(
     val pickerAttachmentOptions by viewModel.pickerAttachmentOptions.collectAsStateWithLifecycle()
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val tacticalBacklogItemIds by viewModel.tacticalBacklogItemIds.collectAsStateWithLifecycle()
+    val tacticalBacklogMissionStreamIds by viewModel.tacticalBacklogMissionStreamIds.collectAsStateWithLifecycle()
+    val missionStreams by viewModel.missionStreams.collectAsStateWithLifecycle()
+    val missionStreamTitleById = missionStreams.associate { it.id to it.title }
     val enableKeyProblems = uiState.experimentalCapabilityIds.contains(CapabilityId("key_problems"))
 
     when (currentViewMode) {
@@ -138,6 +141,12 @@ fun GoalDetailContent(
                         selectedItemIds = uiState.selectedItemIds,
                         contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                         editingGoalId = uiState.goalToEditInline?.id,
+                        missionStreams = missionStreams,
+                        tacticalPriorityStreamIdByItemId = tacticalBacklogMissionStreamIds,
+                        tacticalPriorityStreamTitleByItemId =
+                            tacticalBacklogMissionStreamIds.mapValues { (_, streamId) ->
+                                missionStreamTitleById[streamId] ?: streamId
+                            },
                     ),
                 actions =
                     BacklogListActions(
@@ -164,9 +173,10 @@ fun GoalDetailContent(
                         onDelete = { item -> viewModel.itemActionHandler.deleteItem(item) },
                         onDeleteEverywhere = { item -> viewModel.onDeleteEverywhere(item) },
                         onAddToDayPlan = { item -> viewModel.addItemToDailyPlan(item) },
-                        onAddAsMission = { item -> viewModel.addItemAsMission(item) },
                         isTacticalPriority = { item -> item.backlogItem.id in tacticalBacklogItemIds },
-                        onToggleTacticalPriority = { item -> viewModel.toggleItemTacticalPriority(item) },
+                        onToggleTacticalPriority = { item, streamId ->
+                            viewModel.toggleItemTacticalPriority(item, streamId)
+                        },
                         onStartTracking = { item -> viewModel.onStartTrackingRequest(item) },
                         onCopyTransport = { item -> viewModel.itemActionHandler.onTransportCopyRequested(item) },
                         onCutTransport = { item -> viewModel.itemActionHandler.onTransportCutRequested(item) },
@@ -478,7 +488,10 @@ private fun DashboardOverview(
             ElevatedCard(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                colors =
+                    CardDefaults.elevatedCardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    ),
                 elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp),
             ) {
                 Column(
@@ -618,7 +631,12 @@ private fun AttachmentRowSummary(
                 is BacklogItemContent.ChecklistItem -> Icons.Outlined.Checklist
                 else -> Icons.Default.Attachment
             }
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp),
+        )
         Text(
             text = title,
             style = MaterialTheme.typography.bodyMedium,
@@ -627,6 +645,10 @@ private fun AttachmentRowSummary(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(
+            Icons.AutoMirrored.Outlined.ArrowForward,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }

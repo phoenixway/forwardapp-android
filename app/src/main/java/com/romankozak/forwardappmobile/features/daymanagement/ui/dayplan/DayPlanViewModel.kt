@@ -499,6 +499,13 @@ class DayPlanViewModel
             _planId.value = dayPlanId
         }
 
+        fun setPredictedDurationMinutes(minutes: Long?) {
+            val planId = _planId.value ?: uiState.value.dayPlan?.id ?: return
+            viewModelScope.launch(Dispatchers.IO) {
+                dayManagementRepository.updatePredictedDurationMinutes(planId, minutes)
+            }
+        }
+
         fun addPlanProjectLink(projectId: String) {
             scopeLinksHandler.addPlanProjectLink(projectId)
         }

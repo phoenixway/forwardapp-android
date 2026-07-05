@@ -22,8 +22,11 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -61,6 +65,8 @@ private const val TAB_HORIZONTAL_PADDING_DP = 10
 private const val TAB_VERTICAL_PADDING_DP = 6
 private const val TAB_SPECIAL_FONT_SIZE_SP = 22
 private const val TAB_DEFAULT_FONT_SIZE_SP = 18
+private const val STRATEGY_SYMBOL_FONT_SCALE = 0.93f
+private const val TODAY_ICON_SIZE_SCALE = 0.93f
 private const val TAB_SPECIAL_CIRCLE_SIZE_DP = 32
 private const val TAB_DEFAULT_CIRCLE_SIZE_DP = 28
 private const val TAB_SYMBOL_Y_OFFSET_DP = -2
@@ -83,12 +89,13 @@ private const val PROGRESS_BAR_SHAPE_DP = 50
 enum class CommandDeckTab(
     val title: String,
     val symbol: String,
+    val icon: ImageVector? = null,
 ) {
     Dashboard("Command Deck", "⌗"),
-    Today("Today", "⌁"),
-    Tactics("Tactics", "◎"),
+    Today("Today", "⌁", Icons.Default.Assignment),
+    Tactics("Tactics", "⌖"),
     StrategicArc("Strategic Arc", "⟲"),
-    Strategy("Strategy", "⌖"),
+    Strategy("Strategy", "⎈"),
     Core("Core", "⌘"),
 }
 
@@ -203,13 +210,22 @@ fun CommandDeckTabItem(
                     ),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = tab.symbol,
-                fontSize = tabMetrics.fontSize.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isSelected) accent else MaterialTheme.colorScheme.onSurface,
-                modifier = tabMetrics.symbolModifier,
-            )
+            if (tab.icon != null) {
+                Icon(
+                    imageVector = tab.icon,
+                    contentDescription = tab.title,
+                    tint = if (isSelected) accent else MaterialTheme.colorScheme.onSurface,
+                    modifier = tabMetrics.symbolModifier.size(tabMetrics.iconSize.dp),
+                )
+            } else {
+                Text(
+                    text = tab.symbol,
+                    fontSize = tabMetrics.fontSize.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isSelected) accent else MaterialTheme.colorScheme.onSurface,
+                    modifier = tabMetrics.symbolModifier,
+                )
+            }
         }
 
         if (isSelected) {
@@ -279,8 +295,9 @@ fun DeckModuleCard(
 }
 
 private data class TabItemMetrics(
-    val fontSize: Int,
+    val fontSize: Float,
     val circleSize: Int,
+    val iconSize: Float,
     val symbolModifier: Modifier,
 )
 
@@ -297,8 +314,19 @@ private fun tabItemMetrics(tab: CommandDeckTab): TabItemMetrics {
         }
 
     return TabItemMetrics(
-        fontSize = if (isSpecialTab) TAB_SPECIAL_FONT_SIZE_SP else TAB_DEFAULT_FONT_SIZE_SP,
+        fontSize =
+            when {
+                tab == CommandDeckTab.Strategy -> TAB_DEFAULT_FONT_SIZE_SP * STRATEGY_SYMBOL_FONT_SCALE
+                isSpecialTab -> TAB_SPECIAL_FONT_SIZE_SP.toFloat()
+                else -> TAB_DEFAULT_FONT_SIZE_SP.toFloat()
+            },
         circleSize = if (isSpecialTab) TAB_SPECIAL_CIRCLE_SIZE_DP else TAB_DEFAULT_CIRCLE_SIZE_DP,
+        iconSize =
+            when {
+                tab == CommandDeckTab.Today -> TAB_SPECIAL_FONT_SIZE_SP * TODAY_ICON_SIZE_SCALE
+                isSpecialTab -> TAB_SPECIAL_FONT_SIZE_SP.toFloat()
+                else -> TAB_DEFAULT_FONT_SIZE_SP.toFloat()
+            },
         symbolModifier = symbolModifier,
     )
 }

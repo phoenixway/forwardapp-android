@@ -58,6 +58,8 @@ data class StrategicArcUiState(
     val beaconGroups: List<MainBeaconGroup> = emptyList(),
     val arcQuests: List<ArcQuestEntity> = emptyList(),
     val currentArcKey: String = "",
+    val previousArcKey: String? = null,
+    val nextArcKey: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
 )
@@ -66,6 +68,12 @@ enum class StrategicArcTab {
     QUESTS,
     ARTIFACT,
 }
+
+private data class ArcMonthNavigationState(
+    val currentArcKey: String,
+    val previousArcKey: String?,
+    val nextArcKey: String,
+)
 
 @HiltViewModel
 class StrategicArcViewModel
@@ -87,13 +95,38 @@ class StrategicArcViewModel
 
         @OptIn(ExperimentalCoroutinesApi::class)
         val uiState: StateFlow<StrategicArcUiState> =
+            run {
+                val arcMonthNavigation =
+                    combine(
+                        currentArcKey,
+                        arcQuestRepository.observeNonEmptyArcKeys(),
+                    ) { arcKey, nonEmptyArcKeys ->
+                        val selectedMonth = arcKey.toYearMonthOrNow()
+                        val currentMonth = YearMonth.now()
+                        ArcMonthNavigationState(
+                            currentArcKey = arcKey,
+                            previousArcKey =
+                                previousVisibleArcMonth(
+                                    selectedMonth = selectedMonth,
+                                    currentMonth = currentMonth,
+                                    nonEmptyArcKeys = nonEmptyArcKeys,
+                                )?.toString(),
+                            nextArcKey =
+                                nextVisibleArcMonth(
+                                    selectedMonth = selectedMonth,
+                                    currentMonth = currentMonth,
+                                    nonEmptyArcKeys = nonEmptyArcKeys,
+                                ).toString(),
+                        )
+                    }
+
             combine(
                 contextRepository.getAllContextsFlow(),
                 mainBeaconRepository.observeMainBeaconDetails(),
                 mainBeaconRepository.observeGroups(),
                 currentArcKey.flatMapLatest { arcKey -> arcQuestRepository.observeArcQuests(arcKey) },
-                currentArcKey,
-            ) { projects, beacons, beaconGroups, arcQuests, arcKey ->
+                arcMonthNavigation,
+            ) { projects, beacons, beaconGroups, arcQuests, arcNavigation ->
                     val arcProjects =
                         projects.filter {
                             it.tags?.contains("arc") == true
@@ -104,7 +137,9 @@ class StrategicArcViewModel
                         beacons = beacons,
                         beaconGroups = beaconGroups,
                         arcQuests = arcQuests,
-                        currentArcKey = arcKey,
+                        currentArcKey = arcNavigation.currentArcKey,
+                        previousArcKey = arcNavigation.previousArcKey,
+                        nextArcKey = arcNavigation.nextArcKey,
                     )
                 }
                 .stateIn(
@@ -112,6 +147,7 @@ class StrategicArcViewModel
                     started = SharingStarted.WhileSubscribed(FLOW_STOP_TIMEOUT_MILLIS),
                     initialValue = StrategicArcUiState(isLoading = true),
                 )
+            }
 
         private val _attachmentOptions = MutableStateFlow<List<ScopeAttachmentOption>>(emptyList())
         val attachmentOptions: StateFlow<List<ScopeAttachmentOption>> = _attachmentOptions.asStateFlow()
@@ -323,6 +359,16 @@ class StrategicArcViewModel
             _selectedTab.value = tab
         }
 
+        fun navigateToPreviousArcMonth() {
+            uiState.value.previousArcKey?.let { target ->
+                currentArcKey.value = target
+            }
+        }
+
+        fun navigateToNextArcMonth() {
+            currentArcKey.value = uiState.value.nextArcKey
+        }
+
         fun addArcQuest(title: String) {
             val trimmed = title.trim()
             if (trimmed.isBlank()) return
@@ -510,3 +556,37 @@ private fun currentIsoWeekKey(): String {
     val week = now.get(weekFields.weekOfWeekBasedYear())
     return "%04d-W%02d".format(weekBasedYear, week)
 }
+
+private fun previousVisibleArcMonth(
+    selectedMonth: YearMonth,
+    currentMonth: YearMonth,
+    nonEmptyArcKeys: List<String>,
+): YearMonth? {
+    if (selectedMonth > currentMonth) {
+        return selectedMonth.minusMonths(1)
+    }
+    return nonEmptyArcKeys
+        .mapNotNull { it.toYearMonthOrNull() }
+        .filter { it < selectedMonth }
+        .maxOrNull()
+}
+
+private fun nextVisibleArcMonth(
+    selectedMonth: YearMonth,
+    currentMonth: YearMonth,
+    nonEmptyArcKeys: List<String>,
+): YearMonth {
+    if (selectedMonth >= currentMonth) {
+        return selectedMonth.plusMonths(1)
+    }
+    return nonEmptyArcKeys
+        .mapNotNull { it.toYearMonthOrNull() }
+        .filter { it > selectedMonth && it < currentMonth }
+        .minOrNull()
+        ?: currentMonth
+}
+
+private fun String.toYearMonthOrNow(): YearMonth = toYearMonthOrNull() ?: YearMonth.now()
+
+private fun String.toYearMonthOrNull(): YearMonth? =
+    runCatching { YearMonth.parse(this) }.getOrNull()

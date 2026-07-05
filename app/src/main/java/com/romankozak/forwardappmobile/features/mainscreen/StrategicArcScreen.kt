@@ -41,6 +41,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -58,6 +59,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestSourceType
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
@@ -86,6 +89,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
+import java.time.YearMonth
 import java.net.URLEncoder
 
 private const val ATTACHMENT_ID_PREVIEW_LENGTH = 8
@@ -270,41 +274,49 @@ fun StrategicArcScreen(
                 Text(text = uiState.error!!)
             }
         } else {
-            when (selectedTab) {
-                StrategicArcTab.QUESTS ->
-                    ArcQuestList(
-                        quests = uiState.arcQuests,
-                        contextNames = uiState.allProjects.associate { it.id to it.name },
-                        onQuestClick = { quest ->
-                            quest.linkedContextId?.let {
-                                openTarget(NavTarget.ContextDetail(contextId = it), true)
-                            }
-                        },
-                        onOpenContext = { contextId ->
-                            openTarget(NavTarget.ContextDetail(contextId = contextId), true)
-                        },
-                        onCreateMission = viewModel::createMissionFromArcQuest,
-                        onEditQuest = viewModel::updateArcQuest,
-                        onDeleteQuest = viewModel::deleteArcQuest,
-                        onReorder = viewModel::reorderArcQuests,
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                    )
-                StrategicArcTab.ARTIFACT ->
-                    ArcArtifactPanel(
-                        arcKey = uiState.currentArcKey,
-                        onOpenArtifact = {
-                            viewModel.openOrCreateArcArtifact { documentId ->
-                                openTarget(NavTarget.NoteDocument(id = documentId, startEdit = true), false)
-                            }
-                        },
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                    )
+            Column(modifier = Modifier.fillMaxSize()) {
+                StrategicArcMonthHeader(
+                    arcKey = uiState.currentArcKey,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                )
+                when (selectedTab) {
+                    StrategicArcTab.QUESTS ->
+                        ArcQuestList(
+                            quests = uiState.arcQuests,
+                            contextNames = uiState.allProjects.associate { it.id to it.name },
+                            onQuestClick = { quest ->
+                                quest.linkedContextId?.let {
+                                    openTarget(NavTarget.ContextDetail(contextId = it), true)
+                                }
+                            },
+                            onOpenContext = { contextId ->
+                                openTarget(NavTarget.ContextDetail(contextId = contextId), true)
+                            },
+                            onCreateMission = viewModel::createMissionFromArcQuest,
+                            onEditQuest = viewModel::updateArcQuest,
+                            onDeleteQuest = viewModel::deleteArcQuest,
+                            onReorder = viewModel::reorderArcQuests,
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .weight(1f)
+                                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                        )
+                    StrategicArcTab.ARTIFACT ->
+                        ArcArtifactPanel(
+                            arcKey = uiState.currentArcKey,
+                            onOpenArtifact = {
+                                viewModel.openOrCreateArcArtifact { documentId ->
+                                    openTarget(NavTarget.NoteDocument(id = documentId, startEdit = true), false)
+                                }
+                            },
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .weight(1f)
+                                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                        )
+                }
             }
         }
 
@@ -327,6 +339,27 @@ fun StrategicArcScreen(
                             shape = RoundedCornerShape(16.dp),
                         ),
                 ) {
+                    DropdownMenuItem(
+                        text = { Text("Попередня арка") },
+                        leadingIcon = {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        },
+                        enabled = uiState.previousArcKey != null,
+                        onClick = {
+                            isFabMenuExpanded = false
+                            viewModel.navigateToPreviousArcMonth()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Наступна арка") },
+                        leadingIcon = {
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                        },
+                        onClick = {
+                            isFabMenuExpanded = false
+                            viewModel.navigateToNextArcMonth()
+                        },
+                    )
                     DropdownMenuItem(
                         text = { Text("Контекст як ArcQuest") },
                         leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
@@ -558,6 +591,68 @@ fun StrategicArcScreen(
                 showAddObsidianDialog = false
             },
         )
+    }
+}
+
+@Composable
+private fun StrategicArcMonthHeader(
+    arcKey: String,
+    modifier: Modifier = Modifier,
+) {
+    val isCurrent = arcKey == YearMonth.now().toString()
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.End,
+    ) {
+        Surface(
+            shape = RoundedCornerShape(999.dp),
+            color =
+                if (isCurrent) {
+                    MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.88f)
+                } else {
+                    MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.96f)
+                },
+            contentColor =
+                if (isCurrent) {
+                    MaterialTheme.colorScheme.onTertiaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSecondaryContainer
+                },
+            tonalElevation = 1.dp,
+            shadowElevation = 2.dp,
+            border =
+                androidx.compose.foundation.BorderStroke(
+                    width = 1.dp,
+                    color =
+                        if (isCurrent) {
+                            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.42f)
+                        } else {
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.58f)
+                        },
+                ),
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Arc",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f),
+                )
+                Text(
+                    text = formatStrategicArcMonth(arcKey),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                if (isCurrent) {
+                    Text(
+                        text = "current",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -985,6 +1080,27 @@ private fun buildExternalTarget(
         }
     }
     return trimmed
+}
+
+private fun formatStrategicArcMonth(arcKey: String): String {
+    val month = runCatching { YearMonth.parse(arcKey) }.getOrNull() ?: return arcKey
+    val title =
+        when (month.monthValue) {
+            1 -> "Січень"
+            2 -> "Лютий"
+            3 -> "Березень"
+            4 -> "Квітень"
+            5 -> "Травень"
+            6 -> "Червень"
+            7 -> "Липень"
+            8 -> "Серпень"
+            9 -> "Вересень"
+            10 -> "Жовтень"
+            11 -> "Листопад"
+            12 -> "Грудень"
+            else -> return arcKey
+        }
+    return "$title ${month.year}"
 }
 
 private fun CreateConnectionType.toPickerCreateAction(): PickerCreateAction =

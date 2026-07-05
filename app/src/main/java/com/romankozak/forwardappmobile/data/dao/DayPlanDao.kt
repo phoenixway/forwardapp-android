@@ -86,6 +86,22 @@ interface DayPlanDao {
         updatedAt: Long,
     )
 
+    @Query(
+        """
+        UPDATE day_plans
+        SET predictedDurationMinutes = :minutes,
+            updatedAt = :updatedAt,
+            version = version + 1,
+            syncedAt = NULL
+        WHERE id = :planId
+        """,
+    )
+    suspend fun updatePredictedDurationMinutes(
+        planId: String,
+        minutes: Long?,
+        updatedAt: Long,
+    )
+
     @Query("SELECT id FROM day_plans WHERE date >= :date")
     suspend fun getFutureDayPlanIds(date: Long): List<String>
 

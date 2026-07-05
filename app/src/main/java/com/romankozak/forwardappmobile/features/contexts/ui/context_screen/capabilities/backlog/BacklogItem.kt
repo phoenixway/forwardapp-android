@@ -89,6 +89,7 @@ fun BacklogItem(
     showCheckbox: Boolean,
     isSelected: Boolean,
     isTacticalPriority: Boolean,
+    tacticalPriorityStreamTitle: String?,
     contextMarkerToEmojiMap: Map<String, String>,
     isInlineEditing: Boolean,
     onInlineEditSave: (String) -> Unit,
@@ -112,6 +113,7 @@ fun BacklogItem(
                 showCheckbox = showCheckbox,
                 isSelected = isSelected,
                 isTacticalPriority = isTacticalPriority,
+                tacticalPriorityStreamTitle = tacticalPriorityStreamTitle,
                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                 isInlineEditing = isInlineEditing,
                 onInlineEditSave = onInlineEditSave,
@@ -133,6 +135,7 @@ fun BacklogItem(
                 showCheckbox = showCheckbox,
                 isSelected = isSelected,
                 isTacticalPriority = isTacticalPriority,
+                tacticalPriorityStreamTitle = tacticalPriorityStreamTitle,
                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                 onDragStopped = onDragStopped,
             )
@@ -159,6 +162,7 @@ private fun InternalGoalItem(
     showCheckbox: Boolean,
     isSelected: Boolean,
     isTacticalPriority: Boolean,
+    tacticalPriorityStreamTitle: String?,
     contextMarkerToEmojiMap: Map<String, String>,
     isInlineEditing: Boolean,
     onInlineEditSave: (String) -> Unit,
@@ -372,6 +376,7 @@ private fun InternalGoalItem(
                     } else {
                         if (isTacticalPriority) {
                             TacticalPriorityBadge(
+                                streamTitle = tacticalPriorityStreamTitle,
                                 backgroundColor = tacticalColors.badgeBackground,
                                 textColor = tacticalColors.badgeText,
                             )
@@ -505,6 +510,7 @@ private fun CompletedBadge(
 
 @Composable
 private fun TacticalPriorityBadge(
+    streamTitle: String?,
     backgroundColor: Color,
     textColor: Color,
 ) {
@@ -514,7 +520,7 @@ private fun TacticalPriorityBadge(
         shape = MaterialTheme.shapes.small,
     ) {
         Text(
-            text = "Тактика",
+            text = streamTitle?.let { "Тактика · $it" } ?: "Тактика",
             style = MaterialTheme.typography.labelSmall,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
         )
@@ -535,6 +541,7 @@ private fun InternalSubprojectItem(
     showCheckbox: Boolean,
     isSelected: Boolean,
     isTacticalPriority: Boolean,
+    tacticalPriorityStreamTitle: String?,
     contextMarkerToEmojiMap: Map<String, String>,
     onDragStopped: () -> Unit,
 ) {
@@ -674,6 +681,7 @@ private fun InternalSubprojectItem(
                         Spacer(modifier = Modifier.height(8.dp))
                     } else if (isTacticalPriority) {
                         TacticalPriorityBadge(
+                            streamTitle = tacticalPriorityStreamTitle,
                             backgroundColor = tacticalColors.badgeBackground,
                             textColor = tacticalColors.badgeText,
                         )

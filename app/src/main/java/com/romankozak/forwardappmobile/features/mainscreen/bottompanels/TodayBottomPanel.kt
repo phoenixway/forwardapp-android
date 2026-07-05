@@ -6,7 +6,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusType
@@ -48,6 +54,7 @@ fun TodayBottomPanel(
     var inputValue by remember { mutableStateOf(TextFieldValue("")) }
     var showContextPicker by remember { mutableStateOf(false) }
     var showClearJournalConfirmDialog by remember { mutableStateOf(false) }
+    var showPredictedDurationDialog by remember { mutableStateOf(false) }
     var journalQuickDoneDialogState by remember { mutableStateOf<String?>(null) }
     val journalHoldMenuController = rememberHoldMenu2()
 
@@ -66,6 +73,7 @@ fun TodayBottomPanel(
                 TodayMoreActionCallbacks(
                     onWakeUp = onWakeUp,
                     onSleep = onSleep,
+                    onSetPredictedDayDuration = { showPredictedDurationDialog = true },
                     onFinalizePlan = onFinalizePlan,
                     onFinalizeFocus = onFinalizeFocus,
                     onStartImplementation = onStartImplementation,
@@ -162,5 +170,80 @@ fun TodayBottomPanel(
     TodayFocusDialogsHost(
         dayFocusesUiState = dayFocusesUiState,
         dayFocusesViewModel = dayFocusesViewModel,
+        predictedDayDurationMinutes = dayPlanUiState.dayPlan?.predictedDurationMinutes,
     )
+
+    if (showPredictedDurationDialog) {
+        PredictedDayDurationDialog(
+            currentDurationMinutes = dayPlanUiState.dayPlan?.predictedDurationMinutes,
+            onDismiss = { showPredictedDurationDialog = false },
+            onSave = { minutes ->
+                dayPlanViewModel.setPredictedDurationMinutes(minutes)
+                showPredictedDurationDialog = false
+            },
+            onClear = {
+                dayPlanViewModel.setPredictedDurationMinutes(null)
+                showPredictedDurationDialog = false
+            },
+        )
+    }
+}
+
+@Composable
+private fun PredictedDayDurationDialog(
+    currentDurationMinutes: Long?,
+    onDismiss: () -> Unit,
+    onSave: (Long) -> Unit,
+    onClear: () -> Unit,
+) {
+    var hoursText by remember(currentDurationMinutes) {
+        mutableStateOf(currentDurationMinutes?.let(::formatHoursInput).orEmpty())
+    }
+    val parsedMinutes = hoursText.toPredictedDurationMinutesOrNull()
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Прогнозована тривалість дня") },
+        text = {
+            OutlinedTextField(
+                value = hoursText,
+                onValueChange = { hoursText = it },
+                label = { Text("Години") },
+                placeholder = { Text("8 або 8.5") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                supportingText = { Text("Це дає перерахунок бюджетів фокусів у години.") },
+            )
+        },
+        confirmButton = {
+            TextButton(
+                enabled = parsedMinutes != null,
+                onClick = { parsedMinutes?.let(onSave) },
+            ) {
+                Text("Зберегти")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Скасувати")
+            }
+            TextButton(onClick = onClear) {
+                Text("Очистити")
+            }
+        },
+    )
+}
+
+private fun String.toPredictedDurationMinutesOrNull(): Long? {
+    val hours = trim().replace(',', '.').toDoubleOrNull() ?: return null
+    if (hours <= 0.0) return null
+    return (hours * 60.0).toLong().coerceAtLeast(1L)
+}
+
+private fun formatHoursInput(minutes: Long): String {
+    val hours = minutes / 60.0
+    return if (minutes % 60L == 0L) {
+        hours.toInt().toString()
+    } else {
+        String.format(java.util.Locale.getDefault(), "%.1f", hours)
+    }
 }

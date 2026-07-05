@@ -13,6 +13,7 @@ data class DayPlanSnapshot(
     @SerializedName("energyLevel") val energyLevel: Int?,
     @SerializedName("mood") val mood: String?,
     @SerializedName("weatherConditions") val weatherConditions: String?,
+    @SerializedName("predictedDurationMinutes") val predictedDurationMinutes: Long?,
     @SerializedName("totalPlannedMinutes") val totalPlannedMinutes: Long,
     @SerializedName("totalCompletedMinutes") val totalCompletedMinutes: Long,
     @SerializedName("completionPercentage") val completionPercentage: Float,

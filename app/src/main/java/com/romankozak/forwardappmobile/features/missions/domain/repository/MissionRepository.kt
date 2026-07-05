@@ -27,6 +27,9 @@ class MissionRepository
         fun observeBacklogMissionIdsForWeek(weekKey: String): Flow<List<String>> =
             tacticalMissionDao.observeBacklogMissionIdsForWeek(weekKey)
 
+        fun observeBacklogMissionsForWeek(weekKey: String): Flow<List<TacticalMission>> =
+            tacticalMissionDao.observeBacklogMissionsForWeek(weekKey)
+
         suspend fun getMissionById(missionId: Long): TacticalMission? {
             return tacticalMissionDao.getMissionById(missionId)
         }

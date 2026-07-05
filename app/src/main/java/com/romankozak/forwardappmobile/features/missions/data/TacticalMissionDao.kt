@@ -49,6 +49,16 @@ interface TacticalMissionDao {
         """
         SELECT * FROM tactical_missions
         WHERE week_key = :weekKey
+            AND source_backlog_item_id IS NOT NULL
+            AND is_deleted = 0
+        """,
+    )
+    fun observeBacklogMissionsForWeek(weekKey: String): Flow<List<TacticalMission>>
+
+    @Query(
+        """
+        SELECT * FROM tactical_missions
+        WHERE week_key = :weekKey
             AND source_backlog_item_id = :backlogItemId
             AND is_deleted = 0
         LIMIT 1

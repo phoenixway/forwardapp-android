@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capa
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayCircleOutline
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +42,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStream
 
 private data class BacklogActionItem(
     val title: String,
@@ -63,7 +66,10 @@ fun BacklogItemActionsBottomSheet(
     onOpenGoalProperties: (() -> Unit)? = null,
     onRemindersClick: () -> Unit,
     onAddToDayPlan: () -> Unit,
-    onAddAsMission: () -> Unit,
+    missionStreams: List<MissionStream>,
+    selectedMissionStreamId: String,
+    currentTacticalPriorityStreamId: String?,
+    onMissionStreamSelected: (String) -> Unit,
     isTacticalPriority: Boolean,
     onToggleTacticalPriority: () -> Unit,
     onStartTracking: () -> Unit,
@@ -76,6 +82,20 @@ fun BacklogItemActionsBottomSheet(
 ) {
     val modalBottomSheetState = rememberModalBottomSheetState()
     val colorScheme = MaterialTheme.colorScheme
+    val isMovingTacticalPriority =
+        isTacticalPriority && currentTacticalPriorityStreamId != selectedMissionStreamId
+    val tacticalPriorityActionTitle =
+        when {
+            isMovingTacticalPriority -> "Перенести в обраний потік"
+            isTacticalPriority -> "Зняти з тактичного періоду"
+            else -> "Взяти в тактичний тиждень"
+        }
+    val tacticalPriorityActionSubtitle =
+        if (isMovingTacticalPriority) {
+            "Оновити потік тактичного пріоритету"
+        } else {
+            "Показати у беклозі як тактичний пріоритет"
+        }
 
     val sections =
         buildList {
@@ -114,20 +134,8 @@ fun BacklogItemActionsBottomSheet(
                                 onClick = onAddToDayPlan,
                             ),
                             BacklogActionItem(
-                                title = "Додати як місію",
-                                subtitle = "Головний екран -> Тактики",
-                                icon = Icons.Default.AddCircle,
-                                tint = colorScheme.secondary,
-                                onClick = onAddAsMission,
-                            ),
-                            BacklogActionItem(
-                                title =
-                                    if (isTacticalPriority) {
-                                        "Зняти з тактичного періоду"
-                                    } else {
-                                        "Позначити на тактичний період"
-                                    },
-                                subtitle = "Показати у беклозі як тактичний пріоритет",
+                                title = tacticalPriorityActionTitle,
+                                subtitle = tacticalPriorityActionSubtitle,
                                 icon = Icons.Default.Flag,
                                 tint = colorScheme.primary,
                                 onClick = onToggleTacticalPriority,
@@ -229,6 +237,29 @@ fun BacklogItemActionsBottomSheet(
                 overflow = TextOverflow.Ellipsis,
             )
             Box(modifier = Modifier.size(4.dp))
+
+            if (missionStreams.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "У потік",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        missionStreams.forEach { stream ->
+                            FilterChip(
+                                selected = selectedMissionStreamId == stream.id,
+                                onClick = { onMissionStreamSelected(stream.id) },
+                                label = { Text(stream.title, maxLines = 1) },
+                            )
+                        }
+                    }
+                }
+            }
 
             sections.forEachIndexed { index, section ->
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {

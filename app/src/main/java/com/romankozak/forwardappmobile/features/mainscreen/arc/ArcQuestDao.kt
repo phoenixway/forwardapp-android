@@ -20,6 +20,15 @@ interface ArcQuestDao {
     )
     fun observeArcQuests(arcKey: String): Flow<List<ArcQuestEntity>>
 
+    @Query(
+        """
+        SELECT DISTINCT arc_key FROM arc_quests
+        WHERE is_deleted = 0
+        ORDER BY arc_key ASC
+        """,
+    )
+    fun observeNonEmptyArcKeys(): Flow<List<String>>
+
     @Query("SELECT * FROM arc_quests WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): ArcQuestEntity?
 

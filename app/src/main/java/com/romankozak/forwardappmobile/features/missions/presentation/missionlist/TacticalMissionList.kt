@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.GENERAL_MISSION_STREAM_ID
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.hasDeadline
@@ -62,6 +63,7 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 private data class TacticalMissionCardLookups(
     val projectNameById: Map<String, String>,
     val attachmentNameById: Map<String, String>,
+    val missionStreamTitleById: Map<String, String>,
 )
 
 private data class TacticalMissionCardActions(
@@ -171,6 +173,7 @@ fun TacticalMissionList(
                             TacticalMissionCardLookups(
                                 projectNameById = projectNameById,
                                 attachmentNameById = attachmentNameById,
+                                missionStreamTitleById = lookups.missionStreamTitleById,
                             ),
                         actions =
                             TacticalMissionCardActions(
@@ -497,6 +500,7 @@ private fun missionLinkedItems(
     onSurface: Color,
 ): List<UnifiedStatusChipSpec> =
     buildList {
+        missionStreamItem(mission = mission, lookups = lookups, onSurface = onSurface)?.let(::add)
         mission.linkedProjectIds.orEmpty().normalizedLinkedIds().forEach { id ->
             add(
                 UnifiedStatusChipSpec(
@@ -518,6 +522,21 @@ private fun missionLinkedItems(
             )
         }
     }
+
+private fun missionStreamItem(
+    mission: TacticalMission,
+    lookups: TacticalMissionCardLookups,
+    onSurface: Color,
+): UnifiedStatusChipSpec? {
+    if (lookups.missionStreamTitleById.isEmpty()) return null
+    val streamId = mission.missionStreamId ?: GENERAL_MISSION_STREAM_ID
+    val title = lookups.missionStreamTitleById[streamId] ?: return null
+    return UnifiedStatusChipSpec(
+        icon = Icons.Outlined.AccountTree,
+        text = title,
+        contentColor = onSurface.copy(alpha = 0.82f),
+    )
+}
 
 @Composable
 private fun TacticalMissionMoreButton(

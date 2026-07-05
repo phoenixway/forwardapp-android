@@ -30,6 +30,7 @@ class DayFocusesRepository
             type: DayFocusType,
             order: Long,
             isEveryday: Boolean,
+            budgetPercent: Int?,
         ): DayFocusItem {
             val now = System.currentTimeMillis()
             val item =
@@ -40,6 +41,7 @@ class DayFocusesRepository
                     relatedLinks = relatedLinks,
                     type = type,
                     isEveryday = isEveryday,
+                    budgetPercent = budgetPercent,
                     recurringKey = if (isEveryday) java.util.UUID.randomUUID().toString() else null,
                     order = order,
                     createdAt = now,
@@ -58,6 +60,7 @@ class DayFocusesRepository
             relatedLinks: List<RelatedLink>,
             type: DayFocusType,
             isEveryday: Boolean,
+            budgetPercent: Int?,
         ) {
             val now = System.currentTimeMillis()
             dayFocusItemDao.update(
@@ -67,6 +70,7 @@ class DayFocusesRepository
                     relatedLinks = relatedLinks,
                     type = type,
                     isEveryday = isEveryday,
+                    budgetPercent = budgetPercent,
                     recurringKey =
                         when {
                             isEveryday -> item.recurringKey ?: item.id

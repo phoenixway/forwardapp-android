@@ -49,6 +49,7 @@ fun CommandDeckGlobalRailPanel(
 fun BottomPanelGlobalRail(
     actions: BottomPanelGlobalActions,
     mode: BottomPanelGlobalRailMode = BottomPanelGlobalRailMode.COMPACT,
+    additionalActions: List<MoreSheetAction> = emptyList(),
     recentViewModel: RecentViewModel = hiltViewModel(),
 ) {
     var showRecentSheet by remember { mutableStateOf(false) }
@@ -78,7 +79,10 @@ fun BottomPanelGlobalRail(
         contentDescription = "Ієрархія орієнтирів",
         onClick = actions.onNavigateToProjectHierarchy,
     )
-    BottomPanelMoreActionButton(actions = actions)
+    BottomPanelMoreActionButton(
+        actions = actions,
+        additionalActions = additionalActions,
+    )
 
     NewRecentListsSheet(
         showSheet = showRecentSheet,

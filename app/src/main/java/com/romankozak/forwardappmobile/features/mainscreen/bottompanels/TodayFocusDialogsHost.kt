@@ -17,13 +17,17 @@ import com.romankozak.forwardappmobile.features.daymanagement.ui.dayfocus.DayFoc
 internal fun TodayFocusDialogsHost(
     dayFocusesUiState: DayFocusesUiState,
     dayFocusesViewModel: DayFocusesViewModel,
+    predictedDayDurationMinutes: Long? = null,
 ) {
+    val totalBudgetPercent = dayFocusesUiState.items.sumOf { it.budgetPercent ?: 0 }
     when (val dialogMode = dayFocusesUiState.dialogMode) {
         is DayFocusDialogMode.Create ->
             DayFocusItemEditorSheet(
                 initialType = dialogMode.type,
                 availableContexts = dayFocusesUiState.availableContexts,
                 availableAttachments = dayFocusesUiState.availableAttachments,
+                otherBudgetPercent = totalBudgetPercent,
+                predictedDayDurationMinutes = predictedDayDurationMinutes,
                 onDismiss = dayFocusesViewModel::dismissDialog,
                 onConfirm = dayFocusesViewModel::saveItem,
                 onCreateDocumentForPicker = dayFocusesViewModel::createDocumentForPicker,
@@ -35,6 +39,8 @@ internal fun TodayFocusDialogsHost(
                 initialType = dialogMode.item.type,
                 availableContexts = dayFocusesUiState.availableContexts,
                 availableAttachments = dayFocusesUiState.availableAttachments,
+                otherBudgetPercent = totalBudgetPercent - (dialogMode.item.budgetPercent ?: 0),
+                predictedDayDurationMinutes = predictedDayDurationMinutes,
                 onDismiss = dayFocusesViewModel::dismissDialog,
                 onConfirm = dayFocusesViewModel::saveItem,
                 onCreateDocumentForPicker = dayFocusesViewModel::createDocumentForPicker,

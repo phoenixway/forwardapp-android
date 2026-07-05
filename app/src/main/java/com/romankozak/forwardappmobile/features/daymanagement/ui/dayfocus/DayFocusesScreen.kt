@@ -36,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -71,6 +72,7 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 fun DayFocusesScreen(
     initialDayPlanId: String,
     navController: NavController? = null,
+    predictedDayDurationMinutes: Long? = null,
     globalObsidianVaultName: String? = null,
     viewModel: DayFocusesViewModel = hiltViewModel(),
 ) {
@@ -87,6 +89,7 @@ fun DayFocusesScreen(
         onEdit = viewModel::openEditDialog,
         onDelete = viewModel::requestDelete,
         onReorder = viewModel::updateItemsOrder,
+        predictedDayDurationMinutes = predictedDayDurationMinutes,
         onRelatedLinkClick = { link ->
             val resolvedNavController = navController ?: return@DayFocusesContent
             handleRelatedLinkClick(
@@ -107,11 +110,13 @@ private fun DayFocusesContent(
     onEdit: (DayFocusItem) -> Unit,
     onDelete: (DayFocusItem) -> Unit,
     onReorder: (List<DayFocusItem>) -> Unit,
+    predictedDayDurationMinutes: Long?,
     onRelatedLinkClick: (RelatedLink) -> Unit,
 ) {
     val lazyListState = rememberLazyListState()
     val hapticFeedback = LocalHapticFeedback.current
     var internalItems by remember(uiState.items) { mutableStateOf(uiState.items) }
+    val isBudgetOverLimit = internalItems.sumOf { it.budgetPercent ?: 0 } > 100
     val contextTitlesById =
         remember(uiState.availableContexts) {
             uiState.availableContexts.associate { it.id to it.name }
@@ -145,6 +150,8 @@ private fun DayFocusesContent(
                         onDelete = { onDelete(item) },
                         onRelatedLinkClick = onRelatedLinkClick,
                         contextTitlesById = contextTitlesById,
+                        isBudgetOverLimit = isBudgetOverLimit,
+                        predictedDayDurationMinutes = predictedDayDurationMinutes,
                     )
                 }
             }
@@ -160,6 +167,8 @@ private fun LazyItemScope.DayFocusItemRow(
     onDelete: () -> Unit,
     onRelatedLinkClick: (RelatedLink) -> Unit,
     contextTitlesById: Map<String, String>,
+    isBudgetOverLimit: Boolean,
+    predictedDayDurationMinutes: Long?,
 ) {
     ReorderableItem(reorderableState, key = item.id) { isDragging ->
         var showActionsSheet by remember(item.id) { mutableStateOf(false) }
@@ -211,6 +220,14 @@ private fun LazyItemScope.DayFocusItemRow(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    item.budgetPercent?.let { budgetPercent ->
+                        Spacer(modifier = Modifier.height(4.dp))
+                        DayFocusBudgetBadge(
+                            budgetPercent = budgetPercent,
+                            isOverLimit = isBudgetOverLimit,
+                            predictedDayDurationMinutes = predictedDayDurationMinutes,
+                        )
+                    }
                     item.notes?.takeIf { it.isNotBlank() }?.let { notes ->
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -275,6 +292,49 @@ private fun LazyItemScope.DayFocusItemRow(
                 },
             )
         }
+    }
+}
+
+@Composable
+private fun DayFocusBudgetBadge(
+    budgetPercent: Int,
+    isOverLimit: Boolean,
+    predictedDayDurationMinutes: Long?,
+) {
+    val color =
+        if (isOverLimit) {
+            MaterialTheme.colorScheme.error
+        } else {
+            MaterialTheme.colorScheme.primary
+        }
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = color.copy(alpha = 0.12f),
+        contentColor = color,
+    ) {
+        Text(
+            text = buildDayFocusBudgetLabel(budgetPercent, predictedDayDurationMinutes),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            style = MaterialTheme.typography.labelSmall,
+        )
+    }
+}
+
+private fun buildDayFocusBudgetLabel(
+    budgetPercent: Int,
+    predictedDayDurationMinutes: Long?,
+): String {
+    val durationMinutes = predictedDayDurationMinutes?.takeIf { it > 0L } ?: return "$budgetPercent%"
+    val allocatedMinutes = durationMinutes * budgetPercent / 100
+    return "$budgetPercent% · ${formatBudgetHours(allocatedMinutes)}/${formatBudgetHours(durationMinutes)} год"
+}
+
+private fun formatBudgetHours(minutes: Long): String {
+    val hours = minutes / 60.0
+    return if (minutes % 60L == 0L) {
+        hours.toInt().toString()
+    } else {
+        String.format(java.util.Locale.getDefault(), "%.1f", hours)
     }
 }
 

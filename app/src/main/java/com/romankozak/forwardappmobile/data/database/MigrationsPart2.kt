@@ -1405,3 +1405,82 @@ val MIGRATION_135_136 =
             )
         }
     }
+
+val MIGRATION_136_137 =
+    object : Migration(136, 137) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE tactical_missions ADD COLUMN mission_stream_id TEXT")
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS index_tactical_missions_mission_stream_id
+                ON tactical_missions(mission_stream_id)
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS mission_streams (
+                    id TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    description TEXT,
+                    color_key TEXT,
+                    icon_key TEXT,
+                    stream_order INTEGER NOT NULL DEFAULT 0,
+                    is_default INTEGER NOT NULL DEFAULT 0,
+                    is_archived INTEGER NOT NULL DEFAULT 0,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER,
+                    synced_at INTEGER,
+                    is_deleted INTEGER NOT NULL DEFAULT 0,
+                    version INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY(id)
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS index_mission_streams_stream_order
+                ON mission_streams(stream_order)
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS index_mission_streams_is_default
+                ON mission_streams(is_default)
+                """.trimIndent(),
+            )
+            val now = System.currentTimeMillis()
+            db.execSQL(
+                """
+                INSERT OR IGNORE INTO mission_streams (
+                    id, title, description, color_key, icon_key, stream_order,
+                    is_default, is_archived, created_at, updated_at, synced_at,
+                    is_deleted, version
+                ) VALUES (
+                    'general', 'General', NULL, NULL, NULL, -9223372036854775808,
+                    1, 0, $now, $now, NULL, 0, 1
+                )
+                """.trimIndent(),
+            )
+        }
+    }
+
+val MIGRATION_137_138 =
+    object : Migration(137, 138) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE day_focus_items ADD COLUMN budgetPercent INTEGER")
+        }
+    }
+
+val MIGRATION_138_139 =
+    object : Migration(138, 139) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE day_plans ADD COLUMN predictedDurationMinutes INTEGER")
+        }
+    }
+
+val MIGRATION_139_140 =
+    object : Migration(139, 140) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE mission_streams ADD COLUMN budget_percent INTEGER")
+        }
+    }
