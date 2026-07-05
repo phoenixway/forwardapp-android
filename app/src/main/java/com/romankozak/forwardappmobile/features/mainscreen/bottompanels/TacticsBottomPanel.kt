@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.features.mainscreen.bottompanels
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -13,6 +15,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.InputSuggestionActions
@@ -34,6 +37,7 @@ fun TacticsBottomPanel(
     val selectedMissionStreamId by viewModel.selectedMissionStreamId.collectAsStateWithLifecycle()
     val missionStreamCounts by viewModel.missionStreamCounts.collectAsStateWithLifecycle()
     val iterationDurationDays by viewModel.iterationDurationDays.collectAsStateWithLifecycle()
+    val iterationDurationHours by viewModel.iterationDurationHours.collectAsStateWithLifecycle()
     val activitySlotContexts by viewModel.activitySlotContexts.collectAsStateWithLifecycle()
     val selectedPlanningContextId by viewModel.selectedPlanningContextId.collectAsStateWithLifecycle()
     val canPasteAsMissions by viewModel.canPasteAsMissions.collectAsStateWithLifecycle()
@@ -94,6 +98,7 @@ fun TacticsBottomPanel(
         selectedMissionStreamId = selectedMissionStreamId,
         missionStreamCounts = missionStreamCounts,
         iterationDurationDays = iterationDurationDays,
+        iterationDurationHours = iterationDurationHours,
         activitySlotContexts = activitySlotContexts,
         selectedPlanningContextId = selectedPlanningContextId,
         projectOptions = projectOptions,
@@ -120,13 +125,14 @@ fun TacticsBottomPanel(
     if (showIterationDurationDialog) {
         TacticalIterationDurationDialog(
             currentDays = iterationDurationDays,
+            currentHours = iterationDurationHours,
             onDismiss = { showIterationDurationDialog = false },
-            onSave = { days ->
-                viewModel.setIterationDurationDays(days)
+            onSave = { days, hours ->
+                viewModel.setIterationDuration(days, hours)
                 showIterationDurationDialog = false
             },
             onClear = {
-                viewModel.setIterationDurationDays(null)
+                viewModel.setIterationDuration(null, null)
                 showIterationDurationDialog = false
             },
         )
@@ -136,30 +142,56 @@ fun TacticsBottomPanel(
 @Composable
 private fun TacticalIterationDurationDialog(
     currentDays: Int?,
+    currentHours: Int?,
     onDismiss: () -> Unit,
-    onSave: (Int) -> Unit,
+    onSave: (Int, Int?) -> Unit,
     onClear: () -> Unit,
 ) {
     var daysText by remember(currentDays) { mutableStateOf(currentDays?.toString().orEmpty()) }
+    var hoursText by remember(currentHours) { mutableStateOf(currentHours?.toString().orEmpty()) }
     val parsedDays = daysText.trim().toIntOrNull()?.takeIf { it > 0 }
+    val parsedHours = hoursText.trim().toIntOrNull()?.takeIf { it > 0 }
+    val maxHours = parsedDays?.times(24)
+    val isHoursValid = hoursText.isBlank() || (parsedHours != null && maxHours != null && parsedHours <= maxHours)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Тривалість тактичної ітерації") },
         text = {
-            OutlinedTextField(
-                value = daysText,
-                onValueChange = { daysText = it },
-                label = { Text("Днів від сьогодні") },
-                placeholder = { Text("7") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                supportingText = { Text("Дедлайн і бюджети потоків рахуються від сьогодні.") },
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = daysText,
+                    onValueChange = { daysText = it.filter(Char::isDigit).take(3) },
+                    label = { Text("Днів від сьогодні") },
+                    placeholder = { Text("7") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    supportingText = { Text("Дні задають дедлайн тактичної ітерації.") },
+                )
+                OutlinedTextField(
+                    value = hoursText,
+                    onValueChange = { hoursText = it.filter(Char::isDigit).take(4) },
+                    label = { Text("Робочих годин в ітерації") },
+                    placeholder = { Text("40") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    isError = !isHoursValid,
+                    supportingText = {
+                        Text(
+                            text =
+                                if (maxHours == null) {
+                                    "Спершу вкажи дні."
+                                } else {
+                                    "Не більше $maxHours год для $parsedDays дн."
+                                },
+                        )
+                    },
+                )
+            }
         },
         confirmButton = {
             TextButton(
-                enabled = parsedDays != null,
-                onClick = { parsedDays?.let(onSave) },
+                enabled = parsedDays != null && isHoursValid,
+                onClick = { parsedDays?.let { onSave(it, parsedHours) } },
             ) {
                 Text("Зберегти")
             }

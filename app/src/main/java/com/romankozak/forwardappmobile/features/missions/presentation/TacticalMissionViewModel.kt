@@ -119,6 +119,8 @@ class TacticalMissionViewModel
         private val _recentMissionStreamIds = MutableStateFlow(listOf(GENERAL_MISSION_STREAM_ID))
         private val _iterationDurationDays = MutableStateFlow<Int?>(null)
         val iterationDurationDays: StateFlow<Int?> = _iterationDurationDays.asStateFlow()
+        private val _iterationDurationHours = MutableStateFlow<Int?>(null)
+        val iterationDurationHours: StateFlow<Int?> = _iterationDurationHours.asStateFlow()
         private val _isMissionStreamsSheetVisible = MutableStateFlow(false)
 	        val isMissionStreamsSheetVisible: StateFlow<Boolean> = _isMissionStreamsSheetVisible.asStateFlow()
         val currentWeekKey: String = currentIsoWeekKey()
@@ -383,6 +385,7 @@ class TacticalMissionViewModel
                     _selectedPlanningContextId.value = state.selectedPlanningContextId
                     _recentMissionStreamIds.value = state.recentMissionStreamIds
                     _iterationDurationDays.value = state.iterationDurationDays
+                    _iterationDurationHours.value = state.iterationDurationHours
                 }
 	                .launchIn(viewModelScope)
 
@@ -601,9 +604,20 @@ class TacticalMissionViewModel
             }
         }
 
-        fun setIterationDurationDays(days: Int?) {
+        fun setIterationDuration(
+            days: Int?,
+            hours: Int?,
+        ) {
             viewModelScope.launch {
-                tacticsWorkspaceStateRepository.setIterationDurationDays(days?.takeIf { it > 0 })
+                val normalizedDays = days?.takeIf { it > 0 }
+                val normalizedHours =
+                    hours
+                        ?.takeIf { it > 0 }
+                        ?.takeIf { candidate -> normalizedDays?.let { candidate <= it * 24 } == true }
+                tacticsWorkspaceStateRepository.setIterationDuration(
+                    days = normalizedDays,
+                    hours = normalizedHours,
+                )
             }
         }
 

@@ -74,6 +74,7 @@ internal fun TacticsBottomPanelContent(
     selectedMissionStreamId: String,
     missionStreamCounts: Map<String, Int>,
     iterationDurationDays: Int?,
+    iterationDurationHours: Int?,
     activitySlotContexts: List<Context>,
     selectedPlanningContextId: String?,
     projectOptions: List<ProjectOption>,
@@ -101,6 +102,7 @@ internal fun TacticsBottomPanelContent(
                 selectedMissionStreamId = selectedMissionStreamId,
                 missionStreamCounts = missionStreamCounts,
                 iterationDurationDays = iterationDurationDays,
+                iterationDurationHours = iterationDurationHours,
                 activitySlotContexts = activitySlotContexts,
                 selectedPlanningContextId = selectedPlanningContextId,
                 projectOptions = projectOptions,
@@ -167,6 +169,7 @@ private fun TacticsControlPanel(
     selectedMissionStreamId: String,
     missionStreamCounts: Map<String, Int>,
     iterationDurationDays: Int?,
+    iterationDurationHours: Int?,
     activitySlotContexts: List<Context>,
     selectedPlanningContextId: String?,
     projectOptions: List<ProjectOption>,
@@ -257,6 +260,7 @@ private fun TacticsControlPanel(
                         allStreams = allStreamItems,
                         selectedMissionStreamId = selectedMissionStreamId,
                         iterationDurationDays = iterationDurationDays,
+                        iterationDurationHours = iterationDurationHours,
                         isBudgetOverLimit = isBudgetOverLimit,
                         onMissionStreamSelected = onMissionStreamSelected,
                     )
@@ -313,6 +317,7 @@ private fun MissionStreamChipRow(
     allStreams: List<MissionStreamChipUi>,
     selectedMissionStreamId: String,
     iterationDurationDays: Int?,
+    iterationDurationHours: Int?,
     isBudgetOverLimit: Boolean,
     onMissionStreamSelected: (String) -> Unit,
 ) {
@@ -321,7 +326,7 @@ private fun MissionStreamChipRow(
             MissionStreamChip(
                 stream = stream,
                 selected = selectedMissionStreamId == stream.id,
-                iterationDurationDays = iterationDurationDays,
+                iterationDurationHours = iterationDurationHours,
                 isBudgetOverLimit = isBudgetOverLimit,
                 onClick = { onMissionStreamSelected(stream.id) },
             )
@@ -329,7 +334,7 @@ private fun MissionStreamChipRow(
         MissionStreamMoreButton(
             streams = allStreams,
             selectedMissionStreamId = selectedMissionStreamId,
-            iterationDurationDays = iterationDurationDays,
+            iterationDurationHours = iterationDurationHours,
             isBudgetOverLimit = isBudgetOverLimit,
             onMissionStreamSelected = onMissionStreamSelected,
         )
@@ -412,7 +417,7 @@ private data class MissionStreamChipUi(
 private fun MissionStreamChip(
     stream: MissionStreamChipUi,
     selected: Boolean,
-    iterationDurationDays: Int?,
+    iterationDurationHours: Int?,
     isBudgetOverLimit: Boolean,
     onClick: () -> Unit,
 ) {
@@ -457,7 +462,7 @@ private fun MissionStreamChip(
             )
             MissionStreamBudgetBadge(
                 budgetPercent = stream.budgetPercent,
-                iterationDurationDays = iterationDurationDays,
+                iterationDurationHours = iterationDurationHours,
                 isOverLimit = isBudgetOverLimit,
                 selected = selected,
             )
@@ -469,7 +474,7 @@ private fun MissionStreamChip(
 private fun MissionStreamMoreButton(
     streams: List<MissionStreamChipUi>,
     selectedMissionStreamId: String,
-    iterationDurationDays: Int?,
+    iterationDurationHours: Int?,
     isBudgetOverLimit: Boolean,
     onMissionStreamSelected: (String) -> Unit,
 ) {
@@ -514,7 +519,7 @@ private fun MissionStreamMoreButton(
                             )
                             MissionStreamBudgetBadge(
                                 budgetPercent = stream.budgetPercent,
-                                iterationDurationDays = iterationDurationDays,
+                                iterationDurationHours = iterationDurationHours,
                                 isOverLimit = isBudgetOverLimit,
                                 selected = selectedMissionStreamId == stream.id,
                             )
@@ -566,7 +571,7 @@ private fun MissionStreamCountBadge(
 @Composable
 private fun MissionStreamBudgetBadge(
     budgetPercent: Int?,
-    iterationDurationDays: Int?,
+    iterationDurationHours: Int?,
     isOverLimit: Boolean,
     selected: Boolean,
 ) {
@@ -586,7 +591,7 @@ private fun MissionStreamBudgetBadge(
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = buildStreamBudgetLabel(percent, iterationDurationDays),
+            text = buildStreamBudgetLabel(percent, iterationDurationHours),
             style = MaterialTheme.typography.labelSmall,
             color = accent,
             maxLines = 1,
@@ -622,9 +627,9 @@ private fun TacticalIterationDeadlineLine(iterationDurationDays: Int?) {
 
 private fun buildStreamBudgetLabel(
     budgetPercent: Int,
-    iterationDurationDays: Int?,
+    iterationDurationHours: Int?,
 ): String {
-    val totalHours = iterationDurationDays?.takeIf { it > 0 }?.times(24) ?: return "$budgetPercent%"
+    val totalHours = iterationDurationHours?.takeIf { it > 0 } ?: return "$budgetPercent%"
     val streamHours = totalHours * budgetPercent / 100.0
     return "$budgetPercent% · ${formatBudgetHours(streamHours)}/$totalHours год"
 }

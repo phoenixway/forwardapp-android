@@ -24,6 +24,7 @@ data class TacticsWorkspaceState(
     val selectedPlanningContextId: String? = null,
     val recentMissionStreamIds: List<String> = listOf(GENERAL_MISSION_STREAM_ID),
     val iterationDurationDays: Int? = null,
+    val iterationDurationHours: Int? = null,
 )
 
 @Singleton
@@ -40,6 +41,7 @@ class TacticsWorkspaceStateRepository
             private val selectedPlanningContextIdKey = stringPreferencesKey("selected_planning_context_id")
             private val recentMissionStreamIdsKey = stringPreferencesKey("recent_mission_stream_ids")
             private val iterationDurationDaysKey = intPreferencesKey("iteration_duration_days")
+            private val iterationDurationHoursKey = intPreferencesKey("iteration_duration_hours")
         }
 
         val state: Flow<TacticsWorkspaceState> =
@@ -53,6 +55,7 @@ class TacticsWorkspaceStateRepository
                             .toIdList()
                             .ifEmpty { listOf(GENERAL_MISSION_STREAM_ID) },
                     iterationDurationDays = prefs[iterationDurationDaysKey]?.takeIf { it > 0 },
+                    iterationDurationHours = prefs[iterationDurationHoursKey]?.takeIf { it > 0 },
                 )
             }
 
@@ -83,12 +86,20 @@ class TacticsWorkspaceStateRepository
             }
         }
 
-        suspend fun setIterationDurationDays(days: Int?) {
+        suspend fun setIterationDuration(
+            days: Int?,
+            hours: Int?,
+        ) {
             context.tacticsWorkspaceDataStore.edit { prefs ->
                 if (days == null || days <= 0) {
                     prefs.remove(iterationDurationDaysKey)
                 } else {
                     prefs[iterationDurationDaysKey] = days
+                }
+                if (hours == null || hours <= 0) {
+                    prefs.remove(iterationDurationHoursKey)
+                } else {
+                    prefs[iterationDurationHoursKey] = hours
                 }
             }
         }
