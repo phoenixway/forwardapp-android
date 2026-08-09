@@ -1484,3 +1484,69 @@ val MIGRATION_139_140 =
             db.execSQL("ALTER TABLE mission_streams ADD COLUMN budget_percent INTEGER")
         }
     }
+
+val MIGRATION_140_141 =
+    object : Migration(140, 141) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS tactical_iterations (
+                    id TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    started_at INTEGER NOT NULL,
+                    planned_end_at INTEGER,
+                    closed_at INTEGER,
+                    status TEXT NOT NULL DEFAULT 'ACTIVE',
+                    iteration_type TEXT NOT NULL DEFAULT 'TIMEBOXED',
+                    week_key TEXT,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER,
+                    synced_at INTEGER,
+                    is_deleted INTEGER NOT NULL DEFAULT 0,
+                    version INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY(id)
+                )
+                """.trimIndent(),
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_tactical_iterations_status ON tactical_iterations(status)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_tactical_iterations_week_key ON tactical_iterations(week_key)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_tactical_iterations_started_at ON tactical_iterations(started_at)")
+            db.execSQL("ALTER TABLE tactical_missions ADD COLUMN iteration_id TEXT")
+            db.execSQL("ALTER TABLE tactical_missions ADD COLUMN carried_from_mission_id INTEGER")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_tactical_missions_iteration_id ON tactical_missions(iteration_id)")
+            val now = System.currentTimeMillis()
+            db.execSQL(
+                """
+                INSERT OR IGNORE INTO tactical_iterations (
+                    id, title, started_at, planned_end_at, closed_at, status,
+                    iteration_type, week_key, created_at, updated_at, synced_at,
+                    is_deleted, version
+                )
+                SELECT
+                    week_key,
+                    week_key,
+                    0,
+                    NULL,
+                    $now,
+                    'CLOSED',
+                    'TIMEBOXED',
+                    week_key,
+                    $now,
+                    $now,
+                    NULL,
+                    0,
+                    1
+                FROM tactical_missions
+                WHERE week_key IS NOT NULL AND week_key != ''
+                GROUP BY week_key
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                UPDATE tactical_missions
+                SET iteration_id = week_key
+                WHERE week_key IS NOT NULL AND week_key != ''
+                """.trimIndent(),
+            )
+        }
+    }

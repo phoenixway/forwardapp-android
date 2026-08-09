@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.Tune
@@ -827,6 +828,7 @@ internal fun DataActionsBottomSheet(
 internal fun CreateFromSearchBottomSheet(
     onCreateContext: () -> Unit,
     onCreateDocument: () -> Unit,
+    onCreateReminder: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     ModalBottomSheet(
@@ -839,36 +841,108 @@ internal fun CreateFromSearchBottomSheet(
                 Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding()
-                    .padding(bottom = 16.dp),
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                    .padding(bottom = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text(
-                text = "Створити з пошуку",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            Column(
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = "Створити",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "Швидкі дії глобального пошуку",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            CreateSearchActionRow(
+                title = "Новий контекст",
+                subtitle = "Окремий контекст у корені",
+                icon = Icons.Default.AccountTree,
+                accentColor = MaterialTheme.colorScheme.tertiary,
+                onClick = onCreateContext,
             )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
-            ListItem(
-                headlineContent = { Text("Новий контекст") },
-                supportingContent = { Text("Створити новий контекст без виходу в інші розділи") },
-                leadingContent = { Icon(Icons.Default.AccountTree, contentDescription = null) },
-                trailingContent = { Icon(Icons.Default.Add, contentDescription = null) },
-                modifier = Modifier.fillMaxWidth().clickable { onCreateContext() },
-                colors =
-                    androidx.compose.material3.ListItemDefaults.colors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                    ),
+            CreateSearchActionRow(
+                title = "Новий документ",
+                subtitle = "Вибір типу документа як у Connections",
+                icon = Icons.Default.Description,
+                accentColor = MaterialTheme.colorScheme.secondary,
+                onClick = onCreateDocument,
             )
-            ListItem(
-                headlineContent = { Text("Новий документ") },
-                supportingContent = { Text("Створити документ у Inbox як початковому контексті") },
-                leadingContent = { Icon(Icons.Default.Description, contentDescription = null) },
-                trailingContent = { Icon(Icons.Default.Add, contentDescription = null) },
-                modifier = Modifier.fillMaxWidth().clickable { onCreateDocument() },
-                colors =
-                    androidx.compose.material3.ListItemDefaults.colors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                    ),
+            CreateSearchActionRow(
+                title = "Нагадування",
+                subtitle = "Просте нагадування без прив'язки",
+                icon = Icons.Default.Notifications,
+                accentColor = MaterialTheme.colorScheme.primary,
+                onClick = onCreateReminder,
             )
+        }
+    }
+}
+
+@Composable
+private fun CreateSearchActionRow(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    accentColor: Color,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = 1.dp,
+        border =
+            androidx.compose.foundation.BorderStroke(
+                width = 1.dp,
+                color = accentColor.copy(alpha = 0.14f),
+            ),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .size(42.dp)
+                        .background(accentColor.copy(alpha = 0.14f), RoundedCornerShape(13.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(21.dp),
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }

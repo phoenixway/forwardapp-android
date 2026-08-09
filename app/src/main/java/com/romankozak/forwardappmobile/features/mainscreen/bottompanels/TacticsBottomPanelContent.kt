@@ -85,6 +85,9 @@ internal fun TacticsBottomPanelContent(
     onOpenMissionStreamsSheet: () -> Unit,
     onPasteMissions: () -> Unit,
     onSetIterationDuration: () -> Unit,
+    onOpenIterationArchive: () -> Unit,
+    onStartTimeboxedIteration: () -> Unit,
+    onStartOpenEndedIteration: () -> Unit,
     globalActions: BottomPanelGlobalActions,
 ) {
     CommonBottomPanelLayout {
@@ -134,6 +137,18 @@ internal fun TacticsBottomPanelContent(
                             actions = globalActions,
                             additionalActions =
                                 listOf(
+                                    MoreSheetAction(
+                                        label = "Минулі ітерації",
+                                        onClick = onOpenIterationArchive,
+                                    ),
+                                    MoreSheetAction(
+                                        label = "Нова тижнева ітерація",
+                                        onClick = onStartTimeboxedIteration,
+                                    ),
+                                    MoreSheetAction(
+                                        label = "Нова відкрита ітерація",
+                                        onClick = onStartOpenEndedIteration,
+                                    ),
                                     MoreSheetAction(
                                         label = "Вказати тривалість тактичної ітерації",
                                         onClick = onSetIterationDuration,
@@ -631,7 +646,7 @@ private fun buildStreamBudgetLabel(
 ): String {
     val totalHours = iterationDurationHours?.takeIf { it > 0 } ?: return "$budgetPercent%"
     val streamHours = totalHours * budgetPercent / 100.0
-    return "$budgetPercent% · ${formatBudgetHours(streamHours)}/$totalHours год"
+    return "${formatBudgetHours(streamHours)} год"
 }
 
 private fun formatBudgetHours(hours: Double): String =

@@ -27,6 +27,7 @@ const val GENERAL_MISSION_STREAM_ID = "general"
     indices = [
         Index(value = ["projectId"]),
         Index(value = ["week_key"]),
+        Index(value = ["iteration_id"]),
         Index(value = ["mission_stream_id"]),
         Index(value = ["activity_slot_context_id"]),
         Index(value = ["source_backlog_item_id", "week_key"]),
@@ -58,6 +59,12 @@ data class TacticalMission(
     @ColumnInfo(name = "week_key", defaultValue = "''")
     @SerializedName("weekKey")
     val weekKey: String = "",
+    @ColumnInfo(name = "iteration_id")
+    @SerializedName("iterationId")
+    val iterationId: String? = null,
+    @ColumnInfo(name = "carried_from_mission_id")
+    @SerializedName("carriedFromMissionId")
+    val carriedFromMissionId: Long? = null,
     @ColumnInfo(name = "order_in_week", defaultValue = "0")
     @SerializedName("orderInWeek")
     val orderInWeek: Long = order,
@@ -100,6 +107,66 @@ data class TacticalMission(
 )
 
 fun TacticalMission.hasDeadline(): Boolean = deadline != NO_DEADLINE
+
+enum class TacticalIterationStatus {
+    ACTIVE,
+    CLOSED,
+    ARCHIVED,
+}
+
+enum class TacticalIterationType {
+    TIMEBOXED,
+    OPEN_ENDED,
+}
+
+@Entity(
+    tableName = "tactical_iterations",
+    indices = [
+        Index(value = ["status"]),
+        Index(value = ["week_key"]),
+        Index(value = ["started_at"]),
+    ],
+)
+data class TacticalIteration(
+    @PrimaryKey
+    @SerializedName("id")
+    val id: String,
+    @SerializedName("title")
+    val title: String,
+    @ColumnInfo(name = "started_at")
+    @SerializedName("startedAt")
+    val startedAt: Long,
+    @ColumnInfo(name = "planned_end_at")
+    @SerializedName("plannedEndAt")
+    val plannedEndAt: Long? = null,
+    @ColumnInfo(name = "closed_at")
+    @SerializedName("closedAt")
+    val closedAt: Long? = null,
+    @ColumnInfo(name = "status", defaultValue = "'ACTIVE'")
+    @SerializedName("status")
+    val status: TacticalIterationStatus = TacticalIterationStatus.ACTIVE,
+    @ColumnInfo(name = "iteration_type", defaultValue = "'TIMEBOXED'")
+    @SerializedName("type")
+    val type: TacticalIterationType = TacticalIterationType.TIMEBOXED,
+    @ColumnInfo(name = "week_key")
+    @SerializedName("weekKey")
+    val weekKey: String? = null,
+    @ColumnInfo(name = "created_at")
+    @SerializedName("createdAt")
+    val createdAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(name = "updated_at")
+    @SerializedName("updatedAt")
+    val updatedAt: Long? = null,
+    @ColumnInfo(name = "synced_at")
+    @SerializedName("syncedAt")
+    val syncedAt: Long? = null,
+    @ColumnInfo(name = "is_deleted", defaultValue = "0")
+    @SerializedName("isDeleted")
+    val isDeleted: Boolean = false,
+    @ColumnInfo(name = "version", defaultValue = "0")
+    @SerializedName("version")
+    val version: Long = 0L,
+)
 
 enum class MissionSourceType {
     MANUAL,

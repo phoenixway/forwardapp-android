@@ -77,6 +77,7 @@ import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementVi
 import com.romankozak.forwardappmobile.features.daymanagement.ui.defaultTodayTabForRuntimeState
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayfocus.DayFocusesViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
+import com.romankozak.forwardappmobile.features.globalsearch.GlobalCreateActionsHost
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.CoreBottomPanel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.DashboardBottomPanel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.StrategicArcBottomPanel
@@ -118,6 +119,7 @@ fun MainScreenLayout(
     onNavigateToPresets: () -> Unit,
     onNavigateToCharacter: () -> Unit,
     onNavigateToGlobalSearch: () -> Unit,
+    onNavigateToQuickCatch: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToInbox: () -> Unit,
     onNavigateToTracker: () -> Unit,
@@ -151,9 +153,10 @@ fun MainScreenLayout(
             CommandDeckTab.Strategy,
             CommandDeckTab.Core,
         )
+    val initialTab = commandDeckViewModel.getSelectedTab()
     val pagerState =
         rememberPagerState(
-            initialPage = tabs.indexOf(CommandDeckTab.Dashboard),
+            initialPage = tabs.indexOf(initialTab).takeIf { it >= 0 } ?: 0,
         ) {
             tabs.size
         }
@@ -178,6 +181,7 @@ fun MainScreenLayout(
     val dayManagementUiState by dayManagementViewModel.uiState.collectAsStateWithLifecycle()
     val dayManagementRuntimeUiState by dayManagementRuntimeViewModel.uiState.collectAsStateWithLifecycle()
     val defaultTodayTab = defaultTodayTabForRuntimeState(dayManagementRuntimeUiState.runtimeState)
+    val selectedTodayTab = commandDeckViewModel.getSelectedTodayTab(defaultTodayTab)
     val context = LocalContext.current
     val userAwarenessViewModel: UserAwarenessViewModel = hiltViewModel()
     val aiInsightsViewModel: AiInsightsViewModel = hiltViewModel()
@@ -187,9 +191,9 @@ fun MainScreenLayout(
     val activeUserAwarenessState by userAwarenessViewModel.activeState.collectAsStateWithLifecycle()
     val sessionModeState by commandDeckViewModel.sessionModeState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(currentRoute, defaultTodayTab) {
-        if (currentRoute == MAIN_SCREEN_TODAY_ROUTE && dayManagementUiState.selectedTab != defaultTodayTab) {
-            dayManagementViewModel.selectTab(defaultTodayTab)
+    LaunchedEffect(currentRoute, selectedTodayTab) {
+        if (currentRoute == MAIN_SCREEN_TODAY_ROUTE && dayManagementUiState.selectedTab != selectedTodayTab) {
+            dayManagementViewModel.selectTab(selectedTodayTab)
         }
     }
     val latestSessionReason by commandDeckViewModel.latestSessionReason.collectAsStateWithLifecycle()
@@ -197,6 +201,7 @@ fun MainScreenLayout(
     var showAboutDialog by remember { mutableStateOf(false) }
     var showStateSwitchDialog by remember { mutableStateOf(false) }
     var showContextMarkersSheet by remember { mutableStateOf(false) }
+    var showGlobalCreateSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(commandDeckViewModel) {
         commandDeckViewModel.importExportUiEvents.collect { message ->
@@ -253,6 +258,9 @@ fun MainScreenLayout(
         ) { commandDeckViewModel.openContextInput() }
 
     val selectedTabIndex = pagerState.currentPage
+    LaunchedEffect(selectedTabIndex, tabs) {
+        tabs.getOrNull(selectedTabIndex)?.let(commandDeckViewModel::setSelectedTab)
+    }
     val dashboardTabIndex = tabs.indexOf(CommandDeckTab.Dashboard)
     BackHandler(enabled = selectedTabIndex != dashboardTabIndex) {
         scope.launch {
@@ -340,23 +348,23 @@ fun MainScreenLayout(
                 }
             },
             floatingActionButton = {
-                if (
+                when {
                     currentRoute == MAIN_SCREEN_TODAY_ROUTE &&
-                    dayManagementUiState.selectedTab in DayManagementTab.todaySubTabs() &&
-                    dayManagementUiState.selectedTab != DayManagementTab.JOURNAL
-                ) {
-                    if (dayManagementUiState.selectedTab == DayManagementTab.DAY_START) {
-                        TodayDayStartFab(
-                            selectedDate = dayManagementUiState.selectedDate,
-                            onDateSelected = dayManagementViewModel::navigateToDate,
-                            onWakeUp = dayManagementRuntimeViewModel::wakeUp,
-                            onSleep = dayManagementRuntimeViewModel::sleep,
-                        )
-                    } else {
-                        TodayDatePickerFab(
-                            selectedDate = dayManagementUiState.selectedDate,
-                            onDateSelected = dayManagementViewModel::navigateToDate,
-                        )
+                        dayManagementUiState.selectedTab in DayManagementTab.todaySubTabs() &&
+                        dayManagementUiState.selectedTab != DayManagementTab.JOURNAL -> {
+                        if (dayManagementUiState.selectedTab == DayManagementTab.DAY_START) {
+                            TodayDayStartFab(
+                                selectedDate = dayManagementUiState.selectedDate,
+                                onDateSelected = dayManagementViewModel::navigateToDate,
+                                onWakeUp = dayManagementRuntimeViewModel::wakeUp,
+                                onSleep = dayManagementRuntimeViewModel::sleep,
+                            )
+                        } else {
+                            TodayDatePickerFab(
+                                selectedDate = dayManagementUiState.selectedDate,
+                                onDateSelected = dayManagementViewModel::navigateToDate,
+                            )
+                        }
                     }
                 }
             },
@@ -368,6 +376,8 @@ fun MainScreenLayout(
                     onShowContextMarkersSheet = { showContextMarkersSheet = true },
                     onNavigateToPresets = onNavigateToPresets,
                     onNavigateToGlobalSearch = onNavigateToGlobalSearch,
+                    onNavigateToQuickCatch = onNavigateToQuickCatch,
+                    onShowCreateActions = { showGlobalCreateSheet = true },
                     onNavigateToSettings = onNavigateToSettings,
                     onNavigateToInbox = onNavigateToInbox,
                     onNavigateToTracker = onNavigateToTracker,
@@ -388,6 +398,7 @@ fun MainScreenLayout(
                     onShowAbout = { showAboutDialog = true },
                     onNavigateToRecentItem = onNavigateToRecentItem,
                     recentViewModel = recentViewModel,
+                    commandDeckViewModel = commandDeckViewModel,
                     dayManagementViewModel = dayManagementViewModel,
                     dayManagementRuntimeViewModel = dayManagementRuntimeViewModel,
                     dayManagementRuntimeUiState = dayManagementRuntimeUiState,
@@ -438,7 +449,7 @@ fun MainScreenLayout(
                     tacticalObsidianVaultName = tacticalObsidianVaultName,
                     dayManagementViewModel = dayManagementViewModel,
                     currentDayManagementTab = dayManagementUiState.selectedTab,
-                    defaultTodayTab = defaultTodayTab,
+                    defaultTodayTab = selectedTodayTab,
                     dayManagementRuntimeViewModel = dayManagementRuntimeViewModel,
                     dayPlanViewModel = dayPlanViewModel,
                     activityTrackerViewModel = activityTrackerViewModel,
@@ -456,6 +467,15 @@ fun MainScreenLayout(
         }
 
         MainScreenCommandDeckTransientUi(commandDeckViewModel = commandDeckViewModel)
+
+        GlobalCreateActionsHost(
+            showCreateSheet = showGlobalCreateSheet,
+            onDismissCreateSheet = { showGlobalCreateSheet = false },
+            onCreateContext = commandDeckViewModel::createContext,
+            onCreateDocument = commandDeckViewModel::createAttachmentFromCommandDeck,
+            onCreateReminder = commandDeckViewModel::createReminder,
+            snackbarHostState = snackbarHostState,
+        )
 
         if (showStateSwitchDialog) {
             UserAwarenessQuickSwitchDialog(
@@ -663,6 +683,8 @@ private fun MainScreenBottomBar(
     onShowContextMarkersSheet: () -> Unit,
     onNavigateToPresets: () -> Unit,
     onNavigateToGlobalSearch: () -> Unit,
+    onNavigateToQuickCatch: () -> Unit,
+    onShowCreateActions: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToInbox: () -> Unit,
     onNavigateToTracker: () -> Unit,
@@ -683,6 +705,7 @@ private fun MainScreenBottomBar(
     onShowAbout: () -> Unit,
     onNavigateToRecentItem: (RecentItem) -> Unit,
     recentViewModel: RecentViewModel,
+    commandDeckViewModel: CommandDeckViewModel,
     dayManagementViewModel: DayManagementViewModel,
     dayManagementRuntimeViewModel: DayManagementRuntimeViewModel,
     dayManagementRuntimeUiState: DayManagementRuntimeUiState,
@@ -700,6 +723,8 @@ private fun MainScreenBottomBar(
             onShowContextMarkersSheet = onShowContextMarkersSheet,
             onNavigateToPresets = onNavigateToPresets,
             onNavigateToGlobalSearch = onNavigateToGlobalSearch,
+            onNavigateToQuickCatch = onNavigateToQuickCatch,
+            onShowCreateActions = onShowCreateActions,
             onNavigateToSettings = onNavigateToSettings,
             onNavigateToInbox = onNavigateToInbox,
             onNavigateToTracker = onNavigateToTracker,
@@ -735,7 +760,10 @@ private fun MainScreenBottomBar(
                     dayManagementUiState.selectedTab
                         .takeIf { it in DayManagementTab.todaySubTabs() }
                         ?: defaultTodayTab,
-                onSelectTodayTab = dayManagementViewModel::selectTab,
+                onSelectTodayTab = { tab ->
+                    dayManagementViewModel.selectTab(tab)
+                    commandDeckViewModel.setSelectedTodayTab(tab)
+                },
                 runtimeUiState = dayManagementRuntimeUiState,
                 onWakeUp = dayManagementRuntimeViewModel::wakeUp,
                 onFinalizeFocus = dayManagementRuntimeViewModel::finalizeFocus,

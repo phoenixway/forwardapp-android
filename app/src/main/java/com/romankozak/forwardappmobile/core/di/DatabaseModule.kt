@@ -34,6 +34,7 @@ import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconDao
 import com.romankozak.forwardappmobile.features.mainscreen.arc.ArcQuestDao
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import com.romankozak.forwardappmobile.features.missions.data.TacticalActivitySlotDao
+import com.romankozak.forwardappmobile.features.missions.data.TacticalIterationDao
 import com.romankozak.forwardappmobile.features.missions.data.MissionStreamDao
 import dagger.Module
 import dagger.Provides
@@ -222,6 +223,10 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideTacticalActivitySlotDao(appDatabase: AppDatabase): TacticalActivitySlotDao = appDatabase.tacticalActivitySlotDao()
+
+    @Provides
+    @Singleton
+    fun provideTacticalIterationDao(appDatabase: AppDatabase): TacticalIterationDao = appDatabase.tacticalIterationDao()
 
     @Provides
     @Singleton

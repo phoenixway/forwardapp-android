@@ -17,6 +17,7 @@ import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.DashboardCustomize
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.MoveToInbox
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SwapVert
@@ -37,6 +38,7 @@ internal fun MoreBottomSheetContent(
     onNavigateToPresets: () -> Unit,
     onNavigateToProjectHierarchy: () -> Unit,
     onShowContextMarkersSheet: () -> Unit,
+    onNavigateToInbox: () -> Unit,
     onNavigateToAiChat: () -> Unit,
     onNavigateToAiInsights: () -> Unit,
     onNavigateToAiLifeManagement: () -> Unit,
@@ -61,13 +63,18 @@ internal fun MoreBottomSheetContent(
             Spacer(modifier = Modifier.height(16.dp))
             MoreSheetMenuItem(
                 icon = Icons.Outlined.AccountTree,
-                label = "Contexts",
+                label = "Ієрархія орієнтирів",
                 onClick = onNavigateToProjectHierarchy,
             )
             MoreSheetMenuItem(
                 icon = Icons.Outlined.AccountTree,
                 label = "Context Markers",
                 onClick = onShowContextMarkersSheet,
+            )
+            MoreSheetMenuItem(
+                icon = Icons.Outlined.MoveToInbox,
+                label = "Inbox",
+                onClick = onNavigateToInbox,
             )
             MoreSheetAiItems(
                 featureToggles = featureToggles,

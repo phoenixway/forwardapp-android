@@ -5,10 +5,21 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
+import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
+import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextLogRepository
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
+import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
+import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.domain.lifecontext.StartContextTrackingUseCase
 import com.romankozak.forwardappmobile.domain.lifecontext.SubmitContextInputUseCase
+import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementTab
+import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
 import com.romankozak.forwardappmobile.features.mainscreen.session.SessionMode
 import com.romankozak.forwardappmobile.features.mainscreen.session.SessionModeRepository
 import com.romankozak.forwardappmobile.features.mainscreen.session.SessionModeState
@@ -25,14 +36,19 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 private const val COMMAND_DECK_PREFS_NAME = "command_deck_prefs"
 private const val SESSION_MODE_CARD_EXPANDED_KEY = "session_mode_card_expanded"
+private const val SELECTED_TAB_KEY = "selected_tab"
+private const val SELECTED_TODAY_TAB_KEY = "selected_today_tab"
 
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("LongParameterList")
 class CommandDeckViewModel
     @Inject
     constructor(
@@ -43,6 +59,11 @@ class CommandDeckViewModel
         private val systemContextEnsurer: SystemContextEnsurer,
         private val contextLogRepository: ContextLogRepository,
         private val importExportHandler: CommandDeckImportExportHandler,
+        private val contextRepository: ContextRepository,
+        private val noteDocumentRepository: NoteDocumentRepository,
+        private val musicNoteRepository: MusicNoteRepository,
+        private val checklistRepository: ChecklistRepository,
+        private val reminderRepository: ReminderRepository,
     ) : ViewModel() {
         private val sharedPreferences =
             application.getSharedPreferences(COMMAND_DECK_PREFS_NAME, Context.MODE_PRIVATE)
@@ -118,6 +139,25 @@ class CommandDeckViewModel
 
         fun setSessionModeCardExpanded(isExpanded: Boolean) {
             sharedPreferences.edit().putBoolean(SESSION_MODE_CARD_EXPANDED_KEY, isExpanded).apply()
+        }
+
+        fun getSelectedTab(defaultValue: CommandDeckTab = CommandDeckTab.Dashboard): CommandDeckTab {
+            val storedValue = sharedPreferences.getString(SELECTED_TAB_KEY, null)
+            return CommandDeckTab.entries.firstOrNull { it.name == storedValue } ?: defaultValue
+        }
+
+        fun setSelectedTab(tab: CommandDeckTab) {
+            sharedPreferences.edit().putString(SELECTED_TAB_KEY, tab.name).apply()
+        }
+
+        fun getSelectedTodayTab(defaultValue: DayManagementTab): DayManagementTab {
+            val storedValue = sharedPreferences.getString(SELECTED_TODAY_TAB_KEY, null)
+            return DayManagementTab.todaySubTabs().firstOrNull { it.name == storedValue } ?: defaultValue
+        }
+
+        fun setSelectedTodayTab(tab: DayManagementTab) {
+            if (tab !in DayManagementTab.todaySubTabs()) return
+            sharedPreferences.edit().putString(SELECTED_TODAY_TAB_KEY, tab.name).apply()
         }
 
         fun openContextInput() {
@@ -271,6 +311,98 @@ class CommandDeckViewModel
             }
         }
 
+        fun createContext(name: String) {
+            val contextName = name.trim()
+            if (contextName.isBlank()) return
+            viewModelScope.launch {
+                val contextId = UUID.randomUUID().toString()
+                contextRepository.createContextWithId(
+                    id = contextId,
+                    name = contextName,
+                    parentId = null,
+                )
+                _uiEvents.tryEmit(CommandDeckUiEvent.ShowMessage("Контекст створено"))
+            }
+        }
+
+        suspend fun createAttachmentFromCommandDeck(request: NewDocumentDraft): String? {
+            val inboxContextId = resolveInboxContextId() ?: return null
+            return when (request) {
+                is NewDocumentDraft.Note -> {
+                    val documentId =
+                        noteDocumentRepository.createDocument(
+                            name = request.name.ifBlank { "New note" },
+                            contextId = inboxContextId,
+                        )
+                    contextRepository.findAttachmentIdByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)
+                }
+                is NewDocumentDraft.JournalDocument -> {
+                    val documentId =
+                        noteDocumentRepository.createDocument(
+                            name = request.name.ifBlank { "New journal" },
+                            contextId = inboxContextId,
+                            attachmentType = BacklogItemTypeValues.JOURNAL_DOCUMENT,
+                        )
+                    contextRepository.findAttachmentIdByEntity(BacklogItemTypeValues.JOURNAL_DOCUMENT, documentId)
+                }
+                is NewDocumentDraft.MusicNote -> {
+                    val musicNoteId =
+                        musicNoteRepository.create(
+                            name = request.name.ifBlank { "New music note" },
+                            contextId = inboxContextId,
+                        )
+                    contextRepository.findAttachmentIdByEntity(BacklogItemTypeValues.MUSIC_NOTE, musicNoteId)
+                }
+                is NewDocumentDraft.Checklist -> {
+                    val checklistId =
+                        checklistRepository.createChecklist(
+                            name = request.name.ifBlank { "New checklist" },
+                            contextId = inboxContextId,
+                        )
+                    contextRepository.findAttachmentIdByEntity(BacklogItemTypeValues.CHECKLIST, checklistId)
+                }
+                is NewDocumentDraft.WebLink -> {
+                    val target = request.url.trim()
+                    target.takeIf { it.isNotBlank() }?.let {
+                        contextRepository.addLinkItemToContextFromLink(
+                            contextId = inboxContextId,
+                            link =
+                                RelatedLink(
+                                    type = LinkType.URL,
+                                    target = it,
+                                    displayName = request.name.trim().ifBlank { it },
+                                ),
+                        )
+                    }
+                }
+                is NewDocumentDraft.Obsidian -> {
+                    val target = request.noteName.trim()
+                    target.takeIf { it.isNotBlank() }?.let {
+                        contextRepository.addLinkItemToContextFromLink(
+                            contextId = inboxContextId,
+                            link =
+                                RelatedLink(
+                                    type = LinkType.OBSIDIAN,
+                                    target = it,
+                                    displayName = request.displayName.trim().ifBlank { it },
+                                    vault = request.vault,
+                                ),
+                        )
+                    }
+                }
+            }
+        }
+
+        fun createReminder(reminderTime: Long) {
+            viewModelScope.launch {
+                reminderRepository.createReminder(
+                    entityId = "manual-${UUID.randomUUID()}",
+                    entityType = "REMINDER",
+                    reminderTime = reminderTime,
+                )
+            }
+        }
+
         fun preparePreviousSessionResult(mode: SessionMode) {
             if (mode == SessionMode.UNSET) return
             _pendingSessionChangeReasonMode.value = null
@@ -319,6 +451,15 @@ class CommandDeckViewModel
                     }
                 }
             }
+        }
+
+        private suspend fun resolveInboxContextId(): String? {
+            systemContextEnsurer.ensureAllSystemContextsExist()
+            val allContexts = contextRepository.getAllContextsFlow().first()
+            return allContexts.firstOrNull { it.id == SystemContexts.INBOX.raw }?.id
+                ?: allContexts.firstOrNull {
+                    it.name.equals("Inbox", ignoreCase = true) && it.id != SystemContexts.TODAY.raw
+                }?.id
         }
     }
 

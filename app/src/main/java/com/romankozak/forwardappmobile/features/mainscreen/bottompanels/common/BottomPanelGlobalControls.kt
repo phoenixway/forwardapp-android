@@ -13,6 +13,7 @@ fun BottomPanelMoreActionButton(
     CommandDeckMoreActionButton(
         onNavigateToProjectHierarchy = actions.onNavigateToProjectHierarchy,
         onShowContextMarkersSheet = actions.onShowContextMarkersSheet,
+        onNavigateToInbox = actions.onNavigateToInbox,
         onNavigateToReminders = actions.onNavigateToReminders,
         onNavigateToPresets = actions.onNavigateToPresets,
         onNavigateToAiChat = actions.onNavigateToAiChat,

@@ -53,6 +53,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchResultItem
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.bottomPanelColors
+import com.romankozak.forwardappmobile.features.missions.presentation.LinkPickerTab
+import com.romankozak.forwardappmobile.features.missions.presentation.LinkedTargetsPickerDialog
+import com.romankozak.forwardappmobile.features.missions.presentation.PickerCreateAction
+import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
+import com.romankozak.forwardappmobile.ui.components.CreateConnectionType
+import com.romankozak.forwardappmobile.ui.components.connectionspanel.ConnectionsCreateActionsDialog
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -78,6 +84,7 @@ fun MagicBoxScreen(
     val context = LocalContext.current
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val showScrollToTopButton by remember {
         derivedStateOf { listState.firstVisibleItemIndex > SCROLL_TO_TOP_VISIBILITY_INDEX }
@@ -90,8 +97,12 @@ fun MagicBoxScreen(
     var selectedSort by remember { mutableStateOf(GlobalSearchSort.Relevance) }
     var showSortSheet by remember { mutableStateOf(false) }
     var showSearchSettingsSheet by remember { mutableStateOf(false) }
-    var showModeMenu by remember { mutableStateOf(false) }
     var showCreateSheet by remember { mutableStateOf(false) }
+    var showCreateContextDialog by remember { mutableStateOf(false) }
+    var showDocumentCreateActionsDialog by remember { mutableStateOf(false) }
+    var pendingDocumentCreateAction by remember { mutableStateOf<PickerCreateAction?>(null) }
+    var showCreateReminderDialog by remember { mutableStateOf(false) }
+    var newContextName by remember { mutableStateOf("") }
     var selectedCommandIndex by remember { mutableStateOf<Int?>(null) }
     var selectedDataIndex by remember { mutableStateOf<Int?>(null) }
     var selectionArea by remember { mutableStateOf(OmniboxSelectionArea.None) }
@@ -287,9 +298,115 @@ fun MagicBoxScreen(
     }
     if (showCreateSheet) {
         CreateFromSearchBottomSheet(
-            onCreateContext = { showCreateSheet = false; viewModel.createContextFromSearch() },
-            onCreateDocument = { showCreateSheet = false; viewModel.createDocumentFromSearch() },
+            onCreateContext = {
+                showCreateSheet = false
+                newContextName = ""
+                showCreateContextDialog = true
+            },
+            onCreateDocument = {
+                showCreateSheet = false
+                showDocumentCreateActionsDialog = true
+            },
+            onCreateReminder = {
+                showCreateSheet = false
+                showCreateReminderDialog = true
+            },
             onDismiss = { showCreateSheet = false },
+        )
+    }
+    if (showDocumentCreateActionsDialog) {
+        ConnectionsCreateActionsDialog(
+            onDismiss = { showDocumentCreateActionsDialog = false },
+            onActionSelected = { type ->
+                showDocumentCreateActionsDialog = false
+                when (type) {
+                    CreateConnectionType.CONTEXT -> {
+                        newContextName = ""
+                        showCreateContextDialog = true
+                    }
+                    CreateConnectionType.SCRIPT -> {
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = "Скрипт створюється з ConnectionsPanel",
+                                duration = SnackbarDuration.Short,
+                            )
+                        }
+                    }
+                    else -> pendingDocumentCreateAction = type.toGlobalPickerCreateAction()
+                }
+            },
+        )
+    }
+    pendingDocumentCreateAction?.let { action ->
+        LinkedTargetsPickerDialog(
+            contextOptions = emptyList(),
+            attachmentOptions = emptyList(),
+            preselectedContextIds = emptySet(),
+            preselectedAttachmentIds = emptySet(),
+            initialTab = LinkPickerTab.ATTACHMENTS,
+            allowedTabs = setOf(LinkPickerTab.ATTACHMENTS),
+            initialCreateAction = action,
+            onDismiss = { pendingDocumentCreateAction = null },
+            onContextSelected = {},
+            onAttachmentSelected = {
+                pendingDocumentCreateAction = null
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = "Документ створено",
+                        duration = SnackbarDuration.Short,
+                    )
+                }
+            },
+            onCreateDocument = { draft -> viewModel.createAttachmentFromGlobalSearch(draft) },
+        )
+    }
+    if (showCreateReminderDialog) {
+        ReminderPropertiesDialog(
+            onDismiss = { showCreateReminderDialog = false },
+            onSetReminder = { timestamp ->
+                viewModel.createReminder(timestamp)
+                showCreateReminderDialog = false
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = "Нагадування додано",
+                        duration = SnackbarDuration.Short,
+                    )
+                }
+            },
+            currentReminders = emptyList(),
+        )
+    }
+    if (showCreateContextDialog) {
+        AlertDialog(
+            onDismissRequest = { showCreateContextDialog = false },
+            title = { Text("Новий контекст") },
+            text = {
+                OutlinedTextField(
+                    value = newContextName,
+                    onValueChange = { newContextName = it },
+                    label = { Text("Назва") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = newContextName.isNotBlank(),
+                    onClick = {
+                        val contextName = newContextName
+                        showCreateContextDialog = false
+                        newContextName = ""
+                        viewModel.createContext(contextName)
+                    },
+                ) {
+                    Text("Створити")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCreateContextDialog = false }) {
+                    Text("Скасувати")
+                }
+            },
         )
     }
     if (showSearchSettingsSheet) {
@@ -314,6 +431,7 @@ fun MagicBoxScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
             AnimatedVisibility(
                 visible = showScrollToTopButton,
@@ -385,8 +503,11 @@ fun MagicBoxScreen(
                                                         onQuickCatch = viewModel::quickCatchCurrentQuery,
                                                         onStartActivity = viewModel::startActivityFromCurrentQuery,
                                                         onAddActivityEvent = viewModel::addActivityEventFromCurrentQuery,
-                                                        onCreateContext = viewModel::createContextFromSearch,
-                                                        onCreateDocument = viewModel::createDocumentFromSearch,
+                                                        onCreateContext = {
+                                                            newContextName = ""
+                                                            showCreateContextDialog = true
+                                                        },
+                                                        onCreateDocument = { showDocumentCreateActionsDialog = true },
                                                         onRunBestCommand = viewModel::runBestCommandForCurrentQuery,
                                                     ),
                                                 ),
@@ -504,7 +625,6 @@ fun MagicBoxScreen(
                     onNavigateBack = {
                         if (!navController.popBackStack()) viewModel.enhancedNavigationManager.goBack()
                     },
-                    onShowCreate = { showCreateSheet = true },
                     onShowSettings = { showSearchSettingsSheet = true },
                 )
 
@@ -514,13 +634,10 @@ fun MagicBoxScreen(
                     uiState = uiState,
                     currentMode = currentMode,
                     modePalette = modePalette,
-                    showModeMenu = showModeMenu,
-                    onShowModeMenu = { showModeMenu = true },
-                    onDismissModeMenu = { showModeMenu = false },
+                    onShowCreate = { showCreateSheet = true },
                     onSetMode = {
                         submittedQuery = null
                         viewModel.setMode(it)
-                        showModeMenu = false
                     },
                     onCycleMode = {
                         submittedQuery = null
@@ -562,7 +679,6 @@ private fun MagicBoxActionStrip(
     hasVisibleResults: Boolean,
     resultCount: Int,
     onNavigateBack: () -> Unit,
-    onShowCreate: () -> Unit,
     onShowSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -598,13 +714,6 @@ private fun MagicBoxActionStrip(
                     contentDescription = "Close",
                     palette = palette,
                     onClick = onNavigateBack,
-                )
-                ActionStripButton(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Створити",
-                    palette = palette,
-                    emphasized = true,
-                    onClick = onShowCreate,
                 )
             }
             Row(
@@ -722,9 +831,7 @@ private fun CompactOmnibox(
     uiState: GlobalSearchUiState,
     currentMode: OmniboxMode,
     modePalette: OmniboxModePalette,
-    showModeMenu: Boolean,
-    onShowModeMenu: () -> Unit,
-    onDismissModeMenu: () -> Unit,
+    onShowCreate: () -> Unit,
     onSetMode: (OmniboxMode) -> Unit,
     onCycleMode: (Boolean) -> Unit,
     onQueryChange: (String) -> Unit,
@@ -843,9 +950,7 @@ private fun CompactOmnibox(
                 ModeIconDock(
                     currentMode = currentMode,
                     palette = modePalette,
-                    showModeMenu = showModeMenu,
-                    onShowModeMenu = onShowModeMenu,
-                    onDismissModeMenu = onDismissModeMenu,
+                    onShowCreate = onShowCreate,
                     onSetMode = onSetMode,
                     onCycleMode = onCycleMode,
                 )
@@ -858,9 +963,7 @@ private fun CompactOmnibox(
 private fun ModeIconDock(
     currentMode: OmniboxMode,
     palette: OmniboxModePalette,
-    showModeMenu: Boolean,
-    onShowModeMenu: () -> Unit,
-    onDismissModeMenu: () -> Unit,
+    onShowCreate: () -> Unit,
     onSetMode: (OmniboxMode) -> Unit,
     onCycleMode: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -898,30 +1001,13 @@ private fun ModeIconDock(
                     onClick = { onSetMode(mode) },
                 )
             }
-            Box {
-                ModeDockActionButton(
-                    imageVector = Icons.Default.MoreHoriz,
-                    contentDescription = "Більше режимів",
-                    selected = false,
-                    palette = palette,
-                    onClick = onShowModeMenu,
-                )
-                DropdownMenu(
-                    expanded = showModeMenu,
-                    onDismissRequest = onDismissModeMenu,
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                ) {
-                    OmniboxMode.entries.forEach { mode ->
-                        DropdownMenuItem(
-                            text = { Text(modeTitle(mode), style = MaterialTheme.typography.bodyMedium) },
-                            leadingIcon = {
-                                Icon(modeIcon(mode), contentDescription = null, modifier = Modifier.size(16.dp))
-                            },
-                            onClick = { onSetMode(mode) },
-                        )
-                    }
-                }
-            }
+            ModeDockActionButton(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Створити",
+                selected = false,
+                palette = palette,
+                onClick = onShowCreate,
+            )
         }
     }
 }
@@ -1085,6 +1171,18 @@ private fun modeTitle(mode: OmniboxMode): String =
         OmniboxMode.QuickCatchInbox -> "Quick catch to inbox"
         OmniboxMode.StartActivity -> "Start record activity"
         OmniboxMode.AddActivityEvent -> "Add tracker event"
+    }
+
+private fun CreateConnectionType.toGlobalPickerCreateAction(): PickerCreateAction =
+    when (this) {
+        CreateConnectionType.NOTE_DOCUMENT -> PickerCreateAction.NOTE
+        CreateConnectionType.JOURNAL_DOCUMENT -> PickerCreateAction.JOURNAL_DOCUMENT
+        CreateConnectionType.MUSIC_NOTE -> PickerCreateAction.MUSIC_NOTE
+        CreateConnectionType.CHECKLIST -> PickerCreateAction.CHECKLIST
+        CreateConnectionType.EXTERNAL_LINK -> PickerCreateAction.WEB_LINK
+        CreateConnectionType.OBSIDIAN_NOTE -> PickerCreateAction.OBSIDIAN
+        CreateConnectionType.CONTEXT -> PickerCreateAction.CONTEXT
+        CreateConnectionType.SCRIPT -> PickerCreateAction.NOTE
     }
 
 private enum class OmniboxSelectionArea { None, Command, Data }

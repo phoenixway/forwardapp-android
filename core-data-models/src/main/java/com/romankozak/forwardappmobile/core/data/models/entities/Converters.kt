@@ -10,6 +10,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadi
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconSyncStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIterationStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIterationType
 
 class Converters {
     private val gson = Gson()
@@ -138,6 +140,26 @@ class Converters {
     @TypeConverter
     fun toMissionPriority(priority: String?): MissionPriority? {
         return priority?.let { MissionPriority.valueOf(it) }
+    }
+
+    @TypeConverter
+    fun fromTacticalIterationStatus(status: TacticalIterationStatus?): String? {
+        return status?.name
+    }
+
+    @TypeConverter
+    fun toTacticalIterationStatus(status: String?): TacticalIterationStatus? {
+        return status?.let { TacticalIterationStatus.valueOf(it) }
+    }
+
+    @TypeConverter
+    fun fromTacticalIterationType(type: TacticalIterationType?): String? {
+        return type?.name
+    }
+
+    @TypeConverter
+    fun toTacticalIterationType(type: String?): TacticalIterationType? {
+        return type?.let { TacticalIterationType.valueOf(it) }
     }
 
     @TypeConverter

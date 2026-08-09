@@ -71,6 +71,7 @@ import com.romankozak.forwardappmobile.features.vet_case.VetCaseSummaryScreen
 import com.romankozak.forwardappmobile.ui.shared.SyncDataViewModel
 import kotlinx.coroutines.launch
 import java.net.URLDecoder
+import java.net.URLEncoder
 
 const val MAIN_GRAPH_ROUTE = NavigationRoutes.MAIN_GRAPH
 const val COMMAND_DECK_ROUTE = NavigationRoutes.COMMAND_DECK
@@ -166,6 +167,11 @@ private fun NavGraphBuilder.mainGraph(
             },
             onNavigateToCharacter = { navigationManager.navigate(route = CHARACTER_SCREEN_ROUTE) },
             onNavigateToGlobalSearch = { navigationManager.navigate(target = NavTarget.GlobalSearchHome) },
+            onNavigateToQuickCatch = {
+                navigationManager.navigate(
+                    target = NavTarget.GlobalSearch(query = URLEncoder.encode("+", "UTF-8")),
+                )
+            },
             onNavigateToSettings = { navigationManager.navigate(target = NavTarget.Settings) },
             onNavigateToInbox = {
                 scope.launch {

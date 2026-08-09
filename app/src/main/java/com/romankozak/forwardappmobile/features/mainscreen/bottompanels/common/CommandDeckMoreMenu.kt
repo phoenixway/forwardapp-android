@@ -32,6 +32,7 @@ data class MoreSheetAction(
 fun CommandDeckMoreActionButton(
     onNavigateToProjectHierarchy: () -> Unit,
     onShowContextMarkersSheet: () -> Unit,
+    onNavigateToInbox: () -> Unit,
     onNavigateToReminders: () -> Unit,
     onNavigateToPresets: () -> Unit,
     onNavigateToAiChat: () -> Unit,
@@ -97,6 +98,7 @@ fun CommandDeckMoreActionButton(
                 onNavigateToAiInsights = { runAfterSheetDismiss(onNavigateToAiInsights) },
                 onNavigateToProjectHierarchy = { runAfterSheetDismiss(onNavigateToProjectHierarchy) },
                 onShowContextMarkersSheet = { runAfterSheetDismiss(onShowContextMarkersSheet) },
+                onNavigateToInbox = { runAfterSheetDismiss(onNavigateToInbox) },
                 onNavigateToAiChat = { runAfterSheetDismiss(onNavigateToAiChat) },
                 onNavigateToAiLifeManagement = { runAfterSheetDismiss(onNavigateToAiLifeManagement) },
                 onShowImportExportSheet = { runAfterSheetDismiss { showImportExportSheet = true } },

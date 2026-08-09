@@ -4,5 +4,5 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 object CommandDeckFabDefaults {
-    val BottomPadding: Dp = 48.dp
+    val BottomPadding: Dp = 16.dp
 }

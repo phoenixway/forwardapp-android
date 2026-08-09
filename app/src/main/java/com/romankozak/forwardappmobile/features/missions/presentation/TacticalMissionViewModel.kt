@@ -57,12 +57,15 @@ import kotlinx.coroutines.launch
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.NewTaskParameters
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionPriority
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIteration
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIterationType
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.temporal.WeekFields
 import java.util.UUID
 import javax.inject.Inject
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.NO_DEADLINE
+import com.romankozak.forwardappmobile.features.missions.domain.repository.TacticalIterationRepository
 
 enum class TacticsWorkspaceMode {
     STREAMS,
@@ -97,6 +100,7 @@ class TacticalMissionViewModel
         private val reminderRepository: ReminderRepository,
 	        private val arcQuestRepository: ArcQuestRepository,
 	        private val tacticalActivitySlotRepository: TacticalActivitySlotRepository,
+	        private val tacticalIterationRepository: TacticalIterationRepository,
 	        private val missionStreamRepository: MissionStreamRepository,
 	        private val tacticsWorkspaceStateRepository: TacticsWorkspaceStateRepository,
 	        private val listItemDao: ListItemDao,
@@ -104,6 +108,7 @@ class TacticalMissionViewModel
 	    ) : ViewModel() {
         companion object {
             const val MISSION_REMINDER_ENTITY_TYPE = "TACTICAL_MISSION"
+            private const val MILLIS_PER_DAY = 24L * 60L * 60L * 1000L
         }
 
         private val _missions = MutableStateFlow<List<TacticalMission>>(emptyList())
@@ -121,9 +126,19 @@ class TacticalMissionViewModel
         val iterationDurationDays: StateFlow<Int?> = _iterationDurationDays.asStateFlow()
         private val _iterationDurationHours = MutableStateFlow<Int?>(null)
         val iterationDurationHours: StateFlow<Int?> = _iterationDurationHours.asStateFlow()
+        private val _activeIteration = MutableStateFlow<TacticalIteration?>(null)
+        val activeIteration: StateFlow<TacticalIteration?> = _activeIteration.asStateFlow()
         private val _isMissionStreamsSheetVisible = MutableStateFlow(false)
 	        val isMissionStreamsSheetVisible: StateFlow<Boolean> = _isMissionStreamsSheetVisible.asStateFlow()
         val currentWeekKey: String = currentIsoWeekKey()
+        val tacticalIterations: StateFlow<List<TacticalIteration>> =
+            tacticalIterationRepository
+                .observeIterations()
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.Eagerly,
+                    initialValue = emptyList(),
+                )
         private val allContexts =
             contextRepository
                 .getAllContextsFlow()
@@ -172,10 +187,11 @@ class TacticalMissionViewModel
                 selectedMode,
                 selectedMissionStreamId,
                 missionStreams,
-            ) { allMissions, mode, selectedStreamId, streams ->
+                activeIteration,
+            ) { allMissions, mode, selectedStreamId, streams, iteration ->
                 val weekMissions =
                     allMissions
-                        .filter { it.isCurrentWeekMission(currentWeekKey) }
+                        .filter { it.isInCurrentIteration(iteration?.id, currentWeekKey) }
                         .filter { it.sourceBacklogItemId == null }
                 val streamOrderById = streams.mapIndexed { index, stream -> stream.id to index }.toMap()
                 when (mode) {
@@ -200,9 +216,9 @@ class TacticalMissionViewModel
             )
         val missionStreamCounts: StateFlow<Map<String, Int>> =
             missions
-                .map { allMissions ->
+                .combine(activeIteration) { allMissions, iteration ->
                     allMissions
-                        .filter { it.isCurrentWeekMission(currentWeekKey) }
+                        .filter { it.isInCurrentIteration(iteration?.id, currentWeekKey) }
                         .filter { it.sourceBacklogItemId == null }
                         .groupingBy { it.normalizedMissionStreamId() }
                         .eachCount()
@@ -217,22 +233,23 @@ class TacticalMissionViewModel
             combine(
                 selectedPlanningContextId.flatMapLatest { contextId ->
                     if (contextId == null) {
-                        flowOf(emptyList())
+                        flowOf(contextId to emptyList<BacklogItem>())
                     } else {
-                        listItemDao.getItemsForContextStream(contextId)
+                        listItemDao.getItemsForContextStream(contextId).map { items -> contextId to items }
                     }
                 },
                 goalDao.getAllVisibleGoalsFlow(),
                 allContexts,
                 missions,
-                selectedPlanningContextId,
-            ) { backlogItems, goals, contexts, allMissions, contextId ->
+                activeIteration,
+            ) { backlogState, goals, contexts, allMissions, iteration ->
+                val (contextId, backlogItems) = backlogState
                 val goalById = goals.associateBy { it.id }
                 val contextById = contexts.associateBy { it.id }
                 val selectedBacklogIds =
                     allMissions
                         .asSequence()
-                        .filter { it.isCurrentWeekMission(currentWeekKey) }
+                        .filter { it.isInCurrentIteration(iteration?.id, currentWeekKey) }
                         .mapNotNull { it.sourceBacklogItemId }
                         .toSet()
                 backlogItems.map { item ->
@@ -356,6 +373,9 @@ class TacticalMissionViewModel
             viewModelScope.launch {
                 missionStreamRepository.ensureDefaultStream()
             }
+            viewModelScope.launch {
+                _activeIteration.value = tacticalIterationRepository.ensureActiveIteration(currentWeekKey)
+            }
             loadMissions()
 
             settingsRepository.tacticalLinkedProjectIdsFlow
@@ -425,6 +445,8 @@ class TacticalMissionViewModel
 
         private fun activeMissionStreamId(): String = _selectedMissionStreamId.value
 
+        private fun activeIterationId(): String = _activeIteration.value?.id ?: currentWeekKey
+
         fun addMission(
             title: String,
             description: String,
@@ -443,6 +465,7 @@ class TacticalMissionViewModel
                     linkedProjectIds = projectLinks,
                     linkedAttachmentIds = attachmentLinks,
                     weekKey = currentWeekKey,
+                    iterationId = activeIterationId(),
                     missionStreamId = activeMissionStreamId(),
                     sourceType = MissionSourceType.MANUAL,
                 )
@@ -455,6 +478,54 @@ class TacticalMissionViewModel
                 _pendingScrollToMissionId.value = id
                 // Прив'язуємо вкладення до створеної місії
                 missionRepository.setAttachments(id, mission.linkedAttachmentIds ?: emptyList())
+            }
+        }
+
+        fun moveMissionToCurrentIteration(mission: TacticalMission) {
+            val activeIterationId = activeIterationId()
+            if (mission.isInCurrentIteration(activeIterationId, currentWeekKey)) return
+            viewModelScope.launch {
+                val streamId = mission.normalizedMissionStreamId()
+                val duplicateExists =
+                    _missions.value.any { candidate ->
+                        candidate.isInCurrentIteration(activeIterationId, currentWeekKey) &&
+                            candidate.title.equals(mission.title, ignoreCase = true) &&
+                            candidate.normalizedMissionStreamId() == streamId &&
+                            candidate.sourceBacklogItemId == mission.sourceBacklogItemId
+                    }
+                if (duplicateExists) {
+                    _uiMessages.tryEmit("Місія вже є в поточній ітерації")
+                    return@launch
+                }
+
+                val carriedMission =
+                    mission.copy(
+                        id = 0,
+                        weekKey = currentWeekKey,
+                        iterationId = activeIterationId,
+                        carriedFromMissionId = mission.id,
+                        status = MissionStatus.ACTIVE,
+                        startTime = System.currentTimeMillis(),
+                        deadline = currentIterationDeadline(),
+                        orderInSlot = nextSlotOrder(mission.activitySlotContextId),
+                        sourceType = MissionSourceType.PREVIOUS_WEEK,
+                    )
+                val id = missionRepository.insertMissionWithAutoOrder(carriedMission)
+                missionRepository.setAttachments(id, carriedMission.linkedAttachmentIds ?: emptyList())
+                _pendingScrollToMissionId.value = id
+                _uiMessages.tryEmit("Місію перенесено в поточну ітерацію")
+            }
+        }
+
+        private fun currentIterationDeadline(): Long {
+            val iteration = _activeIteration.value
+            val plannedEndAt = iteration?.plannedEndAt
+            val days = _iterationDurationDays.value?.takeIf { it > 0 }
+            return when {
+                plannedEndAt != null -> plannedEndAt
+                iteration?.type == TacticalIterationType.OPEN_ENDED -> NO_DEADLINE
+                days != null -> System.currentTimeMillis() + days * MILLIS_PER_DAY
+                else -> NO_DEADLINE
             }
         }
 
@@ -482,6 +553,7 @@ class TacticalMissionViewModel
                     linkedProjectIds = emptyList(),
                     linkedAttachmentIds = emptyList(),
                     weekKey = currentWeekKey,
+                    iterationId = activeIterationId(),
                     missionStreamId = activeMissionStreamId(),
                     activitySlotContextId = activitySlotContextId,
                     orderInSlot = nextSlotOrder(activitySlotContextId),
@@ -507,6 +579,7 @@ class TacticalMissionViewModel
                     linkedProjectIds = listOf(context.id),
                     linkedAttachmentIds = emptyList(),
                     weekKey = currentWeekKey,
+                    iterationId = activeIterationId(),
                     missionStreamId = activeMissionStreamId(),
                     activitySlotContextId = activitySlotContextId,
                     orderInSlot = nextSlotOrder(activitySlotContextId),
@@ -687,6 +760,32 @@ class TacticalMissionViewModel
             updateMission(mission.copy(missionStreamId = streamId))
         }
 
+        fun completeMission(mission: TacticalMission) {
+            updateMission(mission.copy(status = MissionStatus.COMPLETED))
+        }
+
+        fun pauseMission(mission: TacticalMission) {
+            updateMission(mission.copy(status = MissionStatus.PAUSED))
+        }
+
+        fun activateMission(mission: TacticalMission) {
+            updateMission(mission.copy(status = MissionStatus.ACTIVE))
+        }
+
+        fun startTimeboxedIteration() {
+            viewModelScope.launch {
+                _activeIteration.value = tacticalIterationRepository.closeActiveAndStartTimeboxed(currentWeekKey)
+                _uiMessages.tryEmit("Почато тактичну ітерацію")
+            }
+        }
+
+        fun startOpenEndedIteration() {
+            viewModelScope.launch {
+                _activeIteration.value = tacticalIterationRepository.closeActiveAndStartOpenEnded()
+                _uiMessages.tryEmit("Почато відкриту тактичну ітерацію")
+            }
+        }
+
         fun reorderVisibleMissions(reordered: List<TacticalMission>) {
             viewModelScope.launch {
                 reordered.forEachIndexed { index, mission ->
@@ -709,6 +808,7 @@ class TacticalMissionViewModel
                     linkedProjectIds = listOf(sourceContextId),
                     linkedAttachmentIds = emptyList(),
                     weekKey = currentWeekKey,
+                    iterationId = activeIterationId(),
                     missionStreamId = activeMissionStreamId(),
                     activitySlotContextId = activitySlotContextId,
                     orderInSlot = nextSlotOrder(activitySlotContextId),
@@ -1073,7 +1173,17 @@ private fun currentIsoWeekKey(): String {
 }
 
 fun TacticalMission.isCurrentWeekMission(currentWeekKey: String): Boolean =
-    weekKey.isBlank() || weekKey == currentWeekKey
+    isInCurrentIteration(activeIterationId = currentWeekKey, currentWeekKey = currentWeekKey)
+
+fun TacticalMission.isInCurrentIteration(
+    activeIterationId: String?,
+    currentWeekKey: String,
+): Boolean =
+    when {
+        activeIterationId != null && iterationId == activeIterationId -> true
+        iterationId != null -> false
+        else -> weekKey.isBlank() || weekKey == currentWeekKey
+    }
 
 fun TacticalMission.normalizedMissionStreamId(): String = missionStreamId ?: GENERAL_MISSION_STREAM_ID
 

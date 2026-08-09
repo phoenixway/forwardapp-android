@@ -6,13 +6,20 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchResultItem
+import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
+import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
+import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.InboxRepository
+import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
+import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
+import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.search.StructuredSearchQuery
+import com.romankozak.forwardappmobile.features.missions.presentation.NewDocumentDraft
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,6 +32,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.net.URLDecoder
 import java.util.Locale
+import java.util.UUID
 import javax.inject.Inject
 
 data class GlobalSearchUiState(
@@ -86,6 +94,10 @@ class GlobalSearchViewModel
         private val settingsRepository: SettingsRepository,
         private val inboxRepository: InboxRepository,
         private val activityRepository: ActivityRepository,
+        private val reminderRepository: ReminderRepository,
+        private val noteDocumentRepository: NoteDocumentRepository,
+        private val musicNoteRepository: MusicNoteRepository,
+        private val checklistRepository: ChecklistRepository,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         companion object {
@@ -245,17 +257,23 @@ class GlobalSearchViewModel
             val recentCommands =
                 (savedStateHandle.get<List<String>>(COMMAND_HISTORY_KEY) ?: emptyList())
                     .mapNotNull { name -> runCatching { OmniboxCommandId.valueOf(name) }.getOrNull() }
+            val (initialPrefixedMode, initialStrippedQuery) = parseModePrefix(initialQuery)
+            val initialDisplayQuery = if (initialPrefixedMode != null) initialStrippedQuery else initialQuery
             _uiState.update {
                 it.copy(
-                    query = initialQuery,
+                    query = initialDisplayQuery,
                     searchHistory = history,
                     recentCommands = recentCommands,
                 )
             }
-            if (initialQuery.isBlank()) {
-                viewModelScope.launch {
-                    applyMode(settingsRepository.globalSearchCurrentModeFlow.first(), persist = false)
+            when {
+                initialPrefixedMode != null -> applyMode(initialPrefixedMode, persist = false)
+                initialQuery.isBlank() -> {
+                    viewModelScope.launch {
+                        applyMode(settingsRepository.globalSearchCurrentModeFlow.first(), persist = false)
+                    }
                 }
+                else -> performSearch(initialQuery)
             }
             viewModelScope.launch {
                 val storedTypes = settingsRepository.globalSearchSelectedTypesFlow.first()
@@ -292,9 +310,6 @@ class GlobalSearchViewModel
                         )
                     }
                 }
-            }
-            if (initialQuery.isNotBlank()) {
-                performSearch(initialQuery)
             }
         }
 
@@ -497,8 +512,19 @@ class GlobalSearchViewModel
             submitAddActivityEvent(_uiState.value.query)
         }
 
-        fun createContextFromSearch() {
-            enhancedNavigationManager.navigate(target = NavTarget.ProjectSettings())
+        fun createContext(name: String) {
+            val contextName = name.trim()
+            if (contextName.isBlank()) return
+            viewModelScope.launch {
+                val contextId = UUID.randomUUID().toString()
+                contextRepository.createContextWithId(
+                    id = contextId,
+                    name = contextName,
+                    parentId = null,
+                )
+                invalidateSearchCandidatesCache()
+                enhancedNavigationManager.navigateToProject(contextId, contextName)
+            }
         }
 
         fun createDocumentFromSearch() {
@@ -506,6 +532,84 @@ class GlobalSearchViewModel
                 val inboxContextId = resolveInboxContextId() ?: return@launch
                 enhancedNavigationManager.navigate(
                     target = NavTarget.NoteDocumentEdit(contextId = inboxContextId, documentId = null),
+                )
+            }
+        }
+
+        suspend fun createAttachmentFromGlobalSearch(request: NewDocumentDraft): String? {
+            val inboxContextId = resolveInboxContextId() ?: return null
+            return when (request) {
+                is NewDocumentDraft.Note -> {
+                    val documentId =
+                        noteDocumentRepository.createDocument(
+                            name = request.name.ifBlank { "New note" },
+                            contextId = inboxContextId,
+                        )
+                    contextRepository.findAttachmentIdByEntity(BacklogItemTypeValues.NOTE_DOCUMENT, documentId)
+                }
+                is NewDocumentDraft.JournalDocument -> {
+                    val documentId =
+                        noteDocumentRepository.createDocument(
+                            name = request.name.ifBlank { "New journal" },
+                            contextId = inboxContextId,
+                            attachmentType = BacklogItemTypeValues.JOURNAL_DOCUMENT,
+                        )
+                    contextRepository.findAttachmentIdByEntity(BacklogItemTypeValues.JOURNAL_DOCUMENT, documentId)
+                }
+                is NewDocumentDraft.MusicNote -> {
+                    val musicNoteId =
+                        musicNoteRepository.create(
+                            name = request.name.ifBlank { "New music note" },
+                            contextId = inboxContextId,
+                        )
+                    contextRepository.findAttachmentIdByEntity(BacklogItemTypeValues.MUSIC_NOTE, musicNoteId)
+                }
+                is NewDocumentDraft.Checklist -> {
+                    val checklistId =
+                        checklistRepository.createChecklist(
+                            name = request.name.ifBlank { "New checklist" },
+                            contextId = inboxContextId,
+                        )
+                    contextRepository.findAttachmentIdByEntity(BacklogItemTypeValues.CHECKLIST, checklistId)
+                }
+                is NewDocumentDraft.WebLink -> {
+                    val target = request.url.trim()
+                    target.takeIf { it.isNotBlank() }?.let {
+                        contextRepository.addLinkItemToContextFromLink(
+                            contextId = inboxContextId,
+                            link =
+                                RelatedLink(
+                                    type = LinkType.URL,
+                                    target = it,
+                                    displayName = request.name.trim().ifBlank { it },
+                                ),
+                        )
+                    }
+                }
+                is NewDocumentDraft.Obsidian -> {
+                    val target = request.noteName.trim()
+                    target.takeIf { it.isNotBlank() }?.let {
+                        contextRepository.addLinkItemToContextFromLink(
+                            contextId = inboxContextId,
+                            link =
+                                RelatedLink(
+                                    type = LinkType.OBSIDIAN,
+                                    target = it,
+                                    displayName = request.displayName.trim().ifBlank { it },
+                                    vault = request.vault,
+                                ),
+                        )
+                    }
+                }
+            }
+        }
+
+        fun createReminder(reminderTime: Long) {
+            viewModelScope.launch {
+                reminderRepository.createReminder(
+                    entityId = "manual-${UUID.randomUUID()}",
+                    entityType = "REMINDER",
+                    reminderTime = reminderTime,
                 )
             }
         }

@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.MoveToInbox
@@ -65,8 +65,8 @@ fun BottomPanelGlobalRail(
     if (mode == BottomPanelGlobalRailMode.FULL) {
         BottomPanelIconButton(
             imageVector = Icons.Outlined.MoveToInbox,
-            contentDescription = "Inbox",
-            onClick = actions.onNavigateToInbox,
+            contentDescription = "Quick catch",
+            onClick = actions.onNavigateToQuickCatch,
         )
     }
     BottomPanelIconButton(
@@ -75,9 +75,9 @@ fun BottomPanelGlobalRail(
         onClick = actions.onNavigateToGlobalSearch,
     )
     BottomPanelIconButton(
-        imageVector = Icons.Outlined.AccountTree,
-        contentDescription = "Ієрархія орієнтирів",
-        onClick = actions.onNavigateToProjectHierarchy,
+        imageVector = Icons.Default.Add,
+        contentDescription = "Створити",
+        onClick = actions.onShowCreateActions,
     )
     BottomPanelMoreActionButton(
         actions = actions,

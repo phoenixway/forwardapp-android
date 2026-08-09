@@ -65,6 +65,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMissionAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalActivitySlot
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIteration
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStream
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
 import com.romankozak.forwardappmobile.data.dao.ChatDao
@@ -110,6 +111,7 @@ import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconDao
 import com.romankozak.forwardappmobile.features.mainscreen.arc.ArcQuestDao
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import com.romankozak.forwardappmobile.features.missions.data.TacticalActivitySlotDao
+import com.romankozak.forwardappmobile.features.missions.data.TacticalIterationDao
 import com.romankozak.forwardappmobile.features.missions.data.MissionStreamDao
 
 @Database(
@@ -164,6 +166,7 @@ import com.romankozak.forwardappmobile.features.missions.data.MissionStreamDao
         TacticalMission::class,
         TacticalMissionAttachmentCrossRef::class,
         TacticalActivitySlot::class,
+        TacticalIteration::class,
         MissionStream::class,
         AiEventEntity::class,
         LifeManagementLevelStatusEntity::class,
@@ -176,7 +179,7 @@ import com.romankozak.forwardappmobile.features.missions.data.MissionStreamDao
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 140,
+    version = 141,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -262,6 +265,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun tacticalMissionDao(): TacticalMissionDao
 
     abstract fun tacticalActivitySlotDao(): TacticalActivitySlotDao
+
+    abstract fun tacticalIterationDao(): TacticalIterationDao
 
     abstract fun missionStreamDao(): MissionStreamDao
 

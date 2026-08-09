@@ -11,6 +11,8 @@ data class BottomPanelGlobalActions(
     val onShowContextMarkersSheet: () -> Unit,
     val onNavigateToPresets: () -> Unit,
     val onNavigateToGlobalSearch: () -> Unit,
+    val onNavigateToQuickCatch: () -> Unit,
+    val onShowCreateActions: () -> Unit,
     val onNavigateToSettings: () -> Unit,
     val onNavigateToInbox: () -> Unit,
     val onNavigateToTracker: () -> Unit,
