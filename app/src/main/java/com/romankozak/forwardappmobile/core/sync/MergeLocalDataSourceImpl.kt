@@ -26,6 +26,7 @@ import com.romankozak.forwardappmobile.features.daymanagement.runtime.data.DayMa
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconDao
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import com.romankozak.forwardappmobile.sync.datasource.MergeLocalDataSource
+import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -172,6 +173,42 @@ class MergeLocalDataSourceImpl
                 "BackupImport",
                 "Applying Snapshot V${bundle.version} in MergeLocalDataSource: notes=${bundle.notes.size}, docs=${bundle.documents.size}, checklists=${bundle.checklists.size}, scripts=${bundle.scripts.size}",
             )
+            val incomingPlanIdRemap =
+                bundle.dayPlans
+                    .mapNotNull { incomingPlan ->
+                        val existingPlan = findExistingPlanForIncomingDate(incomingPlan.date)
+                        if (existingPlan != null && existingPlan.id != incomingPlan.id) {
+                            incomingPlan.id to existingPlan.id
+                        } else {
+                            null
+                        }
+                    }.toMap()
+            val dayPlansToInsert =
+                bundle.dayPlans.filterNot { incomingPlan ->
+                    incomingPlanIdRemap.containsKey(incomingPlan.id)
+                }
+            val dayFocusItemsToInsert =
+                bundle.dayFocusItems.map { item ->
+                    incomingPlanIdRemap[item.dayPlanId]?.let { existingPlanId ->
+                        item.copy(dayPlanId = existingPlanId)
+                    } ?: item
+                }
+            val dayTasksToInsert =
+                bundle.dayTasks.map { task ->
+                    incomingPlanIdRemap[task.dayPlanId]?.let { existingPlanId ->
+                        task.copy(dayPlanId = existingPlanId)
+                    } ?: task
+                }
+            Log.i(
+                "ForwardSync",
+                "merge snapshot version=${bundle.version} incomingPlans=${bundle.dayPlans.size} " +
+                    "insertPlans=${dayPlansToInsert.size} remapPlans=${incomingPlanIdRemap.size} " +
+                    "incomingFocus=${bundle.dayFocusItems.size} insertFocus=${dayFocusItemsToInsert.size} " +
+                    "incomingTasks=${bundle.dayTasks.size} insertTasks=${dayTasksToInsert.size} " +
+                    "runtime=${bundle.dayManagementRuntimeState != null} " +
+                    "incomingPlanDates=${bundle.dayPlans.map { plan -> "${plan.id}:${plan.date}" }} " +
+                    "remap=$incomingPlanIdRemap",
+            )
 
             db.withTransaction {
                 contextDao.insertAll(bundle.contexts.map { it.toEntity() })
@@ -193,8 +230,8 @@ class MergeLocalDataSourceImpl
                 attachmentDao.insertContextAttachmentCrossRefs(finalCrossRefs)
 
                 conversationFolderDao.insertAll(bundle.conversationFolders.map { it.toEntity() })
-                dayPlanDao.insertPlans(bundle.dayPlans.map { it.toEntity() })
-                dayFocusItemDao.insertAll(bundle.dayFocusItems.map { it.toEntity() })
+                dayPlanDao.insertPlans(dayPlansToInsert.map { it.toEntity() })
+                dayFocusItemDao.insertAll(dayFocusItemsToInsert.map { it.toEntity() })
                 recurringTaskDao.insertAll(bundle.recurringTasks.map { it.toEntity() })
 
                 val missions = bundle.tacticalMissions.map { it.toEntity() }
@@ -214,7 +251,7 @@ class MergeLocalDataSourceImpl
                 activityRecordDao.insertAll(bundle.activityRecords.map { it.toEntity() })
                 recentItemDao.insertAllSync(bundle.recentProjectEntries.map { it.toEntity() })
                 linkItemDao.insertAll(bundle.linkItemEntities.map { it.toEntity() })
-                dayTaskDao.insertTasks(bundle.dayTasks.map { it.toEntity() })
+                dayTaskDao.insertTasks(dayTasksToInsert.map { it.toEntity() })
                 dailyMetricDao.insertMetrics(bundle.dailyMetrics.map { it.toEntity() })
                 chatDao.insertConversations(bundle.conversations.map { it.toEntity() })
                 chatDao.insertMessages(bundle.chatMessages.map { it.toEntity() })
@@ -263,6 +300,45 @@ class MergeLocalDataSourceImpl
                 mainBeaconDao.insertAttachmentCrossRefs(bundle.mainBeaconAttachmentCrossRefs.map { it.toEntity() })
                 mainBeaconDao.insertLevelStatuses(bundle.mainBeaconLevelStatuses.map { it.toEntity() })
             }
-            dayManagementRuntimeRepository.importSnapshot(bundle.dayManagementRuntimeState)
+            bundle.dayManagementRuntimeState?.let { runtimeState ->
+                Log.i(
+                    "ForwardSync",
+                    "merge runtime import phase=${runtimeState.currentPhase} sleepAt=${runtimeState.sleepAt} " +
+                        "wokeAt=${runtimeState.wokeAt} updatedAt=${runtimeState.updatedAt}",
+                )
+                dayManagementRuntimeRepository.importSnapshot(runtimeState)
+            }
+            val affectedPlanIds =
+                (dayPlansToInsert.map { plan -> plan.id } + dayTasksToInsert.map { task -> task.dayPlanId })
+                    .distinct()
+            affectedPlanIds.forEach { planId ->
+                Log.i(
+                    "ForwardSync",
+                    "merge affected plan dayPlanId=$planId taskCount=${dayTaskDao.getTaskCountForDay(planId)}",
+                )
+            }
+        }
+
+        private suspend fun findExistingPlanForIncomingDate(incomingDate: Long) =
+            dayPlanDao.getPlanForDateSync(localDayStart(incomingDate))
+                ?: dayPlanDao.getPlanForDateWindowSync(
+                    startInclusiveMillis = localDayStart(incomingDate),
+                    endExclusiveMillis = localDayStart(incomingDate) + DAY_IN_MILLIS,
+                    anchorMillis = incomingDate,
+                )
+
+        private fun localDayStart(timestamp: Long): Long =
+            Calendar
+                .getInstance()
+                .apply {
+                    timeInMillis = timestamp
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }.timeInMillis
+
+        private companion object {
+            const val DAY_IN_MILLIS = 24 * 60 * 60 * 1000L
         }
     }

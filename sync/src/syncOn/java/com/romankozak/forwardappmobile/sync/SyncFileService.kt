@@ -65,13 +65,14 @@ class SyncFileService @Inject constructor(
 
     suspend fun createFullBackupJsonString(): String {
         val databaseContent = localDataSource.loadFullDatabaseContent()
+        val snapshotBundle = localDataSource.loadFullSnapshotBundle()
         val settingsMap = localDataSource.getSettingsSnapshot()
 
         val fullBackup = FullAppBackup(
-            backupSchemaVersion = 1,
+            backupSchemaVersion = 2,
             database = databaseContent,
             settings = SettingsContent(settingsMap),
-            snapshotBundle = null,
+            snapshotBundle = snapshotBundle,
         )
         return gson.toJson(fullBackup)
     }

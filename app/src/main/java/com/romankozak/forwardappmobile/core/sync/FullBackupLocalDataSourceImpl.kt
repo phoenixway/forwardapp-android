@@ -411,7 +411,9 @@ class FullBackupLocalDataSourceImpl
                 Log.d("SyncV2", "Applying bundle V${bundle.version} in Merge Mode")
                 insertBundleData(bundle)
             }
-            dayManagementRuntimeRepository.importSnapshot(bundle.dayManagementRuntimeState)
+            bundle.dayManagementRuntimeState?.let { runtimeState ->
+                dayManagementRuntimeRepository.importSnapshot(runtimeState)
+            }
         }
 
         override suspend fun loadFullDatabaseContent(): DatabaseContent {

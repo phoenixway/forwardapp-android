@@ -86,9 +86,16 @@ class SyncWifiService @Inject constructor(
             attachments = changes.attachments,
             existingCrossRefs = changes.contextAttachmentCrossRefs,
         )
+        val enrichedChanges = changes.copy(contextAttachmentCrossRefs = enrichedCrossRefs)
+        val runtimeState = fullBackupLocalDataSource.loadFullSnapshotBundle().dayManagementRuntimeState
+        val snapshotDelta = SyncMapper.migrateV1ToV2(enrichedChanges).copy(
+            dayManagementRuntimeState = runtimeState,
+        )
         val deltaBackup = FullAppBackup(
-            database = changes.copy(contextAttachmentCrossRefs = enrichedCrossRefs),
+            backupSchemaVersion = 2,
+            database = enrichedChanges,
             settings = SettingsContent(fullBackupLocalDataSource.getSettingsSnapshot()),
+            snapshotBundle = snapshotDelta,
         )
         // Використовуємо Gson для ручної серіалізації в рядок
         return com.google.gson.GsonBuilder().create().toJson(deltaBackup)

@@ -180,6 +180,16 @@ class WifiSyncServer(
                                     val attachmentsCount = backup.database?.attachments?.size ?: 0
                                     val crossRefsCount =
                                         backup.database?.contextAttachmentCrossRefs?.size ?: 0
+                                    Log.i(
+                                        "ForwardSync",
+                                        "wifi export bytes=${backupJson.length} dbPlans=${backup.database?.dayPlans?.size ?: 0} " +
+                                            "dbFocus=${backup.database?.dayFocusItems?.size ?: 0} " +
+                                            "dbTasks=${backup.database?.dayTasks?.size ?: 0} " +
+                                            "snapshotPlans=${backup.snapshotBundle?.dayPlans?.size ?: 0} " +
+                                            "snapshotFocus=${backup.snapshotBundle?.dayFocusItems?.size ?: 0} " +
+                                            "snapshotTasks=${backup.snapshotBundle?.dayTasks?.size ?: 0} " +
+                                            "snapshotRuntime=${backup.snapshotBundle?.dayManagementRuntimeState != null}",
+                                    )
                                     Log.d(
                                         DEBUG_TAG,
                                         "[WifiSyncServer] /export CONTENT CHECK: attachments=$attachmentsCount, crossRefs=$crossRefsCount",
@@ -237,6 +247,21 @@ class WifiSyncServer(
                                 val backup = gson.fromJson(body, FullAppBackup::class.java)
                                 val snapshotBundle = backup.snapshotBundle
                                 val db = backup.database
+                                Log.i(
+                                    "ForwardSync",
+                                    "wifi import received bytes=${body.length} hasSnapshot=${snapshotBundle != null} " +
+                                        "hasDb=${db != null} dbPlans=${db?.dayPlans?.size ?: 0} " +
+                                        "dbFocus=${db?.dayFocusItems?.size ?: 0} dbTasks=${db?.dayTasks?.size ?: 0} " +
+                                        "dbRuntime=${db?.dayManagementRuntimeState != null} " +
+                                        "dbRuntimePhase=${db?.dayManagementRuntimeState?.currentPhase} " +
+                                        "dbRuntimeSleepAt=${db?.dayManagementRuntimeState?.sleepAt} " +
+                                        "snapshotPlans=${snapshotBundle?.dayPlans?.size ?: 0} " +
+                                        "snapshotFocus=${snapshotBundle?.dayFocusItems?.size ?: 0} " +
+                                        "snapshotTasks=${snapshotBundle?.dayTasks?.size ?: 0} " +
+                                        "snapshotRuntime=${snapshotBundle?.dayManagementRuntimeState != null} " +
+                                        "snapshotRuntimePhase=${snapshotBundle?.dayManagementRuntimeState?.currentPhase} " +
+                                        "snapshotRuntimeSleepAt=${snapshotBundle?.dayManagementRuntimeState?.sleepAt}",
+                                )
                                 if (snapshotBundle == null && db == null) {
                                     return@post call.respond(
                                         HttpStatusCode.Companion.BadRequest,
@@ -249,10 +274,12 @@ class WifiSyncServer(
                                         snapshotBundle != null -> syncRepository.applyServerChanges(snapshotBundle)
                                         db != null -> syncRepository.applyServerChanges(db)
                                     }
+                                    Log.i("ForwardSync", "wifi import applied")
                                     backup.settings?.settings?.let { settings ->
                                         try {
                                             settingsRepository.restoreFromMap(settings)
                                         } catch (e: Exception) {
+                                            Log.w("ForwardSync", "wifi import settings restore failed: ${e.message}", e)
                                             Log.e(DEBUG_TAG, "[WifiSyncServer] Failed to restore incoming settings", e)
                                         }
                                     }

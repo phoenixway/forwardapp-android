@@ -40,6 +40,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurringTask
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.DayManagementRuntimeStateSnapshot
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMissionAttachmentCrossRef
 
@@ -131,4 +132,6 @@ data class DatabaseContent(
     val focusContextIntervals: List<FocusContextIntervalEntity> = emptyList(),
     @SerializedName("userStateIntervals")
     val userStateIntervals: List<UserStateIntervalEntity> = emptyList(),
+    @SerializedName("dayManagementRuntimeState")
+    val dayManagementRuntimeState: DayManagementRuntimeStateSnapshot? = null,
 )

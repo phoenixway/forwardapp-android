@@ -56,6 +56,7 @@ class LegacyMigrationMapper @Inject constructor() {
             contextKeyProblems = databaseContent.contextKeyProblems.map { it.toSnapshot() },
             focusContextIntervals = databaseContent.focusContextIntervals.map { it.toSnapshot() },
             userStateIntervals = databaseContent.userStateIntervals.map { it.toSnapshot() },
+            dayManagementRuntimeState = databaseContent.dayManagementRuntimeState,
         )
     }
 }

@@ -28,13 +28,60 @@ interface DayPlanDao {
     @Query("SELECT * FROM day_plans WHERE id = :planId LIMIT 1")
     suspend fun getPlanById(planId: String): DayPlan?
 
-    @Query("SELECT * FROM day_plans WHERE date = :dayStartMillis LIMIT 1")
+    @Query(
+        """
+        SELECT * FROM day_plans
+        WHERE date = :dayStartMillis AND isDeleted = 0
+        ORDER BY CASE WHEN id LIKE 'day_plan_%' THEN 1 ELSE 0 END ASC,
+                 createdAt ASC,
+                 updatedAt ASC
+        LIMIT 1
+        """,
+    )
     suspend fun getPlanForDateSync(dayStartMillis: Long): DayPlan?
 
-    @Query("SELECT * FROM day_plans WHERE date < :dayStartMillis ORDER BY date DESC LIMIT 1")
+    @Query(
+        """
+        SELECT * FROM day_plans
+        WHERE date >= :startInclusiveMillis
+          AND date < :endExclusiveMillis
+          AND isDeleted = 0
+        ORDER BY CASE WHEN id LIKE 'day_plan_%' THEN 1 ELSE 0 END ASC,
+                 ABS(date - :anchorMillis) ASC,
+                 createdAt ASC,
+                 updatedAt ASC
+        LIMIT 1
+        """,
+    )
+    suspend fun getPlanForDateWindowSync(
+        startInclusiveMillis: Long,
+        endExclusiveMillis: Long,
+        anchorMillis: Long,
+    ): DayPlan?
+
+    @Query(
+        """
+        SELECT * FROM day_plans
+        WHERE date < :dayStartMillis AND isDeleted = 0
+        ORDER BY date DESC,
+                 CASE WHEN id LIKE 'day_plan_%' THEN 1 ELSE 0 END ASC,
+                 createdAt ASC,
+                 updatedAt ASC
+        LIMIT 1
+        """,
+    )
     suspend fun getLatestPlanBeforeDate(dayStartMillis: Long): DayPlan?
 
-    @Query("SELECT * FROM day_plans WHERE date = :dayStartMillis LIMIT 1")
+    @Query(
+        """
+        SELECT * FROM day_plans
+        WHERE date = :dayStartMillis AND isDeleted = 0
+        ORDER BY CASE WHEN id LIKE 'day_plan_%' THEN 1 ELSE 0 END ASC,
+                 createdAt ASC,
+                 updatedAt ASC
+        LIMIT 1
+        """,
+    )
     fun getPlanForDate(dayStartMillis: Long): Flow<DayPlan?>
 
     @Query("SELECT * FROM day_plans WHERE date BETWEEN :startDate AND :endDate ORDER BY date ASC")

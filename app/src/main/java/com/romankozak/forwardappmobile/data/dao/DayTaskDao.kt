@@ -188,6 +188,25 @@ interface DayTaskDao {
         dayPlanId: String,
     ): DayTask?
 
+    @Query(
+        """
+        SELECT * FROM day_tasks
+        WHERE dayPlanId = :dayPlanId
+          AND isDeleted = 0
+          AND (
+              recurringTaskId = :recurringTaskId
+              OR lower(trim(title)) = lower(trim(:title))
+          )
+        ORDER BY recurringTaskId IS NULL ASC, createdAt ASC
+        LIMIT 1
+        """,
+    )
+    suspend fun findRecurringInstanceOrSameTitleForDay(
+        recurringTaskId: String,
+        dayPlanId: String,
+        title: String,
+    ): DayTask?
+
     @Query("DELETE FROM day_tasks WHERE recurringTaskId = :recurringTaskId AND dayPlanId IN (:dayPlanIds)")
     suspend fun deleteTasksForDayPlanIds(
         recurringTaskId: String,

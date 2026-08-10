@@ -809,9 +809,33 @@ class DayManagementRepository
                                 .thenBy { it.params.title.lowercase() },
                         )
                         .forEachIndexed { index, candidate ->
+                            val existingTask =
+                                dayTaskDao.findRecurringInstanceOrSameTitleForDay(
+                                    recurringTaskId = candidate.recurringTaskId,
+                                    dayPlanId = dayPlan.id,
+                                    title = candidate.params.title,
+                                )
+                            if (existingTask != null) {
+                                android.util.Log.i(
+                                    "ForwardSync",
+                                    "recurring generation skip existing/same-title " +
+                                        "recurringTaskId=${candidate.recurringTaskId} dayPlanId=${dayPlan.id} " +
+                                        "taskId=${existingTask.id} existingRecurringTaskId=${existingTask.recurringTaskId} " +
+                                        "title=${existingTask.title}",
+                                )
+                                return@forEachIndexed
+                            }
+
                             addTaskToDayPlan(candidate.params.copy(order = startingOrder + index))
                                 .copy(recurringTaskId = candidate.recurringTaskId)
-                                .also { dayTaskDao.update(it) }
+                                .also { generatedTask ->
+                                    dayTaskDao.update(generatedTask)
+                                    android.util.Log.i(
+                                        "ForwardSync",
+                                        "recurring generation created recurringTaskId=${candidate.recurringTaskId} " +
+                                            "dayPlanId=${dayPlan.id} taskId=${generatedTask.id} title=${generatedTask.title}",
+                                    )
+                                }
                         }
                 }
             }
@@ -833,6 +857,21 @@ class DayManagementRepository
                     recurringTask = recurringTask,
                     templateTask = templateTask,
                 ) ?: return null
+            val existingSameTitleTask =
+                dayTaskDao.findRecurringInstanceOrSameTitleForDay(
+                    recurringTaskId = recurringTask.id,
+                    dayPlanId = dayPlanId,
+                    title = templateData.title,
+                )
+            if (existingSameTitleTask != null) {
+                android.util.Log.i(
+                    "ForwardSync",
+                    "recurring candidate skip existing/same-title recurringTaskId=${recurringTask.id} " +
+                        "dayPlanId=$dayPlanId taskId=${existingSameTitleTask.id} " +
+                        "existingRecurringTaskId=${existingSameTitleTask.recurringTaskId} title=${existingSameTitleTask.title}",
+                )
+                return null
+            }
 
             return RecurringTaskGenerationCandidate(
                 recurringTaskId = recurringTask.id,
