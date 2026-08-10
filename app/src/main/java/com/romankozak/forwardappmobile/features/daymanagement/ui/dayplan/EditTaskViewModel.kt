@@ -8,6 +8,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceFrequency
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceRule
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.TaskExecutionStrictness
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -34,17 +35,24 @@ data class EditTaskUiState(
     val recurrenceFrequency: RecurrenceFrequency = RecurrenceFrequency.DAILY,
     val recurrenceInterval: Int = 1,
     val recurrenceDaysOfWeek: Set<DayOfWeek> = emptySet(),
+    val contextLinks: List<TaskContextLinkUi> = emptyList(),
 )
 
 sealed class EditTaskUiEvent {
     object NavigateUp : EditTaskUiEvent()
 }
 
+data class TaskContextLinkUi(
+    val id: String,
+    val name: String,
+)
+
 @HiltViewModel
 class EditTaskViewModel
     @Inject
     constructor(
         private val dayManagementRepository: DayManagementRepository,
+        private val contextRepository: ContextRepository,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(EditTaskUiState())
@@ -70,6 +78,7 @@ class EditTaskViewModel
             viewModelScope.launch {
                 val task = dayManagementRepository.getTaskById(taskId)
                 val recurringTask = task?.recurringTaskId?.let { dayManagementRepository.getRecurringTask(it) }
+                val contextLinks = task?.contextIds().orEmpty().resolveContextLinks()
                 _uiState.value =
                     EditTaskUiState(
                         task = task,
@@ -81,12 +90,17 @@ class EditTaskViewModel
                         dueTime = task?.dueTime,
                         executionStrictness = task?.executionStrictness ?: TaskExecutionStrictness.NORMAL,
                         points = task?.points ?: 0,
-                        dayAnchorTime = task?.dayPlanId?.let { dayManagementRepository.getPlanById(it)?.date } ?: System.currentTimeMillis(),
+                        dayAnchorTime =
+                            task
+                                ?.dayPlanId
+                                ?.let { dayManagementRepository.getPlanById(it)?.date }
+                                ?: System.currentTimeMillis(),
                         isRecurring = task?.recurringTaskId != null,
                         recurrenceRule = recurringTask?.recurrenceRule,
                         recurrenceFrequency = recurringTask?.recurrenceRule?.frequency ?: RecurrenceFrequency.DAILY,
                         recurrenceInterval = recurringTask?.recurrenceRule?.interval ?: 1,
                         recurrenceDaysOfWeek = recurringTask?.recurrenceRule?.daysOfWeek?.toSet() ?: emptySet(),
+                        contextLinks = contextLinks,
                     )
             }
         }
@@ -150,6 +164,26 @@ class EditTaskViewModel
             _uiState.value = _uiState.value.copy(recurrenceDaysOfWeek = days)
         }
 
+        fun onContextChooserResult(contextId: String?) {
+            val normalizedId = contextId?.takeUnless { it == "root" }?.takeIf { it.isNotBlank() } ?: return
+            viewModelScope.launch {
+                val currentLinks = _uiState.value.contextLinks
+                if (currentLinks.any { it.id == normalizedId }) return@launch
+                val context = contextRepository.getContextById(normalizedId) ?: return@launch
+                _uiState.value =
+                    _uiState.value.copy(
+                        contextLinks = currentLinks + TaskContextLinkUi(id = context.id, name = context.name),
+                    )
+            }
+        }
+
+        fun removeContextLink(contextId: String) {
+            _uiState.value =
+                _uiState.value.copy(
+                    contextLinks = _uiState.value.contextLinks.filterNot { it.id == contextId },
+                )
+        }
+
         fun saveTask() {
             viewModelScope.launch {
                 val state = _uiState.value
@@ -178,6 +212,7 @@ class EditTaskViewModel
                     description = state.description,
                     priority = state.priority,
                     duration = state.duration,
+                    linkedProjectIds = state.contextLinks.map { it.id },
                 )
                 updateTaskInstance(state, originalTask)
                 return
@@ -192,13 +227,13 @@ class EditTaskViewModel
                     recurrenceRule = recurrenceRule,
                     dayPlanId = originalTask.dayPlanId,
                     goalId = originalTask.goalId,
-                    projectId = originalTask.projectId,
+                    projectId = state.contextLinks.firstOrNull()?.id,
                     taskType = originalTask.taskType,
                     scheduledTime = state.scheduledTime,
                     dueTime = state.dueTime,
                     executionStrictness = state.executionStrictness,
                     points = state.points,
-                    linkedProjectIds = originalTask.linkedProjectIds,
+                    linkedProjectIds = state.contextLinks.map { it.id },
                     linkedAttachmentIds = originalTask.linkedAttachmentIds,
                 ),
             )
@@ -230,9 +265,25 @@ class EditTaskViewModel
                     dueTime = state.dueTime,
                     executionStrictness = state.executionStrictness,
                     points = state.points,
+                    projectId = state.contextLinks.firstOrNull()?.id,
+                    linkedProjectIds = state.contextLinks.map { it.id },
+                    updateContextLinks = true,
                 ),
             )
         }
+
+        private fun DayTask.contextIds(): List<String> =
+            (listOfNotNull(projectId) + linkedProjectIds.orEmpty())
+                .map(String::trim)
+                .filter { it.isNotBlank() && it != "root" }
+                .distinct()
+
+        private suspend fun List<String>.resolveContextLinks(): List<TaskContextLinkUi> =
+            mapNotNull { id ->
+                contextRepository.getContextById(id)?.let { context ->
+                    TaskContextLinkUi(id = context.id, name = context.name)
+                }
+            }
 
         private fun buildRecurrenceRule(state: EditTaskUiState): RecurrenceRule =
             RecurrenceRule(

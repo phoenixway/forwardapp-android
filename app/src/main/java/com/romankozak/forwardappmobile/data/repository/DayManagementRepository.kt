@@ -126,6 +126,9 @@ class DayManagementRepository
             val dueTime: Long?,
             val executionStrictness: TaskExecutionStrictness,
             val points: Int,
+            val projectId: String? = null,
+            val linkedProjectIds: List<String>? = null,
+            val updateContextLinks: Boolean = false,
         )
 
         data class SplitRecurringTaskParams(
@@ -584,6 +587,13 @@ class DayManagementRepository
                     dueTime = timing.dueTime,
                     executionStrictness = params.executionStrictness,
                     points = params.points,
+                    projectId = if (params.updateContextLinks) params.projectId else task.projectId,
+                    linkedProjectIds =
+                        if (params.updateContextLinks) {
+                            params.linkedProjectIds.orEmpty()
+                        } else {
+                            task.linkedProjectIds
+                        },
                     updatedAt = System.currentTimeMillis(),
                     syncedAt = null,
                     version = task.version + 1,
@@ -599,6 +609,7 @@ class DayManagementRepository
             description: String?,
             priority: TaskPriority,
             duration: Long?,
+            linkedProjectIds: List<String>? = null,
         ) = withContext(ioDispatcher) {
             val task = recurringTaskDao.getById(recurringTaskId) ?: return@withContext
             val updatedTask =
@@ -607,6 +618,7 @@ class DayManagementRepository
                     description = description,
                     priority = priority,
                     duration = duration?.toInt(),
+                    linkedProjectIds = linkedProjectIds?.distinct() ?: task.linkedProjectIds,
                 )
             recurringTaskDao.update(updatedTask)
         }
@@ -810,7 +822,7 @@ class DayManagementRepository
                         )
                         .forEachIndexed { index, candidate ->
                             val existingTask =
-                                dayTaskDao.findRecurringInstanceOrSameTitleForDay(
+                                findExistingRecurringOrSameTitleTask(
                                     recurringTaskId = candidate.recurringTaskId,
                                     dayPlanId = dayPlan.id,
                                     title = candidate.params.title,
@@ -841,6 +853,26 @@ class DayManagementRepository
             }
         }
 
+        private suspend fun findExistingRecurringOrSameTitleTask(
+            recurringTaskId: String,
+            dayPlanId: String,
+            title: String,
+        ): DayTask? {
+            val existingRecurringTask = dayTaskDao.findByRecurringIdAndDate(recurringTaskId, dayPlanId)
+            if (existingRecurringTask != null) return existingRecurringTask
+
+            val normalizedTitle = normalizeRecurringTitle(title)
+            return dayTaskDao.getTasksForDaySync(dayPlanId).firstOrNull { task ->
+                normalizeRecurringTitle(task.title) == normalizedTitle
+            }
+        }
+
+        private fun normalizeRecurringTitle(title: String): String =
+            title
+                .trim()
+                .replace(Regex("\\s+"), " ")
+                .lowercase()
+
         private suspend fun buildRecurringTaskGenerationCandidate(
             recurringTask: RecurringTask,
             date: Long,
@@ -858,7 +890,7 @@ class DayManagementRepository
                     templateTask = templateTask,
                 ) ?: return null
             val existingSameTitleTask =
-                dayTaskDao.findRecurringInstanceOrSameTitleForDay(
+                findExistingRecurringOrSameTitleTask(
                     recurringTaskId = recurringTask.id,
                     dayPlanId = dayPlanId,
                     title = templateData.title,

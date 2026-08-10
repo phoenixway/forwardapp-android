@@ -148,6 +148,7 @@ private fun SelectedTaskDialogs(
                 viewModel.dismissEditTaskDialog()
                 viewModel.clearSelectedTask()
             },
+            navController = state.navigator.navController,
         )
     }
 

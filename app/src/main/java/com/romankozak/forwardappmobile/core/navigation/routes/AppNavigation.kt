@@ -666,7 +666,10 @@ private fun NavGraphBuilder.mainGraph(
         route = "${NavigationRoutes.EDIT_TASK}/{taskId}",
         arguments = listOf(navArgument("taskId") { type = NavType.StringType }),
     ) {
-        EditTaskScreen(onNavigateUp = { navController.navigateUp() })
+        EditTaskScreen(
+            onNavigateUp = { navController.navigateUp() },
+            navController = navController,
+        )
     }
 
     composable(

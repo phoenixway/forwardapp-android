@@ -7,6 +7,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -73,10 +77,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceFrequency
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.TaskExecutionStrictness
+import com.romankozak.forwardappmobile.core.navigation.routes.NavigationRoutes
 import com.romankozak.forwardappmobile.features.daymanagement.taskexecution.domain.TaskExecutionTimingCalculator
 import com.romankozak.forwardappmobile.features.daymanagement.taskexecution.domain.TaskExecutionTimingRequest
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.TaskExecutionPolicyEditor
@@ -99,6 +108,9 @@ private data class EditTaskActions(
     val onRecurrenceFrequencyChange: (RecurrenceFrequency) -> Unit,
     val onRecurrenceIntervalChange: (Int) -> Unit,
     val onRecurrenceDayOfWeekToggle: (DayOfWeek) -> Unit,
+    val onAddContextLink: () -> Unit,
+    val onOpenContextLink: (String) -> Unit,
+    val onRemoveContextLink: (String) -> Unit,
 )
 
 private enum class EditTaskTab(val title: String) {
@@ -114,9 +126,11 @@ private enum class EditTaskTab(val title: String) {
 fun EditTaskScreen(
     viewModel: EditTaskViewModel = hiltViewModel(),
     onNavigateUp: () -> Unit,
+    navController: NavController? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableStateOf(EditTaskTab.Main) }
+    EditTaskContextChooserResultEffect(navController = navController, viewModel = viewModel)
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
@@ -176,7 +190,7 @@ fun EditTaskScreen(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = Modifier.fillMaxSize(),
     ) { paddingValues ->
-        val actions = rememberActions(viewModel)
+        val actions = rememberActions(viewModel, navController, uiState)
         EditTaskBody(
             uiState = uiState,
             selectedTab = selectedTab,
@@ -197,12 +211,14 @@ fun EditTaskScreen(
 fun EditTaskBottomSheet(
     taskId: String,
     onDismissRequest: () -> Unit,
+    navController: NavController? = null,
     viewModel: EditTaskViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var selectedTab by remember(taskId) { mutableStateOf(EditTaskTab.Main) }
     var isExpanded by remember(taskId) { mutableStateOf(false) }
+    EditTaskContextChooserResultEffect(navController = navController, viewModel = viewModel)
 
     LaunchedEffect(taskId) {
         selectedTab = EditTaskTab.Main
@@ -219,7 +235,7 @@ fun EditTaskBottomSheet(
         }
     }
 
-    val actions = rememberActions(viewModel)
+    val actions = rememberActions(viewModel, navController, uiState)
     val dragHandleColor = MaterialTheme.colorScheme.outlineVariant
 
     ModalBottomSheet(
@@ -405,7 +421,15 @@ private fun EditTaskBody(
         SheetTabSelector(selectedTab = selectedTab, onTabSelected = onTabSelected)
 
         when (selectedTab) {
-            EditTaskTab.Main -> SummaryChips(uiState = uiState)
+            EditTaskTab.Main -> {
+                SummaryChips(uiState = uiState)
+                ContextLinksSection(
+                    contextLinks = uiState.contextLinks,
+                    onAddContextLink = actions.onAddContextLink,
+                    onOpenContextLink = actions.onOpenContextLink,
+                    onRemoveContextLink = actions.onRemoveContextLink,
+                )
+            }
             EditTaskTab.Details -> DetailsContent(uiState = uiState, actions = actions)
             EditTaskTab.Repeat -> RepeatContent(uiState = uiState, actions = actions)
         }
@@ -439,6 +463,12 @@ private fun SheetExpandedBody(
                     colors = outlinedFieldColors(),
                 )
                 SummaryChips(uiState = uiState)
+                ContextLinksSection(
+                    contextLinks = uiState.contextLinks,
+                    onAddContextLink = actions.onAddContextLink,
+                    onOpenContextLink = actions.onOpenContextLink,
+                    onRemoveContextLink = actions.onRemoveContextLink,
+                )
             }
             EditTaskTab.Details -> DetailsContent(uiState = uiState, actions = actions)
             EditTaskTab.Repeat -> RepeatContent(uiState = uiState, actions = actions)
@@ -552,6 +582,103 @@ private fun CompactChip(
             fontFamily = FontFamily.Monospace,
             letterSpacing = 0.06.sp,
         )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ContextLinksSection(
+    contextLinks: List<TaskContextLinkUi>,
+    onAddContextLink: () -> Unit,
+    onOpenContextLink: (String) -> Unit,
+    onRemoveContextLink: (String) -> Unit,
+) {
+    val cs = MaterialTheme.colorScheme
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SectionLabel("Контексти", modifier = Modifier.weight(1f))
+            OutlinedIconButton(
+                onClick = onAddContextLink,
+                modifier = Modifier.size(32.dp),
+                shape = CircleShape,
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "Додати контекст",
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+
+        if (contextLinks.isEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(cs.surfaceContainerHigh)
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    Icons.Default.Link,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = cs.onSurfaceVariant,
+                )
+                Text(
+                    text = "Немає зв'язаних контекстів",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = cs.onSurfaceVariant,
+                )
+            }
+            return
+        }
+
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            contextLinks.forEach { context ->
+                Row(
+                    modifier =
+                        Modifier
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable { onOpenContextLink(context.id) }
+                            .background(cs.secondaryContainer.copy(alpha = 0.55f))
+                            .padding(start = 9.dp, top = 5.dp, end = 3.dp, bottom = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Link,
+                        contentDescription = null,
+                        modifier = Modifier.size(15.dp),
+                        tint = cs.onSecondaryContainer,
+                    )
+                    Box(modifier = Modifier.width(140.dp)) {
+                        Text(
+                            text = context.name,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = cs.onSecondaryContainer,
+                        )
+                    }
+                    IconButton(
+                        onClick = { onRemoveContextLink(context.id) },
+                        modifier = Modifier.size(22.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Прибрати контекст",
+                            modifier = Modifier.size(14.dp),
+                            tint = cs.onSecondaryContainer,
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -795,7 +922,34 @@ private fun outlinedFieldColors() = OutlinedTextFieldDefaults.colors(
 )
 
 @Composable
-private fun rememberActions(viewModel: EditTaskViewModel) = EditTaskActions(
+private fun EditTaskContextChooserResultEffect(
+    navController: NavController?,
+    viewModel: EditTaskViewModel,
+) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner, navController) {
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    val savedStateHandle = navController?.currentBackStackEntry?.savedStateHandle
+                    val result = savedStateHandle?.get<String>("list_chooser_result")
+                    if (result != null) {
+                        viewModel.onContextChooserResult(result)
+                        savedStateHandle.remove<String>("list_chooser_result")
+                    }
+                }
+            }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+}
+
+@Composable
+private fun rememberActions(
+    viewModel: EditTaskViewModel,
+    navController: NavController?,
+    uiState: EditTaskUiState,
+) = EditTaskActions(
     onTitleChange = viewModel::onTitleChange,
     onDescriptionChange = viewModel::onDescriptionChange,
     onPointsChange = viewModel::onPointsChange,
@@ -808,4 +962,16 @@ private fun rememberActions(viewModel: EditTaskViewModel) = EditTaskActions(
     onRecurrenceFrequencyChange = viewModel::onRecurrenceFrequencyChange,
     onRecurrenceIntervalChange = viewModel::onRecurrenceIntervalChange,
     onRecurrenceDayOfWeekToggle = viewModel::onRecurrenceDayOfWeekToggle,
+    onAddContextLink = {
+        navController?.navigate(
+            NavigationRoutes.listChooser(
+                title = "Вибрати контекст",
+                disabledIds = uiState.contextLinks.joinToString(",") { it.id }.ifBlank { null },
+            ),
+        )
+    },
+    onOpenContextLink = { contextId ->
+        navController?.navigate(NavigationRoutes.contextDetail(contextId = contextId))
+    },
+    onRemoveContextLink = viewModel::removeContextLink,
 )
