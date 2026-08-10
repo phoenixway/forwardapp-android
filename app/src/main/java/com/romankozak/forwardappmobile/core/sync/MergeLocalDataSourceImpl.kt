@@ -91,6 +91,7 @@ class MergeLocalDataSourceImpl
                 attachments = attachmentDao.getAll(),
                 contextAttachmentCrossRefs = attachmentDao.getAllContextAttachmentCrossRefs(),
                 dayPlans = dayPlanDao.getAllPlansSync(),
+                dayFocusItems = dayFocusItemDao.getAllSync(),
                 dayTasks = dayTaskDao.getAllTasksSync(),
                 dailyMetrics = dailyMetricDao.getAll(),
                 conversations = chatDao.getAllConversationsSync(),
