@@ -4,9 +4,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.runtime.Composable
@@ -33,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -44,6 +47,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.tactical.Tactic
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.actions.InputSuggestionActions
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelGlobalActions
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticsWorkspaceMode
+import com.romankozak.forwardappmobile.features.missions.presentation.TacticalPlanBacklogItem
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalMissionViewModel
 import com.romankozak.forwardappmobile.features.missions.presentation.isInCurrentIteration
 import com.romankozak.forwardappmobile.features.missions.presentation.normalizedMissionStreamId
@@ -63,22 +67,20 @@ fun TacticsBottomPanel(
     val projectOptions by viewModel.projectOptions.collectAsStateWithLifecycle()
     val selectedMode by viewModel.selectedMode.collectAsStateWithLifecycle()
     val missionStreams by viewModel.missionStreams.collectAsStateWithLifecycle()
-    val allMissions by viewModel.missions.collectAsStateWithLifecycle()
-    val tacticalIterations by viewModel.tacticalIterations.collectAsStateWithLifecycle()
-    val activeIteration by viewModel.activeIteration.collectAsStateWithLifecycle()
     val recentMissionStreams by viewModel.recentMissionStreams.collectAsStateWithLifecycle()
     val selectedMissionStreamId by viewModel.selectedMissionStreamId.collectAsStateWithLifecycle()
     val missionStreamCounts by viewModel.missionStreamCounts.collectAsStateWithLifecycle()
+    val activeIteration by viewModel.activeIteration.collectAsStateWithLifecycle()
     val iterationDurationDays by viewModel.iterationDurationDays.collectAsStateWithLifecycle()
     val iterationDurationHours by viewModel.iterationDurationHours.collectAsStateWithLifecycle()
     val activitySlotContexts by viewModel.activitySlotContexts.collectAsStateWithLifecycle()
     val selectedPlanningContextId by viewModel.selectedPlanningContextId.collectAsStateWithLifecycle()
+    val planningBacklogItems by viewModel.planningBacklogItems.collectAsStateWithLifecycle()
     val canPasteAsMissions by viewModel.canPasteAsMissions.collectAsStateWithLifecycle()
     val inputSuggestionActions = remember { InputSuggestionActions() }
     var inputValue by remember { mutableStateOf(TextFieldValue("")) }
     var showContextPicker by remember { mutableStateOf(false) }
-    var showIterationDurationDialog by remember { mutableStateOf(false) }
-    var showIterationArchiveSheet by remember { mutableStateOf(false) }
+    var showBacklogBrowser by remember { mutableStateOf(false) }
     val autocompleteSuggestions =
         remember(inputValue, allTags, contextMarkerNames) {
             inputSuggestionActions.buildSuggestions(
@@ -131,6 +133,7 @@ fun TacticsBottomPanel(
         allMissionStreams = missionStreams,
         selectedMissionStreamId = selectedMissionStreamId,
         missionStreamCounts = missionStreamCounts,
+        iterationStatus = activeIteration?.status,
         iterationDurationDays = iterationDurationDays,
         iterationDurationHours = iterationDurationHours,
         activitySlotContexts = activitySlotContexts,
@@ -141,13 +144,19 @@ fun TacticsBottomPanel(
         onMissionStreamSelected = viewModel::selectMissionStream,
         onPlanningContextSelected = viewModel::selectPlanningContext,
         onOpenMissionStreamsSheet = viewModel::openMissionStreamsSheet,
+        onBrowseBacklogSource = { showBacklogBrowser = true },
         onPasteMissions = viewModel::pasteClipboardAsMissions,
-        onSetIterationDuration = { showIterationDurationDialog = true },
-        onOpenIterationArchive = { showIterationArchiveSheet = true },
-        onStartTimeboxedIteration = viewModel::startTimeboxedIteration,
-        onStartOpenEndedIteration = viewModel::startOpenEndedIteration,
         globalActions = globalActions,
     )
+
+    if (showBacklogBrowser && selectedPlanningContextId != null) {
+        TacticsBacklogBrowserSheet(
+            planningBacklogItems = planningBacklogItems,
+            selectedMissionStreamTitle = selectedStreamName,
+            onTakeBacklogItem = viewModel::createMissionFromBacklogItem,
+            onDismiss = { showBacklogBrowser = false },
+        )
+    }
 
     TacticsContextPickerHost(
         visible = showContextPicker,
@@ -158,46 +167,119 @@ fun TacticsBottomPanel(
             showContextPicker = false
         },
     )
+}
 
-    if (showIterationDurationDialog) {
-        TacticalIterationDurationDialog(
-            currentDays = iterationDurationDays,
-            currentHours = iterationDurationHours,
-            onDismiss = { showIterationDurationDialog = false },
-            onSave = { days, hours ->
-                viewModel.setIterationDuration(days, hours)
-                showIterationDurationDialog = false
-            },
-            onClear = {
-                viewModel.setIterationDuration(null, null)
-                showIterationDurationDialog = false
-            },
-        )
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TacticsBacklogBrowserSheet(
+    planningBacklogItems: List<TacticalPlanBacklogItem>,
+    selectedMissionStreamTitle: String?,
+    onTakeBacklogItem: (TacticalPlanBacklogItem) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = "Backlog source",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = "Target stream: ${selectedMissionStreamTitle ?: "General"}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            HorizontalDivider()
+            if (planningBacklogItems.isEmpty()) {
+                Text(
+                    text = "No backlog items",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 24.dp),
+                )
+            } else {
+                LazyColumn(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 520.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(planningBacklogItems, key = { it.item.id }) { planItem ->
+                        TacticsBacklogBrowserItem(
+                            planItem = planItem,
+                            onTake = { onTakeBacklogItem(planItem) },
+                        )
+                    }
+                }
+            }
+        }
     }
+}
 
-    if (showIterationArchiveSheet) {
-        TacticalIterationArchiveSheet(
-            missions = allMissions,
-            missionStreams = missionStreams,
-            iterations = tacticalIterations,
-            activeIterationId = activeIteration?.id,
-            currentWeekKey = viewModel.currentWeekKey,
-            actions =
-                ArchivedMissionActions(
-                    onMoveToCurrentIteration = viewModel::moveMissionToCurrentIteration,
-                    onComplete = viewModel::completeMission,
-                    onPause = viewModel::pauseMission,
-                    onActivate = viewModel::activateMission,
-                    onDelete = { mission -> viewModel.deleteMission(mission.id) },
-                ),
-            onDismiss = { showIterationArchiveSheet = false },
-        )
+@Composable
+private fun TacticsBacklogBrowserItem(
+    planItem: TacticalPlanBacklogItem,
+    onTake: () -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = RoundedCornerShape(14.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = planItem.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (!planItem.description.isNullOrBlank()) {
+                    Text(
+                        text = planItem.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (planItem.alreadyInWeek) {
+                    Text(
+                        text = "Already added",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+            TextButton(
+                enabled = !planItem.alreadyInWeek,
+                onClick = onTake,
+            ) {
+                Text("Take")
+            }
+        }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TacticalIterationArchiveSheet(
+internal fun TacticalIterationArchiveSheet(
     missions: List<TacticalMission>,
     missionStreams: List<MissionStream>,
     iterations: List<TacticalIteration>,
@@ -423,7 +505,7 @@ private data class ArchivedTacticalStreamUi(
     val missions: List<TacticalMission>,
 )
 
-private data class ArchivedMissionActions(
+internal data class ArchivedMissionActions(
     val onMoveToCurrentIteration: (TacticalMission) -> Unit,
     val onComplete: (TacticalMission) -> Unit,
     val onPause: (TacticalMission) -> Unit,
@@ -462,7 +544,7 @@ private const val MAX_DAYS_DIGITS = 3
 private const val MAX_HOURS_DIGITS = 4
 
 @Composable
-private fun TacticalIterationDurationDialog(
+internal fun TacticalIterationDurationDialog(
     currentDays: Int?,
     currentHours: Int?,
     onDismiss: () -> Unit,
@@ -483,11 +565,11 @@ private fun TacticalIterationDurationDialog(
                 OutlinedTextField(
                     value = daysText,
                     onValueChange = { daysText = it.filter(Char::isDigit).take(MAX_DAYS_DIGITS) },
-                    label = { Text("Днів від сьогодні") },
+                    label = { Text("Тривалість у днях") },
                     placeholder = { Text("7") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    supportingText = { Text("Дні задають дедлайн тактичної ітерації.") },
+                    supportingText = { Text("У DRAFT це планова тривалість, дедлайн з'явиться після старту.") },
                 )
                 OutlinedTextField(
                     value = hoursText,

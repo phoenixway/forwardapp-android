@@ -44,28 +44,29 @@ interface DayTaskDao {
     @Query("SELECT * FROM day_tasks WHERE projectId = :projectId ORDER BY createdAt DESC")
     fun getTasksForProject(projectId: String): Flow<List<DayTask>>
 
-    @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId AND status = :status ORDER BY `order` ASC")
+    @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId AND status = :status AND isDeleted = 0 ORDER BY `order` ASC")
     fun getTasksByStatus(
         dayPlanId: String,
         status: TaskStatus,
     ): Flow<List<DayTask>>
 
-    @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId AND priority = :priority ORDER BY `order` ASC")
+    @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId AND priority = :priority AND isDeleted = 0 ORDER BY `order` ASC")
     fun getTasksByPriority(
         dayPlanId: String,
         priority: TaskPriority,
     ): Flow<List<DayTask>>
 
-    @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId AND completed = 1 ORDER BY completedAt DESC")
+    @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId AND completed = 1 AND isDeleted = 0 ORDER BY completedAt DESC")
     fun getCompletedTasks(dayPlanId: String): Flow<List<DayTask>>
 
-    @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId AND completed = 0 ORDER BY `order` ASC, priority DESC")
+    @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId AND completed = 0 AND isDeleted = 0 ORDER BY `order` ASC, priority DESC")
     fun getPendingTasks(dayPlanId: String): Flow<List<DayTask>>
 
     @Query(
         """
         SELECT * FROM day_tasks
         WHERE scheduledTime IS NOT NULL
+          AND isDeleted = 0
           AND scheduledTime BETWEEN :startTime AND :endTime
         ORDER BY scheduledTime ASC
         """,
@@ -78,27 +79,30 @@ interface DayTaskDao {
     @Query("DELETE FROM day_tasks WHERE dayPlanId = :dayPlanId")
     suspend fun clearTasksForDay(dayPlanId: String)
 
-    @Query("SELECT COUNT(*) FROM day_tasks WHERE dayPlanId = :dayPlanId")
+    @Query("SELECT COUNT(*) FROM day_tasks WHERE dayPlanId = :dayPlanId AND isDeleted = 0")
     suspend fun getTaskCountForDay(dayPlanId: String): Int
 
-    @Query("SELECT COUNT(*) FROM day_tasks WHERE dayPlanId = :dayPlanId AND completed = 1")
+    @Query("SELECT COUNT(*) FROM day_tasks WHERE dayPlanId = :dayPlanId AND completed = 1 AND isDeleted = 0")
     suspend fun getCompletedTaskCountForDay(dayPlanId: String): Int
 
     @Query(
         """
         SELECT * FROM day_tasks 
-        WHERE title LIKE '%' || :query || '%' 
-        OR description LIKE '%' || :query || '%' 
-        OR notes LIKE '%' || :query || '%'
+        WHERE isDeleted = 0
+        AND (
+            title LIKE '%' || :query || '%'
+            OR description LIKE '%' || :query || '%'
+            OR notes LIKE '%' || :query || '%'
+        )
         ORDER BY createdAt DESC
     """,
     )
     suspend fun searchTasks(query: String): List<DayTask>
 
-    @Query("SELECT MAX(`order`) FROM day_tasks WHERE dayPlanId = :dayPlanId")
+    @Query("SELECT MAX(`order`) FROM day_tasks WHERE dayPlanId = :dayPlanId AND isDeleted = 0")
     suspend fun getMaxOrderForDayPlan(dayPlanId: String): Long?
 
-    @Query("SELECT MIN(`order`) FROM day_tasks WHERE dayPlanId = :dayPlanId")
+    @Query("SELECT MIN(`order`) FROM day_tasks WHERE dayPlanId = :dayPlanId AND isDeleted = 0")
     suspend fun getMinOrderForDayPlan(dayPlanId: String): Long?
 
     @Query(
@@ -117,10 +121,10 @@ interface DayTaskDao {
         updatedAt: Long,
     )
 
-    @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId ORDER BY completed ASC, `order` ASC, title ASC")
+    @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId AND isDeleted = 0 ORDER BY completed ASC, `order` ASC, title ASC")
     suspend fun getTasksForDaySync(dayPlanId: String): List<DayTask>
 
-    @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId ORDER BY completed ASC, `order` ASC, title ASC")
+    @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId AND isDeleted = 0 ORDER BY completed ASC, `order` ASC, title ASC")
     fun getTasksForDay(dayPlanId: String): Flow<List<DayTask>>
 
     @Query(
@@ -175,10 +179,10 @@ interface DayTaskDao {
         updatedAt: Long,
     )
 
-    @Query("SELECT * FROM day_tasks WHERE recurringTaskId = :recurringTaskId ORDER BY createdAt DESC LIMIT 1")
+    @Query("SELECT * FROM day_tasks WHERE recurringTaskId = :recurringTaskId AND isDeleted = 0 ORDER BY createdAt DESC LIMIT 1")
     suspend fun findTemplateForRecurringTask(recurringTaskId: String): DayTask?
 
-    @Query("SELECT * FROM day_tasks WHERE recurringTaskId = :recurringTaskId AND dayPlanId = :dayPlanId LIMIT 1")
+    @Query("SELECT * FROM day_tasks WHERE recurringTaskId = :recurringTaskId AND dayPlanId = :dayPlanId AND isDeleted = 0 LIMIT 1")
     suspend fun findByRecurringIdAndDate(
         recurringTaskId: String,
         dayPlanId: String,

@@ -235,14 +235,20 @@ class WifiSyncServer(
                                     Log.d(DEBUG_TAG, "[WifiSyncServer] /import dump head=${body.take(400)}")
                                 }
                                 val backup = gson.fromJson(body, FullAppBackup::class.java)
-                                val db =
-                                    backup.database ?: return@post call.respond(
+                                val snapshotBundle = backup.snapshotBundle
+                                val db = backup.database
+                                if (snapshotBundle == null && db == null) {
+                                    return@post call.respond(
                                         HttpStatusCode.Companion.BadRequest,
-                                        "Database section is missing",
+                                        "Database or snapshotBundle section is missing",
                                     )
+                                }
 
                                 withContext(NonCancellable) {
-                                    syncRepository.applyServerChanges(db)
+                                    when {
+                                        snapshotBundle != null -> syncRepository.applyServerChanges(snapshotBundle)
+                                        db != null -> syncRepository.applyServerChanges(db)
+                                    }
                                     backup.settings?.settings?.let { settings ->
                                         try {
                                             settingsRepository.restoreFromMap(settings)

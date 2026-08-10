@@ -22,7 +22,7 @@ interface TacticalIterationDao {
     @Query(
         """
         SELECT * FROM tactical_iterations
-        WHERE status = 'ACTIVE' AND is_deleted = 0
+        WHERE status IN ('DRAFT', 'ACTIVE') AND is_deleted = 0
         ORDER BY started_at DESC, created_at DESC
         LIMIT 1
         """,
@@ -37,6 +37,22 @@ interface TacticalIterationDao {
 
     @Update
     suspend fun update(iteration: TacticalIteration)
+
+    @Query(
+        """
+        UPDATE tactical_iterations
+        SET status = 'ACTIVE',
+            started_at = :startedAt,
+            updated_at = :startedAt,
+            synced_at = NULL,
+            version = version + 1
+        WHERE id = :iterationId
+        """,
+    )
+    suspend fun startIteration(
+        iterationId: String,
+        startedAt: Long,
+    )
 
     @Query(
         """

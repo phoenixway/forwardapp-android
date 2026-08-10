@@ -441,6 +441,7 @@ class FullBackupLocalDataSourceImpl
                     },
                 linkItemEntities = linkItemDao.getAllRaw(),
                 dayPlans = dayPlanDao.getAllPlansSync(),
+                dayFocusItems = dayFocusItemDao.getAllSync(),
                 dayTasks = dayTaskDao.getAllTasksSync(),
                 dailyMetrics = dailyMetricDao.getAll(),
                 conversations = chatDao.getAllConversationsSync(),

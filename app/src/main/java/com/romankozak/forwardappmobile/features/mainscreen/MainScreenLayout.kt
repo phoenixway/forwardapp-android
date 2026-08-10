@@ -61,6 +61,7 @@ import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material.icons.outlined.Today
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIterationStatus
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
@@ -82,11 +83,13 @@ import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.CoreBott
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.DashboardBottomPanel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.StrategicArcBottomPanel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.StrategyBottomPanel
+import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.TacticsExecutionStreamPanel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.TacticsBottomPanel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.TodayBottomPanel
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelGlobalActions
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalManagementScreen
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalMissionViewModel
+import com.romankozak.forwardappmobile.features.missions.presentation.TacticsWorkspaceMode
 import com.romankozak.forwardappmobile.features.mainscreen.session.SessionModeState
 import com.romankozak.forwardappmobile.features.recent.RecentViewModel
 import com.romankozak.forwardappmobile.features.strategicmanagement.StrategicManagementScreen
@@ -717,6 +720,18 @@ private fun MainScreenBottomBar(
 ) {
     val contextUiState by contextHierarchyViewModel.uiState.collectAsStateWithLifecycle()
     val dayManagementUiState by dayManagementViewModel.uiState.collectAsStateWithLifecycle()
+    val tacticalActiveIteration by tacticalMissionViewModel.activeIteration.collectAsStateWithLifecycle()
+    val tacticalSelectedMode by tacticalMissionViewModel.selectedMode.collectAsStateWithLifecycle()
+    val tacticalMissionStreams by tacticalMissionViewModel.missionStreams.collectAsStateWithLifecycle()
+    val tacticalRecentMissionStreams by tacticalMissionViewModel.recentMissionStreams.collectAsStateWithLifecycle()
+    val tacticalSelectedMissionStreamId by
+        tacticalMissionViewModel.selectedMissionStreamId.collectAsStateWithLifecycle()
+    val tacticalMissionStreamCounts by tacticalMissionViewModel.missionStreamCounts.collectAsStateWithLifecycle()
+    val tacticalIterationDurationDays by tacticalMissionViewModel.iterationDurationDays.collectAsStateWithLifecycle()
+    val tacticalIterationDurationHours by tacticalMissionViewModel.iterationDurationHours.collectAsStateWithLifecycle()
+    val isTacticalExecution =
+        currentRoute == MAIN_SCREEN_TACTICS_ROUTE &&
+            tacticalActiveIteration?.status == TacticalIterationStatus.ACTIVE
     val globalActions =
         BottomPanelGlobalActions(
             onNavigateToProjectHierarchy = onNavigateToProjectHierarchy,
@@ -776,10 +791,31 @@ private fun MainScreenBottomBar(
                 dayFocusesViewModel = dayFocusesViewModel,
             )
         MAIN_SCREEN_TACTICS_ROUTE ->
-            TacticsBottomPanel(
-                globalActions = globalActions,
-                viewModel = tacticalMissionViewModel,
-            )
+            if (isTacticalExecution) {
+                Column {
+                    TacticsExecutionStreamPanel(
+                        selectedMode = tacticalSelectedMode,
+                        missionStreams = tacticalRecentMissionStreams,
+                        allMissionStreams = tacticalMissionStreams,
+                        selectedMissionStreamId = tacticalSelectedMissionStreamId,
+                        missionStreamCounts = tacticalMissionStreamCounts,
+                        iterationDurationDays = tacticalIterationDurationDays,
+                        iterationDurationHours = tacticalIterationDurationHours,
+                        onModeSelected = tacticalMissionViewModel::selectMode,
+                        onMissionStreamSelected = tacticalMissionViewModel::selectMissionStream,
+                        onOpenMissionStreamsSheet = tacticalMissionViewModel::openMissionStreamsSheet,
+                    )
+                    DashboardBottomPanel(
+                        globalActions = globalActions,
+                        recentViewModel = recentViewModel,
+                    )
+                }
+            } else {
+                TacticsBottomPanel(
+                    globalActions = globalActions,
+                    viewModel = tacticalMissionViewModel,
+                )
+            }
         MAIN_SCREEN_STRATEGIC_ARC_ROUTE ->
             StrategicArcBottomPanel(
                 globalActions = globalActions,

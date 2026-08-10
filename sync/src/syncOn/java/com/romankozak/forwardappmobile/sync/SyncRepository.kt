@@ -99,6 +99,12 @@ class SyncRepository @Inject constructor(
         return result
     }
 
+    suspend fun applyServerChanges(changes: SnapshotBundle): Result<Unit> {
+        val result = mergeRepository.applyServerChanges(changes)
+        systemContextEnsurer.ensureAllSystemContextsExist()
+        return result
+    }
+
     override suspend fun createBackupDiff(incoming: DatabaseContent): LegacyBackupDiff =
         mergeRepository.createBackupDiff(incoming)
 

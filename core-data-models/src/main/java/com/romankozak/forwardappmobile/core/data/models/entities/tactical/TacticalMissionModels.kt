@@ -109,6 +109,7 @@ data class TacticalMission(
 fun TacticalMission.hasDeadline(): Boolean = deadline != NO_DEADLINE
 
 enum class TacticalIterationStatus {
+    DRAFT,
     ACTIVE,
     CLOSED,
     ARCHIVED,

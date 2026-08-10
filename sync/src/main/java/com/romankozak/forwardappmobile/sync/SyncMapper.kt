@@ -63,6 +63,7 @@ object SyncMapper {
             recentProjectEntries = legacy.recentProjectEntries.map { it.toSnapshot() },
             linkItemEntities = legacy.linkItemEntities.map { it.toSnapshot() },
             dayPlans = legacy.dayPlans.map { it.toSnapshot() },
+            dayFocusItems = legacy.dayFocusItems.map { it.toSnapshot() },
             dayTasks = legacy.dayTasks.map { it.toSnapshot() },
             dailyMetrics = legacy.dailyMetrics.map { it.toSnapshot() },
             conversations = legacy.conversations.map { it.toSnapshot() },

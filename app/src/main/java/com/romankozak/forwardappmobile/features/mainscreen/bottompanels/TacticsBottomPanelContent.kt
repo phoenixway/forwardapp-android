@@ -17,8 +17,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.ContentPaste
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.DropdownMenu
@@ -42,13 +43,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStream
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIterationStatus
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.AutocompleteSuggestions
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelActionRow
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelComposer
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelGlobalActions
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelGlobalRail
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelIconButton
-import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.MoreSheetAction
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.BottomPanelTokens
 import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.bottomPanelColors
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
@@ -73,6 +74,7 @@ internal fun TacticsBottomPanelContent(
     allMissionStreams: List<MissionStream>,
     selectedMissionStreamId: String,
     missionStreamCounts: Map<String, Int>,
+    iterationStatus: TacticalIterationStatus?,
     iterationDurationDays: Int?,
     iterationDurationHours: Int?,
     activitySlotContexts: List<Context>,
@@ -83,13 +85,11 @@ internal fun TacticsBottomPanelContent(
     onMissionStreamSelected: (String) -> Unit,
     onPlanningContextSelected: (String?) -> Unit,
     onOpenMissionStreamsSheet: () -> Unit,
+    onBrowseBacklogSource: () -> Unit,
     onPasteMissions: () -> Unit,
-    onSetIterationDuration: () -> Unit,
-    onOpenIterationArchive: () -> Unit,
-    onStartTimeboxedIteration: () -> Unit,
-    onStartOpenEndedIteration: () -> Unit,
     globalActions: BottomPanelGlobalActions,
 ) {
+    var isControlPanelExpanded by remember { mutableStateOf(true) }
     CommonBottomPanelLayout {
         Column(
             modifier =
@@ -110,15 +110,21 @@ internal fun TacticsBottomPanelContent(
                 selectedPlanningContextId = selectedPlanningContextId,
                 projectOptions = projectOptions,
                 canPasteAsMissions = canPasteAsMissions,
+                isExpanded = isControlPanelExpanded,
                 onModeSelected = onModeSelected,
                 onMissionStreamSelected = onMissionStreamSelected,
                 onPlanningContextSelected = onPlanningContextSelected,
+                onExpandedChange = { isControlPanelExpanded = it },
                 onOpenMissionStreamsSheet = onOpenMissionStreamsSheet,
+                onBrowseBacklogSource = onBrowseBacklogSource,
                 onPasteMissions = onPasteMissions,
             )
 
             TacticsComposerPanel {
-                TacticalIterationDeadlineLine(iterationDurationDays = iterationDurationDays)
+                TacticalIterationDeadlineLine(
+                    iterationStatus = iterationStatus,
+                    iterationDurationDays = iterationDurationDays,
+                )
                 BottomPanelActionRow(
                     leadingContent = {
                         BottomPanelIconButton(
@@ -135,25 +141,6 @@ internal fun TacticsBottomPanelContent(
                     trailingContent = {
                         BottomPanelGlobalRail(
                             actions = globalActions,
-                            additionalActions =
-                                listOf(
-                                    MoreSheetAction(
-                                        label = "Минулі ітерації",
-                                        onClick = onOpenIterationArchive,
-                                    ),
-                                    MoreSheetAction(
-                                        label = "Нова тижнева ітерація",
-                                        onClick = onStartTimeboxedIteration,
-                                    ),
-                                    MoreSheetAction(
-                                        label = "Нова відкрита ітерація",
-                                        onClick = onStartOpenEndedIteration,
-                                    ),
-                                    MoreSheetAction(
-                                        label = "Вказати тривалість тактичної ітерації",
-                                        onClick = onSetIterationDuration,
-                                    ),
-                                ),
                         )
                     },
                 )
@@ -177,6 +164,52 @@ internal fun TacticsBottomPanelContent(
 }
 
 @Composable
+internal fun TacticsExecutionStreamPanel(
+    selectedMode: TacticsWorkspaceMode,
+    missionStreams: List<MissionStream>,
+    allMissionStreams: List<MissionStream>,
+    selectedMissionStreamId: String,
+    missionStreamCounts: Map<String, Int>,
+    iterationDurationDays: Int?,
+    iterationDurationHours: Int?,
+    onModeSelected: (TacticsWorkspaceMode) -> Unit,
+    onMissionStreamSelected: (String) -> Unit,
+    onOpenMissionStreamsSheet: () -> Unit,
+) {
+    var isExpanded by remember { mutableStateOf(true) }
+    TacticsControlPanel(
+        selectedMode =
+            if (selectedMode == TacticsWorkspaceMode.PLAN) {
+                TacticsWorkspaceMode.STREAMS
+            } else {
+                selectedMode
+            },
+        missionStreams = missionStreams,
+        allMissionStreams = allMissionStreams,
+        selectedMissionStreamId = selectedMissionStreamId,
+        missionStreamCounts = missionStreamCounts,
+        iterationDurationDays = iterationDurationDays,
+        iterationDurationHours = iterationDurationHours,
+        activitySlotContexts = emptyList(),
+        selectedPlanningContextId = null,
+        projectOptions = emptyList(),
+        canPasteAsMissions = false,
+        isExpanded = isExpanded,
+        onModeSelected = { mode ->
+            if (mode != TacticsWorkspaceMode.PLAN) {
+                onModeSelected(mode)
+            }
+        },
+        onMissionStreamSelected = onMissionStreamSelected,
+        onPlanningContextSelected = {},
+        onExpandedChange = { isExpanded = it },
+        onOpenMissionStreamsSheet = onOpenMissionStreamsSheet,
+        onBrowseBacklogSource = {},
+        onPasteMissions = {},
+    )
+}
+
+@Composable
 private fun TacticsControlPanel(
     selectedMode: TacticsWorkspaceMode,
     missionStreams: List<MissionStream>,
@@ -189,10 +222,13 @@ private fun TacticsControlPanel(
     selectedPlanningContextId: String?,
     projectOptions: List<ProjectOption>,
     canPasteAsMissions: Boolean,
+    isExpanded: Boolean,
     onModeSelected: (TacticsWorkspaceMode) -> Unit,
     onMissionStreamSelected: (String) -> Unit,
     onPlanningContextSelected: (String?) -> Unit,
+    onExpandedChange: (Boolean) -> Unit,
     onOpenMissionStreamsSheet: () -> Unit,
+    onBrowseBacklogSource: () -> Unit,
     onPasteMissions: () -> Unit,
 ) {
     val colors = bottomPanelColors()
@@ -236,62 +272,131 @@ private fun TacticsControlPanel(
                     .padding(horizontal = 8.dp, vertical = 6.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                TacticsModeSegmentedSwitch(
-                    streamCount = missionStreams.size,
+            if (isExpanded) {
+                TacticsControlExpandedHeader(
+                    missionStreams = missionStreams,
                     selectedMode = selectedMode,
+                    canPasteAsMissions = canPasteAsMissions,
                     onModeSelected = onModeSelected,
+                    onPasteMissions = onPasteMissions,
+                    onOpenMissionStreamsSheet = onOpenMissionStreamsSheet,
+                    onCollapse = { onExpandedChange(false) },
                 )
-                Spacer(modifier = Modifier.weight(1f))
-                if (canPasteAsMissions) {
-                    TacticsRoundActionButton(
-                        icon = Icons.Outlined.ContentPaste,
-                        contentDescription = "Вставити в потік",
-                        onClick = onPasteMissions,
-                    )
-                }
-                TacticsRoundActionButton(
-                    icon = Icons.Outlined.Checklist,
-                    contentDescription = "План тижня",
-                    selected = selectedMode == TacticsWorkspaceMode.PLAN,
-                    onClick = { onModeSelected(TacticsWorkspaceMode.PLAN) },
-                )
-                TacticsRoundActionButton(
-                    icon = Icons.Outlined.Settings,
-                    contentDescription = "Керувати потоками",
-                    filled = false,
-                    onClick = onOpenMissionStreamsSheet,
-                )
-            }
 
-            when (selectedMode) {
-                TacticsWorkspaceMode.STREAMS ->
-                    MissionStreamChipRow(
-                        streams = streamItems,
-                        allStreams = allStreamItems,
-                        selectedMissionStreamId = selectedMissionStreamId,
-                        iterationDurationDays = iterationDurationDays,
-                        iterationDurationHours = iterationDurationHours,
-                        isBudgetOverLimit = isBudgetOverLimit,
-                        onMissionStreamSelected = onMissionStreamSelected,
-                    )
-                TacticsWorkspaceMode.PLAN ->
-                    TacticsPlanControlRows(
-                        missionStreams = missionStreams,
-                        selectedMissionStreamId = selectedMissionStreamId,
-                        activitySlotContexts = activitySlotContexts,
-                        selectedPlanningContextId = selectedPlanningContextId,
-                        projectOptions = projectOptions,
-                        onMissionStreamSelected = onMissionStreamSelected,
-                        onPlanningContextSelected = onPlanningContextSelected,
-                    )
-                TacticsWorkspaceMode.ALL -> Unit
+                when (selectedMode) {
+                    TacticsWorkspaceMode.STREAMS ->
+                        MissionStreamChipRow(
+                            streams = streamItems,
+                            allStreams = allStreamItems,
+                            selectedMissionStreamId = selectedMissionStreamId,
+                            iterationDurationDays = iterationDurationDays,
+                            iterationDurationHours = iterationDurationHours,
+                            isBudgetOverLimit = isBudgetOverLimit,
+                            onMissionStreamSelected = onMissionStreamSelected,
+                        )
+                    TacticsWorkspaceMode.PLAN ->
+                        TacticsPlanControlRows(
+                            missionStreams = missionStreams,
+                            selectedMissionStreamId = selectedMissionStreamId,
+                            activitySlotContexts = activitySlotContexts,
+                            selectedPlanningContextId = selectedPlanningContextId,
+                            projectOptions = projectOptions,
+                            onMissionStreamSelected = onMissionStreamSelected,
+                            onPlanningContextSelected = onPlanningContextSelected,
+                            onBrowseBacklogSource = onBrowseBacklogSource,
+                        )
+                    TacticsWorkspaceMode.ALL -> Unit
+                }
+            } else {
+                TacticsControlCollapsedHeader(
+                    selectedMode = selectedMode,
+                    selectedStreamTitle =
+                        allMissionStreams.firstOrNull { it.id == selectedMissionStreamId }?.title,
+                    selectedPlanningContextTitle =
+                        resolvePlanningContextTitle(
+                            selectedPlanningContextId = selectedPlanningContextId,
+                            activitySlotContexts = activitySlotContexts,
+                            projectOptions = projectOptions,
+                        ),
+                    onExpand = { onExpandedChange(true) },
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun TacticsControlExpandedHeader(
+    missionStreams: List<MissionStream>,
+    selectedMode: TacticsWorkspaceMode,
+    canPasteAsMissions: Boolean,
+    onModeSelected: (TacticsWorkspaceMode) -> Unit,
+    onPasteMissions: () -> Unit,
+    onOpenMissionStreamsSheet: () -> Unit,
+    onCollapse: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        TacticsModeSegmentedSwitch(
+            streamCount = missionStreams.size,
+            selectedMode = selectedMode,
+            onModeSelected = onModeSelected,
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        if (canPasteAsMissions) {
+            TacticsRoundActionButton(
+                icon = Icons.Outlined.ContentPaste,
+                contentDescription = "Вставити в потік",
+                onClick = onPasteMissions,
+            )
+        }
+        TacticsRoundActionButton(
+            icon = Icons.Outlined.Settings,
+            contentDescription = "Керувати потоками",
+            filled = false,
+            onClick = onOpenMissionStreamsSheet,
+        )
+        TacticsRoundActionButton(
+            icon = Icons.Outlined.ExpandMore,
+            contentDescription = "Згорнути панель",
+            filled = false,
+            onClick = onCollapse,
+        )
+    }
+}
+
+@Composable
+private fun TacticsControlCollapsedHeader(
+    selectedMode: TacticsWorkspaceMode,
+    selectedStreamTitle: String?,
+    selectedPlanningContextTitle: String?,
+    onExpand: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = buildCollapsedTacticsPanelSummary(
+                selectedMode = selectedMode,
+                selectedStreamTitle = selectedStreamTitle,
+                selectedPlanningContextTitle = selectedPlanningContextTitle,
+            ),
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.labelMedium,
+        )
+        TacticsRoundActionButton(
+            icon = Icons.Outlined.ExpandLess,
+            contentDescription = "Розгорнути панель",
+            filled = false,
+            onClick = onExpand,
+        )
     }
 }
 
@@ -615,13 +720,24 @@ private fun MissionStreamBudgetBadge(
 }
 
 @Composable
-private fun TacticalIterationDeadlineLine(iterationDurationDays: Int?) {
-    val deadline =
-        iterationDurationDays
-            ?.takeIf { it > 0 }
-            ?.let(::calculateTacticalIterationDeadlineMillis)
-            ?: return
+private fun TacticalIterationDeadlineLine(
+    iterationStatus: TacticalIterationStatus?,
+    iterationDurationDays: Int?,
+) {
+    val durationDays = iterationDurationDays?.takeIf { it > 0 } ?: return
     val colors = bottomPanelColors()
+    if (iterationStatus != TacticalIterationStatus.ACTIVE) {
+        Text(
+            text = "Тривалість: $durationDays дн після старту циклу",
+            modifier = Modifier.padding(horizontal = BottomPanelTokens.ContentHorizontalPadding),
+            style = MaterialTheme.typography.labelSmall,
+            color = colors.mutedContent,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        return
+    }
+    val deadline = calculateTacticalIterationDeadlineMillis(durationDays)
     val now = System.currentTimeMillis()
     val isUrgent = deadline - now <= 24L * 60L * 60L * 1000L
     val textColor =
@@ -678,37 +794,74 @@ private fun TacticsPlanControlRows(
     projectOptions: List<ProjectOption>,
     onMissionStreamSelected: (String) -> Unit,
     onPlanningContextSelected: (String?) -> Unit,
+    onBrowseBacklogSource: () -> Unit,
 ) {
     val streamOptions = missionStreams.map { PlanSelectorOption(it.id, it.title) }
     val sourceOptions =
         buildList {
+            add(PlanSelectorOption(null, "Text input"))
             activitySlotContexts.forEach { context -> add(PlanSelectorOption(context.id, context.name)) }
             projectOptions.forEach { option -> add(PlanSelectorOption(option.id, option.name)) }
         }.distinctBy { it.id }
     val selectedStreamTitle =
         streamOptions.firstOrNull { it.id == selectedMissionStreamId }?.title ?: "Не вибрано"
     val selectedSourceTitle =
-        sourceOptions.firstOrNull { it.id == selectedPlanningContextId }?.title ?: "Вибрати джерело"
+        sourceOptions.firstOrNull { it.id == selectedPlanningContextId }?.title ?: "Text input"
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         TacticsPlanSelectorRow(
             label = "У потік",
             value = selectedStreamTitle,
             options = streamOptions,
-            onSelected = { option -> onMissionStreamSelected(option.id) },
+            onSelected = { option -> option.id?.let(onMissionStreamSelected) },
         )
-        TacticsPlanSelectorRow(
-            label = "З беклогу",
-            value = selectedSourceTitle,
-            options = sourceOptions,
-            onSelected = { option -> onPlanningContextSelected(option.id) },
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            TacticsPlanSelectorRow(
+                label = "З беклогу",
+                value = selectedSourceTitle,
+                options = sourceOptions,
+                onSelected = { option -> onPlanningContextSelected(option.id) },
+                modifier = Modifier.weight(1f),
+            )
+            TacticsBrowseBacklogButton(
+                enabled = selectedPlanningContextId != null,
+                onClick = onBrowseBacklogSource,
+            )
+        }
     }
 }
 
 private data class PlanSelectorOption(
-    val id: String,
+    val id: String?,
     val title: String,
 )
+
+private fun resolvePlanningContextTitle(
+    selectedPlanningContextId: String?,
+    activitySlotContexts: List<Context>,
+    projectOptions: List<ProjectOption>,
+): String =
+    when {
+        selectedPlanningContextId == null -> "Text input"
+        else ->
+            activitySlotContexts.firstOrNull { it.id == selectedPlanningContextId }?.name
+                ?: projectOptions.firstOrNull { it.id == selectedPlanningContextId }?.name
+                ?: "Backlog"
+    }
+
+private fun buildCollapsedTacticsPanelSummary(
+    selectedMode: TacticsWorkspaceMode,
+    selectedStreamTitle: String?,
+    selectedPlanningContextTitle: String?,
+): String =
+    when (selectedMode) {
+        TacticsWorkspaceMode.STREAMS -> "Streams · ${selectedStreamTitle ?: "General"}"
+        TacticsWorkspaceMode.PLAN -> "Plan · ${selectedPlanningContextTitle ?: "Text input"}"
+        TacticsWorkspaceMode.ALL -> "All missions"
+    }
 
 @Composable
 private fun TacticsPlanSelectorRow(
@@ -716,10 +869,11 @@ private fun TacticsPlanSelectorRow(
     value: String,
     options: List<PlanSelectorOption>,
     onSelected: (PlanSelectorOption) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val colors = bottomPanelColors()
-    Box {
+    Box(modifier = modifier) {
         Surface(
             modifier =
                 Modifier
@@ -776,6 +930,42 @@ private fun TacticsPlanSelectorRow(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun TacticsBrowseBacklogButton(
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val colors = bottomPanelColors()
+    Surface(
+        modifier = Modifier.clickable(enabled = enabled, onClick = onClick),
+        shape = RoundedCornerShape(14.dp),
+        color =
+            if (enabled) {
+                colors.selectedActionContainer.copy(alpha = 0.5f)
+            } else {
+                colors.inputContainer.copy(alpha = 0.38f)
+            },
+        contentColor =
+            if (enabled) {
+                colors.selectedActionContent
+            } else {
+                colors.mutedContent.copy(alpha = 0.6f)
+            },
+        border =
+            BorderStroke(
+                width = 1.dp,
+                color = colors.border.copy(alpha = 0.24f),
+            ),
+    ) {
+        Text(
+            text = "Browse",
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            maxLines = 1,
+            style = MaterialTheme.typography.labelMedium,
+        )
     }
 }
 

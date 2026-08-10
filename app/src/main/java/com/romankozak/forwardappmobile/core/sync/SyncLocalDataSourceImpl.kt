@@ -44,6 +44,7 @@ class SyncLocalDataSourceImpl
         private val attachmentDao: AttachmentDao,
         private val systemAppDao: SystemAppDao,
         private val dayPlanDao: DayPlanDao,
+        private val dayFocusItemDao: DayFocusItemDao,
         private val dayTaskDao: DayTaskDao,
         private val dailyMetricDao: DailyMetricDao,
         private val chatDao: ChatDao,
@@ -92,6 +93,7 @@ class SyncLocalDataSourceImpl
                 attachments = attachmentDao.getAll(),
                 contextAttachmentCrossRefs = attachmentDao.getAllContextAttachmentCrossRefs(),
                 dayPlans = dayPlanDao.getAllPlansSync(),
+                dayFocusItems = dayFocusItemDao.getAllSync(),
                 dayTasks = dayTaskDao.getAllTasksSync(),
                 dailyMetrics = dailyMetricDao.getAll(),
                 conversations = chatDao.getAllConversationsSync(),
@@ -213,6 +215,24 @@ class SyncLocalDataSourceImpl
                         updatedAt = { it.updatedTs() },
                         isDeleted = { it.isDeleted },
                     ),
+                dayPlans =
+                    local.dayPlans.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedAt ?: it.createdAt },
+                        isDeleted = { it.isDeleted },
+                    ),
+                dayFocusItems =
+                    local.dayFocusItems.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedAt ?: it.createdAt },
+                        isDeleted = { it.isDeleted },
+                    ),
+                dayTasks =
+                    local.dayTasks.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedAt ?: it.createdAt },
+                        isDeleted = { it.isDeleted },
+                    ),
             )
         }
 
@@ -233,6 +253,7 @@ class SyncLocalDataSourceImpl
                 focusContextIntervals = local.focusContextIntervals.filter { it.startedAt > timestamp || (it.endedAt ?: 0L) > timestamp },
                 userStateIntervals = local.userStateIntervals.filter { it.startedAt > timestamp || (it.endedAt ?: 0L) > timestamp },
                 dayPlans = local.dayPlans.filter { (it.updatedAt ?: it.createdAt) > timestamp },
+                dayFocusItems = local.dayFocusItems.filter { (it.updatedAt ?: it.createdAt) > timestamp },
                 dayTasks = local.dayTasks.filter { (it.updatedAt ?: it.createdAt) > timestamp },
                 dailyMetrics = local.dailyMetrics.filter { (it.updatedAt ?: it.createdAt) > timestamp },
                 conversations = local.conversations.filter { it.creationTimestamp > timestamp },
@@ -281,6 +302,9 @@ class SyncLocalDataSourceImpl
                 content.scripts.forEach { scriptDao.insert(it.copy(syncedAt = ts)) }
                 attachmentDao.insertAttachments(content.attachments.map { it.copy(syncedAt = ts) })
                 attachmentDao.insertContextAttachmentLinks(content.contextAttachmentCrossRefs.map { it.copy(syncedAt = ts) })
+                dayPlanDao.insertPlans(content.dayPlans.map { it.copy(syncedAt = ts) })
+                dayFocusItemDao.insertAll(content.dayFocusItems.map { it.copy(syncedAt = ts) })
+                dayTaskDao.insertTasks(content.dayTasks.map { it.copy(syncedAt = ts) })
             }
         }
 

@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.missions.presentation
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -7,6 +8,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,12 +24,15 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ChevronRight
@@ -36,6 +42,7 @@ import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Today
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -73,6 +80,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -80,8 +88,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStream
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIteration
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIterationStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIterationType
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.features.mainscreen.CommandDeckFabDefaults
+import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.ArchivedMissionActions
+import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.TacticalIterationArchiveSheet
+import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.TacticalIterationDurationDialog
 import com.romankozak.forwardappmobile.features.missions.presentation.missionlist.TacticalMissionList
 import com.romankozak.forwardappmobile.features.missions.presentation.missionlist.TacticalMissionListCallbacks
 import com.romankozak.forwardappmobile.features.missions.presentation.missionlist.TacticalMissionListLookups
@@ -95,8 +109,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 private const val LINK_PICKER_OPEN_DELAY_MS = 160L
+private const val FINISH_SHEET_UNFINISHED_LIMIT = 5
+private const val MILLIS_PER_DAY = 24L * 60L * 60L * 1000L
 
 private data class TacticalManagementUiState(
     val editingMission: TacticalMission?,
@@ -139,13 +158,14 @@ private fun TacticalManagementRoute(
     val missions by viewModel.missions.collectAsStateWithLifecycle()
     val visibleMissions by viewModel.visibleMissions.collectAsStateWithLifecycle()
     val selectedMode by viewModel.selectedMode.collectAsStateWithLifecycle()
+    val activeIteration by viewModel.activeIteration.collectAsStateWithLifecycle()
+    val tacticalIterations by viewModel.tacticalIterations.collectAsStateWithLifecycle()
     val missionStreams by viewModel.missionStreams.collectAsStateWithLifecycle()
     val selectedMissionStreamId by viewModel.selectedMissionStreamId.collectAsStateWithLifecycle()
     val missionStreamCounts by viewModel.missionStreamCounts.collectAsStateWithLifecycle()
     val activitySlotContexts by viewModel.activitySlotContexts.collectAsStateWithLifecycle()
     val selectedActivitySlotContextId by viewModel.selectedActivitySlotContextId.collectAsStateWithLifecycle()
     val selectedPlanningContextId by viewModel.selectedPlanningContextId.collectAsStateWithLifecycle()
-    val planningBacklogItems by viewModel.planningBacklogItems.collectAsStateWithLifecycle()
     val attachmentOptions by viewModel.attachmentOptions.collectAsStateWithLifecycle()
     val projectOptions by viewModel.projectOptions.collectAsStateWithLifecycle()
     val boardLinkedProjectIds by viewModel.boardLinkedProjectIds.collectAsStateWithLifecycle()
@@ -168,11 +188,16 @@ private fun TacticalManagementRoute(
     var selectedMissionIds by remember { mutableStateOf(setOf<Long>()) }
     var statusMenuExpanded by remember { mutableStateOf(false) }
     var isFabMenuExpanded by remember { mutableStateOf(false) }
+    var showIterationDurationDialog by remember { mutableStateOf(false) }
+    var showIterationArchiveSheet by remember { mutableStateOf(false) }
+    var showFinishCycleSheet by remember { mutableStateOf(false) }
     var isActivitySlotsSheetVisible by remember { mutableStateOf(false) }
     var isActivitySlotPickerVisible by remember { mutableStateOf(false) }
     val missionListState = rememberLazyListState()
     val selectionMode = selectedMissionIds.isNotEmpty()
     val canPasteAsMissions by viewModel.canPasteAsMissions.collectAsStateWithLifecycle()
+    val iterationDurationDays by viewModel.iterationDurationDays.collectAsStateWithLifecycle()
+    val iterationDurationHours by viewModel.iterationDurationHours.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(visibleMissions) {
@@ -209,10 +234,27 @@ private fun TacticalManagementRoute(
             isActivitySlotsSheetVisible = isActivitySlotsSheetVisible,
             isActivitySlotPickerVisible = isActivitySlotPickerVisible,
         )
+    val currentIterationMissions =
+        remember(missions, activeIteration, viewModel.currentWeekKey) {
+            missions.filter { mission ->
+                mission.isInCurrentIteration(
+                    activeIterationId = activeIteration?.id,
+                    currentWeekKey = viewModel.currentWeekKey,
+                )
+            }
+        }
 
     TacticalManagementContent(
         missions = visibleMissions,
         allMissions = missions,
+        activeIteration = activeIteration,
+        currentIterationMissionCount = currentIterationMissions.size,
+        currentIterationActiveMissionCount =
+            currentIterationMissions.count { it.status == MissionStatus.ACTIVE },
+        currentIterationCompletedMissionCount =
+            currentIterationMissions.count { it.status == MissionStatus.COMPLETED },
+        iterationDurationDays = iterationDurationDays,
+        iterationDurationHours = iterationDurationHours,
         attachmentOptions = attachmentOptions,
         projectOptions = projectOptions,
         selectedMode = selectedMode,
@@ -222,7 +264,6 @@ private fun TacticalManagementRoute(
         activitySlotContexts = activitySlotContexts,
         selectedActivitySlotContextId = selectedActivitySlotContextId,
         selectedPlanningContextId = selectedPlanningContextId,
-        planningBacklogItems = planningBacklogItems,
         uiState = uiState,
         selectionMode = selectionMode,
         missionListState = missionListState,
@@ -241,11 +282,17 @@ private fun TacticalManagementRoute(
         onToggleScopeLinksSheet = viewModel::toggleScopeLinksSheet,
         onOpenActivitySlotsSheet = { isActivitySlotsSheetVisible = true },
         onOpenMissionStreamsSheet = viewModel::openMissionStreamsSheet,
+        onOpenIterationArchive = { showIterationArchiveSheet = true },
+        onSetIterationDuration = { showIterationDurationDialog = true },
+        onPlanTimeboxedIteration = viewModel::planTimeboxedIteration,
+        onStartTimeboxedIteration = viewModel::startTimeboxedIteration,
+        onStartNewTimeboxedIteration = viewModel::startNewTimeboxedIteration,
+        onStartOpenEndedIteration = viewModel::startOpenEndedIteration,
+        onFinishIteration = { showFinishCycleSheet = true },
         onModeSelected = viewModel::selectMode,
         onMissionStreamSelected = viewModel::selectMissionStream,
         onActivitySlotSelected = viewModel::selectActivitySlot,
         onPlanningContextSelected = viewModel::selectPlanningContext,
-        onTakeBacklogItem = viewModel::createMissionFromBacklogItem,
         onMissionStatusUpdate = { mission, status ->
             viewModel.updateMission(mission.copy(status = status))
         },
@@ -257,6 +304,23 @@ private fun TacticalManagementRoute(
         onMissionToggle = { mission -> viewModel.toggleMissionCompleted(mission) },
         onMissionsReordered = viewModel::reorderVisibleMissions,
     )
+
+    val finishSheetIteration = activeIteration
+    if (showFinishCycleSheet && finishSheetIteration != null) {
+        TacticalIterationFinishSheet(
+            iteration = finishSheetIteration,
+            missions = currentIterationMissions,
+            onDismiss = { showFinishCycleSheet = false },
+            onFinish = {
+                showFinishCycleSheet = false
+                viewModel.finishCurrentIteration()
+            },
+            onFinishAndPlanNext = {
+                showFinishCycleSheet = false
+                viewModel.finishCurrentAndPlanNextIteration()
+            },
+        )
+    }
 
     actionMenuMission?.let { mission ->
         MissionActionSheet(
@@ -418,12 +482,53 @@ private fun TacticalManagementRoute(
         onActivitySlotPickerVisibleChange = { isActivitySlotPickerVisible = it },
         scope = scope,
     )
+
+    if (showIterationDurationDialog) {
+        TacticalIterationDurationDialog(
+            currentDays = iterationDurationDays,
+            currentHours = iterationDurationHours,
+            onDismiss = { showIterationDurationDialog = false },
+            onSave = { days, hours ->
+                viewModel.setIterationDuration(days, hours)
+                showIterationDurationDialog = false
+            },
+            onClear = {
+                viewModel.setIterationDuration(null, null)
+                showIterationDurationDialog = false
+            },
+        )
+    }
+
+    if (showIterationArchiveSheet) {
+        TacticalIterationArchiveSheet(
+            missions = missions,
+            missionStreams = missionStreams,
+            iterations = tacticalIterations,
+            activeIterationId = activeIteration?.id,
+            currentWeekKey = viewModel.currentWeekKey,
+            actions =
+                ArchivedMissionActions(
+                    onMoveToCurrentIteration = viewModel::moveMissionToCurrentIteration,
+                    onComplete = viewModel::completeMission,
+                    onPause = viewModel::pauseMission,
+                    onActivate = viewModel::activateMission,
+                    onDelete = { mission -> viewModel.deleteMission(mission.id) },
+                ),
+            onDismiss = { showIterationArchiveSheet = false },
+        )
+    }
 }
 
 @Composable
 private fun TacticalManagementContent(
     missions: List<TacticalMission>,
     allMissions: List<TacticalMission>,
+    activeIteration: TacticalIteration?,
+    currentIterationMissionCount: Int,
+    currentIterationActiveMissionCount: Int,
+    currentIterationCompletedMissionCount: Int,
+    iterationDurationDays: Int?,
+    iterationDurationHours: Int?,
     attachmentOptions: List<AttachmentOption>,
     projectOptions: List<ProjectOption>,
     selectedMode: TacticsWorkspaceMode,
@@ -433,7 +538,6 @@ private fun TacticalManagementContent(
     activitySlotContexts: List<Context>,
     selectedActivitySlotContextId: String?,
     selectedPlanningContextId: String?,
-    planningBacklogItems: List<TacticalPlanBacklogItem>,
     uiState: TacticalManagementUiState,
     selectionMode: Boolean,
     missionListState: androidx.compose.foundation.lazy.LazyListState,
@@ -452,11 +556,17 @@ private fun TacticalManagementContent(
     onToggleScopeLinksSheet: () -> Unit,
     onOpenActivitySlotsSheet: () -> Unit,
     onOpenMissionStreamsSheet: () -> Unit,
+    onOpenIterationArchive: () -> Unit,
+    onSetIterationDuration: () -> Unit,
+    onPlanTimeboxedIteration: () -> Unit,
+    onStartTimeboxedIteration: () -> Unit,
+    onStartNewTimeboxedIteration: () -> Unit,
+    onStartOpenEndedIteration: () -> Unit,
+    onFinishIteration: () -> Unit,
     onModeSelected: (TacticsWorkspaceMode) -> Unit,
     onMissionStreamSelected: (String) -> Unit,
     onActivitySlotSelected: (String?) -> Unit,
     onPlanningContextSelected: (String?) -> Unit,
-    onTakeBacklogItem: (TacticalPlanBacklogItem) -> Unit,
     onMissionStatusUpdate: (TacticalMission, MissionStatus) -> Unit,
     onDeleteSelectedMissions: (Set<Long>) -> Unit,
     onCopySelectedMissions: (Set<Long>) -> Unit,
@@ -464,9 +574,10 @@ private fun TacticalManagementContent(
     onMissionToggle: (TacticalMission) -> Unit,
     onMissionsReordered: (List<TacticalMission>) -> Unit,
 ) {
+    val isIterationExecution = activeIteration?.status == TacticalIterationStatus.ACTIVE
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            if (selectionMode) {
+            if (selectionMode && !isIterationExecution) {
                 SelectionToolbar(
                     selectedMissionIds = uiState.selectedMissionIds,
                     missions = missions,
@@ -480,13 +591,72 @@ private fun TacticalManagementContent(
                 )
             }
 
-            if (selectedMode == TacticsWorkspaceMode.PLAN) {
-                TacticsPlanningList(
-                    planningBacklogItems = planningBacklogItems,
+            TacticalIterationStatusPanel(
+                activeIteration = activeIteration,
+                missionCount = currentIterationMissionCount,
+                activeMissionCount = currentIterationActiveMissionCount,
+                completedMissionCount = currentIterationCompletedMissionCount,
+                iterationDurationDays = iterationDurationDays,
+                iterationDurationHours = iterationDurationHours,
+                onOpenIterationArchive = onOpenIterationArchive,
+                onSetIterationDuration = onSetIterationDuration,
+                onPlanCycle = onPlanTimeboxedIteration,
+                onStartCycle = onStartTimeboxedIteration,
+                onStartNewCycle = onStartNewTimeboxedIteration,
+                onStartOpenEndedIteration = onStartOpenEndedIteration,
+                onFinishIteration = onFinishIteration,
+            )
+
+            if (activeIteration?.status == TacticalIterationStatus.DRAFT) {
+                TacticsDraftContent(
+                    missions = missions,
                     selectedPlanningContextId = selectedPlanningContextId,
-                    selectedMissionStreamTitle =
-                        missionStreams.firstOrNull { it.id == selectedMissionStreamId }?.title,
-                    onTakeBacklogItem = onTakeBacklogItem,
+                    lookups =
+                        TacticalMissionListLookups(
+                            projectOptions = projectOptions,
+                            attachmentOptions = attachmentOptions,
+                            missionStreamTitleById =
+                                if (selectedMode == TacticsWorkspaceMode.ALL) {
+                                    missionStreams.associate { it.id to it.title }
+                                } else {
+                                    emptyMap()
+                                },
+                        ),
+                    selectionState =
+                        TacticalMissionSelectionState(
+                            selectedMissionIds = uiState.selectedMissionIds,
+                            selectionMode = selectionMode,
+                        ),
+                    callbacks =
+                        TacticalMissionListCallbacks(
+                            onMissionToggled = onMissionToggle,
+                            onMissionSelectionToggle = { mission ->
+                                onSelectedMissionIdsChange(
+                                    toggleMissionSelection(uiState.selectedMissionIds, mission.id),
+                                )
+                            },
+                            onMissionClick = { mission ->
+                                if (!selectionMode) {
+                                    onEditingMissionChange(mission)
+                                }
+                            },
+                            onMissionLongPress = { mission ->
+                                onSelectedMissionIdsChange(
+                                    if (mission.id in uiState.selectedMissionIds) {
+                                        uiState.selectedMissionIds
+                                    } else {
+                                        uiState.selectedMissionIds + mission.id
+                                    },
+                                )
+                            },
+                            onMissionMoreClick = onActionMenuMissionChange,
+                            onLinkedContextClick = onLinkedProjectClick,
+                            onLinkedAttachmentClick = { attachmentId ->
+                                onLinkedAttachmentClick(resolveAttachmentOption(attachmentOptions, attachmentId))
+                            },
+                            onMissionsReordered = onMissionsReordered,
+                        ),
+                    listState = missionListState,
                     modifier = Modifier.weight(1f),
                 )
             } else if (missions.isEmpty()) {
@@ -495,6 +665,17 @@ private fun TacticalManagementContent(
                     selectedMissionStreamId = selectedMissionStreamId,
                     missionStreams = missionStreams,
                     totalWeekMissions = allMissions.size,
+                    modifier = Modifier.weight(1f),
+                )
+            } else if (isIterationExecution) {
+                CompactReadonlyTacticalMissionList(
+                    missions = missions,
+                    missionStreamTitleById = missionStreams.associate { it.id to it.title },
+                    showStream = selectedMode == TacticsWorkspaceMode.ALL,
+                    onMissionToggle = onMissionToggle,
+                    onMissionMoreClick = onActionMenuMissionChange,
+                    onMissionsReordered = onMissionsReordered,
+                    listState = missionListState,
                     modifier = Modifier.weight(1f),
                 )
             } else {
@@ -581,95 +762,688 @@ private fun TacticalManagementContent(
 }
 
 @Composable
-private fun TacticsPlanningList(
-    planningBacklogItems: List<TacticalPlanBacklogItem>,
-    selectedPlanningContextId: String?,
-    selectedMissionStreamTitle: String?,
-    onTakeBacklogItem: (TacticalPlanBacklogItem) -> Unit,
-    modifier: Modifier = Modifier,
+private fun TacticalIterationStatusPanel(
+    activeIteration: TacticalIteration?,
+    missionCount: Int,
+    activeMissionCount: Int,
+    completedMissionCount: Int,
+    iterationDurationDays: Int?,
+    iterationDurationHours: Int?,
+    onOpenIterationArchive: () -> Unit,
+    onSetIterationDuration: () -> Unit,
+    onPlanCycle: () -> Unit,
+    onStartCycle: () -> Unit,
+    onStartNewCycle: () -> Unit,
+    onStartOpenEndedIteration: () -> Unit,
+    onFinishIteration: () -> Unit,
 ) {
-    if (selectedPlanningContextId == null) {
-        Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Text(
-                text = "Вибери джерело беклогу для планування тижня",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        return
-    }
-
-    if (planningBacklogItems.isEmpty()) {
-        Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Text(
-                text = "У цьому беклозі немає елементів",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        return
-    }
-
-    LazyColumn(
-        modifier = modifier.padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+    val status = buildTacticalIterationStatus(activeIteration)
+    Surface(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(18.dp),
+        color = status.containerColor(),
+        contentColor = status.contentColor(),
+        border = BorderStroke(1.dp, status.contentColor().copy(alpha = 0.26f)),
     ) {
-        item(key = "target-stream") {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier =
+                        Modifier
+                            .size(9.dp)
+                            .background(status.contentColor(), CircleShape),
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = status.label,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text =
+                            buildTacticalIterationStatusSubtitle(
+                                activeIteration = activeIteration,
+                                iterationDurationDays = iterationDurationDays,
+                            ),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = status.contentColor().copy(alpha = 0.74f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                TacticalIterationStatusMoreMenu(
+                    iterationStatus = activeIteration?.status,
+                    onOpenIterationArchive = onOpenIterationArchive,
+                    onSetIterationDuration = onSetIterationDuration,
+                    onPlanCycle = onPlanCycle,
+                    onStartCycle = onStartCycle,
+                    onStartNewCycle = onStartNewCycle,
+                    onStartOpenEndedIteration = onStartOpenEndedIteration,
+                    onFinishIteration = onFinishIteration,
+                )
+            }
+
+            Text(
+                text =
+                    buildTacticalIterationStatusBody(
+                        activeIteration = activeIteration,
+                        missionCount = missionCount,
+                        activeMissionCount = activeMissionCount,
+                        completedMissionCount = completedMissionCount,
+                        iterationDurationDays = iterationDurationDays,
+                        iterationDurationHours = iterationDurationHours,
+                    ),
+                style = MaterialTheme.typography.bodySmall,
+                color = status.contentColor().copy(alpha = 0.82f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun TacticalIterationStatusMoreMenu(
+    iterationStatus: TacticalIterationStatus?,
+    onOpenIterationArchive: () -> Unit,
+    onSetIterationDuration: () -> Unit,
+    onPlanCycle: () -> Unit,
+    onStartCycle: () -> Unit,
+    onStartNewCycle: () -> Unit,
+    onStartOpenEndedIteration: () -> Unit,
+    onFinishIteration: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val isDraft = iterationStatus == TacticalIterationStatus.DRAFT
+    val isActive = iterationStatus == TacticalIterationStatus.ACTIVE
+    val hasIteration = iterationStatus != null
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Дії ітерації")
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            if (!hasIteration) {
+                DropdownMenuItem(
+                    text = { Text("Draft new cycle") },
+                    leadingIcon = {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = null)
+                    },
+                    onClick = {
+                        expanded = false
+                        onPlanCycle()
+                    },
+                )
+            }
+            if (!isActive) {
+                DropdownMenuItem(
+                    text = { Text(if (isDraft) "Start cycle" else "Start cycle now") },
+                    leadingIcon = {
+                        Icon(imageVector = Icons.Default.PlayArrow, contentDescription = null)
+                    },
+                    onClick = {
+                        expanded = false
+                        onStartCycle()
+                    },
+                )
+            }
+            if (isActive) {
+                DropdownMenuItem(
+                    text = { Text("Finish cycle") },
+                    leadingIcon = {
+                        Icon(imageVector = Icons.Outlined.CheckCircle, contentDescription = null)
+                    },
+                    onClick = {
+                        expanded = false
+                        onFinishIteration()
+                    },
+                )
+            }
+            if (hasIteration) {
+                DropdownMenuItem(
+                    text = { Text("New cycle") },
+                    leadingIcon = {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = null)
+                    },
+                    onClick = {
+                        expanded = false
+                        onStartNewCycle()
+                    },
+                )
+            }
+            DropdownMenuItem(
+                text = { Text("New open draft") },
+                leadingIcon = {
+                    Icon(imageVector = Icons.Default.Add, contentDescription = null)
+                },
+                onClick = {
+                    expanded = false
+                    onStartOpenEndedIteration()
+                },
+            )
+            HorizontalDivider()
+            DropdownMenuItem(
+                text = { Text("Set duration") },
+                leadingIcon = {
+                    Icon(imageVector = Icons.Outlined.Today, contentDescription = null)
+                },
+                onClick = {
+                    expanded = false
+                    onSetIterationDuration()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Cycle history") },
+                leadingIcon = {
+                    Icon(imageVector = Icons.Default.Archive, contentDescription = null)
+                },
+                onClick = {
+                    expanded = false
+                    onOpenIterationArchive()
+                },
+            )
+        }
+    }
+}
+
+private data class TacticalIterationStatusUi(
+    val label: String,
+    val state: TacticalIterationStatusState,
+)
+
+private enum class TacticalIterationStatusState {
+    DEVELOPMENT,
+    EXECUTION,
+    ABSENT,
+}
+
+private fun buildTacticalIterationStatus(
+    activeIteration: TacticalIteration?,
+): TacticalIterationStatusUi =
+    when {
+        activeIteration == null ->
+            TacticalIterationStatusUi(
+                label = "Ітерація відсутня",
+                state = TacticalIterationStatusState.ABSENT,
+            )
+        activeIteration.status == TacticalIterationStatus.DRAFT ->
+            TacticalIterationStatusUi(
+                label = "Ітерація в розробці",
+                state = TacticalIterationStatusState.DEVELOPMENT,
+            )
+        activeIteration.status == TacticalIterationStatus.ACTIVE ->
+            TacticalIterationStatusUi(
+                label = "Ітерація у виконанні",
+                state = TacticalIterationStatusState.EXECUTION,
+            )
+        else ->
+            TacticalIterationStatusUi(
+                label = "Ітерація завершена",
+                state = TacticalIterationStatusState.ABSENT,
+            )
+    }
+
+private fun buildTacticalIterationStatusSubtitle(
+    activeIteration: TacticalIteration?,
+    iterationDurationDays: Int?,
+): String {
+    if (activeIteration == null) {
+        return "Тактичну ітерацію ще не запущено"
+    }
+    if (activeIteration.status != TacticalIterationStatus.DRAFT) {
+        return activeIteration.title
+    }
+    val today = System.currentTimeMillis()
+    val draftEndAt =
+        iterationDurationDays
+            ?.takeIf { it > 0 }
+            ?.let { today + it * MILLIS_PER_DAY }
+    return if (draftEndAt != null) {
+        "${formatCyclePanelDate(today)} - ${formatCyclePanelDate(draftEndAt)}"
+    } else {
+        "Сьогодні -"
+    }
+}
+
+private fun formatCyclePanelDate(timestamp: Long): String =
+    SimpleDateFormat("d MMM", Locale.getDefault()).format(Date(timestamp))
+
+@Composable
+private fun TacticalIterationStatusUi.containerColor() =
+    when (state) {
+        TacticalIterationStatusState.DEVELOPMENT -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.78f)
+        TacticalIterationStatusState.EXECUTION -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.82f)
+        TacticalIterationStatusState.ABSENT -> MaterialTheme.colorScheme.surfaceContainerHigh
+    }
+
+@Composable
+private fun TacticalIterationStatusUi.contentColor() =
+    when (state) {
+        TacticalIterationStatusState.DEVELOPMENT -> MaterialTheme.colorScheme.onSecondaryContainer
+        TacticalIterationStatusState.EXECUTION -> MaterialTheme.colorScheme.onPrimaryContainer
+        TacticalIterationStatusState.ABSENT -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+private fun buildTacticalIterationStatusBody(
+    activeIteration: TacticalIteration?,
+    missionCount: Int,
+    activeMissionCount: Int,
+    completedMissionCount: Int,
+    iterationDurationDays: Int?,
+    iterationDurationHours: Int?,
+): String {
+    if (activeIteration == null) {
+        return "Стартуй тижневу або відкриту ітерацію, щоб збирати місії в один тактичний цикл."
+    }
+    return when (activeIteration.status) {
+        TacticalIterationStatus.DRAFT ->
+            "Планування: $missionCount місій у циклі. Додай місії з беклогу й розклади їх по потоках."
+        TacticalIterationStatus.ACTIVE ->
+            buildString {
+                append("Активні $activeMissionCount")
+                append(" · завершені $completedMissionCount")
+                append(" · всього $missionCount")
+                append(" · ")
+                append(formatTacticalIterationType(activeIteration.type))
+                formatIterationCapacity(iterationDurationDays, iterationDurationHours)?.let { capacity ->
+                    append(" · ")
+                    append(capacity)
+                }
+            }
+        TacticalIterationStatus.CLOSED,
+        TacticalIterationStatus.ARCHIVED ->
+            "Цикл завершено: $completedMissionCount з $missionCount місій виконано."
+    }
+}
+
+private fun formatTacticalIterationType(type: TacticalIterationType): String =
+    when (type) {
+        TacticalIterationType.TIMEBOXED -> "таймбокс"
+        TacticalIterationType.OPEN_ENDED -> "відкрита"
+    }
+
+private fun formatIterationCapacity(
+    days: Int?,
+    hours: Int?,
+): String? =
+    when {
+        days != null && hours != null -> "$days дн · $hours год"
+        days != null -> "$days дн"
+        hours != null -> "$hours год"
+        else -> null
+    }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TacticalIterationFinishSheet(
+    iteration: TacticalIteration,
+    missions: List<TacticalMission>,
+    onDismiss: () -> Unit,
+    onFinish: () -> Unit,
+    onFinishAndPlanNext: () -> Unit,
+) {
+    val completed = missions.count { it.status == MissionStatus.COMPLETED }
+    val active = missions.count { it.status == MissionStatus.ACTIVE }
+    val paused = missions.count { it.status == MissionStatus.PAUSED }
+    val unfinished = missions.filterNot { it.status == MissionStatus.COMPLETED }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = "Finish cycle",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = iteration.title,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
             Surface(
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(
-                    text = "Взяті елементи підуть у потік: ${selectedMissionStreamTitle ?: "General"}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                )
-            }
-        }
-        items(planningBacklogItems, key = { it.item.id }) { planItem ->
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                Column(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "$completed/${missions.size} done",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = "Active $active · paused $paused · unfinished ${unfinished.size}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            if (unfinished.isNotEmpty()) {
+                Text(
+                    text = "Unfinished",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    unfinished.take(FINISH_SHEET_UNFINISHED_LIMIT).forEach { mission ->
                         Text(
-                            text = planItem.title,
-                            style = MaterialTheme.typography.titleSmall,
-                            maxLines = 3,
+                            text = mission.title,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
-                        if (!planItem.description.isNullOrBlank()) {
-                            Text(
-                                text = planItem.description,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 2,
-                            )
-                        }
-                        if (planItem.alreadyInWeek) {
-                            Text(
-                                text = "Вже в тижні",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        }
                     }
-                    TextButton(
-                        enabled = !planItem.alreadyInWeek,
-                        onClick = { onTakeBacklogItem(planItem) },
-                    ) {
-                        Text("Взяти")
+                    if (unfinished.size > FINISH_SHEET_UNFINISHED_LIMIT) {
+                        Text(
+                            text = "+${unfinished.size - FINISH_SHEET_UNFINISHED_LIMIT} more",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedButton(
+                    onClick = onFinish,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Finish")
+                }
+                Button(
+                    onClick = onFinishAndPlanNext,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Finish & plan")
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
         }
+    }
+}
+
+@Composable
+private fun CompactReadonlyTacticalMissionList(
+    missions: List<TacticalMission>,
+    missionStreamTitleById: Map<String, String>,
+    showStream: Boolean,
+    onMissionToggle: (TacticalMission) -> Unit,
+    onMissionMoreClick: (TacticalMission) -> Unit,
+    onMissionsReordered: (List<TacticalMission>) -> Unit,
+    listState: androidx.compose.foundation.lazy.LazyListState,
+    modifier: Modifier = Modifier,
+) {
+    val hapticFeedback = LocalHapticFeedback.current
+    val reorderableMissions =
+        remember {
+            mutableStateListOf<TacticalMission>().apply {
+                addAll(missions)
+            }
+        }
+    var isDragInProgress by remember { mutableStateOf(false) }
+    var hasPendingReorder by remember { mutableStateOf(false) }
+    var pendingOrderIds by remember { mutableStateOf<List<Long>?>(null) }
+    LaunchedEffect(missions) {
+        val incomingIds = missions.map(TacticalMission::id)
+        val pendingIds = pendingOrderIds
+        when {
+            isDragInProgress -> Unit
+            pendingIds == null -> {
+                reorderableMissions.clear()
+                reorderableMissions.addAll(missions)
+            }
+            incomingIds == pendingIds || incomingIds.toSet() != pendingIds.toSet() -> {
+                pendingOrderIds = null
+                reorderableMissions.clear()
+                reorderableMissions.addAll(missions)
+            }
+            else -> {
+                val incomingById = missions.associateBy(TacticalMission::id)
+                reorderableMissions.indices.forEach { index ->
+                    val mission = reorderableMissions[index]
+                    reorderableMissions[index] = incomingById[mission.id] ?: mission
+                }
+            }
+        }
+    }
+    val onDragStopped = {
+        if (hasPendingReorder) {
+            val reordered = reorderableMissions.toList()
+            pendingOrderIds = reordered.map(TacticalMission::id)
+            onMissionsReordered(reordered)
+        }
+        isDragInProgress = false
+        hasPendingReorder = false
+    }
+    val reorderableState =
+        rememberReorderableLazyListState(listState) { from, to ->
+            val fromMission =
+                reorderableMissions.getOrNull(from.index) ?: return@rememberReorderableLazyListState
+            isDragInProgress = true
+            hasPendingReorder = true
+            reorderableMissions.removeAt(from.index)
+            reorderableMissions.add(to.index, fromMission)
+        }
+    LazyColumn(
+        state = listState,
+        modifier = modifier.padding(horizontal = 12.dp),
+        contentPadding = PaddingValues(bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        itemsIndexed(reorderableMissions, key = { _, mission -> mission.id }) { _, mission ->
+            ReorderableItem(reorderableState, key = mission.id) {
+                CompactReadonlyMissionRow(
+                    mission = mission,
+                    streamTitle = mission.missionStreamId?.let(missionStreamTitleById::get),
+                    showStream = showStream,
+                    onToggle = { onMissionToggle(mission) },
+                    onMoreClick = { onMissionMoreClick(mission) },
+                    dragHandleModifier =
+                        with(this@ReorderableItem) {
+                            Modifier.longPressDraggableHandle(
+                                onDragStarted = {
+                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                },
+                                onDragStopped = { onDragStopped() },
+                            )
+                        },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactReadonlyMissionRow(
+    mission: TacticalMission,
+    streamTitle: String?,
+    showStream: Boolean,
+    onToggle: () -> Unit,
+    onMoreClick: () -> Unit,
+    dragHandleModifier: Modifier = Modifier,
+) {
+    val isDone = mission.status == MissionStatus.COMPLETED
+    val isPaused = mission.status == MissionStatus.PAUSED
+    val contentColor =
+        if (isDone) {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        } else {
+            MaterialTheme.colorScheme.onSurface
+        }
+    Surface(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .then(dragHandleModifier)
+                .clickable(onClick = onToggle),
+        shape = RoundedCornerShape(12.dp),
+        color =
+            if (isDone) {
+                MaterialTheme.colorScheme.surfaceContainerLow
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerHigh
+            },
+        border =
+            BorderStroke(
+                width = 1.dp,
+                color =
+                    if (isDone) {
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.42f)
+                    } else {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+                    },
+            ),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector =
+                    if (isDone) {
+                        Icons.Outlined.CheckCircle
+                    } else {
+                        Icons.Outlined.RadioButtonUnchecked
+                    },
+                contentDescription =
+                    if (isDone) {
+                        "Mark not done"
+                    } else {
+                        "Mark done"
+                    },
+                tint =
+                    if (isDone) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = mission.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = contentColor,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    textDecoration =
+                        if (isDone) {
+                            TextDecoration.LineThrough
+                        } else {
+                            null
+                        },
+                )
+                val meta = buildCompactMissionMeta(mission, streamTitle, showStream, isPaused)
+                if (meta.isNotBlank()) {
+                    Text(
+                        text = meta,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            IconButton(onClick = onMoreClick) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "Mission actions",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+private fun buildCompactMissionMeta(
+    mission: TacticalMission,
+    streamTitle: String?,
+    showStream: Boolean,
+    isPaused: Boolean,
+): String =
+    buildList {
+        if (showStream && !streamTitle.isNullOrBlank()) add(streamTitle)
+        if (isPaused) add("Paused")
+        if (mission.status == MissionStatus.INACTIVE) add("Inactive")
+    }.joinToString(" · ")
+
+@Composable
+private fun TacticsDraftContent(
+    missions: List<TacticalMission>,
+    selectedPlanningContextId: String?,
+    lookups: TacticalMissionListLookups,
+    selectionState: TacticalMissionSelectionState,
+    callbacks: TacticalMissionListCallbacks,
+    listState: androidx.compose.foundation.lazy.LazyListState,
+    modifier: Modifier = Modifier,
+) {
+    val draftPlanningMissions =
+        remember(missions) {
+            missions.filter { mission ->
+                mission.status != MissionStatus.COMPLETED
+            }
+        }
+    if (draftPlanningMissions.isEmpty()) {
+        TacticsDraftEmptyState(
+            hasBacklogSource = selectedPlanningContextId != null,
+            modifier = modifier,
+        )
+    } else {
+        TacticalMissionList(
+            missions = draftPlanningMissions,
+            lookups = lookups,
+            selectionState = selectionState,
+            callbacks = callbacks,
+            listState = listState,
+            showStatusSections = false,
+            modifier = modifier,
+        )
+    }
+}
+
+@Composable
+private fun TacticsDraftEmptyState(
+    hasBacklogSource: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Text(
+            text =
+                if (hasBacklogSource) {
+                    "No draft missions yet. Use input below or Browse in the panel."
+                } else {
+                    "No draft missions yet. Use the input below."
+                },
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 24.dp),
+        )
     }
 }
 
@@ -1611,7 +2385,7 @@ private fun MissionActionSheet(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
                 text = mission.title,
@@ -1619,111 +2393,142 @@ private fun MissionActionSheet(
                 maxLines = 2,
             )
             HorizontalDivider()
-            MissionActionSheetItem(
-                icon = Icons.Outlined.Edit,
-                text = "Редагувати",
-                onClick = onEdit,
-            )
-            SubtleActionDivider()
-            MissionActionSheetItem(
-                icon = Icons.Outlined.CheckCircle,
-                text =
-                    if (mission.status == MissionStatus.COMPLETED) {
-                        "Позначити невиконаною"
-                    } else {
-                        "Позначити виконаною"
-                    },
-                onClick = onToggleCompleted,
-            )
-            SubtleActionDivider()
-            MissionActionSheetItem(
-                icon = Icons.Outlined.Today,
-                text = "Додати місію в план дня",
-                onClick = onAddToToday,
-            )
-            SubtleActionDivider()
-            MissionActionSheetItem(
-                icon = Icons.Outlined.AccountTree,
-                text = "Додати як ArcQuest",
-                onClick = onAddToArc,
-            )
-            SubtleActionDivider()
-            if (mission.normalizedMissionStreamId() != selectedMissionStreamId) {
+
+            MissionActionSection(title = "Status") {
                 MissionActionSheetItem(
-                    icon = Icons.Outlined.AccountTree,
-                    text = "Перемістити в поточний потік",
-                    onClick = { onAssignMissionStream(selectedMissionStreamId) },
+                    icon = Icons.Outlined.CheckCircle,
+                    text =
+                        if (mission.status == MissionStatus.COMPLETED) {
+                            "Mark open"
+                        } else {
+                            "Mark done"
+                        },
+                    onClick = onToggleCompleted,
+                )
+            }
+
+            MissionActionSection(title = "Plan") {
+                MissionActionSheetItem(
+                    icon = Icons.Outlined.Today,
+                    text = "Add to today",
+                    onClick = onAddToToday,
                 )
                 SubtleActionDivider()
-            }
-            MissionActionSheetItem(
-                icon = Icons.Outlined.ChevronRight,
-                text = "Перемістити в потік",
-                enabled = missionStreams.isNotEmpty(),
-                onClick = onOpenStreamPicker,
-            )
-            SubtleActionDivider()
-            if (
-                selectedActivitySlotContextId != null &&
-                mission.activitySlotContextId != selectedActivitySlotContextId
-            ) {
                 MissionActionSheetItem(
                     icon = Icons.Outlined.AccountTree,
-                    text = "Перемістити в поточний режим активності",
-                    onClick = { onAssignActivitySlot(selectedActivitySlotContextId) },
+                    text = "Add to arc",
+                    onClick = onAddToArc,
                 )
                 SubtleActionDivider()
+                MissionActionSheetItem(
+                    icon = Icons.Outlined.Today,
+                    text = "Postpone",
+                    onClick = onPostpone,
+                )
+                SubtleActionDivider()
+                MissionActionSheetItem(
+                    icon = Icons.Outlined.Today,
+                    text = "Extend",
+                    onClick = onContinue,
+                )
             }
-            MissionActionSheetItem(
-                icon = Icons.Outlined.ChevronRight,
-                text =
-                    if (mission.activitySlotContextId == null) {
-                        "Додати режим активності"
-                    } else {
-                        "Змінити режим активності"
-                    },
-                enabled = activitySlotContexts.isNotEmpty() || mission.activitySlotContextId != null,
-                onClick = onOpenSlotPicker,
-            )
-            SubtleActionDivider()
-            MissionActionSheetItem(
-                icon = Icons.Outlined.Today,
-                text = "Postpone",
-                onClick = onPostpone,
-            )
-            SubtleActionDivider()
-            MissionActionSheetItem(
-                icon = Icons.Outlined.Today,
-                text = "Продовжити",
-                onClick = onContinue,
-            )
-            SubtleActionDivider()
-            MissionActionSheetItem(
-                icon = Icons.Outlined.ContentCopy,
-                text = "Копіювати для вставки",
-                onClick = onCopyMission,
-            )
-            SubtleActionDivider()
-            MissionActionSheetItem(
-                icon = Icons.Outlined.ContentCut,
-                text = "Вирізати для вставки",
-                onClick = onCutMission,
-            )
-            SubtleActionDivider()
-            MissionActionSheetItem(
-                icon = Icons.Outlined.DeleteOutline,
-                text = "Видалити",
-                textColor = MaterialTheme.colorScheme.error,
-                onClick = onDeleteMission,
-            )
-            SubtleActionDivider()
+
+            MissionActionSection(title = "Organize") {
+                if (mission.normalizedMissionStreamId() != selectedMissionStreamId) {
+                    MissionActionSheetItem(
+                        icon = Icons.Outlined.AccountTree,
+                        text = "Current stream",
+                        onClick = { onAssignMissionStream(selectedMissionStreamId) },
+                    )
+                    SubtleActionDivider()
+                }
+                MissionActionSheetItem(
+                    icon = Icons.Outlined.ChevronRight,
+                    text = "Move stream",
+                    enabled = missionStreams.isNotEmpty(),
+                    onClick = onOpenStreamPicker,
+                )
+                SubtleActionDivider()
+                if (
+                    selectedActivitySlotContextId != null &&
+                    mission.activitySlotContextId != selectedActivitySlotContextId
+                ) {
+                    MissionActionSheetItem(
+                        icon = Icons.Outlined.AccountTree,
+                        text = "Current slot",
+                        onClick = { onAssignActivitySlot(selectedActivitySlotContextId) },
+                    )
+                    SubtleActionDivider()
+                }
+                MissionActionSheetItem(
+                    icon = Icons.Outlined.ChevronRight,
+                    text =
+                        if (mission.activitySlotContextId == null) {
+                            "Add slot"
+                        } else {
+                            "Change slot"
+                        },
+                    enabled =
+                        activitySlotContexts.isNotEmpty() ||
+                            mission.activitySlotContextId != null,
+                    onClick = onOpenSlotPicker,
+                )
+            }
+
+            MissionActionSection(title = "Edit") {
+                MissionActionSheetItem(
+                    icon = Icons.Outlined.Edit,
+                    text = "Edit",
+                    onClick = onEdit,
+                )
+                SubtleActionDivider()
+                MissionActionSheetItem(
+                    icon = Icons.Outlined.ContentCopy,
+                    text = "Copy",
+                    onClick = onCopyMission,
+                )
+                SubtleActionDivider()
+                MissionActionSheetItem(
+                    icon = Icons.Outlined.ContentCut,
+                    text = "Cut",
+                    onClick = onCutMission,
+                )
+                SubtleActionDivider()
+                MissionActionSheetItem(
+                    icon = Icons.Outlined.DeleteOutline,
+                    text = "Delete",
+                    textColor = MaterialTheme.colorScheme.error,
+                    onClick = onDeleteMission,
+                )
+            }
+
+            HorizontalDivider()
             MissionActionSheetItem(
                 icon = Icons.Outlined.Close,
-                text = "Скасувати",
+                text = "Cancel",
                 onClick = onDismiss,
             )
             Spacer(modifier = Modifier.height(8.dp))
         }
+    }
+}
+
+@Composable
+private fun MissionActionSection(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(top = 6.dp, bottom = 2.dp),
+        )
+        content()
     }
 }
 

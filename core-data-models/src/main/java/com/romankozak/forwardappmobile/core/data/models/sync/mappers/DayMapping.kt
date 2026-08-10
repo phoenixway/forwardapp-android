@@ -106,7 +106,7 @@ fun DayTaskSnapshot.toEntity(): DayTask = DayTask(
     taskType = taskType,
     entityId = entityId,
     order = order,
-    priority = enumValueOf<TaskPriority>(priority),
+    priority = priority.toTaskPriorityOrDefault(),
     status = enumValueOf<TaskStatus>(status),
     completed = completed,
     scheduledTime = scheduledTime,
@@ -216,9 +216,14 @@ fun RecurringTaskSnapshot.toEntity(): RecurringTask = RecurringTask(
     linkedProjectIds = linkedProjectIds,
     linkedAttachmentIds = linkedAttachmentIds,
     duration = duration,
-    priority = enumValueOf<TaskPriority>(priority),
+    priority = priority.toTaskPriorityOrDefault(),
     points = points,
     recurrenceRule = recurrenceRule.toEntity(),
     startDate = startDate,
     endDate = endDate,
 )
+
+private fun String?.toTaskPriorityOrDefault(): TaskPriority =
+    this
+        ?.let { value -> TaskPriority.entries.find { it.name == value } }
+        ?: TaskPriority.MEDIUM

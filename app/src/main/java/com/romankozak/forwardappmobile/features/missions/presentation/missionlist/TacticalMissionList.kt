@@ -94,21 +94,22 @@ fun TacticalMissionList(
     selectionState: TacticalMissionSelectionState,
     callbacks: TacticalMissionListCallbacks,
     listState: LazyListState? = null,
+    showStatusSections: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
     val internalMissions =
         remember {
             mutableStateListOf<TacticalMission>().apply {
-                addAll(sectionOrderedMissions(missions))
+                addAll(orderedMissions(missions, showStatusSections))
             }
         }
     var isDragInProgress by remember { mutableStateOf(false) }
     var hasPendingReorder by remember { mutableStateOf(false) }
-    LaunchedEffect(missions) {
+    LaunchedEffect(missions, showStatusSections) {
         if (!isDragInProgress) {
             internalMissions.clear()
-            internalMissions.addAll(sectionOrderedMissions(missions))
+            internalMissions.addAll(orderedMissions(missions, showStatusSections))
         }
     }
     val projectNameById =
@@ -131,7 +132,7 @@ fun TacticalMissionList(
         rememberReorderableLazyListState(lazyListState) { from, to ->
             val fromMission = internalMissions.getOrNull(from.index) ?: return@rememberReorderableLazyListState
             val toMission = internalMissions.getOrNull(to.index) ?: return@rememberReorderableLazyListState
-            if (missionSection(fromMission) != missionSection(toMission)) {
+            if (showStatusSections && missionSection(fromMission) != missionSection(toMission)) {
                 return@rememberReorderableLazyListState
             }
 
@@ -142,26 +143,26 @@ fun TacticalMissionList(
 
     LazyColumn(
         state = lazyListState,
-        modifier = modifier.padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(UnifiedListItemTokens.OuterVerticalSpacing * 2),
+        modifier = modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(UnifiedListItemTokens.OuterVerticalSpacing),
     ) {
         itemsIndexed(internalMissions, key = { _, mission -> mission.id }) { index, mission ->
             val previousMission = internalMissions.getOrNull(index - 1)
             val headerTitle =
-                if (previousMission == null || missionSection(previousMission) != missionSection(mission)) {
+                if (showStatusSections && (previousMission == null || missionSection(previousMission) != missionSection(mission))) {
                     missionSectionTitle(mission)
                 } else {
                     null
                 }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (headerTitle != null) {
                     Text(
                         text = headerTitle,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+                        modifier = Modifier.padding(start = 4.dp, top = 4.dp),
                     )
                 }
 
@@ -237,6 +238,16 @@ private fun sectionOrderedMissions(missions: List<TacticalMission>): List<Tactic
     return active + inactive + completed
 }
 
+private fun orderedMissions(
+    missions: List<TacticalMission>,
+    showStatusSections: Boolean,
+): List<TacticalMission> =
+    if (showStatusSections) {
+        sectionOrderedMissions(missions)
+    } else {
+        missions
+    }
+
 @Composable
 private fun TacticalMissionCard(
     mission: TacticalMission,
@@ -254,7 +265,7 @@ private fun TacticalMissionCard(
         layout =
             UnifiedListItemSurfaceLayout(
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
             ),
         colors =
             UnifiedListItemColors(

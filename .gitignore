@@ -16,6 +16,14 @@ tools/.node/
 .gradle-project/
 node_modules/
 apps/*/node_modules/
+apps/day-goals-desktop/
+apps/day-goals-desktop/.env
+apps/day-goals-desktop/.env.*
+apps/day-goals-desktop/.vite/
+apps/day-goals-desktop/out/
+apps/day-goals-desktop/release/
+apps/day-goals-desktop/*.local.json
+apps/day-goals-desktop/*.backup.json
 packages/*/node_modules/
 android_tmp/
 build/android-profile/

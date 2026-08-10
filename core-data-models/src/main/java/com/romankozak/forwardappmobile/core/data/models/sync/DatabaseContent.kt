@@ -36,6 +36,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ai.ChatMessageE
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.ConversationEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.ConversationFolderEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DailyMetric
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusItem
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurringTask
@@ -83,6 +84,8 @@ data class DatabaseContent(
     // --- Extended Entities ---
     @SerializedName("dayPlans")
     val dayPlans: List<DayPlan> = emptyList(),
+    @SerializedName("dayFocusItems")
+    val dayFocusItems: List<DayFocusItem> = emptyList(),
     @SerializedName("dayTasks")
     val dayTasks: List<DayTask> = emptyList(),
     @SerializedName("dailyMetrics")

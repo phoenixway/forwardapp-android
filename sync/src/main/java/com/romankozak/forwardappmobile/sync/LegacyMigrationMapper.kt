@@ -35,6 +35,7 @@ class LegacyMigrationMapper @Inject constructor() {
             recentProjectEntries = databaseContent.recentProjectEntries.map { it.toSnapshot() },
             linkItemEntities = databaseContent.linkItemEntities.map { it.toSnapshot() },
             dayPlans = databaseContent.dayPlans.map { it.toSnapshot() },
+            dayFocusItems = databaseContent.dayFocusItems.map { it.toSnapshot() },
             dayTasks = databaseContent.dayTasks.map { it.toSnapshot() },
             dailyMetrics = databaseContent.dailyMetrics.map { it.toSnapshot() },
             conversations = databaseContent.conversations.map { it.toSnapshot() },

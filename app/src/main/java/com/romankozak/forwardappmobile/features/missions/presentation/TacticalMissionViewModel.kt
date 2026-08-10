@@ -58,6 +58,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.NewTaskParameters
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIteration
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIterationStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIterationType
 import java.time.LocalDate
 import java.time.YearMonth
@@ -194,7 +195,13 @@ class TacticalMissionViewModel
                         .filter { it.isInCurrentIteration(iteration?.id, currentWeekKey) }
                         .filter { it.sourceBacklogItemId == null }
                 val streamOrderById = streams.mapIndexed { index, stream -> stream.id to index }.toMap()
-                when (mode) {
+                val effectiveMode =
+                    if (mode == TacticsWorkspaceMode.PLAN && iteration?.status == TacticalIterationStatus.ACTIVE) {
+                        TacticsWorkspaceMode.STREAMS
+                    } else {
+                        mode
+                    }
+                when (effectiveMode) {
                     TacticsWorkspaceMode.STREAMS ->
                         weekMissions
                             .filter { it.normalizedMissionStreamId() == selectedStreamId }
@@ -207,7 +214,8 @@ class TacticalMissionViewModel
                                 .thenBy { it.orderInWeek }
                                 .thenBy { it.createdAt },
                         )
-                    TacticsWorkspaceMode.PLAN -> emptyList()
+                    TacticsWorkspaceMode.PLAN ->
+                        weekMissions.sortedWith(compareBy<TacticalMission> { it.orderInWeek }.thenBy { it.createdAt })
                 }
             }.stateIn(
                 scope = viewModelScope,
@@ -374,7 +382,14 @@ class TacticalMissionViewModel
                 missionStreamRepository.ensureDefaultStream()
             }
             viewModelScope.launch {
-                _activeIteration.value = tacticalIterationRepository.ensureActiveIteration(currentWeekKey)
+                val currentIteration = tacticalIterationRepository.getCurrentIteration()
+                _activeIteration.value = currentIteration
+                when {
+                    currentIteration?.status == TacticalIterationStatus.DRAFT -> selectMode(TacticsWorkspaceMode.PLAN)
+                    currentIteration?.status == TacticalIterationStatus.ACTIVE &&
+                        _selectedMode.value == TacticsWorkspaceMode.PLAN ->
+                        selectMode(TacticsWorkspaceMode.STREAMS)
+                }
             }
             loadMissions()
 
@@ -774,15 +789,50 @@ class TacticalMissionViewModel
 
         fun startTimeboxedIteration() {
             viewModelScope.launch {
-                _activeIteration.value = tacticalIterationRepository.closeActiveAndStartTimeboxed(currentWeekKey)
-                _uiMessages.tryEmit("Почато тактичну ітерацію")
+                _activeIteration.value = tacticalIterationRepository.startCurrentOrCreateTimeboxed(currentWeekKey)
+                selectMode(TacticsWorkspaceMode.STREAMS)
+                _uiMessages.tryEmit("Тактичний цикл у виконанні")
             }
         }
 
         fun startOpenEndedIteration() {
             viewModelScope.launch {
                 _activeIteration.value = tacticalIterationRepository.closeActiveAndStartOpenEnded()
-                _uiMessages.tryEmit("Почато відкриту тактичну ітерацію")
+                selectMode(TacticsWorkspaceMode.PLAN)
+                _uiMessages.tryEmit("Створено відкритий тактичний цикл")
+            }
+        }
+
+        fun planTimeboxedIteration() {
+            viewModelScope.launch {
+                _activeIteration.value = tacticalIterationRepository.ensureDraftTimeboxed(currentWeekKey)
+                selectMode(TacticsWorkspaceMode.PLAN)
+                _uiMessages.tryEmit("Тактичний цикл у розробці")
+            }
+        }
+
+        fun startNewTimeboxedIteration() {
+            viewModelScope.launch {
+                _activeIteration.value = tacticalIterationRepository.closeActiveAndStartTimeboxed(currentWeekKey)
+                selectMode(TacticsWorkspaceMode.PLAN)
+                _uiMessages.tryEmit("Створено новий тактичний цикл")
+            }
+        }
+
+        fun finishCurrentIteration() {
+            viewModelScope.launch {
+                tacticalIterationRepository.finishCurrentIteration()
+                _activeIteration.value = tacticalIterationRepository.getCurrentIteration()
+                selectMode(TacticsWorkspaceMode.STREAMS)
+                _uiMessages.tryEmit("Тактичний цикл завершено")
+            }
+        }
+
+        fun finishCurrentAndPlanNextIteration() {
+            viewModelScope.launch {
+                _activeIteration.value = tacticalIterationRepository.finishCurrentAndCreateDraft(currentWeekKey)
+                selectMode(TacticsWorkspaceMode.PLAN)
+                _uiMessages.tryEmit("Цикл завершено, новий цикл у розробці")
             }
         }
 
@@ -1182,6 +1232,7 @@ fun TacticalMission.isInCurrentIteration(
     when {
         activeIterationId != null && iterationId == activeIterationId -> true
         iterationId != null -> false
+        activeIterationId != null && activeIterationId != currentWeekKey -> false
         else -> weekKey.isBlank() || weekKey == currentWeekKey
     }
 
