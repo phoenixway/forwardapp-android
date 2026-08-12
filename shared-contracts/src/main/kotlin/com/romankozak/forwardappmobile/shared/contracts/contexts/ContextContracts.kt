@@ -12,6 +12,15 @@ data class SharedContextSummary(
     val defaultView: SharedContextView,
     val score: Int,
     val isCompleted: Boolean,
+    val isDeleted: Boolean = false,
+    val sync: SharedSyncMetadata = SharedSyncMetadata(),
+)
+
+@Serializable
+data class SharedSyncMetadata(
+    val createdAt: Long = 0L,
+    val updatedAt: Long = 0L,
+    val version: Long = 0L,
 )
 
 @Serializable

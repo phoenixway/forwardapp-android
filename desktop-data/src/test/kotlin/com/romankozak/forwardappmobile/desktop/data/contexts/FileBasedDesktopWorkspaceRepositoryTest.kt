@@ -1,11 +1,13 @@
 package com.romankozak.forwardappmobile.desktop.data.contexts
 
+import com.romankozak.forwardappmobile.shared.contracts.contexts.DesktopWorkspaceSnapshot
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogPriority
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextStatus
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextView
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSnapshotFormat
 import com.romankozak.forwardappmobile.shared.domain.contexts.WorkspaceSnapshotFixtures
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -106,10 +108,11 @@ class FileBasedDesktopWorkspaceRepositoryTest {
         assertTrue(repository.getBacklogItems("child").isEmpty())
 
         val persistedSnapshot = fileStore.readSnapshot()
-        assertFalse(persistedSnapshot.contains("\"project\""))
-        assertFalse(persistedSnapshot.contains("\"child\""))
-        assertFalse(persistedSnapshot.contains("\"project-item\""))
-        assertFalse(persistedSnapshot.contains("\"child-item\""))
+        val snapshot = Json.decodeFromString(DesktopWorkspaceSnapshot.serializer(), persistedSnapshot)
+        assertTrue(snapshot.contexts.first { context -> context.id == "project" }.isDeleted)
+        assertTrue(snapshot.contexts.first { context -> context.id == "child" }.isDeleted)
+        assertTrue(snapshot.backlogItems.first { item -> item.id == "project-item" }.isDeleted)
+        assertTrue(snapshot.backlogItems.first { item -> item.id == "child-item" }.isDeleted)
     }
 
     @Test

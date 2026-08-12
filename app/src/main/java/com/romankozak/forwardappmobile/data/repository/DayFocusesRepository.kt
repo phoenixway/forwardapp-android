@@ -61,9 +61,9 @@ class DayFocusesRepository
             type: DayFocusType,
             isEveryday: Boolean,
             budgetPercent: Int?,
-        ) {
+        ): DayFocusItem {
             val now = System.currentTimeMillis()
-            dayFocusItemDao.update(
+            val updatedItem =
                 item.copy(
                     title = title,
                     notes = notes?.trim()?.takeIf { it.isNotEmpty() },
@@ -79,8 +79,58 @@ class DayFocusesRepository
                     updatedAt = now,
                     syncedAt = null,
                     version = item.version + 1,
-                ),
-            )
+                )
+            dayFocusItemDao.update(updatedItem)
+            return updatedItem
+        }
+
+        suspend fun upsertEverydayItemForDayPlan(
+            source: DayFocusItem,
+            targetDayPlanId: String,
+        ): DayFocusItem {
+            if (source.dayPlanId == targetDayPlanId) {
+                return source
+            }
+            val recurringKey = source.recurringKey ?: source.id
+            val now = System.currentTimeMillis()
+            val existing =
+                dayFocusItemDao
+                    .getItemsForDayPlanSync(targetDayPlanId)
+                    .firstOrNull { item -> !item.isDeleted && item.recurringKey == recurringKey }
+            val targetItem =
+                existing?.copy(
+                    title = source.title,
+                    notes = source.notes,
+                    relatedLinks = source.relatedLinks,
+                    type = source.type,
+                    isEveryday = true,
+                    recurringKey = recurringKey,
+                    budgetPercent = source.budgetPercent,
+                    updatedAt = now,
+                    syncedAt = null,
+                    version = existing.version + 1,
+                )
+                    ?: DayFocusItem(
+                        dayPlanId = targetDayPlanId,
+                        title = source.title,
+                        notes = source.notes,
+                        relatedLinks = source.relatedLinks,
+                        type = source.type,
+                        isEveryday = true,
+                        budgetPercent = source.budgetPercent,
+                        recurringKey = recurringKey,
+                        order = nextOrderForDayPlan(targetDayPlanId),
+                        createdAt = now,
+                        updatedAt = now,
+                        syncedAt = null,
+                        version = 1,
+                    )
+            if (existing == null) {
+                dayFocusItemDao.insert(targetItem)
+            } else {
+                dayFocusItemDao.update(targetItem)
+            }
+            return targetItem
         }
 
         suspend fun deleteItem(itemId: String) {

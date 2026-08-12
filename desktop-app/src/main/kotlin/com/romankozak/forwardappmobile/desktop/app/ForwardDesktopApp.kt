@@ -30,12 +30,19 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.desktop.app.navigation.DesktopDestination
 import com.romankozak.forwardappmobile.desktop.design.ForwardDesktopTheme
 import com.romankozak.forwardappmobile.desktop.features.dashboard.DesktopDashboardScreen
+import com.romankozak.forwardappmobile.desktop.features.contexts.rememberDesktopWorkspaceDependencies
 import com.romankozak.forwardappmobile.desktop.features.settings.DesktopSettingsScreen
+import com.romankozak.forwardappmobile.desktop.features.sync.rememberDesktopAndroidSyncController
 import com.romankozak.forwardappmobile.desktop.features.workbench.DesktopWorkbenchScreen
+import androidx.compose.runtime.collectAsState
 
 @Composable
 fun ForwardDesktopApp() {
     var currentDestination by remember { mutableStateOf(DesktopDestination.Dashboard) }
+    var pendingWorkbenchContextId by remember { mutableStateOf<String?>(null) }
+    val workspaceDependencies = rememberDesktopWorkspaceDependencies()
+    val syncController = rememberDesktopAndroidSyncController(workspaceDependencies.fileStore)
+    val syncState by syncController.state.collectAsState()
 
     ForwardDesktopTheme {
         Surface(
@@ -64,9 +71,26 @@ fun ForwardDesktopApp() {
                             .padding(24.dp),
                 ) {
                     when (currentDestination) {
-                        DesktopDestination.Dashboard -> DesktopDashboardScreen()
-                        DesktopDestination.Workbench -> DesktopWorkbenchScreen()
-                        DesktopDestination.Settings -> DesktopSettingsScreen()
+                        DesktopDestination.Dashboard ->
+                            DesktopDashboardScreen(
+                                repository = workspaceDependencies.repository,
+                                refreshKey = syncState.workspaceRevision,
+                                onContextClick = { contextId ->
+                                    pendingWorkbenchContextId = contextId
+                                    currentDestination = DesktopDestination.Workbench
+                                },
+                            )
+                        DesktopDestination.Workbench ->
+                            DesktopWorkbenchScreen(
+                                dependencies = workspaceDependencies,
+                                initialContextId = pendingWorkbenchContextId,
+                                refreshKey = syncState.workspaceRevision,
+                            )
+                        DesktopDestination.Settings ->
+                            DesktopSettingsScreen(
+                                dependencies = workspaceDependencies,
+                                syncController = syncController,
+                            )
                     }
                 }
             }

@@ -7,18 +7,24 @@ import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogPr
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextStatus
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextSummary
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextView
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedDayPlan
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedDayTask
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedSyncMetadata
 import com.romankozak.forwardappmobile.shared.domain.contexts.DesktopWorkspaceRepository
+import java.time.Clock
 import kotlinx.serialization.json.Json
 import java.util.UUID
 
 class FileBasedDesktopWorkspaceRepository(
     private val fileStore: DesktopWorkspaceFileStore,
     private val json: Json = Json { ignoreUnknownKeys = true },
+    private val clock: Clock = Clock.systemUTC(),
 ) : DesktopWorkspaceRepository {
     private fun readSnapshot(): DesktopWorkspaceSnapshot =
         json.decodeFromString<DesktopWorkspaceSnapshot>(fileStore.readSnapshot())
 
-    override suspend fun getContexts(): List<SharedContextSummary> = readSnapshot().contexts
+    override suspend fun getContexts(): List<SharedContextSummary> =
+        readSnapshot().contexts.filterNot { context -> context.isDeleted }
 
     override suspend fun createContext(
         parentId: String?,
@@ -28,6 +34,7 @@ class FileBasedDesktopWorkspaceRepository(
         defaultView: SharedContextView,
     ): SharedContextSummary? {
         val snapshot = readSnapshot()
+        val now = clock.millis()
         val newContext =
             SharedContextSummary(
                 id = "context-${UUID.randomUUID()}",
@@ -38,6 +45,7 @@ class FileBasedDesktopWorkspaceRepository(
                 defaultView = defaultView,
                 score = 0,
                 isCompleted = status == SharedContextStatus.Completed,
+                sync = SharedSyncMetadata(createdAt = now, updatedAt = now, version = 1),
             )
         val updatedSnapshot = snapshot.copy(contexts = snapshot.contexts + newContext)
         fileStore.writeSnapshot(json.encodeToString(DesktopWorkspaceSnapshot.serializer(), updatedSnapshot))
@@ -52,6 +60,7 @@ class FileBasedDesktopWorkspaceRepository(
         defaultView: SharedContextView,
     ): SharedContextSummary? {
         val snapshot = readSnapshot()
+        val now = clock.millis()
         val updatedContext =
             snapshot.contexts.firstOrNull { context -> context.id == contextId }?.copy(
                 name = name,
@@ -59,6 +68,7 @@ class FileBasedDesktopWorkspaceRepository(
                 status = status,
                 defaultView = defaultView,
                 isCompleted = status == SharedContextStatus.Completed,
+                sync = snapshot.contexts.first { context -> context.id == contextId }.sync.nextVersion(now),
             ) ?: return null
         val updatedSnapshot =
             snapshot.copy(
@@ -71,6 +81,7 @@ class FileBasedDesktopWorkspaceRepository(
                                 status = status,
                                 defaultView = defaultView,
                                 isCompleted = status == SharedContextStatus.Completed,
+                                sync = context.sync.nextVersion(now),
                             )
                         } else {
                             context
@@ -83,21 +94,40 @@ class FileBasedDesktopWorkspaceRepository(
 
     override suspend fun deleteContext(contextId: String): Boolean {
         val snapshot = readSnapshot()
-        val contextIdsToDelete = collectContextIdsToDelete(contextId, snapshot.contexts)
+        val now = clock.millis()
+        val contextIdsToDelete = collectContextIdsToDelete(contextId, snapshot.contexts.filterNot { context -> context.isDeleted })
         if (contextIdsToDelete.isEmpty()) {
             return false
         }
         val updatedSnapshot =
             snapshot.copy(
-                contexts = snapshot.contexts.filterNot { context -> context.id in contextIdsToDelete },
-                backlogItems = snapshot.backlogItems.filterNot { item -> item.contextId in contextIdsToDelete },
+                contexts =
+                    snapshot.contexts.map { context ->
+                        if (context.id in contextIdsToDelete) {
+                            context.copy(isDeleted = true, sync = context.sync.nextVersion(now))
+                        } else {
+                            context
+                        }
+                    },
+                backlogItems =
+                    snapshot.backlogItems.map { item ->
+                        if (item.contextId in contextIdsToDelete) {
+                            item.copy(isDeleted = true, sync = item.sync.nextVersion(now))
+                        } else {
+                            item
+                        }
+                    },
             )
         fileStore.writeSnapshot(json.encodeToString(DesktopWorkspaceSnapshot.serializer(), updatedSnapshot))
         return true
     }
 
     override suspend fun getBacklogItems(contextId: String): List<SharedBacklogItem> =
-        readSnapshot().backlogItems.filter { item -> item.contextId == contextId }
+        readSnapshot().backlogItems.filter { item -> item.contextId == contextId && !item.isDeleted }
+
+    override suspend fun getDayPlans(): List<SharedDayPlan> = readSnapshot().dayPlans
+
+    override suspend fun getDayTasks(): List<SharedDayTask> = readSnapshot().dayTasks
 
     override suspend fun createBacklogItem(
         contextId: String,
@@ -106,6 +136,7 @@ class FileBasedDesktopWorkspaceRepository(
         priority: SharedBacklogPriority,
     ): SharedBacklogItem? {
         val snapshot = readSnapshot()
+        val now = clock.millis()
         val newItem =
             SharedBacklogItem(
                 id = "desktop-${UUID.randomUUID()}",
@@ -115,6 +146,7 @@ class FileBasedDesktopWorkspaceRepository(
                 kind = SharedBacklogItemKind.Task,
                 priority = priority,
                 isDone = false,
+                sync = SharedSyncMetadata(createdAt = now, updatedAt = now, version = 1),
             )
         val updatedSnapshot = snapshot.copy(backlogItems = snapshot.backlogItems + newItem)
         fileStore.writeSnapshot(json.encodeToString(DesktopWorkspaceSnapshot.serializer(), updatedSnapshot))
@@ -126,15 +158,18 @@ class FileBasedDesktopWorkspaceRepository(
         isDone: Boolean,
     ): SharedBacklogItem? {
         val snapshot = readSnapshot()
+        val now = clock.millis()
         val updatedItem =
-            snapshot.backlogItems.firstOrNull { item -> item.id == itemId }?.copy(isDone = isDone)
+            snapshot.backlogItems.firstOrNull { item -> item.id == itemId }?.let { item ->
+                item.copy(isDone = isDone, sync = item.sync.nextVersion(now))
+            }
                 ?: return null
         val updatedSnapshot =
             snapshot.copy(
                 backlogItems =
                     snapshot.backlogItems.map { item ->
                         if (item.id == itemId) {
-                            item.copy(isDone = isDone)
+                            item.copy(isDone = isDone, sync = item.sync.nextVersion(now))
                         } else {
                             item
                         }
@@ -151,12 +186,16 @@ class FileBasedDesktopWorkspaceRepository(
         priority: SharedBacklogPriority,
     ): SharedBacklogItem? {
         val snapshot = readSnapshot()
+        val now = clock.millis()
         val updatedItem =
-            snapshot.backlogItems.firstOrNull { item -> item.id == itemId }?.copy(
-                title = title,
-                details = details,
-                priority = priority,
-            ) ?: return null
+            snapshot.backlogItems.firstOrNull { item -> item.id == itemId }?.let { item ->
+                item.copy(
+                    title = title,
+                    details = details,
+                    priority = priority,
+                    sync = item.sync.nextVersion(now),
+                )
+            } ?: return null
         val updatedSnapshot =
             snapshot.copy(
                 backlogItems =
@@ -166,6 +205,7 @@ class FileBasedDesktopWorkspaceRepository(
                                 title = title,
                                 details = details,
                                 priority = priority,
+                                sync = item.sync.nextVersion(now),
                             )
                         } else {
                             item
@@ -178,11 +218,21 @@ class FileBasedDesktopWorkspaceRepository(
 
     override suspend fun deleteBacklogItem(itemId: String): Boolean {
         val snapshot = readSnapshot()
-        val updatedItems = snapshot.backlogItems.filterNot { item -> item.id == itemId }
-        if (updatedItems.size == snapshot.backlogItems.size) {
+        val now = clock.millis()
+        if (snapshot.backlogItems.none { item -> item.id == itemId && !item.isDeleted }) {
             return false
         }
-        val updatedSnapshot = snapshot.copy(backlogItems = updatedItems)
+        val updatedSnapshot =
+            snapshot.copy(
+                backlogItems =
+                    snapshot.backlogItems.map { item ->
+                        if (item.id == itemId) {
+                            item.copy(isDeleted = true, sync = item.sync.nextVersion(now))
+                        } else {
+                            item
+                        }
+                    },
+            )
         fileStore.writeSnapshot(json.encodeToString(DesktopWorkspaceSnapshot.serializer(), updatedSnapshot))
         return true
     }
@@ -210,3 +260,10 @@ class FileBasedDesktopWorkspaceRepository(
         return result
     }
 }
+
+private fun SharedSyncMetadata.nextVersion(now: Long): SharedSyncMetadata =
+    copy(
+        createdAt = createdAt.takeIf { it > 0L } ?: now,
+        updatedAt = now,
+        version = version + 1L,
+    )

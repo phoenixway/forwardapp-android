@@ -28,6 +28,7 @@ class DesktopWorkspaceFileStore(
     private val json: Json = Json { ignoreUnknownKeys = true; prettyPrint = true },
 ) {
     private val snapshotResolver = WorkspaceSnapshotResolver(json = json)
+    private val snapshotMerger = DesktopWorkspaceSnapshotMerger()
 
     fun workspacePath(): Path = workspaceFile
 
@@ -89,6 +90,25 @@ class DesktopWorkspaceFileStore(
             ImportResult.Success(sourceFile = sourceFile, format = resolvedSnapshot.format)
         } catch (_: Exception) {
             ImportResult.InvalidSnapshot(sourceFile)
+        }
+    }
+
+    fun mergeSnapshotText(snapshotText: String): MergeImportResult {
+        ensureSeededSnapshot()
+        val resolvedSnapshot = resolveSnapshot(snapshotText) ?: return MergeImportResult.InvalidSnapshot
+        return try {
+            val localSnapshot = json.decodeFromString(DesktopWorkspaceSnapshot.serializer(), readSnapshot())
+            val mergedSnapshot = snapshotMerger.merge(local = localSnapshot, incoming = resolvedSnapshot.snapshot)
+            createBackup()
+            workspaceFile.writeText(
+                json.encodeToString(
+                    DesktopWorkspaceSnapshot.serializer(),
+                    mergedSnapshot,
+                ),
+            )
+            MergeImportResult.Success(format = resolvedSnapshot.format)
+        } catch (_: Exception) {
+            MergeImportResult.InvalidSnapshot
         }
     }
 
@@ -181,6 +201,14 @@ sealed interface ImportResult {
     data class InvalidSnapshot(
         val sourceFile: Path,
     ) : ImportResult
+}
+
+sealed interface MergeImportResult {
+    data class Success(
+        val format: WorkspaceSnapshotFormat,
+    ) : MergeImportResult
+
+    data object InvalidSnapshot : MergeImportResult
 }
 
 sealed interface SnapshotInspectionResult {

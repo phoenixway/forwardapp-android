@@ -415,10 +415,12 @@ class DayPlanViewModel
                                     "tasksCount=${tasks.size} (before creating DayPlanUiState)"
                             ),
                         )
+                        val taskLinkedProjectIds = tasks.flatMap { it.dayTask.linkedProjectIds.orEmpty() }
                         val linkedProjectIds = todayScopeLinks.linkedProjectIds
+                        val visibleProjectIds = (linkedProjectIds + taskLinkedProjectIds).toSet()
                         val linkedAttachmentIds = todayScopeLinks.linkedAttachmentIds
                         val linkedProjectTitles =
-                            linkedProjectIds.associateWith { projectId ->
+                            visibleProjectIds.associateWith { projectId ->
                                 projectSnapshot.titlesById[projectId] ?: compactId(projectId)
                             }
                         val linkedAttachmentTitles =

@@ -25,6 +25,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -41,11 +42,14 @@ import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextVi
 private const val INDENT_WIDTH_DP = 20
 
 @Composable
-fun DesktopContextExplorerScreen() {
-    val dependencies = rememberDesktopWorkspaceDependencies()
+fun DesktopContextExplorerScreen(
+    dependencies: DesktopWorkspaceDependencies = rememberDesktopWorkspaceDependencies(),
+    initialContextId: String? = null,
+    refreshKey: Long = 0L,
+) {
     val scope = rememberCoroutineScope()
     val store =
-        remember(dependencies.observeContextTree, dependencies.observeBacklog, scope) {
+        remember(dependencies.observeContextTree, dependencies.observeBacklog, scope, refreshKey) {
             DesktopWorkspaceStore(
                 observeContextTree = dependencies.observeContextTree,
                 observeBacklog = dependencies.observeBacklog,
@@ -61,6 +65,11 @@ fun DesktopContextExplorerScreen() {
         }
     val state by store.state.collectAsState()
     val dispatch = store::dispatch
+    LaunchedEffect(initialContextId) {
+        initialContextId?.let { contextId ->
+            dispatch(WorkspaceExplorerIntent.ContextSelected(contextId))
+        }
+    }
 
     Row(
         modifier = Modifier.fillMaxSize(),

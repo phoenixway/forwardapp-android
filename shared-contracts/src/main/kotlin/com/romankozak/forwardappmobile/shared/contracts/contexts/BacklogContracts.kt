@@ -11,6 +11,9 @@ data class SharedBacklogItem(
     val kind: SharedBacklogItemKind,
     val priority: SharedBacklogPriority,
     val isDone: Boolean = false,
+    val sourceEntityId: String? = null,
+    val isDeleted: Boolean = false,
+    val sync: SharedSyncMetadata = SharedSyncMetadata(),
 )
 
 @Serializable

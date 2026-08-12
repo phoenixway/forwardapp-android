@@ -12,6 +12,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DayFocusesRepository
+import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
@@ -55,6 +56,7 @@ class DayFocusesViewModel
     @Inject
     constructor(
         private val repository: DayFocusesRepository,
+        private val dayManagementRepository: DayManagementRepository,
         private val contextRepository: ContextRepository,
         private val attachmentsRepository: AttachmentsRepository,
         private val noteDocumentRepository: NoteDocumentRepository,
@@ -161,29 +163,34 @@ class DayFocusesViewModel
             if (trimmedTitle.isBlank()) return
 
             viewModelScope.launch {
-                when (val dialogMode = dialogModeFlow.value) {
-	                    is DayFocusDialogMode.Edit ->
-	                        repository.updateItem(
-	                            item = dialogMode.item,
-	                            title = trimmedTitle,
-	                            notes = notes,
-	                            relatedLinks = relatedLinks,
-	                            type = type,
-	                            isEveryday = isEveryday,
-	                            budgetPercent = budgetPercent,
-	                        )
+                val savedItem =
+                    when (val dialogMode = dialogModeFlow.value) {
+                        is DayFocusDialogMode.Edit ->
+                            repository.updateItem(
+                                item = dialogMode.item,
+                                title = trimmedTitle,
+                                notes = notes,
+                                relatedLinks = relatedLinks,
+                                type = type,
+                                isEveryday = isEveryday,
+                                budgetPercent = budgetPercent,
+                            )
 
-                    else ->
-                        repository.addItem(
-	                            dayPlanId = planId,
-	                            title = trimmedTitle,
-	                            notes = notes,
-	                            relatedLinks = relatedLinks,
-	                            type = type,
-	                            order = uiState.value.items.size.toLong(),
-	                            isEveryday = isEveryday,
-	                            budgetPercent = budgetPercent,
-	                        )
+                        else ->
+                            repository.addItem(
+                                dayPlanId = planId,
+                                title = trimmedTitle,
+                                notes = notes,
+                                relatedLinks = relatedLinks,
+                                type = type,
+                                order = uiState.value.items.size.toLong(),
+                                isEveryday = isEveryday,
+                                budgetPercent = budgetPercent,
+                            )
+                    }
+                if (savedItem.isEveryday) {
+                    val todayPlan = dayManagementRepository.createOrUpdateDayPlan(System.currentTimeMillis())
+                    repository.upsertEverydayItemForDayPlan(source = savedItem, targetDayPlanId = todayPlan.id)
                 }
                 dialogModeFlow.value = null
             }

@@ -49,6 +49,7 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 @Composable
 fun TaskList(
     tasks: List<DayTaskWithReminder>,
+    linkedProjectTitles: Map<String, String>,
     contextMarkerToEmojiMap: Map<String, String>,
     actions: TaskListActions,
     lazyListState: LazyListState = rememberLazyListState(),
@@ -75,6 +76,7 @@ fun TaskList(
         } else {
             TaskListContent(
                 tasks = internalTasks,
+                linkedProjectTitles = linkedProjectTitles,
                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                 lazyListState = lazyListState,
                 reorderableState = reorderableState,
@@ -88,6 +90,7 @@ fun TaskList(
 @Composable
 private fun TaskListContent(
     tasks: List<DayTaskWithReminder>,
+    linkedProjectTitles: Map<String, String>,
     contextMarkerToEmojiMap: Map<String, String>,
     lazyListState: LazyListState,
     reorderableState: sh.calvin.reorderable.ReorderableLazyListState,
@@ -102,6 +105,7 @@ private fun TaskListContent(
         items(tasks, key = { it.dayTask.id }) { taskWithReminder ->
             TaskListItem(
                 taskWithReminder = taskWithReminder,
+                linkedProjectTitles = linkedProjectTitles,
                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                 reorderableState = reorderableState,
                 actions = actions,
@@ -114,6 +118,7 @@ private fun TaskListContent(
 @Composable
 private fun LazyItemScope.TaskListItem(
     taskWithReminder: DayTaskWithReminder,
+    linkedProjectTitles: Map<String, String>,
     contextMarkerToEmojiMap: Map<String, String>,
     reorderableState: sh.calvin.reorderable.ReorderableLazyListState,
     actions: TaskListActions,
@@ -149,6 +154,7 @@ private fun LazyItemScope.TaskListItem(
             ) {
                 DayTaskCard(
                     taskWithReminder = taskWithReminder,
+                    linkedProjectTitles = linkedProjectTitles,
                     contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                     actions =
                         DayTaskCardActions(

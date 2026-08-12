@@ -5,6 +5,8 @@ import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogPr
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextStatus
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextSummary
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextView
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedDayPlan
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedDayTask
 
 interface DesktopWorkspaceRepository {
     suspend fun getContexts(): List<SharedContextSummary>
@@ -28,6 +30,10 @@ interface DesktopWorkspaceRepository {
     suspend fun deleteContext(contextId: String): Boolean
 
     suspend fun getBacklogItems(contextId: String): List<SharedBacklogItem>
+
+    suspend fun getDayPlans(): List<SharedDayPlan> = emptyList()
+
+    suspend fun getDayTasks(): List<SharedDayTask> = emptyList()
 
     suspend fun createBacklogItem(
         contextId: String,

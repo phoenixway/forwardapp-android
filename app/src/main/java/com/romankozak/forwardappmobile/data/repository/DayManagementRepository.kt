@@ -167,14 +167,16 @@ class DayManagementRepository
                 val existingPlan = dayPlanDao.getPlanForDateSync(dayStart)
 
                 if (existingPlan != null) {
+                    val now = System.currentTimeMillis()
                     val updated =
                         existingPlan.copy(
                             name = name ?: existingPlan.name,
-                            updatedAt = System.currentTimeMillis(),
+                            updatedAt = now,
                             syncedAt = null,
                             version = existingPlan.version + 1,
                         )
                     dayPlanDao.update(updated)
+                    ensureEverydayFocusItemsInPlan(targetPlan = updated, now = now)
                     updated
                 } else {
                     val now = System.currentTimeMillis()
@@ -187,48 +189,77 @@ class DayManagementRepository
                             updatedAt = now,
                             syncedAt = null,
                             version = 1,
-                        )
-                    dayPlanDao.insert(newPlan)
-                    cloneEverydayFocusItems(
-                        targetPlan = newPlan,
-                        sourcePlan = dayPlanDao.getLatestPlanBeforeDate(dayStart),
-                        now = now,
                     )
+                    dayPlanDao.insert(newPlan)
+                    ensureEverydayFocusItemsInPlan(targetPlan = newPlan, now = now)
                     newPlan
                 }
             }
 
-        private suspend fun cloneEverydayFocusItems(
+        private suspend fun ensureEverydayFocusItemsInPlan(
             targetPlan: DayPlan,
-            sourcePlan: DayPlan?,
             now: Long,
         ) {
-            val previousPlanId = sourcePlan?.id ?: return
-            val sourceItems =
-                dayFocusItemDao
-                    .getItemsForDayPlanSync(previousPlanId)
-                    .filter { !it.isDeleted && it.isEveryday }
-            if (sourceItems.isEmpty()) return
+            val eligiblePlanIds =
+                dayPlanDao
+                    .getAllPlansSync()
+                    .filter { plan -> !plan.isDeleted && plan.date <= targetPlan.date }
+                    .mapTo(hashSetOf()) { plan -> plan.id }
+            if (eligiblePlanIds.isEmpty()) return
 
-            val clonedItems =
-                sourceItems.mapIndexed { index, item ->
-                    DayFocusItem(
-                        dayPlanId = targetPlan.id,
-                        title = item.title,
-                        notes = item.notes,
-                        relatedLinks = item.relatedLinks,
-                        type = item.type,
-                        isEveryday = true,
-                        budgetPercent = item.budgetPercent,
-                        recurringKey = item.recurringKey ?: item.id,
-                        order = index.toLong(),
-                        createdAt = now,
-                        updatedAt = now,
-                        syncedAt = null,
-                        version = 1,
-                    )
+            val targetItems =
+                dayFocusItemDao
+                    .getItemsForDayPlanSync(targetPlan.id)
+                    .filter { item -> !item.isDeleted }
+            val targetItemsByRecurringKey = targetItems.associateBy { item -> item.recurringKey ?: item.id }
+            val latestEverydayItems =
+                dayFocusItemDao
+                    .getAllSync()
+                    .asSequence()
+                    .filter { item -> !item.isDeleted && item.isEveryday && item.dayPlanId in eligiblePlanIds }
+                    .groupBy { item -> item.recurringKey ?: item.id }
+                    .mapValues { (_, items) -> items.maxBy { item -> item.updatedAt ?: item.createdAt } }
+            if (latestEverydayItems.isEmpty()) return
+
+            latestEverydayItems.entries.forEachIndexed { index, (recurringKey, sourceItem) ->
+                val existing = targetItemsByRecurringKey[recurringKey]
+                when {
+                    existing == null ->
+                        dayFocusItemDao.insert(
+                            DayFocusItem(
+                                dayPlanId = targetPlan.id,
+                                title = sourceItem.title,
+                                notes = sourceItem.notes,
+                                relatedLinks = sourceItem.relatedLinks,
+                                type = sourceItem.type,
+                                isEveryday = true,
+                                budgetPercent = sourceItem.budgetPercent,
+                                recurringKey = recurringKey,
+                                order = targetItems.size.toLong() + index.toLong(),
+                                createdAt = now,
+                                updatedAt = now,
+                                syncedAt = null,
+                                version = 1,
+                            ),
+                        )
+
+                    existing.shouldRefreshFrom(sourceItem, recurringKey) ->
+                        dayFocusItemDao.update(
+                            existing.copy(
+                                title = sourceItem.title,
+                                notes = sourceItem.notes,
+                                relatedLinks = sourceItem.relatedLinks,
+                                type = sourceItem.type,
+                                isEveryday = true,
+                                budgetPercent = sourceItem.budgetPercent,
+                                recurringKey = recurringKey,
+                                updatedAt = now,
+                                syncedAt = null,
+                                version = existing.version + 1,
+                            ),
+                        )
                 }
-            dayFocusItemDao.insertAll(clonedItems)
+            }
         }
 
         suspend fun updatePlanStatus(
@@ -1322,3 +1353,15 @@ class DayManagementRepository
                 recalculateDayProgress(taskId)
             }
     }
+
+private fun DayFocusItem.shouldRefreshFrom(
+    source: DayFocusItem,
+    recurringKey: String,
+): Boolean =
+    title != source.title ||
+        notes != source.notes ||
+        relatedLinks != source.relatedLinks ||
+        type != source.type ||
+        !isEveryday ||
+        this.recurringKey != recurringKey ||
+        budgetPercent != source.budgetPercent

@@ -128,6 +128,7 @@ private fun DayPlanPrimaryContent(
                 Column(modifier = Modifier.fillMaxSize()) {
                     TaskList(
                         tasks = state.uiState.tasks,
+                        linkedProjectTitles = state.uiState.linkedProjectTitles,
                         contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                         actions =
                             TaskListActions(

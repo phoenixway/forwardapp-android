@@ -12,6 +12,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.G
 import com.romankozak.forwardappmobile.shared.contracts.contexts.DesktopWorkspaceSnapshot
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextStatus
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextView
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedSyncMetadata
 
 class DesktopWorkspaceSnapshotSyncAdapter {
     fun toSnapshotBundle(
@@ -23,16 +24,17 @@ class DesktopWorkspaceSnapshotSyncAdapter {
             snapshot.backlogItems
                 .filter { backlogItem -> backlogItem.contextId in validContextIds }
                 .map { item ->
+                    val sync = item.sync.withExportFallback(exportedAt)
                     GoalSnapshot(
-                        id = goalId(item.id),
+                        id = goalId(item),
                         text = item.title,
                         description = item.details,
                         isCompleted = item.isDone,
                         goalStatus = if (item.isDone) GoalStatusValues.DONE else GoalStatusValues.ACTIVE,
-                        createdAt = exportedAt,
-                        updatedAt = exportedAt,
-                        version = 1,
-                        isDeleted = false,
+                        createdAt = sync.createdAt,
+                        updatedAt = sync.updatedAt,
+                        version = sync.version,
+                        isDeleted = item.isDeleted,
                         tags = emptyList(),
                         scoringStatus = ScoringStatusValues.NOT_ASSESSED,
                         valueImportance = 0,
@@ -57,15 +59,16 @@ class DesktopWorkspaceSnapshotSyncAdapter {
             snapshot.backlogItems
                 .filter { backlogItem -> backlogItem.contextId in validContextIds }
                 .mapIndexed { index, item ->
+                    val sync = item.sync.withExportFallback(exportedAt)
                     BacklogItemSnapshot(
                         id = backlogItemId(item.id),
                         contextId = item.contextId,
                         itemType = BacklogItemTypeValues.GOAL,
-                        entityId = goalId(item.id),
+                        entityId = goalId(item),
                         order = index.toLong(),
-                        updatedAt = exportedAt,
-                        version = 1,
-                        isDeleted = false,
+                        updatedAt = sync.updatedAt,
+                        version = sync.version,
+                        isDeleted = item.isDeleted,
                     )
                 }
 
@@ -82,7 +85,7 @@ class DesktopWorkspaceSnapshotSyncAdapter {
                             order = index.toLong(),
                             orderVersion = 1,
                             updatedAt = exportedAt,
-                            isDeleted = false,
+                            isDeleted = item.isDeleted,
                         )
                     }
                 }
@@ -92,16 +95,17 @@ class DesktopWorkspaceSnapshotSyncAdapter {
             exportedAt = exportedAt,
             contexts =
                 snapshot.contexts.mapIndexed { index, context ->
+                    val sync = context.sync.withExportFallback(exportedAt)
                     ContextSnapshot(
                         id = context.id,
                         name = context.name,
                         parentId = context.parentId.takeIf { parentId -> parentId in validContextIds },
                         description = context.description,
-                        createdAt = exportedAt,
-                        updatedAt = exportedAt,
+                        createdAt = sync.createdAt,
+                        updatedAt = sync.updatedAt,
                         isExpanded = true,
-                        isDeleted = false,
-                        version = 1,
+                        isDeleted = context.isDeleted,
+                        version = sync.version,
                         tags = emptyList(),
                         relatedLinks = emptyList(),
                         order = index,
@@ -134,9 +138,10 @@ class DesktopWorkspaceSnapshotSyncAdapter {
         )
     }
 
-    private fun goalId(backlogItemId: String): String = "desktop-goal-$backlogItemId"
+    private fun goalId(backlogItem: com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogItem): String =
+        backlogItem.sourceEntityId ?: "desktop-goal-${backlogItem.id}"
 
-    private fun backlogItemId(backlogItemId: String): String = "desktop-backlog-$backlogItemId"
+    private fun backlogItemId(backlogItemId: String): String = backlogItemId
 }
 
 private fun SharedContextStatus.toAndroidContextStatus(): String =
@@ -161,3 +166,10 @@ private fun SharedContextView.toAndroidViewModeName(): String =
         SharedContextView.Artifact -> "ARTIFACT"
         SharedContextView.KeyProblems -> "KEY_PROBLEMS"
     }
+
+private fun SharedSyncMetadata.withExportFallback(exportedAt: Long): SharedSyncMetadata =
+    SharedSyncMetadata(
+        createdAt = createdAt.takeIf { it > 0L } ?: exportedAt,
+        updatedAt = updatedAt.takeIf { it > 0L } ?: exportedAt,
+        version = version.takeIf { it > 0L } ?: 1L,
+    )

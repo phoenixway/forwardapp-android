@@ -16,6 +16,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -26,15 +27,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.romankozak.forwardappmobile.desktop.features.contexts.rememberDesktopWorkspaceDependencies
+import com.romankozak.forwardappmobile.desktop.features.contexts.DesktopWorkspaceDependencies
+import com.romankozak.forwardappmobile.desktop.features.sync.DesktopAndroidConnectionState
+import com.romankozak.forwardappmobile.desktop.features.sync.DesktopAndroidSyncController
 import com.romankozak.forwardappmobile.shared.application.contexts.WorkspaceBackupEntry
 import com.romankozak.forwardappmobile.shared.application.contexts.WorkspaceImportInspection
 import com.romankozak.forwardappmobile.shared.application.contexts.WorkspaceRecoveryAction
 import com.romankozak.forwardappmobile.shared.application.contexts.WorkspaceRecoveryStore
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @Composable
-fun DesktopSettingsScreen() {
-    val dependencies = rememberDesktopWorkspaceDependencies()
+fun DesktopSettingsScreen(
+    dependencies: DesktopWorkspaceDependencies,
+    syncController: DesktopAndroidSyncController,
+) {
     val scope = rememberCoroutineScope()
     val store =
         remember(dependencies.fileStore, scope) {
@@ -44,6 +52,7 @@ fun DesktopSettingsScreen() {
             )
         }
     val state by store.state.collectAsState()
+    val syncState by syncController.state.collectAsState()
 
     Column(
         modifier = Modifier.fillMaxSize().padding(28.dp),
@@ -66,6 +75,84 @@ fun DesktopSettingsScreen() {
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        Card(
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xCCFFFFFF)),
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Text(
+                    text = "Android Sync",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                OutlinedTextField(
+                    value = syncState.settings.androidAddress,
+                    onValueChange = syncController::onAddressChanged,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Android server address") },
+                    supportingText = { Text("Example: 192.168.1.42:8080. Android remains the only server.") },
+                    singleLine = true,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "Auto sync",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            text = syncStatusText(syncState.connection, syncState.isSyncing),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = syncStatusColor(syncState.connection, syncState.isSyncing),
+                        )
+                    }
+                    Switch(
+                        checked = syncState.settings.autoSyncEnabled,
+                        onCheckedChange = syncController::onAutoSyncChanged,
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Button(
+                        onClick = syncController::syncNow,
+                        enabled = syncState.settings.androidAddress.isNotBlank() && !syncState.isSyncing,
+                    ) {
+                        Text(if (syncState.isSyncing) "Syncing..." else "Sync Now")
+                    }
+                    SettingsFact(
+                        label = "Last sync",
+                        value = syncState.settings.lastSyncAt?.let(::formatSyncTime) ?: "Never",
+                    )
+                }
+                syncState.lastError?.let { error ->
+                    Text(
+                        text = error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFFA64132),
+                        modifier =
+                            Modifier
+                                .background(Color(0xFFFBE8E5), RoundedCornerShape(18.dp))
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                    )
+                } ?: Text(
+                    text = syncState.lastSyncMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF1D7C70),
+                    modifier =
+                        Modifier
+                            .background(Color(0xFFE7F5EF), RoundedCornerShape(18.dp))
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                )
+            }
+        }
         Card(
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xCCFFFFFF)),
@@ -340,3 +427,35 @@ private fun messageBackground(message: String): Color =
         message.contains("imported", ignoreCase = true) -> Color(0xFFE7F5EF)
         else -> Color(0xFFF2F4EF)
     }
+
+private fun syncStatusText(
+    connection: DesktopAndroidConnectionState,
+    isSyncing: Boolean,
+): String =
+    if (isSyncing) {
+        "Syncing desktop delta and Android delta."
+    } else {
+        when (connection) {
+            DesktopAndroidConnectionState.Idle -> "Idle."
+            DesktopAndroidConnectionState.Checking -> "Checking Android server."
+            DesktopAndroidConnectionState.Connected -> "Connected."
+            DesktopAndroidConnectionState.Disconnected -> "Disconnected, retrying."
+        }
+    }
+
+private fun syncStatusColor(
+    connection: DesktopAndroidConnectionState,
+    isSyncing: Boolean,
+): Color =
+    when {
+        isSyncing -> Color(0xFF1D6E64)
+        connection == DesktopAndroidConnectionState.Connected -> Color(0xFF1D7C70)
+        connection == DesktopAndroidConnectionState.Disconnected -> Color(0xFFA64132)
+        else -> Color(0xFF52606D)
+    }
+
+private fun formatSyncTime(timestamp: Long): String =
+    SYNC_TIME_FORMATTER.format(Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()))
+
+private val SYNC_TIME_FORMATTER: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")

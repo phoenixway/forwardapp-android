@@ -60,6 +60,7 @@ data class DayTaskCardActions(
 @Composable
 fun DayTaskCard(
     taskWithReminder: DayTaskWithReminder,
+    linkedProjectTitles: Map<String, String>,
     contextMarkerToEmojiMap: Map<String, String>,
     actions: DayTaskCardActions,
     modifier: Modifier = Modifier,
@@ -88,6 +89,7 @@ fun DayTaskCard(
 
         DayTaskCardContent(
             taskWithReminder = taskWithReminder,
+            linkedProjectTitles = linkedProjectTitles,
             contextMarkerToEmojiMap = contextMarkerToEmojiMap,
             contentAlpha = contentAlpha,
             onClick = actions.onClick,
@@ -111,6 +113,7 @@ fun DayTaskCard(
 @Composable
 private fun RowScope.DayTaskCardContent(
     taskWithReminder: DayTaskWithReminder,
+    linkedProjectTitles: Map<String, String>,
     contextMarkerToEmojiMap: Map<String, String>,
     contentAlpha: Float,
     onClick: () -> Unit,
@@ -200,6 +203,7 @@ private fun RowScope.DayTaskCardContent(
 
         DayTaskMetaRow(
             taskWithReminder = taskWithReminder,
+            linkedProjectTitles = linkedProjectTitles,
             contextIcons = parsedTaskText.icons,
             modifier = Modifier.padding(top = 8.dp),
             onParentInfoClick = onParentInfoClick,
@@ -236,6 +240,7 @@ private fun DayTaskPriorityLabel(
 @Composable
 private fun DayTaskMetaRow(
     taskWithReminder: DayTaskWithReminder,
+    linkedProjectTitles: Map<String, String>,
     contextIcons: List<String>,
     modifier: Modifier = Modifier,
     onParentInfoClick: (ParentInfo) -> Unit,
@@ -266,6 +271,20 @@ private fun DayTaskMetaRow(
                     parentInfo.toStatusChipSpec(onParentInfoClick),
                 )
             }
+            task.linkedProjectIds.orEmpty()
+                .filterNot { linkedProjectId -> linkedProjectId == task.projectId }
+                .distinct()
+                .forEach { linkedProjectId ->
+                    val title = linkedProjectTitles[linkedProjectId] ?: linkedProjectId
+                    add(
+                        ParentInfo(
+                            id = linkedProjectId,
+                            title = title,
+                            type = ParentType.PROJECT,
+                            projectId = linkedProjectId,
+                        ).toStatusChipSpec(onParentInfoClick),
+                    )
+                }
             task.estimatedDurationMinutes?.takeIf { it > 0 }?.let { minutes ->
                 add(UnifiedStatusChipSpec(icon = Icons.Outlined.Timer, text = "$minutes хв"))
             }

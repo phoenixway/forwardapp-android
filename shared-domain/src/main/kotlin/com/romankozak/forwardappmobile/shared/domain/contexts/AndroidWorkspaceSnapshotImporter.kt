@@ -8,6 +8,9 @@ import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogPr
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextStatus
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextSummary
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextView
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedDayPlan
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedDayTask
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedSyncMetadata
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSnapshotFormat
 import kotlin.math.roundToInt
 import kotlinx.serialization.json.Json
@@ -61,9 +64,18 @@ class AndroidWorkspaceSnapshotImporter(
                 .mapNotNull { item ->
                     item.toSnapshotBacklogItem(itemResolvers = itemResolvers, validContextIds = contextIds)
                 }.sortedWith(compareBy({ backlogOrders[it.contextId to it.id] ?: Long.MAX_VALUE }, { it.title.lowercase() }))
+        val dayPlans = parseDayPlans(source)
+        val dayPlanIds = dayPlans.mapTo(hashSetOf()) { plan -> plan.id }
+        val dayTasks = parseDayTasks(source = source, validDayPlanIds = dayPlanIds, validContextIds = contextIds)
 
         return ResolvedWorkspaceSnapshot(
-            snapshot = DesktopWorkspaceSnapshot(contexts = contexts, backlogItems = backlogItems),
+            snapshot =
+                DesktopWorkspaceSnapshot(
+                    contexts = contexts,
+                    backlogItems = backlogItems,
+                    dayPlans = dayPlans,
+                    dayTasks = dayTasks,
+                ),
             format = format,
         )
     }
@@ -81,9 +93,18 @@ class AndroidWorkspaceSnapshotImporter(
                 .mapNotNull { item ->
                     item.toLegacyBacklogItem(itemResolvers = itemResolvers, validContextIds = contextIds)
                 }.sortedWith(compareBy({ backlogOrders[it.contextId to it.id] ?: Long.MAX_VALUE }, { it.title.lowercase() }))
+        val dayPlans = parseDayPlans(source)
+        val dayPlanIds = dayPlans.mapTo(hashSetOf()) { plan -> plan.id }
+        val dayTasks = parseDayTasks(source = source, validDayPlanIds = dayPlanIds, validContextIds = contextIds)
 
         return ResolvedWorkspaceSnapshot(
-            snapshot = DesktopWorkspaceSnapshot(contexts = contexts, backlogItems = backlogItems),
+            snapshot =
+                DesktopWorkspaceSnapshot(
+                    contexts = contexts,
+                    backlogItems = backlogItems,
+                    dayPlans = dayPlans,
+                    dayTasks = dayTasks,
+                ),
             format = format,
         )
     }
@@ -92,21 +113,19 @@ class AndroidWorkspaceSnapshotImporter(
         val rawContexts =
             source.fieldArray("contexts")
                 .mapNotNull { entry ->
-                    if (entry.boolean("isDeleted") == true) {
-                        null
-                    } else {
-                        ParsedContext(
-                            id = entry.string("id") ?: return@mapNotNull null,
-                            name = entry.string("name").orEmpty(),
-                            description = entry.string("description"),
-                            parentId = entry.string("parentId"),
-                            status = entry.string("contextStatus").toSharedContextStatus(),
-                            defaultView = entry.string("defaultViewModeName").toSharedContextView(),
-                            score = (entry.double("displayScore") ?: entry.double("rawScore") ?: 0.0).roundToInt(),
-                            isCompleted = entry.boolean("isCompleted") ?: false,
-                            sortOrder = entry.long("order") ?: Long.MAX_VALUE,
-                        )
-                    }
+                    ParsedContext(
+                        id = entry.string("id") ?: return@mapNotNull null,
+                        name = entry.string("name").orEmpty(),
+                        description = entry.string("description"),
+                        parentId = entry.string("parentId"),
+                        status = entry.string("contextStatus").toSharedContextStatus(),
+                        defaultView = entry.string("defaultViewModeName").toSharedContextView(),
+                        score = (entry.double("displayScore") ?: entry.double("rawScore") ?: 0.0).roundToInt(),
+                        isCompleted = entry.boolean("isCompleted") ?: false,
+                        isDeleted = entry.boolean("isDeleted") ?: false,
+                        sortOrder = entry.long("order") ?: Long.MAX_VALUE,
+                        sync = entry.syncMetadata(),
+                    )
                 }.sortedWith(compareBy<ParsedContext>({ it.sortOrder }, { it.name.lowercase() }))
 
         return normalizeContexts(rawContexts)
@@ -116,28 +135,26 @@ class AndroidWorkspaceSnapshotImporter(
         val rawContexts =
             source.fieldArray("projects", "goalLists")
                 .mapNotNull { entry ->
-                    if (entry.boolean("isDeleted") == true) {
-                        null
-                    } else {
-                        ParsedContext(
-                            id = entry.string("id") ?: return@mapNotNull null,
-                            name = entry.string("name").orEmpty(),
-                            description = entry.string("description"),
-                            parentId = entry.string("parentId"),
-                            status = entry.string("contextStatus").toSharedContextStatus(),
-                            defaultView = entry.string("defaultViewModeName").toSharedContextView(),
-                            score = (entry.double("displayScore") ?: entry.double("rawScore") ?: 0.0).roundToInt(),
-                            isCompleted = entry.boolean("isCompleted") ?: false,
-                            sortOrder = entry.long("order") ?: Long.MAX_VALUE,
-                        )
-                    }
+                    ParsedContext(
+                        id = entry.string("id") ?: return@mapNotNull null,
+                        name = entry.string("name").orEmpty(),
+                        description = entry.string("description"),
+                        parentId = entry.string("parentId"),
+                        status = entry.string("contextStatus").toSharedContextStatus(),
+                        defaultView = entry.string("defaultViewModeName").toSharedContextView(),
+                        score = (entry.double("displayScore") ?: entry.double("rawScore") ?: 0.0).roundToInt(),
+                        isCompleted = entry.boolean("isCompleted") ?: false,
+                        isDeleted = entry.boolean("isDeleted") ?: false,
+                        sortOrder = entry.long("order") ?: Long.MAX_VALUE,
+                        sync = entry.syncMetadata(),
+                    )
                 }.sortedWith(compareBy<ParsedContext>({ it.sortOrder }, { it.name.lowercase() }))
 
         return normalizeContexts(rawContexts)
     }
 
     private fun normalizeContexts(rawContexts: List<ParsedContext>): List<SharedContextSummary> {
-        val validIds = rawContexts.mapTo(hashSetOf()) { it.id }
+        val validIds = rawContexts.filterNot { context -> context.isDeleted }.mapTo(hashSetOf()) { it.id }
         return rawContexts.map { context ->
             SharedContextSummary(
                 id = context.id,
@@ -148,6 +165,8 @@ class AndroidWorkspaceSnapshotImporter(
                 defaultView = context.defaultView,
                 score = context.score,
                 isCompleted = context.isCompleted,
+                isDeleted = context.isDeleted,
+                sync = context.sync,
             )
         }
     }
@@ -157,7 +176,12 @@ class AndroidWorkspaceSnapshotImporter(
             goals =
                 source.fieldArray("goals")
                     .associateByKey(idField = "id") { item ->
-                        NamedItem(title = item.string("text"), details = item.string("description"), isDone = item.boolean("isCompleted"))
+                        NamedItem(
+                            title = item.string("text"),
+                            details = item.string("description"),
+                            isDone = item.boolean("isCompleted"),
+                            sync = item.syncMetadata(),
+                        )
                     },
             notes =
                 source.fieldArray("notes")
@@ -265,16 +289,64 @@ class AndroidWorkspaceSnapshotImporter(
                 (listId to itemId) to order
             }
 
+    private fun parseDayPlans(source: JsonObject): List<SharedDayPlan> =
+        source.fieldArray("dayPlans")
+            .mapNotNull { entry ->
+                if (entry.boolean("isDeleted") == true) {
+                    null
+                } else {
+                    SharedDayPlan(
+                        id = entry.string("id") ?: return@mapNotNull null,
+                        date = entry.long("date") ?: return@mapNotNull null,
+                        name = entry.string("name"),
+                        status = entry.string("status").orEmpty(),
+                        sync = entry.syncMetadata(),
+                    )
+                }
+            }.sortedByDescending { plan -> plan.date }
+
+    private fun parseDayTasks(
+        source: JsonObject,
+        validDayPlanIds: Set<String>,
+        validContextIds: Set<String>,
+    ): List<SharedDayTask> =
+        source.fieldArray("dayTasks")
+            .mapNotNull { entry ->
+                if (entry.boolean("isDeleted") == true) {
+                    null
+                } else {
+                    val dayPlanId = entry.string("dayPlanId") ?: return@mapNotNull null
+                    if (dayPlanId !in validDayPlanIds) return@mapNotNull null
+                    val projectId = entry.string("projectId")?.takeIf { contextId -> contextId in validContextIds }
+                    val linkedProjectIds =
+                        entry.stringArray("linkedProjectIds")
+                            .filter { contextId -> contextId in validContextIds }
+                            .distinct()
+                    SharedDayTask(
+                        id = entry.string("id") ?: return@mapNotNull null,
+                        dayPlanId = dayPlanId,
+                        title = entry.string("title").orEmpty(),
+                        description = entry.string("description"),
+                        projectId = projectId,
+                        linkedProjectIds = linkedProjectIds,
+                        isDone = entry.boolean("completed") ?: false,
+                        priority = entry.string("priority").orEmpty(),
+                        order = entry.long("order") ?: Long.MAX_VALUE,
+                        scheduledTime = entry.long("scheduledTime"),
+                        dueTime = entry.long("dueTime"),
+                        sync = entry.syncMetadata(),
+                    )
+                }
+            }.sortedWith(compareBy({ task -> task.dayPlanId }, { task -> task.order }, { task -> task.title.lowercase() }))
+
     private fun JsonObject.toSnapshotBacklogItem(
         itemResolvers: AndroidItemResolvers,
         validContextIds: Set<String>,
     ): SharedBacklogItem? {
-        if (boolean("isDeleted") == true) {
-            return null
-        }
         val itemId = string("id") ?: return null
         val contextId = string("contextId") ?: return null
-        if (contextId !in validContextIds) {
+        val isDeleted = boolean("isDeleted") ?: false
+        if (!isDeleted && contextId !in validContextIds) {
             return null
         }
         val itemType = string("itemType").orEmpty()
@@ -288,6 +360,9 @@ class AndroidWorkspaceSnapshotImporter(
             kind = itemType.toSharedBacklogItemKind(),
             priority = itemType.toSharedBacklogPriority(),
             isDone = resolved.isDone ?: false,
+            sourceEntityId = entityId.takeIf { it.isNotBlank() },
+            isDeleted = isDeleted,
+            sync = syncMetadata().mergeWith(resolved.sync),
         )
     }
 
@@ -295,12 +370,10 @@ class AndroidWorkspaceSnapshotImporter(
         itemResolvers: AndroidItemResolvers,
         validContextIds: Set<String>,
     ): SharedBacklogItem? {
-        if (boolean("isDeleted") == true) {
-            return null
-        }
         val itemId = string("id") ?: return null
         val contextId = string("contextId", "listId", "projectId") ?: return null
-        if (contextId !in validContextIds) {
+        val isDeleted = boolean("isDeleted") ?: false
+        if (!isDeleted && contextId !in validContextIds) {
             return null
         }
         val itemType = string("itemType").orEmpty()
@@ -314,6 +387,9 @@ class AndroidWorkspaceSnapshotImporter(
             kind = itemType.toSharedBacklogItemKind(),
             priority = itemType.toSharedBacklogPriority(),
             isDone = resolved.isDone ?: false,
+            sourceEntityId = entityId.takeIf { it.isNotBlank() },
+            isDeleted = isDeleted,
+            sync = syncMetadata().mergeWith(resolved.sync),
         )
     }
 
@@ -360,7 +436,9 @@ private data class ParsedContext(
     val defaultView: SharedContextView,
     val score: Int,
     val isCompleted: Boolean,
+    val isDeleted: Boolean,
     val sortOrder: Long,
+    val sync: SharedSyncMetadata,
 )
 
 private data class AndroidItemResolvers(
@@ -378,6 +456,7 @@ private data class NamedItem(
     val title: String?,
     val details: String? = null,
     val isDone: Boolean? = null,
+    val sync: SharedSyncMetadata = SharedSyncMetadata(),
 ) {
     fun withFallback(
         type: String,
@@ -390,6 +469,23 @@ private data class NamedItem(
             isDone = isDone ?: false,
         )
 }
+
+private fun JsonObject.syncMetadata(): SharedSyncMetadata {
+    val createdAt = long("createdAt") ?: 0L
+    val updatedAt = long("updatedAt") ?: createdAt
+    return SharedSyncMetadata(
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        version = long("version", "orderVersion") ?: 0L,
+    )
+}
+
+private fun SharedSyncMetadata.mergeWith(other: SharedSyncMetadata): SharedSyncMetadata =
+    if (other.updatedAt > updatedAt || (other.updatedAt == updatedAt && other.version > version)) {
+        other
+    } else {
+        this
+    }
 
 private fun JsonObject.looksLikeSnapshotBundle(): Boolean = containsKey("contexts") && containsKey("backlogItems")
 
@@ -418,6 +514,14 @@ private fun JsonObject.string(vararg keys: String): String? =
         .asSequence()
         .mapNotNull { key -> (this[key] as? JsonPrimitive)?.contentOrNull }
         .firstOrNull()
+
+private fun JsonObject.stringArray(vararg keys: String): List<String> =
+    keys
+        .asSequence()
+        .mapNotNull { key -> this[key] as? JsonArray }
+        .firstOrNull()
+        ?.mapNotNull { element -> (element as? JsonPrimitive)?.contentOrNull }
+        .orEmpty()
 
 private fun JsonObject.boolean(vararg keys: String): Boolean? =
     keys
