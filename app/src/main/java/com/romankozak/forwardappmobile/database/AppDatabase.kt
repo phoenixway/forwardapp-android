@@ -179,7 +179,7 @@ import com.romankozak.forwardappmobile.features.missions.data.MissionStreamDao
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 141,
+    version = 142,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)

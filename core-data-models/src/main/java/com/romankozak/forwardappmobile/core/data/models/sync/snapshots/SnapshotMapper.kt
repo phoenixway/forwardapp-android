@@ -581,6 +581,7 @@ fun MainBeacon.toSnapshot(): MainBeaconSnapshot =
         nextActionText = nextActionText,
         parentBeaconId = parentBeaconId,
         order = order,
+        isExpanded = isExpanded,
         updatedAt = updatedAt,
         createdAt = createdAt,
     )
@@ -600,6 +601,7 @@ fun MainBeaconSnapshot.toEntity(): MainBeacon =
         nextActionText = nextActionText,
         parentBeaconId = parentBeaconId,
         order = order,
+        isExpanded = isExpanded,
         updatedAt = updatedAt,
         createdAt = createdAt,
     )

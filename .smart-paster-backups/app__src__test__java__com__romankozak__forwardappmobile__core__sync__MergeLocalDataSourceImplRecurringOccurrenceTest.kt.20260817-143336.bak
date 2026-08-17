@@ -1,0 +1,161 @@
+package com.romankozak.forwardappmobile.core.sync
+
+import androidx.room.withTransaction
+import com.google.common.truth.Truth.assertThat
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurringTask
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.TaskPriority
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toSnapshot
+import com.romankozak.forwardappmobile.data.dao.DayPlanDao
+import com.romankozak.forwardappmobile.data.dao.DayTaskDao
+import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
+import com.romankozak.forwardappmobile.database.AppDatabase
+import io.mockk.coEvery
+import io.mockk.mockk
+import io.mockk.mockkClass
+import io.mockk.mockkStatic
+import io.mockk.slot
+import io.mockk.unmockkStatic
+import kotlinx.coroutines.test.runTest
+import org.junit.Test
+import kotlin.reflect.KClass
+
+class MergeLocalDataSourceImplRecurringOccurrenceTest {
+    @Test
+    fun `plan remap does not silently insert live recurring alias beside local tombstone`() = runTest {
+        val day = 1_786_910_400_000L
+        val localPlanId = "plan-local"
+        val incomingPlanId = "plan-incoming"
+        val recurringTaskId = "series-1"
+
+        val localPlan =
+            DayPlan(
+                id = localPlanId,
+                date = day,
+                name = null,
+                status = DayStatus.PLANNED,
+                createdAt = 1_000L,
+                updatedAt = 1_000L,
+                syncedAt = null,
+                version = 1,
+            )
+        val incomingPlan =
+            DayPlan(
+                id = incomingPlanId,
+                date = day,
+                name = null,
+                status = DayStatus.PLANNED,
+                createdAt = 1_000L,
+                updatedAt = 1_000L,
+                syncedAt = null,
+                version = 1,
+            )
+
+        val localTombstone =
+            DayTask(
+                id = "local-tombstone",
+                dayPlanId = localPlanId,
+                title = "Recurring task",
+                priority = TaskPriority.MEDIUM,
+                recurringTaskId = recurringTaskId,
+                isDeleted = true,
+                createdAt = 2_000L,
+                updatedAt = 3_000L,
+                syncedAt = null,
+                version = 3,
+            )
+        val incomingLiveAlias =
+            DayTask(
+                id = "incoming-live-alias",
+                dayPlanId = incomingPlanId,
+                title = "Recurring task",
+                priority = TaskPriority.MEDIUM,
+                recurringTaskId = recurringTaskId,
+                isDeleted = false,
+                createdAt = 4_000L,
+                updatedAt = 4_000L,
+                syncedAt = null,
+                version = 1,
+            )
+
+        val db = mockk<AppDatabase>(relaxed = true)
+        val dayPlanDao = mockk<DayPlanDao>(relaxed = true)
+        val dayTaskDao = mockk<DayTaskDao>(relaxed = true)
+        val recurringTaskDao = mockk<RecurringTaskDao>(relaxed = true)
+        val recurringTask = mockk<RecurringTask>(relaxed = true)
+        everyRecurringTaskId(recurringTask, recurringTaskId)
+
+        coEvery { dayPlanDao.getPlanForDateSync(any()) } returns localPlan
+        coEvery { dayPlanDao.getAllPlansSync() } returns listOf(localPlan)
+        coEvery { dayTaskDao.getAllTasksSync() } returns listOf(localTombstone)
+        coEvery { recurringTaskDao.getAllSync() } returns listOf(recurringTask)
+
+        val insertedTasks = slot<List<DayTask>>()
+        coEvery { dayTaskDao.insertTasks(capture(insertedTasks)) } returns Unit
+
+        val transactionBlock = slot<suspend () -> Unit>()
+        mockkStatic("androidx.room.RoomDatabaseKt")
+        try {
+            coEvery { db.withTransaction<Unit>(capture(transactionBlock)) } coAnswers {
+                transactionBlock.captured.invoke()
+            }
+
+            val subject =
+                createSubject(
+                    db = db,
+                    dayPlanDao = dayPlanDao,
+                    dayTaskDao = dayTaskDao,
+                    recurringTaskDao = recurringTaskDao,
+                )
+
+            subject.applySnapshotBundle(
+                SnapshotBundle(
+                    version = 2,
+                    dayPlans = listOf(incomingPlan.toSnapshot()),
+                    dayTasks = listOf(incomingLiveAlias.toSnapshot()),
+                ),
+            )
+        } finally {
+            unmockkStatic("androidx.room.RoomDatabaseKt")
+        }
+
+        assertThat(insertedTasks.isCaptured).isTrue()
+        assertThat(insertedTasks.captured.map { it.id })
+            .doesNotContain(incomingLiveAlias.id)
+    }
+
+    private fun everyRecurringTaskId(
+        recurringTask: RecurringTask,
+        recurringTaskId: String,
+    ) {
+        io.mockk.every { recurringTask.id } returns recurringTaskId
+    }
+
+    private fun createSubject(
+        db: AppDatabase,
+        dayPlanDao: DayPlanDao,
+        dayTaskDao: DayTaskDao,
+        recurringTaskDao: RecurringTaskDao,
+    ): MergeLocalDataSourceImpl {
+        val constructor = MergeLocalDataSourceImpl::class.java.declaredConstructors.single()
+        constructor.isAccessible = true
+        val arguments =
+            constructor.parameterTypes.map { parameterType ->
+                when (parameterType) {
+                    AppDatabase::class.java -> db
+                    DayPlanDao::class.java -> dayPlanDao
+                    DayTaskDao::class.java -> dayTaskDao
+                    RecurringTaskDao::class.java -> recurringTaskDao
+                    else -> relaxedMock(parameterType)
+                }
+            }.toTypedArray()
+        return constructor.newInstance(*arguments) as MergeLocalDataSourceImpl
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun relaxedMock(type: Class<*>): Any =
+        mockkClass(type.kotlin as KClass<Any>, relaxed = true)
+}

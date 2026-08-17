@@ -35,6 +35,11 @@ sealed interface WorkspaceExplorerIntent {
         val view: SharedContextView,
     ) : WorkspaceExplorerIntent
 
+    data class ContextDraftCapabilityToggled(
+        val capabilityId: String,
+        val isEnabled: Boolean,
+    ) : WorkspaceExplorerIntent
+
     data object SaveContext : WorkspaceExplorerIntent
 
     data object DeleteContext : WorkspaceExplorerIntent

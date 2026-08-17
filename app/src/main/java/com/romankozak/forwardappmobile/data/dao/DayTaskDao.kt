@@ -32,6 +32,19 @@ interface DayTaskDao {
     @Query("DELETE FROM day_tasks WHERE id = :taskId")
     suspend fun deleteById(taskId: String)
 
+    @Query(
+        """
+        UPDATE day_tasks
+        SET isDeleted = 1,
+            updatedAt = :updatedAt,
+            syncedAt = NULL,
+            version = version + 1
+        WHERE id = :taskId
+          AND isDeleted = 0
+        """,
+    )
+    suspend fun softDelete(taskId: String, updatedAt: Long)
+
     @Query("DELETE FROM day_tasks WHERE id IN (:taskIds)")
     suspend fun deleteByIds(taskIds: List<String>)
 
@@ -191,6 +204,20 @@ interface DayTaskDao {
     @Query(
         """
         SELECT * FROM day_tasks
+        WHERE recurringTaskId = :recurringTaskId
+          AND dayPlanId = :dayPlanId
+        ORDER BY isDeleted DESC, updatedAt DESC, createdAt DESC
+        LIMIT 1
+        """,
+    )
+    suspend fun findRecurringOccurrenceForDayIncludingDeleted(
+        recurringTaskId: String,
+        dayPlanId: String,
+    ): DayTask?
+
+    @Query(
+        """
+        SELECT * FROM day_tasks
         WHERE dayPlanId = :dayPlanId
           AND isDeleted = 0
           AND (
@@ -207,10 +234,22 @@ interface DayTaskDao {
         title: String,
     ): DayTask?
 
-    @Query("DELETE FROM day_tasks WHERE recurringTaskId = :recurringTaskId AND dayPlanId IN (:dayPlanIds)")
-    suspend fun deleteTasksForDayPlanIds(
+    @Query(
+        """
+        UPDATE day_tasks
+        SET isDeleted = 1,
+            updatedAt = :updatedAt,
+            syncedAt = NULL,
+            version = version + 1
+        WHERE recurringTaskId = :recurringTaskId
+          AND dayPlanId IN (:dayPlanIds)
+          AND isDeleted = 0
+        """,
+    )
+    suspend fun softDeleteTasksForDayPlanIds(
         recurringTaskId: String,
         dayPlanIds: List<String>,
+        updatedAt: Long,
     )
 
     @Query("UPDATE day_tasks SET recurringTaskId = null WHERE id = :taskId")

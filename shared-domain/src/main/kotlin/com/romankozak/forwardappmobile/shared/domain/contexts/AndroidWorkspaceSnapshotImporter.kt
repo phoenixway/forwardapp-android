@@ -5,16 +5,20 @@ import com.romankozak.forwardappmobile.shared.contracts.contexts.ResolvedWorkspa
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogItem
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogItemKind
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogPriority
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextCapabilityCatalog
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextStatus
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextSummary
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextView
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedDayFocusItem
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedDayPlan
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedDayTask
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedRecurringTask
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedSyncMetadata
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSnapshotFormat
 import kotlin.math.roundToInt
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
@@ -32,7 +36,15 @@ class AndroidWorkspaceSnapshotImporter(
 
         val wrappedSnapshotBundle = root.fieldObject("snapshotBundle", "e")
         if (wrappedSnapshotBundle != null) {
-            return resolveSnapshotBundle(wrappedSnapshotBundle, WorkspaceSnapshotFormat.AndroidSnapshotBundleV2)
+            val snapshotBundle = resolveSnapshotBundle(wrappedSnapshotBundle, WorkspaceSnapshotFormat.AndroidSnapshotBundleV2)
+            val legacyDatabase =
+                root.fieldObject("database", "c")
+                    ?.let { database -> resolveLegacyDatabase(database, WorkspaceSnapshotFormat.AndroidLegacyDatabase) }
+            return if (legacyDatabase == null) {
+                snapshotBundle
+            } else {
+                snapshotBundle.withMergedDayMaterial(legacyDatabase)
+            }
         }
 
         val wrappedLegacyDatabase = root.fieldObject("database", "c")
@@ -66,7 +78,9 @@ class AndroidWorkspaceSnapshotImporter(
                 }.sortedWith(compareBy({ backlogOrders[it.contextId to it.id] ?: Long.MAX_VALUE }, { it.title.lowercase() }))
         val dayPlans = parseDayPlans(source)
         val dayPlanIds = dayPlans.mapTo(hashSetOf()) { plan -> plan.id }
+        val dayFocusItems = parseDayFocusItems(source = source, validDayPlanIds = dayPlanIds)
         val dayTasks = parseDayTasks(source = source, validDayPlanIds = dayPlanIds, validContextIds = contextIds)
+        val recurringTasks = parseRecurringTasks(source)
 
         return ResolvedWorkspaceSnapshot(
             snapshot =
@@ -74,7 +88,9 @@ class AndroidWorkspaceSnapshotImporter(
                     contexts = contexts,
                     backlogItems = backlogItems,
                     dayPlans = dayPlans,
+                    dayFocusItems = dayFocusItems,
                     dayTasks = dayTasks,
+                    recurringTasks = recurringTasks,
                 ),
             format = format,
         )
@@ -95,7 +111,9 @@ class AndroidWorkspaceSnapshotImporter(
                 }.sortedWith(compareBy({ backlogOrders[it.contextId to it.id] ?: Long.MAX_VALUE }, { it.title.lowercase() }))
         val dayPlans = parseDayPlans(source)
         val dayPlanIds = dayPlans.mapTo(hashSetOf()) { plan -> plan.id }
+        val dayFocusItems = parseDayFocusItems(source = source, validDayPlanIds = dayPlanIds)
         val dayTasks = parseDayTasks(source = source, validDayPlanIds = dayPlanIds, validContextIds = contextIds)
+        val recurringTasks = parseRecurringTasks(source)
 
         return ResolvedWorkspaceSnapshot(
             snapshot =
@@ -103,23 +121,28 @@ class AndroidWorkspaceSnapshotImporter(
                     contexts = contexts,
                     backlogItems = backlogItems,
                     dayPlans = dayPlans,
+                    dayFocusItems = dayFocusItems,
                     dayTasks = dayTasks,
+                    recurringTasks = recurringTasks,
                 ),
             format = format,
         )
     }
 
     private fun parseSnapshotContexts(source: JsonObject): List<SharedContextSummary> {
+        val capabilityConfigs = parseContextCapabilityConfigs(source)
         val rawContexts =
             source.fieldArray("contexts")
                 .mapNotNull { entry ->
+                    val contextId = entry.string("id") ?: return@mapNotNull null
                     ParsedContext(
-                        id = entry.string("id") ?: return@mapNotNull null,
+                        id = contextId,
                         name = entry.string("name").orEmpty(),
                         description = entry.string("description"),
                         parentId = entry.string("parentId"),
                         status = entry.string("contextStatus").toSharedContextStatus(),
                         defaultView = entry.string("defaultViewModeName").toSharedContextView(),
+                        capabilityConfig = capabilityConfigs[contextId],
                         score = (entry.double("displayScore") ?: entry.double("rawScore") ?: 0.0).roundToInt(),
                         isCompleted = entry.boolean("isCompleted") ?: false,
                         isDeleted = entry.boolean("isDeleted") ?: false,
@@ -132,16 +155,19 @@ class AndroidWorkspaceSnapshotImporter(
     }
 
     private fun parseLegacyContexts(source: JsonObject): List<SharedContextSummary> {
+        val capabilityConfigs = parseContextCapabilityConfigs(source)
         val rawContexts =
             source.fieldArray("projects", "goalLists")
                 .mapNotNull { entry ->
+                    val contextId = entry.string("id") ?: return@mapNotNull null
                     ParsedContext(
-                        id = entry.string("id") ?: return@mapNotNull null,
+                        id = contextId,
                         name = entry.string("name").orEmpty(),
                         description = entry.string("description"),
                         parentId = entry.string("parentId"),
                         status = entry.string("contextStatus").toSharedContextStatus(),
                         defaultView = entry.string("defaultViewModeName").toSharedContextView(),
+                        capabilityConfig = capabilityConfigs[contextId],
                         score = (entry.double("displayScore") ?: entry.double("rawScore") ?: 0.0).roundToInt(),
                         isCompleted = entry.boolean("isCompleted") ?: false,
                         isDeleted = entry.boolean("isDeleted") ?: false,
@@ -163,6 +189,8 @@ class AndroidWorkspaceSnapshotImporter(
                 parentId = context.parentId.takeIf { parentId -> parentId in validIds },
                 status = context.status,
                 defaultView = context.defaultView,
+                enabledCapabilityIds = context.capabilityConfig.enabledWithFallback(context.defaultView),
+                experimentalCapabilityIds = context.capabilityConfig?.experimentalCapabilityIds.orEmpty(),
                 score = context.score,
                 isCompleted = context.isCompleted,
                 isDeleted = context.isDeleted,
@@ -170,6 +198,20 @@ class AndroidWorkspaceSnapshotImporter(
             )
         }
     }
+
+    private fun parseContextCapabilityConfigs(source: JsonObject): Map<String, ParsedCapabilityConfig> =
+        source.fieldArray("contextConfigurations", "contextStructures", "projectStructures")
+            .mapNotNull { entry ->
+                if (entry.boolean("isDeleted") == true) {
+                    return@mapNotNull null
+                }
+                val contextId = entry.string("contextId", "projectId") ?: return@mapNotNull null
+                contextId to
+                    ParsedCapabilityConfig(
+                        enabledCapabilityIds = entry.enabledLegacyCapabilityIds(),
+                        experimentalCapabilityIds = entry.capabilityIdArray("experimentalCapabilityIds"),
+                    )
+            }.toMap()
 
     private fun buildSnapshotItemResolvers(source: JsonObject): AndroidItemResolvers =
         AndroidItemResolvers(
@@ -305,6 +347,30 @@ class AndroidWorkspaceSnapshotImporter(
                 }
             }.sortedByDescending { plan -> plan.date }
 
+    private fun parseDayFocusItems(
+        source: JsonObject,
+        validDayPlanIds: Set<String>,
+    ): List<SharedDayFocusItem> =
+        source.fieldArray("dayFocusItems")
+            .mapNotNull { entry ->
+                val dayPlanId = entry.string("dayPlanId") ?: return@mapNotNull null
+                val isDeleted = entry.boolean("isDeleted") ?: false
+                if (!isDeleted && dayPlanId !in validDayPlanIds) return@mapNotNull null
+                SharedDayFocusItem(
+                    id = entry.string("id") ?: return@mapNotNull null,
+                    dayPlanId = dayPlanId,
+                    title = entry.string("title").orEmpty(),
+                    notes = entry.string("notes"),
+                    type = entry.string("type").orEmpty().ifBlank { "FOCUS" },
+                    isEveryday = entry.boolean("isEveryday") ?: false,
+                    recurringKey = entry.string("recurringKey"),
+                    budgetPercent = entry.long("budgetPercent")?.toInt(),
+                    order = entry.long("order") ?: Long.MAX_VALUE,
+                    isDeleted = isDeleted,
+                    sync = entry.syncMetadata(),
+                )
+            }.sortedWith(compareBy({ item -> item.dayPlanId }, { item -> item.order }, { item -> item.title.lowercase() }))
+
     private fun parseDayTasks(
         source: JsonObject,
         validDayPlanIds: Set<String>,
@@ -312,32 +378,54 @@ class AndroidWorkspaceSnapshotImporter(
     ): List<SharedDayTask> =
         source.fieldArray("dayTasks")
             .mapNotNull { entry ->
-                if (entry.boolean("isDeleted") == true) {
-                    null
-                } else {
-                    val dayPlanId = entry.string("dayPlanId") ?: return@mapNotNull null
-                    if (dayPlanId !in validDayPlanIds) return@mapNotNull null
-                    val projectId = entry.string("projectId")?.takeIf { contextId -> contextId in validContextIds }
-                    val linkedProjectIds =
-                        entry.stringArray("linkedProjectIds")
-                            .filter { contextId -> contextId in validContextIds }
-                            .distinct()
-                    SharedDayTask(
-                        id = entry.string("id") ?: return@mapNotNull null,
-                        dayPlanId = dayPlanId,
-                        title = entry.string("title").orEmpty(),
-                        description = entry.string("description"),
-                        projectId = projectId,
-                        linkedProjectIds = linkedProjectIds,
-                        isDone = entry.boolean("completed") ?: false,
-                        priority = entry.string("priority").orEmpty(),
-                        order = entry.long("order") ?: Long.MAX_VALUE,
-                        scheduledTime = entry.long("scheduledTime"),
-                        dueTime = entry.long("dueTime"),
-                        sync = entry.syncMetadata(),
-                    )
-                }
+                val dayPlanId = entry.string("dayPlanId") ?: return@mapNotNull null
+                val isDeleted = entry.boolean("isDeleted") ?: false
+                if (!isDeleted && dayPlanId !in validDayPlanIds) return@mapNotNull null
+                val projectId = entry.string("projectId")?.takeIf { contextId -> contextId in validContextIds }
+                val linkedProjectIds =
+                    entry.stringArray("linkedProjectIds")
+                        .filter { contextId -> contextId in validContextIds }
+                        .distinct()
+                SharedDayTask(
+                    id = entry.string("id") ?: return@mapNotNull null,
+                    dayPlanId = dayPlanId,
+                    title = entry.string("title").orEmpty(),
+                    description = entry.string("description"),
+                    projectId = projectId,
+                    linkedProjectIds = linkedProjectIds,
+                    recurringTaskId = entry.string("recurringTaskId"),
+                    taskType = entry.string("taskType"),
+                    isDone = entry.boolean("completed") ?: false,
+                    priority = entry.string("priority").orEmpty(),
+                    order = entry.long("order") ?: Long.MAX_VALUE,
+                    scheduledTime = entry.long("scheduledTime"),
+                    estimatedDurationMinutes = entry.long("estimatedDurationMinutes"),
+                    dueTime = entry.long("dueTime"),
+                    points = entry.long("points")?.toInt() ?: 0,
+                    isDeleted = isDeleted,
+                    sync = entry.syncMetadata(),
+                )
             }.sortedWith(compareBy({ task -> task.dayPlanId }, { task -> task.order }, { task -> task.title.lowercase() }))
+
+    private fun parseRecurringTasks(source: JsonObject): List<SharedRecurringTask> =
+        source.fieldArray("recurringTasks")
+            .mapNotNull { entry ->
+                val recurrenceRule = entry.fieldObject("recurrenceRule")
+                SharedRecurringTask(
+                    id = entry.string("id") ?: return@mapNotNull null,
+                    title = entry.string("title").orEmpty(),
+                    description = entry.string("description"),
+                    goalId = entry.string("goalId"),
+                    linkedProjectIds = entry.stringArray("linkedProjectIds").distinct(),
+                    duration = entry.long("duration")?.toInt(),
+                    priority = entry.string("priority").orEmpty().ifBlank { "MEDIUM" },
+                    points = entry.long("points")?.toInt() ?: 0,
+                    frequency = recurrenceRule?.string("frequency").orEmpty().ifBlank { "DAILY" },
+                    daysOfWeek = recurrenceRule?.stringArray("daysOfWeek").orEmpty(),
+                    startDate = entry.long("startDate") ?: return@mapNotNull null,
+                    endDate = entry.long("endDate"),
+                )
+            }
 
     private fun JsonObject.toSnapshotBacklogItem(
         itemResolvers: AndroidItemResolvers,
@@ -434,11 +522,17 @@ private data class ParsedContext(
     val parentId: String?,
     val status: SharedContextStatus,
     val defaultView: SharedContextView,
+    val capabilityConfig: ParsedCapabilityConfig?,
     val score: Int,
     val isCompleted: Boolean,
     val isDeleted: Boolean,
     val sortOrder: Long,
     val sync: SharedSyncMetadata,
+)
+
+private data class ParsedCapabilityConfig(
+    val enabledCapabilityIds: List<String>,
+    val experimentalCapabilityIds: List<String>,
 )
 
 private data class AndroidItemResolvers(
@@ -487,6 +581,80 @@ private fun SharedSyncMetadata.mergeWith(other: SharedSyncMetadata): SharedSyncM
         this
     }
 
+private fun ResolvedWorkspaceSnapshot.withMergedDayMaterial(
+    legacyDatabase: ResolvedWorkspaceSnapshot,
+): ResolvedWorkspaceSnapshot =
+    copy(
+        snapshot =
+            snapshot.copy(
+                dayPlans =
+                    mergeById(
+                        localItems = snapshot.dayPlans,
+                        incomingItems = legacyDatabase.snapshot.dayPlans,
+                        idSelector = SharedDayPlan::id,
+                        syncSelector = SharedDayPlan::sync,
+                    ),
+                dayFocusItems =
+                    mergeById(
+                        localItems = snapshot.dayFocusItems,
+                        incomingItems = legacyDatabase.snapshot.dayFocusItems,
+                        idSelector = SharedDayFocusItem::id,
+                        syncSelector = SharedDayFocusItem::sync,
+                    ),
+                dayTasks =
+                    mergeById(
+                        localItems = snapshot.dayTasks,
+                        incomingItems = legacyDatabase.snapshot.dayTasks,
+                        idSelector = SharedDayTask::id,
+                        syncSelector = SharedDayTask::sync,
+                    ),
+                recurringTasks =
+                    mergeStaticById(
+                        localItems = snapshot.recurringTasks,
+                        incomingItems = legacyDatabase.snapshot.recurringTasks,
+                        idSelector = SharedRecurringTask::id,
+                    ),
+            ),
+    )
+
+private fun <T> mergeById(
+    localItems: List<T>,
+    incomingItems: List<T>,
+    idSelector: (T) -> String,
+    syncSelector: (T) -> SharedSyncMetadata,
+): List<T> {
+    val incomingById = incomingItems.associateBy(idSelector)
+    val localById = localItems.associateBy(idSelector)
+    val ids =
+        linkedSetOf<String>().apply {
+            addAll(localItems.map(idSelector))
+            addAll(incomingItems.map(idSelector))
+        }
+    return ids.mapNotNull { id ->
+        val local = localById[id]
+        val incoming = incomingById[id]
+        when {
+            local == null -> incoming
+            incoming == null -> local
+            syncSelector(incoming).isNewerThan(syncSelector(local)) -> incoming
+            else -> local
+        }
+    }
+}
+
+private fun <T> mergeStaticById(
+    localItems: List<T>,
+    incomingItems: List<T>,
+    idSelector: (T) -> String,
+): List<T> =
+    (localItems + incomingItems)
+        .associateBy(idSelector)
+        .values
+        .toList()
+
+private fun SharedSyncMetadata.isNewerThan(other: SharedSyncMetadata): Boolean =
+    updatedAt > other.updatedAt || (updatedAt == other.updatedAt && version > other.version)
+
 private fun JsonObject.looksLikeSnapshotBundle(): Boolean = containsKey("contexts") && containsKey("backlogItems")
 
 private fun JsonObject.looksLikeLegacyDatabase(): Boolean =
@@ -523,11 +691,59 @@ private fun JsonObject.stringArray(vararg keys: String): List<String> =
         ?.mapNotNull { element -> (element as? JsonPrimitive)?.contentOrNull }
         .orEmpty()
 
+private fun JsonObject.capabilityIdArray(vararg keys: String): List<String> =
+    keys
+        .asSequence()
+        .mapNotNull { key -> this[key] as? JsonArray }
+        .firstOrNull()
+        ?.mapNotNull(JsonElement::capabilityRaw)
+        ?.normalizeCapabilityIds()
+        .orEmpty()
+
+private fun JsonElement.capabilityRaw(): String? =
+    when (this) {
+        is JsonPrimitive -> contentOrNull
+        is JsonObject -> string("raw")
+        else -> null
+    }
+
 private fun JsonObject.boolean(vararg keys: String): Boolean? =
     keys
         .asSequence()
         .mapNotNull { key -> (this[key] as? JsonPrimitive)?.booleanOrNull }
         .firstOrNull()
+
+private fun JsonObject.enabledLegacyCapabilityIds(): List<String> =
+    buildList {
+        addIfTrue("inbox", boolean("enableInbox"))
+        addIfTrue("log", boolean("enableLog"))
+        addIfTrue("artifact", boolean("enableArtifact"))
+        addIfTrue("dashboard", boolean("enableDashboard"))
+        addIfTrue("backlog", boolean("enableBacklog"))
+        if (boolean("enableAttachments") == true) {
+            add("connections")
+        }
+    }.normalizeCapabilityIds()
+
+private fun MutableList<String>.addIfTrue(
+    capabilityId: String,
+    enabled: Boolean?,
+) {
+    if (enabled == true) {
+        add(capabilityId)
+    }
+}
+
+private fun ParsedCapabilityConfig?.enabledWithFallback(defaultView: SharedContextView): List<String> =
+    (
+        this?.enabledCapabilityIds.orEmpty() +
+            this?.experimentalCapabilityIds.orEmpty() +
+            SharedContextCapabilityCatalog.capabilityIdFor(defaultView) +
+            "dashboard"
+    ).normalizeCapabilityIds()
+
+private fun List<String>.normalizeCapabilityIds(): List<String> =
+    SharedContextCapabilityCatalog.normalizeCapabilityIds(this)
 
 private fun JsonObject.long(vararg keys: String): Long? =
     keys

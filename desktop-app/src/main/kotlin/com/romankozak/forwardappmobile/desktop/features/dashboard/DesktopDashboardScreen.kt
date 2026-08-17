@@ -7,13 +7,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -40,6 +46,7 @@ import java.time.ZoneId
 fun DesktopDashboardScreen(
     repository: DesktopWorkspaceRepository,
     refreshKey: Long = 0L,
+    onOpenContextWorkspace: () -> Unit,
     onContextClick: (String) -> Unit,
 ) {
     var dashboardState by remember { mutableStateOf(DayDashboardState()) }
@@ -59,6 +66,7 @@ fun DesktopDashboardScreen(
         horizontalArrangement = Arrangement.spacedBy(18.dp),
     ) {
         DashboardHeroCard(
+            onOpenContextWorkspace = onOpenContextWorkspace,
             modifier = Modifier.weight(1.5f).fillMaxHeight(),
         )
         Column(
@@ -80,6 +88,7 @@ fun DesktopDashboardScreen(
 
 @Composable
 private fun DashboardHeroCard(
+    onOpenContextWorkspace: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -107,16 +116,28 @@ private fun DashboardHeroCard(
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Не порт Android-екранів 1:1, а окремий desktop shell з чистими модулями, явними boundaries і міграцією shared domain.",
+                    text =
+                        "Не порт Android-екранів 1:1, а окремий desktop shell з чистими модулями, " +
+                            "явними boundaries і міграцією shared domain.",
                     style = MaterialTheme.typography.titleMedium,
                     color = Color(0xFFE3E0D6),
                 )
             }
-            Text(
-                text = "Stage 0: shell + architecture boundary",
-                style = MaterialTheme.typography.labelLarge,
-                color = Color(0xFFFDF2D8),
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Button(onClick = onOpenContextWorkspace) {
+                    Icon(
+                        imageVector = Icons.Outlined.FolderOpen,
+                        contentDescription = null,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Open Context Workspace")
+                }
+                Text(
+                    text = "Stage 0: shell + architecture boundary",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color(0xFFFDF2D8),
+                )
+            }
         }
     }
 }
@@ -193,41 +214,57 @@ private fun DayTaskRow(
     contextsById: Map<String, SharedContextSummary>,
     onContextClick: (String) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(
-            text = task.title.ifBlank { "Untitled task" },
-            style = MaterialTheme.typography.titleMedium,
-            color =
-                if (task.isDone) {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                },
-            fontWeight = FontWeight.Medium,
-        )
-        task.description?.takeIf { description -> description.isNotBlank() }?.let { description ->
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = Color(0xFFF7F8F3),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
             Text(
-                text = description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = task.title.ifBlank { "Untitled task" },
+                style = MaterialTheme.typography.titleSmall,
+                color =
+                    if (task.isDone) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                fontWeight = FontWeight.Medium,
             )
-        }
-        val contextIds = (listOfNotNull(task.projectId) + task.linkedProjectIds).distinct()
-        if (contextIds.isNotEmpty()) {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                contextIds.forEach { contextId ->
-                    ContextLinkChip(
-                        title = contextsById[contextId]?.name ?: contextId,
-                        onClick = { onContextClick(contextId) },
-                    )
+            task.description?.takeIf { description -> description.isNotBlank() }?.let { description ->
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            val linkedContexts = task.linkedContexts(contextsById)
+            if (linkedContexts.isNotEmpty()) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    linkedContexts.forEach { context ->
+                        ContextLinkChip(
+                            title = context.name,
+                            onClick = { onContextClick(context.id) },
+                        )
+                    }
                 }
             }
         }
     }
 }
+
+private fun SharedDayTask.linkedContexts(
+    contextsById: Map<String, SharedContextSummary>,
+): List<SharedContextSummary> =
+    (listOfNotNull(projectId) + linkedProjectIds)
+        .distinct()
+        .mapNotNull { contextId -> contextsById[contextId] }
 
 @Composable
 private fun ContextLinkChip(
@@ -241,9 +278,9 @@ private fun ContextLinkChip(
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelSmall,
             color = Color(0xFF1D6E64),
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             fontWeight = FontWeight.SemiBold,
         )
     }

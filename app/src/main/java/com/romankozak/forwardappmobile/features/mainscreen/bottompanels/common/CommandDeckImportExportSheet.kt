@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common
 
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -44,15 +45,25 @@ fun CommandDeckImportExportSheet(
 ) {
     val importLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-            uri?.let { onImportFromFileRequest(it) }
+            Log.e("FullJsonImport", "filePicker result uri=$uri")
+            uri?.let {
+                onDismiss()
+                onImportFromFileRequest(it)
+            }
         }
     val selectiveImportLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-            uri?.let { onSelectiveImportFromFileRequest(it) }
+            uri?.let {
+                onDismiss()
+                onSelectiveImportFromFileRequest(it)
+            }
         }
     val importAttachmentsLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-            uri?.let { onImportAttachmentsFromFileRequest(it) }
+            uri?.let {
+                onDismiss()
+                onImportAttachmentsFromFileRequest(it)
+            }
         }
 
     val importExportSheetColor = MaterialTheme.colorScheme.surfaceContainerLow
@@ -97,8 +108,8 @@ fun CommandDeckImportExportSheet(
                         subtitle = "Замінити поточні дані",
                         containerColor = importExportSheetColor,
                         onClick = {
-                            onDismiss()
-                            importLauncher.launch("application/json")
+                            Log.e("FullJsonImport", "Full import tile clicked; launching picker")
+                            importLauncher.launch("*/*")
                         },
                     )
                 }
@@ -109,7 +120,6 @@ fun CommandDeckImportExportSheet(
                         subtitle = "Обрати сутності",
                         containerColor = importExportSheetColor,
                         onClick = {
-                            onDismiss()
                             selectiveImportLauncher.launch("application/json")
                         },
                     )
@@ -133,7 +143,6 @@ fun CommandDeckImportExportSheet(
                         subtitle = "Додати вкладення",
                         containerColor = importExportSheetColor,
                         onClick = {
-                            onDismiss()
                             importAttachmentsLauncher.launch("application/json")
                         },
                     )

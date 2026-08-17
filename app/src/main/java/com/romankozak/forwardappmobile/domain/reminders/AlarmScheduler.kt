@@ -7,6 +7,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.util.Log
 import android.widget.Toast
@@ -38,6 +40,7 @@ class AlarmScheduler
         private val goalRepository: com.romankozak.forwardappmobile.data.repository.GoalRepository by lazy { goalRepositoryProvider.get() }
         private val missionRepository: MissionRepository by lazy { missionRepositoryProvider.get() }
         private val tag = "ReminderFlow"
+        private val mainHandler = Handler(Looper.getMainLooper())
 
         suspend fun schedule(reminder: Reminder) {
             val contextRepository = contextRepositoryProvider.get()
@@ -183,7 +186,7 @@ class AlarmScheduler
                     )
                 if (notificationPermission != PackageManager.PERMISSION_GRANTED) {
                     Log.e(tag, "AlarmScheduler: POST_NOTIFICATIONS permission not granted")
-                    Toast.makeText(context, "Please grant notification permission to schedule reminders.", Toast.LENGTH_LONG).show()
+                    showPermissionToast("Please grant notification permission to schedule reminders.")
                     return false
                 }
             }
@@ -193,7 +196,7 @@ class AlarmScheduler
                 if (!alarmManager.canScheduleExactAlarms()) {
                     Log.e(tag, "AlarmScheduler: Cannot schedule exact alarms. Permission denied.")
                     Log.e(tag, "AlarmScheduler: User needs to grant SCHEDULE_EXACT_ALARM permission in system settings")
-                    Toast.makeText(context, "Please grant permission to schedule exact alarms.", Toast.LENGTH_LONG).show()
+                    showPermissionToast("Please grant permission to schedule exact alarms.")
                     return false
                 }
             }
@@ -203,6 +206,12 @@ class AlarmScheduler
 
             Log.i(tag, "AlarmScheduler: All permissions are granted")
             return true
+        }
+
+        private fun showPermissionToast(message: String) {
+            mainHandler.post {
+                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            }
         }
 
         private fun checkBatteryOptimization() {

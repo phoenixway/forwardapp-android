@@ -1,0 +1,631 @@
+[
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/arc/ArcQuestDao_Impl.kt:ArcQuestDao_Impl.getMinOrder:368",
+    "responsibility": "Retrieves the minimum order value for quests associated with a specific arc key from the database.",
+    "side_effects": [
+      "Executes a database query (I/O)"
+    ],
+    "concepts": [
+      "database query",
+      "minimum value",
+      "order sequence"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/arc/ArcQuestDao_Impl.kt:ArcQuestDao_Impl.updateOrder:390",
+    "responsibility": "Updates the order and modification timestamp for a specific quest in the database.",
+    "side_effects": [
+      "Mutates database state (I/O)"
+    ],
+    "concepts": [
+      "database update",
+      "data mutation",
+      "ordering"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/arc/ArcQuestDao_Impl.kt:ArcQuestDao_Impl.getRequiredConverters:419",
+    "responsibility": "Returns an empty list of required type converters for this DAO.",
+    "side_effects": [],
+    "concepts": [
+      "type converters",
+      "dao configuration"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl:45",
+    "responsibility": "Provides the Room database implementation for accessing and modifying MainBeacon and related entities.",
+    "side_effects": [
+      "Initializes database adapters for insert, update, and delete operations"
+    ],
+    "concepts": [
+      "data access object",
+      "room database implementation",
+      "entity relationships"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.createQuery:78",
+    "responsibility": "Provides the SQL query string for inserting or replacing a MainBeacon entity.",
+    "side_effects": [],
+    "concepts": [
+      "sql generation",
+      "insert query"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.bind:80",
+    "responsibility": "Binds the fields of a MainBeacon entity to an SQLite statement for insertion.",
+    "side_effects": [
+      "Modifies the state of the provided SQLiteStatement"
+    ],
+    "concepts": [
+      "statement binding",
+      "sql parameters"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.createQuery:151",
+    "responsibility": "Provides the SQL query string for inserting or replacing a MainBeaconGroup entity.",
+    "side_effects": [],
+    "concepts": [
+      "sql generation",
+      "insert query"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.bind:153",
+    "responsibility": "Binds the fields of a MainBeaconGroup entity to an SQLite statement for insertion.",
+    "side_effects": [
+      "Modifies the state of the provided SQLiteStatement"
+    ],
+    "concepts": [
+      "statement binding",
+      "sql parameters"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.createQuery:168",
+    "responsibility": "Provides the SQL query string for inserting or replacing a MainBeaconGroupMember entity.",
+    "side_effects": [],
+    "concepts": [
+      "sql generation",
+      "insert query"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.bind:170",
+    "responsibility": "Binds the fields of a MainBeaconGroupMember entity to an SQLite statement for insertion.",
+    "side_effects": [
+      "Modifies the state of the provided SQLiteStatement"
+    ],
+    "concepts": [
+      "statement binding",
+      "sql parameters"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.createQuery:177",
+    "responsibility": "Provides the SQL query string for inserting a MainBeaconParentLink entity while ignoring conflicts.",
+    "side_effects": [],
+    "concepts": [
+      "sql generation",
+      "insert ignore query"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.bind:179",
+    "responsibility": "Binds the fields of a MainBeaconParentLink entity to an SQLite statement for insertion with conflict ignore.",
+    "side_effects": [
+      "Modifies the state of the provided SQLiteStatement"
+    ],
+    "concepts": [
+      "statement binding",
+      "sql parameters"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.createQuery:188",
+    "responsibility": "Provides the SQL query string for inserting or replacing a MainBeaconParentLink entity.",
+    "side_effects": [],
+    "concepts": [
+      "sql generation",
+      "insert replace query"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.bind:190",
+    "responsibility": "Binds the fields of a MainBeaconParentLink entity to an SQLite statement for replacement.",
+    "side_effects": [
+      "Modifies the state of the provided SQLiteStatement"
+    ],
+    "concepts": [
+      "statement binding",
+      "sql parameters"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.createQuery:199",
+    "responsibility": "Provides the SQL query string for inserting or replacing a MainBeaconLevelStatus entity.",
+    "side_effects": [],
+    "concepts": [
+      "sql generation",
+      "insert query"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.bind:201",
+    "responsibility": "Binds the fields of a MainBeaconLevelStatus entity to an SQLite statement for insertion.",
+    "side_effects": [
+      "Modifies the state of the provided SQLiteStatement"
+    ],
+    "concepts": [
+      "statement binding",
+      "sql parameters"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.createQuery:238",
+    "responsibility": "Provides the SQL query string for inserting or replacing a MainBeaconContextCrossRef entity.",
+    "side_effects": [],
+    "concepts": [
+      "sql generation",
+      "insert query"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.bind:240",
+    "responsibility": "Binds the fields of a MainBeaconContextCrossRef entity to an SQLite statement for insertion.",
+    "side_effects": [
+      "Modifies the state of the provided SQLiteStatement"
+    ],
+    "concepts": [
+      "statement binding",
+      "sql parameters"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.createQuery:247",
+    "responsibility": "Provides the SQL query string for inserting or replacing a MainBeaconAttachmentCrossRef entity.",
+    "side_effects": [],
+    "concepts": [
+      "sql generation",
+      "insert query"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.bind:249",
+    "responsibility": "Binds the fields of a MainBeaconAttachmentCrossRef entity to an SQLite statement for insertion.",
+    "side_effects": [
+      "Modifies the state of the provided SQLiteStatement"
+    ],
+    "concepts": [
+      "statement binding",
+      "sql parameters"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.createQuery:255",
+    "responsibility": "Provides the SQL query string for updating an existing MainBeacon entity.",
+    "side_effects": [],
+    "concepts": [
+      "sql generation",
+      "update query"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.bind:257",
+    "responsibility": "Binds the fields of a MainBeacon entity to an SQLite statement for updating.",
+    "side_effects": [
+      "Modifies the state of the provided SQLiteStatement"
+    ],
+    "concepts": [
+      "statement binding",
+      "sql parameters",
+      "update operation"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.createQuery:329",
+    "responsibility": "Provides the SQL query string for updating an existing MainBeaconGroup entity.",
+    "side_effects": [],
+    "concepts": [
+      "sql generation",
+      "update query"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.bind:331",
+    "responsibility": "Binds the fields of a MainBeaconGroup entity to an SQLite statement for updating.",
+    "side_effects": [
+      "Modifies the state of the provided SQLiteStatement"
+    ],
+    "concepts": [
+      "statement binding",
+      "sql parameters",
+      "update operation"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.insertBeacon:348",
+    "responsibility": "Inserts a single MainBeacon into the database.",
+    "side_effects": [
+      "Mutates database state (I/O)"
+    ],
+    "concepts": [
+      "database insert",
+      "data persistence"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.insertBeacons:352",
+    "responsibility": "Inserts a list of MainBeacon entities into the database.",
+    "side_effects": [
+      "Mutates database state (I/O)"
+    ],
+    "concepts": [
+      "database insert batch",
+      "data persistence"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.insertGroup:356",
+    "responsibility": "Inserts a single MainBeaconGroup into the database.",
+    "side_effects": [
+      "Mutates database state (I/O)"
+    ],
+    "concepts": [
+      "database insert",
+      "data persistence"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.insertGroups:360",
+    "responsibility": "Inserts a list of MainBeaconGroup entities into the database.",
+    "side_effects": [
+      "Mutates database state (I/O)"
+    ],
+    "concepts": [
+      "database insert batch",
+      "data persistence"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.insertGroupMembers:364",
+    "responsibility": "Inserts a list of MainBeaconGroupMember entities into the database.",
+    "side_effects": [
+      "Mutates database state (I/O)"
+    ],
+    "concepts": [
+      "database insert batch",
+      "data persistence"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.insertParentLink:368",
+    "responsibility": "Inserts a MainBeaconParentLink into the database and returns its ID.",
+    "side_effects": [
+      "Mutates database state (I/O)"
+    ],
+    "concepts": [
+      "database insert",
+      "data persistence",
+      "returning id"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.insertParentLinks:373",
+    "responsibility": "Inserts a list of MainBeaconParentLink entities into the database.",
+    "side_effects": [
+      "Mutates database state (I/O)"
+    ],
+    "concepts": [
+      "database insert batch",
+      "data persistence"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.insertLevelStatuses:377",
+    "responsibility": "Inserts a list of MainBeaconLevelStatus entities into the database.",
+    "side_effects": [
+      "Mutates database state (I/O)"
+    ],
+    "concepts": [
+      "database insert batch",
+      "data persistence"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.insertContextCrossRefs:381",
+    "responsibility": "Inserts a list of MainBeaconContextCrossRef entities into the database.",
+    "side_effects": [
+      "Mutates database state (I/O)"
+    ],
+    "concepts": [
+      "database insert batch",
+      "data persistence",
+      "cross reference"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.insertAttachmentCrossRefs:385",
+    "responsibility": "Inserts a list of MainBeaconAttachmentCrossRef entities into the database.",
+    "side_effects": [
+      "Mutates database state (I/O)"
+    ],
+    "concepts": [
+      "database insert batch",
+      "data persistence",
+      "cross reference"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.updateBeacon:389",
+    "responsibility": "Updates an existing MainBeacon in the database.",
+    "side_effects": [
+      "Mutates database state (I/O)"
+    ],
+    "concepts": [
+      "database update",
+      "data modification"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.updateGroup:393",
+    "responsibility": "Updates an existing MainBeaconGroup in the database.",
+    "side_effects": [
+      "Mutates database state (I/O)"
+    ],
+    "concepts": [
+      "database update",
+      "data modification"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.observeMainBeacons:397",
+    "responsibility": "Creates a Flow that emits the list of all MainBeacon entities from the database, ordered by beacon order and dates.",
+    "side_effects": [
+      "Executes a database query (I/O)",
+      "Observes database changes"
+    ],
+    "concepts": [
+      "reactive streams",
+      "database observation",
+      "flow"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.observeMainBeaconRelations:512",
+    "responsibility": "Creates a Flow that emits a list of MainBeaconRelationEntity objects, fetching associated relations like contexts, attachments, and statuses.",
+    "side_effects": [
+      "Executes multiple database queries (I/O)",
+      "Observes database changes"
+    ],
+    "concepts": [
+      "reactive streams",
+      "database observation",
+      "relational query",
+      "flow"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.getAllBeaconsSync:687",
+    "responsibility": "Synchronously retrieves all MainBeacon entities from the database, ordered by beacon order and dates.",
+    "side_effects": [
+      "Executes a database query (I/O)"
+    ],
+    "concepts": [
+      "database query",
+      "synchronous execution"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.getBeaconById:802",
+    "responsibility": "Retrieves a specific MainBeacon by its ID from the database.",
+    "side_effects": [
+      "Executes a database query (I/O)"
+    ],
+    "concepts": [
+      "database query",
+      "retrieval by id"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.observeGroups:919",
+    "responsibility": "Creates a Flow that emits the list of all MainBeaconGroup entities from the database.",
+    "side_effects": [
+      "Executes a database query (I/O)",
+      "Observes database changes"
+    ],
+    "concepts": [
+      "reactive streams",
+      "database observation",
+      "flow"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.getAllGroupsSync:959",
+    "responsibility": "Synchronously retrieves all MainBeaconGroup entities from the database.",
+    "side_effects": [
+      "Executes a database query (I/O)"
+    ],
+    "concepts": [
+      "database query",
+      "synchronous execution"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.getAllGroupMembersSync:999",
+    "responsibility": "Synchronously retrieves all MainBeaconGroupMember entities from the database.",
+    "side_effects": [
+      "Executes a database query (I/O)"
+    ],
+    "concepts": [
+      "database query",
+      "synchronous execution"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.getAllParentLinksSync:1026",
+    "responsibility": "Synchronously retrieves all MainBeaconParentLink entities from the database.",
+    "side_effects": [
+      "Executes a database query (I/O)"
+    ],
+    "concepts": [
+      "database query",
+      "synchronous execution"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.observeGroupMembers:1059",
+    "responsibility": "Creates a Flow that emits the list of all MainBeaconGroupMember entities.",
+    "side_effects": [
+      "Executes a database query (I/O)",
+      "Observes database changes"
+    ],
+    "concepts": [
+      "reactive streams",
+      "database observation",
+      "flow"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.observeParentLinks:1086",
+    "responsibility": "Creates a Flow that emits the list of all MainBeaconParentLink entities.",
+    "side_effects": [
+      "Executes a database query (I/O)",
+      "Observes database changes"
+    ],
+    "concepts": [
+      "reactive streams",
+      "database observation",
+      "flow"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.observeContextCrossRefs:1119",
+    "responsibility": "Creates a Flow that emits the list of all MainBeaconContextCrossRef entities.",
+    "side_effects": [
+      "Executes a database query (I/O)",
+      "Observes database changes"
+    ],
+    "concepts": [
+      "reactive streams",
+      "database observation",
+      "flow"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.observeAttachmentCrossRefs:1146",
+    "responsibility": "Creates a Flow that emits the list of all MainBeaconAttachmentCrossRef entities.",
+    "side_effects": [
+      "Executes a database query (I/O)",
+      "Observes database changes"
+    ],
+    "concepts": [
+      "reactive streams",
+      "database observation",
+      "flow"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.getGroupIdsForBeacon:1170",
+    "responsibility": "Retrieves a list of group IDs associated with a specific beacon ID from the database.",
+    "side_effects": [
+      "Executes a database query (I/O)"
+    ],
+    "concepts": [
+      "database query",
+      "relational mapping"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.getAllContextCrossRefsSync:1190",
+    "responsibility": "Synchronously retrieves all MainBeaconContextCrossRef entities from the database.",
+    "side_effects": [
+      "Executes a database query (I/O)"
+    ],
+    "concepts": [
+      "database query",
+      "synchronous execution"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.getAllAttachmentCrossRefsSync:1217",
+    "responsibility": "Synchronously retrieves all MainBeaconAttachmentCrossRef entities from the database.",
+    "side_effects": [
+      "Executes a database query (I/O)"
+    ],
+    "concepts": [
+      "database query",
+      "synchronous execution"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.getAllLevelStatusesSync:1241",
+    "responsibility": "Synchronously retrieves all MainBeaconLevelStatus entities from the database.",
+    "side_effects": [
+      "Executes a database query (I/O)"
+    ],
+    "concepts": [
+      "database query",
+      "synchronous execution"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.getMaxOrder:1324",
+    "responsibility": "Retrieves the maximum order value among all beacons, returning -1 if none exist.",
+    "side_effects": [
+      "Executes a database query (I/O)"
+    ],
+    "concepts": [
+      "database query",
+      "maximum value calculation"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.getMaxGroupOrder:1344",
+    "responsibility": "Retrieves the maximum order value among all beacon groups, returning -1 if none exist.",
+    "side_effects": [
+      "Executes a database query (I/O)"
+    ],
+    "concepts": [
+      "database query",
+      "maximum value calculation"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.getMaxParentLinkOrder:1364",
+    "responsibility": "Retrieves the maximum link order value for a specific parent beacon ID.",
+    "side_effects": [
+      "Executes a database query (I/O)"
+    ],
+    "concepts": [
+      "database query",
+      "maximum value calculation"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.getMaxContextCrossRefOrder:1392",
+    "responsibility": "Retrieves the maximum reference order value for a specific beacon ID within context cross-references.",
+    "side_effects": [
+      "Executes a database query (I/O)"
+    ],
+    "concepts": [
+      "database query",
+      "maximum value calculation"
+    ]
+  },
+  {
+    "id": "kotlin:app/build/generated/ksp/expLocal/kotlin/com/romankozak/forwardappmobile/features/mainscreen/core/MainBeaconDao_Impl.kt:MainBeaconDao_Impl.getContextsForBeacon:1420",
+    "responsibility": "Retrieves all Context entities associated with a specific beacon ID via a cross-reference table.",
+    "side_effects": [
+      "Executes a database query (I/O)"
+    ],
+    "concepts": [
+      "database query",
+      "sql join",
+      "relational data retrieval"
+    ]
+  }
+]

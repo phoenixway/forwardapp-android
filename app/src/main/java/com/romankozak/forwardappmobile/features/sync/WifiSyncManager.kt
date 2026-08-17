@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.features.sync
 
 import android.app.Application
 import android.util.Log
+import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
 import com.romankozak.forwardappmobile.sync.SyncRepository
@@ -24,11 +25,18 @@ private const val SYNC_LOG_TAG = "FWD_SYNC_TEST"
 class WifiSyncManager(
     private val syncRepository: SyncRepository,
     private val settingsRepository: SettingsRepository,
+    private val dayManagementRepository: DayManagementRepository,
     private val application: Application,
     private val viewModelScope: CoroutineScope,
     private val uiEventChannel: Channel<ProjectUiEvent>,
 ) {
-    private val wifiSyncServer = WifiSyncServer(syncRepository, application, settingsRepository)
+    private val wifiSyncServer =
+        WifiSyncServer(
+            syncRepository,
+            application,
+            settingsRepository,
+            dayManagementRepository,
+        )
     private var isServerRunning = false
     private var isServerStarting = false
 
@@ -210,15 +218,24 @@ class WifiSyncManager(
     fun performWifiImport(address: String) {
         viewModelScope.launch {
             _syncStatus.value = WifiSyncStatus.Syncing
-            Log.d(SYNC_LOG_TAG, "[WifiSyncManager] Performing Wi‑Fi import from $address")
-            val lastSyncTime = syncRepository.getLastSyncTime()
-            Log.d(SYNC_LOG_TAG, "[WifiSyncManager] lastSyncTime=$lastSyncTime, requesting delta since then")
-            val result = syncRepository.fetchBackupFromWifi(address, lastSyncTime)
+            Log.d(SYNC_LOG_TAG, "[WifiSyncManager] Performing full Wi‑Fi import from $address")
+            val result = syncRepository.fetchBackupFromWifi(address, deltaSince = null)
             result
                 .onSuccess { jsonString ->
-                    _syncStatus.value = WifiSyncStatus.Idle
-                    uiEventChannel.send(ProjectUiEvent.NavigateToSyncScreenWithData(jsonString))
-                    onDismissWifiImportDialog()
+                    syncRepository.importBackupJsonString(jsonString)
+                        .onSuccess { importedCount ->
+                            _syncStatus.value = WifiSyncStatus.Idle
+                            uiEventChannel.send(
+                                ProjectUiEvent.ShowToast("Wi‑Fi import applied: $importedCount items"),
+                            )
+                            onDismissWifiImportDialog()
+                        }
+                        .onFailure {
+                            val message = it.message ?: "Wi‑Fi import failed"
+                            _syncStatus.value = WifiSyncStatus.Error(message)
+                            Log.e(SYNC_LOG_TAG, "[WifiSyncManager] Apply import error: $message", it)
+                            uiEventChannel.send(ProjectUiEvent.ShowToast("Error: $message"))
+                        }
                 }
                 .onFailure {
                     val message = it.message ?: "Wi‑Fi import failed"

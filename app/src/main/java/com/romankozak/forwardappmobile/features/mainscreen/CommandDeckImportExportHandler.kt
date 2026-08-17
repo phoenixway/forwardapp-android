@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.features.mainscreen
 
 import android.app.Application
 import android.net.Uri
+import android.util.Log
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases.SyncUseCase
 import com.romankozak.forwardappmobile.sync.SyncRepository
@@ -85,12 +86,16 @@ class CommandDeckImportExportHandler
         }
 
         suspend fun confirmImportV1(uri: Uri) {
+            Log.e("FullJsonImport", "confirmImportV1 start uri=$uri")
             val result = syncRepository.importFullBackupFromFile(uri)
+            Log.e("FullJsonImport", "confirmImportV1 result isSuccess=${result.isSuccess} message=${result.getOrNull()} error=${result.exceptionOrNull()?.message}")
             emitResult(result, "Import successful", "Import error")
         }
 
         suspend fun confirmImportV2(uri: Uri) {
+            Log.e("FullJsonImport", "confirmImportV2 start uri=$uri")
             val result = syncRepository.importFullBackupFromFileV2(uri)
+            Log.e("FullJsonImport", "confirmImportV2 result isSuccess=${result.isSuccess} message=${result.getOrNull()} error=${result.exceptionOrNull()?.message}")
             emitResult(result, "Import successful", "Import error")
         }
 
@@ -152,7 +157,8 @@ class CommandDeckImportExportHandler
         ) {
             val message = result.getOrNull() ?: fallbackSuccess
             if (result.isSuccess) {
-                _uiEvents.tryEmit(CommandDeckUiEvent.ShowMessage(message))
+                val emitted = _uiEvents.tryEmit(CommandDeckUiEvent.ShowMessage(message))
+                Log.e("FullJsonImport", "emitResult success emitted=$emitted message=$message")
             } else {
                 val reason = result.exceptionOrNull()?.message
                 val fullMessage =
@@ -161,7 +167,8 @@ class CommandDeckImportExportHandler
                     } else {
                         "$fallbackError: $reason"
                     }
-                _uiEvents.tryEmit(CommandDeckUiEvent.ShowMessage(fullMessage))
+                val emitted = _uiEvents.tryEmit(CommandDeckUiEvent.ShowMessage(fullMessage))
+                Log.e("FullJsonImport", "emitResult failure emitted=$emitted message=$fullMessage")
             }
             _importChoiceUri.value = null
         }

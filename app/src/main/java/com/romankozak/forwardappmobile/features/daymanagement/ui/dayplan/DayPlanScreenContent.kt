@@ -171,6 +171,10 @@ private fun navigateToParentInfo(
 ) {
     when (parentInfo.type) {
         ParentType.PROJECT -> {
+            if (parentInfo.id.isBlank() || parentInfo.id == "root") {
+                Log.e(TAG, "Project parentInfo has invalid contextId: ${parentInfo.id}")
+                return
+            }
             navigator.navigationManager.navigateOrFallback(
                 navController = navigator.navController,
                 target = NavTarget.ContextDetail(contextId = parentInfo.id),
@@ -180,6 +184,10 @@ private fun navigateToParentInfo(
 
         ParentType.GOAL -> {
             parentInfo.projectId?.let { listId ->
+                if (listId.isBlank() || listId == "root") {
+                    Log.e(TAG, "Goal parentInfo has invalid projectId: $listId for goalId: ${parentInfo.id}")
+                    return
+                }
                 navigator.navigationManager.navigateOrFallback(
                     navController = navigator.navController,
                     target = NavTarget.ContextDetail(contextId = listId, goalId = parentInfo.id),

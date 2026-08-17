@@ -1,9 +1,13 @@
 package com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
+import com.romankozak.forwardappmobile.core.navigation.routes.NavigationRoutes
 import com.romankozak.forwardappmobile.features.attachments.ui.AddObsidianLinkDialog
 import com.romankozak.forwardappmobile.features.attachments.ui.AddWebLinkDialog
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.AddTaskDialog
@@ -115,6 +119,14 @@ private fun SelectedTaskDialogs(
     viewModel: DayPlanViewModel,
     hapticFeedback: HapticFeedback,
 ) {
+    val editTaskViewModel: EditTaskViewModel = hiltViewModel()
+    EditTaskContextChooserResultEffect(
+        navController = state.navigator.navController,
+        editTaskViewModel = editTaskViewModel,
+        dayPlanViewModel = viewModel,
+        isEditTaskDialogOpen = dialogState.isEditTaskDialogOpen,
+    )
+
     dialogState.selectedTask?.let { selectedTaskWithReminder ->
         if (!dialogState.isEditTaskDialogOpen) {
             TaskOptionsBottomSheet(
@@ -149,6 +161,8 @@ private fun SelectedTaskDialogs(
                 viewModel.clearSelectedTask()
             },
             navController = state.navigator.navController,
+            viewModel = editTaskViewModel,
+            onContextChooserOpened = viewModel::onEditTaskContextChooserOpened,
         )
     }
 
@@ -170,5 +184,29 @@ private fun SelectedTaskDialogs(
             },
             currentReminders = listOfNotNull(dialogState.selectedTask.reminder).map { it },
         )
+    }
+}
+
+@Composable
+private fun EditTaskContextChooserResultEffect(
+    navController: NavController?,
+    editTaskViewModel: EditTaskViewModel,
+    dayPlanViewModel: DayPlanViewModel,
+    isEditTaskDialogOpen: Boolean,
+) {
+    LaunchedEffect(navController, editTaskViewModel, dayPlanViewModel, isEditTaskDialogOpen) {
+        if (!isEditTaskDialogOpen) return@LaunchedEffect
+        navController?.currentBackStackEntryFlow?.collect { entry ->
+            val route = entry.destination.route.orEmpty()
+            if (!route.startsWith(NavigationRoutes.LIST_CHOOSER)) {
+                dayPlanViewModel.onEditTaskContextChooserClosed()
+                val savedStateHandle = entry.savedStateHandle
+                val result = savedStateHandle.get<String>("list_chooser_result")
+                if (!result.isNullOrBlank()) {
+                    savedStateHandle.remove<String>("list_chooser_result")
+                    editTaskViewModel.onContextChooserResult(result)
+                }
+            }
+        }
     }
 }

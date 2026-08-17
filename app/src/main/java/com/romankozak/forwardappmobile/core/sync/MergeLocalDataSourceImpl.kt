@@ -84,6 +84,7 @@ class MergeLocalDataSourceImpl
         override suspend fun getLocalDatabaseContent(): DatabaseContent {
             return DatabaseContent(
                 projects = contextDao.getAll(),
+                contextParentLinks = contextParentLinkDao.getAllRaw(),
                 goals = goalDao.getAll(),
                 backlogItems = listItemDao.getAll(),
                 directionItems = directionDao.getAllRaw(),
@@ -100,6 +101,13 @@ class MergeLocalDataSourceImpl
                 reminders = reminderDao.getAllRemindersSync(),
                 tacticalMissions = tacticalMissionDao.getAllMissionsSync(),
                 aiInsights = aiInsightDao.getAllSync(),
+                mainBeacons = mainBeaconDao.getAllBeaconsSync(),
+                mainBeaconGroups = mainBeaconDao.getAllGroupsSync(),
+                mainBeaconGroupMembers = mainBeaconDao.getAllGroupMembersSync(),
+                mainBeaconParentLinks = mainBeaconDao.getAllParentLinksSync(),
+                mainBeaconContextCrossRefs = mainBeaconDao.getAllContextCrossRefsSync(),
+                mainBeaconAttachmentCrossRefs = mainBeaconDao.getAllAttachmentCrossRefsSync(),
+                mainBeaconLevelStatuses = mainBeaconDao.getAllLevelStatusesSync(),
                 contextInboxSortingRules = contextInboxSortingDao.getAllRaw(),
                 contextKeyProblems = contextKeyProblemsDao.getAllRaw(),
                 focusContextIntervals = focusContextIntervalDao.getAllRaw(),
@@ -187,24 +195,132 @@ class MergeLocalDataSourceImpl
                 bundle.dayPlans.filterNot { incomingPlan ->
                     incomingPlanIdRemap.containsKey(incomingPlan.id)
                 }
-            val dayFocusItemsToInsert =
+            val remappedDayFocusItems =
                 bundle.dayFocusItems.map { item ->
                     incomingPlanIdRemap[item.dayPlanId]?.let { existingPlanId ->
                         item.copy(dayPlanId = existingPlanId)
                     } ?: item
                 }
-            val dayTasksToInsert =
+            val remappedDayTasks =
                 bundle.dayTasks.map { task ->
                     incomingPlanIdRemap[task.dayPlanId]?.let { existingPlanId ->
                         task.copy(dayPlanId = existingPlanId)
                     } ?: task
                 }
+            val validPlanIds =
+                (dayPlanDao.getAllPlansSync().map { plan -> plan.id } + dayPlansToInsert.map { plan -> plan.id })
+                    .toSet()
+
+            // A DayPlan remap can make an incoming focus/responsibility item
+            // share the same logical recurring occurrence with an existing local
+            // physical row while retaining a different incoming id. Contain that
+            // alias instead of silently creating a second row. Live/tombstone
+            // state is deliberately not conflict-resolved here.
+            val localFocusOccurrenceIdsByLogicalKey =
+                dayFocusItemDao
+                    .getAllSync()
+                    .mapNotNull { item ->
+                        item.recurringKey?.let { recurringKey ->
+                            (item.dayPlanId to recurringKey) to item.id
+                        }
+                    }.groupBy(
+                        keySelector = { it.first },
+                        valueTransform = { it.second },
+                    )
+            val remappedIncomingFocusItemIds =
+                bundle.dayFocusItems
+                    .asSequence()
+                    .filter { item -> incomingPlanIdRemap.containsKey(item.dayPlanId) }
+                    .mapTo(hashSetOf()) { item -> item.id }
+
+            val dayFocusItemsToInsert =
+                remappedDayFocusItems
+                    .filter { item -> item.dayPlanId in validPlanIds }
+                    .filterNot { item ->
+                        if (item.id !in remappedIncomingFocusItemIds) {
+                            false
+                        } else {
+                            val recurringKey = item.recurringKey ?: return@filterNot false
+                            localFocusOccurrenceIdsByLogicalKey[item.dayPlanId to recurringKey]
+                                ?.any { localPhysicalId -> localPhysicalId != item.id } == true
+                        }
+                    }
+            val validGoalIds =
+                (goalDao.getAllRaw().map { goal -> goal.id } + bundle.goals.map { goal -> goal.id })
+                    .toSet()
+            val validContextIdsForDayTasks =
+                (contextDao.getAllRaw().map { context -> context.id } + bundle.contexts.map { context -> context.id })
+                    .toSet()
+            val validActivityRecordIds =
+                (activityRecordDao.getAllRaw().map { record -> record.id } + bundle.activityRecords.map { record -> record.id })
+                    .toSet()
+            val validRecurringTaskIds =
+                (recurringTaskDao.getAllSync().map { task -> task.id } + bundle.recurringTasks.map { task -> task.id })
+                    .toSet()
+
+            // A DayPlan id may be remapped during merge when the same calendar day
+            // already exists locally. A recurring occurrence keeps its incoming
+            // physical id, so blindly inserting it can create a second physical row
+            // for the same logical occurrence. Preserve the existing local physical
+            // lineage instead of silently creating an alias. This is deliberately
+            // symmetric with respect to live/tombstone state: ambiguous legacy state
+            // is contained here, not conflict-resolved.
+            val localRecurringOccurrenceIdsByLogicalKey =
+                dayTaskDao
+                    .getAllTasksSync()
+                    .mapNotNull { task ->
+                        task.recurringTaskId?.let { recurringTaskId ->
+                            (task.dayPlanId to recurringTaskId) to task.id
+                        }
+                    }.groupBy(
+                        keySelector = { it.first },
+                        valueTransform = { it.second },
+                    )
+            val remappedIncomingTaskIds =
+                bundle.dayTasks
+                    .asSequence()
+                    .filter { task -> incomingPlanIdRemap.containsKey(task.dayPlanId) }
+                    .mapTo(hashSetOf()) { task -> task.id }
+
+            val dayTasksToInsert =
+                remappedDayTasks
+                    .filter { task -> task.dayPlanId in validPlanIds }
+                    .filterNot { task ->
+                        if (task.id !in remappedIncomingTaskIds) {
+                            false
+                        } else {
+                            val recurringTaskId =
+                                task.recurringTaskId?.takeIf { id -> id in validRecurringTaskIds }
+                                    ?: return@filterNot false
+                            localRecurringOccurrenceIdsByLogicalKey[task.dayPlanId to recurringTaskId]
+                                ?.any { localPhysicalId -> localPhysicalId != task.id } == true
+                        }
+                    }.map { task ->
+                        task.copy(
+                            goalId = task.goalId?.takeIf { id -> id in validGoalIds },
+                            projectId = task.projectId?.takeIf { id -> id in validContextIdsForDayTasks },
+                            activityRecordId = task.activityRecordId?.takeIf { id -> id in validActivityRecordIds },
+                            recurringTaskId = task.recurringTaskId?.takeIf { id -> id in validRecurringTaskIds },
+                        )
+                    }
+            val skippedDayTaskCount = remappedDayTasks.size - dayTasksToInsert.size
+            val skippedDayFocusCount = remappedDayFocusItems.size - dayFocusItemsToInsert.size
+            val clearedTaskGoalCount = remappedDayTasks.count { task -> task.goalId != null && task.goalId !in validGoalIds }
+            val clearedTaskContextCount =
+                remappedDayTasks.count { task -> task.projectId != null && task.projectId !in validContextIdsForDayTasks }
+            val clearedTaskActivityCount =
+                remappedDayTasks.count { task -> task.activityRecordId != null && task.activityRecordId !in validActivityRecordIds }
+            val clearedTaskRecurringCount =
+                remappedDayTasks.count { task -> task.recurringTaskId != null && task.recurringTaskId !in validRecurringTaskIds }
             Log.i(
                 "ForwardSync",
-                "merge snapshot version=${bundle.version} incomingPlans=${bundle.dayPlans.size} " +
+                    "merge snapshot version=${bundle.version} incomingPlans=${bundle.dayPlans.size} " +
                     "insertPlans=${dayPlansToInsert.size} remapPlans=${incomingPlanIdRemap.size} " +
                     "incomingFocus=${bundle.dayFocusItems.size} insertFocus=${dayFocusItemsToInsert.size} " +
-                    "incomingTasks=${bundle.dayTasks.size} insertTasks=${dayTasksToInsert.size} " +
+                    "skippedFocus=$skippedDayFocusCount " +
+                    "incomingTasks=${bundle.dayTasks.size} insertTasks=${dayTasksToInsert.size} skippedTasks=$skippedDayTaskCount " +
+                    "clearedTaskFks=goal:$clearedTaskGoalCount,context:$clearedTaskContextCount," +
+                    "activity:$clearedTaskActivityCount,recurring:$clearedTaskRecurringCount " +
                     "runtime=${bundle.dayManagementRuntimeState != null} " +
                     "incomingPlanDates=${bundle.dayPlans.map { plan -> "${plan.id}:${plan.date}" }} " +
                     "remap=$incomingPlanIdRemap",
@@ -212,10 +328,12 @@ class MergeLocalDataSourceImpl
 
             db.withTransaction {
                 contextDao.insertAll(bundle.contexts.map { it.toEntity() })
+                val validContextIds = bundle.contexts.map { it.id }.toSet()
                 contextParentLinkDao.insertAll(bundle.contextParentLinks.map { it.toEntity() })
                 directionDao.insertAll(bundle.directionItems.map { it.toEntity() })
                 goalDao.insertAll(bundle.goals.map { it.toEntity() })
                 noteDocumentDao.insertAllDocuments(bundle.documents.map { it.toEntity() })
+                val validDocumentIds = bundle.documents.map { it.id }.toSet()
                 musicNoteDao.insertAll(bundle.musicNotes.map { it.toEntity() })
                 legacyNoteDao.insertAll(bundle.notes.map { it.toEntity() })
                 checklistDao.insertChecklists(bundle.checklists.map { it.toEntity() })
@@ -247,7 +365,16 @@ class MergeLocalDataSourceImpl
                 scriptDao.insertAll(bundle.scripts.map { it.toEntity() })
                 inboxRecordDao.insertAll(bundle.inbox.map { it.toEntity() })
                 contextManagementDao.insertLogs(bundle.logs.map { it.toEntity() })
-                systemAppDao.insertAll(bundle.systemApps.map { it.toEntity() })
+                systemAppDao.insertAll(
+                    bundle.systemApps.mapNotNull { app ->
+                        when {
+                            app.contextId !in validContextIds -> null
+                            app.noteDocumentId != null && app.noteDocumentId !in validDocumentIds ->
+                                app.copy(noteDocumentId = null)
+                            else -> app
+                        }
+                    }.map { it.toEntity() },
+                )
                 activityRecordDao.insertAll(bundle.activityRecords.map { it.toEntity() })
                 recentItemDao.insertAllSync(bundle.recentProjectEntries.map { it.toEntity() })
                 linkItemDao.insertAll(bundle.linkItemEntities.map { it.toEntity() })

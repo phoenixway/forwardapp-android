@@ -196,6 +196,7 @@ private fun NavGraphBuilder.mainGraph(
             onNavigateToAiLifeManagement = { navigationManager.navigate(target = NavTarget.LifeState) },
             onExportToFile = { commandDeckViewModel.onEvent(CommandDeckEvent.ExportToFile) },
             onImportFromFileRequest = { uri ->
+                Log.e("FullJsonImport", "AppNavigation onImportFromFileRequest uri=$uri")
                 commandDeckViewModel.onEvent(
                     CommandDeckEvent.ImportFromFileRequest(uri.toString()),
                 )

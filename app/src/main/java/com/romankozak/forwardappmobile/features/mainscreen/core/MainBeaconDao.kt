@@ -217,6 +217,13 @@ interface MainBeaconDao {
         updatedAt: Long,
     )
 
+    @Query("UPDATE main_beacons SET is_expanded = :isExpanded, updatedAt = :updatedAt WHERE id = :beaconId")
+    suspend fun updateBeaconExpanded(
+        beaconId: String,
+        isExpanded: Boolean,
+        updatedAt: Long = System.currentTimeMillis(),
+    )
+
     @Query("UPDATE main_beacon_groups SET group_order = :order WHERE id = :groupId")
     suspend fun updateGroupOrder(groupId: String, order: Long)
 

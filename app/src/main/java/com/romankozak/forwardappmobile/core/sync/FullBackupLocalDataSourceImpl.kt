@@ -156,9 +156,6 @@ class FullBackupLocalDataSourceImpl
             Log.d("SyncV2", "Inserting StructurePresets: ${bundle.contextRoleProfiles.size}")
             structurePresetDao.insertAll(bundle.contextRoleProfiles.map { it.toEntity() })
 
-            Log.d("SyncV2", "Inserting SystemApps: ${bundle.systemApps.size}")
-            systemAppDao.insertAll(bundle.systemApps.map { it.toEntity() })
-
             Log.d("SyncV2", "Inserting ConversationFolders: ${bundle.conversationFolders.size}")
             conversationFolderDao.insertAll(bundle.conversationFolders.map { it.toEntity() })
 
@@ -198,6 +195,30 @@ class FullBackupLocalDataSourceImpl
 
             Log.d("SyncV2", "Inserting NoteDocuments: ${bundle.documents.size}")
             noteDocumentDao.insertAllDocuments(bundle.documents.map { it.toEntity() })
+
+            val validDocumentIds = bundle.documents.map { it.id }.toSet()
+            val systemAppsToInsert =
+                bundle.systemApps.mapNotNull { app ->
+                    when {
+                        app.contextId !in validContextIds -> {
+                            Log.w(
+                                "SyncV2",
+                                "Skipping SystemApp ${app.id}: missing context ${app.contextId}",
+                            )
+                            null
+                        }
+                        app.noteDocumentId != null && app.noteDocumentId !in validDocumentIds -> {
+                            Log.w(
+                                "SyncV2",
+                                "SystemApp ${app.id} references missing document ${app.noteDocumentId}. Clearing noteDocumentId.",
+                            )
+                            app.copy(noteDocumentId = null)
+                        }
+                        else -> app
+                    }
+                }
+            Log.d("SyncV2", "Inserting SystemApps: ${systemAppsToInsert.size}/${bundle.systemApps.size}")
+            systemAppDao.insertAll(systemAppsToInsert.map { it.toEntity() })
 
             Log.d("SyncV2", "Inserting MusicNotes: ${bundle.musicNotes.size}")
             musicNoteDao.insertAll(bundle.musicNotes.map { it.toEntity() })
@@ -419,6 +440,7 @@ class FullBackupLocalDataSourceImpl
         override suspend fun loadFullDatabaseContent(): DatabaseContent {
             return DatabaseContent(
                 projects = contextDao.getAll(),
+                contextParentLinks = contextParentLinkDao.getAllRaw(),
                 goals = goalDao.getAll(),
                 backlogItems = backlogItemDao.getAllRaw(),
                 backlogOrders = backlogOrderDao.getAllRaw(),
@@ -457,6 +479,13 @@ class FullBackupLocalDataSourceImpl
                 tacticalMissionAttachments = tacticalMissionDao.getAllMissionAttachmentCrossRefs(),
                 aiEvents = aiEventDao.getAllSync(),
                 aiInsights = aiInsightDao.getAllSync(),
+                mainBeacons = mainBeaconDao.getAllBeaconsSync(),
+                mainBeaconGroups = mainBeaconDao.getAllGroupsSync(),
+                mainBeaconGroupMembers = mainBeaconDao.getAllGroupMembersSync(),
+                mainBeaconParentLinks = mainBeaconDao.getAllParentLinksSync(),
+                mainBeaconContextCrossRefs = mainBeaconDao.getAllContextCrossRefsSync(),
+                mainBeaconAttachmentCrossRefs = mainBeaconDao.getAllAttachmentCrossRefsSync(),
+                mainBeaconLevelStatuses = mainBeaconDao.getAllLevelStatusesSync(),
                 lifeSystemStates = lifeSystemStateDao.getAllSync(),
                 contextRoleProfiles = structurePresetDao.getAllSync(),
                 contextRoleProfileItems = structurePresetItemDao.getAllSync(),

@@ -12,6 +12,7 @@ import com.romankozak.forwardappmobile.BuildConfig
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
+import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.sync.SyncRepository
 import io.ktor.http.ContentType
@@ -37,13 +38,17 @@ import java.net.Inet4Address
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+
+private const val DAY_SYNC_IMPORT_TAG = "DaySyncImport"
 
 class WifiSyncServer(
     private val syncRepository: SyncRepository,
     private val context: Context,
     private val settingsRepository: SettingsRepository,
+    private val dayManagementRepository: DayManagementRepository,
 ) {
     private val TAG = "WifiSyncServer"
     private val DEBUG_TAG = "FWD_SYNC_TEST"
@@ -245,6 +250,7 @@ class WifiSyncServer(
                                     Log.d(DEBUG_TAG, "[WifiSyncServer] /import dump head=${body.take(400)}")
                                 }
                                 val backup = gson.fromJson(body, FullAppBackup::class.java)
+                                Log.e(DAY_SYNC_IMPORT_TAG, "server received ${backup.describeDayImportPayload(body.length)}")
                                 val snapshotBundle = backup.snapshotBundle
                                 val db = backup.database
                                 Log.i(
@@ -271,9 +277,10 @@ class WifiSyncServer(
 
                                 withContext(NonCancellable) {
                                     when {
-                                        snapshotBundle != null -> syncRepository.applyServerChanges(snapshotBundle)
-                                        db != null -> syncRepository.applyServerChanges(db)
+                                        snapshotBundle != null -> syncRepository.applyServerChanges(snapshotBundle).getOrThrow()
+                                        db != null -> syncRepository.applyServerChanges(db).getOrThrow()
                                     }
+                                    ensureTodayRecurringTasksAfterImport()
                                     Log.i("ForwardSync", "wifi import applied")
                                     backup.settings?.settings?.let { settings ->
                                         try {
@@ -329,6 +336,29 @@ class WifiSyncServer(
         }
     }
 
+    private suspend fun ensureTodayRecurringTasksAfterImport() {
+        val todayStart = startOfLocalDay(System.currentTimeMillis())
+        runCatching {
+            if (dayManagementRepository.getPlanIdForDate(todayStart) == null) {
+                dayManagementRepository.createOrUpdateDayPlan(todayStart)
+            }
+            dayManagementRepository.generateRecurringTasksForDate(todayStart)
+        }.onSuccess {
+            Log.i("ForwardSync", "post-import recurring generation triggered date=$todayStart")
+        }.onFailure { error ->
+            Log.e(DAY_SYNC_IMPORT_TAG, "post-import recurring generation failed date=$todayStart", error)
+        }
+    }
+
+    private fun startOfLocalDay(timestamp: Long): Long =
+        Calendar.getInstance().apply {
+            timeInMillis = timestamp
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+
     private fun getWifiIpAddress(): String? {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
@@ -376,4 +406,47 @@ class WifiSyncServer(
             false
         }
     }
+}
+
+private fun FullAppBackup.describeDayImportPayload(bodyLength: Int): String {
+    val dbPlans = database?.dayPlans.orEmpty()
+    val dbTasks = database?.dayTasks.orEmpty()
+    val dbFocus = database?.dayFocusItems.orEmpty()
+    val dbRecurring = database?.recurringTasks.orEmpty()
+    val snapshotPlans = snapshotBundle?.dayPlans.orEmpty()
+    val snapshotTasks = snapshotBundle?.dayTasks.orEmpty()
+    val snapshotFocus = snapshotBundle?.dayFocusItems.orEmpty()
+    val snapshotRecurring = snapshotBundle?.recurringTasks.orEmpty()
+    val dbPlanSample = dbPlans
+        .sortedByDescending { it.updatedAt ?: it.createdAt }
+        .take(4)
+        .joinToString { "${it.id}:${it.date}:v${it.version}:u${it.updatedAt}:s${it.syncedAt}" }
+    val dbTaskSample = dbTasks
+        .sortedByDescending { it.updatedAt ?: it.createdAt }
+        .take(6)
+        .joinToString { "${it.id}:${it.dayPlanId}:v${it.version}:u${it.updatedAt}:s${it.syncedAt}:${it.title.take(28)}" }
+    val snapshotPlanSample = snapshotPlans
+        .sortedByDescending { it.updatedAt }
+        .take(4)
+        .joinToString { "${it.id}:${it.date}:v${it.version}:u${it.updatedAt}" }
+    val snapshotTaskSample = snapshotTasks
+        .sortedByDescending { it.updatedAt }
+        .take(6)
+        .joinToString { "${it.id}:${it.dayPlanId}:v${it.version}:u${it.updatedAt}:${it.title.take(28)}" }
+
+    return listOf(
+        "bytes=$bodyLength",
+        "dbPlans=${dbPlans.size}",
+        "dbTasks=${dbTasks.size}",
+        "dbFocus=${dbFocus.size}",
+        "dbRecurring=${dbRecurring.size}",
+        "snapshotPlans=${snapshotPlans.size}",
+        "snapshotTasks=${snapshotTasks.size}",
+        "snapshotFocus=${snapshotFocus.size}",
+        "snapshotRecurring=${snapshotRecurring.size}",
+        "dbPlanSample=$dbPlanSample",
+        "dbTaskSample=$dbTaskSample",
+        "snapshotPlanSample=$snapshotPlanSample",
+        "snapshotTaskSample=$snapshotTaskSample",
+    ).joinToString(" ")
 }

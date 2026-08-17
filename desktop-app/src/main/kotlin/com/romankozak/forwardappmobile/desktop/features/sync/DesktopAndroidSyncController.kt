@@ -177,5 +177,6 @@ private fun com.romankozak.forwardappmobile.desktop.data.sync.DesktopAndroidSync
         append("Synced")
         if (pushedLocalDelta) append(", pushed desktop changes")
         if (importedRemoteDelta) append(", imported Android changes")
+        append(", day tasks $incomingDayTasks/$mergedDayTasks")
         append(".")
     }

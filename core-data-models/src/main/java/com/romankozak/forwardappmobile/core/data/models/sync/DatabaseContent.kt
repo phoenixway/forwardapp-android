@@ -14,6 +14,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfigur
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextInboxSortingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextKeyProblemsEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfileItem
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
@@ -24,6 +25,13 @@ import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.LifeSystemStateEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeacon
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconContextCrossRef
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroup
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconGroupMember
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevelStatus
+import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.MusicNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
@@ -49,6 +57,8 @@ data class DatabaseContent(
     val goals: List<Goal> = emptyList(),
     @SerializedName(value = "projects", alternate = ["goalLists"])
     val projects: List<Context> = emptyList(),
+    @SerializedName("contextParentLinks")
+    val contextParentLinks: List<ContextParentLink> = emptyList(),
     @SerializedName(value = "listItems", alternate = ["backlogItems_legacy_c"])
     val backlogItems: List<BacklogItem> = emptyList(),
     @SerializedName(value = "backlogOrders", alternate = ["order"])
@@ -114,6 +124,20 @@ data class DatabaseContent(
     val aiEvents: List<AiEventEntity> = emptyList(),
     @SerializedName("aiInsights")
     val aiInsights: List<AiInsightEntity> = emptyList(),
+    @SerializedName("mainBeacons")
+    val mainBeacons: List<MainBeacon> = emptyList(),
+    @SerializedName("mainBeaconGroups")
+    val mainBeaconGroups: List<MainBeaconGroup> = emptyList(),
+    @SerializedName("mainBeaconGroupMembers")
+    val mainBeaconGroupMembers: List<MainBeaconGroupMember> = emptyList(),
+    @SerializedName("mainBeaconParentLinks")
+    val mainBeaconParentLinks: List<MainBeaconParentLink> = emptyList(),
+    @SerializedName("mainBeaconContextCrossRefs")
+    val mainBeaconContextCrossRefs: List<MainBeaconContextCrossRef> = emptyList(),
+    @SerializedName("mainBeaconAttachmentCrossRefs")
+    val mainBeaconAttachmentCrossRefs: List<MainBeaconAttachmentCrossRef> = emptyList(),
+    @SerializedName("mainBeaconLevelStatuses")
+    val mainBeaconLevelStatuses: List<MainBeaconLevelStatus> = emptyList(),
     @SerializedName("lifeSystemStates")
     val lifeSystemStates: List<LifeSystemStateEntity> = emptyList(),
     @SerializedName("structurePresets")

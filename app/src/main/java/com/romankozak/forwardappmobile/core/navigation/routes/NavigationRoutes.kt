@@ -77,7 +77,7 @@ object NavigationRoutes {
         initialTagQuery: String? = null,
         originContextId: String? = null,
     ): String =
-        "$CONTEXT_DETAIL/$contextId" +
+        "$CONTEXT_DETAIL/${URLEncoder.encode(contextId, "UTF-8")}" +
             queryOf(
                 listOf(
                     "goalId" to goalId,

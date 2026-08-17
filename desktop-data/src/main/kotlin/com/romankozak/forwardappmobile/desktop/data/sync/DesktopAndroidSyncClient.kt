@@ -33,15 +33,18 @@ class DesktopAndroidSyncClient(
     ): Result<DesktopAndroidSyncResult> =
         withContext(Dispatchers.IO) {
             runCatching {
-                val pushed = pushLocalDelta(address = address, lastSyncAt = lastSyncAt)
                 val response = client.get(buildUrl(address, "/export"))
                 check(response.status.isSuccess()) { "Export returned ${response.status.value}" }
                 val body = response.bodyAsText()
                 val importResult = fileStore.mergeSnapshotText(body)
                 check(importResult is MergeImportResult.Success) { "Android export could not be merged" }
+                val ensuredAfterPull = fileStore.ensureTodayDayMaterial()
+                val pushed = pushLocalDelta(address = address, lastSyncAt = lastSyncAt)
                 DesktopAndroidSyncResult(
-                    pushedLocalDelta = pushed,
+                    pushedLocalDelta = pushed || ensuredAfterPull,
                     importedRemoteDelta = true,
+                    incomingDayTasks = importResult.incomingDayTasks,
+                    mergedDayTasks = importResult.mergedDayTasks,
                     syncedAt = System.currentTimeMillis(),
                 )
             }
@@ -74,5 +77,7 @@ class DesktopAndroidSyncClient(
 data class DesktopAndroidSyncResult(
     val pushedLocalDelta: Boolean,
     val importedRemoteDelta: Boolean,
+    val incomingDayTasks: Int,
+    val mergedDayTasks: Int,
     val syncedAt: Long,
 )

@@ -38,7 +38,7 @@ import androidx.compose.runtime.collectAsState
 
 @Composable
 fun ForwardDesktopApp() {
-    var currentDestination by remember { mutableStateOf(DesktopDestination.Dashboard) }
+    var currentDestination by remember { mutableStateOf(DesktopDestination.Workbench) }
     var pendingWorkbenchContextId by remember { mutableStateOf<String?>(null) }
     val workspaceDependencies = rememberDesktopWorkspaceDependencies()
     val syncController = rememberDesktopAndroidSyncController(workspaceDependencies.fileStore)
@@ -61,7 +61,12 @@ fun ForwardDesktopApp() {
             ) {
                 DesktopNavigationRail(
                     currentDestination = currentDestination,
-                    onDestinationSelected = { currentDestination = it },
+                    onDestinationSelected = { destination ->
+                        if (destination == DesktopDestination.Workbench) {
+                            pendingWorkbenchContextId = null
+                        }
+                        currentDestination = destination
+                    },
                 )
                 Box(
                     modifier =
@@ -75,6 +80,10 @@ fun ForwardDesktopApp() {
                             DesktopDashboardScreen(
                                 repository = workspaceDependencies.repository,
                                 refreshKey = syncState.workspaceRevision,
+                                onOpenContextWorkspace = {
+                                    pendingWorkbenchContextId = null
+                                    currentDestination = DesktopDestination.Workbench
+                                },
                                 onContextClick = { contextId ->
                                     pendingWorkbenchContextId = contextId
                                     currentDestination = DesktopDestination.Workbench
@@ -106,7 +115,7 @@ private fun DesktopNavigationRail(
     NavigationRail(
         modifier =
             Modifier
-                .width(104.dp)
+                .width(148.dp)
                 .fillMaxSize()
                 .padding(vertical = 20.dp),
         containerColor = Color.Transparent,

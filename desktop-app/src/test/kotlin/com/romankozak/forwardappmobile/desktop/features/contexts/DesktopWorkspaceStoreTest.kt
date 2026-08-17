@@ -176,6 +176,8 @@ class DesktopWorkspaceStoreTest {
             description: String?,
             status: SharedContextStatus,
             defaultView: SharedContextView,
+            enabledCapabilityIds: List<String>,
+            experimentalCapabilityIds: List<String>,
         ): SharedContextSummary {
             val created =
                 SharedContextSummary(
@@ -187,6 +189,8 @@ class DesktopWorkspaceStoreTest {
                     defaultView = defaultView,
                     score = 0,
                     isCompleted = status == SharedContextStatus.Completed,
+                    enabledCapabilityIds = enabledCapabilityIds,
+                    experimentalCapabilityIds = experimentalCapabilityIds,
                 )
             contexts += created
             return created
@@ -198,6 +202,8 @@ class DesktopWorkspaceStoreTest {
             description: String?,
             status: SharedContextStatus,
             defaultView: SharedContextView,
+            enabledCapabilityIds: List<String>,
+            experimentalCapabilityIds: List<String>,
         ): SharedContextSummary? {
             val index = contexts.indexOfFirst { context -> context.id == contextId }
             if (index == -1) return null
@@ -208,6 +214,8 @@ class DesktopWorkspaceStoreTest {
                     status = status,
                     defaultView = defaultView,
                     isCompleted = status == SharedContextStatus.Completed,
+                    enabledCapabilityIds = enabledCapabilityIds,
+                    experimentalCapabilityIds = experimentalCapabilityIds,
                 )
             contexts[index] = updated
             return updated

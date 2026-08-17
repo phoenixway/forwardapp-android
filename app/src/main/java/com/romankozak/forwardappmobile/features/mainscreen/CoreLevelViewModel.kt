@@ -122,6 +122,7 @@ class CoreLevelViewModel
                                 relatedAttachmentIds = details.relatedAttachments.map { it.id },
                                 groupIds = details.groupIds,
                                 parentBeaconId = details.beacon.parentBeaconId,
+                                isExpanded = details.beacon.isExpanded,
                             )
                         },
                 )
@@ -495,6 +496,15 @@ class CoreLevelViewModel
                         collapsedGroupIds.value + groupId
                     }
                 settingsRepository.setCoreBeaconCollapsedGroupIds(nextCollapsedIds)
+            }
+        }
+
+        fun setBeaconExpanded(
+            beaconId: String,
+            expanded: Boolean,
+        ) {
+            viewModelScope.launch {
+                mainBeaconRepository.setBeaconExpanded(beaconId, expanded)
             }
         }
 

@@ -1550,3 +1550,10 @@ val MIGRATION_140_141 =
             )
         }
     }
+
+val MIGRATION_141_142 =
+    object : Migration(141, 142) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE main_beacons ADD COLUMN is_expanded INTEGER NOT NULL DEFAULT 1")
+        }
+    }

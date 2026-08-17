@@ -124,6 +124,17 @@ class MainBeaconRepository
             mainBeaconDao.deleteBeacon(beaconId)
         }
 
+        suspend fun setBeaconExpanded(
+            beaconId: String,
+            expanded: Boolean,
+        ) {
+            mainBeaconDao.updateBeaconExpanded(
+                beaconId = beaconId,
+                isExpanded = expanded,
+                updatedAt = System.currentTimeMillis(),
+            )
+        }
+
         suspend fun createGroup(
             title: String,
             description: String? = null,

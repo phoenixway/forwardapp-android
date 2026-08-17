@@ -81,6 +81,9 @@ data class MainBeacon(
     @ColumnInfo(name = "beacon_order", defaultValue = "0")
     @SerializedName("order")
     val order: Long = 0L,
+    @ColumnInfo(name = "is_expanded", defaultValue = "1")
+    @SerializedName("isExpanded")
+    val isExpanded: Boolean = true,
     @ColumnInfo(name = "updatedAt")
     @SerializedName("updatedAt")
     val updatedAt: Long = System.currentTimeMillis(),

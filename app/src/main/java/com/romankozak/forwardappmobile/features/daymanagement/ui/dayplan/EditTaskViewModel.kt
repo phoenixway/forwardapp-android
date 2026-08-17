@@ -78,7 +78,7 @@ class EditTaskViewModel
             viewModelScope.launch {
                 val task = dayManagementRepository.getTaskById(taskId)
                 val recurringTask = task?.recurringTaskId?.let { dayManagementRepository.getRecurringTask(it) }
-                val contextLinks = task?.contextIds().orEmpty().resolveContextLinks()
+                val contextLinks = task?.linkedProjectIds.normalizedContextIds().resolveContextLinks()
                 _uiState.value =
                     EditTaskUiState(
                         task = task,
@@ -227,7 +227,7 @@ class EditTaskViewModel
                     recurrenceRule = recurrenceRule,
                     dayPlanId = originalTask.dayPlanId,
                     goalId = originalTask.goalId,
-                    projectId = state.contextLinks.firstOrNull()?.id,
+                    projectId = originalTask.projectId,
                     taskType = originalTask.taskType,
                     scheduledTime = state.scheduledTime,
                     dueTime = state.dueTime,
@@ -265,15 +265,15 @@ class EditTaskViewModel
                     dueTime = state.dueTime,
                     executionStrictness = state.executionStrictness,
                     points = state.points,
-                    projectId = state.contextLinks.firstOrNull()?.id,
+                    projectId = originalTask.projectId,
                     linkedProjectIds = state.contextLinks.map { it.id },
                     updateContextLinks = true,
                 ),
             )
         }
 
-        private fun DayTask.contextIds(): List<String> =
-            (listOfNotNull(projectId) + linkedProjectIds.orEmpty())
+        private fun List<String>?.normalizedContextIds(): List<String> =
+            orEmpty()
                 .map(String::trim)
                 .filter { it.isNotBlank() && it != "root" }
                 .distinct()

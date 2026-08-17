@@ -14,6 +14,8 @@ data class SharedContextSummary(
     val isCompleted: Boolean,
     val isDeleted: Boolean = false,
     val sync: SharedSyncMetadata = SharedSyncMetadata(),
+    val enabledCapabilityIds: List<String> = emptyList(),
+    val experimentalCapabilityIds: List<String> = emptyList(),
 )
 
 @Serializable

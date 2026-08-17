@@ -21,6 +21,7 @@ import java.util.Locale
 import java.util.UUID
 
 data class NewTaskParameters(
+    val id: String? = null,
     val dayPlanId: String,
     val title: String,
     val description: String? = null,

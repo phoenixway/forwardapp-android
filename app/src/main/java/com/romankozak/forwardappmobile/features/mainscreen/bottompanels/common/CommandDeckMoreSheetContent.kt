@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -108,7 +109,10 @@ internal fun MoreBottomSheetContent(
             MoreSheetMenuItem(
                 icon = Icons.Outlined.SwapVert,
                 label = "Import/Export",
-                onClick = onShowImportExportSheet,
+                onClick = {
+                    Log.e("FullJsonImport", "MoreSheetMenuItem Import/Export click")
+                    onShowImportExportSheet()
+                },
             )
             MoreSheetMenuItem(
                 icon = Icons.Outlined.Info,

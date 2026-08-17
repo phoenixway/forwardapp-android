@@ -17,6 +17,8 @@ interface DesktopWorkspaceRepository {
         description: String?,
         status: SharedContextStatus,
         defaultView: SharedContextView,
+        enabledCapabilityIds: List<String> = emptyList(),
+        experimentalCapabilityIds: List<String> = emptyList(),
     ): SharedContextSummary?
 
     suspend fun updateContext(
@@ -25,6 +27,8 @@ interface DesktopWorkspaceRepository {
         description: String?,
         status: SharedContextStatus,
         defaultView: SharedContextView,
+        enabledCapabilityIds: List<String> = emptyList(),
+        experimentalCapabilityIds: List<String> = emptyList(),
     ): SharedContextSummary?
 
     suspend fun deleteContext(contextId: String): Boolean

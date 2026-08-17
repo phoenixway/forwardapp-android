@@ -1,0 +1,46 @@
+package com.romankozak.forwardappmobile.data.repository
+
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusItem
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusType
+import com.romankozak.forwardappmobile.data.dao.DayFocusItemDao
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.test.runTest
+import org.junit.Test
+
+class DayFocusesRepositoryRecurringDeletionTest {
+    @Test
+    fun `tombstoned everyday occurrence blocks regeneration for same recurring key and day`() = runTest {
+        val recurringKey = "focus-series-1"
+        val targetDayPlanId = "target-plan"
+
+        val source = mockk<DayFocusItem>()
+        every { source.id } returns "source-focus"
+        every { source.dayPlanId } returns "source-plan"
+        every { source.title } returns "Everyday focus"
+        every { source.notes } returns null
+        every { source.relatedLinks } returns emptyList()
+        every { source.type } returns DayFocusType.FOCUS
+        every { source.recurringKey } returns recurringKey
+        every { source.budgetPercent } returns 25
+
+        val tombstone = mockk<DayFocusItem>()
+        every { tombstone.isDeleted } returns true
+        every { tombstone.recurringKey } returns recurringKey
+
+        val dayFocusItemDao = mockk<DayFocusItemDao>(relaxed = true)
+        coEvery { dayFocusItemDao.getItemsForDayPlanSync(targetDayPlanId) } returns listOf(tombstone)
+
+        val repository = DayFocusesRepository(dayFocusItemDao)
+
+        repository.upsertEverydayItemForDayPlan(
+            source = source,
+            targetDayPlanId = targetDayPlanId,
+        )
+
+        coVerify(exactly = 0) { dayFocusItemDao.insert(any()) }
+        coVerify(exactly = 0) { dayFocusItemDao.update(any()) }
+    }
+}

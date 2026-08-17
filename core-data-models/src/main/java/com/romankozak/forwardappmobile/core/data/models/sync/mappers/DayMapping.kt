@@ -206,6 +206,7 @@ fun RecurringTask.toSnapshot(): RecurringTaskSnapshot = RecurringTaskSnapshot(
     recurrenceRule = recurrenceRule.toSnapshot(),
     startDate = startDate,
     endDate = endDate,
+    isDeleted = endDate != null && endDate < startDate,
 )
 
 fun RecurringTaskSnapshot.toEntity(): RecurringTask = RecurringTask(
@@ -220,7 +221,12 @@ fun RecurringTaskSnapshot.toEntity(): RecurringTask = RecurringTask(
     points = points,
     recurrenceRule = recurrenceRule.toEntity(),
     startDate = startDate,
-    endDate = endDate,
+    endDate =
+        if (isDeleted) {
+            minOf(endDate ?: startDate - 1L, startDate - 1L)
+        } else {
+            endDate
+        },
 )
 
 private fun String?.toTaskPriorityOrDefault(): TaskPriority =

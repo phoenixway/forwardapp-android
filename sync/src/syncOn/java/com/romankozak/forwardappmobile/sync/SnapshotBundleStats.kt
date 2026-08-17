@@ -1,0 +1,57 @@
+package com.romankozak.forwardappmobile.sync
+
+import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+
+internal fun SnapshotBundle.importItemCount(): Int =
+    contexts.size +
+        contextParentLinks.size +
+        goals.size +
+        backlogItems.size +
+        backlogOrders.size +
+        directionItems.size +
+        notes.size +
+        documents.size +
+        musicNotes.size +
+        checklists.size +
+        checklistItems.size +
+        artifacts.size +
+        scripts.size +
+        attachments.size +
+        crossRefs.size +
+        inbox.size +
+        logs.size +
+        systemApps.size +
+        activityRecords.size +
+        recentProjectEntries.size +
+        linkItemEntities.size +
+        dayPlans.size +
+        dayFocusItems.size +
+        dayTasks.size +
+        dailyMetrics.size +
+        conversations.size +
+        chatMessages.size +
+        conversationFolders.size +
+        reminders.size +
+        recurringTasks.size +
+        tacticalMissions.size +
+        tacticalMissionAttachments.size +
+        aiEvents.size +
+        aiInsights.size +
+        mainBeacons.size +
+        mainBeaconGroups.size +
+        mainBeaconGroupMembers.size +
+        mainBeaconParentLinks.size +
+        mainBeaconContextCrossRefs.size +
+        mainBeaconAttachmentCrossRefs.size +
+        mainBeaconLevelStatuses.size +
+        lifeManagementLevelStatuses.size +
+        lifeSystemStates.size +
+        contextRoleProfiles.size +
+        contextRoleProfileItems.size +
+        contextConfigurations.size +
+        projectStructureItems.size +
+        contextInboxSortingRules.size +
+        contextKeyProblems.size +
+        focusContextIntervals.size +
+        userStateIntervals.size +
+        if (dayManagementRuntimeState != null) 1 else 0

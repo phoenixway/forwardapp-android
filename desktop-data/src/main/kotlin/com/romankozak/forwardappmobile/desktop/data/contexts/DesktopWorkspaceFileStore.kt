@@ -29,6 +29,7 @@ class DesktopWorkspaceFileStore(
 ) {
     private val snapshotResolver = WorkspaceSnapshotResolver(json = json)
     private val snapshotMerger = DesktopWorkspaceSnapshotMerger()
+    private val dayMaterialEnsurer = DesktopDayMaterialEnsurer()
 
     fun workspacePath(): Path = workspaceFile
 
@@ -106,9 +107,39 @@ class DesktopWorkspaceFileStore(
                     mergedSnapshot,
                 ),
             )
-            MergeImportResult.Success(format = resolvedSnapshot.format)
+            MergeImportResult.Success(
+                format = resolvedSnapshot.format,
+                incomingDayPlans = resolvedSnapshot.snapshot.dayPlans.size,
+                incomingDayFocusItems = resolvedSnapshot.snapshot.dayFocusItems.size,
+                incomingDayTasks = resolvedSnapshot.snapshot.dayTasks.size,
+                mergedDayPlans = mergedSnapshot.dayPlans.size,
+                mergedDayFocusItems = mergedSnapshot.dayFocusItems.size,
+                mergedDayTasks = mergedSnapshot.dayTasks.size,
+            )
         } catch (_: Exception) {
             MergeImportResult.InvalidSnapshot
+        }
+    }
+
+    fun ensureTodayDayMaterial(): Boolean {
+        ensureSeededSnapshot()
+        return try {
+            val snapshot = json.decodeFromString(DesktopWorkspaceSnapshot.serializer(), readSnapshot())
+            val updatedSnapshot = dayMaterialEnsurer.ensureToday(snapshot)
+            if (updatedSnapshot == snapshot) {
+                false
+            } else {
+                createBackup()
+                workspaceFile.writeText(
+                    json.encodeToString(
+                        DesktopWorkspaceSnapshot.serializer(),
+                        updatedSnapshot,
+                    ),
+                )
+                true
+            }
+        } catch (_: Exception) {
+            false
         }
     }
 
@@ -206,6 +237,12 @@ sealed interface ImportResult {
 sealed interface MergeImportResult {
     data class Success(
         val format: WorkspaceSnapshotFormat,
+        val incomingDayPlans: Int,
+        val incomingDayFocusItems: Int,
+        val incomingDayTasks: Int,
+        val mergedDayPlans: Int,
+        val mergedDayFocusItems: Int,
+        val mergedDayTasks: Int,
     ) : MergeImportResult
 
     data object InvalidSnapshot : MergeImportResult

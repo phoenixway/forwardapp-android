@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.sync
 
+import android.util.Log
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
 import com.romankozak.forwardappmobile.core.data.interfaces.sync.IContentProvider
@@ -78,6 +79,7 @@ class SyncFileService @Inject constructor(
     }
 
     suspend fun importFullBackupFromFile(uriString: String): Result<String> = withContext(Dispatchers.IO) {
+        Log.e("FullJsonImport", "importFullBackupFromFile start uri=$uriString")
         Timber.tag(tag).d( "Attempting to import full backup from URI: $uriString")
         try {
             val backupResult = parseBackupFile(uriString)
@@ -85,14 +87,41 @@ class SyncFileService @Inject constructor(
                 throw backupResult.exceptionOrNull() ?: Exception("Unknown parsing error")
             }
             val backupData = backupResult.getOrThrow()
+            val database = backupData.database
+            val snapshotBundle = backupData.snapshotBundle
+            Log.i(
+                "FullJsonImport",
+                "parsed backup schema=${backupData.backupSchemaVersion} hasDb=${database != null} " +
+                    "hasSnapshot=${snapshotBundle != null} dbStats=${database?.debugStats()} " +
+                    "snapshotItems=${snapshotBundle?.importItemCount()}",
+            )
 
-            backupData.database?.let { localDataSource.restoreDatabaseFromBackup(it) }
+            when {
+                database != null -> {
+                    Log.e("FullJsonImport", "applying full restore from database")
+                    localDataSource.restoreDatabaseFromBackup(database)
+                    Log.e("FullJsonImport", "full restore from database completed")
+                }
+                snapshotBundle != null -> {
+                    Log.e("FullJsonImport", "applying full restore from snapshot")
+                    localDataSource.clearAllTables()
+                    localDataSource.applySnapshotBundle(snapshotBundle)
+                    Log.e("FullJsonImport", "full restore from snapshot completed")
+                }
+                else -> throw IllegalArgumentException("Backup payload is empty. Nothing to import.")
+            }
             backupData.settings?.settings?.let { localDataSource.restoreSettings(it) }
+            val importedCount =
+                snapshotBundle?.importItemCount()
+                    ?: database?.let { legacyMigrationMapper.toSnapshotBundle(it).importItemCount() }
+                    ?: 0
 
             Timber.tag(tag).i("Full backup successfully imported from URI: $uriString")
-            Result.success("Дані успішно відновлено")
+            Log.e("FullJsonImport", "importFullBackupFromFile success importedCount=$importedCount")
+            Result.success("Дані імпортовано: $importedCount items")
         } catch (e: Exception) {
             Timber.tag(tag).e("A critical error occurred during the import process.", e)
+            Log.e("FullJsonImport", "importFullBackupFromFile failed message=${e.message}", e)
             Result.failure(e)
         }
     }
@@ -103,6 +132,7 @@ class SyncFileService @Inject constructor(
             val jsonResult = contentProvider.readText(uriString)
             val jsonString = jsonResult.getOrThrow()
             val normalizedJson = sanitizeIncomingBackupJson(jsonString)
+            Log.e("FullJsonImport", "parseBackupFile chars=${normalizedJson.length} head=${normalizedJson.take(120)}")
 
             if (normalizedJson.isBlank()) {
                 Timber.tag(tag).w( "Parse failed: Backup file is empty or blank.")
@@ -185,9 +215,33 @@ class SyncFileService @Inject constructor(
             }
 
             Timber.tag(tag).i("Smart backup successfully imported and merged from URI: $uriString")
-            Result.success("Дані успішно імпортовано та об'єднано (V2)")
+            Result.success("Дані імпортовано: ${snapshotBundleToApply.importItemCount()} items")
         } catch (e: Exception) {
             Timber.tag(tag).e(e, "A critical error occurred during the smart import process.")
+            Result.failure(e)
+        }
+    }
+
+    suspend fun importBackupJsonString(jsonString: String): Result<Int> = withContext(Dispatchers.IO) {
+        try {
+            val normalizedJson = sanitizeIncomingBackupJson(jsonString)
+            val backupData = runCatching { gson.fromJson(normalizedJson, FullAppBackup::class.java) }.getOrNull()
+            val snapshotBundleToApply = resolveIncomingImportBundle(normalizedJson).snapshotBundle
+            Log.e(
+                "DaySyncImport",
+                "json import resolved chars=${normalizedJson.length} ${snapshotBundleToApply.describeDayPayload()}",
+            )
+
+            if (isEffectivelyEmpty(snapshotBundleToApply)) {
+                throw IllegalArgumentException("Backup payload is empty. Nothing to import.")
+            }
+
+            mergeRepository.applyServerChanges(snapshotBundleToApply).getOrThrow()
+            backupData?.settings?.settings?.let { localDataSource.restoreSettings(it) }
+
+            Result.success(snapshotBundleToApply.importItemCount())
+        } catch (e: Exception) {
+            Timber.tag(tag).e(e, "A critical error occurred during JSON import.")
             Result.failure(e)
         }
     }
@@ -201,25 +255,31 @@ class SyncFileService @Inject constructor(
     private fun resolveIncomingImportBundle(normalizedJson: String): ResolvedImportBundle {
         val jsonObject = JsonParser.parseString(normalizedJson).asJsonObject
         val backupData = gson.fromJson(normalizedJson, FullAppBackup::class.java)
+        val database = backupData.database
+        val snapshotBundle = backupData.snapshotBundle
         val resolvedWorkspaceSnapshot = workspaceSnapshotResolver.resolve(normalizedJson)
 
         return when {
-            backupData.snapshotBundle != null -> {
+            database != null -> {
+                Timber.tag(tag).d("Parsed as FullAppBackup database payload. Migrating to SnapshotBundle...")
+                ResolvedImportBundle(
+                    snapshotBundle = legacyMigrationMapper.toSnapshotBundle(database),
+                    descriptor =
+                        WorkspaceImportDescriptor(
+                            format = WorkspaceSnapshotFormat.AndroidLegacyDatabase,
+                            sourceMode = WorkspaceImportSourceMode.LegacyDatabase,
+                        ),
+                )
+            }
+            snapshotBundle != null -> {
                 Timber.tag(tag).d("Successfully parsed as FullAppBackup with SnapshotBundle payload.")
                 ResolvedImportBundle(
-                    snapshotBundle = backupData.snapshotBundle!!,
+                    snapshotBundle = snapshotBundle,
                     descriptor =
                         WorkspaceImportDescriptor(
                             format = WorkspaceSnapshotFormat.AndroidSnapshotBundleV2,
                             sourceMode = WorkspaceImportSourceMode.SnapshotBundle,
                         ),
-                )
-            }
-            backupData.database != null -> {
-                Timber.tag(tag).d("Parsed as legacy FullAppBackup format. Migrating to SnapshotBundle...")
-                ResolvedImportBundle(
-                    snapshotBundle = legacyMigrationMapper.toSnapshotBundle(backupData.database!!),
-                    descriptor = legacyImportDescriptor(),
                 )
             }
             resolvedWorkspaceSnapshot?.format == WorkspaceSnapshotFormat.Desktop -> {
@@ -267,23 +327,7 @@ class SyncFileService @Inject constructor(
     }
 
     private fun isEffectivelyEmpty(bundle: SnapshotBundle): Boolean {
-        return bundle.contexts.isEmpty() &&
-            bundle.goals.isEmpty() &&
-            bundle.backlogItems.isEmpty() &&
-            bundle.notes.isEmpty() &&
-            bundle.documents.isEmpty() &&
-            bundle.musicNotes.isEmpty() &&
-            bundle.checklists.isEmpty() &&
-            bundle.attachments.isEmpty() &&
-            bundle.crossRefs.isEmpty() &&
-            bundle.inbox.isEmpty() &&
-            bundle.logs.isEmpty() &&
-            bundle.directionItems.isEmpty() &&
-            bundle.activityRecords.isEmpty() &&
-            bundle.contextInboxSortingRules.isEmpty() &&
-            bundle.contextKeyProblems.isEmpty() &&
-            bundle.focusContextIntervals.isEmpty() &&
-            bundle.userStateIntervals.isEmpty()
+        return bundle.importItemCount() == 0
     }
 
     private fun sanitizeIncomingBackupJson(rawJson: String): String {
@@ -293,3 +337,35 @@ class SyncFileService @Inject constructor(
         )
     }
 }
+
+private fun SnapshotBundle.describeDayPayload(): String {
+    val planSample = dayPlans
+        .sortedByDescending { it.updatedAt }
+        .take(4)
+        .joinToString { "${it.id}:${it.date}:v${it.version}:u${it.updatedAt}" }
+    val taskSample = dayTasks
+        .sortedByDescending { it.updatedAt }
+        .take(6)
+        .joinToString { "${it.id}:${it.dayPlanId}:v${it.version}:u${it.updatedAt}:${it.title.take(28)}" }
+    val focusSample = dayFocusItems
+        .sortedByDescending { it.updatedAt }
+        .take(4)
+        .joinToString { "${it.id}:${it.dayPlanId}:${it.type}:v${it.version}:u${it.updatedAt}" }
+
+    return listOf(
+        "plans=${dayPlans.size}",
+        "tasks=${dayTasks.size}",
+        "focus=${dayFocusItems.size}",
+        "runtime=${dayManagementRuntimeState != null}",
+        "planSample=$planSample",
+        "taskSample=$taskSample",
+        "focusSample=$focusSample",
+    ).joinToString(" ")
+}
+
+private fun DatabaseContent.debugStats(): String =
+    "contexts=${projects.size}, contextLinks=${contextParentLinks.size}, goals=${goals.size}, " +
+        "backlog=${backlogItems.size}, docs=${documents.size}, checklists=${checklists.size}, " +
+        "dayPlans=${dayPlans.size}, dayFocus=${dayFocusItems.size}, dayTasks=${dayTasks.size}, " +
+        "beacons=${mainBeacons.size}, beaconGroups=${mainBeaconGroups.size}, " +
+        "beaconContextRefs=${mainBeaconContextCrossRefs.size}"

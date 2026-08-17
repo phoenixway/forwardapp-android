@@ -76,8 +76,7 @@ fun HandleDayPlanScreenEffects(
 ) {
     DisposableEffect(Unit) {
         onDispose {
-            viewModel.dismissEditTaskDialog()
-            viewModel.clearSelectedTask()
+            viewModel.clearEditTaskDialogOnScreenDispose()
         }
     }
 

@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
 import android.app.Application
+import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.models.ProjectUiEvent
 import com.romankozak.forwardappmobile.features.sync.WifiSyncManager
@@ -23,6 +24,7 @@ class SyncUseCase
     constructor(
         private val syncRepository: SyncRepository,
         private val settingsRepository: SettingsRepository,
+        private val dayManagementRepository: DayManagementRepository,
     ) {
         data class SyncUiState(
             val showWifiServerDialog: Boolean = false,
@@ -52,6 +54,7 @@ class SyncUseCase
                 WifiSyncManager(
                     syncRepository = syncRepository,
                     settingsRepository = settingsRepository,
+                    dayManagementRepository = dayManagementRepository,
                     application = application,
                     viewModelScope = scope,
                     uiEventChannel = internalUiEventChannel,

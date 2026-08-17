@@ -1147,6 +1147,7 @@ class DayPlanViewModel
 
         private val _isEditTaskDialogOpen = MutableStateFlow(false)
         val isEditTaskDialogOpen: StateFlow<Boolean> = _isEditTaskDialogOpen.asStateFlow()
+        private val _isEditTaskContextChooserOpen = MutableStateFlow(false)
 
         fun openEditTaskDialog() {
             _isEditTaskDialogOpen.value = true
@@ -1154,6 +1155,20 @@ class DayPlanViewModel
 
         fun dismissEditTaskDialog() {
             _isEditTaskDialogOpen.value = false
+        }
+
+        fun onEditTaskContextChooserOpened() {
+            _isEditTaskContextChooserOpen.value = true
+        }
+
+        fun onEditTaskContextChooserClosed() {
+            _isEditTaskContextChooserOpen.value = false
+        }
+
+        fun clearEditTaskDialogOnScreenDispose() {
+            if (_isEditTaskContextChooserOpen.value) return
+            dismissEditTaskDialog()
+            clearSelectedTask()
         }
 
         fun updateTask(

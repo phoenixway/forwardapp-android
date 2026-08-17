@@ -4,6 +4,7 @@ import com.romankozak.forwardappmobile.shared.contracts.contexts.DesktopWorkspac
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogItem
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogItemKind
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogPriority
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextCapabilityCatalog
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextStatus
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextSummary
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextView
@@ -32,6 +33,8 @@ class FileBasedDesktopWorkspaceRepository(
         description: String?,
         status: SharedContextStatus,
         defaultView: SharedContextView,
+        enabledCapabilityIds: List<String>,
+        experimentalCapabilityIds: List<String>,
     ): SharedContextSummary? {
         val snapshot = readSnapshot()
         val now = clock.millis()
@@ -45,6 +48,8 @@ class FileBasedDesktopWorkspaceRepository(
                 defaultView = defaultView,
                 score = 0,
                 isCompleted = status == SharedContextStatus.Completed,
+                enabledCapabilityIds = enabledCapabilityIds.withDefaultCapability(defaultView),
+                experimentalCapabilityIds = experimentalCapabilityIds.normalizedCapabilityIds(),
                 sync = SharedSyncMetadata(createdAt = now, updatedAt = now, version = 1),
             )
         val updatedSnapshot = snapshot.copy(contexts = snapshot.contexts + newContext)
@@ -58,6 +63,8 @@ class FileBasedDesktopWorkspaceRepository(
         description: String?,
         status: SharedContextStatus,
         defaultView: SharedContextView,
+        enabledCapabilityIds: List<String>,
+        experimentalCapabilityIds: List<String>,
     ): SharedContextSummary? {
         val snapshot = readSnapshot()
         val now = clock.millis()
@@ -68,6 +75,8 @@ class FileBasedDesktopWorkspaceRepository(
                 status = status,
                 defaultView = defaultView,
                 isCompleted = status == SharedContextStatus.Completed,
+                enabledCapabilityIds = enabledCapabilityIds.withDefaultCapability(defaultView),
+                experimentalCapabilityIds = experimentalCapabilityIds.normalizedCapabilityIds(),
                 sync = snapshot.contexts.first { context -> context.id == contextId }.sync.nextVersion(now),
             ) ?: return null
         val updatedSnapshot =
@@ -81,6 +90,8 @@ class FileBasedDesktopWorkspaceRepository(
                                 status = status,
                                 defaultView = defaultView,
                                 isCompleted = status == SharedContextStatus.Completed,
+                                enabledCapabilityIds = enabledCapabilityIds.withDefaultCapability(defaultView),
+                                experimentalCapabilityIds = experimentalCapabilityIds.normalizedCapabilityIds(),
                                 sync = context.sync.nextVersion(now),
                             )
                         } else {
@@ -127,7 +138,8 @@ class FileBasedDesktopWorkspaceRepository(
 
     override suspend fun getDayPlans(): List<SharedDayPlan> = readSnapshot().dayPlans
 
-    override suspend fun getDayTasks(): List<SharedDayTask> = readSnapshot().dayTasks
+    override suspend fun getDayTasks(): List<SharedDayTask> =
+        readSnapshot().dayTasks.filterNot { task -> task.isDeleted }
 
     override suspend fun createBacklogItem(
         contextId: String,
@@ -267,3 +279,14 @@ private fun SharedSyncMetadata.nextVersion(now: Long): SharedSyncMetadata =
         updatedAt = now,
         version = version + 1L,
     )
+
+private fun List<String>.withDefaultCapability(defaultView: SharedContextView): List<String> =
+    (
+        this +
+            "dashboard" +
+            SharedContextCapabilityCatalog.capabilityIdFor(defaultView) +
+            if (defaultView == SharedContextView.Connections) listOf("connections") else emptyList()
+    ).normalizedCapabilityIds()
+
+private fun List<String>.normalizedCapabilityIds(): List<String> =
+    SharedContextCapabilityCatalog.normalizeCapabilityIds(this)

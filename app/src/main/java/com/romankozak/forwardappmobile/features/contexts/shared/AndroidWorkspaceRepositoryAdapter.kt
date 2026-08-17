@@ -1,15 +1,19 @@
 package com.romankozak.forwardappmobile.features.contexts.shared
 
+import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStatusValues
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.GoalStatusValues
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogItem
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogItemKind
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogPriority
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextCapabilityCatalog
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextStatus
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextSummary
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextView
@@ -20,13 +24,18 @@ import kotlinx.coroutines.flow.first
 class AndroidWorkspaceRepositoryAdapter(
     private val contextRepository: ContextRepository,
     private val goalRepository: GoalRepository,
+    private val contextStructureDao: ContextStructureDao,
 ) : DesktopWorkspaceRepository {
     override suspend fun getContexts(): List<SharedContextSummary> =
         contextRepository.getAllContextsFlow()
             .first()
             .filterNot { context -> context.isDeleted }
             .sortedBy { context -> context.order }
-            .map { context -> context.toSharedSummary() }
+            .map { context ->
+                context.toSharedSummary(
+                    configuration = contextStructureDao.getStructureByContext(context.id),
+                )
+            }
 
     override suspend fun createContext(
         parentId: String?,
@@ -34,6 +43,8 @@ class AndroidWorkspaceRepositoryAdapter(
         description: String?,
         status: SharedContextStatus,
         defaultView: SharedContextView,
+        enabledCapabilityIds: List<String>,
+        experimentalCapabilityIds: List<String>,
     ): SharedContextSummary {
         val contextId = UUID.randomUUID().toString()
         contextRepository.createContextWithId(
@@ -50,7 +61,14 @@ class AndroidWorkspaceRepositoryAdapter(
                 isCompleted = status == SharedContextStatus.Completed,
             )
         contextRepository.updateContext(updated)
-        return requireNotNull(contextRepository.getContextById(contextId)).toSharedSummary()
+        val configuration =
+            upsertContextConfiguration(
+                contextId = contextId,
+                defaultView = defaultView,
+                enabledCapabilityIds = enabledCapabilityIds,
+                experimentalCapabilityIds = experimentalCapabilityIds,
+            )
+        return requireNotNull(contextRepository.getContextById(contextId)).toSharedSummary(configuration)
     }
 
     override suspend fun updateContext(
@@ -59,6 +77,8 @@ class AndroidWorkspaceRepositoryAdapter(
         description: String?,
         status: SharedContextStatus,
         defaultView: SharedContextView,
+        enabledCapabilityIds: List<String>,
+        experimentalCapabilityIds: List<String>,
     ): SharedContextSummary? {
         val current = contextRepository.getContextById(contextId) ?: return null
         contextRepository.updateContext(
@@ -70,7 +90,14 @@ class AndroidWorkspaceRepositoryAdapter(
                 isCompleted = status == SharedContextStatus.Completed,
             ),
         )
-        return contextRepository.getContextById(contextId)?.toSharedSummary()
+        val configuration =
+            upsertContextConfiguration(
+                contextId = contextId,
+                defaultView = defaultView,
+                enabledCapabilityIds = enabledCapabilityIds,
+                experimentalCapabilityIds = experimentalCapabilityIds,
+            )
+        return contextRepository.getContextById(contextId)?.toSharedSummary(configuration)
     }
 
     override suspend fun deleteContext(contextId: String): Boolean {
@@ -147,18 +174,84 @@ class AndroidWorkspaceRepositoryAdapter(
         goalRepository.deleteGoal(goal.id)
         return true
     }
+
+    private suspend fun upsertContextConfiguration(
+        contextId: String,
+        defaultView: SharedContextView,
+        enabledCapabilityIds: List<String>,
+        experimentalCapabilityIds: List<String>,
+    ): ContextConfiguration {
+        val capabilityIds =
+            SharedContextCapabilityCatalog.normalizeCapabilityIds(
+                enabledCapabilityIds +
+                    experimentalCapabilityIds +
+                    SharedContextCapabilityCatalog.defaultCapabilityIdsFor(defaultView),
+            )
+        val current = contextStructureDao.getStructureByContext(contextId) ?: ContextConfiguration.default(contextId)
+        val updated =
+            current.copy(
+                enableInbox = capabilityIds.contains("inbox"),
+                enableLog = capabilityIds.contains("log"),
+                enableArtifact = capabilityIds.contains("artifact"),
+                enableDashboard = capabilityIds.contains("dashboard"),
+                enableBacklog = capabilityIds.contains("backlog"),
+                enableAttachments = capabilityIds.contains("connections"),
+                experimentalCapabilityIds =
+                    capabilityIds
+                        .filterNot { capabilityId -> capabilityId in LEGACY_ANDROID_CAPABILITY_IDS }
+                        .map(::CapabilityId),
+                updatedAt = System.currentTimeMillis(),
+                version = current.version + 1,
+                isDeleted = false,
+            )
+        contextStructureDao.insertStructure(updated)
+        return updated
+    }
 }
 
-private fun Context.toSharedSummary(): SharedContextSummary =
-    SharedContextSummary(
+private fun Context.toSharedSummary(configuration: ContextConfiguration?): SharedContextSummary {
+    val defaultView = defaultViewModeName.toSharedView()
+    return SharedContextSummary(
         id = id,
         name = name,
         description = description,
         parentId = parentId,
         status = contextStatus.toSharedStatus(),
-        defaultView = defaultViewModeName.toSharedView(),
+        defaultView = defaultView,
         score = displayScore,
         isCompleted = isCompleted,
+        enabledCapabilityIds = configuration.enabledCapabilityIds(defaultView),
+        experimentalCapabilityIds = configuration.experimentalCapabilityIds(),
+    )
+}
+
+private fun ContextConfiguration?.enabledCapabilityIds(defaultView: SharedContextView): List<String> {
+    val explicitIds =
+        buildList {
+            if (this@enabledCapabilityIds?.enableInbox == true) add("inbox")
+            if (this@enabledCapabilityIds?.enableLog == true) add("log")
+            if (this@enabledCapabilityIds?.enableArtifact == true) add("artifact")
+            if (this@enabledCapabilityIds?.enableDashboard == true) add("dashboard")
+            if (this@enabledCapabilityIds?.enableBacklog == true) add("backlog")
+            if (this@enabledCapabilityIds?.enableAttachments == true) add("connections")
+        }
+    val fallbackIds =
+        if (explicitIds.isEmpty()) {
+            SharedContextCapabilityCatalog.defaultCapabilityIdsFor(defaultView)
+        } else {
+            emptyList()
+        }
+    return SharedContextCapabilityCatalog.normalizeCapabilityIds(
+        explicitIds + fallbackIds + SharedContextCapabilityCatalog.capabilityIdFor(defaultView),
+    )
+}
+
+private fun ContextConfiguration?.experimentalCapabilityIds(): List<String> =
+    SharedContextCapabilityCatalog.normalizeCapabilityIds(
+        this
+            ?.experimentalCapabilityIds
+            .orEmpty()
+            .map { capabilityId -> capabilityId.raw },
     )
 
 private fun Goal.toSharedBacklogItem(contextId: String): SharedBacklogItem =
@@ -231,3 +324,13 @@ private fun String.toSharedPriority(): SharedBacklogPriority =
         GoalStatusValues.PAUSED, GoalStatusValues.UNSURE -> SharedBacklogPriority.Medium
         else -> SharedBacklogPriority.Low
     }
+
+private val LEGACY_ANDROID_CAPABILITY_IDS =
+    setOf(
+        "inbox",
+        "log",
+        "artifact",
+        "dashboard",
+        "backlog",
+        "connections",
+    )

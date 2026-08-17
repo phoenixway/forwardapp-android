@@ -72,7 +72,7 @@ class SyncRepository @Inject constructor(
     // Виправлено: SyncApi очікує SyncReport (а не List<SyncChange>)
     override suspend fun createSyncReport(jsonString: String): SyncReport {
         try {
-            val backup = gson.fromJson(jsonString, FullAppBackup::class.java)
+            val backup = gson.fromJson(sanitizeIncomingBackupJson(jsonString), FullAppBackup::class.java)
             pendingSettingsFromLastSyncReport = backup.settings?.settings
         } catch (_: Exception) {
             pendingSettingsFromLastSyncReport = null
@@ -105,11 +105,24 @@ class SyncRepository @Inject constructor(
         return result
     }
 
+    suspend fun importBackupJsonString(jsonString: String): Result<Int> {
+        val result = fileService.importBackupJsonString(jsonString)
+        if (result.isSuccess) systemContextEnsurer.ensureAllSystemContextsExist()
+        return result
+    }
+
     override suspend fun createBackupDiff(incoming: DatabaseContent): LegacyBackupDiff =
         mergeRepository.createBackupDiff(incoming)
 
     suspend fun createBackupDiff(incoming: SnapshotBundle): BackupDiff =
         mergeRepository.createBackupDiff(incoming)
+
+    private fun sanitizeIncomingBackupJson(rawJson: String): String {
+        return rawJson.replace(
+            Regex("\"experimentalCapabilityIds\"\\s*:\\s*null"),
+            "\"experimentalCapabilityIds\":[]",
+        )
+    }
 
     suspend fun loadSelectiveImportPreview(uri: Uri): Result<SelectiveImportPreviewBundle> =
         parseBackupFile(uri).fold(

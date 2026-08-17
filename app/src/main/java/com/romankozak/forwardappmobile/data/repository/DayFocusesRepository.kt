@@ -93,10 +93,16 @@ class DayFocusesRepository
             }
             val recurringKey = source.recurringKey ?: source.id
             val now = System.currentTimeMillis()
-            val existing =
+            val matchingItems =
                 dayFocusItemDao
                     .getItemsForDayPlanSync(targetDayPlanId)
-                    .firstOrNull { item -> !item.isDeleted && item.recurringKey == recurringKey }
+                    .filter { item -> item.recurringKey == recurringKey }
+            val existing = matchingItems.firstOrNull { item -> !item.isDeleted }
+            if (existing == null) {
+                matchingItems.firstOrNull { item -> item.isDeleted }?.let { tombstone ->
+                    return tombstone
+                }
+            }
             val targetItem =
                 existing?.copy(
                     title = source.title,

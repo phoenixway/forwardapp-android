@@ -110,6 +110,7 @@ class SyncWifiService @Inject constructor(
 
     private fun isEmptyDatabaseContent(content: DatabaseContent): Boolean {
         return content.projects.isEmpty() &&
+                content.contextParentLinks.isEmpty() &&
                 content.goals.isEmpty() &&
                 content.backlogItems.isEmpty() &&
                 content.backlogOrders.isEmpty() &&
@@ -140,6 +141,13 @@ class SyncWifiService @Inject constructor(
                 content.tacticalMissionAttachments.isEmpty() &&
                 content.aiEvents.isEmpty() &&
                 content.aiInsights.isEmpty() &&
+                content.mainBeacons.isEmpty() &&
+                content.mainBeaconGroups.isEmpty() &&
+                content.mainBeaconGroupMembers.isEmpty() &&
+                content.mainBeaconParentLinks.isEmpty() &&
+                content.mainBeaconContextCrossRefs.isEmpty() &&
+                content.mainBeaconAttachmentCrossRefs.isEmpty() &&
+                content.mainBeaconLevelStatuses.isEmpty() &&
                 content.lifeSystemStates.isEmpty() &&
                 content.contextRoleProfiles.isEmpty() &&
                 content.contextRoleProfileItems.isEmpty() &&

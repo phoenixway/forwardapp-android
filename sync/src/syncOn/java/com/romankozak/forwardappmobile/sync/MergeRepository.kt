@@ -134,10 +134,16 @@ suspend fun createSyncReport(bundle: SnapshotBundle): SyncReport {
     suspend fun applyServerChanges(bundle: SnapshotBundle): Result<Unit> {
         val ts = System.currentTimeMillis()
         return try {
+            val before = fullBackupLocalDataSource.loadFullSnapshotBundle()
+            Log.e("DaySyncImport", "merge before ${before.describeDayPayload()}")
+            Log.e("DaySyncImport", "merge incoming ${bundle.describeDayPayload()}")
             mergeLocalDataSource.applySnapshotBundle(bundle)
+            val after = fullBackupLocalDataSource.loadFullSnapshotBundle()
+            Log.e("DaySyncImport", "merge after ${after.describeDayPayload()}")
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to apply server changes from snapshot", e)
+            Log.e("DaySyncImport", "merge failed ${e.message}", e)
             Result.failure(e)
         }
     }
@@ -158,4 +164,29 @@ suspend fun createSyncReport(bundle: SnapshotBundle): SyncReport {
             "\"experimentalCapabilityIds\":[]",
         )
     }
+}
+
+private fun SnapshotBundle.describeDayPayload(): String {
+    val planSample = dayPlans
+        .sortedByDescending { it.updatedAt }
+        .take(4)
+        .joinToString { "${it.id}:${it.date}:v${it.version}:u${it.updatedAt}" }
+    val taskSample = dayTasks
+        .sortedByDescending { it.updatedAt }
+        .take(6)
+        .joinToString { "${it.id}:${it.dayPlanId}:v${it.version}:u${it.updatedAt}:${it.title.take(28)}" }
+    val focusSample = dayFocusItems
+        .sortedByDescending { it.updatedAt }
+        .take(4)
+        .joinToString { "${it.id}:${it.dayPlanId}:${it.type}:v${it.version}:u${it.updatedAt}" }
+
+    return listOf(
+        "plans=${dayPlans.size}",
+        "tasks=${dayTasks.size}",
+        "focus=${dayFocusItems.size}",
+        "runtime=${dayManagementRuntimeState != null}",
+        "planSample=$planSample",
+        "taskSample=$taskSample",
+        "focusSample=$focusSample",
+    ).joinToString(" ")
 }

@@ -11,6 +11,7 @@ import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
+import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconDao
 import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import com.romankozak.forwardappmobile.sync.SyncLogicHelper
 import com.romankozak.forwardappmobile.sync.SyncMapper.updatedTs
@@ -28,6 +29,7 @@ class SyncLocalDataSourceImpl
         private val logicHelper: SyncLogicHelper,
         private val goalDao: GoalDao,
         private val contextDao: ContextDao,
+        private val contextParentLinkDao: ContextParentLinkDao,
         private val listItemDao: ListItemDao,
         private val linkItemDao: LinkItemDao,
         private val directionDao: DirectionDao,
@@ -63,6 +65,7 @@ class SyncLocalDataSourceImpl
         private val contextKeyProblemsDao: ContextKeyProblemsDao,
         private val focusContextIntervalDao: FocusContextIntervalDao,
         private val userStateIntervalDao: UserStateIntervalDao,
+        private val mainBeaconDao: MainBeaconDao,
     ) : SyncLocalDataSource {
         override suspend fun loadLocalDatabaseContent(): DatabaseContent {
             val recentProjectEntries =
@@ -76,6 +79,7 @@ class SyncLocalDataSourceImpl
             return DatabaseContent(
                 goals = goalDao.getAll(),
                 projects = contextDao.getAll(),
+                contextParentLinks = contextParentLinkDao.getAllRaw(),
                 backlogItems = listItems,
                 backlogOrders = backlogOrders,
                 legacyNotes = legacyNoteDao.getAll(),
@@ -107,6 +111,13 @@ class SyncLocalDataSourceImpl
                 systemApps = systemAppDao.getAllRaw(),
                 aiEvents = aiEventDao.getAllSync(),
                 aiInsights = aiInsightDao.getAllSync(),
+                mainBeacons = mainBeaconDao.getAllBeaconsSync(),
+                mainBeaconGroups = mainBeaconDao.getAllGroupsSync(),
+                mainBeaconGroupMembers = mainBeaconDao.getAllGroupMembersSync(),
+                mainBeaconParentLinks = mainBeaconDao.getAllParentLinksSync(),
+                mainBeaconContextCrossRefs = mainBeaconDao.getAllContextCrossRefsSync(),
+                mainBeaconAttachmentCrossRefs = mainBeaconDao.getAllAttachmentCrossRefsSync(),
+                mainBeaconLevelStatuses = mainBeaconDao.getAllLevelStatusesSync(),
                 lifeSystemStates = lifeSystemStateDao.getAllSync(),
                 contextRoleProfiles = structurePresetDao.getAllSync(),
                 contextRoleProfileItems = structurePresetItemDao.getAllSync(),
@@ -240,6 +251,7 @@ class SyncLocalDataSourceImpl
             val local = loadLocalDatabaseContent()
             return DatabaseContent(
                 projects = local.projects.filter { it.updatedTs() > timestamp },
+                contextParentLinks = local.contextParentLinks.filter { (it.updatedAt ?: it.createdAt) > timestamp },
                 goals = local.goals.filter { it.updatedTs() > timestamp },
                 backlogItems = local.backlogItems.filter { it.updatedTs() > timestamp },
                 documents = local.documents.filter { it.updatedTs() > timestamp },
@@ -260,13 +272,20 @@ class SyncLocalDataSourceImpl
                 chatMessages = local.chatMessages.filter { it.timestamp > timestamp },
                 conversationFolders = local.conversationFolders,
                 reminders = local.reminders.filter { (it.updatedAt ?: it.creationTime) > timestamp },
-                recurringTasks = local.recurringTasks.filter { it.startDate > timestamp || (it.endDate ?: 0L) > timestamp },
+                recurringTasks = local.recurringTasks.filter { (it.endDate ?: Long.MAX_VALUE) > timestamp },
                 contextArtifacts = local.contextArtifacts.filter { (it.updatedAt ?: it.createdAt) > timestamp },
                 tacticalMissions = local.tacticalMissions.filter { (it.startTime ?: 0L) > timestamp || it.deadline > timestamp },
                 tacticalMissionAttachments = local.tacticalMissionAttachments,
                 systemApps = local.systemApps.filter { (it.updatedAt ?: it.createdAt) > timestamp },
                 aiEvents = local.aiEvents.filter { it.timestamp > timestamp },
                 aiInsights = local.aiInsights.filter { it.timestamp > timestamp },
+                mainBeacons = local.mainBeacons.filter { it.updatedAt > timestamp },
+                mainBeaconGroups = local.mainBeaconGroups.filter { it.updatedAt > timestamp },
+                mainBeaconGroupMembers = local.mainBeaconGroupMembers,
+                mainBeaconParentLinks = local.mainBeaconParentLinks.filter { it.updatedAt > timestamp },
+                mainBeaconContextCrossRefs = local.mainBeaconContextCrossRefs,
+                mainBeaconAttachmentCrossRefs = local.mainBeaconAttachmentCrossRefs,
+                mainBeaconLevelStatuses = local.mainBeaconLevelStatuses.filter { it.updatedAt > timestamp },
                 lifeSystemStates = local.lifeSystemStates.filter { it.updatedAt > timestamp },
                 contextRoleProfiles = local.contextRoleProfiles.filter { it.updatedAt > timestamp },
                 contextRoleProfileItems = local.contextRoleProfileItems.filter { it.updatedAt > timestamp },

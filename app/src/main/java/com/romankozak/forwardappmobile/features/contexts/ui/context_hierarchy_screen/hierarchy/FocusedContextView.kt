@@ -320,6 +320,18 @@ fun FocusedOrientationNodeView(
             itemsIndexed(beaconChildren, key = { index, item -> "beacon-${item.node.id}-$index" }) { _, item ->
                 val index = beaconChildren.indexOfFirst { it.node.id == item.node.id }
                 val node = item.node as OrientationHierarchyNode.Beacon
+                val beaconContextChildren =
+                    directChildrenByNodeId[node.id].orEmpty()
+                        .mapNotNull { childItem ->
+                            (childItem.node as? OrientationHierarchyNode.ContextNode)?.let { contextNode ->
+                                FlatHierarchyItem(
+                                    project = contextNode.context,
+                                    level = 1,
+                                    isLinkedAppearance = contextNode.isLinkedAppearance,
+                                )
+                            }
+                        }
+                        .distinctBy { child -> child.project.id }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     BeaconRootHeaderRow(
                         node = node,
@@ -356,6 +368,37 @@ fun FocusedOrientationNodeView(
                             },
                         )
                     }
+                }
+                beaconContextChildren.forEachIndexed { childIndex, childItem ->
+                    ReorderableContextRow(
+                        item = childItem,
+                        siblings = beaconContextChildren,
+                        index = childIndex,
+                        isSiblingReorderMode = false,
+                        parentContextId = node.id,
+                        displayChildMap = displayChildMap,
+                        dragAndDropState = dragAndDropState,
+                        isSearchActive = isSearchActive,
+                        highlightedProjectId = highlightedProjectId,
+                        settings = settings,
+                        searchQuery = searchQuery,
+                        focusedProjectId = null,
+                        longDescendantsMap = longDescendantsMap,
+                        isSelectionMode = isSelectionMode,
+                        selectedContextIds = selectedContextIds,
+                        onEvent = onEvent,
+                        onProjectClick = onProjectClick,
+                        onToggleSelection = onToggleSelection,
+                        onStartSelection = onStartSelection,
+                        onMenuRequested = onMenuRequested,
+                        onProjectReorder = onProjectReorder,
+                        onFocusProject = onFocusProject,
+                        onAddSubproject = onAddSubproject,
+                        onDeleteProject = onDeleteProject,
+                        onEditProject = onEditProject,
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = animatedVisibilityScope,
+                    )
                 }
             }
         }

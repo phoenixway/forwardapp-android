@@ -15,4 +15,5 @@ data class RecurringTaskSnapshot(
     @SerializedName("recurrenceRule") val recurrenceRule: RecurrenceRuleSnapshot,
     @SerializedName("startDate") val startDate: Long,
     @SerializedName("endDate") val endDate: Long?,
+    @SerializedName("isDeleted") val isDeleted: Boolean = false,
 )

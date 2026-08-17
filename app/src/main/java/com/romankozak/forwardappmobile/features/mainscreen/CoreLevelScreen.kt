@@ -142,14 +142,6 @@ fun CoreLevelScreen(
     var editingLevelIndex by remember { mutableStateOf<Int?>(null) }
     var linkActionTarget by remember { mutableStateOf(MainBeaconLinkActionTarget.CORE_SCOPE) }
     val beaconListState = rememberLazyListState()
-    val expandedBeaconIds = remember { mutableStateMapOf<String, Boolean>() }
-
-    LaunchedEffect(uiState.beacons) {
-        val validBeaconIds = uiState.beacons.mapTo(mutableSetOf()) { it.id }
-        expandedBeaconIds.keys.toList().forEach { beaconId ->
-            if (beaconId !in validBeaconIds) expandedBeaconIds.remove(beaconId)
-        }
-    }
 
     val openTarget: (NavTarget, Boolean) -> Unit = { target, recordInHistory ->
         navigationManager.navigateOrFallback(
@@ -408,9 +400,9 @@ fun CoreLevelScreen(
                                             allProjects = uiState.allProjects,
                                             attachmentOptions = attachmentOptions,
                                             connectionItems = connectionItems,
-                                            isExpanded = expandedBeaconIds[beacon.id] == true,
+                                            isExpanded = beacon.isExpanded,
                                             onToggleExpanded = {
-                                                expandedBeaconIds[beacon.id] = expandedBeaconIds[beacon.id] != true
+                                                viewModel.setBeaconExpanded(beacon.id, !beacon.isExpanded)
                                             },
                                             onEditClick = { editingBeacon = viewModel.buildEditorState(beacon.id) },
                                             onContextClick = { contextId ->
@@ -424,10 +416,10 @@ fun CoreLevelScreen(
                                             allProjects = uiState.allProjects,
                                             attachmentOptions = attachmentOptions,
                                             connectionItems = connectionItems,
-                                            expandedBeaconIds = expandedBeaconIds,
                                             onEditBeacon = { beaconId ->
                                                 editingBeacon = viewModel.buildEditorState(beaconId)
                                             },
+                                            onBeaconExpandedChange = viewModel::setBeaconExpanded,
                                             onContextClick = { contextId ->
                                                 openTarget(NavTarget.ContextDetail(contextId = contextId), true)
                                             },
@@ -461,9 +453,9 @@ fun CoreLevelScreen(
                                             allProjects = uiState.allProjects,
                                             attachmentOptions = attachmentOptions,
                                             connectionItems = connectionItems,
-                                            isExpanded = expandedBeaconIds[beacon.id] == true,
+                                            isExpanded = beacon.isExpanded,
                                             onToggleExpanded = {
-                                                expandedBeaconIds[beacon.id] = expandedBeaconIds[beacon.id] != true
+                                                viewModel.setBeaconExpanded(beacon.id, !beacon.isExpanded)
                                             },
                                             onEditClick = { editingBeacon = viewModel.buildEditorState(beacon.id) },
                                             onContextClick = { contextId ->
@@ -477,10 +469,10 @@ fun CoreLevelScreen(
                                             allProjects = uiState.allProjects,
                                             attachmentOptions = attachmentOptions,
                                             connectionItems = connectionItems,
-                                            expandedBeaconIds = expandedBeaconIds,
                                             onEditBeacon = { beaconId ->
                                                 editingBeacon = viewModel.buildEditorState(beaconId)
                                             },
+                                            onBeaconExpandedChange = viewModel::setBeaconExpanded,
                                             onContextClick = { contextId ->
                                                 openTarget(NavTarget.ContextDetail(contextId = contextId), true)
                                             },
@@ -1033,8 +1025,8 @@ private fun NestedBeaconCards(
     allProjects: List<com.romankozak.forwardappmobile.core.data.models.entities.Context>,
     attachmentOptions: List<com.romankozak.forwardappmobile.features.mainscreen.scopelinks.ScopeAttachmentOption>,
     connectionItems: List<ConnectionItemUi>,
-    expandedBeaconIds: MutableMap<String, Boolean>,
     onEditBeacon: (String) -> Unit,
+    onBeaconExpandedChange: (String, Boolean) -> Unit,
     onContextClick: (String) -> Unit,
     onConnectionClick: (ConnectionItemUi) -> Unit,
     level: Int = 1,
@@ -1062,9 +1054,9 @@ private fun NestedBeaconCards(
                 allProjects = allProjects,
                 attachmentOptions = attachmentOptions,
                 connectionItems = connectionItems,
-                isExpanded = expandedBeaconIds[beacon.id] == true,
+                isExpanded = beacon.isExpanded,
                 onToggleExpanded = {
-                    expandedBeaconIds[beacon.id] = expandedBeaconIds[beacon.id] != true
+                    onBeaconExpandedChange(beacon.id, !beacon.isExpanded)
                 },
                 onEditClick = { onEditBeacon(beacon.id) },
                 onContextClick = onContextClick,
@@ -1076,8 +1068,8 @@ private fun NestedBeaconCards(
                 allProjects = allProjects,
                 attachmentOptions = attachmentOptions,
                 connectionItems = connectionItems,
-                expandedBeaconIds = expandedBeaconIds,
                 onEditBeacon = onEditBeacon,
+                onBeaconExpandedChange = onBeaconExpandedChange,
                 onContextClick = onContextClick,
                 onConnectionClick = onConnectionClick,
                 level = level + 1,

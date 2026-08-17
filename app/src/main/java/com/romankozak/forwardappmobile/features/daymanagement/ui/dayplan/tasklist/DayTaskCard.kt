@@ -272,7 +272,8 @@ private fun DayTaskMetaRow(
                 )
             }
             task.linkedProjectIds.orEmpty()
-                .filterNot { linkedProjectId -> linkedProjectId == task.projectId }
+                .map(String::trim)
+                .filter { linkedProjectId -> linkedProjectId.isNotBlank() && linkedProjectId != "root" }
                 .distinct()
                 .forEach { linkedProjectId ->
                     val title = linkedProjectTitles[linkedProjectId] ?: linkedProjectId

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.shared.application.contexts.WorkspaceExplorerIntent
 import com.romankozak.forwardappmobile.shared.application.contexts.WorkspaceExplorerState
 import com.romankozak.forwardappmobile.shared.application.contexts.WorkspaceExplorerStore
@@ -26,11 +27,13 @@ class SharedWorkspaceExplorerViewModel
     constructor(
         contextRepository: ContextRepository,
         goalRepository: GoalRepository,
+        contextStructureDao: ContextStructureDao,
     ) : ViewModel() {
         private val adapter =
             AndroidWorkspaceRepositoryAdapter(
                 contextRepository = contextRepository,
                 goalRepository = goalRepository,
+                contextStructureDao = contextStructureDao,
             )
 
         private val store =

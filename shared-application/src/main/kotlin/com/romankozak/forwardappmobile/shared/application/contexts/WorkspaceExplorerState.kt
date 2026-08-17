@@ -17,6 +17,7 @@ data class WorkspaceExplorerState(
     val contextDraftDescription: String = "",
     val contextDraftStatus: SharedContextStatus = SharedContextStatus.Planning,
     val contextDraftView: SharedContextView = SharedContextView.Backlog,
+    val contextDraftEnabledCapabilityIds: List<String> = emptyList(),
     val isSavingContext: Boolean = false,
     val deletingContextId: String? = null,
     val backlogItems: List<SharedBacklogItem> = emptyList(),

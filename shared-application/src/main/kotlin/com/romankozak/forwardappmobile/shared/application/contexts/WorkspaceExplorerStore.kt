@@ -1,7 +1,9 @@
 package com.romankozak.forwardappmobile.shared.application.contexts
 
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogPriority
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextCapabilityCatalog
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextStatus
+import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextSummary
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextTreeNode
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedContextView
 import com.romankozak.forwardappmobile.shared.domain.contexts.CreateBacklogItemUseCase
@@ -53,6 +55,8 @@ class WorkspaceExplorerStore(
             is WorkspaceExplorerIntent.ContextDraftDescriptionChanged -> onContextDraftDescriptionChange(intent.description)
             is WorkspaceExplorerIntent.ContextDraftStatusChanged -> onContextDraftStatusChange(intent.status)
             is WorkspaceExplorerIntent.ContextDraftViewChanged -> onContextDraftViewChange(intent.view)
+            is WorkspaceExplorerIntent.ContextDraftCapabilityToggled ->
+                onContextDraftCapabilityToggle(intent.capabilityId, intent.isEnabled)
             WorkspaceExplorerIntent.SaveContext -> onSaveContext()
             WorkspaceExplorerIntent.DeleteContext -> onDeleteContext()
             WorkspaceExplorerIntent.StartCreatingBacklogItem -> onStartCreatingBacklogItem()
@@ -87,12 +91,17 @@ class WorkspaceExplorerStore(
                 contextDraftDescription = "",
                 contextDraftStatus = SharedContextStatus.Planning,
                 contextDraftView = SharedContextView.Backlog,
+                contextDraftEnabledCapabilityIds =
+                    SharedContextCapabilityCatalog.defaultCapabilityIdsFor(SharedContextView.Backlog),
             )
         }
     }
 
     private fun onStartEditingContext() {
-        val selectedNode = mutableState.value.nodes.firstOrNull { node -> node.context.id == mutableState.value.selectedContextId } ?: return
+        val selectedNode =
+            mutableState.value.nodes.firstOrNull { node ->
+                node.context.id == mutableState.value.selectedContextId
+            } ?: return
         mutableState.update { current ->
             current.copy(
                 editingContextId = selectedNode.context.id,
@@ -101,6 +110,7 @@ class WorkspaceExplorerStore(
                 contextDraftDescription = selectedNode.context.description.orEmpty(),
                 contextDraftStatus = selectedNode.context.status,
                 contextDraftView = selectedNode.context.defaultView,
+                contextDraftEnabledCapabilityIds = selectedNode.context.resolvedCapabilityIds(),
             )
         }
     }
@@ -122,7 +132,31 @@ class WorkspaceExplorerStore(
     }
 
     private fun onContextDraftViewChange(view: SharedContextView) {
-        mutableState.update { current -> current.copy(contextDraftView = view) }
+        mutableState.update { current ->
+            current.copy(
+                contextDraftView = view,
+                contextDraftEnabledCapabilityIds =
+                    current.contextDraftEnabledCapabilityIds
+                        .withCapability(SharedContextCapabilityCatalog.capabilityIdFor(view), isEnabled = true),
+            )
+        }
+    }
+
+    private fun onContextDraftCapabilityToggle(
+        capabilityId: String,
+        isEnabled: Boolean,
+    ) {
+        mutableState.update { current ->
+            current.copy(
+                contextDraftEnabledCapabilityIds =
+                    current.contextDraftEnabledCapabilityIds
+                        .withCapability(capabilityId, isEnabled)
+                        .withCapability(
+                            SharedContextCapabilityCatalog.capabilityIdFor(current.contextDraftView),
+                            isEnabled = true,
+                        ),
+            )
+        }
     }
 
     private fun onSaveContext() {
@@ -139,6 +173,8 @@ class WorkspaceExplorerStore(
                             description = draft.contextDraftDescription,
                             status = draft.contextDraftStatus,
                             defaultView = draft.contextDraftView,
+                            enabledCapabilityIds = draft.contextDraftEnabledCapabilityIds,
+                            experimentalCapabilityIds = emptyList(),
                         )
                     } else {
                         createContext(
@@ -147,6 +183,8 @@ class WorkspaceExplorerStore(
                             description = draft.contextDraftDescription,
                             status = draft.contextDraftStatus,
                             defaultView = draft.contextDraftView,
+                            enabledCapabilityIds = draft.contextDraftEnabledCapabilityIds,
+                            experimentalCapabilityIds = emptyList(),
                         )
                     }
                 val nodes = observeContextTree(mutableState.value.query)
@@ -303,6 +341,8 @@ class WorkspaceExplorerStore(
                         contextDraftDescription = "",
                         contextDraftStatus = SharedContextStatus.Planning,
                         contextDraftView = SharedContextView.Backlog,
+                        contextDraftEnabledCapabilityIds =
+                            SharedContextCapabilityCatalog.defaultCapabilityIdsFor(SharedContextView.Backlog),
                         isSavingContext = false,
                         deletingContextId = null,
                         savingBacklogItemId = null,
@@ -385,6 +425,8 @@ class WorkspaceExplorerStore(
             contextDraftDescription = "",
             contextDraftStatus = SharedContextStatus.Planning,
             contextDraftView = SharedContextView.Backlog,
+            contextDraftEnabledCapabilityIds =
+                SharedContextCapabilityCatalog.defaultCapabilityIdsFor(SharedContextView.Backlog),
             isSavingContext = false,
             deletingContextId = null,
         )
@@ -402,3 +444,29 @@ class WorkspaceExplorerStore(
         const val NEW_BACKLOG_ITEM_KEY = "__new_backlog_item__"
     }
 }
+
+private fun SharedContextSummary.resolvedCapabilityIds(): List<String> =
+    (
+        enabledCapabilityIds +
+            experimentalCapabilityIds +
+            SharedContextCapabilityCatalog.defaultCapabilityIdsFor(defaultView)
+    ).normalizeCapabilityIds()
+
+private fun List<String>.withCapability(
+    capabilityId: String,
+    isEnabled: Boolean,
+): List<String> {
+    val normalizedId = SharedContextCapabilityCatalog.normalizeCapabilityId(capabilityId)
+    if (normalizedId.isBlank()) {
+        return normalizeCapabilityIds()
+    }
+    return if (isEnabled) {
+        (this + normalizedId).normalizeCapabilityIds()
+    } else {
+        filterNot { item -> SharedContextCapabilityCatalog.normalizeCapabilityId(item) == normalizedId }
+            .normalizeCapabilityIds()
+    }
+}
+
+private fun List<String>.normalizeCapabilityIds(): List<String> =
+    SharedContextCapabilityCatalog.normalizeCapabilityIds(this)

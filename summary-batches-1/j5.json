@@ -1,0 +1,745 @@
+[
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/backlog/BacklogSettingsViewModel.kt:BacklogSettingsViewModel:22",
+"responsibility": "Manages state and persistence for context backlog capability settings.",
+"side_effects": [
+"Updates uiState Flow",
+"Observes and updates context structure repository"
+],
+"concepts": [
+"ViewModel",
+"backlog settings",
+"context structure",
+"StateFlow"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/backlog/BacklogSettingsViewModel.kt:BacklogSettingsViewModel.bind:33",
+"responsibility": "Binds a context ID to start observing its context structure and updating UI state.",
+"side_effects": [
+"Cancels existing observation job",
+"Launches coroutine job",
+"Updates uiState Flow",
+"Invokes ensureStructure or observeStructureOnly on contextStructureRepository"
+],
+"concepts": [
+"data binding",
+"context structure observation",
+"coroutine job",
+"flow collection"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/backlog/BacklogSettingsViewModel.kt:BacklogSettingsViewModel.onRemoveAfterAutocopyEntriesWithTagsChanged:60",
+"responsibility": "Updates and persists the setting controlling whether backlog entries with tags are removed after autocopy.",
+"side_effects": [
+"Launches coroutine",
+"Updates uiState Flow",
+"Persists updated context structure in contextStructureRepository"
+],
+"concepts": [
+"backlog settings",
+"autocopy",
+"setting toggle",
+"repository update"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/direction/DirectionSettingsContent.kt:DirectionSettingsContent:19",
+"responsibility": "Renders the composable user interface for configuring direction capability settings of a context.",
+"side_effects": [
+"Invokes ViewModel bind on LaunchedEffect",
+"Triggers ViewModel callback when switch state changes"
+],
+"concepts": [
+"Composable UI",
+"direction settings",
+"switch component"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/direction/DirectionSettingsViewModel.kt:DirectionSettingsUiState:17",
+"responsibility": "Holds the UI state for context direction settings including context ID, auto-add option, and saving flag.",
+"side_effects": [],
+"concepts": [
+"UI state",
+"data class",
+"direction settings"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/direction/DirectionSettingsViewModel.kt:DirectionSettingsViewModel:23",
+"responsibility": "Manages state and updates for direction capability settings and subproject links of a context.",
+"side_effects": [
+"Updates uiState Flow",
+"Observes and updates contextStructureRepository",
+"Updates direction front links in contextRepository"
+],
+"concepts": [
+"ViewModel",
+"direction settings",
+"subproject linking",
+"context structure"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/direction/DirectionSettingsViewModel.kt:DirectionSettingsViewModel.bind:35",
+"responsibility": "Binds a context ID to observe structure changes and reflect direction settings in UI state.",
+"side_effects": [
+"Cancels existing observation job",
+"Launches coroutine job",
+"Updates uiState Flow",
+"Calls ensureStructure or observeStructureOnly on contextStructureRepository"
+],
+"concepts": [
+"data binding",
+"flow collection",
+"context structure",
+"coroutine job"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/direction/DirectionSettingsViewModel.kt:DirectionSettingsViewModel.onAutoAddChildContextToDirectionFrontChanged:62",
+"responsibility": "Updates the setting for auto-linking child contexts and ensures direction front links for existing children if enabled.",
+"side_effects": [
+"Launches coroutine",
+"Updates uiState Flow",
+"Persists structure update via contextStructureRepository",
+"Ensures direction front links via contextRepository"
+],
+"concepts": [
+"direction settings",
+"child context linking",
+"setting toggle",
+"repository update"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/inbox/InboxSettingsContent.kt:InboxSettingsContent:19",
+"responsibility": "Renders the composable user interface for inbox capability settings.",
+"side_effects": [
+"Invokes ViewModel bind on LaunchedEffect",
+"Triggers ViewModel callback on switch change"
+],
+"concepts": [
+"Composable UI",
+"inbox settings",
+"switch component"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/inbox/InboxSettingsViewModel.kt:InboxSettingsUiState:16",
+"responsibility": "Holds the UI state for inbox capability settings.",
+"side_effects": [],
+"concepts": [
+"UI state",
+"data class",
+"inbox settings"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/inbox/InboxSettingsViewModel.kt:InboxSettingsViewModel:22",
+"responsibility": "Manages UI state and settings persistence for context inbox capabilities.",
+"side_effects": [
+"Updates uiState Flow",
+"Observes and updates context structure repository"
+],
+"concepts": [
+"ViewModel",
+"inbox settings",
+"context structure",
+"StateFlow"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/inbox/InboxSettingsViewModel.kt:InboxSettingsViewModel.bind:33",
+"responsibility": "Binds a context ID to observe its structure and synchronize inbox settings into UI state.",
+"side_effects": [
+"Cancels active observation job",
+"Launches coroutine job",
+"Updates uiState Flow",
+"Calls ensureStructure or observeStructureOnly on contextStructureRepository"
+],
+"concepts": [
+"data binding",
+"context structure observation",
+"coroutine job"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/inbox/InboxSettingsViewModel.kt:InboxSettingsViewModel.onRemoveAfterAutocopyEntriesWithTagsChanged:60",
+"responsibility": "Toggles and persists the setting controlling inbox entry removal after tag autocopy.",
+"side_effects": [
+"Launches coroutine",
+"Updates uiState Flow",
+"Saves updated structure via contextStructureRepository"
+],
+"concepts": [
+"inbox settings",
+"autocopy toggle",
+"structure update"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/inboxsorting/InboxSortingSettingsContent.kt:InboxSortingSettingsContent:21",
+"responsibility": "Renders the composable UI layout for managing and applying inbox sorting rules.",
+"side_effects": [
+"Invokes ViewModel bind on LaunchedEffect",
+"Triggers ViewModel callbacks for text change, rule saving, and sort execution"
+],
+"concepts": [
+"Composable UI",
+"inbox sorting",
+"rules editor"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/inboxsorting/InboxSortingSettingsContent.kt:InboxSortingHeader:61",
+"responsibility": "Renders title text and format instructions for inbox sorting rules.",
+"side_effects": [],
+"concepts": [
+"Composable UI",
+"header text",
+"instructions"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/inboxsorting/InboxSortingSettingsContent.kt:RulesEditor:74",
+"responsibility": "Renders an outlined text field for entering inbox sorting rules.",
+"side_effects": [
+"Triggers onRulesTextChanged callback on user input"
+],
+"concepts": [
+"Composable UI",
+"text editor",
+"text field"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/inboxsorting/InboxSortingSettingsContent.kt:SaveRulesAction:88",
+"responsibility": "Renders a save action button for persisting inbox sorting rules.",
+"side_effects": [
+"Triggers onSave callback on button click"
+],
+"concepts": [
+"Composable UI",
+"save action",
+"button"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/inboxsorting/InboxSortingSettingsContent.kt:SortActions:103",
+"responsibility": "Renders a row of action buttons to apply sorting to backlog, inbox, or connections targets.",
+"side_effects": [
+"Triggers onApplySort callback with target on button click"
+],
+"concepts": [
+"Composable UI",
+"sorting actions",
+"target selection"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/inboxsorting/InboxSortingSettingsContent.kt:SortActionButton:133",
+"responsibility": "Renders a single button for applying sort to a specified target.",
+"side_effects": [
+"Triggers onApplySort callback with target on button click"
+],
+"concepts": [
+"Composable UI",
+"action button"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/inboxsorting/InboxSortingSettingsViewModel.kt:InboxSortingSettingsUiState:17",
+"responsibility": "Holds the UI state for inbox sorting settings, including rules text, loading states, and user feedback messages.",
+"side_effects": [],
+"concepts": [
+"UI state",
+"data class",
+"inbox sorting state"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/inboxsorting/InboxSortingSettingsViewModel.kt:InboxSortingSettingsViewModel:25",
+"responsibility": "Manages state, persistence, and execution of context inbox sorting rules.",
+"side_effects": [
+"Updates uiState Flow",
+"Updates rules in ContextInboxSortingRepository",
+"Executes sorting logic via InboxSortingService"
+],
+"concepts": [
+"ViewModel",
+"inbox sorting",
+"sorting rules",
+"service execution"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/inboxsorting/InboxSortingSettingsViewModel.kt:InboxSortingSettingsViewModel.bind:37",
+"responsibility": "Binds a context ID and observes its inbox sorting rules from the repository.",
+"side_effects": [
+"Cancels existing observation job",
+"Launches coroutine job",
+"Updates uiState Flow",
+"Collects from ContextInboxSortingRepository"
+],
+"concepts": [
+"data binding",
+"repository observation",
+"coroutine job"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/inboxsorting/InboxSortingSettingsViewModel.kt:InboxSortingSettingsViewModel.onRulesTextChanged:53",
+"responsibility": "Updates the sorting rules text in UI state and resets feedback messages.",
+"side_effects": [
+"Updates uiState Flow"
+],
+"concepts": [
+"state update",
+"text editing"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/inboxsorting/InboxSortingSettingsViewModel.kt:InboxSortingSettingsViewModel.saveRules:57",
+"responsibility": "Saves current sorting rules text to repository and updates status state.",
+"side_effects": [
+"Launches coroutine",
+"Updates uiState Flow",
+"Calls updateRulesText on repository"
+],
+"concepts": [
+"persistence",
+"save rules",
+"inbox sorting"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/inboxsorting/InboxSortingSettingsViewModel.kt:InboxSortingSettingsViewModel.applySort:66",
+"responsibility": "Applies sorting rules to a specified target using the sorting service and displays result messages.",
+"side_effects": [
+"Launches coroutine",
+"Updates uiState Flow",
+"Executes applySorting on InboxSortingService"
+],
+"concepts": [
+"sorting execution",
+"sorting service",
+"sort target"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/journallog/JournalLogSettingsContent.kt:JournalLogSettingsContent:17",
+"responsibility": "Renders descriptive text and marker hint components explaining context journal log syntax.",
+"side_effects": [],
+"concepts": [
+"Composable UI",
+"journal log settings",
+"marker hints"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/capabilitysettings/journallog/JournalLogSettingsContent.kt:MarkerHint:52",
+"responsibility": "Renders a formatted hint card displaying syntax usage for a journal log marker.",
+"side_effects": [],
+"concepts": [
+"Composable UI",
+"text container",
+"hint card"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/components/ParameterSlider.kt:ParameterSlider:18",
+"responsibility": "Renders a slider control mapped to discrete scales and custom label definitions.",
+"side_effects": [
+"Triggers onValueChange callback when slider value changes"
+],
+"concepts": [
+"Composable UI",
+"parameter slider",
+"discrete scale"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_properties/components/ParameterSliderConfig.kt:ParameterSliderConfig:3",
+"responsibility": "Defines configuration properties for parameter sliders including label, current value, scale list, and label overlays.",
+"side_effects": [],
+"concepts": [
+"configuration data class",
+"slider configuration",
+"parameter scale"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreen.kt:ProjectsScreen:61",
+"responsibility": "Top-level screen composable that routes between editors and project scaffold depending on UI state.",
+"side_effects": [
+"Configures transparent system bars",
+"Launches LaunchedEffect side-effects",
+"Mutates local composable states",
+"Calls ViewModel handlers for editing, saving, and auto-saving"
+],
+"concepts": [
+"Composable UI",
+"screen router",
+"full-screen editor",
+"project screen"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreen.kt:ProjectScaffold:166",
+"responsibility": "Renders scaffold layout, top bar with actions, dialogs, and back handler for context screens.",
+"side_effects": [
+"Observes savedStateHandle backstack events",
+"Triggers navigation via BackHandler",
+"Updates selection and list actions via ViewModel"
+],
+"concepts": [
+"Composable UI",
+"scaffold layout",
+"top bar actions",
+"back handler"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreen.kt:ProjectBottomBar:466",
+"responsibility": "Renders bottom bar input controls, activity progress indicator, capability view switchers, and context picker dialogs.",
+"side_effects": [
+"Navigates via EnhancedNavigationManager",
+"Invokes ViewModel handlers for activities, views, and links",
+"Mutates showContextPicker local state"
+],
+"concepts": [
+"Composable UI",
+"bottom bar",
+"input panel",
+"context navigation"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreen.kt:TransparentSystemBars:626",
+"responsibility": "Configures transparent system status and navigation bars according to dark theme settings.",
+"side_effects": [
+"Mutates Window decor settings, status bar color, navigation bar color, and light appearance controller flags"
+],
+"concepts": [
+"system UI configuration",
+"transparent status bar",
+"window insets"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreen.kt:glitch:642",
+"responsibility": "Modifier extension that applies a frame-driven jitter effect to element translations.",
+"side_effects": [
+"Launches coroutine with frame loop",
+"Updates graphicsLayer translation properties"
+],
+"concepts": [
+"Compose Modifier",
+"glitch animation",
+"graphics layer"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenContent.kt:displayName:64",
+"responsibility": "Converts a ContextViewMode enum value into a formatted display string.",
+"side_effects": [],
+"concepts": [
+"string formatting",
+"enum extension",
+"display name"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenContent.kt:GoalDetailContent:70",
+"responsibility": "Renders content corresponding to the current context view mode such as backlog, inbox, or connections.",
+"side_effects": [
+"Invokes item action callbacks on ViewModel"
+],
+"concepts": [
+"Composable UI",
+"view mode switcher",
+"backlog filtering",
+"goal detail content"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenContent.kt:DashboardOverview:317",
+"responsibility": "Renders dashboard cards with metrics, view mode selectors, and preview attachment lists.",
+"side_effects": [
+"Triggers onShowProperties and onSwitchView callbacks"
+],
+"concepts": [
+"Composable UI",
+"dashboard",
+"context metrics",
+"view mode selection"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenContent.kt:DashboardViewItem:533",
+"responsibility": "Data class modeling view mode item details for dashboard rendering.",
+"side_effects": [],
+"concepts": [
+"data class",
+"dashboard view item",
+"UI model"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenContent.kt:dashboardLabel:539",
+"responsibility": "Returns localized display string corresponding to a ContextViewMode.",
+"side_effects": [],
+"concepts": [
+"string mapping",
+"enum extension",
+"view label"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenContent.kt:dashboardLabelWithCount:556",
+"responsibility": "Formats dashboard view label with optional count appended.",
+"side_effects": [],
+"concepts": [
+"string formatting",
+"count label"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenContent.kt:dashboardIcon:561",
+"responsibility": "Maps a ContextViewMode enum value to its corresponding icon vector.",
+"side_effects": [],
+"concepts": [
+"icon mapping",
+"enum extension",
+"ImageVector"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenContent.kt:toRoleBadgeText:578",
+"responsibility": "Formats role code string into role badge display text.",
+"side_effects": [],
+"concepts": [
+"string extension",
+"role badge text"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenContent.kt:matchesLocalSearch:583",
+"responsibility": "Checks if backlog item searchable texts contain the local search query string.",
+"side_effects": [],
+"concepts": [
+"search matching",
+"backlog item filtering"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenContent.kt:searchableTexts:589",
+"responsibility": "Extracts searchable strings from different backlog item content variants.",
+"side_effects": [],
+"concepts": [
+"text extraction",
+"backlog item content",
+"search indexing"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenContent.kt:AttachmentRowSummary:601",
+"responsibility": "Renders clickable summary row displaying attachment title and icon.",
+"side_effects": [
+"Triggers onClick callback when row is clicked"
+],
+"concepts": [
+"Composable UI",
+"attachment item summary",
+"clickable row"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenEffects.kt:ContextScreenEffectDependencies:36",
+"responsibility": "Data class holding dependency references required for context screen UI effects.",
+"side_effects": [],
+"concepts": [
+"data class",
+"dependencies holder",
+"UI effects dependencies"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenEffects.kt:ContextScreenUiEventContext:44",
+"responsibility": "Data class containing environmental contextual data for processing UI events.",
+"side_effects": [],
+"concepts": [
+"data class",
+"event context",
+"UI event environment"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenEffects.kt:ContextScreenGoalHighlightState:51",
+"responsibility": "Data class containing state relevant for highlighting goals or backlog items.",
+"side_effects": [],
+"concepts": [
+"data class",
+"highlight state",
+"goal scrolling"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenEffects.kt:GoalDetailEffectState:58",
+"responsibility": "Data class aggregating state needed by goal detail side-effect handlers.",
+"side_effects": [],
+"concepts": [
+"data class",
+"aggregated effect state"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenEffects.kt:GoalDetailEffects:71",
+"responsibility": "Composes and coordinates all UI event effects, resume listeners, and highlight scrolling side-effects.",
+"side_effects": [
+"Executes LaunchedEffects for UI event flow processing, lifecycle observers, and auto-scrolling"
+],
+"concepts": [
+"Composable UI",
+"side effects aggregator",
+"effect handlers"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenEffects.kt:rememberGoalDetailEffectState:124",
+"responsibility": "Remembers and constructs GoalDetailEffectState from ViewModel flow state collections.",
+"side_effects": [
+"Collects state flows with lifecycle"
+],
+"concepts": [
+"Composable helper",
+"state composition",
+"remember state"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenEffects.kt:ContextScreenUiEventsEffect:158",
+"responsibility": "Collects UI event flow and executes navigation, snackbars, links, or list scroll animations.",
+"side_effects": [
+"Collects uiEventFlow",
+"Navigates via NavController",
+"Displays snackbars",
+"Starts external activities",
+"Animates list scrolling"
+],
+"concepts": [
+"Composable effect",
+"event handler",
+"UI side effects",
+"navigation listener"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenEffects.kt:handleNavigateEvent:225",
+"responsibility": "Handles navigation events by calculating target route and calling enhanced navigation manager.",
+"side_effects": [
+"Executes navigation on EnhancedNavigationManager",
+"Pops backstack on NavController",
+"Calls consumeLinkedContextReplace on ViewModel"
+],
+"concepts": [
+"navigation routing",
+"backstack manipulation",
+"navigation event handler"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenEffects.kt:ContextScreenChooserResumeEffect:280",
+"responsibility": "Attaches lifecycle observer to execute list chooser result handling when screen resumes.",
+"side_effects": [
+"Adds and removes LifecycleEventObserver on lifecycle"
+],
+"concepts": [
+"DisposableEffect",
+"lifecycle observer",
+"chooser result handling"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenEffects.kt:handleChooserResume:299",
+"responsibility": "Processes list chooser results or direction link states from savedStateHandle upon screen resume.",
+"side_effects": [
+"Reads and removes data from SavedStateHandle",
+"Calls onListChooserResult or clearPendingDirectionLink on ViewModel"
+],
+"concepts": [
+"chooser result",
+"saved state handle",
+"resume processing"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenEffects.kt:ContextScreenRefreshOnResumeEffect:318",
+"responsibility": "Attaches lifecycle observer to force-refresh ViewModel state when screen resumes.",
+"side_effects": [
+"Adds and removes LifecycleEventObserver on lifecycle",
+"Calls forceRefresh on ViewModel"
+],
+"concepts": [
+"DisposableEffect",
+"lifecycle observer",
+"screen refresh on resume"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenEffects.kt:ContextScreenGoalHighlightEffect:336",
+"responsibility": "Auto-scrolls list state to highlighted goal or item when highlight state is present.",
+"side_effects": [
+"Animates scroll on LazyListState",
+"Calls onHighlightShown on ViewModel"
+],
+"concepts": [
+"Composable effect",
+"list scrolling",
+"goal highlight"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenEffects.kt:ContextScreenInboxHighlightEffect:384",
+"responsibility": "Switches view mode to inbox and auto-scrolls to highlighted record.",
+"side_effects": [
+"Triggers onProjectViewChange and onInboxHighlightShown on ViewModel",
+"Animates scroll on LazyListState"
+],
+"concepts": [
+"Composable effect",
+"inbox scroll",
+"record highlight"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenEffects.kt:ContextScreenNewItemScrollEffect:421",
+"responsibility": "Auto-scrolls list state to newly added items upon insertion.",
+"side_effects": [
+"Animates scroll on LazyListState",
+"Calls onScrolledToNewItem on ViewModel"
+],
+"concepts": [
+"Composable effect",
+"new item auto-scroll",
+"list animation"
+]
+},
+{
+"id": "kotlin:app/src/main/java/com/romankozak/forwardappmobile/features/contexts/ui/context_screen/ContextScreenViewModel.kt:ContextScreenViewModel:108",
+"responsibility": "ViewModel managing screen state, context data, input handling, and view mode transitions for context screens.",
+"side_effects": [
+"Emits UI state updates",
+"Observes and mutates repository data",
+"Executes background coroutines for actions"
+],
+"concepts": [
+"ViewModel",
+"context screen",
+"UI state management"
+]
+}
+]

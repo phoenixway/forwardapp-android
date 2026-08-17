@@ -1089,17 +1089,11 @@ private fun MainScreenCommandDeckDialogs(commandDeckViewModel: CommandDeckViewMo
     if (importChoiceUri != null) {
         AlertDialog(
             onDismissRequest = commandDeckViewModel::onImportChoiceDismiss,
-            title = { Text("Choose Import Version") },
-            text = { Text("Would you like to import a V1 (legacy) or V2 (snapshot) backup file?") },
+            title = { Text("Import JSON backup") },
+            text = { Text("Apply all supported data from this backup file.") },
             confirmButton = {
-                Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                    Button(onClick = { commandDeckViewModel.confirmImportV1(importChoiceUri!!) }) {
-                        Text("Import V1")
-                    }
-                    Spacer(Modifier.width(8.dp))
-                    Button(onClick = { commandDeckViewModel.confirmImportV2(importChoiceUri!!) }) {
-                        Text("Import V2")
-                    }
+                Button(onClick = { commandDeckViewModel.confirmImportV2(importChoiceUri!!) }) {
+                    Text("Full import")
                 }
             },
             dismissButton = {

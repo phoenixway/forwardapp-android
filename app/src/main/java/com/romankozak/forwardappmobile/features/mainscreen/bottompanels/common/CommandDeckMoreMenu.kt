@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common
 
 import android.net.Uri
+import android.util.Log
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -71,7 +72,10 @@ fun CommandDeckMoreActionButton(
     }
 
     IconButton(
-        onClick = { showMoreBottomSheet = true },
+        onClick = {
+            Log.e("FullJsonImport", "more button clicked")
+            showMoreBottomSheet = true
+        },
         modifier = modifier,
         colors =
             IconButtonDefaults.iconButtonColors(
@@ -101,7 +105,13 @@ fun CommandDeckMoreActionButton(
                 onNavigateToInbox = { runAfterSheetDismiss(onNavigateToInbox) },
                 onNavigateToAiChat = { runAfterSheetDismiss(onNavigateToAiChat) },
                 onNavigateToAiLifeManagement = { runAfterSheetDismiss(onNavigateToAiLifeManagement) },
-                onShowImportExportSheet = { runAfterSheetDismiss { showImportExportSheet = true } },
+                onShowImportExportSheet = {
+                    Log.e("FullJsonImport", "Import/Export action clicked")
+                    runAfterSheetDismiss {
+                        Log.e("FullJsonImport", "Import/Export sheet opening")
+                        showImportExportSheet = true
+                    }
+                },
                 onNavigateToAttachments = { runAfterSheetDismiss(onNavigateToAttachments) },
                 onNavigateToScripts = { runAfterSheetDismiss(onNavigateToScripts) },
                 onShowAbout = { runAfterSheetDismiss(onShowAbout) },
@@ -120,6 +130,7 @@ fun CommandDeckMoreActionButton(
     }
 
     if (showImportExportSheet) {
+        Log.e("FullJsonImport", "CommandDeckImportExportSheet composed")
         CommandDeckImportExportSheet(
             onDismiss = { showImportExportSheet = false },
             onExportToFile = onExportToFile,

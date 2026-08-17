@@ -77,10 +77,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceFrequency
@@ -130,7 +127,16 @@ fun EditTaskScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableStateOf(EditTaskTab.Main) }
-    EditTaskContextChooserResultEffect(navController = navController, viewModel = viewModel)
+    var isContextChooserOpen by remember { mutableStateOf(false) }
+    EditTaskContextChooserResultEffect(
+        navController = navController,
+        viewModel = viewModel,
+        onResultHandled = { isContextChooserOpen = false },
+    )
+    EditTaskContextChooserRouteEffect(
+        navController = navController,
+        onChooserClosed = { isContextChooserOpen = false },
+    )
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
@@ -190,7 +196,13 @@ fun EditTaskScreen(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = Modifier.fillMaxSize(),
     ) { paddingValues ->
-        val actions = rememberActions(viewModel, navController, uiState)
+        val actions =
+            rememberActions(
+                viewModel = viewModel,
+                navController = navController,
+                uiState = uiState,
+                onContextChooserOpened = { isContextChooserOpen = true },
+            )
         EditTaskBody(
             uiState = uiState,
             selectedTab = selectedTab,
@@ -213,12 +225,17 @@ fun EditTaskBottomSheet(
     onDismissRequest: () -> Unit,
     navController: NavController? = null,
     viewModel: EditTaskViewModel = hiltViewModel(),
+    onContextChooserOpened: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var selectedTab by remember(taskId) { mutableStateOf(EditTaskTab.Main) }
     var isExpanded by remember(taskId) { mutableStateOf(false) }
-    EditTaskContextChooserResultEffect(navController = navController, viewModel = viewModel)
+    var isContextChooserOpen by remember(taskId) { mutableStateOf(false) }
+    EditTaskContextChooserRouteEffect(
+        navController = navController,
+        onChooserClosed = { isContextChooserOpen = false },
+    )
 
     LaunchedEffect(taskId) {
         selectedTab = EditTaskTab.Main
@@ -235,11 +252,25 @@ fun EditTaskBottomSheet(
         }
     }
 
-    val actions = rememberActions(viewModel, navController, uiState)
+    val actions =
+        rememberActions(
+            viewModel = viewModel,
+            navController = navController,
+            uiState = uiState,
+            onContextChooserOpened = {
+                isContextChooserOpen = true
+                onContextChooserOpened()
+            },
+        )
     val dragHandleColor = MaterialTheme.colorScheme.outlineVariant
 
     ModalBottomSheet(
-        onDismissRequest = { viewModel.reset(); onDismissRequest() },
+        onDismissRequest = {
+            if (!isContextChooserOpen) {
+                viewModel.reset()
+                onDismissRequest()
+            }
+        },
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         contentWindowInsets = { WindowInsets(0, 0, 0, 0) },
@@ -925,22 +956,34 @@ private fun outlinedFieldColors() = OutlinedTextFieldDefaults.colors(
 private fun EditTaskContextChooserResultEffect(
     navController: NavController?,
     viewModel: EditTaskViewModel,
+    onResultHandled: () -> Unit,
 ) {
-    val lifecycleOwner = LocalLifecycleOwner.current
-    androidx.compose.runtime.DisposableEffect(lifecycleOwner, navController) {
-        val observer =
-            LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_RESUME) {
-                    val savedStateHandle = navController?.currentBackStackEntry?.savedStateHandle
-                    val result = savedStateHandle?.get<String>("list_chooser_result")
-                    if (result != null) {
-                        viewModel.onContextChooserResult(result)
-                        savedStateHandle.remove<String>("list_chooser_result")
-                    }
+    LaunchedEffect(navController) {
+        val savedStateHandle = navController?.currentBackStackEntry?.savedStateHandle ?: return@LaunchedEffect
+        savedStateHandle
+            .getStateFlow<String?>("list_chooser_result", null)
+            .collect { result ->
+                if (result != null) {
+                    savedStateHandle["list_chooser_result"] = null
+                    viewModel.onContextChooserResult(result)
+                    onResultHandled()
                 }
             }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+}
+
+@Composable
+private fun EditTaskContextChooserRouteEffect(
+    navController: NavController?,
+    onChooserClosed: () -> Unit,
+) {
+    LaunchedEffect(navController) {
+        navController?.currentBackStackEntryFlow?.collect { entry ->
+            val route = entry.destination.route.orEmpty()
+            if (!route.startsWith(NavigationRoutes.LIST_CHOOSER)) {
+                onChooserClosed()
+            }
+        }
     }
 }
 
@@ -949,6 +992,7 @@ private fun rememberActions(
     viewModel: EditTaskViewModel,
     navController: NavController?,
     uiState: EditTaskUiState,
+    onContextChooserOpened: () -> Unit = {},
 ) = EditTaskActions(
     onTitleChange = viewModel::onTitleChange,
     onDescriptionChange = viewModel::onDescriptionChange,
@@ -963,12 +1007,15 @@ private fun rememberActions(
     onRecurrenceIntervalChange = viewModel::onRecurrenceIntervalChange,
     onRecurrenceDayOfWeekToggle = viewModel::onRecurrenceDayOfWeekToggle,
     onAddContextLink = {
-        navController?.navigate(
-            NavigationRoutes.listChooser(
-                title = "Вибрати контекст",
-                disabledIds = uiState.contextLinks.joinToString(",") { it.id }.ifBlank { null },
-            ),
-        )
+        navController?.let { controller ->
+            onContextChooserOpened()
+            controller.navigate(
+                NavigationRoutes.listChooser(
+                    title = "Вибрати контекст",
+                    disabledIds = uiState.contextLinks.joinToString(",") { it.id }.ifBlank { null },
+                ),
+            )
+        }
     },
     onOpenContextLink = { contextId ->
         navController?.navigate(NavigationRoutes.contextDetail(contextId = contextId))

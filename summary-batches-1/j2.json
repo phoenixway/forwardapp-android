@@ -1,0 +1,230 @@
+[
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/MusicNoteDao_Impl.kt:MusicNoteDao_Impl.getForContext:146",
+"responsibility": "Retrieves a reactive flow of music note entities linked to a specified context ID and attachment type.",
+"side_effects": [],
+"concepts": ["music note", "context attachment", "database query", "reactive flow"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/MusicNoteDao_Impl.kt:MusicNoteDao_Impl.getAllAsFlow:212",
+"responsibility": "Retrieves a reactive flow emitting all music note entities from the database.",
+"side_effects": [],
+"concepts": ["music note", "database query", "reactive flow"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/MusicNoteDao_Impl.kt:MusicNoteDao_Impl.getAll:263",
+"responsibility": "Retrieves all music note entities from the database asynchronously.",
+"side_effects": [],
+"concepts": ["music note", "database query"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/MusicNoteDao_Impl.kt:MusicNoteDao_Impl.findByName:314",
+"responsibility": "Finds a single music note entity by matching its name case-insensitively.",
+"side_effects": [],
+"concepts": ["music note", "search by name", "database query"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/MusicNoteDao_Impl.kt:MusicNoteDao_Impl.deleteById:367",
+"responsibility": "Deletes a specific music note entity from the database by its identifier.",
+"side_effects": ["Deletes a record from the music_notes table in the database."],
+"concepts": ["music note", "database deletion"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/MusicNoteDao_Impl.kt:MusicNoteDao_Impl.deleteAll:381",
+"responsibility": "Deletes all music note entities from the database.",
+"side_effects": ["Deletes all records from the music_notes table in the database."],
+"concepts": ["music note", "database deletion"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/MusicNoteDao_Impl.kt:MusicNoteDao_Impl.getRequiredConverters:394",
+"responsibility": "Returns the required Room type converter classes for the music note DAO implementation.",
+"side_effects": [],
+"concepts": ["type converter", "room database"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/NoteDocumentDao_Impl.kt:NoteDocumentDao_Impl:24",
+"responsibility": "Provides Room Data Access Object implementation for performing database operations on note document entities.",
+"side_effects": [],
+"concepts": ["note document", "room dao", "data access object"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/NoteDocumentDao_Impl.kt:NoteDocumentDao_Impl.createQuery:37",
+"responsibility": "Returns the SQL query string for inserting or replacing note document records.",
+"side_effects": [],
+"concepts": ["sql insert statement", "note document"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/NoteDocumentDao_Impl.kt:NoteDocumentDao_Impl.bind:39",
+"responsibility": "Binds note document entity property values to an SQLite statement for database insertion.",
+"side_effects": [],
+"concepts": ["sqlite statement binding", "note document"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/NoteDocumentDao_Impl.kt:NoteDocumentDao_Impl.createQuery:64",
+"responsibility": "Returns the SQL query string for updating note document records in the database.",
+"side_effects": [],
+"concepts": ["sql update statement", "note document"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/NoteDocumentDao_Impl.kt:NoteDocumentDao_Impl.bind:66",
+"responsibility": "Binds note document entity property values to an SQLite statement for database updating.",
+"side_effects": [],
+"concepts": ["sqlite statement binding", "note document"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/NoteDocumentDao_Impl.kt:NoteDocumentDao_Impl.insertDocument:93",
+"responsibility": "Inserts or replaces a single note document entity in the database.",
+"side_effects": ["Inserts or replaces a record in the note_documents table."],
+"concepts": ["note document", "database insert"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/NoteDocumentDao_Impl.kt:NoteDocumentDao_Impl.insertAllDocuments:97",
+"responsibility": "Inserts or replaces multiple note document entities in the database in a batch.",
+"side_effects": ["Inserts or replaces records in the note_documents table."],
+"concepts": ["note document", "batch insert"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/NoteDocumentDao_Impl.kt:NoteDocumentDao_Impl.updateDocument:101",
+"responsibility": "Updates an existing note document entity in the database.",
+"side_effects": ["Updates a record in the note_documents table."],
+"concepts": ["note document", "database update"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/NoteDocumentDao_Impl.kt:NoteDocumentDao_Impl.getDocumentById:105",
+"responsibility": "Retrieves a note document entity by its unique document ID.",
+"side_effects": [],
+"concepts": ["note document", "database query"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/NoteDocumentDao_Impl.kt:NoteDocumentDao_Impl.getDocumentByIdFlow:165",
+"responsibility": "Retrieves a reactive flow emitting a note document entity matching the specified document ID.",
+"side_effects": [],
+"concepts": ["note document", "reactive flow", "database query"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/NoteDocumentDao_Impl.kt:NoteDocumentDao_Impl.getDocumentsForContext:225",
+"responsibility": "Retrieves a reactive flow of note document entities associated with a specific context ID.",
+"side_effects": [],
+"concepts": ["note document", "context attachment", "reactive flow", "database query"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/NoteDocumentDao_Impl.kt:NoteDocumentDao_Impl.getAllDocuments:296",
+"responsibility": "Retrieves all note document entities from the database as a list.",
+"side_effects": [],
+"concepts": ["note document", "database query"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/NoteDocumentDao_Impl.kt:NoteDocumentDao_Impl.getAllDocumentsAsFlow:354",
+"responsibility": "Retrieves a reactive flow emitting all note document entities stored in the database.",
+"side_effects": [],
+"concepts": ["note document", "reactive flow", "database query"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/NoteDocumentDao_Impl.kt:NoteDocumentDao_Impl.findByName:412",
+"responsibility": "Finds a note document entity by matching its name case-insensitively.",
+"side_effects": [],
+"concepts": ["note document", "search by name", "database query"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/NoteDocumentDao_Impl.kt:NoteDocumentDao_Impl.getAllDocumentsRaw:472",
+"responsibility": "Retrieves all note document entities directly from the database without observation.",
+"side_effects": [],
+"concepts": ["note document", "database query"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/NoteDocumentDao_Impl.kt:NoteDocumentDao_Impl.deleteDocumentById:530",
+"responsibility": "Deletes a note document entity from the database using its document ID.",
+"side_effects": ["Deletes a record from the note_documents table in the database."],
+"concepts": ["note document", "database deletion"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/NoteDocumentDao_Impl.kt:NoteDocumentDao_Impl.deleteAllDocuments:544",
+"responsibility": "Deletes all note document entities from the database.",
+"side_effects": ["Deletes all records from the note_documents table in the database."],
+"concepts": ["note document", "database deletion"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/NoteDocumentDao_Impl.kt:NoteDocumentDao_Impl.getRequiredConverters:557",
+"responsibility": "Returns the list of required type converter classes for the note document DAO implementation.",
+"side_effects": [],
+"concepts": ["type converter", "room database"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/StructurePresetDao_Impl.kt:StructurePresetDao_Impl:23",
+"responsibility": "Provides Room Data Access Object implementation for managing context role profile structure presets in the database.",
+"side_effects": [],
+"concepts": ["structure preset", "context role profile", "room dao"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/StructurePresetDao_Impl.kt:StructurePresetDao_Impl.createQuery:34",
+"responsibility": "Returns the SQL query string for inserting or replacing structure preset entities.",
+"side_effects": [],
+"concepts": ["sql insert statement", "structure preset"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/StructurePresetDao_Impl.kt:StructurePresetDao_Impl.bind:36",
+"responsibility": "Binds context role profile entity property values to an SQLite statement for database insertion.",
+"side_effects": [],
+"concepts": ["sqlite statement binding", "structure preset", "context role profile"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/StructurePresetDao_Impl.kt:StructurePresetDao_Impl.insertPreset:111",
+"responsibility": "Inserts or replaces a context role profile preset entity in the database.",
+"side_effects": ["Inserts or replaces a record in the structure_presets table."],
+"concepts": ["structure preset", "context role profile", "database insert"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/StructurePresetDao_Impl.kt:StructurePresetDao_Impl.insertAll:115",
+"responsibility": "Inserts or replaces a collection of context role profile preset entities in the database.",
+"side_effects": ["Inserts or replaces records in the structure_presets table."],
+"concepts": ["structure preset", "context role profile", "batch insert"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/StructurePresetDao_Impl.kt:StructurePresetDao_Impl.getAll:119",
+"responsibility": "Retrieves a reactive flow emitting all context role profile presets from the database.",
+"side_effects": [],
+"concepts": ["structure preset", "context role profile", "reactive flow", "database query"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/StructurePresetDao_Impl.kt:StructurePresetDao_Impl.getByCode:239",
+"responsibility": "Retrieves a context role profile preset entity matching a specific code string.",
+"side_effects": [],
+"concepts": ["structure preset", "context role profile", "database query"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/StructurePresetDao_Impl.kt:StructurePresetDao_Impl.getById:361",
+"responsibility": "Retrieves a context role profile preset entity by its unique identifier.",
+"side_effects": [],
+"concepts": ["structure preset", "context role profile", "database query"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/StructurePresetDao_Impl.kt:StructurePresetDao_Impl.getAllSync:483",
+"responsibility": "Retrieves a static list of all context role profile preset entities from the database asynchronously.",
+"side_effects": [],
+"concepts": ["structure preset", "context role profile", "database query"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/StructurePresetDao_Impl.kt:StructurePresetDao_Impl.deleteById:603",
+"responsibility": "Deletes a context role profile preset entity from the database by its ID.",
+"side_effects": ["Deletes a record from the structure_presets table in the database."],
+"concepts": ["structure preset", "context role profile", "database deletion"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/StructurePresetDao_Impl.kt:StructurePresetDao_Impl.deleteAll:617",
+"responsibility": "Deletes all structure preset records from the database.",
+"side_effects": ["Deletes all records from the structure_presets table in the database."],
+"concepts": ["structure preset", "context role profile", "database deletion"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/StructurePresetDao_Impl.kt:StructurePresetDao_Impl.getRequiredConverters:630",
+"responsibility": "Returns the required Room type converter classes for the structure preset DAO implementation.",
+"side_effects": [],
+"concepts": ["type converter", "room database"]
+},
+{
+"id": "kotlin:app/build/kspCaches/expLocal/backups/kotlin/com/romankozak/forwardappmobile/features/contexts/data/dao/StructurePresetItemDao_Impl.kt:StructurePresetItemDao_Impl:24",
+"responsibility": "Provides Room Data Access Object implementation for managing individual items in context role profile presets.",
+"side_effects": [],
+"concepts": ["structure preset item", "context role profile item", "room dao"]
+}
+]

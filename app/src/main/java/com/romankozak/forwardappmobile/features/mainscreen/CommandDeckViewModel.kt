@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.features.mainscreen
 import android.app.Application
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.context.SystemContexts
@@ -433,7 +434,10 @@ class CommandDeckViewModel
                     importExportHandler.requestExportToFile()
                 }
                 is CommandDeckEvent.ImportFromFileRequest -> {
-                    importExportHandler.requestImportFromFile(Uri.parse(event.fileUri))
+                    Log.e("FullJsonImport", "CommandDeckEvent.ImportFromFileRequest uri=${event.fileUri}")
+                    viewModelScope.launch {
+                        importExportHandler.confirmImportV1(Uri.parse(event.fileUri))
+                    }
                 }
                 CommandDeckEvent.ExportAttachments -> {
                     viewModelScope.launch {

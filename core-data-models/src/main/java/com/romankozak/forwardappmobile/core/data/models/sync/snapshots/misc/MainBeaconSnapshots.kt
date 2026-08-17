@@ -16,6 +16,7 @@ data class MainBeaconSnapshot(
     @SerializedName("nextActionText") val nextActionText: String?,
     @SerializedName("parentBeaconId") val parentBeaconId: String?,
     @SerializedName("order") val order: Long,
+    @SerializedName("isExpanded") val isExpanded: Boolean = true,
     @SerializedName("updatedAt") val updatedAt: Long,
     @SerializedName("createdAt") val createdAt: Long,
 )

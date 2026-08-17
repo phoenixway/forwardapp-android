@@ -4,6 +4,6 @@ enum class DesktopDestination(
     val title: String,
 ) {
     Dashboard("Pulse"),
-    Workbench("Contexts"),
+    Workbench("Context Workspace"),
     Settings("Settings"),
 }
