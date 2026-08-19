@@ -343,7 +343,6 @@ class DayManagementRepository
 
                 val taskParams =
                     NewTaskParameters(
-                        id = recurringTaskInstanceId(params.dayPlanId, recurringTask.id),
                         dayPlanId = params.dayPlanId,
                         title = params.title,
                         description = params.description,
@@ -643,8 +642,6 @@ class DayManagementRepository
             description: String?,
             priority: TaskPriority,
             duration: Long?,
-            recurrenceRule: RecurrenceRule,
-            points: Int,
             linkedProjectIds: List<String>? = null,
         ) = withContext(ioDispatcher) {
             val task = recurringTaskDao.getById(recurringTaskId) ?: return@withContext
@@ -654,8 +651,6 @@ class DayManagementRepository
                     description = description,
                     priority = priority,
                     duration = duration?.toInt(),
-                    recurrenceRule = recurrenceRule,
-                    points = points,
                     linkedProjectIds = linkedProjectIds?.distinct() ?: task.linkedProjectIds,
                 )
             recurringTaskDao.update(updatedTask)
@@ -699,11 +694,6 @@ class DayManagementRepository
                         updatedAt = System.currentTimeMillis(),
                     )
                 }
-
-                // 4. The split starts the replacement series on this day. Materialize
-                // its current occurrence immediately instead of waiting for a later
-                // DayPlan reload or post-import generation trigger.
-                generateRecurringTasksForDate(dayPlan.date)
             }
         }
 
@@ -1451,40 +1441,9 @@ class DayManagementRepository
             }
         }
 
-        @Transaction
         suspend fun detachFromRecurrence(taskId: String) {
             withContext(ioDispatcher) {
-                val task = dayTaskDao.getTaskById(taskId) ?: return@withContext
-                val recurringTaskId = task.recurringTaskId ?: return@withContext
-                val now = System.currentTimeMillis()
-                val occurrenceMarkerId = recurringTaskInstanceId(task.dayPlanId, recurringTaskId)
-
-                // New recurring occurrences already use this deterministic id. Older
-                // occurrences may still have a random physical id. In that case keep
-                // an explicit deleted occurrence marker so generation cannot recreate
-                // the detached logical occurrence for the same series and day.
-                if (task.id != occurrenceMarkerId && dayTaskDao.getTaskById(occurrenceMarkerId) == null) {
-                    dayTaskDao.insert(
-                        task.copy(
-                            id = occurrenceMarkerId,
-                            isDeleted = true,
-                            nextOccurrenceTime = null,
-                            updatedAt = now,
-                            syncedAt = null,
-                            version = task.version + 1,
-                        ),
-                    )
-                }
-
-                dayTaskDao.update(
-                    task.copy(
-                        recurringTaskId = null,
-                        nextOccurrenceTime = null,
-                        updatedAt = now,
-                        syncedAt = null,
-                        version = task.version + 1,
-                    ),
-                )
+                dayTaskDao.detachFromRecurrence(taskId)
             }
         }
 

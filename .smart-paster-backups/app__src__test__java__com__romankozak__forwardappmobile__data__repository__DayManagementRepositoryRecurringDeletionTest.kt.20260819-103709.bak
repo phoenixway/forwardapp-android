@@ -235,14 +235,6 @@ class DayManagementRepositoryRecurringDeletionTest {
         coEvery { dayTaskDao.getTasksForDaySync("plan-split") } returns emptyList()
         coEvery { dayTaskDao.getAllTasksSync() } returns emptyList()
         coEvery { dayTaskDao.getMinOrderForDayPlan("plan-split") } returns 0L
-        coEvery {
-            dayTaskDao.findRecurringOccurrenceForDayIncludingDeleted(
-                recurringTaskId = any(),
-                dayPlanId = "plan-split",
-            )
-        } returns null
-        coEvery { dayTaskDao.findTemplateForRecurringTask(any()) } returns null
-        coEvery { dayTaskDao.getTaskById(any()) } returns null
 
         coEvery { dayTaskDao.update(any()) } answers {
             val updated = firstArg<DayTask>()

@@ -151,7 +151,7 @@ class EditTaskViewModel
         }
 
         fun onRecurrenceIntervalChange(interval: Int) {
-            _uiState.value = _uiState.value.copy(recurrenceInterval = interval.coerceAtLeast(1))
+            _uiState.value = _uiState.value.copy(recurrenceInterval = interval)
         }
 
         fun onRecurrenceDayOfWeekToggle(day: DayOfWeek) {
@@ -212,8 +212,6 @@ class EditTaskViewModel
                     description = state.description,
                     priority = state.priority,
                     duration = state.duration,
-                    recurrenceRule = recurrenceRule,
-                    points = state.points,
                     linkedProjectIds = state.contextLinks.map { it.id },
                 )
                 updateTaskInstance(state, originalTask)
@@ -290,12 +288,10 @@ class EditTaskViewModel
         private fun buildRecurrenceRule(state: EditTaskUiState): RecurrenceRule =
             RecurrenceRule(
                 frequency = state.recurrenceFrequency,
-                interval = state.recurrenceInterval.coerceAtLeast(1),
+                interval = state.recurrenceInterval,
                 daysOfWeek =
                     if (state.recurrenceFrequency == RecurrenceFrequency.WEEKLY) {
-                        state.recurrenceDaysOfWeek
-                            .takeIf { it.isNotEmpty() }
-                            ?.sortedBy { it.value }
+                        state.recurrenceDaysOfWeek.toList()
                     } else {
                         null
                     },

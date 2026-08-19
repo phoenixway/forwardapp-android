@@ -272,7 +272,7 @@ class SyncLocalDataSourceImpl
                 chatMessages = local.chatMessages.filter { it.timestamp > timestamp },
                 conversationFolders = local.conversationFolders,
                 reminders = local.reminders.filter { (it.updatedAt ?: it.creationTime) > timestamp },
-                recurringTasks = local.recurringTasks,
+                recurringTasks = local.recurringTasks.filter { (it.endDate ?: Long.MAX_VALUE) > timestamp },
                 contextArtifacts = local.contextArtifacts.filter { (it.updatedAt ?: it.createdAt) > timestamp },
                 tacticalMissions = local.tacticalMissions.filter { (it.startTime ?: 0L) > timestamp || it.deadline > timestamp },
                 tacticalMissionAttachments = local.tacticalMissionAttachments,

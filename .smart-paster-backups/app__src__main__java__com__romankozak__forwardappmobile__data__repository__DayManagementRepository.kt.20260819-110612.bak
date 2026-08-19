@@ -343,7 +343,6 @@ class DayManagementRepository
 
                 val taskParams =
                     NewTaskParameters(
-                        id = recurringTaskInstanceId(params.dayPlanId, recurringTask.id),
                         dayPlanId = params.dayPlanId,
                         title = params.title,
                         description = params.description,
@@ -1451,40 +1450,9 @@ class DayManagementRepository
             }
         }
 
-        @Transaction
         suspend fun detachFromRecurrence(taskId: String) {
             withContext(ioDispatcher) {
-                val task = dayTaskDao.getTaskById(taskId) ?: return@withContext
-                val recurringTaskId = task.recurringTaskId ?: return@withContext
-                val now = System.currentTimeMillis()
-                val occurrenceMarkerId = recurringTaskInstanceId(task.dayPlanId, recurringTaskId)
-
-                // New recurring occurrences already use this deterministic id. Older
-                // occurrences may still have a random physical id. In that case keep
-                // an explicit deleted occurrence marker so generation cannot recreate
-                // the detached logical occurrence for the same series and day.
-                if (task.id != occurrenceMarkerId && dayTaskDao.getTaskById(occurrenceMarkerId) == null) {
-                    dayTaskDao.insert(
-                        task.copy(
-                            id = occurrenceMarkerId,
-                            isDeleted = true,
-                            nextOccurrenceTime = null,
-                            updatedAt = now,
-                            syncedAt = null,
-                            version = task.version + 1,
-                        ),
-                    )
-                }
-
-                dayTaskDao.update(
-                    task.copy(
-                        recurringTaskId = null,
-                        nextOccurrenceTime = null,
-                        updatedAt = now,
-                        syncedAt = null,
-                        version = task.version + 1,
-                    ),
-                )
+                dayTaskDao.detachFromRecurrence(taskId)
             }
         }
 

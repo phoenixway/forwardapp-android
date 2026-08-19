@@ -202,18 +202,7 @@ class SyncFileService @Inject constructor(
             val jsonString = jsonResult.getOrThrow()
             val normalizedJson = sanitizeIncomingBackupJson(jsonString)
             val backupData = gson.fromJson(normalizedJson, FullAppBackup::class.java)
-            val resolvedSnapshotBundle = resolveIncomingImportBundle(normalizedJson).snapshotBundle
-            val snapshotBundleToApply =
-                resolvedSnapshotBundle.copy(
-                    dayTasks =
-                        resolvedSnapshotBundle.dayTasks.map { task ->
-                            if (task.executionStrictness == null) {
-                                task.copy(executionStrictness = "NORMAL")
-                            } else {
-                                task
-                            }
-                        },
-                )
+            val snapshotBundleToApply = resolveIncomingImportBundle(normalizedJson).snapshotBundle
 
             if (isEffectivelyEmpty(snapshotBundleToApply)) {
                 throw IllegalArgumentException("Backup payload is empty. Nothing to import.")

@@ -75,12 +75,12 @@ class ContextScreenViewModelNavigationTest {
         runTest {
             val fixture = createFixture()
             val resolved = fixture.contextSessionStore.selectView(ContextViewMode.INBOX)
-            assertThat(resolved).isEqualTo(ContextViewMode.BACKLOG)
+            assertThat(resolved).isEqualTo(ContextViewMode.DASHBOARD)
 
             fixture.viewModel.onProjectViewChange(ContextViewMode.INBOX)
 
             coVerify {
-                fixture.contextRepository.updateContextViewMode(contextId, ContextViewMode.BACKLOG)
+                fixture.contextRepository.updateContextViewMode(contextId, ContextViewMode.DASHBOARD)
             }
         }
 

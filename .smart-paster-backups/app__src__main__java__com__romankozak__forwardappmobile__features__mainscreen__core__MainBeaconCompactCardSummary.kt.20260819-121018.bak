@@ -62,8 +62,8 @@ fun deriveMainBeaconCompactCardSummary(
     return MainBeaconCompactCardSummary(
         highestCompletedLevel = highestCompletedLevel,
         breakPointLevel = breakPointLevel,
-        blockReason = if (breakLevel == null) "" else breakStatus.deriveWhy(),
-        nextRequiredAction = if (breakLevel == null) "" else breakStatus.deriveNext(),
+        blockReason = breakStatus.deriveWhy(),
+        nextRequiredAction = breakStatus.deriveNext(),
     )
 }
 

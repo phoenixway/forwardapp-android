@@ -1191,7 +1191,7 @@ class DayPlanViewModel
                                 newDescription = description,
                                 newPriority = priority,
                                 newDuration = duration,
-                                points = points,
+                                points = task.points,
                             ),
                         )
                     } else {

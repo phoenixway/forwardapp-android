@@ -62,8 +62,8 @@ fun deriveMainBeaconCompactCardSummary(
     return MainBeaconCompactCardSummary(
         highestCompletedLevel = highestCompletedLevel,
         breakPointLevel = breakPointLevel,
-        blockReason = if (breakLevel == null) "" else breakStatus.deriveWhy(),
-        nextRequiredAction = if (breakLevel == null) "" else breakStatus.deriveNext(),
+        blockReason = breakStatus.deriveWhy(),
+        nextRequiredAction = breakStatus.deriveNext(),
     )
 }
 
@@ -95,9 +95,8 @@ private fun MainBeaconLevelStatus?.toChainState(): MainBeaconChainState =
 
 private fun MainBeaconLevelStatus?.deriveWhy(): String =
     this?.blockerText?.takeIf { it.isNotBlank() }
-        ?: when (toChainState()) {
+        ?: when (this?.toChainState()) {
             MainBeaconChainState.IN_PROCESS -> "level is in process"
-            MainBeaconChainState.USABLE -> "level is incomplete"
             MainBeaconChainState.CONDITIONAL -> "level is incomplete"
             MainBeaconChainState.BLOCKED -> "level is blocked"
             MainBeaconChainState.OUTDATED -> "level is outdated"
@@ -109,9 +108,8 @@ private fun MainBeaconLevelStatus?.deriveWhy(): String =
 
 private fun MainBeaconLevelStatus?.deriveNext(): String =
     this?.nextActionText?.takeIf { it.isNotBlank() }
-        ?: when (toChainState()) {
+        ?: when (this?.toChainState()) {
             MainBeaconChainState.IN_PROCESS -> "continue this level"
-            MainBeaconChainState.USABLE -> "complete this level"
             MainBeaconChainState.CONDITIONAL -> "complete this level"
             MainBeaconChainState.BLOCKED -> "unblock this level"
             MainBeaconChainState.OUTDATED -> "resync this level from parent"

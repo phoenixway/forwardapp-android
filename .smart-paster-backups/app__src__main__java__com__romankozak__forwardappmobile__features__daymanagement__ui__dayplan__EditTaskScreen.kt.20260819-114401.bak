@@ -852,17 +852,15 @@ private fun RepeatContent(
                         expanded = expanded,
                         onDismissRequest = { expanded = false },
                     ) {
-                        RecurrenceFrequency.values()
-                            .filter { frequency -> frequency != RecurrenceFrequency.HOURLY }
-                            .forEach { frequency ->
-                                DropdownMenuItem(
-                                    text = { Text(frequency.name, fontSize = 13.sp) },
-                                    onClick = {
-                                        actions.onRecurrenceFrequencyChange(frequency)
-                                        expanded = false
-                                    },
-                                )
-                            }
+                        RecurrenceFrequency.values().forEach { frequency ->
+                            DropdownMenuItem(
+                                text = { Text(frequency.name, fontSize = 13.sp) },
+                                onClick = {
+                                    actions.onRecurrenceFrequencyChange(frequency)
+                                    expanded = false
+                                },
+                            )
+                        }
                     }
                 }
 

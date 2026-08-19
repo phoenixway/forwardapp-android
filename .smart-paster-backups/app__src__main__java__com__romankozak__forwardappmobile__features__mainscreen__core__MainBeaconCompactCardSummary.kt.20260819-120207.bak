@@ -30,40 +30,36 @@ fun deriveMainBeaconCompactCardSummary(
 ): MainBeaconCompactCardSummary {
     val orderedLevels =
         MainBeaconRepository.DefaultLevels.map { levelType ->
-            levelType to levelStatuses.firstOrNull { it.levelType == levelType }
+            levelStatuses.firstOrNull { it.levelType == levelType }
         }
 
-    var highestCompletedIndex = -1
-    var breakIndex: Int? = null
-
-    for ((index, level) in orderedLevels.withIndex()) {
-        when (level.second.toChainState()) {
-            MainBeaconChainState.READY -> {
-                highestCompletedIndex = index
-            }
-            MainBeaconChainState.USABLE -> {
-                highestCompletedIndex = index
-                breakIndex = (index + 1).takeIf { it <= orderedLevels.lastIndex }
-                break
-            }
-            else -> {
-                breakIndex = index
-                break
-            }
+    val highestCompletedIndex =
+        orderedLevels.indexOfFirst { status ->
+            status.toChainState() !in setOf(MainBeaconChainState.READY, MainBeaconChainState.USABLE)
         }
-    }
+            .let { firstNonReadyIndex ->
+                when {
+                    firstNonReadyIndex == -1 -> orderedLevels.lastIndex
+                    firstNonReadyIndex == 0 -> -1
+                    else -> firstNonReadyIndex - 1
+                }
+            }
 
     val highestCompletedLevel =
-        orderedLevels.getOrNull(highestCompletedIndex)?.first?.displayLabel().orEmpty()
-    val breakLevel = breakIndex?.let { orderedLevels.getOrNull(it) }
-    val breakPointLevel = breakLevel?.first?.displayLabel().orEmpty()
-    val breakStatus = breakLevel?.second
+        orderedLevels.getOrNull(highestCompletedIndex)?.levelType?.displayLabel().orEmpty()
+    val breakLevel =
+        when {
+            orderedLevels.isEmpty() -> null
+            highestCompletedIndex == orderedLevels.lastIndex -> null
+            else -> orderedLevels.getOrNull(highestCompletedIndex + 1)
+        }
+    val breakPointLevel = breakLevel?.levelType?.displayLabel().orEmpty()
 
     return MainBeaconCompactCardSummary(
         highestCompletedLevel = highestCompletedLevel,
         breakPointLevel = breakPointLevel,
-        blockReason = if (breakLevel == null) "" else breakStatus.deriveWhy(),
-        nextRequiredAction = if (breakLevel == null) "" else breakStatus.deriveNext(),
+        blockReason = breakLevel.deriveWhy(),
+        nextRequiredAction = breakLevel.deriveNext(),
     )
 }
 
@@ -95,9 +91,8 @@ private fun MainBeaconLevelStatus?.toChainState(): MainBeaconChainState =
 
 private fun MainBeaconLevelStatus?.deriveWhy(): String =
     this?.blockerText?.takeIf { it.isNotBlank() }
-        ?: when (toChainState()) {
+        ?: when (this?.toChainState()) {
             MainBeaconChainState.IN_PROCESS -> "level is in process"
-            MainBeaconChainState.USABLE -> "level is incomplete"
             MainBeaconChainState.CONDITIONAL -> "level is incomplete"
             MainBeaconChainState.BLOCKED -> "level is blocked"
             MainBeaconChainState.OUTDATED -> "level is outdated"
@@ -109,9 +104,8 @@ private fun MainBeaconLevelStatus?.deriveWhy(): String =
 
 private fun MainBeaconLevelStatus?.deriveNext(): String =
     this?.nextActionText?.takeIf { it.isNotBlank() }
-        ?: when (toChainState()) {
+        ?: when (this?.toChainState()) {
             MainBeaconChainState.IN_PROCESS -> "continue this level"
-            MainBeaconChainState.USABLE -> "complete this level"
             MainBeaconChainState.CONDITIONAL -> "complete this level"
             MainBeaconChainState.BLOCKED -> "unblock this level"
             MainBeaconChainState.OUTDATED -> "resync this level from parent"

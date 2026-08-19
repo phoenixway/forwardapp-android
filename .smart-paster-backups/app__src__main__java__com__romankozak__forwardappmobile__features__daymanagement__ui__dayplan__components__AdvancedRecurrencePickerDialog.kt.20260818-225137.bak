@@ -218,30 +218,25 @@ private fun getIntervalUnit(frequency: RecurrenceFrequency): String {
         RecurrenceFrequency.HOURLY -> "годинах"
         RecurrenceFrequency.DAILY -> "днях"
         RecurrenceFrequency.WEEKLY -> "тижнях"
-        RecurrenceFrequency.MONTHLY -> "місяцях"
-        RecurrenceFrequency.YEARLY -> "роках"
+        else -> ""
     }
 }
 
 private fun supportedRecurrenceFrequencies(): List<RecurrenceFrequency> =
-    listOf(
-        RecurrenceFrequency.DAILY,
-        RecurrenceFrequency.WEEKLY,
-        RecurrenceFrequency.MONTHLY,
-        RecurrenceFrequency.YEARLY,
-    )
+    RecurrenceFrequency.values().filter { frequency ->
+        frequency != RecurrenceFrequency.MONTHLY &&
+            frequency != RecurrenceFrequency.YEARLY
+    }
 
 private fun buildRecurrenceRule(
     selectedFrequency: RecurrenceFrequency,
     interval: String,
     selectedDays: Set<DayOfWeek>,
 ): RecurrenceRule {
-    val finalInterval = (interval.toIntOrNull() ?: 1).coerceAtLeast(1)
+    val finalInterval = interval.toIntOrNull() ?: 1
     val daysOfWeek =
         if (selectedFrequency == RecurrenceFrequency.WEEKLY) {
-            selectedDays
-                .takeIf { it.isNotEmpty() }
-                ?.sortedBy { it.value }
+            selectedDays.toList()
         } else {
             null
         }
