@@ -7,6 +7,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Upsert
 import com.romankozak.forwardappmobile.core.data.models.entities.DayStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 import kotlinx.coroutines.flow.Flow
@@ -39,6 +40,17 @@ interface DayPlanDao {
         """,
     )
     suspend fun getPlanForDateSync(dayStartMillis: Long): DayPlan?
+
+    @Query(
+        """
+        SELECT * FROM day_plans
+        WHERE date = :dayStartMillis AND isDeleted = 0
+        ORDER BY CASE WHEN id LIKE 'day_plan_%' THEN 1 ELSE 0 END ASC,
+                 createdAt ASC,
+                 updatedAt ASC
+        """,
+    )
+    suspend fun getActivePlansForDateSync(dayStartMillis: Long): List<DayPlan>
 
     @Query(
         """
@@ -162,6 +174,6 @@ interface DayPlanDao {
     @Query("DELETE FROM day_plans")
     suspend fun deleteAllPlans()
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertPlans(plans: List<DayPlan>)
 }

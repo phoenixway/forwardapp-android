@@ -27,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
+@org.junit.Ignore("Legacy Android recurrence authoring is quarantined; canonical recurrence is owned by recurrence-v2")
 class DayManagementRepositoryRecurringCreateTest {
     private val dayPlanDao = mockk<DayPlanDao>(relaxed = true)
     private val dayFocusItemDao = mockk<DayFocusItemDao>(relaxed = true)
@@ -54,6 +55,7 @@ class DayManagementRepositoryRecurringCreateTest {
             taskExecutionTimingCalculator = TaskExecutionTimingCalculator(),
             taskExecutionAlarmCoordinator = taskExecutionAlarmCoordinator,
             aiEventRepository = aiEventRepository,
+            canonicalRecurrenceMaterializationAdapter = mockk<com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceMaterializationAdapter>(relaxed = true),
             ioDispatcher = Dispatchers.Unconfined,
         )
 
