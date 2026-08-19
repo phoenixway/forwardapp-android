@@ -12,6 +12,7 @@ data class DayFocusItemSnapshot(
     @SerializedName("type") val type: String,
     @SerializedName("isEveryday") val isEveryday: Boolean,
     @SerializedName("recurringKey") val recurringKey: String?,
+    @SerializedName("recurrence") val recurrence: RecurrenceOriginSnapshot? = null,
     @SerializedName("budgetPercent") val budgetPercent: Int? = null,
     @SerializedName("order") val order: Long,
     @SerializedName("createdAt") val createdAt: Long,

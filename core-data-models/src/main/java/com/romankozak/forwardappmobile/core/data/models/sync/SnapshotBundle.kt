@@ -40,6 +40,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_manag
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayPlanSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayTaskSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.RecurringTaskSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.CanonicalRecurringSeriesSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.DayManagementRuntimeStateSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.FocusContextIntervalSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.LifeManagementLevelStatusSnapshot
@@ -60,7 +61,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.User
  * It aggregates all feature-specific snapshots into one bundle.
  */
 data class SnapshotBundle(
-    @SerializedName("snapshotVersion")
+    @SerializedName(value = "snapshotVersion", alternate = ["version"])
     val version: Int = 1,
 
     @SerializedName("exportedAt")
@@ -96,6 +97,7 @@ data class SnapshotBundle(
     @SerializedName("conversationFolders") val conversationFolders: List<ConversationFolderSnapshot> = emptyList(),
     @SerializedName("reminders") val reminders: List<ReminderSnapshot> = emptyList(),
     @SerializedName("recurringTasks") val recurringTasks: List<RecurringTaskSnapshot> = emptyList(),
+    @SerializedName("recurringSeries") val recurringSeries: List<CanonicalRecurringSeriesSnapshot> = emptyList(),
     @SerializedName("tacticalMissions") val tacticalMissions: List<TacticalMissionSnapshot> = emptyList(),
     @SerializedName("tacticalMissionAttachments") val tacticalMissionAttachments: List<TacticalMissionAttachmentCrossRefSnapshot> = emptyList(),
     @SerializedName("aiEvents") val aiEvents: List<AiEventSnapshot> = emptyList(),

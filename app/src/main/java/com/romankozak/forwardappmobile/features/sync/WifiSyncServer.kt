@@ -149,7 +149,7 @@ class WifiSyncServer(
                                         val total = projects.size
                                         "systemKeys=${total - missing}/$total"
                                     }.getOrElse { "systemKeys=error:${it.message}" }
-                                val backupJson =
+                                val rawBackupJson =
                                     if (deltaSinceParam != null) {
                                         val since = deltaSinceParam.toLongOrNull()
                                         if (since != null) {
@@ -178,6 +178,12 @@ class WifiSyncServer(
                                         )
                                         syncRepository.createFullBackupJsonString()
                                     }
+
+                                val backupJson =
+                                    gson.toJson(
+                                        gson.fromJson(rawBackupJson, FullAppBackup::class.java)
+                                            .withLegacyRecurrenceSyncQuarantined(),
+                                    )
 
                                 // ========== DEFECT #2 DEBUG: Log attachments in export ==========
                                 try {
@@ -249,7 +255,9 @@ class WifiSyncServer(
                                 if (BuildConfig.DEBUG) {
                                     Log.d(DEBUG_TAG, "[WifiSyncServer] /import dump head=${body.take(400)}")
                                 }
-                                val backup = gson.fromJson(body, FullAppBackup::class.java)
+                                val backup =
+                                    gson.fromJson(body, FullAppBackup::class.java)
+                                        .withLegacyRecurrenceSyncQuarantined()
                                 Log.e(DAY_SYNC_IMPORT_TAG, "server received ${backup.describeDayImportPayload(body.length)}")
                                 val snapshotBundle = backup.snapshotBundle
                                 val db = backup.database
@@ -280,8 +288,7 @@ class WifiSyncServer(
                                         snapshotBundle != null -> syncRepository.applyServerChanges(snapshotBundle).getOrThrow()
                                         db != null -> syncRepository.applyServerChanges(db).getOrThrow()
                                     }
-                                    ensureTodayRecurringTasksAfterImport()
-                                    Log.i("ForwardSync", "wifi import applied")
+                                    Log.i("ForwardSync", "wifi import applied; legacy recurrence generation quarantined")
                                     backup.settings?.settings?.let { settings ->
                                         try {
                                             settingsRepository.restoreFromMap(settings)
@@ -335,6 +342,36 @@ class WifiSyncServer(
             Log.d(DEBUG_TAG, "[WifiSyncServer] Server stopped")
         }
     }
+
+    private fun FullAppBackup.withLegacyRecurrenceSyncQuarantined(): FullAppBackup =
+        copy(
+            database =
+                database?.let { content ->
+                    content.copy(
+                        recurringTasks = emptyList(),
+                        dayTasks =
+                            content.dayTasks.filterNot { task ->
+                                task.recurringTaskId != null ||
+                                    task.nextOccurrenceTime != null ||
+                                    task.id.startsWith("recurring-task-instance-") ||
+                                    task.id.startsWith("recurrence:TASK:")
+                            },
+                    )
+                },
+            snapshotBundle =
+                snapshotBundle?.let { bundle ->
+                    bundle.copy(
+                        recurringTasks = emptyList(),
+                        dayTasks =
+                            bundle.dayTasks.filterNot { task ->
+                                task.recurringTaskId != null ||
+                                    task.nextOccurrenceTime != null ||
+                                    task.id.startsWith("recurring-task-instance-") ||
+                                    (task.id.startsWith("recurrence:TASK:") && task.recurrence == null)
+                            },
+                    )
+                },
+        )
 
     private suspend fun ensureTodayRecurringTasksAfterImport() {
         val todayStart = startOfLocalDay(System.currentTimeMillis())

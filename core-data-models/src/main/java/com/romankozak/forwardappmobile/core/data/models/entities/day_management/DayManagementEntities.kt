@@ -108,6 +108,7 @@ data class DayPlan(
         Index("activityRecordId"),
         Index("scheduledTime"),
         Index("recurringTaskId"),
+        Index(value = ["recurrenceSeriesId", "recurrenceOccurrenceDayKey"]),
     ],
 )
 data class DayTask(
@@ -121,6 +122,9 @@ data class DayTask(
     @SerializedName("linkedAttachmentIds") val linkedAttachmentIds: List<String>? = emptyList(),
     @SerializedName("activityRecordId") val activityRecordId: String? = null,
     @SerializedName("recurringTaskId") val recurringTaskId: String? = null,
+    @SerializedName("recurrenceSeriesId") val recurrenceSeriesId: String? = null,
+    @SerializedName("recurrenceOccurrenceDayKey") val recurrenceOccurrenceDayKey: String? = null,
+    @SerializedName("recurrenceSourceSeriesVersion") val recurrenceSourceSeriesVersion: Long? = null,
     @SerializedName("taskType") val taskType: String? = null,
     @SerializedName("entityId") val entityId: String? = null,
     @SerializedName("order") val order: Long = 0,
@@ -163,6 +167,7 @@ data class DayTask(
     indices = [
         Index("dayPlanId"),
         Index(value = ["dayPlanId", "order"]),
+        Index(value = ["recurrenceSeriesId", "recurrenceOccurrenceDayKey"]),
     ],
 )
 data class DayFocusItem(
@@ -174,6 +179,9 @@ data class DayFocusItem(
     @SerializedName("type") val type: DayFocusType = DayFocusType.FOCUS,
     @ColumnInfo(defaultValue = "0") @SerializedName("isEveryday") val isEveryday: Boolean = false,
     @SerializedName("recurringKey") val recurringKey: String? = null,
+    @SerializedName("recurrenceSeriesId") val recurrenceSeriesId: String? = null,
+    @SerializedName("recurrenceOccurrenceDayKey") val recurrenceOccurrenceDayKey: String? = null,
+    @SerializedName("recurrenceSourceSeriesVersion") val recurrenceSourceSeriesVersion: Long? = null,
     @SerializedName("budgetPercent") val budgetPercent: Int? = null,
     @SerializedName("order") val order: Long = 0,
     @SerializedName("createdAt") val createdAt: Long = System.currentTimeMillis(),

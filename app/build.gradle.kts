@@ -267,6 +267,8 @@ dependencies {
     implementation(project(":shared-application"))
     implementation(project(":shared-contracts"))
     implementation(project(":shared-domain"))
+    implementation(project(":shared-core-data-models"))
+    implementation(project(":shared-core-domain"))
     implementation(project(":core-data-models"))
     implementation(project(":core-data-interfaces"))
 

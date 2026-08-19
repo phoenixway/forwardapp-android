@@ -56,3 +56,9 @@ app/google-services.json
 *.db
 *.png
 .env
+
+# Smart Paster local backups
+.smart-paster-backups/
+
+# Kotlin/JS local build tooling
+.kotlin/

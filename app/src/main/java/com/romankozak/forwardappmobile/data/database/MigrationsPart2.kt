@@ -1557,3 +1557,57 @@ val MIGRATION_141_142 =
             db.execSQL("ALTER TABLE main_beacons ADD COLUMN is_expanded INTEGER NOT NULL DEFAULT 1")
         }
     }
+
+val MIGRATION_142_143 =
+    object : Migration(142, 143) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE day_tasks ADD COLUMN recurrenceSeriesId TEXT")
+            db.execSQL("ALTER TABLE day_tasks ADD COLUMN recurrenceOccurrenceDayKey TEXT")
+            db.execSQL("ALTER TABLE day_tasks ADD COLUMN recurrenceSourceSeriesVersion INTEGER")
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_day_tasks_recurrenceSeriesId_recurrenceOccurrenceDayKey " +
+                    "ON day_tasks(recurrenceSeriesId, recurrenceOccurrenceDayKey)",
+            )
+
+            db.execSQL("ALTER TABLE day_focus_items ADD COLUMN recurrenceSeriesId TEXT")
+            db.execSQL("ALTER TABLE day_focus_items ADD COLUMN recurrenceOccurrenceDayKey TEXT")
+            db.execSQL("ALTER TABLE day_focus_items ADD COLUMN recurrenceSourceSeriesVersion INTEGER")
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_day_focus_items_recurrenceSeriesId_recurrenceOccurrenceDayKey " +
+                    "ON day_focus_items(recurrenceSeriesId, recurrenceOccurrenceDayKey)",
+            )
+
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS canonical_recurring_series (
+                    id TEXT NOT NULL,
+                    kind TEXT NOT NULL,
+                    ruleFrequency TEXT NOT NULL,
+                    ruleInterval INTEGER NOT NULL,
+                    ruleDaysOfWeekCsv TEXT,
+                    startDayKey TEXT NOT NULL,
+                    endDayKey TEXT,
+                    templateJson TEXT NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL,
+                    syncedAt INTEGER,
+                    isDeleted INTEGER NOT NULL,
+                    version INTEGER NOT NULL,
+                    PRIMARY KEY(id)
+                )
+                """.trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_canonical_recurring_series_kind " +
+                    "ON canonical_recurring_series(kind)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_canonical_recurring_series_startDayKey " +
+                    "ON canonical_recurring_series(startDayKey)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_canonical_recurring_series_endDayKey " +
+                    "ON canonical_recurring_series(endDayKey)",
+            )
+        }
+    }

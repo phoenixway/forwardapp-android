@@ -53,6 +53,7 @@ class MergeLocalDataSourceImpl
         private val checklistDao: ChecklistDao,
         private val conversationFolderDao: ConversationFolderDao,
         private val recurringTaskDao: RecurringTaskDao,
+        private val canonicalRecurringSeriesDao: CanonicalRecurringSeriesDao,
         private val backlogOrderDao: BacklogOrderDao,
         private val legacyNoteDao: LegacyNoteDao,
         private val contextArtifactDao: ContextArtifactDao,
@@ -227,6 +228,17 @@ class MergeLocalDataSourceImpl
                         keySelector = { it.first },
                         valueTransform = { it.second },
                     )
+            val localCanonicalFocusOccurrenceIdsByLogicalKey =
+                dayFocusItemDao
+                    .getAllSync()
+                    .mapNotNull { item ->
+                        val seriesId = item.recurrenceSeriesId ?: return@mapNotNull null
+                        val dayKey = item.recurrenceOccurrenceDayKey ?: return@mapNotNull null
+                        (seriesId to dayKey) to item.id
+                    }.groupBy(
+                        keySelector = { it.first },
+                        valueTransform = { it.second },
+                    )
             val remappedIncomingFocusItemIds =
                 bundle.dayFocusItems
                     .asSequence()
@@ -237,7 +249,12 @@ class MergeLocalDataSourceImpl
                 remappedDayFocusItems
                     .filter { item -> item.dayPlanId in validPlanIds }
                     .filterNot { item ->
-                        if (item.id !in remappedIncomingFocusItemIds) {
+                        val canonicalRecurrence = item.recurrence
+                        if (canonicalRecurrence != null) {
+                            localCanonicalFocusOccurrenceIdsByLogicalKey[
+                                canonicalRecurrence.seriesId to canonicalRecurrence.occurrenceDayKey
+                            ]?.any { localPhysicalId -> localPhysicalId != item.id } == true
+                        } else if (item.id !in remappedIncomingFocusItemIds) {
                             false
                         } else {
                             val recurringKey = item.recurringKey ?: return@filterNot false
@@ -276,6 +293,17 @@ class MergeLocalDataSourceImpl
                         keySelector = { it.first },
                         valueTransform = { it.second },
                     )
+            val localCanonicalTaskOccurrenceIdsByLogicalKey =
+                dayTaskDao
+                    .getAllTasksSync()
+                    .mapNotNull { task ->
+                        val seriesId = task.recurrenceSeriesId ?: return@mapNotNull null
+                        val dayKey = task.recurrenceOccurrenceDayKey ?: return@mapNotNull null
+                        (seriesId to dayKey) to task.id
+                    }.groupBy(
+                        keySelector = { it.first },
+                        valueTransform = { it.second },
+                    )
             val remappedIncomingTaskIds =
                 bundle.dayTasks
                     .asSequence()
@@ -286,7 +314,12 @@ class MergeLocalDataSourceImpl
                 remappedDayTasks
                     .filter { task -> task.dayPlanId in validPlanIds }
                     .filterNot { task ->
-                        if (task.id !in remappedIncomingTaskIds) {
+                        val canonicalRecurrence = task.recurrence
+                        if (canonicalRecurrence != null) {
+                            localCanonicalTaskOccurrenceIdsByLogicalKey[
+                                canonicalRecurrence.seriesId to canonicalRecurrence.occurrenceDayKey
+                            ]?.any { localPhysicalId -> localPhysicalId != task.id } == true
+                        } else if (task.id !in remappedIncomingTaskIds) {
                             false
                         } else {
                             val recurringTaskId =
@@ -349,8 +382,14 @@ class MergeLocalDataSourceImpl
 
                 conversationFolderDao.insertAll(bundle.conversationFolders.map { it.toEntity() })
                 dayPlanDao.insertPlans(dayPlansToInsert.map { it.toEntity() })
-                dayFocusItemDao.insertAll(dayFocusItemsToInsert.map { it.toEntity() })
+                dayFocusItemDao.insertAll(
+                    dayFocusItemsToInsert.map { snapshot ->
+                        com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceSnapshotMapper
+                            .dayFocusItemEntity(snapshot, snapshot.toEntity())
+                    },
+                )
                 recurringTaskDao.insertAll(bundle.recurringTasks.map { it.toEntity() })
+                canonicalRecurringSeriesDao.insertAll(bundle.recurringSeries.map { it.toEntity() })
 
                 val missions = bundle.tacticalMissions.map { it.toEntity() }
                 if (missions.isNotEmpty()) {
@@ -378,7 +417,12 @@ class MergeLocalDataSourceImpl
                 activityRecordDao.insertAll(bundle.activityRecords.map { it.toEntity() })
                 recentItemDao.insertAllSync(bundle.recentProjectEntries.map { it.toEntity() })
                 linkItemDao.insertAll(bundle.linkItemEntities.map { it.toEntity() })
-                dayTaskDao.insertTasks(dayTasksToInsert.map { it.toEntity() })
+                dayTaskDao.insertTasks(
+                    dayTasksToInsert.map { snapshot ->
+                        com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceSnapshotMapper
+                            .dayTaskEntity(snapshot, snapshot.toEntity())
+                    },
+                )
                 dailyMetricDao.insertMetrics(bundle.dailyMetrics.map { it.toEntity() })
                 chatDao.insertConversations(bundle.conversations.map { it.toEntity() })
                 chatDao.insertMessages(bundle.chatMessages.map { it.toEntity() })

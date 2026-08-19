@@ -159,6 +159,7 @@ import com.romankozak.forwardappmobile.features.missions.data.MissionStreamDao
         RecentItem::class,
         ConversationFolderEntity::class,
         RecurringTask::class,
+        com.romankozak.forwardappmobile.core.data.models.entities.day_management.CanonicalRecurringSeriesEntity::class,
         Reminder::class,
         ContextArtifact::class,
         ContextAttachmentCrossRef::class,
@@ -179,7 +180,7 @@ import com.romankozak.forwardappmobile.features.missions.data.MissionStreamDao
         LegacyNoteFts::class,
         RecurringTaskFts::class,
     ],
-    version = 142,
+    version = 143,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -249,6 +250,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun recentItemDao(): RecentItemDao
 
     abstract fun recurringTaskDao(): RecurringTaskDao
+
+    abstract fun canonicalRecurringSeriesDao(): com.romankozak.forwardappmobile.data.dao.CanonicalRecurringSeriesDao
 
     abstract fun reminderDao(): ReminderDao
 

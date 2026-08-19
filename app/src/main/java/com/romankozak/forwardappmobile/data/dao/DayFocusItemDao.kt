@@ -40,6 +40,9 @@ interface DayFocusItemDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(items: List<DayFocusItem>)
 
+    @Query("SELECT * FROM day_focus_items WHERE id = :itemId LIMIT 1")
+    suspend fun getByIdForCanonicalRecurrenceSync(itemId: String): DayFocusItem?
+
     @Query(
         """
         UPDATE day_focus_items

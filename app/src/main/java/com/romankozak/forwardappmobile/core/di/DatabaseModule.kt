@@ -198,6 +198,10 @@ object DatabaseModule {
 
     @Provides
     @Singleton
+    fun provideCanonicalRecurringSeriesDao(appDatabase: AppDatabase) = appDatabase.canonicalRecurringSeriesDao()
+
+    @Provides
+    @Singleton
     fun provideChatDao(appDatabase: AppDatabase) = appDatabase.chatDao()
 
     @Provides

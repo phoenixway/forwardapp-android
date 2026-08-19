@@ -20,6 +20,9 @@ interface DayTaskDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(tasks: List<DayTask>)
 
+    @Query("SELECT * FROM day_tasks WHERE id = :taskId LIMIT 1")
+    suspend fun getByIdForCanonicalRecurrenceSync(taskId: String): DayTask?
+
     @Update
     suspend fun update(task: DayTask)
 
@@ -136,6 +139,9 @@ interface DayTaskDao {
 
     @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId AND isDeleted = 0 ORDER BY completed ASC, `order` ASC, title ASC")
     suspend fun getTasksForDaySync(dayPlanId: String): List<DayTask>
+
+    @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId ORDER BY completed ASC, `order` ASC, title ASC")
+    suspend fun getTasksForDayIncludingDeletedSync(dayPlanId: String): List<DayTask>
 
     @Query("SELECT * FROM day_tasks WHERE dayPlanId = :dayPlanId AND isDeleted = 0 ORDER BY completed ASC, `order` ASC, title ASC")
     fun getTasksForDay(dayPlanId: String): Flow<List<DayTask>>

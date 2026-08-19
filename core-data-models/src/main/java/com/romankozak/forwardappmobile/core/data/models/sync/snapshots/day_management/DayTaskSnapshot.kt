@@ -13,6 +13,7 @@ data class DayTaskSnapshot(
     @SerializedName("linkedAttachmentIds") val linkedAttachmentIds: List<String>?,
     @SerializedName("activityRecordId") val activityRecordId: String?,
     @SerializedName("recurringTaskId") val recurringTaskId: String?,
+    @SerializedName("recurrence") val recurrence: RecurrenceOriginSnapshot? = null,
     @SerializedName("taskType") val taskType: String?,
     @SerializedName("entityId") val entityId: String?,
     @SerializedName("order") val order: Long, // Entity: Long

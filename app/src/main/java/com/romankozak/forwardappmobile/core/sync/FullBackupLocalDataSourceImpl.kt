@@ -68,6 +68,7 @@ class FullBackupLocalDataSourceImpl
         private val linkItemDao: LinkItemDao,
         private val conversationFolderDao: ConversationFolderDao,
         private val recurringTaskDao: RecurringTaskDao,
+        private val canonicalRecurringSeriesDao: com.romankozak.forwardappmobile.data.dao.CanonicalRecurringSeriesDao,
         private val aiEventDao: AiEventDao,
         private val lifeSystemStateDao: LifeSystemStateDao,
         private val structurePresetDao: StructurePresetDao,
@@ -106,10 +107,19 @@ class FullBackupLocalDataSourceImpl
                 // Activity & RPG
                 activityRecords = activityRecordDao.getAllRaw().map { it.toSnapshot() },
                 dayPlans = dayPlanDao.getAllPlansSync().map { it.toSnapshot() },
-                dayFocusItems = dayFocusItemDao.getAllSync().map { it.toSnapshot() },
-                dayTasks = dayTaskDao.getAllTasksSync().map { it.toSnapshot() },
+                dayFocusItems =
+                    dayFocusItemDao.getAllSync().map { item ->
+                        com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceSnapshotMapper
+                            .dayFocusItemSnapshot(item, item.toSnapshot())
+                    },
+                dayTasks =
+                    dayTaskDao.getAllTasksSync().map { task ->
+                        com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceSnapshotMapper
+                            .dayTaskSnapshot(task, task.toSnapshot())
+                    },
                 dailyMetrics = dailyMetricDao.getAll().map { it.toSnapshot() },
                 recurringTasks = recurringTaskDao.getAll().map { it.toSnapshot() },
+                recurringSeries = canonicalRecurringSeriesDao.getAllSync().map { it.toSnapshot() },
                 // AI Domain
                 conversations = chatDao.getAllConversationsSync().map { it.toSnapshot() },
                 chatMessages = chatDao.getAllMessagesSync().map { it.toSnapshot() },
@@ -188,7 +198,12 @@ class FullBackupLocalDataSourceImpl
             dayPlanDao.insertPlans(bundle.dayPlans.map { it.toEntity() })
 
             Log.d("SyncV2", "Inserting DayFocusItems: ${bundle.dayFocusItems.size}")
-            dayFocusItemDao.insertAll(bundle.dayFocusItems.map { it.toEntity() })
+            dayFocusItemDao.insertAll(
+                bundle.dayFocusItems.map { snapshot ->
+                    com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceSnapshotMapper
+                        .dayFocusItemEntity(snapshot, snapshot.toEntity())
+                },
+            )
 
             Log.d("SyncV2", "Inserting Checklists: ${bundle.checklists.size}")
             checklistDao.insertChecklists(bundle.checklists.map { it.toEntity() })
@@ -368,7 +383,12 @@ class FullBackupLocalDataSourceImpl
                 }
 
             Log.d("SyncV2", "Inserting DayTasks: ${dayTasksToInsert.size} (after filtering)")
-            dayTaskDao.insertTasks(dayTasksToInsert.map { it.toEntity() }) // Depends on DayPlan
+            dayTaskDao.insertTasks(
+                dayTasksToInsert.map { snapshot ->
+                    com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceSnapshotMapper
+                        .dayTaskEntity(snapshot, snapshot.toEntity())
+                },
+            ) // Depends on DayPlan
 
             Log.d("SyncV2", "Inserting ChecklistItems: ${bundle.checklistItems.size}")
             checklistDao.insertItems(bundle.checklistItems.map { it.toEntity() }) // Depends on Checklist
@@ -421,6 +441,9 @@ class FullBackupLocalDataSourceImpl
 
             Log.d("SyncV2", "Inserting RecentProjectEntries: ${bundle.recentProjectEntries.size}")
             recentItemDao.insertAllSync(bundle.recentProjectEntries.map { it.toEntity() }) // Depends on Context
+
+            Log.d("SyncV2", "Inserting canonical RecurringSeries: ${bundle.recurringSeries.size}")
+            canonicalRecurringSeriesDao.insertAll(bundle.recurringSeries.map { it.toEntity() })
 
             Log.d("SyncV2", "--- Data insertion finished. Ensuring system contexts. ---")
             // Ensure system contexts exist after all other data is inserted.
