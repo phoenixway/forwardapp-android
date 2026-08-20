@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusItem
 import kotlinx.coroutines.flow.Flow
@@ -57,15 +58,38 @@ interface DayFocusItemDao {
 
     @Query(
         """
+        UPDATE canonical_recurring_series
+        SET isDeleted = 1,
+            updatedAt = :updatedAt,
+            syncedAt = NULL,
+            version = version + 1
+        WHERE id = :seriesId
+          AND isDeleted = 0
+        """,
+    )
+    suspend fun softDeleteCanonicalSeriesMaster(seriesId: String, updatedAt: Long)
+
+    @Query(
+        """
         UPDATE day_focus_items
         SET isDeleted = 1,
             updatedAt = :updatedAt,
             syncedAt = NULL,
             version = version + 1
-        WHERE recurringKey = :recurringKey
+        WHERE recurrenceSeriesId = :seriesId
+          AND isDeleted = 0
         """,
     )
-    suspend fun softDeleteByRecurringKey(recurringKey: String, updatedAt: Long)
+    suspend fun softDeleteByRecurrenceSeriesId(seriesId: String, updatedAt: Long)
+
+    @Transaction
+    suspend fun softDeleteCanonicalRecurrenceSeries(
+        seriesId: String,
+        updatedAt: Long,
+    ) {
+        softDeleteCanonicalSeriesMaster(seriesId = seriesId, updatedAt = updatedAt)
+        softDeleteByRecurrenceSeriesId(seriesId = seriesId, updatedAt = updatedAt)
+    }
 
     @Query(
         """

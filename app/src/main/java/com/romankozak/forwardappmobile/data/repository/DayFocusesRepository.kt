@@ -29,7 +29,6 @@ class DayFocusesRepository
             relatedLinks: List<RelatedLink>,
             type: DayFocusType,
             order: Long,
-            isEveryday: Boolean,
             budgetPercent: Int?,
         ): DayFocusItem {
             val now = System.currentTimeMillis()
@@ -40,9 +39,9 @@ class DayFocusesRepository
                     notes = notes?.trim()?.takeIf { it.isNotEmpty() },
                     relatedLinks = relatedLinks,
                     type = type,
-                    isEveryday = isEveryday,
+                    isEveryday = false,
+                    recurringKey = null,
                     budgetPercent = budgetPercent,
-                    recurringKey = if (isEveryday) java.util.UUID.randomUUID().toString() else null,
                     order = order,
                     createdAt = now,
                     updatedAt = now,
@@ -59,7 +58,6 @@ class DayFocusesRepository
             notes: String?,
             relatedLinks: List<RelatedLink>,
             type: DayFocusType,
-            isEveryday: Boolean,
             budgetPercent: Int?,
         ): DayFocusItem {
             val now = System.currentTimeMillis()
@@ -69,13 +67,7 @@ class DayFocusesRepository
                     notes = notes?.trim()?.takeIf { it.isNotEmpty() },
                     relatedLinks = relatedLinks,
                     type = type,
-                    isEveryday = isEveryday,
                     budgetPercent = budgetPercent,
-                    recurringKey =
-                        when {
-                            isEveryday -> item.recurringKey ?: item.id
-                            else -> item.recurringKey
-                        },
                     updatedAt = now,
                     syncedAt = null,
                     version = item.version + 1,
@@ -84,67 +76,19 @@ class DayFocusesRepository
             return updatedItem
         }
 
-        suspend fun upsertEverydayItemForDayPlan(
-            source: DayFocusItem,
-            targetDayPlanId: String,
-        ): DayFocusItem {
-            if (source.dayPlanId == targetDayPlanId) {
-                return source
-            }
-            val recurringKey = source.recurringKey ?: source.id
-            val now = System.currentTimeMillis()
-            val matchingItems =
-                dayFocusItemDao
-                    .getItemsForDayPlanSync(targetDayPlanId)
-                    .filter { item -> item.recurringKey == recurringKey }
-            val existing = matchingItems.firstOrNull { item -> !item.isDeleted }
-            if (existing == null) {
-                matchingItems.firstOrNull { item -> item.isDeleted }?.let { tombstone ->
-                    return tombstone
-                }
-            }
-            val targetItem =
-                existing?.copy(
-                    title = source.title,
-                    notes = source.notes,
-                    relatedLinks = source.relatedLinks,
-                    type = source.type,
-                    isEveryday = true,
-                    recurringKey = recurringKey,
-                    budgetPercent = source.budgetPercent,
-                    updatedAt = now,
-                    syncedAt = null,
-                    version = existing.version + 1,
-                )
-                    ?: DayFocusItem(
-                        dayPlanId = targetDayPlanId,
-                        title = source.title,
-                        notes = source.notes,
-                        relatedLinks = source.relatedLinks,
-                        type = source.type,
-                        isEveryday = true,
-                        budgetPercent = source.budgetPercent,
-                        recurringKey = recurringKey,
-                        order = nextOrderForDayPlan(targetDayPlanId),
-                        createdAt = now,
-                        updatedAt = now,
-                        syncedAt = null,
-                        version = 1,
-                    )
-            if (existing == null) {
-                dayFocusItemDao.insert(targetItem)
-            } else {
-                dayFocusItemDao.update(targetItem)
-            }
-            return targetItem
-        }
-
         suspend fun deleteItem(itemId: String) {
             dayFocusItemDao.softDelete(itemId = itemId, updatedAt = System.currentTimeMillis())
         }
 
-        suspend fun deleteItemEverywhere(recurringKey: String) {
-            dayFocusItemDao.softDeleteByRecurringKey(recurringKey, System.currentTimeMillis())
+        suspend fun deleteItemEverywhere(item: DayFocusItem) {
+            val seriesId =
+                requireNotNull(item.recurrenceSeriesId) {
+                    "Cannot delete recurring focus series for non-canonical item ${item.id}"
+                }
+            dayFocusItemDao.softDeleteCanonicalRecurrenceSeries(
+                seriesId = seriesId,
+                updatedAt = System.currentTimeMillis(),
+            )
         }
 
         suspend fun reorderItems(items: List<DayFocusItem>) {

@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.shared.core.models.day
 
+import com.romankozak.forwardappmobile.shared.core.models.link.CanonicalRelatedLink
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.LocalDayKey
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurrenceOrigin
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringSeries
@@ -123,7 +124,7 @@ data class DayFocusItem(
     val recurrence: RecurrenceOrigin?,
     val title: String,
     val notes: String?,
-    val relatedLinks: List<Any?>,
+    val relatedLinks: List<CanonicalRelatedLink>,
     val type: DayFocusType,
     val budgetPercent: Int?,
     val order: Long,

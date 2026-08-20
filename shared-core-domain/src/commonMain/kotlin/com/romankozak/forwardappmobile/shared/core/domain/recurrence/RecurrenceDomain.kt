@@ -98,6 +98,44 @@ fun requireLocalDayKey(dayKey: LocalDayKey): LocalDayKey {
     return dayKey
 }
 
+fun localDayKeyOf(
+    year: Int,
+    month: Int,
+    day: Int,
+): LocalDayKey =
+    requireLocalDayKey(
+        year.toString().padStart(4, '0') + "-" +
+            month.toString().padStart(2, '0') + "-" +
+            day.toString().padStart(2, '0'),
+    )
+
+fun previousLocalDayKey(dayKey: LocalDayKey): LocalDayKey {
+    val parts = parseLocalDayKey(dayKey)
+
+    if (parts.day > 1) {
+        return localDayKeyOf(
+            year = parts.year,
+            month = parts.month,
+            day = parts.day - 1,
+        )
+    }
+
+    if (parts.month > 1) {
+        val previousMonth = parts.month - 1
+        return localDayKeyOf(
+            year = parts.year,
+            month = previousMonth,
+            day = daysInMonth(parts.year, previousMonth),
+        )
+    }
+
+    return localDayKeyOf(
+        year = parts.year - 1,
+        month = 12,
+        day = 31,
+    )
+}
+
 fun compareLocalDayKeys(
     left: LocalDayKey,
     right: LocalDayKey,

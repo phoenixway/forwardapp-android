@@ -178,7 +178,6 @@ class DayManagementRepository
                             version = existingPlan.version + 1,
                         )
                     dayPlanDao.update(updated)
-                    ensureEverydayFocusItemsInPlan(targetPlan = updated, now = now)
                     updated
                 } else {
                     val now = System.currentTimeMillis()
@@ -193,84 +192,9 @@ class DayManagementRepository
                             version = 1,
                     )
                     dayPlanDao.insert(newPlan)
-                    ensureEverydayFocusItemsInPlan(targetPlan = newPlan, now = now)
                     newPlan
                 }
             }
-
-        private suspend fun ensureEverydayFocusItemsInPlan(
-            targetPlan: DayPlan,
-            now: Long,
-        ) {
-            val eligiblePlanIds =
-                dayPlanDao
-                    .getAllPlansSync()
-                    .filter { plan -> !plan.isDeleted && plan.date <= targetPlan.date }
-                    .mapTo(hashSetOf()) { plan -> plan.id }
-            if (eligiblePlanIds.isEmpty()) return
-
-            val targetItems =
-                dayFocusItemDao.getItemsForDayPlanSync(targetPlan.id)
-            val targetItemsByRecurringKey =
-                targetItems.groupBy { item -> item.recurringKey ?: item.id }
-            val latestEverydayItems =
-                dayFocusItemDao
-                    .getAllSync()
-                    .asSequence()
-                    .filter { item -> !item.isDeleted && item.isEveryday && item.dayPlanId in eligiblePlanIds }
-                    .groupBy { item -> item.recurringKey ?: item.id }
-                    .mapValues { (_, items) -> items.maxBy { item -> item.updatedAt ?: item.createdAt } }
-            if (latestEverydayItems.isEmpty()) return
-
-            latestEverydayItems.entries.forEachIndexed { index, (recurringKey, sourceItem) ->
-                val matchingTargetItems = targetItemsByRecurringKey[recurringKey].orEmpty()
-                val hasTombstone = matchingTargetItems.any { item -> item.isDeleted }
-                val existing =
-                    matchingTargetItems
-                        .asSequence()
-                        .filter { item -> !item.isDeleted }
-                        .maxByOrNull { item -> item.updatedAt ?: item.createdAt }
-
-                when {
-                    hasTombstone -> Unit
-
-                    existing == null ->
-                        dayFocusItemDao.insert(
-                            DayFocusItem(
-                                dayPlanId = targetPlan.id,
-                                title = sourceItem.title,
-                                notes = sourceItem.notes,
-                                relatedLinks = sourceItem.relatedLinks,
-                                type = sourceItem.type,
-                                isEveryday = true,
-                                budgetPercent = sourceItem.budgetPercent,
-                                recurringKey = recurringKey,
-                                order = targetItems.count { item -> !item.isDeleted }.toLong() + index.toLong(),
-                                createdAt = now,
-                                updatedAt = now,
-                                syncedAt = null,
-                                version = 1,
-                            ),
-                        )
-
-                    existing.shouldRefreshFrom(sourceItem, recurringKey) ->
-                        dayFocusItemDao.update(
-                            existing.copy(
-                                title = sourceItem.title,
-                                notes = sourceItem.notes,
-                                relatedLinks = sourceItem.relatedLinks,
-                                type = sourceItem.type,
-                                isEveryday = true,
-                                budgetPercent = sourceItem.budgetPercent,
-                                recurringKey = recurringKey,
-                                updatedAt = now,
-                                syncedAt = null,
-                                version = existing.version + 1,
-                            ),
-                        )
-                }
-            }
-        }
 
         suspend fun updatePlanStatus(
             planId: String,
@@ -1473,18 +1397,6 @@ class DayManagementRepository
                 recalculateDayProgress(taskId)
             }
     }
-
-private fun DayFocusItem.shouldRefreshFrom(
-    source: DayFocusItem,
-    recurringKey: String,
-): Boolean =
-    title != source.title ||
-        notes != source.notes ||
-        relatedLinks != source.relatedLinks ||
-        type != source.type ||
-        !isEveryday ||
-        this.recurringKey != recurringKey ||
-        budgetPercent != source.budgetPercent
 
 private fun recurringTaskInstanceId(
     dayPlanId: String,

@@ -124,6 +124,34 @@ class RecurrenceMaterializerTest {
         )
 
     @Test
+    fun `materializes recurrence-owned task defaults from canonical template`() {
+        val baseSeries = taskSeries()
+        val series =
+            baseSeries.copy(
+                template =
+                    baseSeries.template.copy(
+                        projectId = "project:canonical",
+                        taskType = "SUBLIST",
+                        executionStrictness = "STRICT",
+                    ),
+            )
+
+        val result =
+            planRecurringSeriesForDay(
+                database = database(recurringSeries = listOf(series)),
+                dayKey = dayKey,
+                now = now,
+            )
+
+        val task = result.tasksToCreate.single()
+        assertEquals("project:canonical", task.projectId)
+        assertEquals("SUBLIST", task.taskType)
+        assertEquals("STRICT", task.executionStrictness)
+        assertEquals(null, task.scheduledTime)
+        assertEquals(null, task.dueTime)
+    }
+
+    @Test
     fun materializesCanonicalTaskWithProvenance() {
         val result = planRecurringSeriesForDay(database(), dayKey, now)
 

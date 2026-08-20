@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.shared.core.models.recurrence
 
 import com.romankozak.forwardappmobile.shared.core.models.day.TaskPriority
+import com.romankozak.forwardappmobile.shared.core.models.link.CanonicalRelatedLink
 import com.romankozak.forwardappmobile.shared.core.models.sync.SyncEntityMeta
 
 /** Calendar-day identity. Expected representation: YYYY-MM-DD. */
@@ -46,13 +47,16 @@ data class RecurringTaskTemplate(
     val priority: TaskPriority,
     val estimatedDurationMinutes: Long?,
     val points: Int,
+    val projectId: String? = null,
+    val taskType: String? = null,
+    val executionStrictness: String? = null,
 )
 
 /** Content/defaults copied into a FOCUS or RESPONSIBILITY DayFocusItem. */
 data class RecurringFocusTemplate(
     val title: String,
     val notes: String?,
-    val relatedLinks: List<Any?>,
+    val relatedLinks: List<CanonicalRelatedLink>,
     val budgetPercent: Int?,
 )
 

@@ -245,6 +245,7 @@ class MergeLocalDataSourceImpl
                     .filter { item -> incomingPlanIdRemap.containsKey(item.dayPlanId) }
                     .mapTo(hashSetOf()) { item -> item.id }
 
+            val localFocusItemsById = dayFocusItemDao.getAllSync().associateBy { item -> item.id }
             val dayFocusItemsToInsert =
                 remappedDayFocusItems
                     .filter { item -> item.dayPlanId in validPlanIds }
@@ -260,6 +261,17 @@ class MergeLocalDataSourceImpl
                             val recurringKey = item.recurringKey ?: return@filterNot false
                             localFocusOccurrenceIdsByLogicalKey[item.dayPlanId to recurringKey]
                                 ?.any { localPhysicalId -> localPhysicalId != item.id } == true
+                        }
+                    }
+                    .filter { incoming ->
+                        val local = localFocusItemsById[incoming.id] ?: return@filter true
+                        val incomingUpdatedAt = incoming.updatedAt
+                        val localUpdatedAt = local.updatedAt ?: Long.MIN_VALUE
+                        when {
+                            incoming.version != local.version -> incoming.version > local.version
+                            incomingUpdatedAt != localUpdatedAt -> incomingUpdatedAt > localUpdatedAt
+                            incoming.isDeleted != local.isDeleted -> incoming.isDeleted
+                            else -> false
                         }
                     }
             val validGoalIds =
@@ -389,7 +401,22 @@ class MergeLocalDataSourceImpl
                     },
                 )
                 recurringTaskDao.insertAll(bundle.recurringTasks.map { it.toEntity() })
-                canonicalRecurringSeriesDao.insertAll(bundle.recurringSeries.map { it.toEntity() })
+                val localCanonicalSeriesById =
+                    canonicalRecurringSeriesDao.getAllSync().associateBy { series -> series.id }
+                canonicalRecurringSeriesDao.insertAll(
+                    bundle.recurringSeries
+                        .filter { incoming ->
+                            val local = localCanonicalSeriesById[incoming.id] ?: return@filter true
+                            val incomingUpdatedAt = incoming.updatedAt ?: Long.MIN_VALUE
+                            when {
+                                incoming.version != local.version -> incoming.version > local.version
+                                incomingUpdatedAt != local.updatedAt -> incomingUpdatedAt > local.updatedAt
+                                incoming.isDeleted != local.isDeleted -> incoming.isDeleted
+                                else -> false
+                            }
+                        }
+                        .map { it.toEntity() },
+                )
 
                 val missions = bundle.tacticalMissions.map { it.toEntity() }
                 if (missions.isNotEmpty()) {

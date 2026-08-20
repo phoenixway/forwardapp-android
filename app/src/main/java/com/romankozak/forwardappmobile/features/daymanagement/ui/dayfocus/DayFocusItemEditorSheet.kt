@@ -10,14 +10,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -76,13 +74,22 @@ fun DayFocusItemEditorSheet(
     otherBudgetPercent: Int = 0,
     predictedDayDurationMinutes: Long? = null,
     onDismiss: () -> Unit,
-    onConfirm: (String, String?, List<RelatedLink>, DayFocusType, Boolean, Int?) -> Unit,
+    onConfirm: (String, String?, List<RelatedLink>, DayFocusType, DayFocusRecurrenceIntent, Int?) -> Unit,
     onCreateDocumentForPicker: suspend (NewDocumentDraft) -> String?,
 ) {
     var title by remember(existingItem?.id) { mutableStateOf(existingItem?.title.orEmpty()) }
     var notes by remember(existingItem?.id) { mutableStateOf(existingItem?.notes.orEmpty()) }
     var selectedType by remember(existingItem?.id, initialType) { mutableStateOf(existingItem?.type ?: initialType) }
-    var isEveryday by remember(existingItem?.id) { mutableStateOf(existingItem?.isEveryday == true) }
+    val isExistingCanonicalRecurring = existingItem?.recurrenceSeriesId != null
+    var recurrenceIntent by remember(existingItem?.id) {
+        mutableStateOf<DayFocusRecurrenceIntent>(
+            if (isExistingCanonicalRecurring) {
+                DayFocusRecurrenceIntent.CurrentOccurrence
+            } else {
+                DayFocusRecurrenceIntent.OneOff
+            },
+        )
+    }
     var budgetPercentText by remember(existingItem?.id) {
         mutableStateOf(existingItem?.budgetPercent?.toString().orEmpty())
     }
@@ -156,6 +163,7 @@ fun DayFocusItemEditorSheet(
                                     FilterChip(
                                         selected = selectedType == type,
                                         onClick = { selectedType = type },
+                                        enabled = !isExistingCanonicalRecurring,
                                         label = { Text(type.title()) },
                                     )
                                 }
@@ -255,33 +263,19 @@ fun DayFocusItemEditorSheet(
                             }
                         }
                         item {
-                            Surface(
-                                shape = MaterialTheme.shapes.large,
-                                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                            ) {
-                                Row(
-                                    modifier =
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .selectable(selected = isEveryday, onClick = { isEveryday = !isEveryday })
-                                            .padding(horizontal = 12.dp, vertical = 12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                ) {
-                                    Checkbox(
-                                        checked = isEveryday,
-                                        onCheckedChange = { isEveryday = it },
-                                    )
-                                    Column {
-                                        Text("Everyday", style = MaterialTheme.typography.titleSmall)
-                                        Text(
-                                            text = "З'являтиметься в наступні дні",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
+                            DayFocusRecurrenceIntentEditor(
+                                existingCanonicalRecurring = isExistingCanonicalRecurring,
+                                intent = recurrenceIntent,
+                                onIntentChange = { nextIntent ->
+                                    recurrenceIntent = nextIntent
+                                    if (
+                                        isExistingCanonicalRecurring &&
+                                        nextIntent == DayFocusRecurrenceIntent.WholeSeries
+                                    ) {
+                                        selectedType = existingItem?.type ?: selectedType
                                     }
-                                }
-                            }
+                                },
+                            )
                         }
                     }
 
@@ -333,7 +327,7 @@ fun DayFocusItemEditorSheet(
                             notes,
                             links,
                             selectedType,
-                            isEveryday,
+                            recurrenceIntent,
                             currentBudgetPercent,
                         )
                     },

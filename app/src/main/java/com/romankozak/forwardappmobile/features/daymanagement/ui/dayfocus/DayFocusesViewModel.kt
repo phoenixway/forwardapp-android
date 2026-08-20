@@ -9,6 +9,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusItem
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusType
+import com.romankozak.forwardappmobile.data.recurrence.CanonicalFocusRecurrenceAuthoringAdapter
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DayFocusesRepository
@@ -56,6 +57,7 @@ class DayFocusesViewModel
     @Inject
     constructor(
         private val repository: DayFocusesRepository,
+        private val canonicalFocusRecurrenceAuthoringAdapter: CanonicalFocusRecurrenceAuthoringAdapter,
         private val dayManagementRepository: DayManagementRepository,
         private val contextRepository: ContextRepository,
         private val attachmentsRepository: AttachmentsRepository,
@@ -155,7 +157,7 @@ class DayFocusesViewModel
             notes: String?,
             relatedLinks: List<RelatedLink>,
             type: DayFocusType,
-            isEveryday: Boolean,
+            recurrenceIntent: DayFocusRecurrenceIntent,
             budgetPercent: Int?,
         ) {
             val trimmedTitle = title.trim()
@@ -163,34 +165,106 @@ class DayFocusesViewModel
             if (trimmedTitle.isBlank()) return
 
             viewModelScope.launch {
-                val savedItem =
-                    when (val dialogMode = dialogModeFlow.value) {
-                        is DayFocusDialogMode.Edit ->
-                            repository.updateItem(
-                                item = dialogMode.item,
-                                title = trimmedTitle,
-                                notes = notes,
-                                relatedLinks = relatedLinks,
-                                type = type,
-                                isEveryday = isEveryday,
-                                budgetPercent = budgetPercent,
-                            )
+                when (val dialogMode = dialogModeFlow.value) {
+                    is DayFocusDialogMode.Edit -> {
+                        val item = dialogMode.item
 
-                        else ->
-                            repository.addItem(
-                                dayPlanId = planId,
-                                title = trimmedTitle,
-                                notes = notes,
-                                relatedLinks = relatedLinks,
-                                type = type,
-                                order = uiState.value.items.size.toLong(),
-                                isEveryday = isEveryday,
-                                budgetPercent = budgetPercent,
-                            )
+                        if (item.recurrenceSeriesId != null) {
+                            when (recurrenceIntent) {
+                                DayFocusRecurrenceIntent.CurrentOccurrence ->
+                                    repository.updateItem(
+                                        item = item,
+                                        title = trimmedTitle,
+                                        notes = notes,
+                                        relatedLinks = relatedLinks,
+                                        type = type,
+                                        budgetPercent = budgetPercent,
+                                    )
+
+                                DayFocusRecurrenceIntent.WholeSeries ->
+                                    canonicalFocusRecurrenceAuthoringAdapter.updateSeriesTemplate(
+                                        item = item,
+                                        title = trimmedTitle,
+                                        notes = notes,
+                                        relatedLinks = relatedLinks,
+                                        budgetPercent = budgetPercent,
+                                    )
+
+                                is DayFocusRecurrenceIntent.SplitFromHere ->
+                                    canonicalFocusRecurrenceAuthoringAdapter.splitSeriesFromOccurrence(
+                                        item = item,
+                                        title = trimmedTitle,
+                                        notes = notes,
+                                        relatedLinks = relatedLinks,
+                                        budgetPercent = budgetPercent,
+                                        rule = recurrenceIntent.rule,
+                                    )
+
+                                else ->
+                                    error(
+                                        "Invalid recurrence intent $recurrenceIntent for canonical focus occurrence ${item.id}",
+                                    )
+                            }
+                        } else {
+                            when (recurrenceIntent) {
+                                DayFocusRecurrenceIntent.OneOff ->
+                                    repository.updateItem(
+                                        item = item,
+                                        title = trimmedTitle,
+                                        notes = notes,
+                                        relatedLinks = relatedLinks,
+                                        type = type,
+                                        budgetPercent = budgetPercent,
+                                    )
+
+                                is DayFocusRecurrenceIntent.CreateSeries ->
+                                    canonicalFocusRecurrenceAuthoringAdapter.convertOneOffToSeries(
+                                        item = item,
+                                        title = trimmedTitle,
+                                        notes = notes,
+                                        relatedLinks = relatedLinks,
+                                        type = type,
+                                        budgetPercent = budgetPercent,
+                                        rule = recurrenceIntent.rule,
+                                    )
+
+                                else ->
+                                    error(
+                                        "Invalid recurrence intent $recurrenceIntent while editing non-recurring focus ${item.id}",
+                                    )
+                            }
+                        }
                     }
-                if (savedItem.isEveryday) {
-                    val todayPlan = dayManagementRepository.createOrUpdateDayPlan(System.currentTimeMillis())
-                    repository.upsertEverydayItemForDayPlan(source = savedItem, targetDayPlanId = todayPlan.id)
+
+                    is DayFocusDialogMode.Create ->
+                        when (recurrenceIntent) {
+                            DayFocusRecurrenceIntent.OneOff ->
+                                repository.addItem(
+                                    dayPlanId = planId,
+                                    title = trimmedTitle,
+                                    notes = notes,
+                                    relatedLinks = relatedLinks,
+                                    type = type,
+                                    order = uiState.value.items.size.toLong(),
+                                    budgetPercent = budgetPercent,
+                                )
+
+                            is DayFocusRecurrenceIntent.CreateSeries ->
+                                canonicalFocusRecurrenceAuthoringAdapter.createSeriesForPlan(
+                                    dayPlanId = planId,
+                                    title = trimmedTitle,
+                                    notes = notes,
+                                    relatedLinks = relatedLinks,
+                                    type = type,
+                                    budgetPercent = budgetPercent,
+                                    rule = recurrenceIntent.rule,
+                                )
+
+                            else ->
+                                error("Invalid recurrence intent $recurrenceIntent while creating focus")
+                        }
+
+                    null -> Unit
                 }
                 dialogModeFlow.value = null
             }
@@ -212,7 +286,6 @@ class DayFocusesViewModel
                     relatedLinks = emptyList(),
                     type = type,
                     order = uiState.value.items.size.toLong(),
-                    isEveryday = false,
                     budgetPercent = null,
                 )
             }
@@ -228,9 +301,8 @@ class DayFocusesViewModel
 
         fun confirmDeleteEverywhere() {
             val item = pendingDeleteItemFlow.value ?: return
-            val recurringKey = item.recurringKey ?: item.id
             viewModelScope.launch {
-                repository.deleteItemEverywhere(recurringKey)
+                repository.deleteItemEverywhere(item)
                 pendingDeleteItemFlow.value = null
             }
         }

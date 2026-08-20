@@ -1,7 +1,5 @@
 package com.romankozak.forwardappmobile.data.recurrence
 
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority as AndroidTaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskStatus as AndroidTaskStatus
@@ -17,9 +15,6 @@ import com.romankozak.forwardappmobile.shared.core.models.day.DayStatus as Canon
 import com.romankozak.forwardappmobile.shared.core.models.day.DayTask as CanonicalDayTask
 import com.romankozak.forwardappmobile.shared.core.models.day.TaskPriority as CanonicalTaskPriority
 import com.romankozak.forwardappmobile.shared.core.models.day.TaskStatus as CanonicalTaskStatus
-
-private val canonicalDayGson = Gson()
-private val relatedLinkListType = object : TypeToken<List<RelatedLink>>() {}.type
 
 fun AndroidDayPlan.toCanonicalDayPlan(dayKey: String): CanonicalDayPlan =
     CanonicalDayPlan(
@@ -96,7 +91,7 @@ fun AndroidDayFocusItem.toCanonicalDayFocusItem(): CanonicalDayFocusItem =
         recurrence = toCanonicalRecurrenceOrigin(),
         title = title,
         notes = notes,
-        relatedLinks = relatedLinks.orEmpty(),
+        relatedLinks = relatedLinks.toCanonicalRelatedLinks(),
         type = CanonicalDayFocusType.valueOf(type.name),
         budgetPercent = budgetPercent,
         order = order,
@@ -146,15 +141,13 @@ fun CanonicalDayTask.toAndroidDayTask(): AndroidDayTask =
         points = points,
     )
 
-fun CanonicalDayFocusItem.toAndroidDayFocusItem(
-    gson: Gson = canonicalDayGson,
-): AndroidDayFocusItem =
+fun CanonicalDayFocusItem.toAndroidDayFocusItem(): AndroidDayFocusItem =
     AndroidDayFocusItem(
         id = id,
         dayPlanId = dayPlanId,
         title = title,
         notes = notes,
-        relatedLinks = gson.fromJson(gson.toJson(relatedLinks), relatedLinkListType),
+        relatedLinks = relatedLinks.toAndroidRelatedLinks(),
         type = AndroidDayFocusType.valueOf(type.name),
         isEveryday = false,
         recurringKey = null,

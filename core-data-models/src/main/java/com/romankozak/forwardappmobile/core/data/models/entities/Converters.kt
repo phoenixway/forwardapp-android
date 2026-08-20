@@ -82,7 +82,9 @@ class Converters {
 
     @TypeConverter
     fun fromString(value: String?): List<String>? {
-        return value?.split(pathSeparator)?.map { it.trim() }
+        if (value == null) return null
+        if (value.isEmpty()) return emptyList()
+        return value.split(pathSeparator).map { it.trim() }
     }
 
     @TypeConverter

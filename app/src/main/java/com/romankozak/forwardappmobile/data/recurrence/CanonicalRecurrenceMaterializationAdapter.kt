@@ -4,12 +4,12 @@ import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.RecurrenceMaterializationPlan
+import com.romankozak.forwardappmobile.shared.core.domain.recurrence.localDayKeyOf
 import com.romankozak.forwardappmobile.shared.core.domain.recurrence.planRecurringSeriesForDay
 import com.romankozak.forwardappmobile.shared.core.models.day.CanonicalDayDatabase
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import java.util.Calendar
-import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -316,12 +316,10 @@ class CanonicalRecurrenceMaterializationAdapter
                     timeInMillis = timestamp
                 }
 
-            return String.format(
-                Locale.ROOT,
-                "%04d-%02d-%02d",
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH) + 1,
-                calendar.get(Calendar.DAY_OF_MONTH),
+            return localDayKeyOf(
+                year = calendar.get(Calendar.YEAR),
+                month = calendar.get(Calendar.MONTH) + 1,
+                day = calendar.get(Calendar.DAY_OF_MONTH),
             )
         }
     }

@@ -50,13 +50,15 @@ internal fun TodayFocusDialogsHost(
     }
 
     dayFocusesUiState.pendingDeleteItem?.let { item ->
+        val isRecurring = item.recurrenceSeriesId != null
+
         AlertDialog(
             onDismissRequest = dayFocusesViewModel::dismissDeleteRequest,
             title = { Text("Видалити елемент?") },
             text = {
                 Text(
-                    if (item.isEveryday) {
-                        "Це everyday-фокус. Видалити його з усіх днів чи тільки з сьогодні?"
+                    if (isRecurring) {
+                        "Це повторюваний елемент. Видалити його з усіх днів чи тільки з сьогодні?"
                     } else {
                         "Видалити \"${item.title}\" зі списку фокусів дня?"
                     },
@@ -64,20 +66,20 @@ internal fun TodayFocusDialogsHost(
             },
             confirmButton = {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (item.isEveryday) {
+                    if (isRecurring) {
                         TextButton(onClick = dayFocusesViewModel::confirmDeleteCurrentOnly) {
                             Text("Лише сьогодні")
                         }
                     }
                     Button(
                         onClick =
-                            if (item.isEveryday) {
+                            if (isRecurring) {
                                 dayFocusesViewModel::confirmDeleteEverywhere
                             } else {
                                 dayFocusesViewModel::confirmDeleteCurrentOnly
                             },
                     ) {
-                        Text(if (item.isEveryday) "З усіх днів" else "Видалити")
+                        Text(if (isRecurring) "З усіх днів" else "Видалити")
                     }
                 }
             },

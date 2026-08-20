@@ -51,10 +51,12 @@ class RecurrenceDomainTest {
     @Test
     fun validatesLocalDayKeyStrictly() {
         assertEquals("2026-08-19", requireLocalDayKey("2026-08-19"))
+        assertEquals("2026-08-09", localDayKeyOf(2026, 8, 9))
 
         assertFailsWith<IllegalArgumentException> { requireLocalDayKey("2026-8-19") }
         assertFailsWith<IllegalArgumentException> { requireLocalDayKey("2026-02-30") }
         assertFailsWith<IllegalArgumentException> { requireLocalDayKey("0099-01-01") }
+        assertFailsWith<IllegalArgumentException> { localDayKeyOf(2026, 2, 30) }
     }
 
     @Test
@@ -77,6 +79,15 @@ class RecurrenceDomainTest {
                 "2026-08-17",
             ),
         )
+    }
+
+    @Test
+    fun computesPreviousLocalDayAcrossCalendarBoundaries() {
+        assertEquals("2026-08-19", previousLocalDayKey("2026-08-20"))
+        assertEquals("2026-07-31", previousLocalDayKey("2026-08-01"))
+        assertEquals("2024-02-29", previousLocalDayKey("2024-03-01"))
+        assertEquals("2023-02-28", previousLocalDayKey("2023-03-01"))
+        assertEquals("2023-12-31", previousLocalDayKey("2024-01-01"))
     }
 
     @Test
