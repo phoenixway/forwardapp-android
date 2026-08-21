@@ -19,6 +19,15 @@ interface MissionStreamDao {
     )
     fun observeActiveStreams(): Flow<List<MissionStream>>
 
+    @Query("SELECT * FROM mission_streams")
+    suspend fun getAllSync(): List<MissionStream>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(streams: List<MissionStream>)
+
+    @Query("DELETE FROM mission_streams")
+    suspend fun deleteAll()
+
     @Query("SELECT * FROM mission_streams WHERE id = :streamId LIMIT 1")
     suspend fun getById(streamId: String): MissionStream?
 

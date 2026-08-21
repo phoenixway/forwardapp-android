@@ -12,7 +12,8 @@ import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconDao
-import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
+import com.romankozak.forwardappmobile.features.mainscreen.arc.ArcQuestDao
+import com.romankozak.forwardappmobile.features.missions.data.*
 import com.romankozak.forwardappmobile.sync.SyncLogicHelper
 import com.romankozak.forwardappmobile.sync.SyncMapper.updatedTs
 import com.romankozak.forwardappmobile.sync.datasource.SyncLocalDataSource
@@ -52,9 +53,12 @@ class SyncLocalDataSourceImpl
         private val chatDao: ChatDao,
         private val conversationFolderDao: ConversationFolderDao,
         private val reminderDao: ReminderDao,
-        private val recurringTaskDao: RecurringTaskDao,
         private val contextArtifactDao: ContextArtifactDao,
         private val tacticalMissionDao: TacticalMissionDao,
+        private val tacticalIterationDao: TacticalIterationDao,
+        private val missionStreamDao: MissionStreamDao,
+        private val tacticalActivitySlotDao: TacticalActivitySlotDao,
+        private val arcQuestDao: ArcQuestDao,
         private val aiEventDao: AiEventDao,
         private val lifeSystemStateDao: LifeSystemStateDao,
         private val aiInsightDao: AiInsightDao,
@@ -104,10 +108,14 @@ class SyncLocalDataSourceImpl
                 chatMessages = chatDao.getAllMessagesSync(),
                 conversationFolders = conversationFolderDao.getAllSync(),
                 reminders = reminderDao.getAllRemindersSync(),
-                recurringTasks = recurringTaskDao.getAll(),
+                recurringTasks = emptyList(),
                 contextArtifacts = contextArtifactDao.getAllRaw(),
                 tacticalMissions = tacticalMissionDao.getAllMissionsSync(),
                 tacticalMissionAttachments = tacticalMissionDao.getAllMissionAttachmentCrossRefs(),
+                tacticalIterations = tacticalIterationDao.getAllSync(),
+                missionStreams = missionStreamDao.getAllSync(),
+                tacticalActivitySlots = tacticalActivitySlotDao.getAllSync(),
+                arcQuests = arcQuestDao.getAllSync(),
                 systemApps = systemAppDao.getAllRaw(),
                 aiEvents = aiEventDao.getAllSync(),
                 aiInsights = aiInsightDao.getAllSync(),
@@ -244,6 +252,36 @@ class SyncLocalDataSourceImpl
                         updatedAt = { it.updatedAt ?: it.createdAt },
                         isDeleted = { it.isDeleted },
                     ),
+                tacticalMissions =
+                    local.tacticalMissions.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedAt ?: it.createdAt },
+                        isDeleted = { it.isDeleted },
+                    ),
+                tacticalIterations =
+                    local.tacticalIterations.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedAt ?: it.createdAt },
+                        isDeleted = { it.isDeleted },
+                    ),
+                missionStreams =
+                    local.missionStreams.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedAt ?: it.createdAt },
+                        isDeleted = { it.isDeleted },
+                    ),
+                tacticalActivitySlots =
+                    local.tacticalActivitySlots.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedAt ?: it.createdAt },
+                        isDeleted = { it.isDeleted },
+                    ),
+                arcQuests =
+                    local.arcQuests.filterUnsynced(
+                        syncedAt = { it.syncedAt },
+                        updatedAt = { it.updatedAt ?: it.createdAt },
+                        isDeleted = { it.isDeleted },
+                    ),
             )
         }
 
@@ -272,10 +310,14 @@ class SyncLocalDataSourceImpl
                 chatMessages = local.chatMessages.filter { it.timestamp > timestamp },
                 conversationFolders = local.conversationFolders,
                 reminders = local.reminders.filter { (it.updatedAt ?: it.creationTime) > timestamp },
-                recurringTasks = local.recurringTasks,
+                recurringTasks = emptyList(),
                 contextArtifacts = local.contextArtifacts.filter { (it.updatedAt ?: it.createdAt) > timestamp },
-                tacticalMissions = local.tacticalMissions.filter { (it.startTime ?: 0L) > timestamp || it.deadline > timestamp },
+                tacticalMissions = local.tacticalMissions.filter { (it.updatedAt ?: it.createdAt) > timestamp },
                 tacticalMissionAttachments = local.tacticalMissionAttachments,
+                tacticalIterations = local.tacticalIterations.filter { (it.updatedAt ?: it.createdAt) > timestamp },
+                missionStreams = local.missionStreams.filter { (it.updatedAt ?: it.createdAt) > timestamp },
+                tacticalActivitySlots = local.tacticalActivitySlots.filter { (it.updatedAt ?: it.createdAt) > timestamp },
+                arcQuests = local.arcQuests.filter { (it.updatedAt ?: it.createdAt) > timestamp },
                 systemApps = local.systemApps.filter { (it.updatedAt ?: it.createdAt) > timestamp },
                 aiEvents = local.aiEvents.filter { it.timestamp > timestamp },
                 aiInsights = local.aiInsights.filter { it.timestamp > timestamp },
@@ -324,6 +366,11 @@ class SyncLocalDataSourceImpl
                 dayPlanDao.insertPlans(content.dayPlans.map { it.copy(syncedAt = ts) })
                 dayFocusItemDao.insertAll(content.dayFocusItems.map { it.copy(syncedAt = ts) })
                 dayTaskDao.insertTasks(content.dayTasks.map { it.copy(syncedAt = ts) })
+                tacticalMissionDao.insertMissions(content.tacticalMissions.map { it.copy(syncedAt = ts) })
+                tacticalIterationDao.insertAll(content.tacticalIterations.map { it.copy(syncedAt = ts) })
+                missionStreamDao.insertAll(content.missionStreams.map { it.copy(syncedAt = ts) })
+                tacticalActivitySlotDao.insertAll(content.tacticalActivitySlots.map { it.copy(syncedAt = ts) })
+                arcQuestDao.insertAll(content.arcQuests.map { it.copy(syncedAt = ts) })
             }
         }
 
@@ -347,10 +394,13 @@ class SyncLocalDataSourceImpl
                 chatDao.deleteAllConversations()
                 conversationFolderDao.deleteAllFolders()
                 reminderDao.deleteAll()
-                recurringTaskDao.deleteAll()
                 contextArtifactDao.deleteAll()
                 tacticalMissionDao.deleteAllMissionAttachmentCrossRefs()
                 tacticalMissionDao.deleteAllMissions()
+                tacticalActivitySlotDao.deleteAll()
+                tacticalIterationDao.deleteAll()
+                missionStreamDao.deleteAll()
+                arcQuestDao.deleteAll()
                 aiEventDao.deleteAll()
                 lifeSystemStateDao.deleteAll()
                 aiInsightDao.clearAll()

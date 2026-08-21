@@ -22,8 +22,10 @@ import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.data.DayManagementRuntimeRepository
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconDao
-import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
+import com.romankozak.forwardappmobile.features.mainscreen.arc.ArcQuestDao
+import com.romankozak.forwardappmobile.features.missions.data.*
 import com.romankozak.forwardappmobile.sync.SyncMapper
+import com.romankozak.forwardappmobile.sync.datasource.CanonicalRecurringSeriesSyncVersion
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -50,6 +52,10 @@ class FullBackupLocalDataSourceImpl
         private val chatDao: ChatDao,
         private val reminderDao: ReminderDao,
         private val tacticalMissionDao: TacticalMissionDao,
+        private val tacticalIterationDao: TacticalIterationDao,
+        private val missionStreamDao: MissionStreamDao,
+        private val tacticalActivitySlotDao: TacticalActivitySlotDao,
+        private val arcQuestDao: ArcQuestDao,
         private val aiInsightDao: AiInsightDao,
         private val dayFocusItemDao: DayFocusItemDao,
         private val lifeManagementLevelStatusDao: LifeManagementLevelStatusDao,
@@ -67,7 +73,6 @@ class FullBackupLocalDataSourceImpl
         private val activityRecordDao: ActivityRecordDao,
         private val linkItemDao: LinkItemDao,
         private val conversationFolderDao: ConversationFolderDao,
-        private val recurringTaskDao: RecurringTaskDao,
         private val canonicalRecurringSeriesDao: com.romankozak.forwardappmobile.data.dao.CanonicalRecurringSeriesDao,
         private val aiEventDao: AiEventDao,
         private val lifeSystemStateDao: LifeSystemStateDao,
@@ -80,6 +85,29 @@ class FullBackupLocalDataSourceImpl
         private val focusContextIntervalDao: FocusContextIntervalDao,
         private val userStateIntervalDao: UserStateIntervalDao,
     ) : FullBackupLocalDataSource {
+        override suspend fun loadUnsyncedCanonicalRecurringSeries() =
+            canonicalRecurringSeriesDao.getUnsyncedForSync().map { it.toSnapshot() }
+
+        override suspend fun loadCanonicalRecurringSeriesChangedSince(timestamp: Long) =
+            canonicalRecurringSeriesDao.getChangedSinceForSync(timestamp).map { it.toSnapshot() }
+
+        override suspend fun markCanonicalRecurringSeriesSynced(
+            series: List<CanonicalRecurringSeriesSyncVersion>,
+        ) {
+            if (series.isEmpty()) return
+
+            val syncedAt = System.currentTimeMillis()
+            db.withTransaction {
+                series.forEach { sent ->
+                    canonicalRecurringSeriesDao.markSyncedIfVersionMatches(
+                        seriesId = sent.id,
+                        expectedVersion = sent.version,
+                        syncedAt = syncedAt,
+                    )
+                }
+            }
+        }
+
         override suspend fun loadFullSnapshotBundle(): SnapshotBundle {
             Log.d("SyncV2", "Starting export to SnapshotBundle V2")
             return SnapshotBundle(
@@ -118,7 +146,7 @@ class FullBackupLocalDataSourceImpl
                             .dayTaskSnapshot(task, task.toSnapshot())
                     },
                 dailyMetrics = dailyMetricDao.getAll().map { it.toSnapshot() },
-                recurringTasks = recurringTaskDao.getAll().map { it.toSnapshot() },
+                recurringTasks = emptyList(),
                 recurringSeries = canonicalRecurringSeriesDao.getAllSync().map { it.toSnapshot() },
                 // AI Domain
                 conversations = chatDao.getAllConversationsSync().map { it.toSnapshot() },
@@ -137,6 +165,10 @@ class FullBackupLocalDataSourceImpl
                 // System & Tactical
                 tacticalMissions = tacticalMissionDao.getAllMissionsSync().map { it.toSnapshot() },
                 tacticalMissionAttachments = tacticalMissionDao.getAllMissionAttachmentCrossRefs().map { it.toSnapshot() },
+                tacticalIterations = tacticalIterationDao.getAllSync(),
+                missionStreams = missionStreamDao.getAllSync(),
+                tacticalActivitySlots = tacticalActivitySlotDao.getAllSync(),
+                arcQuests = arcQuestDao.getAllSync(),
                 reminders = reminderDao.getAllRemindersSync().map { it.toSnapshot() },
                 systemApps = systemAppDao.getAllRaw().map { it.toSnapshot() },
                 lifeSystemStates = lifeSystemStateDao.getAllSync().map { it.toSnapshot() },
@@ -193,6 +225,10 @@ class FullBackupLocalDataSourceImpl
                 }.map { it.toEntity() }
             Log.d("SyncV2", "Inserting TacticalMissions: ${missionsToInsert.size}")
             tacticalMissionDao.insertMissions(missionsToInsert)
+            tacticalIterationDao.insertAll(bundle.tacticalIterations)
+            missionStreamDao.insertAll(bundle.missionStreams)
+            tacticalActivitySlotDao.insertAll(bundle.tacticalActivitySlots)
+            arcQuestDao.insertAll(bundle.arcQuests)
 
             Log.d("SyncV2", "Inserting DayPlans: ${bundle.dayPlans.size}")
             dayPlanDao.insertPlans(bundle.dayPlans.map { it.toEntity() })
@@ -246,9 +282,6 @@ class FullBackupLocalDataSourceImpl
 
             Log.d("SyncV2", "Inserting Attachments: ${bundle.attachments.size}")
             attachmentDao.insertAttachments(bundle.attachments.map { it.toEntity() })
-
-            Log.d("SyncV2", "Inserting RecurringTasks: ${bundle.recurringTasks.size}")
-            recurringTaskDao.insertAll(bundle.recurringTasks.map { it.toEntity() })
 
             Log.d("SyncV2", "Inserting LifeSystemStates: ${bundle.lifeSystemStates.size}")
             lifeSystemStateDao.insertAll(bundle.lifeSystemStates.map { it.toEntity() })
@@ -331,7 +364,6 @@ class FullBackupLocalDataSourceImpl
             val validDayPlanIds = bundle.dayPlans.map { it.id }.toSet()
             val validGoalIds = bundle.goals.map { it.id }.toSet()
             val validActivityRecordIds = bundle.activityRecords.map { it.id }.toSet()
-            val validRecurringTaskIds = bundle.recurringTasks.map { it.id }.toSet()
 
             val dayTasksToInsert =
                 bundle.dayTasks.mapNotNull { taskSnapshot ->
@@ -369,14 +401,6 @@ class FullBackupLocalDataSourceImpl
                             "DayTask ${sanitizedTask.id} references non-existent ActivityRecord ${sanitizedTask.activityRecordId}. Setting activityRecordId to null.",
                         )
                         sanitizedTask = sanitizedTask.copy(activityRecordId = null)
-                    }
-
-                    if (sanitizedTask.recurringTaskId != null && sanitizedTask.recurringTaskId !in validRecurringTaskIds) {
-                        Log.w(
-                            "SyncData",
-                            "DayTask ${sanitizedTask.id} references non-existent RecurringTask ${sanitizedTask.recurringTaskId}. Setting recurringTaskId to null.",
-                        )
-                        sanitizedTask = sanitizedTask.copy(recurringTaskId = null)
                     }
 
                     sanitizedTask
@@ -451,6 +475,20 @@ class FullBackupLocalDataSourceImpl
         }
 
         override suspend fun applySnapshotBundle(bundle: SnapshotBundle) {
+            check(bundle.recurringTasks.isEmpty()) {
+                "Legacy recurrence-v1 recurringTasks payload is not supported by canonical backup restore"
+            }
+            check(
+                bundle.dayTasks.none { task ->
+                    task.recurringTaskId != null ||
+                        task.nextOccurrenceTime != null ||
+                        task.id.startsWith("recurring-task-instance-") ||
+                        (task.id.startsWith("recurrence:TASK:") && task.recurrence == null)
+                },
+            ) {
+                "Legacy recurrence-v1 DayTask payload is not supported by canonical backup restore"
+            }
+
             db.withTransaction {
                 Log.d("SyncV2", "Applying bundle V${bundle.version} in Merge Mode")
                 insertBundleData(bundle)
@@ -495,11 +533,15 @@ class FullBackupLocalDataSourceImpl
                 chatMessages = chatDao.getAllMessagesSync(),
                 conversationFolders = conversationFolderDao.getAllSync(),
                 reminders = reminderDao.getAllRemindersSync(),
-                recurringTasks = recurringTaskDao.getAll(),
+                recurringTasks = emptyList(),
                 systemApps = systemAppDao.getAllRaw(),
                 contextArtifacts = contextArtifactDao.getAllRaw(),
                 tacticalMissions = tacticalMissionDao.getAllMissionsSync(),
                 tacticalMissionAttachments = tacticalMissionDao.getAllMissionAttachmentCrossRefs(),
+                tacticalIterations = tacticalIterationDao.getAllSync(),
+                missionStreams = missionStreamDao.getAllSync(),
+                tacticalActivitySlots = tacticalActivitySlotDao.getAllSync(),
+                arcQuests = arcQuestDao.getAllSync(),
                 aiEvents = aiEventDao.getAllSync(),
                 aiInsights = aiInsightDao.getAllSync(),
                 mainBeacons = mainBeaconDao.getAllBeaconsSync(),

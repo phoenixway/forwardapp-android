@@ -14,7 +14,6 @@ import com.romankozak.forwardappmobile.data.dao.CanonicalRecurringSeriesDao
 import com.romankozak.forwardappmobile.data.dao.DayFocusItemDao
 import com.romankozak.forwardappmobile.data.dao.DayPlanDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
-import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
 import com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceSnapshotMapper
 import com.romankozak.forwardappmobile.data.recurrence.toAndroidEntity
 import com.romankozak.forwardappmobile.data.recurrence.toCanonicalSeries
@@ -717,7 +716,6 @@ class CanonicalFocusRecurrenceMergeRoomAcceptanceTest {
                     DayPlanDao::class.java -> db.dayPlanDao()
                     DayTaskDao::class.java -> db.dayTaskDao()
                     DayFocusItemDao::class.java -> db.dayFocusItemDao()
-                    RecurringTaskDao::class.java -> db.recurringTaskDao()
                     CanonicalRecurringSeriesDao::class.java -> db.canonicalRecurringSeriesDao()
                     else -> relaxedMock(parameterType)
                 }

@@ -115,7 +115,6 @@ interface CanonicalRecurringSeriesDao {
           AND version = :expectedVersion
           AND isDeleted = 0
           AND recurrenceSeriesId IS NULL
-          AND recurringTaskId IS NULL
         """,
     )
     suspend fun softDeleteTaskOneOffForConversion(
@@ -199,7 +198,6 @@ interface CanonicalRecurringSeriesDao {
           AND version = :expectedVersion
           AND recurrenceSeriesId = :seriesId
           AND recurrenceOccurrenceDayKey IS NOT NULL
-          AND recurringTaskId IS NULL
           AND isDeleted = 0
         """,
     )
@@ -219,7 +217,6 @@ interface CanonicalRecurringSeriesDao {
             version = version + 1
         WHERE recurrenceSeriesId = :seriesId
           AND recurrenceOccurrenceDayKey >= :fromDayKey
-          AND recurringTaskId IS NULL
           AND isDeleted = 0
         """,
     )
@@ -332,7 +329,6 @@ interface CanonicalRecurringSeriesDao {
         WHERE id = :taskId
           AND version = :expectedVersion
           AND recurrenceSeriesId = :seriesId
-          AND recurringTaskId IS NULL
           AND isDeleted = 0
         """,
     )
@@ -345,6 +341,27 @@ interface CanonicalRecurringSeriesDao {
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertTaskOccurrencesForSplit(tasks: List<DayTask>)
+
+    @Transaction
+    suspend fun detachCanonicalTaskOccurrence(
+        taskId: String,
+        expectedVersion: Long,
+        seriesId: String,
+        detachedTask: DayTask,
+        updatedAt: Long,
+    ) {
+        val deletedCount =
+            softDeleteTaskOccurrenceForSplit(
+                taskId = taskId,
+                expectedVersion = expectedVersion,
+                seriesId = seriesId,
+                updatedAt = updatedAt,
+            )
+        check(deletedCount == 1) {
+            "Cannot detach stale, deleted, legacy, or non-canonical task occurrence: $taskId"
+        }
+        insertTaskOccurrencesForSplit(listOf(detachedTask))
+    }
 
     @Transaction
     suspend fun splitCanonicalTaskSeries(
@@ -390,6 +407,39 @@ interface CanonicalRecurringSeriesDao {
     /** Includes tombstones because canonical recurrence state is replicated state. */
     @Query("SELECT * FROM canonical_recurring_series ORDER BY createdAt ASC, id ASC")
     suspend fun getAllSync(): List<CanonicalRecurringSeriesEntity>
+
+    @Query(
+        """
+        SELECT * FROM canonical_recurring_series
+        WHERE syncedAt IS NULL
+        ORDER BY updatedAt ASC, id ASC
+        """,
+    )
+    suspend fun getUnsyncedForSync(): List<CanonicalRecurringSeriesEntity>
+
+    @Query(
+        """
+        SELECT * FROM canonical_recurring_series
+        WHERE updatedAt > :timestamp
+        ORDER BY updatedAt ASC, id ASC
+        """,
+    )
+    suspend fun getChangedSinceForSync(timestamp: Long): List<CanonicalRecurringSeriesEntity>
+
+    @Query(
+        """
+        UPDATE canonical_recurring_series
+        SET syncedAt = :syncedAt
+        WHERE id = :seriesId
+          AND version = :expectedVersion
+          AND syncedAt IS NULL
+        """,
+    )
+    suspend fun markSyncedIfVersionMatches(
+        seriesId: String,
+        expectedVersion: Long,
+        syncedAt: Long,
+    ): Int
 
     @Query(
         """

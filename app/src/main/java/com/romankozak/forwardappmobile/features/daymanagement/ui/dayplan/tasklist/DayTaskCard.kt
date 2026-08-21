@@ -156,7 +156,7 @@ private fun RowScope.DayTaskCardContent(
                 )
             }
 
-            if (task.recurringTaskId != null) {
+            if (task.recurrenceSeriesId != null) {
                 if (task.priority != TaskPriority.NONE) {
                     Spacer(modifier = Modifier.width(8.dp))
                 }

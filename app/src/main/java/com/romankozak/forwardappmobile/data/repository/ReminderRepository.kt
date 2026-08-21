@@ -118,7 +118,7 @@ class ReminderRepository
             if (reminder != null) {
                 val isRecurringTaskReminder =
                     reminder.entityType == "TASK" &&
-                        dayManagementRepository.getTaskById(reminder.entityId)?.recurringTaskId != null
+                        dayManagementRepository.getTaskById(reminder.entityId)?.recurrenceSeriesId != null
 
                 if (isRecurringTaskReminder) {
                     val completedReminder =

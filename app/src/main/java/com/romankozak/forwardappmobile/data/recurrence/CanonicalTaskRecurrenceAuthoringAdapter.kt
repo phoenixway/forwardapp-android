@@ -49,6 +49,9 @@ class CanonicalTaskRecurrenceAuthoringAdapter
             points: Int,
             executionStrictness: TaskExecutionStrictness,
             rule: RecurrenceRule,
+            scheduledTime: Long? = null,
+            dueTime: Long? = null,
+            order: Long? = null,
         ): DayTask {
             require(title.isNotBlank()) { "Canonical recurring task title must not be blank" }
 
@@ -103,12 +106,26 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                     dayKey = materialization.dayKey,
                 )
 
-            return checkNotNull(
-                appDatabase.dayTaskDao().getByIdForCanonicalRecurrenceSync(occurrenceId),
-            ) {
-                "Canonical recurring task occurrence was not materialized: " +
-                    "$seriesId@${materialization.dayKey}"
+            val occurrence =
+                checkNotNull(
+                    appDatabase.dayTaskDao().getByIdForCanonicalRecurrenceSync(occurrenceId),
+                ) {
+                    "Canonical recurring task occurrence was not materialized: " +
+                        "$seriesId@${materialization.dayKey}"
+                }
+
+            val authoredOccurrence =
+                occurrence.copy(
+                    scheduledTime = scheduledTime,
+                    dueTime = dueTime,
+                    order = order ?: occurrence.order,
+                    updatedAt = now,
+                    syncedAt = null,
+                )
+            if (authoredOccurrence != occurrence) {
+                appDatabase.dayTaskDao().update(authoredOccurrence)
             }
+            return authoredOccurrence
         }
 
         suspend fun convertOneOffToSeries(
@@ -128,9 +145,6 @@ class CanonicalTaskRecurrenceAuthoringAdapter
         ): DayTask {
             require(task.recurrenceSeriesId == null) {
                 "Cannot convert already-canonical recurring task ${task.id}"
-            }
-            require(task.recurringTaskId == null) {
-                "Cannot treat legacy recurring task as one-off during canonical conversion: ${task.id}"
             }
             require(!task.isDeleted) {
                 "Cannot convert deleted task ${task.id}"
@@ -190,7 +204,6 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                     projectId = template.projectId,
                     linkedProjectIds = template.linkedProjectIds,
                     linkedAttachmentIds = template.linkedAttachmentIds,
-                    recurringTaskId = null,
                     recurrenceSeriesId = seriesId,
                     recurrenceOccurrenceDayKey = startDayKey,
                     recurrenceSourceSeriesVersion = series.version,
@@ -199,7 +212,6 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                     estimatedDurationMinutes = template.estimatedDurationMinutes,
                     executionStrictness = executionStrictness,
                     points = template.points,
-                    nextOccurrenceTime = null,
                     createdAt = now,
                     updatedAt = now,
                     syncedAt = null,
@@ -359,7 +371,6 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                                 projectId = nextTemplate.projectId,
                                 linkedProjectIds = nextTemplate.linkedProjectIds,
                                 linkedAttachmentIds = nextTemplate.linkedAttachmentIds,
-                                recurringTaskId = null,
                                 recurrenceSeriesId = newSeriesId,
                                 recurrenceOccurrenceDayKey = occurrenceDayKey,
                                 recurrenceSourceSeriesVersion = newSeries.version,
@@ -367,7 +378,6 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                                 priority = AndroidTaskPriority.valueOf(nextTemplate.priority.name),
                                 estimatedDurationMinutes = nextTemplate.estimatedDurationMinutes,
                                 executionStrictness = effectiveExecutionStrictness(nextTemplate),
-                                nextOccurrenceTime = null,
                                 points = nextTemplate.points,
                                 createdAt = now,
                                 updatedAt = now,
@@ -407,7 +417,6 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                                     } else {
                                         source.linkedAttachmentIds
                                     },
-                                recurringTaskId = null,
                                 recurrenceSeriesId = newSeriesId,
                                 recurrenceOccurrenceDayKey = occurrenceDayKey,
                                 recurrenceSourceSeriesVersion = newSeries.version,
@@ -431,7 +440,6 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                                     } else {
                                         source.executionStrictness
                                     },
-                                nextOccurrenceTime = null,
                                 points = if (useNewTemplate) nextTemplate.points else source.points,
                                 createdAt = now,
                                 updatedAt = now,
@@ -449,11 +457,9 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                         replacementOccurrences +=
                             source.copy(
                                 id = UUID.randomUUID().toString(),
-                                recurringTaskId = null,
                                 recurrenceSeriesId = null,
                                 recurrenceOccurrenceDayKey = null,
                                 recurrenceSourceSeriesVersion = null,
-                                nextOccurrenceTime = null,
                                 createdAt = now,
                                 updatedAt = now,
                                 syncedAt = null,
@@ -529,13 +535,11 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                     projectId = template.projectId,
                     linkedProjectIds = template.linkedProjectIds,
                     linkedAttachmentIds = template.linkedAttachmentIds,
-                    recurringTaskId = null,
                     taskType = effectiveTaskType(template),
                     priority = priority,
                     estimatedDurationMinutes = template.estimatedDurationMinutes,
                     executionStrictness = effectiveExecutionStrictness(template),
                     points = template.points,
-                    nextOccurrenceTime = null,
                     updatedAt = now,
                     syncedAt = null,
                     version = task.version + 1,
@@ -632,13 +636,11 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                         projectId = nextTemplate.projectId,
                         linkedProjectIds = nextTemplate.linkedProjectIds,
                         linkedAttachmentIds = nextTemplate.linkedAttachmentIds,
-                        recurringTaskId = null,
                         taskType = effectiveTaskType(nextTemplate),
                         priority = AndroidTaskPriority.valueOf(nextTemplate.priority.name),
                         estimatedDurationMinutes = nextTemplate.estimatedDurationMinutes,
                         executionStrictness = effectiveExecutionStrictness(nextTemplate),
                         points = nextTemplate.points,
-                        nextOccurrenceTime = null,
                         recurrenceSourceSeriesVersion = nextVersion,
                         updatedAt = now,
                         syncedAt = null,
@@ -671,9 +673,6 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                 }
             requireNotNull(task.recurrenceOccurrenceDayKey) {
                 "Canonical task has no occurrence day key: ${task.id}"
-            }
-            require(task.recurringTaskId == null) {
-                "Cannot delete legacy recurring task through canonical recurrence API: ${task.id}"
             }
             require(!task.isDeleted) {
                 "Cannot delete already-deleted canonical task occurrence ${task.id}"
@@ -715,9 +714,6 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                 requireNotNull(task.recurrenceOccurrenceDayKey) {
                     "Canonical task has no occurrence day key: ${task.id}"
                 }
-            require(task.recurringTaskId == null) {
-                "Cannot stop legacy recurring task through canonical recurrence API: ${task.id}"
-            }
             require(!task.isDeleted) {
                 "Cannot stop canonical task series from deleted occurrence ${task.id}"
             }
@@ -751,6 +747,54 @@ class CanonicalTaskRecurrenceAuthoringAdapter
                 endDayKey = previousLocalDayKey(stopDayKey),
                 updatedAt = now,
             )
+        }
+
+        suspend fun detachCurrentOccurrence(task: DayTask): DayTask {
+            val seriesId =
+                requireNotNull(task.recurrenceSeriesId) {
+                    "Cannot detach non-recurring task ${task.id} from canonical recurrence"
+                }
+            require(task.recurrenceOccurrenceDayKey != null) {
+                "Canonical task has no occurrence day key: ${task.id}"
+            }
+            require(!task.isDeleted) {
+                "Cannot detach deleted canonical task occurrence ${task.id}"
+            }
+
+            val now = System.currentTimeMillis()
+            val detached =
+                task.copy(
+                    id = UUID.randomUUID().toString(),
+                    recurrenceSeriesId = null,
+                    recurrenceOccurrenceDayKey = null,
+                    recurrenceSourceSeriesVersion = null,
+                    createdAt = now,
+                    updatedAt = now,
+                    syncedAt = null,
+                    isDeleted = false,
+                    version = 1,
+                )
+
+            appDatabase.canonicalRecurringSeriesDao().detachCanonicalTaskOccurrence(
+                taskId = task.id,
+                expectedVersion = task.version,
+                seriesId = seriesId,
+                detachedTask = detached,
+                updatedAt = now,
+            )
+            return detached
+        }
+
+        suspend fun getSeriesForOccurrence(task: DayTask): RecurringTaskSeries? {
+            val seriesId = task.recurrenceSeriesId ?: return null
+            val series =
+                appDatabase.canonicalRecurringSeriesDao().getById(seriesId)
+                    ?.toCanonicalSeries()
+                    ?: return null
+            check(series is RecurringTaskSeries) {
+                "Canonical series $seriesId is ${series.kind}, not TASK"
+            }
+            return series
         }
 
         private fun DayTask.matchesTemplate(template: RecurringTaskTemplate): Boolean =

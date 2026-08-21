@@ -53,6 +53,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionSourceType
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMissionAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.sync.RecentProjectEntry
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.activity.ActivityRecordSnapshot
@@ -378,6 +379,21 @@ fun TacticalMission.toSnapshot(): TacticalMissionSnapshot = TacticalMissionSnaps
     linkedAttachmentIds = linkedAttachmentIds,
     order = order,
     missionStreamId = missionStreamId,
+    weekKey = weekKey,
+    iterationId = iterationId,
+    carriedFromMissionId = carriedFromMissionId,
+    orderInWeek = orderInWeek,
+    orderInSlot = orderInSlot,
+    activitySlotContextId = activitySlotContextId,
+    sourceType = sourceType.name,
+    sourceContextId = sourceContextId,
+    sourceBacklogItemId = sourceBacklogItemId,
+    sourceArcQuestId = sourceArcQuestId,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    syncedAt = syncedAt,
+    isDeleted = isDeleted,
+    version = version,
 )
 fun TacticalMissionSnapshot.toEntity(): TacticalMission = TacticalMission(
     id = id,
@@ -392,6 +408,21 @@ fun TacticalMissionSnapshot.toEntity(): TacticalMission = TacticalMission(
     linkedAttachmentIds = linkedAttachmentIds,
     order = order,
     missionStreamId = missionStreamId,
+    weekKey = weekKey,
+    iterationId = iterationId,
+    carriedFromMissionId = carriedFromMissionId,
+    orderInWeek = orderInWeek,
+    orderInSlot = orderInSlot,
+    activitySlotContextId = activitySlotContextId,
+    sourceType = runCatching { enumValueOf<MissionSourceType>(sourceType) }.getOrDefault(MissionSourceType.MANUAL),
+    sourceContextId = sourceContextId,
+    sourceBacklogItemId = sourceBacklogItemId,
+    sourceArcQuestId = sourceArcQuestId,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    syncedAt = syncedAt,
+    isDeleted = isDeleted,
+    version = version,
 )
 
 fun TacticalMissionAttachmentCrossRef.toSnapshot(): TacticalMissionAttachmentCrossRefSnapshot = TacticalMissionAttachmentCrossRefSnapshot(missionId, attachmentId)

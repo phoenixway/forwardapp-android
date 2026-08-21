@@ -108,7 +108,6 @@ fun CanonicalDayTask.toAndroidDayTask(): AndroidDayTask =
         linkedProjectIds = linkedProjectIds,
         linkedAttachmentIds = linkedAttachmentIds,
         activityRecordId = activityRecordId,
-        recurringTaskId = null,
         recurrenceSeriesId = recurrence?.seriesId,
         recurrenceOccurrenceDayKey = recurrence?.occurrenceDayKey,
         recurrenceSourceSeriesVersion = recurrence?.sourceSeriesVersion,
@@ -137,7 +136,6 @@ fun CanonicalDayTask.toAndroidDayTask(): AndroidDayTask =
         isDeleted = isDeleted,
         version = version,
         completedAt = completedAt,
-        nextOccurrenceTime = null,
         points = points,
     )
 

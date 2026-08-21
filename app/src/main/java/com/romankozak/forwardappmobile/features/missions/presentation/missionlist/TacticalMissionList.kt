@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.missions.presentation.missionlist
 
+import android.util.Log
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -43,6 +44,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.tactical.Tactic
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.hasDeadline
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
 import com.romankozak.forwardappmobile.features.missions.presentation.ProjectOption
+import com.romankozak.forwardappmobile.features.missions.presentation.TACTICAL_MISSION_DEBUG_TAG
+import com.romankozak.forwardappmobile.features.missions.presentation.debugMissionIds
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.InlineTagChip
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.TagType
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.utils.TagUtils
@@ -107,9 +110,18 @@ fun TacticalMissionList(
     var isDragInProgress by remember { mutableStateOf(false) }
     var hasPendingReorder by remember { mutableStateOf(false) }
     LaunchedEffect(missions, showStatusSections) {
+        Log.d(
+            TACTICAL_MISSION_DEBUG_TAG,
+            "compose list input count=${missions.size} dragging=$isDragInProgress " +
+                "ids=${missions.debugMissionIds()}",
+        )
         if (!isDragInProgress) {
             internalMissions.clear()
             internalMissions.addAll(orderedMissions(missions, showStatusSections))
+            Log.d(
+                TACTICAL_MISSION_DEBUG_TAG,
+                "compose list applied count=${internalMissions.size} ids=${internalMissions.debugMissionIds()}",
+            )
         }
     }
     val projectNameById =

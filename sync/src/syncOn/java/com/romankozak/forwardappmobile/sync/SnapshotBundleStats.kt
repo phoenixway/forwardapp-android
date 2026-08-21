@@ -35,6 +35,10 @@ internal fun SnapshotBundle.importItemCount(): Int =
         recurringTasks.size +
         tacticalMissions.size +
         tacticalMissionAttachments.size +
+        tacticalIterations.size +
+        missionStreams.size +
+        tacticalActivitySlots.size +
+        arcQuests.size +
         aiEvents.size +
         aiInsights.size +
         mainBeacons.size +

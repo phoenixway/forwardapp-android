@@ -19,6 +19,15 @@ interface TacticalIterationDao {
     )
     fun observeIterations(): Flow<List<TacticalIteration>>
 
+    @Query("SELECT * FROM tactical_iterations")
+    suspend fun getAllSync(): List<TacticalIteration>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(iterations: List<TacticalIteration>)
+
+    @Query("DELETE FROM tactical_iterations")
+    suspend fun deleteAll()
+
     @Query(
         """
         SELECT * FROM tactical_iterations

@@ -94,12 +94,6 @@ data class DayPlan(
             childColumns = ["activityRecordId"],
             onDelete = ForeignKey.SET_NULL,
         ),
-        ForeignKey(
-            entity = RecurringTask::class,
-            parentColumns = ["id"],
-            childColumns = ["recurringTaskId"],
-            onDelete = ForeignKey.SET_NULL,
-        ),
     ],
     indices = [
         Index("dayPlanId"),
@@ -107,7 +101,6 @@ data class DayPlan(
         Index("projectId"),
         Index("activityRecordId"),
         Index("scheduledTime"),
-        Index("recurringTaskId"),
         Index(value = ["recurrenceSeriesId", "recurrenceOccurrenceDayKey"]),
     ],
 )
@@ -121,7 +114,6 @@ data class DayTask(
     @SerializedName("linkedProjectIds") val linkedProjectIds: List<String>? = emptyList(),
     @SerializedName("linkedAttachmentIds") val linkedAttachmentIds: List<String>? = emptyList(),
     @SerializedName("activityRecordId") val activityRecordId: String? = null,
-    @SerializedName("recurringTaskId") val recurringTaskId: String? = null,
     @SerializedName("recurrenceSeriesId") val recurrenceSeriesId: String? = null,
     @SerializedName("recurrenceOccurrenceDayKey") val recurrenceOccurrenceDayKey: String? = null,
     @SerializedName("recurrenceSourceSeriesVersion") val recurrenceSourceSeriesVersion: Long? = null,
@@ -150,7 +142,6 @@ data class DayTask(
     @SerializedName("isDeleted") val isDeleted: Boolean = false,
     @SerializedName("version") val version: Long = 0,
     @SerializedName("completedAt") val completedAt: Long? = null,
-    @SerializedName("nextOccurrenceTime") val nextOccurrenceTime: Long? = null,
     @ColumnInfo(defaultValue = "0") @SerializedName("points") val points: Int = 0,
 )
 

@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.mainscreen.bottompanels
 
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -49,6 +50,7 @@ import com.romankozak.forwardappmobile.features.mainscreen.bottompanels.common.B
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticsWorkspaceMode
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalPlanBacklogItem
 import com.romankozak.forwardappmobile.features.missions.presentation.TacticalMissionViewModel
+import com.romankozak.forwardappmobile.features.missions.presentation.TACTICAL_MISSION_DEBUG_TAG
 import com.romankozak.forwardappmobile.features.missions.presentation.isInCurrentIteration
 import com.romankozak.forwardappmobile.features.missions.presentation.normalizedMissionStreamId
 import java.time.DayOfWeek
@@ -94,6 +96,12 @@ fun TacticsBottomPanel(
     fun submitMission() {
         val title = inputValue.text.trim()
         if (title.isBlank()) return
+        Log.d(
+            TACTICAL_MISSION_DEBUG_TAG,
+            "composer submit titleLength=${title.length} mode=$selectedMode " +
+                "stream=$selectedMissionStreamId iteration=${activeIteration?.id} " +
+                "iterationStatus=${activeIteration?.status}",
+        )
         viewModel.addQuickMissionForCurrentStream(title)
         inputValue = TextFieldValue("")
     }

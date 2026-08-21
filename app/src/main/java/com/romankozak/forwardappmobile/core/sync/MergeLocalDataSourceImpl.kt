@@ -24,7 +24,8 @@ import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.data.DayManagementRuntimeRepository
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconDao
-import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
+import com.romankozak.forwardappmobile.features.mainscreen.arc.ArcQuestDao
+import com.romankozak.forwardappmobile.features.missions.data.*
 import com.romankozak.forwardappmobile.sync.datasource.MergeLocalDataSource
 import java.util.Calendar
 import javax.inject.Inject
@@ -48,11 +49,14 @@ class MergeLocalDataSourceImpl
         private val dailyMetricDao: DailyMetricDao,
         private val reminderDao: ReminderDao,
         private val tacticalMissionDao: TacticalMissionDao,
+        private val tacticalIterationDao: TacticalIterationDao,
+        private val missionStreamDao: MissionStreamDao,
+        private val tacticalActivitySlotDao: TacticalActivitySlotDao,
+        private val arcQuestDao: ArcQuestDao,
         private val aiInsightDao: AiInsightDao,
         private val dayFocusItemDao: DayFocusItemDao,
         private val checklistDao: ChecklistDao,
         private val conversationFolderDao: ConversationFolderDao,
-        private val recurringTaskDao: RecurringTaskDao,
         private val canonicalRecurringSeriesDao: CanonicalRecurringSeriesDao,
         private val backlogOrderDao: BacklogOrderDao,
         private val legacyNoteDao: LegacyNoteDao,
@@ -101,6 +105,10 @@ class MergeLocalDataSourceImpl
                 chatMessages = chatDao.getAllMessagesSync(),
                 reminders = reminderDao.getAllRemindersSync(),
                 tacticalMissions = tacticalMissionDao.getAllMissionsSync(),
+                tacticalIterations = tacticalIterationDao.getAllSync(),
+                missionStreams = missionStreamDao.getAllSync(),
+                tacticalActivitySlots = tacticalActivitySlotDao.getAllSync(),
+                arcQuests = arcQuestDao.getAllSync(),
                 aiInsights = aiInsightDao.getAllSync(),
                 mainBeacons = mainBeaconDao.getAllBeaconsSync(),
                 mainBeaconGroups = mainBeaconDao.getAllGroupsSync(),
@@ -274,6 +282,20 @@ class MergeLocalDataSourceImpl
                             else -> false
                         }
                     }
+            check(bundle.recurringTasks.isEmpty()) {
+                "Legacy recurrence-v1 recurringTasks payload is not supported by canonical sync"
+            }
+            check(
+                remappedDayTasks.none { task ->
+                    task.recurringTaskId != null ||
+                        task.nextOccurrenceTime != null ||
+                        task.id.startsWith("recurring-task-instance-") ||
+                        (task.id.startsWith("recurrence:TASK:") && task.recurrence == null)
+                },
+            ) {
+                "Legacy recurrence-v1 DayTask payload is not supported by canonical sync"
+            }
+
             val validGoalIds =
                 (goalDao.getAllRaw().map { goal -> goal.id } + bundle.goals.map { goal -> goal.id })
                     .toSet()
@@ -283,28 +305,10 @@ class MergeLocalDataSourceImpl
             val validActivityRecordIds =
                 (activityRecordDao.getAllRaw().map { record -> record.id } + bundle.activityRecords.map { record -> record.id })
                     .toSet()
-            val validRecurringTaskIds =
-                (recurringTaskDao.getAllSync().map { task -> task.id } + bundle.recurringTasks.map { task -> task.id })
-                    .toSet()
 
-            // A DayPlan id may be remapped during merge when the same calendar day
-            // already exists locally. A recurring occurrence keeps its incoming
-            // physical id, so blindly inserting it can create a second physical row
-            // for the same logical occurrence. Preserve the existing local physical
-            // lineage instead of silently creating an alias. This is deliberately
-            // symmetric with respect to live/tombstone state: ambiguous legacy state
-            // is contained here, not conflict-resolved.
-            val localRecurringOccurrenceIdsByLogicalKey =
-                dayTaskDao
-                    .getAllTasksSync()
-                    .mapNotNull { task ->
-                        task.recurringTaskId?.let { recurringTaskId ->
-                            (task.dayPlanId to recurringTaskId) to task.id
-                        }
-                    }.groupBy(
-                        keySelector = { it.first },
-                        valueTransform = { it.second },
-                    )
+            // Preserve one physical row for each canonical logical occurrence.
+            // Live and tombstone rows share the same (seriesId, occurrenceDayKey)
+            // identity, so this also preserves anti-resurrection semantics.
             val localCanonicalTaskOccurrenceIdsByLogicalKey =
                 dayTaskDao
                     .getAllTasksSync()
@@ -316,36 +320,19 @@ class MergeLocalDataSourceImpl
                         keySelector = { it.first },
                         valueTransform = { it.second },
                     )
-            val remappedIncomingTaskIds =
-                bundle.dayTasks
-                    .asSequence()
-                    .filter { task -> incomingPlanIdRemap.containsKey(task.dayPlanId) }
-                    .mapTo(hashSetOf()) { task -> task.id }
-
             val dayTasksToInsert =
                 remappedDayTasks
                     .filter { task -> task.dayPlanId in validPlanIds }
                     .filterNot { task ->
-                        val canonicalRecurrence = task.recurrence
-                        if (canonicalRecurrence != null) {
-                            localCanonicalTaskOccurrenceIdsByLogicalKey[
-                                canonicalRecurrence.seriesId to canonicalRecurrence.occurrenceDayKey
-                            ]?.any { localPhysicalId -> localPhysicalId != task.id } == true
-                        } else if (task.id !in remappedIncomingTaskIds) {
-                            false
-                        } else {
-                            val recurringTaskId =
-                                task.recurringTaskId?.takeIf { id -> id in validRecurringTaskIds }
-                                    ?: return@filterNot false
-                            localRecurringOccurrenceIdsByLogicalKey[task.dayPlanId to recurringTaskId]
-                                ?.any { localPhysicalId -> localPhysicalId != task.id } == true
-                        }
+                        val canonicalRecurrence = task.recurrence ?: return@filterNot false
+                        localCanonicalTaskOccurrenceIdsByLogicalKey[
+                            canonicalRecurrence.seriesId to canonicalRecurrence.occurrenceDayKey
+                        ]?.any { localPhysicalId -> localPhysicalId != task.id } == true
                     }.map { task ->
                         task.copy(
                             goalId = task.goalId?.takeIf { id -> id in validGoalIds },
                             projectId = task.projectId?.takeIf { id -> id in validContextIdsForDayTasks },
                             activityRecordId = task.activityRecordId?.takeIf { id -> id in validActivityRecordIds },
-                            recurringTaskId = task.recurringTaskId?.takeIf { id -> id in validRecurringTaskIds },
                         )
                     }
             val skippedDayTaskCount = remappedDayTasks.size - dayTasksToInsert.size
@@ -355,8 +342,6 @@ class MergeLocalDataSourceImpl
                 remappedDayTasks.count { task -> task.projectId != null && task.projectId !in validContextIdsForDayTasks }
             val clearedTaskActivityCount =
                 remappedDayTasks.count { task -> task.activityRecordId != null && task.activityRecordId !in validActivityRecordIds }
-            val clearedTaskRecurringCount =
-                remappedDayTasks.count { task -> task.recurringTaskId != null && task.recurringTaskId !in validRecurringTaskIds }
             Log.i(
                 "ForwardSync",
                     "merge snapshot version=${bundle.version} incomingPlans=${bundle.dayPlans.size} " +
@@ -365,7 +350,7 @@ class MergeLocalDataSourceImpl
                     "skippedFocus=$skippedDayFocusCount " +
                     "incomingTasks=${bundle.dayTasks.size} insertTasks=${dayTasksToInsert.size} skippedTasks=$skippedDayTaskCount " +
                     "clearedTaskFks=goal:$clearedTaskGoalCount,context:$clearedTaskContextCount," +
-                    "activity:$clearedTaskActivityCount,recurring:$clearedTaskRecurringCount " +
+                    "activity:$clearedTaskActivityCount " +
                     "runtime=${bundle.dayManagementRuntimeState != null} " +
                     "incomingPlanDates=${bundle.dayPlans.map { plan -> "${plan.id}:${plan.date}" }} " +
                     "remap=$incomingPlanIdRemap",
@@ -400,7 +385,6 @@ class MergeLocalDataSourceImpl
                             .dayFocusItemEntity(snapshot, snapshot.toEntity())
                     },
                 )
-                recurringTaskDao.insertAll(bundle.recurringTasks.map { it.toEntity() })
                 val localCanonicalSeriesById =
                     canonicalRecurringSeriesDao.getAllSync().associateBy { series -> series.id }
                 canonicalRecurringSeriesDao.insertAll(
@@ -423,6 +407,10 @@ class MergeLocalDataSourceImpl
                     tacticalMissionDao.insertMissions(missions)
                     Log.d("MergeImport", "Tactical Missions: ${missions.size} records processed during Import.")
                 }
+                tacticalIterationDao.insertAll(bundle.tacticalIterations)
+                missionStreamDao.insertAll(bundle.missionStreams)
+                tacticalActivitySlotDao.insertAll(bundle.tacticalActivitySlots)
+                arcQuestDao.insertAll(bundle.arcQuests)
 
                 listItemDao.insertItems(bundle.backlogItems.map { it.toEntity() })
                 backlogOrderDao.insertAll(bundle.backlogOrders.map { it.toEntity() })

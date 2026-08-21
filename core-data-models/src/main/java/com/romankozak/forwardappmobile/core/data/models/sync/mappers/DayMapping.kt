@@ -63,7 +63,7 @@ fun DayTask.toSnapshot(): DayTaskSnapshot = DayTaskSnapshot(
     linkedProjectIds = linkedProjectIds,
     linkedAttachmentIds = linkedAttachmentIds,
     activityRecordId = activityRecordId,
-    recurringTaskId = recurringTaskId,
+    recurringTaskId = null,
     taskType = taskType,
     entityId = entityId,
     order = order,
@@ -88,7 +88,7 @@ fun DayTask.toSnapshot(): DayTaskSnapshot = DayTaskSnapshot(
     isDeleted = isDeleted,
     version = version,
     completedAt = completedAt,
-    nextOccurrenceTime = nextOccurrenceTime,
+    nextOccurrenceTime = null,
     points = points,
 )
 
@@ -102,7 +102,6 @@ fun DayTaskSnapshot.toEntity(): DayTask = DayTask(
     linkedProjectIds = linkedProjectIds,
     linkedAttachmentIds = linkedAttachmentIds,
     activityRecordId = activityRecordId,
-    recurringTaskId = recurringTaskId,
     taskType = taskType,
     entityId = entityId,
     order = order,
@@ -127,7 +126,6 @@ fun DayTaskSnapshot.toEntity(): DayTask = DayTask(
     isDeleted = isDeleted,
     version = version,
     completedAt = completedAt,
-    nextOccurrenceTime = nextOccurrenceTime,
     points = points,
 )
 

@@ -96,8 +96,14 @@ class SyncFileService @Inject constructor(
                     "snapshotItems=${snapshotBundle?.importItemCount()}",
             )
 
+            if (snapshotBundle == null && database != null) {
+                throw IllegalArgumentException(
+                    "Legacy database-only backup is no longer supported; canonical snapshotBundle is required.",
+                )
+            }
+
             when {
-                database != null -> {
+                database != null && snapshotBundle == null -> {
                     Log.e("FullJsonImport", "applying full restore from database")
                     localDataSource.restoreDatabaseFromBackup(database)
                     Log.e("FullJsonImport", "full restore from database completed")
@@ -270,8 +276,14 @@ class SyncFileService @Inject constructor(
         val snapshotBundle = backupData.snapshotBundle
         val resolvedWorkspaceSnapshot = workspaceSnapshotResolver.resolve(normalizedJson)
 
+        if (snapshotBundle == null && (database != null || hasDatabaseContentKeys(jsonObject))) {
+            throw IllegalArgumentException(
+                "Legacy database-only backup is no longer supported; canonical snapshotBundle is required.",
+            )
+        }
+
         return when {
-            database != null -> {
+            database != null && snapshotBundle == null -> {
                 Timber.tag(tag).d("Parsed as FullAppBackup database payload. Migrating to SnapshotBundle...")
                 ResolvedImportBundle(
                     snapshotBundle = legacyMigrationMapper.toSnapshotBundle(database),

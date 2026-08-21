@@ -51,6 +51,10 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.DayManagementRuntimeStateSnapshot
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMissionAttachmentCrossRef
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStream
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalActivitySlot
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIteration
+import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestEntity
 
 data class DatabaseContent(
     @SerializedName(value = "goals", alternate = ["a"])
@@ -120,6 +124,14 @@ data class DatabaseContent(
     @SerializedName("tacticalMissionAttachments")
     val tacticalMissionAttachments: List<TacticalMissionAttachmentCrossRef> =
         emptyList(),
+    @SerializedName("tacticalIterations")
+    val tacticalIterations: List<TacticalIteration> = emptyList(),
+    @SerializedName("missionStreams")
+    val missionStreams: List<MissionStream> = emptyList(),
+    @SerializedName("tacticalActivitySlots")
+    val tacticalActivitySlots: List<TacticalActivitySlot> = emptyList(),
+    @SerializedName("arcQuests")
+    val arcQuests: List<ArcQuestEntity> = emptyList(),
     @SerializedName("aiEvents")
     val aiEvents: List<AiEventEntity> = emptyList(),
     @SerializedName("aiInsights")

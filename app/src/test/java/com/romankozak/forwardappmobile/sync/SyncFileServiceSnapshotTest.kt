@@ -268,43 +268,20 @@ class SyncFileServiceSnapshotTest {
         }
 
     @Test
-    fun `importFullBackupFromFileV2 imports legacy FullAppBackup format correctly`() =
+    fun `importFullBackupFromFileV2 rejects legacy database-only FullAppBackup`() =
         runBlocking {
             val uriString = "content://test/legacy_format"
             val jsonString = createLegacyFormatJson()
 
-            val migratedSnapshot =
-                SnapshotBundle(
-                    version = 1,
-                    contexts =
-                        listOf(
-                            ContextSnapshot(
-                                id = "legacy_c1", name = "Legacy Context", createdAt = 50L, updatedAt = 50L,
-                                isExpanded = false, isDeleted = false, version = 0, contextStatus = "NO_PLAN",
-                                contextLogLevel = null, isContextManagementEnabled = false,
-                                parentId = null, description = null, contextStatusText = null,
-                                tags = emptyList(),
-                                relatedLinks = emptyList(),
-                                order = 0,
-                                isAttachmentsExpanded = false,
-                                defaultViewModeName = null, isCompleted = false, totalTimeSpentMinutes = 0L,
-                                valueImportance = 0, valueImpact = 0, effort = 0, cost = 0, risk = 0,
-                                weightEffort = 1f, weightCost = 1f, weightRisk = 1f, rawScore = 0.0, displayScore = 0.0,
-                                scoringStatus = "NOT_ASSESSED", showCheckboxes = false, roleCode = null,
-                            ),
-                        ),
-                )
-
             every { mockContentProvider.readText(uriString) } returns Result.success(jsonString)
-            every { mockLegacyMigrationMapper.toSnapshotBundle(any<DatabaseContent>()) } returns migratedSnapshot
-            coEvery { mockMergeRepository.applyServerChanges(any<SnapshotBundle>()) } returns Result.success(Unit)
-            coEvery { mockLocalDataSource.restoreSettings(any()) } returns Unit
 
             val result = syncFileService.importFullBackupFromFileV2(uriString)
 
-            assertThat(result.isSuccess).isTrue()
-            verify(exactly = 1) { mockLegacyMigrationMapper.toSnapshotBundle(any<DatabaseContent>()) }
-            coVerify(exactly = 1) { mockMergeRepository.applyServerChanges(migratedSnapshot) }
+            assertThat(result.isFailure).isTrue()
+            assertThat(result.exceptionOrNull()?.message)
+                .contains("Legacy database-only backup is no longer supported")
+            verify(exactly = 0) { mockLegacyMigrationMapper.toSnapshotBundle(any<DatabaseContent>()) }
+            coVerify(exactly = 0) { mockMergeRepository.applyServerChanges(any<SnapshotBundle>()) }
         }
 
     @Test
@@ -330,43 +307,20 @@ class SyncFileServiceSnapshotTest {
         }
 
     @Test
-    fun `importFullBackupFromFileV2 imports raw DatabaseContent format correctly`() =
+    fun `importFullBackupFromFileV2 rejects raw DatabaseContent`() =
         runBlocking {
             val uriString = "content://test/old_dbcontent_format"
             val jsonString = createOldDatabaseContentJson()
 
-            val migratedSnapshot =
-                SnapshotBundle(
-                    version = 1,
-                    contexts =
-                        listOf(
-                            ContextSnapshot(
-                                id = "raw_c1", name = "Raw DB Content", createdAt = 20L, updatedAt = 20L,
-                                isExpanded = false, isDeleted = false, version = 0, contextStatus = "NO_PLAN",
-                                contextLogLevel = null, isContextManagementEnabled = false,
-                                parentId = null, description = null, contextStatusText = null,
-                                tags = emptyList(),
-                                relatedLinks = emptyList(),
-                                order = 0,
-                                isAttachmentsExpanded = false,
-                                defaultViewModeName = null, isCompleted = false, totalTimeSpentMinutes = 0L,
-                                valueImportance = 0, valueImpact = 0, effort = 0, cost = 0, risk = 0,
-                                weightEffort = 1f, weightCost = 1f, weightRisk = 1f, rawScore = 0.0, displayScore = 0.0,
-                                scoringStatus = "NOT_ASSESSED", showCheckboxes = false, roleCode = null,
-                            ),
-                        ),
-                )
-
             every { mockContentProvider.readText(uriString) } returns Result.success(jsonString)
-            every { mockLegacyMigrationMapper.toSnapshotBundle(any<DatabaseContent>()) } returns migratedSnapshot
-            coEvery { mockMergeRepository.applyServerChanges(any<SnapshotBundle>()) } returns Result.success(Unit)
-            coEvery { mockLocalDataSource.restoreSettings(any()) } returns Unit
 
             val result = syncFileService.importFullBackupFromFileV2(uriString)
 
-            assertThat(result.isSuccess).isTrue()
-            verify(exactly = 1) { mockLegacyMigrationMapper.toSnapshotBundle(any<DatabaseContent>()) }
-            coVerify(exactly = 1) { mockMergeRepository.applyServerChanges(migratedSnapshot) }
+            assertThat(result.isFailure).isTrue()
+            assertThat(result.exceptionOrNull()?.message)
+                .contains("Legacy database-only backup is no longer supported")
+            verify(exactly = 0) { mockLegacyMigrationMapper.toSnapshotBundle(any<DatabaseContent>()) }
+            coVerify(exactly = 0) { mockMergeRepository.applyServerChanges(any<SnapshotBundle>()) }
         }
 
     @Test

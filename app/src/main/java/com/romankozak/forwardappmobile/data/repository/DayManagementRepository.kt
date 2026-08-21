@@ -18,14 +18,12 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.NewTaskParameters
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceFrequency
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceRule
-import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurringTask
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.TaskExecutionStrictness
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.data.dao.DailyMetricDao
 import com.romankozak.forwardappmobile.data.dao.DayFocusItemDao
 import com.romankozak.forwardappmobile.data.dao.DayPlanDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
-import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
 import com.romankozak.forwardappmobile.domain.ai.events.TaskCompletedEvent
 import com.romankozak.forwardappmobile.domain.ai.events.TaskCreatedEvent
 import com.romankozak.forwardappmobile.domain.ai.events.TaskDeferredEvent
@@ -54,7 +52,6 @@ class DayManagementRepository
         private val dailyMetricDao: DailyMetricDao,
         private val goalDao: com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao,
         private val contextDao: com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao,
-        private val recurringTaskDao: RecurringTaskDao,
         private val canonicalRecurrenceMaterializationAdapter: com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceMaterializationAdapter,
         private val listItemDao: com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao,
         private val activityRepository: ActivityRepository,
@@ -77,47 +74,6 @@ class DayManagementRepository
             const val MILLIS_IN_MINUTE = 60000L
         }
 
-        private data class RecurringTaskGenerationCandidate(
-            val recurringTaskId: String,
-            val params: NewTaskParameters,
-            val hasRecurringMaster: Boolean = true,
-        )
-
-        private data class RecurringTaskTemplateData(
-            val title: String,
-            val description: String?,
-            val goalId: String?,
-            val projectId: String?,
-            val priority: TaskPriority,
-            val scheduledTime: Long?,
-            val estimatedDurationMinutes: Long?,
-            val dueTime: Long?,
-            val executionStrictness: TaskExecutionStrictness,
-            val points: Int,
-            val taskType: String,
-            val linkedProjectIds: List<String>,
-            val linkedAttachmentIds: List<String>,
-        )
-
-        data class AddRecurringTaskParams(
-            val title: String,
-            val description: String?,
-            val duration: Long?,
-            val priority: TaskPriority,
-            val recurrenceRule: RecurrenceRule,
-            val dayPlanId: String,
-            val goalId: String? = null,
-            val projectId: String? = null,
-            val taskType: String? = null,
-            val scheduledTime: Long? = null,
-            val dueTime: Long? = null,
-            val executionStrictness: TaskExecutionStrictness = TaskExecutionStrictness.NORMAL,
-            val points: Int = 0,
-            val order: Long? = null,
-            val linkedProjectIds: List<String>? = null,
-            val linkedAttachmentIds: List<String>? = null,
-        )
-
         data class UpdateTaskParams(
             val taskId: String,
             val title: String,
@@ -131,15 +87,6 @@ class DayManagementRepository
             val projectId: String? = null,
             val linkedProjectIds: List<String>? = null,
             val updateContextLinks: Boolean = false,
-        )
-
-        data class SplitRecurringTaskParams(
-            val originalTask: DayTask,
-            val newTitle: String,
-            val newDescription: String?,
-            val newPriority: TaskPriority,
-            val newDuration: Long?,
-            val points: Int,
         )
 
         @Volatile
@@ -246,13 +193,6 @@ class DayManagementRepository
                 ),
             )
         }
-        suspend fun addRecurringTask(params: AddRecurringTaskParams) {
-            android.util.Log.w(
-                "ForwardSync",
-                "legacy recurring task authoring quarantined dayPlanId=${params.dayPlanId}",
-            )
-        }
-
         suspend fun addTaskToDayPlan(params: NewTaskParameters): DayTask =
             withContext(ioDispatcher) {
                 val order =
@@ -514,76 +454,6 @@ class DayManagementRepository
             reorderTasksByPriority(task.dayPlanId)
         }
 
-        suspend fun updateRecurringTaskTemplate(
-            recurringTaskId: String,
-            title: String,
-            description: String?,
-            priority: TaskPriority,
-            duration: Long?,
-            recurrenceRule: RecurrenceRule,
-            points: Int,
-            linkedProjectIds: List<String>? = null,
-        ) = withContext(ioDispatcher) {
-            val task = recurringTaskDao.getById(recurringTaskId) ?: return@withContext
-            val updatedTask =
-                task.copy(
-                    title = title,
-                    description = description,
-                    priority = priority,
-                    duration = duration?.toInt(),
-                    recurrenceRule = recurrenceRule,
-                    points = points,
-                    linkedProjectIds = linkedProjectIds?.distinct() ?: task.linkedProjectIds,
-                )
-            recurringTaskDao.update(updatedTask)
-        }
-
-        @Transaction
-        suspend fun splitRecurringTask(params: SplitRecurringTaskParams) {
-            withContext(ioDispatcher) {
-                val recurringTaskId = params.originalTask.recurringTaskId ?: return@withContext
-                val originalRecurringTask = recurringTaskDao.getById(recurringTaskId) ?: return@withContext
-                val dayPlan = dayPlanDao.getPlanById(params.originalTask.dayPlanId) ?: return@withContext
-
-                // 1. End the old recurring task
-                val yesterday =
-                    Calendar.getInstance().apply {
-                        timeInMillis = dayPlan.date
-                        add(Calendar.DAY_OF_YEAR, -1)
-                    }.timeInMillis
-                recurringTaskDao.update(originalRecurringTask.copy(endDate = yesterday))
-
-                // 2. Create a new recurring task
-                val newRecurringTask =
-                    originalRecurringTask.copy(
-                        id = UUID.randomUUID().toString(),
-                        title = params.newTitle,
-                        description = params.newDescription,
-                        priority = params.newPriority,
-                        duration = params.newDuration?.toInt(),
-                        startDate = dayPlan.date,
-                        endDate = null,
-                        points = params.points,
-                    )
-                recurringTaskDao.insert(newRecurringTask)
-
-                // 3. Tombstone future instances of the old task so deletion can sync.
-                val futureDayPlanIds = dayPlanDao.getFutureDayPlanIds(dayPlan.date)
-                if (futureDayPlanIds.isNotEmpty()) {
-                    dayTaskDao.softDeleteTasksForDayPlanIds(
-                        recurringTaskId = recurringTaskId,
-                        dayPlanIds = futureDayPlanIds,
-                        updatedAt = System.currentTimeMillis(),
-                    )
-                }
-
-                // 4. The split starts the replacement series on this day. Materialize
-                // its current occurrence immediately instead of waiting for a later
-                // DayPlan reload or post-import generation trigger.
-                generateRecurringTasksForDate(dayPlan.date)
-            }
-        }
-
         suspend fun startTaskWithTimeTracking(taskId: String): ActivityRecord? =
             withContext(ioDispatcher) {
                 val task = dayTaskDao.getTaskById(taskId) ?: return@withContext null
@@ -733,280 +603,6 @@ class DayManagementRepository
             )
         }
 
-        private suspend fun buildFallbackRecurringTaskGenerationCandidates(
-            dayPlan: DayPlan,
-            recurringTasks: List<RecurringTask>,
-            masterCandidates: List<RecurringTaskGenerationCandidate>,
-        ): List<RecurringTaskGenerationCandidate> {
-            val allPlans = dayPlanDao.getAllPlansSync()
-            val planDatesById = allPlans.associate { plan -> plan.id to plan.date }
-            val allPlanIds = allPlans.map { plan -> plan.id }
-            val existingTodayKeys =
-                dayTaskDao.getTasksForDaySync(dayPlan.id)
-                    .flatMapTo(hashSetOf()) { task ->
-                        listOfNotNull(task.recurringKey(allPlanIds), normalizeRecurringTitle(task.title))
-                    }
-            val blockedKeys = existingTodayKeys + masterCandidates.map { candidate -> candidate.recurringTaskId }.toSet()
-            val recurringMasterIds = recurringTasks.mapTo(hashSetOf()) { task -> task.id }
-            var previousTasks = 0
-            var recurringMarkedTasks = 0
-            var nextOccurrenceOnlyTasks = 0
-            val sourcePairs =
-                dayTaskDao.getAllTasksSync()
-                    .asSequence()
-                    .filter { task -> !task.isDeleted && task.dayPlanId != dayPlan.id }
-                    .mapNotNull { task ->
-                        val sourceDay = planDatesById[task.dayPlanId] ?: return@mapNotNull null
-                        if (sourceDay >= dayPlan.date) return@mapNotNull null
-                        previousTasks += 1
-                        val key = task.recurringKey(allPlanIds) ?: return@mapNotNull null
-                        recurringMarkedTasks += 1
-                        if (task.recurringTaskId == null && task.nextOccurrenceTime != null) {
-                            nextOccurrenceOnlyTasks += 1
-                        }
-                        key to (sourceDay to task)
-                    }
-                    .toList()
-            val sourceTasks =
-                sourcePairs
-                    .groupBy({ it.first }, { it.second })
-                    .mapNotNull { (key, sources) ->
-                        if (key in blockedKeys) return@mapNotNull null
-                        val source = sources.maxWithOrNull(
-                            compareBy<Pair<Long, DayTask>> { it.first }
-                                .thenBy { it.second.updatedAt ?: it.second.createdAt },
-                        )?.second ?: return@mapNotNull null
-                        RecurringTaskGenerationCandidate(
-                            recurringTaskId = key,
-                            params =
-                                NewTaskParameters(
-                                    dayPlanId = dayPlan.id,
-                                    title = source.title,
-                                    description = source.description,
-                                    goalId = source.goalId,
-                                    projectId = source.projectId,
-                                    priority = source.priority,
-                                    scheduledTime = source.scheduledTime,
-                                    estimatedDurationMinutes = source.estimatedDurationMinutes,
-                                    dueTime = source.dueTime,
-                                    executionStrictness = source.executionStrictness,
-                                    taskType = source.taskType,
-                                    points = source.points,
-                                    linkedProjectIds = source.linkedProjectIds,
-                                    linkedAttachmentIds = source.linkedAttachmentIds,
-                                ),
-                            hasRecurringMaster = key in recurringMasterIds,
-                        )
-                    }
-                    .toList()
-            android.util.Log.i(
-                "ForwardSync",
-                "recurring fallback scan dayPlanId=${dayPlan.id} previousTasks=$previousTasks " +
-                    "marked=$recurringMarkedTasks uniqueKeys=${sourcePairs.map { it.first }.toSet().size} " +
-                    "nextOnly=$nextOccurrenceOnlyTasks candidates=${sourceTasks.size}",
-            )
-            return sourceTasks
-        }
-
-        private fun DayTask.recurringKey(allPlanIds: List<String>): String? {
-            recurringTaskId?.let { return it }
-            allPlanIds.firstNotNullOfOrNull { planId ->
-                val prefix = "recurring-task-instance-$planId-"
-                id.removePrefix(prefix).takeIf { value -> value != id && value.isNotBlank() }
-            }?.let { return it }
-            return nextOccurrenceTime?.let { "next-title-${stableTitleKey(title)}" }
-        }
-
-        private fun stableTitleKey(title: String): String =
-            java.lang.Integer.toHexString(normalizeRecurringTitle(title).hashCode())
-
-        private suspend fun findExistingRecurringTask(
-            recurringTaskId: String,
-            dayPlanId: String,
-            title: String,
-            allowSameTitleMatch: Boolean,
-        ): DayTask? {
-            val existingRecurringTask =
-                dayTaskDao.findRecurringOccurrenceForDayIncludingDeleted(
-                    recurringTaskId = recurringTaskId,
-                    dayPlanId = dayPlanId,
-                )
-            if (existingRecurringTask != null) return existingRecurringTask
-
-            val existingDeterministicTask = dayTaskDao.getTaskById(recurringTaskInstanceId(dayPlanId, recurringTaskId))
-            if (existingDeterministicTask != null) {
-                return existingDeterministicTask
-            }
-
-            if (!allowSameTitleMatch) return null
-
-            val normalizedTitle = normalizeRecurringTitle(title)
-            return dayTaskDao.getTasksForDaySync(dayPlanId).firstOrNull { task ->
-                normalizeRecurringTitle(task.title) == normalizedTitle
-            }
-        }
-
-        private fun normalizeRecurringTitle(title: String): String =
-            title
-                .trim()
-                .replace(Regex("\\s+"), " ")
-                .lowercase()
-
-        private suspend fun buildRecurringTaskGenerationCandidate(
-            recurringTask: RecurringTask,
-            date: Long,
-            dayPlanId: String,
-        ): RecurringTaskGenerationCandidate? {
-            if (!shouldGenerateTaskForDate(recurringTask, date)) return null
-
-            val existingTask =
-                dayTaskDao.findRecurringOccurrenceForDayIncludingDeleted(
-                    recurringTaskId = recurringTask.id,
-                    dayPlanId = dayPlanId,
-                )
-            if (existingTask != null) return null
-
-            val templateTask = dayTaskDao.findTemplateForRecurringTask(recurringTask.id)
-            val templateData =
-                resolveRecurringTaskTemplateData(
-                    recurringTask = recurringTask,
-                    templateTask = templateTask,
-                ) ?: return null
-            val existingSameTitleTask =
-                findExistingRecurringTask(
-                    recurringTaskId = recurringTask.id,
-                    dayPlanId = dayPlanId,
-                    title = templateData.title,
-                    allowSameTitleMatch = false,
-                )
-            if (existingSameTitleTask != null) {
-                android.util.Log.i(
-                    "ForwardSync",
-                    "recurring candidate skip existing/same-title recurringTaskId=${recurringTask.id} " +
-                        "dayPlanId=$dayPlanId taskId=${existingSameTitleTask.id} " +
-                        "existingRecurringTaskId=${existingSameTitleTask.recurringTaskId} title=${existingSameTitleTask.title}",
-                )
-                return null
-            }
-
-            return RecurringTaskGenerationCandidate(
-                recurringTaskId = recurringTask.id,
-                params =
-                    NewTaskParameters(
-                        dayPlanId = dayPlanId,
-                        title = templateData.title,
-                        description = templateData.description,
-                        goalId = templateData.goalId,
-                        projectId = templateData.projectId,
-                        priority = templateData.priority,
-                        scheduledTime = templateData.scheduledTime,
-                        estimatedDurationMinutes = templateData.estimatedDurationMinutes,
-                        dueTime = templateData.dueTime,
-                        executionStrictness = templateData.executionStrictness,
-                        taskType = templateData.taskType,
-                        points = templateData.points,
-                        linkedProjectIds = templateData.linkedProjectIds,
-                        linkedAttachmentIds = templateData.linkedAttachmentIds,
-                    ),
-            )
-        }
-
-        private suspend fun resolveRecurringTaskTemplateData(
-            recurringTask: RecurringTask,
-            templateTask: DayTask?,
-        ): RecurringTaskTemplateData? {
-            val templateGoalId = templateTask?.goalId ?: recurringTask.goalId
-            val projectId = templateTask?.projectId
-            val points = templateTask?.points ?: recurringTask.points
-            val priority = templateTask?.priority ?: recurringTask.priority
-            val scheduledTime = templateTask?.scheduledTime
-            val estimatedDurationMinutes =
-                templateTask?.estimatedDurationMinutes ?: recurringTask.duration?.toLong()
-            val dueTime = templateTask?.dueTime
-            val executionStrictness = templateTask?.executionStrictness ?: TaskExecutionStrictness.NORMAL
-            val linkedProjectIds =
-                recurringTask.linkedProjectIds
-                    ?.takeIf { it.isNotEmpty() }
-                    ?: templateTask?.linkedProjectIds.orEmpty()
-            val linkedAttachmentIds =
-                recurringTask.linkedAttachmentIds
-                    ?.takeIf { it.isNotEmpty() }
-                    ?: templateTask?.linkedAttachmentIds.orEmpty()
-            persistRecurringLinksFromTemplateIfMissing(
-                recurringTask = recurringTask,
-                linkedProjectIds = linkedProjectIds,
-                linkedAttachmentIds = linkedAttachmentIds,
-            )
-
-            val titleData =
-                if (templateGoalId != null) {
-                    goalDao.getGoalById(templateGoalId)?.let { goal ->
-                        Triple(goal.text, goal.description, goal.id)
-                    }
-                } else {
-                    Triple(
-                        templateTask?.title ?: recurringTask.title,
-                        templateTask?.description ?: recurringTask.description,
-                        null,
-                    )
-                } ?: return null
-
-            val resolvedTaskType =
-                templateTask?.taskType
-                    ?: when {
-                        titleData.third != null -> BacklogItemTypeValues.GOAL
-                        projectId != null -> BacklogItemTypeValues.SUBLIST
-                        else -> BacklogItemTypeValues.GOAL
-                    }
-
-            return RecurringTaskTemplateData(
-                title = titleData.first,
-                description = titleData.second,
-                goalId = titleData.third,
-                projectId = projectId,
-                priority = priority,
-                scheduledTime = scheduledTime,
-                estimatedDurationMinutes = estimatedDurationMinutes,
-                dueTime = dueTime,
-                executionStrictness = executionStrictness,
-                points = points,
-                taskType = resolvedTaskType,
-                linkedProjectIds = linkedProjectIds.distinct(),
-                linkedAttachmentIds = linkedAttachmentIds.distinct(),
-            )
-        }
-
-        private suspend fun persistRecurringLinksFromTemplateIfMissing(
-            recurringTask: RecurringTask,
-            linkedProjectIds: List<String>,
-            linkedAttachmentIds: List<String>,
-        ) {
-            val hasRecurringProjectLinks = !recurringTask.linkedProjectIds.isNullOrEmpty()
-            val hasRecurringAttachmentLinks = !recurringTask.linkedAttachmentIds.isNullOrEmpty()
-            if ((hasRecurringProjectLinks || linkedProjectIds.isEmpty()) &&
-                (hasRecurringAttachmentLinks || linkedAttachmentIds.isEmpty())
-            ) {
-                return
-            }
-
-            recurringTaskDao.update(
-                recurringTask.copy(
-                    linkedProjectIds =
-                        if (hasRecurringProjectLinks) {
-                            recurringTask.linkedProjectIds
-                        } else {
-                            linkedProjectIds.distinct()
-                        },
-                    linkedAttachmentIds =
-                        if (hasRecurringAttachmentLinks) {
-                            recurringTask.linkedAttachmentIds
-                        } else {
-                            linkedAttachmentIds.distinct()
-                        },
-                ),
-            )
-        }
-
         private suspend fun resolveTaskExecutionTiming(
             scheduledTime: Long?,
             dueTime: Long?,
@@ -1080,174 +676,6 @@ class DayManagementRepository
                 TaskPriority.NONE -> PRIORITY_RANK_NONE
             }
 
-        private fun shouldGenerateTaskForDate(
-            recurringTask: RecurringTask,
-            date: Long,
-        ): Boolean {
-            val calendar = Calendar.getInstance().apply { timeInMillis = date }
-            return isRecurringTaskWithinDateBounds(recurringTask, date) &&
-                matchesRecurrenceFrequency(recurringTask, calendar)
-        }
-
-        private fun isRecurringTaskWithinDateBounds(
-            recurringTask: RecurringTask,
-            date: Long,
-        ): Boolean {
-            val endDate = recurringTask.endDate
-            return date >= recurringTask.startDate && (endDate == null || date <= endDate)
-        }
-
-        private fun matchesRecurrenceFrequency(
-            recurringTask: RecurringTask,
-            calendar: Calendar,
-        ): Boolean =
-            when (recurringTask.recurrenceRule.frequency) {
-                RecurrenceFrequency.HOURLY -> true
-                RecurrenceFrequency.DAILY -> matchesDailyRecurrence(recurringTask, calendar)
-                RecurrenceFrequency.WEEKLY -> matchesWeeklyRecurrence(recurringTask, calendar)
-                RecurrenceFrequency.MONTHLY -> matchesMonthlyRecurrence(recurringTask, calendar)
-                RecurrenceFrequency.YEARLY -> matchesYearlyRecurrence(recurringTask, calendar)
-            }
-
-        private fun matchesDailyRecurrence(
-            recurringTask: RecurringTask,
-            calendar: Calendar,
-        ): Boolean {
-            val startCalendar = Calendar.getInstance().apply { timeInMillis = recurringTask.startDate }
-            val elapsedDays = calendarDayIndex(calendar) - calendarDayIndex(startCalendar)
-            val interval = recurringTask.recurrenceRule.interval.coerceAtLeast(1).toLong()
-            return elapsedDays >= 0 && elapsedDays % interval == 0L
-        }
-
-        private fun matchesWeeklyRecurrence(
-            recurringTask: RecurringTask,
-            calendar: Calendar,
-        ): Boolean {
-            val startCalendar = Calendar.getInstance().apply { timeInMillis = recurringTask.startDate }
-            val elapsedDays = calendarDayIndex(calendar) - calendarDayIndex(startCalendar)
-            if (elapsedDays < 0) return false
-
-            val interval = recurringTask.recurrenceRule.interval.coerceAtLeast(1).toLong()
-            val elapsedWeeks = elapsedDays / 7L
-            if (elapsedWeeks % interval != 0L) return false
-
-            val taskDayOfWeek = calendarDayOfWeek(calendar.get(Calendar.DAY_OF_WEEK)) ?: return false
-            val startDayOfWeek = calendarDayOfWeek(startCalendar.get(Calendar.DAY_OF_WEEK)) ?: return false
-            val scheduledDays = recurringTask.recurrenceRule.daysOfWeek
-                ?.takeIf { it.isNotEmpty() }
-                ?: listOf(startDayOfWeek)
-
-            return taskDayOfWeek in scheduledDays
-        }
-
-        private fun matchesMonthlyRecurrence(
-            recurringTask: RecurringTask,
-            calendar: Calendar,
-        ): Boolean {
-            val startCalendar = Calendar.getInstance().apply { timeInMillis = recurringTask.startDate }
-            val elapsedMonths =
-                (calendar.get(Calendar.YEAR) - startCalendar.get(Calendar.YEAR)) * 12 +
-                    calendar.get(Calendar.MONTH) - startCalendar.get(Calendar.MONTH)
-            val interval = recurringTask.recurrenceRule.interval.coerceAtLeast(1)
-
-            return elapsedMonths >= 0 &&
-                elapsedMonths % interval == 0 &&
-                calendar.get(Calendar.DAY_OF_MONTH) == startCalendar.get(Calendar.DAY_OF_MONTH)
-        }
-
-        private fun matchesYearlyRecurrence(
-            recurringTask: RecurringTask,
-            calendar: Calendar,
-        ): Boolean {
-            val startCalendar = Calendar.getInstance().apply { timeInMillis = recurringTask.startDate }
-            val elapsedYears = calendar.get(Calendar.YEAR) - startCalendar.get(Calendar.YEAR)
-            val interval = recurringTask.recurrenceRule.interval.coerceAtLeast(1)
-
-            return elapsedYears >= 0 &&
-                elapsedYears % interval == 0 &&
-                calendar.get(Calendar.MONTH) == startCalendar.get(Calendar.MONTH) &&
-                calendar.get(Calendar.DAY_OF_MONTH) == startCalendar.get(Calendar.DAY_OF_MONTH)
-        }
-
-        private fun calendarDayIndex(calendar: Calendar): Long {
-            val normalized =
-                Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC")).apply {
-                    clear()
-                    set(
-                        calendar.get(Calendar.YEAR),
-                        calendar.get(Calendar.MONTH),
-                        calendar.get(Calendar.DAY_OF_MONTH),
-                        0,
-                        0,
-                        0,
-                    )
-                    set(Calendar.MILLISECOND, 0)
-                }
-
-            return normalized.timeInMillis / 86_400_000L
-        }
-
-        private fun calendarDayOfWeek(dayOfWeek: Int): DayOfWeek? =
-            when (dayOfWeek) {
-                Calendar.MONDAY -> DayOfWeek.MONDAY
-                Calendar.TUESDAY -> DayOfWeek.TUESDAY
-                Calendar.WEDNESDAY -> DayOfWeek.WEDNESDAY
-                Calendar.THURSDAY -> DayOfWeek.THURSDAY
-                Calendar.FRIDAY -> DayOfWeek.FRIDAY
-                Calendar.SATURDAY -> DayOfWeek.SATURDAY
-                Calendar.SUNDAY -> DayOfWeek.SUNDAY
-                else -> null
-            }
-
-        suspend fun deleteAllFutureInstancesOfRecurringTask(
-            recurringTaskId: String,
-            dayPlanId: String,
-        ) {
-            withContext(ioDispatcher) {
-                val TAG = "DELETE_RECURRING_DEBUG"
-                android.util.Log.d(TAG, "Deleting future instances for recurringTaskId: $recurringTaskId, dayPlanId: $dayPlanId")
-
-                val recurringTask = recurringTaskDao.getById(recurringTaskId)
-                if (recurringTask != null) {
-                    android.util.Log.d(TAG, "Found recurringTask: $recurringTask")
-                    val dayPlan = dayPlanDao.getPlanById(dayPlanId)
-                    if (dayPlan != null) {
-                        android.util.Log.d(TAG, "Found dayPlan: $dayPlan")
-                        val yesterday =
-                            Calendar.getInstance().apply {
-                                timeInMillis = dayPlan.date
-                                add(Calendar.DAY_OF_YEAR, -1)
-                            }.timeInMillis
-                        android.util.Log.d(TAG, "Setting endDate to: $yesterday")
-                        recurringTaskDao.update(recurringTask.copy(endDate = yesterday))
-
-                        val futureDayPlanIds = dayPlanDao.getFutureDayPlanIds(dayPlan.date)
-                        android.util.Log.d(TAG, "Found future day plan IDs: $futureDayPlanIds")
-                        if (futureDayPlanIds.isNotEmpty()) {
-                            android.util.Log.d(TAG, "Tombstoning tasks for future day plans")
-                            dayTaskDao.softDeleteTasksForDayPlanIds(
-                                recurringTaskId = recurringTaskId,
-                                dayPlanIds = futureDayPlanIds,
-                                updatedAt = System.currentTimeMillis(),
-                            )
-                        } else {
-                            android.util.Log.d(TAG, "No future day plans found to tombstone tasks from.")
-                        }
-                    } else {
-                        android.util.Log.d(TAG, "Could not find dayPlan with id: $dayPlanId")
-                    }
-                } else {
-                    android.util.Log.d(TAG, "Could not find recurringTask with id: $recurringTaskId")
-                }
-            }
-        }
-
-        suspend fun getRecurringTask(id: String): RecurringTask? {
-            return withContext(ioDispatcher) {
-                recurringTaskDao.getById(id)
-            }
-        }
-
         suspend fun getTaskById(taskId: String): DayTask? {
             return withContext(ioDispatcher) {
                 dayTaskDao.getTaskById(taskId)
@@ -1266,43 +694,6 @@ class DayManagementRepository
             }
         }
 
-        @Transaction
-        suspend fun detachFromRecurrence(taskId: String) {
-            withContext(ioDispatcher) {
-                val task = dayTaskDao.getTaskById(taskId) ?: return@withContext
-                val recurringTaskId = task.recurringTaskId ?: return@withContext
-                val now = System.currentTimeMillis()
-                val occurrenceMarkerId = recurringTaskInstanceId(task.dayPlanId, recurringTaskId)
-
-                // New recurring occurrences already use this deterministic id. Older
-                // occurrences may still have a random physical id. In that case keep
-                // an explicit deleted occurrence marker so generation cannot recreate
-                // the detached logical occurrence for the same series and day.
-                if (task.id != occurrenceMarkerId && dayTaskDao.getTaskById(occurrenceMarkerId) == null) {
-                    dayTaskDao.insert(
-                        task.copy(
-                            id = occurrenceMarkerId,
-                            isDeleted = true,
-                            nextOccurrenceTime = null,
-                            updatedAt = now,
-                            syncedAt = null,
-                            version = task.version + 1,
-                        ),
-                    )
-                }
-
-                dayTaskDao.update(
-                    task.copy(
-                        recurringTaskId = null,
-                        nextOccurrenceTime = null,
-                        updatedAt = now,
-                        syncedAt = null,
-                        version = task.version + 1,
-                    ),
-                )
-            }
-        }
-
         suspend fun getHighestCompletedPointsAcrossPlans(): Int =
             withContext(ioDispatcher) {
                 cachedBestCompletedPoints
@@ -1314,15 +705,6 @@ class DayManagementRepository
         suspend fun findProjectIdForGoal(goalId: String): String? {
             return withContext(ioDispatcher) {
                 listItemDao.findContextIdForGoal(goalId)
-            }
-        }
-
-        suspend fun updateTaskNextOccurrence(
-            taskId: String,
-            nextOccurrenceTime: Long,
-        ) {
-            withContext(ioDispatcher) {
-                dayTaskDao.updateNextOccurrenceTime(taskId, nextOccurrenceTime)
             }
         }
 
@@ -1398,7 +780,3 @@ class DayManagementRepository
             }
     }
 
-private fun recurringTaskInstanceId(
-    dayPlanId: String,
-    recurringTaskId: String,
-): String = "recurring-task-instance-$dayPlanId-$recurringTaskId"

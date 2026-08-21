@@ -5,6 +5,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
 import android.os.Build
+import android.os.PowerManager
 import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
@@ -53,6 +54,8 @@ class WifiSyncServer(
     private val TAG = "WifiSyncServer"
     private val DEBUG_TAG = "FWD_SYNC_TEST"
     private var server: ApplicationEngine? = null
+    private var wifiLock: WifiManager.WifiLock? = null
+    private var wakeLock: PowerManager.WakeLock? = null
 
     private val gson: Gson by lazy {
         GsonBuilder()
@@ -136,26 +139,13 @@ class WifiSyncServer(
                                     DEBUG_TAG,
                                     "[WifiSyncServer] /export deltaSinceParam=$deltaSinceParam",
                                 )
-                                val systemKeyStats =
-                                    runCatching {
-                                        val projects =
-                                            syncRepository.createFullBackupJsonString().let { json ->
-                                                gson.fromJson(
-                                                    json,
-                                                    FullAppBackup::class.java,
-                                                ).database?.projects ?: emptyList()
-                                            }
-                                        val missing = projects.count { !SystemContexts.isSystem(ContextId(it.id)) }
-                                        val total = projects.size
-                                        "systemKeys=${total - missing}/$total"
-                                    }.getOrElse { "systemKeys=error:${it.message}" }
                                 val rawBackupJson =
                                     if (deltaSinceParam != null) {
                                         val since = deltaSinceParam.toLongOrNull()
                                         if (since != null) {
                                             Log.d(
                                                 DEBUG_TAG,
-                                                "[WifiSyncServer] Serving DELTA since=$since $systemKeyStats",
+                                                "[WifiSyncServer] Serving DELTA since=$since",
                                             )
                                             val deltaJson =
                                                 syncRepository.createDeltaBackupJsonString(since)
@@ -174,20 +164,31 @@ class WifiSyncServer(
                                     } else {
                                         Log.d(
                                             DEBUG_TAG,
-                                            "[WifiSyncServer] No deltaSince param, serving FULL export $systemKeyStats",
+                                            "[WifiSyncServer] No deltaSince param, serving FULL export",
                                         )
                                         syncRepository.createFullBackupJsonString()
                                     }
-
-                                val backupJson =
-                                    gson.toJson(
-                                        gson.fromJson(rawBackupJson, FullAppBackup::class.java)
-                                            .withLegacyRecurrenceSyncQuarantined(),
-                                    )
+                                val backup = gson.fromJson(rawBackupJson, FullAppBackup::class.java)
+                                val projects = backup.database?.projects.orEmpty()
+                                val missingSystemKeys = projects.count { !SystemContexts.isSystem(ContextId(it.id)) }
+                                val systemKeyStats = "systemKeys=${projects.size - missingSystemKeys}/${projects.size}"
+                                val backupJson = gson.toJson(backup)
+                                Log.d(DEBUG_TAG, "[WifiSyncServer] Export prepared $systemKeyStats")
+                                val tacticalMissions = backup.database?.tacticalMissions.orEmpty()
+                                Log.d(
+                                    TACTICAL_TRACE_TAG,
+                                    "android export delta=${deltaSinceParam != null} count=${tacticalMissions.size} " +
+                                        "sample=${tacticalMissions.take(TACTICAL_TRACE_SAMPLE_SIZE).map { it.id }}",
+                                )
+                                val snapshotTacticalMissions = backup.snapshotBundle?.tacticalMissions.orEmpty()
+                                Log.d(
+                                    TACTICAL_TRACE_TAG,
+                                    "android export snapshot count=${snapshotTacticalMissions.size} " +
+                                        "sample=${snapshotTacticalMissions.take(TACTICAL_TRACE_SAMPLE_SIZE).map { it.id }}",
+                                )
 
                                 // ========== DEFECT #2 DEBUG: Log attachments in export ==========
                                 try {
-                                    val backup = gson.fromJson(backupJson, FullAppBackup::class.java)
                                     val attachmentsCount = backup.database?.attachments?.size ?: 0
                                     val crossRefsCount =
                                         backup.database?.contextAttachmentCrossRefs?.size ?: 0
@@ -257,7 +258,6 @@ class WifiSyncServer(
                                 }
                                 val backup =
                                     gson.fromJson(body, FullAppBackup::class.java)
-                                        .withLegacyRecurrenceSyncQuarantined()
                                 Log.e(DAY_SYNC_IMPORT_TAG, "server received ${backup.describeDayImportPayload(body.length)}")
                                 val snapshotBundle = backup.snapshotBundle
                                 val db = backup.database
@@ -276,19 +276,16 @@ class WifiSyncServer(
                                         "snapshotRuntimePhase=${snapshotBundle?.dayManagementRuntimeState?.currentPhase} " +
                                         "snapshotRuntimeSleepAt=${snapshotBundle?.dayManagementRuntimeState?.sleepAt}",
                                 )
-                                if (snapshotBundle == null && db == null) {
+                                if (snapshotBundle == null) {
                                     return@post call.respond(
                                         HttpStatusCode.Companion.BadRequest,
-                                        "Database or snapshotBundle section is missing",
+                                        "Canonical snapshotBundle section is required",
                                     )
                                 }
 
                                 withContext(NonCancellable) {
-                                    when {
-                                        snapshotBundle != null -> syncRepository.applyServerChanges(snapshotBundle).getOrThrow()
-                                        db != null -> syncRepository.applyServerChanges(db).getOrThrow()
-                                    }
-                                    Log.i("ForwardSync", "wifi import applied; legacy recurrence generation quarantined")
+                                    syncRepository.applyServerChanges(snapshotBundle).getOrThrow()
+                                    Log.i("ForwardSync", "wifi canonical snapshot import applied")
                                     backup.settings?.settings?.let { settings ->
                                         try {
                                             settingsRepository.restoreFromMap(settings)
@@ -321,6 +318,7 @@ class WifiSyncServer(
                 }
             }
             server = engine
+            acquireBackgroundServerLocks()
 
             Log.i(TAG, "Server started successfully on $ipAddress:$port")
             Log.d(DEBUG_TAG, "[WifiSyncServer] Started at $ipAddress:$port")
@@ -341,37 +339,61 @@ class WifiSyncServer(
             Log.d(TAG, "Server stopped.")
             Log.d(DEBUG_TAG, "[WifiSyncServer] Server stopped")
         }
+        releaseBackgroundServerLocks()
     }
 
-    private fun FullAppBackup.withLegacyRecurrenceSyncQuarantined(): FullAppBackup =
-        copy(
-            database =
-                database?.let { content ->
-                    content.copy(
-                        recurringTasks = emptyList(),
-                        dayTasks =
-                            content.dayTasks.filterNot { task ->
-                                task.recurringTaskId != null ||
-                                    task.nextOccurrenceTime != null ||
-                                    task.id.startsWith("recurring-task-instance-") ||
-                                    task.id.startsWith("recurrence:TASK:")
-                            },
-                    )
-                },
-            snapshotBundle =
-                snapshotBundle?.let { bundle ->
-                    bundle.copy(
-                        recurringTasks = emptyList(),
-                        dayTasks =
-                            bundle.dayTasks.filterNot { task ->
-                                task.recurringTaskId != null ||
-                                    task.nextOccurrenceTime != null ||
-                                    task.id.startsWith("recurring-task-instance-") ||
-                                    (task.id.startsWith("recurrence:TASK:") && task.recurrence == null)
-                            },
-                    )
-                },
-        )
+    @Suppress("DEPRECATION")
+    private fun acquireBackgroundServerLocks() {
+        val appContext = context.applicationContext
+        if (wakeLock?.isHeld != true) {
+            runCatching {
+                val powerManager = appContext.getSystemService(Context.POWER_SERVICE) as PowerManager
+                wakeLock =
+                    powerManager
+                        .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "${appContext.packageName}:WifiSyncServer")
+                        .apply {
+                            setReferenceCounted(false)
+                            acquire()
+                        }
+                Log.d(DEBUG_TAG, "[WifiSyncServer] CPU wake lock acquired")
+            }.onFailure { error ->
+                Log.e(DEBUG_TAG, "[WifiSyncServer] CPU wake lock failed: ${error.message}", error)
+            }
+        }
+
+        if (wifiLock?.isHeld != true) {
+            runCatching {
+                val wifiManager = appContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+                wifiLock =
+                    wifiManager
+                        .createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "${appContext.packageName}:WifiSyncServer")
+                        .apply {
+                            setReferenceCounted(false)
+                            acquire()
+                        }
+                Log.d(DEBUG_TAG, "[WifiSyncServer] Wi-Fi high-performance lock acquired")
+            }.onFailure { error ->
+                Log.e(DEBUG_TAG, "[WifiSyncServer] Wi-Fi lock failed: ${error.message}", error)
+            }
+        }
+    }
+
+    private fun releaseBackgroundServerLocks() {
+        runCatching {
+            wifiLock?.takeIf { it.isHeld }?.release()
+        }.onFailure { error ->
+            Log.w(DEBUG_TAG, "[WifiSyncServer] Wi-Fi lock release failed: ${error.message}")
+        }
+        wifiLock = null
+
+        runCatching {
+            wakeLock?.takeIf { it.isHeld }?.release()
+        }.onFailure { error ->
+            Log.w(DEBUG_TAG, "[WifiSyncServer] CPU wake lock release failed: ${error.message}")
+        }
+        wakeLock = null
+        Log.d(DEBUG_TAG, "[WifiSyncServer] Background server locks released")
+    }
 
     private suspend fun ensureTodayRecurringTasksAfterImport() {
         val todayStart = startOfLocalDay(System.currentTimeMillis())
@@ -444,6 +466,9 @@ class WifiSyncServer(
         }
     }
 }
+
+private const val TACTICAL_TRACE_TAG = "TacticalMissionDebug"
+private const val TACTICAL_TRACE_SAMPLE_SIZE = 12
 
 private fun FullAppBackup.describeDayImportPayload(bodyLength: Int): String {
     val dbPlans = database?.dayPlans.orEmpty()

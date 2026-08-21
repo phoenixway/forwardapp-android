@@ -17,6 +17,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.SettingsContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SyncChange
 import com.romankozak.forwardappmobile.core.data.models.sync.SyncReport
 import com.romankozak.forwardappmobile.features.attachments.ui.library.AttachmentLibraryQueryResult
+import com.romankozak.forwardappmobile.sync.datasource.CanonicalRecurringSeriesSyncVersion
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import com.romankozak.forwardappmobile.sync.datasource.MergeLocalDataSource
 import com.romankozak.forwardappmobile.sync.datasource.SyncLocalDataSource
@@ -33,6 +34,9 @@ import javax.inject.Singleton
 class NoOpFullBackupLocalDataSource @Inject constructor() : FullBackupLocalDataSource {
     override suspend fun loadFullDatabaseContent(): DatabaseContent = DatabaseContent()
     override suspend fun getSettingsSnapshot(): Map<String, String> = emptyMap()
+    override suspend fun loadUnsyncedCanonicalRecurringSeries() = emptyList<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.CanonicalRecurringSeriesSnapshot>()
+    override suspend fun loadCanonicalRecurringSeriesChangedSince(timestamp: Long) = emptyList<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.CanonicalRecurringSeriesSnapshot>()
+    override suspend fun markCanonicalRecurringSeriesSynced(series: List<CanonicalRecurringSeriesSyncVersion>) { /* no-op */ }
     override suspend fun restoreDatabaseFromBackup(content: DatabaseContent) {
         Log.d("NoOpSync", "NoOpFullBackupLocalDataSource: restoreDatabaseFromBackup called")
     }

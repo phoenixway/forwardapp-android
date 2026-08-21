@@ -194,10 +194,6 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideRecurringTaskDao(appDatabase: AppDatabase) = appDatabase.recurringTaskDao()
-
-    @Provides
-    @Singleton
     fun provideCanonicalRecurringSeriesDao(appDatabase: AppDatabase) = appDatabase.canonicalRecurringSeriesDao()
 
     @Provides

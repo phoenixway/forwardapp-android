@@ -29,6 +29,15 @@ interface ArcQuestDao {
     )
     fun observeNonEmptyArcKeys(): Flow<List<String>>
 
+    @Query("SELECT * FROM arc_quests")
+    suspend fun getAllSync(): List<ArcQuestEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(quests: List<ArcQuestEntity>)
+
+    @Query("DELETE FROM arc_quests")
+    suspend fun deleteAll()
+
     @Query("SELECT * FROM arc_quests WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): ArcQuestEntity?
 

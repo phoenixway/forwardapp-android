@@ -103,8 +103,6 @@ class CanonicalTaskRecurrenceAuthoringRoomAcceptanceTest {
         assertEquals("recurrence:TASK:$seriesId:2026-08-20", created.id)
         assertEquals("2026-08-20", created.recurrenceOccurrenceDayKey)
         assertEquals(1L, created.recurrenceSourceSeriesVersion)
-        assertNull(created.recurringTaskId)
-        assertNull(created.nextOccurrenceTime)
         assertEquals("Canonical create", created.title)
         assertEquals("series description", created.description)
         assertEquals("project:alpha", created.projectId)
@@ -205,8 +203,6 @@ class CanonicalTaskRecurrenceAuthoringRoomAcceptanceTest {
         assertEquals("recurrence:TASK:$seriesId:2026-08-20", converted.id)
         assertEquals("2026-08-20", converted.recurrenceOccurrenceDayKey)
         assertEquals(1L, converted.recurrenceSourceSeriesVersion)
-        assertNull(converted.recurringTaskId)
-        assertNull(converted.nextOccurrenceTime)
         assertEquals("Converted series", converted.title)
         assertEquals("recurring description", converted.description)
         assertEquals("project:converted", converted.projectId)
@@ -411,8 +407,6 @@ class CanonicalTaskRecurrenceAuthoringRoomAcceptanceTest {
         assertEquals(seriesId, currentOnly.recurrenceSeriesId)
         assertEquals("2026-08-20", currentOnly.recurrenceOccurrenceDayKey)
         assertEquals(1L, currentOnly.recurrenceSourceSeriesVersion)
-        assertNull(currentOnly.recurringTaskId)
-        assertNull(currentOnly.nextOccurrenceTime)
 
         val seriesAfterCurrentEdit =
             db.canonicalRecurringSeriesDao()
@@ -616,8 +610,6 @@ class CanonicalTaskRecurrenceAuthoringRoomAcceptanceTest {
         assertEquals(TaskPriority.HIGH, splitResult.priority)
         assertEquals(45L, splitResult.estimatedDurationMinutes)
         assertEquals(11, splitResult.points)
-        assertNull(splitResult.recurringTaskId)
-        assertNull(splitResult.nextOccurrenceTime)
 
         val oldSeries =
             requireNotNull(db.canonicalRecurringSeriesDao().getById(oldSeriesId))
@@ -679,8 +671,6 @@ class CanonicalTaskRecurrenceAuthoringRoomAcceptanceTest {
         assertNull(detached23.recurrenceSeriesId)
         assertNull(detached23.recurrenceOccurrenceDayKey)
         assertNull(detached23.recurrenceSourceSeriesVersion)
-        assertNull(detached23.recurringTaskId)
-        assertNull(detached23.nextOccurrenceTime)
         assertEquals("detach me", detached23.notes)
         assertEquals(
             requireNotNull(days[23]) + 9L * 60L * 60L * 1_000L,
@@ -889,8 +879,6 @@ class CanonicalTaskRecurrenceAuthoringRoomAcceptanceTest {
             assertTrue(tombstone.isDeleted)
             assertEquals(seriesId, tombstone.recurrenceSeriesId)
             assertEquals(dayKey, tombstone.recurrenceOccurrenceDayKey)
-            assertNull(tombstone.recurringTaskId)
-            assertNull(tombstone.nextOccurrenceTime)
         }
 
         for (day in 21..23) {

@@ -19,6 +19,15 @@ interface TacticalActivitySlotDao {
     )
     fun observeSlots(): Flow<List<TacticalActivitySlot>>
 
+    @Query("SELECT * FROM tactical_activity_slots")
+    suspend fun getAllSync(): List<TacticalActivitySlot>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(slots: List<TacticalActivitySlot>)
+
+    @Query("DELETE FROM tactical_activity_slots")
+    suspend fun deleteAll()
+
     @Query("SELECT * FROM tactical_activity_slots WHERE context_id = :contextId AND is_deleted = 0 LIMIT 1")
     suspend fun getActiveSlotForContext(contextId: String): TacticalActivitySlot?
 

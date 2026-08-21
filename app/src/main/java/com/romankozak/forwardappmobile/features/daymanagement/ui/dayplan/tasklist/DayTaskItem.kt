@@ -104,11 +104,10 @@ fun DayTaskAsSublistItem(
 
 private fun hasStatusContent(task: DayTask): Boolean {
     return (task.priority != TaskPriority.NONE) ||
-        (task.nextOccurrenceTime != null) ||
         (!task.description.isNullOrBlank()) ||
         (task.goalId != null) ||
         (task.projectId != null) ||
-        (task.recurringTaskId != null)
+        (task.recurrenceSeriesId != null)
 }
 
 @Composable
@@ -117,20 +116,13 @@ private fun RenderBadges(
     currentTimeMillis: Long,
     reminder: Reminder?,
 ) {
-    if (task.recurringTaskId != null) {
+    if (task.recurrenceSeriesId != null) {
         Icon(
             imageVector = Icons.Default.Repeat,
             contentDescription = "Повторюване завдання",
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(18.dp),
         )
-    }
-    task.nextOccurrenceTime?.let { time ->
-        if (time > currentTimeMillis) {
-            val formatter = SimpleDateFormat("HH:mm", Locale.getDefault())
-            val nextTime = formatter.format(Date(time))
-            Text("Наступне о $nextTime", style = MaterialTheme.typography.labelSmall)
-        }
     }
     reminder?.let {
         ReminderBadge(

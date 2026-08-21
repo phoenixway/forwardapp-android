@@ -9,12 +9,12 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusType
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
-import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurringTask
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toSnapshot
+import com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceSnapshotMapper
 import com.romankozak.forwardappmobile.data.dao.DayFocusItemDao
 import com.romankozak.forwardappmobile.data.dao.DayPlanDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
-import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
 import com.romankozak.forwardappmobile.database.AppDatabase
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -63,7 +63,9 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
                 dayPlanId = localPlanId,
                 title = "Recurring task",
                 priority = TaskPriority.MEDIUM,
-                recurringTaskId = recurringTaskId,
+                recurrenceSeriesId = recurringTaskId,
+                recurrenceOccurrenceDayKey = "logical-day",
+                recurrenceSourceSeriesVersion = 1,
                 isDeleted = true,
                 createdAt = 2_000L,
                 updatedAt = 3_000L,
@@ -76,7 +78,9 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
                 dayPlanId = incomingPlanId,
                 title = "Recurring task",
                 priority = TaskPriority.MEDIUM,
-                recurringTaskId = recurringTaskId,
+                recurrenceSeriesId = recurringTaskId,
+                recurrenceOccurrenceDayKey = "logical-day",
+                recurrenceSourceSeriesVersion = 1,
                 isDeleted = false,
                 createdAt = 4_000L,
                 updatedAt = 4_000L,
@@ -87,14 +91,10 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
         val db = mockk<AppDatabase>(relaxed = true)
         val dayPlanDao = mockk<DayPlanDao>(relaxed = true)
         val dayTaskDao = mockk<DayTaskDao>(relaxed = true)
-        val recurringTaskDao = mockk<RecurringTaskDao>(relaxed = true)
-        val recurringTask = mockk<RecurringTask>(relaxed = true)
-        everyRecurringTaskId(recurringTask, recurringTaskId)
 
         coEvery { dayPlanDao.getPlanForDateSync(any()) } returns localPlan
         coEvery { dayPlanDao.getAllPlansSync() } returns listOf(localPlan)
         coEvery { dayTaskDao.getAllTasksSync() } returns listOf(localTombstone)
-        coEvery { recurringTaskDao.getAllSync() } returns listOf(recurringTask)
 
         val insertedTasks = slot<List<DayTask>>()
         coEvery { dayTaskDao.insertTasks(capture(insertedTasks)) } returns Unit
@@ -111,7 +111,6 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
                     db = db,
                     dayPlanDao = dayPlanDao,
                     dayTaskDao = dayTaskDao,
-                    recurringTaskDao = recurringTaskDao,
                 )
 
             val gson = Gson()
@@ -121,7 +120,7 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
                     {
                       "version": 2,
                       "dayPlans": [${gson.toJson(incomingPlan)}],
-                      "dayTasks": [${gson.toJson(incomingLiveAlias)}]
+                      "dayTasks": [${gson.toJson(CanonicalRecurrenceSnapshotMapper.dayTaskSnapshot(incomingLiveAlias, incomingLiveAlias.toSnapshot()))}]
                     }
                     """.trimIndent(),
                     SnapshotBundle::class.java,
@@ -173,7 +172,9 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
                 dayPlanId = localPlanId,
                 title = "Recurring task",
                 priority = TaskPriority.MEDIUM,
-                recurringTaskId = recurringTaskId,
+                recurrenceSeriesId = recurringTaskId,
+                recurrenceOccurrenceDayKey = "logical-day",
+                recurrenceSourceSeriesVersion = 1,
                 isDeleted = false,
                 createdAt = 2_000L,
                 updatedAt = 3_000L,
@@ -186,7 +187,9 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
                 dayPlanId = incomingPlanId,
                 title = "Recurring task",
                 priority = TaskPriority.MEDIUM,
-                recurringTaskId = recurringTaskId,
+                recurrenceSeriesId = recurringTaskId,
+                recurrenceOccurrenceDayKey = "logical-day",
+                recurrenceSourceSeriesVersion = 1,
                 isDeleted = true,
                 createdAt = 4_000L,
                 updatedAt = 4_000L,
@@ -197,14 +200,10 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
         val db = mockk<AppDatabase>(relaxed = true)
         val dayPlanDao = mockk<DayPlanDao>(relaxed = true)
         val dayTaskDao = mockk<DayTaskDao>(relaxed = true)
-        val recurringTaskDao = mockk<RecurringTaskDao>(relaxed = true)
-        val recurringTask = mockk<RecurringTask>(relaxed = true)
-        everyRecurringTaskId(recurringTask, recurringTaskId)
 
         coEvery { dayPlanDao.getPlanForDateSync(any()) } returns localPlan
         coEvery { dayPlanDao.getAllPlansSync() } returns listOf(localPlan)
         coEvery { dayTaskDao.getAllTasksSync() } returns listOf(localLive)
-        coEvery { recurringTaskDao.getAllSync() } returns listOf(recurringTask)
 
         val insertedTasks = slot<List<DayTask>>()
         coEvery { dayTaskDao.insertTasks(capture(insertedTasks)) } returns Unit
@@ -221,7 +220,6 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
                     db = db,
                     dayPlanDao = dayPlanDao,
                     dayTaskDao = dayTaskDao,
-                    recurringTaskDao = recurringTaskDao,
                 )
 
             val gson = Gson()
@@ -231,7 +229,7 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
                     {
                       "version": 2,
                       "dayPlans": [${gson.toJson(incomingPlan)}],
-                      "dayTasks": [${gson.toJson(incomingTombstoneAlias)}]
+                      "dayTasks": [${gson.toJson(CanonicalRecurrenceSnapshotMapper.dayTaskSnapshot(incomingTombstoneAlias, incomingTombstoneAlias.toSnapshot()))}]
                     }
                     """.trimIndent(),
                     SnapshotBundle::class.java,
@@ -282,7 +280,9 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
                 dayPlanId = localPlanId,
                 title = "Series A",
                 priority = TaskPriority.MEDIUM,
-                recurringTaskId = "series-a",
+                recurrenceSeriesId = "series-a",
+                recurrenceOccurrenceDayKey = "logical-day",
+                recurrenceSourceSeriesVersion = 1,
                 isDeleted = true,
                 createdAt = 2_000L,
                 updatedAt = 3_000L,
@@ -295,7 +295,9 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
                 dayPlanId = incomingPlanId,
                 title = "Series B",
                 priority = TaskPriority.MEDIUM,
-                recurringTaskId = "series-b",
+                recurrenceSeriesId = "series-b",
+                recurrenceOccurrenceDayKey = "logical-day",
+                recurrenceSourceSeriesVersion = 1,
                 isDeleted = false,
                 createdAt = 4_000L,
                 updatedAt = 4_000L,
@@ -306,16 +308,10 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
         val db = mockk<AppDatabase>(relaxed = true)
         val dayPlanDao = mockk<DayPlanDao>(relaxed = true)
         val dayTaskDao = mockk<DayTaskDao>(relaxed = true)
-        val recurringTaskDao = mockk<RecurringTaskDao>(relaxed = true)
-        val seriesA = mockk<RecurringTask>(relaxed = true)
-        val seriesB = mockk<RecurringTask>(relaxed = true)
-        everyRecurringTaskId(seriesA, "series-a")
-        everyRecurringTaskId(seriesB, "series-b")
 
         coEvery { dayPlanDao.getPlanForDateSync(any()) } returns localPlan
         coEvery { dayPlanDao.getAllPlansSync() } returns listOf(localPlan)
         coEvery { dayTaskDao.getAllTasksSync() } returns listOf(localTombstone)
-        coEvery { recurringTaskDao.getAllSync() } returns listOf(seriesA, seriesB)
 
         val insertedTasks = slot<List<DayTask>>()
         coEvery { dayTaskDao.insertTasks(capture(insertedTasks)) } returns Unit
@@ -332,7 +328,6 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
                     db = db,
                     dayPlanDao = dayPlanDao,
                     dayTaskDao = dayTaskDao,
-                    recurringTaskDao = recurringTaskDao,
                 )
 
             val gson = Gson()
@@ -342,7 +337,7 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
                     {
                       "version": 2,
                       "dayPlans": [${gson.toJson(incomingPlan)}],
-                      "dayTasks": [${gson.toJson(incomingDifferentSeries)}]
+                      "dayTasks": [${gson.toJson(CanonicalRecurrenceSnapshotMapper.dayTaskSnapshot(incomingDifferentSeries, incomingDifferentSeries.toSnapshot()))}]
                     }
                     """.trimIndent(),
                     SnapshotBundle::class.java,
@@ -430,13 +425,11 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
         val db = mockk<AppDatabase>(relaxed = true)
         val dayPlanDao = mockk<DayPlanDao>(relaxed = true)
         val dayTaskDao = mockk<DayTaskDao>(relaxed = true)
-        val recurringTaskDao = mockk<RecurringTaskDao>(relaxed = true)
         val dayFocusItemDao = mockk<DayFocusItemDao>(relaxed = true)
 
         coEvery { dayPlanDao.getPlanForDateSync(any()) } returns localPlan
         coEvery { dayPlanDao.getAllPlansSync() } returns listOf(localPlan)
         coEvery { dayTaskDao.getAllTasksSync() } returns emptyList()
-        coEvery { recurringTaskDao.getAllSync() } returns emptyList()
         coEvery { dayFocusItemDao.getAllSync() } returns listOf(localTombstone)
 
         val insertedFocusItems = slot<List<DayFocusItem>>()
@@ -454,7 +447,6 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
                     db = db,
                     dayPlanDao = dayPlanDao,
                     dayTaskDao = dayTaskDao,
-                    recurringTaskDao = recurringTaskDao,
                     dayFocusItemDao = dayFocusItemDao,
                 )
 
@@ -532,13 +524,11 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
         val db = mockk<AppDatabase>(relaxed = true)
         val dayPlanDao = mockk<DayPlanDao>(relaxed = true)
         val dayTaskDao = mockk<DayTaskDao>(relaxed = true)
-        val recurringTaskDao = mockk<RecurringTaskDao>(relaxed = true)
         val dayFocusItemDao = mockk<DayFocusItemDao>(relaxed = true)
 
         coEvery { dayPlanDao.getPlanForDateSync(any()) } returns localPlan
         coEvery { dayPlanDao.getAllPlansSync() } returns listOf(localPlan)
         coEvery { dayTaskDao.getAllTasksSync() } returns emptyList()
-        coEvery { recurringTaskDao.getAllSync() } returns emptyList()
         coEvery { dayFocusItemDao.getAllSync() } returns listOf(localLive)
 
         val insertedFocusItems = slot<List<DayFocusItem>>()
@@ -556,7 +546,6 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
                     db = db,
                     dayPlanDao = dayPlanDao,
                     dayTaskDao = dayTaskDao,
-                    recurringTaskDao = recurringTaskDao,
                     dayFocusItemDao = dayFocusItemDao,
                 )
 
@@ -635,13 +624,11 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
         val db = mockk<AppDatabase>(relaxed = true)
         val dayPlanDao = mockk<DayPlanDao>(relaxed = true)
         val dayTaskDao = mockk<DayTaskDao>(relaxed = true)
-        val recurringTaskDao = mockk<RecurringTaskDao>(relaxed = true)
         val dayFocusItemDao = mockk<DayFocusItemDao>(relaxed = true)
 
         coEvery { dayPlanDao.getPlanForDateSync(any()) } returns localPlan
         coEvery { dayPlanDao.getAllPlansSync() } returns listOf(localPlan)
         coEvery { dayTaskDao.getAllTasksSync() } returns emptyList()
-        coEvery { recurringTaskDao.getAllSync() } returns emptyList()
         coEvery { dayFocusItemDao.getAllSync() } returns listOf(localTombstone)
 
         val insertedFocusItems = slot<List<DayFocusItem>>()
@@ -659,7 +646,6 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
                     db = db,
                     dayPlanDao = dayPlanDao,
                     dayTaskDao = dayTaskDao,
-                    recurringTaskDao = recurringTaskDao,
                     dayFocusItemDao = dayFocusItemDao,
                 )
 
@@ -688,99 +674,10 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
             .isEqualTo(localPlanId)
     }
 
-    @Test
-    fun `snapshot merge imports deleted recurring master as stopped without changing its rule`() = runTest {
-        val startDate = 1_786_654_800_000L
-        val db = mockk<AppDatabase>(relaxed = true)
-        val dayPlanDao = mockk<DayPlanDao>(relaxed = true)
-        val dayTaskDao = mockk<DayTaskDao>(relaxed = true)
-        val recurringTaskDao = mockk<RecurringTaskDao>(relaxed = true)
-
-        coEvery { dayPlanDao.getAllPlansSync() } returns emptyList()
-        coEvery { dayTaskDao.getAllTasksSync() } returns emptyList()
-        coEvery { recurringTaskDao.getAllSync() } returns emptyList()
-
-        val insertedRecurringTasks = slot<List<RecurringTask>>()
-        coEvery { recurringTaskDao.insertAll(capture(insertedRecurringTasks)) } returns Unit
-
-        val transactionBlock = slot<suspend () -> Unit>()
-        mockkStatic("androidx.room.RoomDatabaseKt")
-        try {
-            coEvery { db.withTransaction<Unit>(capture(transactionBlock)) } coAnswers {
-                transactionBlock.captured.invoke()
-            }
-
-            val subject =
-                createSubject(
-                    db = db,
-                    dayPlanDao = dayPlanDao,
-                    dayTaskDao = dayTaskDao,
-                    recurringTaskDao = recurringTaskDao,
-                )
-
-            val incomingBundle =
-                Gson().fromJson(
-                    """
-                    {
-                      "version": 2,
-                      "recurringTasks": [
-                        {
-                          "id": "deleted-series-import",
-                          "title": "Stopped weekly task",
-                          "description": "",
-                          "goalId": null,
-                          "linkedProjectIds": [],
-                          "linkedAttachmentIds": [],
-                          "duration": null,
-                          "priority": "MEDIUM",
-                          "points": 0,
-                          "recurrenceRule": {
-                            "frequency": "WEEKLY",
-                            "interval": 2,
-                            "daysOfWeek": ["MONDAY", "THURSDAY"]
-                          },
-                          "startDate": $startDate,
-                          "endDate": null,
-                          "isDeleted": true,
-                          "updatedAt": 1786787312144,
-                          "syncedAt": null,
-                          "version": 4
-                        }
-                      ]
-                    }
-                    """.trimIndent(),
-                    SnapshotBundle::class.java,
-                )
-
-            subject.applySnapshotBundle(incomingBundle)
-        } finally {
-            unmockkStatic("androidx.room.RoomDatabaseKt")
-        }
-
-        assertThat(insertedRecurringTasks.isCaptured).isTrue()
-        val inserted = insertedRecurringTasks.captured.single()
-        assertThat(inserted.id).isEqualTo("deleted-series-import")
-        assertThat(inserted.endDate).isNotNull()
-        assertThat(inserted.endDate!!).isLessThan(inserted.startDate)
-        assertThat(inserted.recurrenceRule.frequency.name).isEqualTo("WEEKLY")
-        assertThat(inserted.recurrenceRule.interval).isEqualTo(2)
-        assertThat(inserted.recurrenceRule.daysOfWeek?.map { it.name })
-            .containsExactly("MONDAY", "THURSDAY")
-            .inOrder()
-    }
-
-    private fun everyRecurringTaskId(
-        recurringTask: RecurringTask,
-        recurringTaskId: String,
-    ) {
-        io.mockk.every { recurringTask.id } returns recurringTaskId
-    }
-
     private fun createSubject(
         db: AppDatabase,
         dayPlanDao: DayPlanDao,
         dayTaskDao: DayTaskDao,
-        recurringTaskDao: RecurringTaskDao,
         dayFocusItemDao: DayFocusItemDao? = null,
     ): MergeLocalDataSourceImpl {
         val constructor = MergeLocalDataSourceImpl::class.java.declaredConstructors.single()
@@ -791,7 +688,6 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
                     AppDatabase::class.java -> db
                     DayPlanDao::class.java -> dayPlanDao
                     DayTaskDao::class.java -> dayTaskDao
-                    RecurringTaskDao::class.java -> recurringTaskDao
                     DayFocusItemDao::class.java -> dayFocusItemDao ?: relaxedMock(parameterType)
                     else -> relaxedMock(parameterType)
                 }

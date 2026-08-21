@@ -14,6 +14,10 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachmen
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.reminders.ReminderSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.tactical.tactical.TacticalMissionAttachmentCrossRefSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.tactical.tactical.TacticalMissionSnapshot
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStream
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalActivitySlot
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIteration
+import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextArtifactSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.ContextAttachmentCrossRefSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.NoteDocumentSnapshot
@@ -100,6 +104,10 @@ data class SnapshotBundle(
     @SerializedName("recurringSeries") val recurringSeries: List<CanonicalRecurringSeriesSnapshot> = emptyList(),
     @SerializedName("tacticalMissions") val tacticalMissions: List<TacticalMissionSnapshot> = emptyList(),
     @SerializedName("tacticalMissionAttachments") val tacticalMissionAttachments: List<TacticalMissionAttachmentCrossRefSnapshot> = emptyList(),
+    @SerializedName("tacticalIterations") val tacticalIterations: List<TacticalIteration> = emptyList(),
+    @SerializedName("missionStreams") val missionStreams: List<MissionStream> = emptyList(),
+    @SerializedName("tacticalActivitySlots") val tacticalActivitySlots: List<TacticalActivitySlot> = emptyList(),
+    @SerializedName("arcQuests") val arcQuests: List<ArcQuestEntity> = emptyList(),
     @SerializedName("aiEvents") val aiEvents: List<AiEventSnapshot> = emptyList(),
     @SerializedName("aiInsights") val aiInsights: List<AiInsightSnapshot> = emptyList(),
     @SerializedName("mainBeacons") val mainBeacons: List<MainBeaconSnapshot> = emptyList(),

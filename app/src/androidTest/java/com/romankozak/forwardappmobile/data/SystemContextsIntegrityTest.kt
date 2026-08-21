@@ -56,6 +56,10 @@ class SystemContextsIntegrityTest {
                 chatDao = db.chatDao(),
                 reminderDao = db.reminderDao(),
                 tacticalMissionDao = db.tacticalMissionDao(),
+                tacticalIterationDao = db.tacticalIterationDao(),
+                missionStreamDao = db.missionStreamDao(),
+                tacticalActivitySlotDao = db.tacticalActivitySlotDao(),
+                arcQuestDao = db.arcQuestDao(),
                 aiInsightDao = db.aiInsightDao(),
                 systemContextEnsurer = databaseInitializer,
                 // Додаємо нові DAO, яких не вистачало
@@ -69,7 +73,6 @@ class SystemContextsIntegrityTest {
                 activityRecordDao = db.activityRecordDao(),
                 linkItemDao = db.linkItemDao(),
                 conversationFolderDao = db.conversationFolderDao(),
-                recurringTaskDao = db.recurringTaskDao(),
                 aiEventDao = db.aiEventDao(),
                 lifeSystemStateDao = db.lifeSystemStateDao(),
                 structurePresetDao = db.structurePresetDao(),

@@ -17,9 +17,13 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceFrequency
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceRule
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.TaskExecutionStrictness
+import com.romankozak.forwardappmobile.data.recurrence.CanonicalTaskRecurrenceAuthoringAdapter
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
+import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurrenceDayOfWeek as CanonicalRecurrenceDayOfWeek
+import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurrenceFrequency as CanonicalRecurrenceFrequency
+import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurrenceRule as CanonicalRecurrenceRule
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
@@ -130,11 +134,36 @@ sealed class DayPlanUiEvent {
 
 enum class EditingMode { SINGLE, ALL_INSTANCES }
 
+internal fun RecurrenceRule.toCanonicalTaskRecurrenceRule(): CanonicalRecurrenceRule {
+    require(frequency != RecurrenceFrequency.HOURLY) {
+        "HOURLY recurrence is legacy-only and cannot be authored as canonical recurrence-v2"
+    }
+    return CanonicalRecurrenceRule(
+        frequency = CanonicalRecurrenceFrequency.valueOf(frequency.name),
+        interval = interval.coerceAtLeast(1),
+        daysOfWeek =
+            daysOfWeek?.map { day ->
+                CanonicalRecurrenceDayOfWeek.valueOf(day.name)
+            },
+    )
+}
+
+internal fun CanonicalRecurrenceRule.toAndroidTaskRecurrenceRule(): RecurrenceRule =
+    RecurrenceRule(
+        frequency = RecurrenceFrequency.valueOf(frequency.name),
+        interval = interval,
+        daysOfWeek =
+            daysOfWeek?.map { day ->
+                java.time.DayOfWeek.valueOf(day.name)
+            },
+    )
+
 @HiltViewModel
 class DayPlanViewModel
     @Inject
     constructor(
         private val dayManagementRepository: DayManagementRepository,
+        private val canonicalTaskRecurrenceAuthoringAdapter: CanonicalTaskRecurrenceAuthoringAdapter,
         private val reminderRepository: ReminderRepository,
         private val contextDao: ContextDao,
         private val contextRepository: ContextRepository,
@@ -752,22 +781,26 @@ class DayPlanViewModel
                     val topOrder = minOrder - MIN_TOP_ORDER_OFFSET
 
                     if (recurrenceRule != null) {
-                        dayManagementRepository.addRecurringTask(
-                            DayManagementRepository.AddRecurringTaskParams(
+                        val createdTask =
+                            canonicalTaskRecurrenceAuthoringAdapter.createSeriesForPlan(
+                                dayPlanId = dayPlanId,
                                 title = trimmedTitle,
                                 description = description.trim().takeIf { it.isNotEmpty() },
-                                duration = duration,
+                                goalId = null,
+                                projectId = projectId,
+                                taskType = null,
+                                linkedProjectIds = linkedProjectIds.orEmpty(),
+                                linkedAttachmentIds = emptyList(),
                                 priority = priority,
-                                recurrenceRule = recurrenceRule,
-                                dayPlanId = dayPlanId,
+                                estimatedDurationMinutes = duration,
+                                points = points,
+                                executionStrictness = strictness,
+                                rule = recurrenceRule.toCanonicalTaskRecurrenceRule(),
                                 scheduledTime = scheduledTime,
                                 dueTime = dueTime,
-                                executionStrictness = strictness,
-                                points = points,
                                 order = topOrder,
-                                linkedProjectIds = linkedProjectIds,
-                            ),
-                        )
+                            )
+                        _pendingScrollToTaskId.value = createdTask.id
                     } else {
                         val createdTask =
                             dayManagementRepository.addTaskToDayPlan(
@@ -832,18 +865,20 @@ class DayPlanViewModel
                 try {
                     val goal = dayManagementRepository.getGoal(goalId) ?: return@launch
                     val projectId = dayManagementRepository.findProjectIdForGoal(goalId)
-                    dayManagementRepository.addRecurringTask(
-                        DayManagementRepository.AddRecurringTaskParams(
-                            title = goal.text,
-                            description = goal.description,
-                            duration = null,
-                            priority = TaskPriority.MEDIUM,
-                            recurrenceRule = recurrenceRule,
-                            dayPlanId = dayPlanId,
-                            goalId = goalId,
-                            projectId = projectId,
-                            linkedProjectIds = projectId?.let(::listOf),
-                        ),
+                    canonicalTaskRecurrenceAuthoringAdapter.createSeriesForPlan(
+                        dayPlanId = dayPlanId,
+                        title = goal.text,
+                        description = goal.description,
+                        goalId = goalId,
+                        projectId = projectId,
+                        taskType = null,
+                        linkedProjectIds = projectId?.let(::listOf).orEmpty(),
+                        linkedAttachmentIds = emptyList(),
+                        priority = TaskPriority.MEDIUM,
+                        estimatedDurationMinutes = null,
+                        points = 0,
+                        executionStrictness = TaskExecutionStrictness.NORMAL,
+                        rule = recurrenceRule.toCanonicalTaskRecurrenceRule(),
                     )
                 } catch (e: Exception) {
                     Log.e("DayPlanViewModel", "Error adding goal as recurring task", e)
@@ -853,7 +888,8 @@ class DayPlanViewModel
 
         fun onEditTaskClicked(taskWithReminder: DayTaskWithReminder) {
             _selectedTask.value = taskWithReminder
-            if (taskWithReminder.dayTask.recurringTaskId != null) {
+            val task = taskWithReminder.dayTask
+            if (task.recurrenceSeriesId != null) {
                 _showEditConfirmationDialog.value = taskWithReminder
             } else {
                 editingMode = EditingMode.SINGLE
@@ -866,12 +902,12 @@ class DayPlanViewModel
         }
 
         fun editSingleInstanceOfRecurringTask(taskWithReminder: DayTaskWithReminder) {
-            viewModelScope.launch(Dispatchers.IO) {
-                dayManagementRepository.detachFromRecurrence(taskWithReminder.dayTask.id)
-                dismissEditConfirmationDialog()
-                editingMode = EditingMode.SINGLE
-                openEditTaskDialog()
+            check(taskWithReminder.dayTask.recurrenceSeriesId != null) {
+                "Cannot edit single recurrence occurrence for non-canonical task ${taskWithReminder.dayTask.id}"
             }
+            dismissEditConfirmationDialog()
+            editingMode = EditingMode.SINGLE
+            openEditTaskDialog()
         }
 
         fun editAllFutureInstancesOfRecurringTask() {
@@ -881,10 +917,11 @@ class DayPlanViewModel
         }
 
         fun onDeleteTaskClicked(taskWithReminder: DayTaskWithReminder) {
-            if (taskWithReminder.dayTask.recurringTaskId != null) {
+            val task = taskWithReminder.dayTask
+            if (task.recurrenceSeriesId != null) {
                 _showDeleteConfirmationDialog.value = taskWithReminder
             } else {
-                deleteTask(taskWithReminder.dayTask.id)
+                deleteTask(task.id)
             }
         }
 
@@ -894,19 +931,22 @@ class DayPlanViewModel
 
         fun deleteSingleInstanceOfRecurringTask(taskWithReminder: DayTaskWithReminder) {
             viewModelScope.launch(Dispatchers.IO) {
-                dayManagementRepository.deleteTask(taskWithReminder.dayTask.id)
+                val task = taskWithReminder.dayTask
+                check(task.recurrenceSeriesId != null) {
+                    "Cannot delete canonical recurrence occurrence for non-recurring task ${task.id}"
+                }
+                canonicalTaskRecurrenceAuthoringAdapter.deleteCurrentOccurrence(task)
                 dismissDeleteConfirmationDialog()
             }
         }
 
         fun deleteAllFutureInstancesOfRecurringTask(taskWithReminder: DayTaskWithReminder) {
             viewModelScope.launch(Dispatchers.IO) {
-                taskWithReminder.dayTask.recurringTaskId?.let {
-                    dayManagementRepository.deleteAllFutureInstancesOfRecurringTask(
-                        it,
-                        taskWithReminder.dayTask.dayPlanId,
-                    )
+                val task = taskWithReminder.dayTask
+                check(task.recurrenceSeriesId != null) {
+                    "Cannot stop canonical recurrence for non-recurring task ${task.id}"
                 }
+                canonicalTaskRecurrenceAuthoringAdapter.stopSeriesFromOccurrence(task)
                 dismissDeleteConfirmationDialog()
             }
         }
@@ -921,28 +961,9 @@ class DayPlanViewModel
                 }
             }
         }
-
         fun toggleTaskCompletion(taskId: String) {
             viewModelScope.launch {
-                val task = uiState.value.tasks.find { it.dayTask.id == taskId }?.dayTask ?: return@launch
                 try {
-                    // Використовуємо ?.let для безпечного розпакування та smart cast
-                    task.recurringTaskId?.let { recurringId ->
-                        val recurringTask = dayManagementRepository.getRecurringTask(recurringId)
-
-                        if (recurringTask?.recurrenceRule?.frequency == RecurrenceFrequency.HOURLY) {
-                            val intervalMillis =
-                                recurringTask.recurrenceRule.interval *
-                                    MINUTES_PER_HOUR *
-                                    SECONDS_PER_MINUTE *
-                                    MILLIS_PER_SECOND
-                            val nextOccurrence = System.currentTimeMillis() + intervalMillis
-                            dayManagementRepository.updateTaskNextOccurrence(taskId, nextOccurrence)
-                            return@launch
-                        }
-                    }
-
-                    // Якщо recurringTaskId == null або частота не HOURLY, просто тоглимо статус
                     dayManagementRepository.toggleTaskCompletion(taskId)
                 } catch (e: Exception) {
                     Log.e("DayPlanViewModel", "Error toggling task completion", e)
@@ -1170,7 +1191,6 @@ class DayPlanViewModel
             dismissEditTaskDialog()
             clearSelectedTask()
         }
-
         fun updateTask(
             taskId: String,
             title: String,
@@ -1183,31 +1203,63 @@ class DayPlanViewModel
                 val taskWithReminder = selectedTask.value ?: return@launch
                 val task = taskWithReminder.dayTask
                 try {
-                    if (editingMode == EditingMode.ALL_INSTANCES && task.recurringTaskId != null) {
-                        dayManagementRepository.splitRecurringTask(
-                            DayManagementRepository.SplitRecurringTaskParams(
-                                originalTask = task,
-                                newTitle = title,
-                                newDescription = description,
-                                newPriority = priority,
-                                newDuration = duration,
-                                points = points,
-                            ),
-                        )
-                    } else {
-                        dayManagementRepository.updateTask(
-                            DayManagementRepository.UpdateTaskParams(
-                                taskId = taskId,
+                    when {
+                        task.recurrenceSeriesId != null && editingMode == EditingMode.ALL_INSTANCES -> {
+                            val series =
+                                requireNotNull(
+                                    canonicalTaskRecurrenceAuthoringAdapter.getSeriesForOccurrence(task),
+                                ) {
+                                    "Canonical recurring task series not found for ${task.id}"
+                                }
+                            canonicalTaskRecurrenceAuthoringAdapter.splitSeriesFromOccurrence(
+                                task = task,
                                 title = title,
                                 description = description,
+                                goalId = task.goalId,
+                                projectId = task.projectId,
+                                taskType = task.taskType,
+                                linkedProjectIds = task.linkedProjectIds.orEmpty(),
+                                linkedAttachmentIds = task.linkedAttachmentIds.orEmpty(),
                                 priority = priority,
-                                duration = duration,
-                                scheduledTime = task.scheduledTime,
-                                dueTime = task.dueTime,
-                                executionStrictness = task.executionStrictness,
+                                estimatedDurationMinutes = duration,
                                 points = points,
-                            ),
-                        )
+                                executionStrictness = task.executionStrictness,
+                                rule = series.rule,
+                            )
+                        }
+
+                        task.recurrenceSeriesId != null -> {
+                            canonicalTaskRecurrenceAuthoringAdapter.updateCurrentOccurrence(
+                                task = task,
+                                title = title,
+                                description = description,
+                                goalId = task.goalId,
+                                projectId = task.projectId,
+                                taskType = task.taskType,
+                                linkedProjectIds = task.linkedProjectIds.orEmpty(),
+                                linkedAttachmentIds = task.linkedAttachmentIds.orEmpty(),
+                                priority = priority,
+                                estimatedDurationMinutes = duration,
+                                points = points,
+                                executionStrictness = task.executionStrictness,
+                            )
+                        }
+
+                        else -> {
+                            dayManagementRepository.updateTask(
+                                DayManagementRepository.UpdateTaskParams(
+                                    taskId = taskId,
+                                    title = title,
+                                    description = description,
+                                    priority = priority,
+                                    duration = duration,
+                                    scheduledTime = task.scheduledTime,
+                                    dueTime = task.dueTime,
+                                    executionStrictness = task.executionStrictness,
+                                    points = points,
+                                ),
+                            )
+                        }
                     }
                     dismissEditTaskDialog()
                     clearSelectedTask()

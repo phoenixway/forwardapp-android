@@ -105,7 +105,12 @@ suspend fun createBackupDiff(incoming: SnapshotBundle): BackupDiff {
             documents = logicHelper.diffEntities(incoming.documents, local.documents, { doc -> doc.id }, { doc -> doc.version }, { doc -> doc.updatedAt }),
             musicNotes = logicHelper.diffEntities(incoming.musicNotes, local.musicNotes, { note -> note.id }, { note -> note.version }, { note -> note.updatedAt }),
             attachments = logicHelper.diffEntities(incoming.attachments, local.attachments, { attachment -> attachment.id }, { attachment -> attachment.version }, { attachment -> attachment.updatedAt }),
-            contextAttachmentCrossRefs = logicHelper.diffEntities(incoming.crossRefs, local.crossRefs, { crossRef -> "${crossRef.contextId}-${crossRef.attachmentId}" }, { 0L }, { crossRef -> crossRef.updatedAt })
+            contextAttachmentCrossRefs = logicHelper.diffEntities(incoming.crossRefs, local.crossRefs, { crossRef -> "${crossRef.contextId}-${crossRef.attachmentId}" }, { 0L }, { crossRef -> crossRef.updatedAt }),
+            tacticalMissions = logicHelper.diffEntities(incoming.tacticalMissions, local.tacticalMissions, { it.id.toString() }, { it.version }, { it.updatedAt ?: it.createdAt }),
+            tacticalIterations = logicHelper.diffEntities(incoming.tacticalIterations, local.tacticalIterations, { it.id }, { it.version }, { it.updatedAt ?: it.createdAt }),
+            missionStreams = logicHelper.diffEntities(incoming.missionStreams, local.missionStreams, { it.id }, { it.version }, { it.updatedAt ?: it.createdAt }),
+            tacticalActivitySlots = logicHelper.diffEntities(incoming.tacticalActivitySlots, local.tacticalActivitySlots, { it.id }, { it.version }, { it.updatedAt ?: it.createdAt }),
+            arcQuests = logicHelper.diffEntities(incoming.arcQuests, local.arcQuests, { it.id }, { it.version }, { it.updatedAt ?: it.createdAt }),
         )
     }
 

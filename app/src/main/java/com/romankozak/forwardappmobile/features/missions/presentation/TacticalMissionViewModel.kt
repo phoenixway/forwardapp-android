@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.missions.presentation
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
@@ -190,33 +191,21 @@ class TacticalMissionViewModel
                 missionStreams,
                 activeIteration,
             ) { allMissions, mode, selectedStreamId, streams, iteration ->
-                val weekMissions =
-                    allMissions
-                        .filter { it.isInCurrentIteration(iteration?.id, currentWeekKey) }
-                        .filter { it.sourceBacklogItemId == null }
-                val streamOrderById = streams.mapIndexed { index, stream -> stream.id to index }.toMap()
-                val effectiveMode =
-                    if (mode == TacticsWorkspaceMode.PLAN && iteration?.status == TacticalIterationStatus.ACTIVE) {
-                        TacticsWorkspaceMode.STREAMS
-                    } else {
-                        mode
-                    }
-                when (effectiveMode) {
-                    TacticsWorkspaceMode.STREAMS ->
-                        weekMissions
-                            .filter { it.normalizedMissionStreamId() == selectedStreamId }
-                            .sortedWith(compareBy<TacticalMission> { it.orderInWeek }.thenBy { it.createdAt })
-                    TacticsWorkspaceMode.ALL ->
-                        weekMissions.sortedWith(
-                            compareBy<TacticalMission> {
-                                streamOrderById[it.normalizedMissionStreamId()] ?: Int.MAX_VALUE
-                            }
-                                .thenBy { it.orderInWeek }
-                                .thenBy { it.createdAt },
-                        )
-                    TacticsWorkspaceMode.PLAN ->
-                        weekMissions.sortedWith(compareBy<TacticalMission> { it.orderInWeek }.thenBy { it.createdAt })
-                }
+                val visible = buildVisibleTacticalMissions(
+                    allMissions = allMissions,
+                    requestedMode = mode,
+                    selectedStreamId = selectedStreamId,
+                    streams = streams,
+                    activeIteration = iteration,
+                    currentWeekKey = currentWeekKey,
+                )
+                Log.d(
+                    TACTICAL_MISSION_DEBUG_TAG,
+                    "visibility all=${allMissions.size} visible=${visible.size} mode=$mode " +
+                        "stream=$selectedStreamId iteration=${iteration?.id} " +
+                        "iterationStatus=${iteration?.status} visibleIds=${visible.debugMissionIds()}",
+                )
+                visible
             }.stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.Eagerly,
@@ -439,8 +428,12 @@ class TacticalMissionViewModel
 
         private fun loadMissions(projectId: String? = null) {
             getTacticalMissionsUseCase(projectId)
-                .onEach { missions ->
-                    _missions.value = missions
+                .onEach { loadedMissions ->
+                    Log.d(
+                        TACTICAL_MISSION_DEBUG_TAG,
+                        "room emission count=${loadedMissions.size} ids=${loadedMissions.debugMissionIds()}",
+                    )
+                    _missions.value = loadedMissions
                 }
                 .launchIn(viewModelScope)
         }
@@ -460,7 +453,7 @@ class TacticalMissionViewModel
 
         private fun activeMissionStreamId(): String = _selectedMissionStreamId.value
 
-        private fun activeIterationId(): String = _activeIteration.value?.id ?: currentWeekKey
+        private fun activeIterationId(): String? = _activeIteration.value?.id
 
         fun addMission(
             title: String,
@@ -488,11 +481,25 @@ class TacticalMissionViewModel
         }
 
         fun addMission(mission: TacticalMission) {
+            Log.d(
+                TACTICAL_MISSION_DEBUG_TAG,
+                "add queued titleLength=${mission.title.length} stream=${mission.missionStreamId} " +
+                    "iteration=${mission.iterationId} week=${mission.weekKey} status=${mission.status}",
+            )
             viewModelScope.launch {
-                val id = missionRepository.insertMissionWithAutoOrder(mission)
-                _pendingScrollToMissionId.value = id
-                // Прив'язуємо вкладення до створеної місії
-                missionRepository.setAttachments(id, mission.linkedAttachmentIds ?: emptyList())
+                try {
+                    val id = missionRepository.insertMissionWithAutoOrder(mission)
+                    Log.d(
+                        TACTICAL_MISSION_DEBUG_TAG,
+                        "insert success id=$id stream=${mission.missionStreamId} iteration=${mission.iterationId}",
+                    )
+                    _pendingScrollToMissionId.value = id
+                    missionRepository.setAttachments(id, mission.linkedAttachmentIds ?: emptyList())
+                    Log.d(TACTICAL_MISSION_DEBUG_TAG, "attachments linked id=$id")
+                } catch (error: Exception) {
+                    Log.e(TACTICAL_MISSION_DEBUG_TAG, "insert failed", error)
+                    throw error
+                }
             }
         }
 
@@ -1231,6 +1238,9 @@ fun TacticalMission.isInCurrentIteration(
 ): Boolean =
     when {
         activeIterationId != null && iterationId == activeIterationId -> true
+        activeIterationId == null &&
+            iterationId == currentWeekKey &&
+            (weekKey.isBlank() || weekKey == currentWeekKey) -> true
         iterationId != null -> false
         activeIterationId != null && activeIterationId != currentWeekKey -> false
         else -> weekKey.isBlank() || weekKey == currentWeekKey

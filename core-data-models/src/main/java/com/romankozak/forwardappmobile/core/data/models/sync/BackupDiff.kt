@@ -8,6 +8,10 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_manag
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.reminders.ReminderSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.tactical.tactical.TacticalMissionAttachmentCrossRefSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.tactical.tactical.TacticalMissionSnapshot
+import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStream
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalActivitySlot
+import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalIteration
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.ai.AiEventSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.ai.AiInsightSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.attachments.AttachmentSnapshot
@@ -65,6 +69,10 @@ data class BackupDiff(
     val recurringTasks: DiffResult<RecurringTaskSnapshot> = DiffResult(),
     val tacticalMissions: DiffResult<TacticalMissionSnapshot> = DiffResult(),
     val tacticalMissionAttachments: DiffResult<TacticalMissionAttachmentCrossRefSnapshot> = DiffResult(),
+    val tacticalIterations: DiffResult<TacticalIteration> = DiffResult(),
+    val missionStreams: DiffResult<MissionStream> = DiffResult(),
+    val tacticalActivitySlots: DiffResult<TacticalActivitySlot> = DiffResult(),
+    val arcQuests: DiffResult<ArcQuestEntity> = DiffResult(),
     val aiEvents: DiffResult<AiEventSnapshot> = DiffResult(),
     val aiInsights: DiffResult<AiInsightSnapshot> = DiffResult(),
     val lifeSystemStates: DiffResult<LifeSystemStateSnapshot> = DiffResult(),

@@ -1611,3 +1611,456 @@ val MIGRATION_142_143 =
             )
         }
     }
+
+val MIGRATION_143_144 =
+    object : Migration(143, 144) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            check(countRows(db, "SELECT COUNT(*) FROM recurring_tasks WHERE frequency = 'HOURLY'") == 0L) {
+                "Cannot retire recurrence-v1: legacy HOURLY recurring tasks still exist"
+            }
+            check(countRows(db, "SELECT COUNT(*) FROM day_tasks WHERE recurringTaskId IS NOT NULL") == 0L) {
+                "Cannot retire recurrence-v1: DayTask rows still reference recurring_tasks"
+            }
+            check(countRows(db, "SELECT COUNT(*) FROM day_tasks WHERE nextOccurrenceTime IS NOT NULL") == 0L) {
+                "Cannot retire recurrence-v1: nextOccurrenceTime markers still exist"
+            }
+            check(
+                countRows(
+                    db,
+                    """
+                    SELECT COUNT(*)
+                    FROM recurring_tasks r
+                    LEFT JOIN canonical_recurring_series c
+                      ON c.id = r.id AND c.kind = 'TASK'
+                    WHERE c.id IS NULL
+                    """.trimIndent(),
+                ) == 0L,
+            ) {
+                "Cannot retire recurrence-v1: a legacy RecurringTask has no canonical TASK counterpart"
+            }
+            check(
+                countRows(
+                    db,
+                    """
+                    SELECT COUNT(*)
+                    FROM canonical_recurring_series
+                    WHERE ruleInterval < 1
+                       OR ruleFrequency NOT IN ('DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY')
+                    """.trimIndent(),
+                ) == 0L,
+            ) {
+                "Cannot retire recurrence-v1: invalid canonical recurrence rule"
+            }
+            check(
+                countRows(
+                    db,
+                    """
+                    SELECT COUNT(*)
+                    FROM day_tasks t
+                    LEFT JOIN canonical_recurring_series c
+                      ON c.id = t.recurrenceSeriesId
+                    WHERE t.recurrenceSeriesId IS NOT NULL
+                      AND (c.id IS NULL OR c.kind != 'TASK')
+                    """.trimIndent(),
+                ) == 0L,
+            ) {
+                "Cannot retire recurrence-v1: canonical DayTask provenance references a missing or non-TASK series"
+            }
+            check(
+                countRows(
+                    db,
+                    """
+                    SELECT COUNT(*)
+                    FROM day_tasks
+                    WHERE
+                        (recurrenceSeriesId IS NULL AND
+                            (recurrenceOccurrenceDayKey IS NOT NULL OR recurrenceSourceSeriesVersion IS NOT NULL))
+                        OR
+                        (recurrenceSeriesId IS NOT NULL AND
+                            (recurrenceOccurrenceDayKey IS NULL OR recurrenceSourceSeriesVersion IS NULL))
+                    """.trimIndent(),
+                ) == 0L,
+            ) {
+                "Cannot retire recurrence-v1: partial canonical DayTask provenance exists"
+            }
+
+            sanitizeCanonicalTaskTemplateLinks(db)
+        }
+
+        private fun countRows(
+            db: SupportSQLiteDatabase,
+            sql: String,
+        ): Long =
+            db.query(sql).use { cursor ->
+                check(cursor.moveToFirst()) { "Migration invariant query returned no row: $sql" }
+                cursor.getLong(0)
+            }
+
+        private fun sanitizeCanonicalTaskTemplateLinks(db: SupportSQLiteDatabase) {
+            val now = System.currentTimeMillis()
+            val rows = mutableListOf<Pair<String, String>>()
+
+            db.query(
+                "SELECT id, templateJson FROM canonical_recurring_series WHERE kind = 'TASK'",
+            ).use { cursor ->
+                while (cursor.moveToNext()) {
+                    rows += cursor.getString(0) to cursor.getString(1)
+                }
+            }
+
+            rows.forEach { (seriesId, templateJson) ->
+                val template =
+                    runCatching {
+                        com.google.gson.JsonParser.parseString(templateJson).asJsonObject
+                    }.getOrElse { cause ->
+                        error("Invalid canonical TASK template JSON for series $seriesId: ${cause.message}")
+                    }
+
+                var changed = false
+                listOf("linkedProjectIds", "linkedAttachmentIds").forEach { fieldName ->
+                    val field = template.get(fieldName)
+                    check(field != null && field.isJsonArray) {
+                        "Canonical TASK template $seriesId has invalid $fieldName"
+                    }
+
+                    val normalizedValues =
+                        field.asJsonArray
+                            .mapNotNull { element ->
+                                if (element.isJsonNull || !element.isJsonPrimitive) {
+                                    null
+                                } else {
+                                    element.asString.trim().takeIf { value -> value.isNotEmpty() }
+                                }
+                            }.distinct()
+
+                    val currentValues =
+                        field.asJsonArray.mapNotNull { element ->
+                            if (element.isJsonNull || !element.isJsonPrimitive) null else element.asString
+                        }
+
+                    if (currentValues != normalizedValues) {
+                        val normalizedArray = com.google.gson.JsonArray()
+                        normalizedValues.forEach(normalizedArray::add)
+                        template.add(fieldName, normalizedArray)
+                        changed = true
+                    }
+                }
+
+                if (changed) {
+                    db.execSQL(
+                        """
+                        UPDATE canonical_recurring_series
+                        SET templateJson = ?,
+                            updatedAt = ?,
+                            syncedAt = NULL,
+                            version = version + 1
+                        WHERE id = ?
+                        """.trimIndent(),
+                        arrayOf(template.toString(), now, seriesId),
+                    )
+                }
+            }
+        }
+    }
+
+val MIGRATION_144_145 =
+    object : Migration(144, 145) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            check(tableExists(db, "recurring_tasks")) {
+                "Cannot retire recurrence-v1: recurring_tasks table is missing from schema 144"
+            }
+            check(tableExists(db, "recurring_tasks_fts")) {
+                "Cannot retire recurrence-v1: recurring_tasks_fts table is missing from schema 144"
+            }
+            check(!tableExists(db, "day_tasks_new")) {
+                "Cannot retire recurrence-v1: unexpected day_tasks_new table already exists"
+            }
+
+            check(countRows(db, "SELECT COUNT(*) FROM recurring_tasks WHERE frequency = 'HOURLY'") == 0L) {
+                "Cannot retire recurrence-v1: legacy HOURLY recurring tasks still exist"
+            }
+            check(countRows(db, "SELECT COUNT(*) FROM day_tasks WHERE recurringTaskId IS NOT NULL") == 0L) {
+                "Cannot retire recurrence-v1: DayTask rows still reference recurring_tasks"
+            }
+            check(countRows(db, "SELECT COUNT(*) FROM day_tasks WHERE nextOccurrenceTime IS NOT NULL") == 0L) {
+                "Cannot retire recurrence-v1: nextOccurrenceTime markers still exist"
+            }
+            check(
+                countRows(
+                    db,
+                    """
+                    SELECT COUNT(*)
+                    FROM recurring_tasks r
+                    LEFT JOIN canonical_recurring_series c
+                      ON c.id = r.id AND c.kind = 'TASK'
+                    WHERE c.id IS NULL
+                    """.trimIndent(),
+                ) == 0L,
+            ) {
+                "Cannot retire recurrence-v1: a legacy RecurringTask has no canonical TASK counterpart"
+            }
+            check(
+                countRows(
+                    db,
+                    """
+                    SELECT COUNT(*)
+                    FROM day_tasks t
+                    LEFT JOIN canonical_recurring_series c
+                      ON c.id = t.recurrenceSeriesId
+                    WHERE t.recurrenceSeriesId IS NOT NULL
+                      AND (c.id IS NULL OR c.kind != 'TASK')
+                    """.trimIndent(),
+                ) == 0L,
+            ) {
+                "Cannot retire recurrence-v1: canonical DayTask provenance references a missing or non-TASK series"
+            }
+            check(
+                countRows(
+                    db,
+                    """
+                    SELECT COUNT(*)
+                    FROM day_tasks
+                    WHERE
+                        (recurrenceSeriesId IS NULL AND
+                            (recurrenceOccurrenceDayKey IS NOT NULL OR recurrenceSourceSeriesVersion IS NOT NULL))
+                        OR
+                        (recurrenceSeriesId IS NOT NULL AND
+                            (recurrenceOccurrenceDayKey IS NULL OR recurrenceSourceSeriesVersion IS NULL))
+                    """.trimIndent(),
+                ) == 0L,
+            ) {
+                "Cannot retire recurrence-v1: partial canonical DayTask provenance exists"
+            }
+
+            val inboundDayTaskForeignKeys = foreignKeyReferencesTo(db, "day_tasks")
+            check(inboundDayTaskForeignKeys.isEmpty()) {
+                "Cannot rebuild day_tasks safely: other tables reference it: ${inboundDayTaskForeignKeys.joinToString()}"
+            }
+
+            val dayTaskCountBefore = countRows(db, "SELECT COUNT(*) FROM day_tasks")
+
+            db.execSQL(
+                """
+                CREATE TABLE `day_tasks_new` (
+                    `id` TEXT NOT NULL,
+                    `dayPlanId` TEXT NOT NULL,
+                    `title` TEXT NOT NULL,
+                    `description` TEXT,
+                    `goalId` TEXT,
+                    `projectId` TEXT,
+                    `linkedProjectIds` TEXT,
+                    `linkedAttachmentIds` TEXT,
+                    `activityRecordId` TEXT,
+                    `recurrenceSeriesId` TEXT,
+                    `recurrenceOccurrenceDayKey` TEXT,
+                    `recurrenceSourceSeriesVersion` INTEGER,
+                    `taskType` TEXT,
+                    `entityId` TEXT,
+                    `order` INTEGER NOT NULL,
+                    `priority` TEXT NOT NULL,
+                    `status` TEXT NOT NULL,
+                    `completed` INTEGER NOT NULL,
+                    `scheduledTime` INTEGER,
+                    `estimatedDurationMinutes` INTEGER,
+                    `actualDurationMinutes` INTEGER,
+                    `dueTime` INTEGER,
+                    `executionStrictness` TEXT NOT NULL DEFAULT 'NORMAL',
+                    `valueImportance` REAL NOT NULL DEFAULT 0.0,
+                    `valueImpact` REAL NOT NULL DEFAULT 0.0,
+                    `effort` REAL NOT NULL DEFAULT 0.0,
+                    `cost` REAL NOT NULL DEFAULT 0.0,
+                    `risk` REAL NOT NULL DEFAULT 0.0,
+                    `location` TEXT,
+                    `tags` TEXT,
+                    `notes` TEXT,
+                    `createdAt` INTEGER NOT NULL,
+                    `updatedAt` INTEGER,
+                    `syncedAt` INTEGER,
+                    `isDeleted` INTEGER NOT NULL,
+                    `version` INTEGER NOT NULL,
+                    `completedAt` INTEGER,
+                    `points` INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY(`id`),
+                    FOREIGN KEY(`dayPlanId`) REFERENCES `day_plans`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(`goalId`) REFERENCES `goals`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL,
+                    FOREIGN KEY(`projectId`) REFERENCES `contexts`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL,
+                    FOREIGN KEY(`activityRecordId`) REFERENCES `activity_records`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL
+                )
+                """.trimIndent(),
+            )
+
+            db.execSQL(
+                """
+                INSERT INTO `day_tasks_new` (
+                    `id`, `dayPlanId`, `title`, `description`, `goalId`, `projectId`,
+                    `linkedProjectIds`, `linkedAttachmentIds`, `activityRecordId`,
+                    `recurrenceSeriesId`, `recurrenceOccurrenceDayKey`, `recurrenceSourceSeriesVersion`,
+                    `taskType`, `entityId`, `order`, `priority`, `status`, `completed`,
+                    `scheduledTime`, `estimatedDurationMinutes`, `actualDurationMinutes`, `dueTime`,
+                    `executionStrictness`, `valueImportance`, `valueImpact`, `effort`, `cost`, `risk`,
+                    `location`, `tags`, `notes`, `createdAt`, `updatedAt`, `syncedAt`, `isDeleted`,
+                    `version`, `completedAt`, `points`
+                )
+                SELECT
+                    `id`, `dayPlanId`, `title`, `description`, `goalId`, `projectId`,
+                    `linkedProjectIds`, `linkedAttachmentIds`, `activityRecordId`,
+                    `recurrenceSeriesId`, `recurrenceOccurrenceDayKey`, `recurrenceSourceSeriesVersion`,
+                    `taskType`, `entityId`, `order`, `priority`, `status`, `completed`,
+                    `scheduledTime`, `estimatedDurationMinutes`, `actualDurationMinutes`, `dueTime`,
+                    `executionStrictness`, `valueImportance`, `valueImpact`, `effort`, `cost`, `risk`,
+                    `location`, `tags`, `notes`, `createdAt`, `updatedAt`, `syncedAt`, `isDeleted`,
+                    `version`, `completedAt`, `points`
+                FROM `day_tasks`
+                """.trimIndent(),
+            )
+
+            check(countRows(db, "SELECT COUNT(*) FROM day_tasks_new") == dayTaskCountBefore) {
+                "Cannot retire recurrence-v1: day_tasks row count changed while copying"
+            }
+            check(
+                countRows(
+                    db,
+                    """
+                    SELECT COUNT(*)
+                    FROM day_tasks old
+                    LEFT JOIN day_tasks_new replacement ON replacement.id = old.id
+                    WHERE replacement.id IS NULL
+                    """.trimIndent(),
+                ) == 0L,
+            ) {
+                "Cannot retire recurrence-v1: at least one DayTask id was not copied"
+            }
+
+            db.execSQL("DROP TABLE `day_tasks`")
+            db.execSQL("ALTER TABLE `day_tasks_new` RENAME TO `day_tasks`")
+
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_day_tasks_dayPlanId` ON `day_tasks` (`dayPlanId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_day_tasks_goalId` ON `day_tasks` (`goalId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_day_tasks_projectId` ON `day_tasks` (`projectId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_day_tasks_activityRecordId` ON `day_tasks` (`activityRecordId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_day_tasks_scheduledTime` ON `day_tasks` (`scheduledTime`)")
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_day_tasks_recurrenceSeriesId_recurrenceOccurrenceDayKey` " +
+                    "ON `day_tasks` (`recurrenceSeriesId`, `recurrenceOccurrenceDayKey`)",
+            )
+
+            check(countRows(db, "SELECT COUNT(*) FROM day_tasks") == dayTaskCountBefore) {
+                "Cannot retire recurrence-v1: day_tasks row count changed after table swap"
+            }
+            check(!columnExists(db, "day_tasks", "recurringTaskId")) {
+                "Cannot retire recurrence-v1: recurringTaskId survived day_tasks rebuild"
+            }
+            check(!columnExists(db, "day_tasks", "nextOccurrenceTime")) {
+                "Cannot retire recurrence-v1: nextOccurrenceTime survived day_tasks rebuild"
+            }
+
+            val recurringTaskForeignKeys = foreignKeyReferencesTo(db, "recurring_tasks")
+            check(recurringTaskForeignKeys.isEmpty()) {
+                "Cannot drop recurring_tasks safely: foreign keys still reference it: ${recurringTaskForeignKeys.joinToString()}"
+            }
+
+            val recurringTaskTriggers = triggerNames(db, "recurring_tasks")
+            val unexpectedRecurringTaskTriggers =
+                recurringTaskTriggers.filterNot { triggerName ->
+                    triggerName.startsWith("room_fts_content_sync_recurring_tasks_fts_")
+                }
+            check(unexpectedRecurringTaskTriggers.isEmpty()) {
+                "Cannot drop recurring_tasks safely: unexpected triggers exist: ${unexpectedRecurringTaskTriggers.joinToString()}"
+            }
+            recurringTaskTriggers.forEach { triggerName ->
+                db.execSQL("DROP TRIGGER IF EXISTS ${quoteIdentifier(triggerName)}")
+            }
+
+            db.execSQL("DROP TABLE `recurring_tasks_fts`")
+            db.execSQL("DROP TABLE `recurring_tasks`")
+
+            check(!tableExists(db, "recurring_tasks")) {
+                "Cannot retire recurrence-v1: recurring_tasks still exists after DROP"
+            }
+            check(!tableExists(db, "recurring_tasks_fts")) {
+                "Cannot retire recurrence-v1: recurring_tasks_fts still exists after DROP"
+            }
+
+            db.query("PRAGMA foreign_key_check").use { cursor ->
+                check(!cursor.moveToFirst()) {
+                    "Cannot retire recurrence-v1: foreign_key_check failed after migration"
+                }
+            }
+            db.query("PRAGMA integrity_check").use { cursor ->
+                check(cursor.moveToFirst() && cursor.getString(0) == "ok" && !cursor.moveToNext()) {
+                    "Cannot retire recurrence-v1: integrity_check failed after migration"
+                }
+            }
+        }
+
+        private fun countRows(
+            db: SupportSQLiteDatabase,
+            sql: String,
+        ): Long =
+            db.query(sql).use { cursor ->
+                check(cursor.moveToFirst()) { "Migration invariant query returned no row: $sql" }
+                cursor.getLong(0)
+            }
+
+        private fun tableExists(
+            db: SupportSQLiteDatabase,
+            tableName: String,
+        ): Boolean =
+            countRows(
+                db,
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = '${sqlLiteral(tableName)}'",
+            ) == 1L
+
+        private fun columnExists(
+            db: SupportSQLiteDatabase,
+            tableName: String,
+            columnName: String,
+        ): Boolean {
+            val escapedTableName = sqlLiteral(tableName)
+            return db.query("PRAGMA table_info('$escapedTableName')").use { cursor ->
+                while (cursor.moveToNext()) {
+                    if (cursor.getString(1) == columnName) return@use true
+                }
+                false
+            }
+        }
+
+        private fun foreignKeyReferencesTo(
+            db: SupportSQLiteDatabase,
+            targetTableName: String,
+        ): List<String> {
+            val tableNames = mutableListOf<String>()
+            db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").use { cursor ->
+                while (cursor.moveToNext()) tableNames += cursor.getString(0)
+            }
+
+            val references = mutableListOf<String>()
+            tableNames.forEach { tableName ->
+                db.query("PRAGMA foreign_key_list('${sqlLiteral(tableName)}')").use { cursor ->
+                    while (cursor.moveToNext()) {
+                        if (cursor.getString(2) == targetTableName) {
+                            references += "$tableName.${cursor.getString(3)} -> $targetTableName.${cursor.getString(4)}"
+                        }
+                    }
+                }
+            }
+            return references
+        }
+
+        private fun triggerNames(
+            db: SupportSQLiteDatabase,
+            tableName: String,
+        ): List<String> {
+            val result = mutableListOf<String>()
+            db.query(
+                "SELECT name FROM sqlite_master WHERE type = 'trigger' AND tbl_name = '${sqlLiteral(tableName)}'",
+            ).use { cursor ->
+                while (cursor.moveToNext()) result += cursor.getString(0)
+            }
+            return result
+        }
+
+        private fun sqlLiteral(value: String): String = value.replace("'", "''")
+
+        private fun quoteIdentifier(value: String): String = "`" + value.replace("`", "``") + "`"
+    }

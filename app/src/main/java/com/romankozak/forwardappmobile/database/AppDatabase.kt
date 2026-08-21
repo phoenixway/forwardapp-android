@@ -60,8 +60,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusItem
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
-import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurringTask
-import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurringTaskFts
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMissionAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalActivitySlot
@@ -79,7 +77,6 @@ import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.dao.LifeManagementLevelStatusDao
 import com.romankozak.forwardappmobile.data.dao.LifeSystemStateDao
 import com.romankozak.forwardappmobile.data.dao.RecentItemDao
-import com.romankozak.forwardappmobile.data.dao.RecurringTaskDao
 import com.romankozak.forwardappmobile.data.dao.ReminderDao
 import com.romankozak.forwardappmobile.data.dao.ScriptDao
 import com.romankozak.forwardappmobile.data.dao.SystemAppDao
@@ -158,7 +155,6 @@ import com.romankozak.forwardappmobile.features.missions.data.MissionStreamDao
         ContextStructureItem::class,
         RecentItem::class,
         ConversationFolderEntity::class,
-        RecurringTask::class,
         com.romankozak.forwardappmobile.core.data.models.entities.day_management.CanonicalRecurringSeriesEntity::class,
         Reminder::class,
         ContextArtifact::class,
@@ -178,9 +174,8 @@ import com.romankozak.forwardappmobile.features.missions.data.MissionStreamDao
         ContextsFts::class,
         ActivityRecordFts::class,
         LegacyNoteFts::class,
-        RecurringTaskFts::class,
     ],
-    version = 143,
+    version = 145,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -248,8 +243,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun contextArtifactDao(): ContextArtifactDao
 
     abstract fun recentItemDao(): RecentItemDao
-
-    abstract fun recurringTaskDao(): RecurringTaskDao
 
     abstract fun canonicalRecurringSeriesDao(): com.romankozak.forwardappmobile.data.dao.CanonicalRecurringSeriesDao
 
