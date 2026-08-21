@@ -43,6 +43,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_manag
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayFocusItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayPlanSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayTaskSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayThemeDocumentSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.RecurringTaskSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.CanonicalRecurringSeriesSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.DayManagementRuntimeStateSnapshot
@@ -95,6 +96,7 @@ data class SnapshotBundle(
     @SerializedName("dayPlans") val dayPlans: List<DayPlanSnapshot> = emptyList(),
     @SerializedName("dayFocusItems") val dayFocusItems: List<DayFocusItemSnapshot> = emptyList(),
     @SerializedName("dayTasks") val dayTasks: List<DayTaskSnapshot> = emptyList(),
+    @SerializedName("dayThemeDocuments") val dayThemeDocuments: List<DayThemeDocumentSnapshot> = emptyList(),
     @SerializedName("dailyMetrics") val dailyMetrics: List<DailyMetricSnapshot> = emptyList(),
     @SerializedName("conversations") val conversations: List<ConversationSnapshot> = emptyList(),
     @SerializedName("chatMessages") val chatMessages: List<ChatMessageSnapshot> = emptyList(),

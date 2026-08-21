@@ -65,6 +65,69 @@ class CanonicalFocusRecurrenceRoomAcceptanceTest {
         verifySplitPersistence(DayFocusType.RESPONSIBILITY)
     }
 
+    @Test
+    fun staleCanonicalSeriesSyncAckDoesNotMarkNewerLocalVersionSynced() = runBlocking {
+        val seriesId = "sync-ack-stale-version"
+        val localVersion = 6L
+        val sentVersion = 5L
+        val ackTimestamp = 7_000L
+        val entity =
+            oldSeries(
+                type = DayFocusType.FOCUS,
+                seriesId = seriesId,
+            ).toAndroidEntity().copy(
+                version = localVersion,
+                updatedAt = 6_000L,
+                syncedAt = null,
+            )
+
+        db.canonicalRecurringSeriesDao().insert(entity)
+
+        val updated =
+            db.canonicalRecurringSeriesDao().markSyncedIfVersionMatches(
+                seriesId = seriesId,
+                expectedVersion = sentVersion,
+                syncedAt = ackTimestamp,
+            )
+
+        assertEquals(0, updated)
+
+        val persisted = requireNotNull(db.canonicalRecurringSeriesDao().getById(seriesId))
+        assertEquals(localVersion, persisted.version)
+        assertNull(persisted.syncedAt)
+    }
+
+    @Test
+    fun matchingCanonicalSeriesSyncAckMarksExactlyThatVersionSynced() = runBlocking {
+        val seriesId = "sync-ack-matching-version"
+        val sentVersion = 5L
+        val ackTimestamp = 7_000L
+        val entity =
+            oldSeries(
+                type = DayFocusType.FOCUS,
+                seriesId = seriesId,
+            ).toAndroidEntity().copy(
+                version = sentVersion,
+                updatedAt = 5_000L,
+                syncedAt = null,
+            )
+
+        db.canonicalRecurringSeriesDao().insert(entity)
+
+        val updated =
+            db.canonicalRecurringSeriesDao().markSyncedIfVersionMatches(
+                seriesId = seriesId,
+                expectedVersion = sentVersion,
+                syncedAt = ackTimestamp,
+            )
+
+        assertEquals(1, updated)
+
+        val persisted = requireNotNull(db.canonicalRecurringSeriesDao().getById(seriesId))
+        assertEquals(sentVersion, persisted.version)
+        assertEquals(ackTimestamp, persisted.syncedAt)
+    }
+
     private suspend fun verifySplitPersistence(type: DayFocusType) {
         val dayKeys =
             listOf(

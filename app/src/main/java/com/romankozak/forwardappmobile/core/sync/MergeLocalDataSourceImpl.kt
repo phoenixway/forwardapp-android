@@ -46,6 +46,7 @@ class MergeLocalDataSourceImpl
         private val chatDao: ChatDao,
         private val dayPlanDao: DayPlanDao,
         private val dayTaskDao: DayTaskDao,
+        private val dayThemeDocumentDao: DayThemeDocumentDao,
         private val dailyMetricDao: DailyMetricDao,
         private val reminderDao: ReminderDao,
         private val tacticalMissionDao: TacticalMissionDao,
@@ -100,6 +101,7 @@ class MergeLocalDataSourceImpl
                 dayPlans = dayPlanDao.getAllPlansSync(),
                 dayFocusItems = dayFocusItemDao.getAllSync(),
                 dayTasks = dayTaskDao.getAllTasksSync(),
+                dayThemeDocuments = dayThemeDocumentDao.getAllSync(),
                 dailyMetrics = dailyMetricDao.getAll(),
                 conversations = chatDao.getAllConversationsSync(),
                 chatMessages = chatDao.getAllMessagesSync(),
@@ -219,6 +221,22 @@ class MergeLocalDataSourceImpl
             val validPlanIds =
                 (dayPlanDao.getAllPlansSync().map { plan -> plan.id } + dayPlansToInsert.map { plan -> plan.id })
                     .toSet()
+            val localThemeDocumentsByPlanId = dayThemeDocumentDao.getAllSync().associateBy { it.dayPlanId }
+            val dayThemeDocumentsToInsert =
+                bundle.dayThemeDocuments
+                    .map { document ->
+                        incomingPlanIdRemap[document.dayPlanId]?.let { document.copy(dayPlanId = it) } ?: document
+                    }.filter { document -> document.dayPlanId in validPlanIds }
+                    .filter { incoming ->
+                        val local = localThemeDocumentsByPlanId[incoming.dayPlanId] ?: return@filter true
+                        when {
+                            incoming.version != local.version -> incoming.version > local.version
+                            incoming.updatedAt != (local.updatedAt ?: local.createdAt) ->
+                                incoming.updatedAt > (local.updatedAt ?: local.createdAt)
+                            incoming.isDeleted != local.isDeleted -> incoming.isDeleted
+                            else -> false
+                        }
+                    }
 
             // A DayPlan remap can make an incoming focus/responsibility item
             // share the same logical recurring occurrence with an existing local
@@ -379,6 +397,7 @@ class MergeLocalDataSourceImpl
 
                 conversationFolderDao.insertAll(bundle.conversationFolders.map { it.toEntity() })
                 dayPlanDao.insertPlans(dayPlansToInsert.map { it.toEntity() })
+                dayThemeDocumentDao.upsertAll(dayThemeDocumentsToInsert.map { it.toEntity() })
                 dayFocusItemDao.insertAll(
                     dayFocusItemsToInsert.map { snapshot ->
                         com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceSnapshotMapper

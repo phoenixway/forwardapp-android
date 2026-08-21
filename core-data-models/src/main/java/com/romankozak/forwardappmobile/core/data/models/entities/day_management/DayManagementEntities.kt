@@ -67,6 +67,32 @@ data class DayPlan(
     @SerializedName("version") val version: Long = 0,
 )
 
+/**
+ * Synced, atomic document for all theme metadata and entity assignments of one day.
+ * The JSON payload is intentionally opaque to the sync layer so ordering, activation,
+ * and future theme properties can evolve without another relational migration.
+ */
+@Entity(
+    tableName = "day_theme_documents",
+    foreignKeys = [
+        ForeignKey(
+            entity = DayPlan::class,
+            parentColumns = ["id"],
+            childColumns = ["dayPlanId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class DayThemeDocumentEntity(
+    @PrimaryKey @SerializedName("dayPlanId") val dayPlanId: String,
+    @SerializedName("contentJson") val contentJson: String,
+    @SerializedName("createdAt") val createdAt: Long = System.currentTimeMillis(),
+    @SerializedName("updatedAt") val updatedAt: Long? = null,
+    @SerializedName("syncedAt") val syncedAt: Long? = null,
+    @SerializedName("isDeleted") val isDeleted: Boolean = false,
+    @SerializedName("version") val version: Long = 0,
+)
+
 @Entity(
     tableName = "day_tasks",
     foreignKeys = [

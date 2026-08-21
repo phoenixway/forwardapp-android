@@ -48,6 +48,7 @@ class FullBackupLocalDataSourceImpl
         private val recentItemDao: RecentItemDao,
         private val dayPlanDao: DayPlanDao,
         private val dayTaskDao: DayTaskDao,
+        private val dayThemeDocumentDao: DayThemeDocumentDao,
         private val dailyMetricDao: DailyMetricDao,
         private val chatDao: ChatDao,
         private val reminderDao: ReminderDao,
@@ -145,6 +146,7 @@ class FullBackupLocalDataSourceImpl
                         com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceSnapshotMapper
                             .dayTaskSnapshot(task, task.toSnapshot())
                     },
+                dayThemeDocuments = dayThemeDocumentDao.getAllSync().map { it.toSnapshot() },
                 dailyMetrics = dailyMetricDao.getAll().map { it.toSnapshot() },
                 recurringTasks = emptyList(),
                 recurringSeries = canonicalRecurringSeriesDao.getAllSync().map { it.toSnapshot() },
@@ -232,6 +234,7 @@ class FullBackupLocalDataSourceImpl
 
             Log.d("SyncV2", "Inserting DayPlans: ${bundle.dayPlans.size}")
             dayPlanDao.insertPlans(bundle.dayPlans.map { it.toEntity() })
+            dayThemeDocumentDao.upsertAll(bundle.dayThemeDocuments.map { it.toEntity() })
 
             Log.d("SyncV2", "Inserting DayFocusItems: ${bundle.dayFocusItems.size}")
             dayFocusItemDao.insertAll(
@@ -528,6 +531,7 @@ class FullBackupLocalDataSourceImpl
                 dayPlans = dayPlanDao.getAllPlansSync(),
                 dayFocusItems = dayFocusItemDao.getAllSync(),
                 dayTasks = dayTaskDao.getAllTasksSync(),
+                dayThemeDocuments = dayThemeDocumentDao.getAllSync(),
                 dailyMetrics = dailyMetricDao.getAll(),
                 conversations = chatDao.getAllConversationsSync(),
                 chatMessages = chatDao.getAllMessagesSync(),

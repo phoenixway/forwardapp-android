@@ -66,6 +66,7 @@ object SyncMapper {
             dayPlans = legacy.dayPlans.map { it.toSnapshot() },
             dayFocusItems = legacy.dayFocusItems.map { it.toSnapshot() },
             dayTasks = legacy.dayTasks.map { it.toSnapshot() },
+            dayThemeDocuments = legacy.dayThemeDocuments.map { it.toSnapshot() },
             dailyMetrics = legacy.dailyMetrics.map { it.toSnapshot() },
             conversations = legacy.conversations.map { it.toSnapshot() },
             chatMessages = legacy.chatMessages.map { it.toSnapshot() },

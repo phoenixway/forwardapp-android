@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayTaskWithReminder
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentInfo
+import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayThemesUiState
+import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayThemeUsageSummary
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemState
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemColors
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurfaceLayout
@@ -53,6 +55,8 @@ fun TaskList(
     contextMarkerToEmojiMap: Map<String, String>,
     actions: TaskListActions,
     lazyListState: LazyListState = rememberLazyListState(),
+    dayThemesState: DayThemesUiState,
+    onToggleTheme: (String, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val hapticFeedback = LocalHapticFeedback.current
@@ -81,6 +85,8 @@ fun TaskList(
                 lazyListState = lazyListState,
                 reorderableState = reorderableState,
                 actions = actions,
+                dayThemesState = dayThemesState,
+                onToggleTheme = onToggleTheme,
             )
         }
     }
@@ -95,6 +101,8 @@ private fun TaskListContent(
     lazyListState: LazyListState,
     reorderableState: sh.calvin.reorderable.ReorderableLazyListState,
     actions: TaskListActions,
+    dayThemesState: DayThemesUiState,
+    onToggleTheme: (String, String) -> Unit,
 ) {
     LazyColumn(
         state = lazyListState,
@@ -102,6 +110,15 @@ private fun TaskListContent(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(UnifiedListItemTokens.OuterVerticalSpacing * 2),
     ) {
+        if (tasks.any { dayThemesState.themesFor(it.dayTask.id).isNotEmpty() }) item(key = "task-theme-summary") {
+            DayThemeUsageSummary(
+                label = "Завдання",
+                themes = dayThemesState.themes,
+                entityIds = tasks.map { it.dayTask.id },
+                assignments = dayThemesState.assignments,
+                minutesByEntity = tasks.associate { it.dayTask.id to (it.dayTask.estimatedDurationMinutes ?: 0L) },
+            )
+        }
         items(tasks, key = { it.dayTask.id }) { taskWithReminder ->
             TaskListItem(
                 taskWithReminder = taskWithReminder,
@@ -109,6 +126,8 @@ private fun TaskListContent(
                 contextMarkerToEmojiMap = contextMarkerToEmojiMap,
                 reorderableState = reorderableState,
                 actions = actions,
+                dayThemesState = dayThemesState,
+                onToggleTheme = onToggleTheme,
             )
         }
     }
@@ -122,6 +141,8 @@ private fun LazyItemScope.TaskListItem(
     contextMarkerToEmojiMap: Map<String, String>,
     reorderableState: sh.calvin.reorderable.ReorderableLazyListState,
     actions: TaskListActions,
+    dayThemesState: DayThemesUiState,
+    onToggleTheme: (String, String) -> Unit,
 ) {
     ReorderableItem(reorderableState, key = taskWithReminder.dayTask.id) { isDragging ->
         val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
@@ -164,6 +185,9 @@ private fun LazyItemScope.TaskListItem(
                             onParentInfoClick = actions.onParentInfoClick,
                         ),
                     dragHandleModifier = Modifier.draggableHandle(),
+                    themes = dayThemesState.themes,
+                    selectedThemeIds = dayThemesState.assignments[taskWithReminder.dayTask.id].orEmpty(),
+                    onToggleTheme = { themeId -> onToggleTheme(taskWithReminder.dayTask.id, themeId) },
                 )
             }
         }

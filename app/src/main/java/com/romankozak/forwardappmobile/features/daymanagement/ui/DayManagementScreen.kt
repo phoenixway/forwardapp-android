@@ -25,6 +25,7 @@ import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.presentation.DayManagementRuntimeViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayfocus.DayFocusesViewModel
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
+import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayThemesViewModel
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +37,7 @@ fun DayManagementScreen(
     dayPlanViewModel: DayPlanViewModel = hiltViewModel(),
     activityTrackerViewModel: ActivityTrackerViewModel = hiltViewModel(),
     dayFocusesViewModel: DayFocusesViewModel = hiltViewModel(),
+    dayThemesViewModel: DayThemesViewModel = hiltViewModel(),
     modifier: Modifier = Modifier,
     startTab: String? = null,
     currentDayManagementTab: DayManagementTab? = null,
@@ -91,7 +93,7 @@ fun DayManagementScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
-            if (showFabMenu) {
+            if (showFabMenu && uiState.selectedTab != DayManagementTab.DAY_THEMES) {
                 DayManagementFabMenu(
                     isFabMenuExpanded = isFabMenuExpanded,
                     onToggleExpanded = { isFabMenuExpanded = !isFabMenuExpanded },
@@ -112,6 +114,7 @@ fun DayManagementScreen(
                 dayPlanViewModel = dayPlanViewModel,
                 activityTrackerViewModel = activityTrackerViewModel,
                 dayFocusesViewModel = dayFocusesViewModel,
+                dayThemesViewModel = dayThemesViewModel,
                 addTaskTrigger = addTaskTrigger,
                 screenLogTag = screenLogTag,
             )

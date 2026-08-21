@@ -47,6 +47,8 @@ import com.romankozak.forwardappmobile.features.daymanagement.ui.daydashboard.Da
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanScreen
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanScreenNavigator
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayPlanViewModel
+import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayThemesScreen
+import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayThemesViewModel
 
 internal data class DayManagementScreenContentArgs(
     val uiState: DayManagementState,
@@ -58,6 +60,7 @@ internal data class DayManagementScreenContentArgs(
     val dayPlanViewModel: DayPlanViewModel,
     val activityTrackerViewModel: ActivityTrackerViewModel,
     val dayFocusesViewModel: DayFocusesViewModel,
+    val dayThemesViewModel: DayThemesViewModel,
     val addTaskTrigger: Int,
     val screenLogTag: String,
 )
@@ -72,6 +75,7 @@ private data class DayManagementPagerArgs(
     val dayPlanViewModel: DayPlanViewModel,
     val activityTrackerViewModel: ActivityTrackerViewModel,
     val dayFocusesViewModel: DayFocusesViewModel,
+    val dayThemesViewModel: DayThemesViewModel,
     val addTaskTrigger: Int,
     val screenLogTag: String,
 )
@@ -103,6 +107,7 @@ internal fun DayManagementScreenContent(
                         dayPlanViewModel = args.dayPlanViewModel,
                         activityTrackerViewModel = args.activityTrackerViewModel,
                         dayFocusesViewModel = args.dayFocusesViewModel,
+                        dayThemesViewModel = args.dayThemesViewModel,
                         addTaskTrigger = args.addTaskTrigger,
                         screenLogTag = args.screenLogTag,
                     )
@@ -149,6 +154,12 @@ private fun DayManagementPagerContent(
                     navController = args.mainNavController,
                     predictedDayDurationMinutes = dayPlanUiState.dayPlan?.predictedDurationMinutes,
                     viewModel = args.dayFocusesViewModel,
+                    dayThemesViewModel = args.dayThemesViewModel,
+                )
+            DayManagementTab.DAY_THEMES ->
+                DayThemesScreen(
+                    initialDayPlanId = args.planId,
+                    viewModel = args.dayThemesViewModel,
                 )
             DayManagementTab.DAY_PLAN ->
                 DayPlanScreen(
@@ -166,6 +177,7 @@ private fun DayManagementPagerContent(
                         ),
                     addTaskTrigger = args.addTaskTrigger,
                     viewModel = args.dayPlanViewModel,
+                    dayThemesViewModel = args.dayThemesViewModel,
                 )
             DayManagementTab.JOURNAL ->
                 ActivityTrackerScreen(

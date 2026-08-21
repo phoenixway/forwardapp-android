@@ -183,6 +183,7 @@ class SyncWifiService @Inject constructor(
                 content.dayPlans.isEmpty() &&
                 content.dayFocusItems.isEmpty() &&
                 content.dayTasks.isEmpty() &&
+                content.dayThemeDocuments.isEmpty() &&
                 content.dailyMetrics.isEmpty() &&
                 content.conversations.isEmpty() &&
                 content.chatMessages.isEmpty() &&

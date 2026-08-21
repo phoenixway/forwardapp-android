@@ -38,6 +38,8 @@ import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.compo
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.DayTaskWithReminder
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentInfo
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.ParentType
+import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayTheme
+import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.EntityThemeSelector
 import com.romankozak.forwardappmobile.features.daymanagement.utils.formatDayTime
 import com.romankozak.forwardappmobile.ui.common.rememberParsedText
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedCheckboxStyle
@@ -65,6 +67,9 @@ fun DayTaskCard(
     actions: DayTaskCardActions,
     modifier: Modifier = Modifier,
     dragHandleModifier: Modifier = Modifier,
+    themes: List<DayTheme>,
+    selectedThemeIds: Set<String>,
+    onToggleTheme: (String) -> Unit,
 ) {
     val task = taskWithReminder.dayTask
     val contentAlpha = if (task.completed) COMPLETED_TASK_CONTENT_ALPHA else 1f
@@ -94,6 +99,9 @@ fun DayTaskCard(
             contentAlpha = contentAlpha,
             onClick = actions.onClick,
             onParentInfoClick = actions.onParentInfoClick,
+            themes = themes,
+            selectedThemeIds = selectedThemeIds,
+            onToggleTheme = onToggleTheme,
         )
 
         IconButton(
@@ -118,6 +126,9 @@ private fun RowScope.DayTaskCardContent(
     contentAlpha: Float,
     onClick: () -> Unit,
     onParentInfoClick: (ParentInfo) -> Unit,
+    themes: List<DayTheme>,
+    selectedThemeIds: Set<String>,
+    onToggleTheme: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val task = taskWithReminder.dayTask
@@ -187,6 +198,14 @@ private fun RowScope.DayTaskCardContent(
                 ),
             isCompleted = task.completed,
             maxLines = 4,
+        )
+
+        EntityThemeSelector(
+            themes = themes,
+            selectedThemeIds = selectedThemeIds,
+            entityLabel = task.title,
+            onToggle = onToggleTheme,
+            modifier = Modifier.padding(top = 5.dp),
         )
 
         parsedDescription.mainText.takeIf { it.isNotBlank() }?.let { description ->

@@ -37,6 +37,7 @@ import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.navigateOrFallback
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.TaskList
 import com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan.tasklist.TaskListActions
+import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayThemesUiState
 
 @OptIn(
     ExperimentalMaterial3Api::class,
@@ -83,6 +84,8 @@ fun DayPlanContent(
     state: DayPlanContentState,
     viewModel: DayPlanViewModel,
     visualState: DayPlanVisualState,
+    dayThemesState: DayThemesUiState,
+    onToggleTheme: (String, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -91,7 +94,12 @@ fun DayPlanContent(
             enter = fadeIn(animationSpec = tween(CONTENT_FADE_IN_DURATION_MILLIS)),
             modifier = Modifier.fillMaxSize(),
         ) {
-            DayPlanPrimaryContent(state = state, viewModel = viewModel)
+            DayPlanPrimaryContent(
+                state = state,
+                viewModel = viewModel,
+                dayThemesState = dayThemesState,
+                onToggleTheme = onToggleTheme,
+            )
         }
     }
 }
@@ -100,6 +108,8 @@ fun DayPlanContent(
 private fun DayPlanPrimaryContent(
     state: DayPlanContentState,
     viewModel: DayPlanViewModel,
+    dayThemesState: DayThemesUiState,
+    onToggleTheme: (String, String) -> Unit,
 ) {
     val contextMarkerToEmojiMap by viewModel.contextMarkerToEmojiMap.collectAsStateWithLifecycle()
     val pendingScrollToTaskId by viewModel.pendingScrollToTaskId.collectAsStateWithLifecycle()
@@ -145,6 +155,8 @@ private fun DayPlanPrimaryContent(
                                 },
                             ),
                         lazyListState = taskListState,
+                        dayThemesState = dayThemesState,
+                        onToggleTheme = onToggleTheme,
                         modifier = Modifier.weight(1f),
                     )
                 }

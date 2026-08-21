@@ -7,6 +7,26 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.*
 import java.time.DayOfWeek
 
+fun DayThemeDocumentEntity.toSnapshot(): DayThemeDocumentSnapshot =
+    DayThemeDocumentSnapshot(
+        dayPlanId = dayPlanId,
+        contentJson = contentJson,
+        createdAt = createdAt,
+        updatedAt = updatedAt ?: createdAt,
+        isDeleted = isDeleted,
+        version = version,
+    )
+
+fun DayThemeDocumentSnapshot.toEntity(): DayThemeDocumentEntity =
+    DayThemeDocumentEntity(
+        dayPlanId = dayPlanId,
+        contentJson = contentJson,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        isDeleted = isDeleted,
+        version = version,
+    )
+
 
 // --- DayPlan Mappings ---
 fun DayPlan.toSnapshot(): DayPlanSnapshot = DayPlanSnapshot(

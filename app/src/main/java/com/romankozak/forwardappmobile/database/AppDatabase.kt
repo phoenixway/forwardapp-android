@@ -60,6 +60,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusItem
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
+import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayThemeDocumentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMissionAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalActivitySlot
@@ -72,6 +73,7 @@ import com.romankozak.forwardappmobile.data.dao.DailyMetricDao
 import com.romankozak.forwardappmobile.data.dao.DayFocusItemDao
 import com.romankozak.forwardappmobile.data.dao.DayPlanDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
+import com.romankozak.forwardappmobile.data.dao.DayThemeDocumentDao
 import com.romankozak.forwardappmobile.data.dao.FocusContextIntervalDao
 import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.dao.LifeManagementLevelStatusDao
@@ -142,6 +144,7 @@ import com.romankozak.forwardappmobile.features.missions.data.MissionStreamDao
         DayPlan::class,
         DayFocusItem::class,
         DayTask::class,
+        DayThemeDocumentEntity::class,
         DailyMetric::class,
         LegacyNoteEntity::class,
         NoteDocumentEntity::class,
@@ -175,7 +178,7 @@ import com.romankozak.forwardappmobile.features.missions.data.MissionStreamDao
         ActivityRecordFts::class,
         LegacyNoteFts::class,
     ],
-    version = 145,
+    version = 146,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -237,6 +240,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun dayFocusItemDao(): DayFocusItemDao
 
     abstract fun dayTaskDao(): DayTaskDao
+
+    abstract fun dayThemeDocumentDao(): DayThemeDocumentDao
 
     abstract fun legacyNoteDao(): LegacyNoteDao
 

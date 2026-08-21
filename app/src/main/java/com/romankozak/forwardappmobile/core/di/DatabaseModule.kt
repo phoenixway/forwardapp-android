@@ -190,6 +190,10 @@ object DatabaseModule {
 
     @Provides
     @Singleton
+    fun provideDayThemeDocumentDao(appDatabase: AppDatabase) = appDatabase.dayThemeDocumentDao()
+
+    @Provides
+    @Singleton
     fun provideDailyMetricDao(appDatabase: AppDatabase) = appDatabase.dailyMetricDao()
 
     @Provides

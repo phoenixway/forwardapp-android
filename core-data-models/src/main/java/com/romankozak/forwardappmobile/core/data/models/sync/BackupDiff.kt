@@ -4,6 +4,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.activity.
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DailyMetricSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayPlanSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayTaskSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayThemeDocumentSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.RecurringTaskSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.reminders.ReminderSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.tactical.tactical.TacticalMissionAttachmentCrossRefSnapshot
@@ -64,6 +65,7 @@ data class BackupDiff(
     val contextAttachmentCrossRefs: DiffResult<ContextAttachmentCrossRefSnapshot> = DiffResult(),
     val dayPlans: DiffResult<DayPlanSnapshot> = DiffResult(),
     val dayTasks: DiffResult<DayTaskSnapshot> = DiffResult(),
+    val dayThemeDocuments: DiffResult<DayThemeDocumentSnapshot> = DiffResult(),
     val dailyMetrics: DiffResult<DailyMetricSnapshot> = DiffResult(),
     val reminders: DiffResult<ReminderSnapshot> = DiffResult(),
     val recurringTasks: DiffResult<RecurringTaskSnapshot> = DiffResult(),

@@ -41,7 +41,9 @@ internal fun TodayBottomPanelContent(
 ) {
     BottomPanelSurface {
         TodayAutocompleteHost(
-            visible = currentTab != DayManagementTab.JOURNAL && currentTab != DayManagementTab.DAY_FOCUSES,
+            visible = currentTab != DayManagementTab.JOURNAL &&
+                currentTab != DayManagementTab.DAY_FOCUSES &&
+                currentTab != DayManagementTab.DAY_THEMES,
             inputValue = inputValue,
             allTags = allTags,
             contextMarkerNames = contextMarkerNames,
@@ -66,7 +68,7 @@ internal fun TodayBottomPanelContent(
                     )
                 },
             )
-        } else {
+        } else if (currentTab != DayManagementTab.DAY_THEMES) {
             TodayBottomPanelComposer(
                 inputValue = inputValue,
                 onValueChange = onInputValueChange,

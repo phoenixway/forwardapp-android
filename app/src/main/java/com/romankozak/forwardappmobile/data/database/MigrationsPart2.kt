@@ -2064,3 +2064,24 @@ val MIGRATION_144_145 =
 
         private fun quoteIdentifier(value: String): String = "`" + value.replace("`", "``") + "`"
     }
+
+val MIGRATION_145_146 =
+    object : Migration(145, 146) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS `day_theme_documents` (
+                    `dayPlanId` TEXT NOT NULL,
+                    `contentJson` TEXT NOT NULL,
+                    `createdAt` INTEGER NOT NULL,
+                    `updatedAt` INTEGER,
+                    `syncedAt` INTEGER,
+                    `isDeleted` INTEGER NOT NULL,
+                    `version` INTEGER NOT NULL,
+                    PRIMARY KEY(`dayPlanId`),
+                    FOREIGN KEY(`dayPlanId`) REFERENCES `day_plans`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+        }
+    }

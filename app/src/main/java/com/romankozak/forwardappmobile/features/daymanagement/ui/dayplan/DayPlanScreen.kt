@@ -3,14 +3,18 @@ package com.romankozak.forwardappmobile.features.daymanagement.ui.dayplan
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.navigation.NavController
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 import com.romankozak.forwardappmobile.core.navigation.EnhancedNavigationManager
+import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayThemesViewModel
 
 const val TAG = "NAV_DEBUG"
 internal const val LINK_PICKER_OPEN_DELAY_MILLIS = 160L
@@ -29,6 +33,7 @@ fun DayPlanScreen(
     navigator: DayPlanScreenNavigator,
     addTaskTrigger: Int,
     viewModel: DayPlanViewModel,
+    dayThemesViewModel: DayThemesViewModel,
     modifier: Modifier = Modifier,
 ) {
     val systemUiController = rememberSystemUiController()
@@ -37,6 +42,8 @@ fun DayPlanScreen(
     val hapticFeedback = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     val presentationState = rememberDayPlanPresentationState(viewModel)
+    val dayThemesState by dayThemesViewModel.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(initialDayPlanId) { dayThemesViewModel.loadPlan(initialDayPlanId) }
     val contentState =
         DayPlanContentState(
             initialDayPlanId = initialDayPlanId,
@@ -64,6 +71,8 @@ fun DayPlanScreen(
             DayPlanVisualState(
                 isContentReady = true,
             ),
+        dayThemesState = dayThemesState,
+        onToggleTheme = dayThemesViewModel::toggleTheme,
         modifier = modifier,
     )
     DayPlanConnectionsHost(

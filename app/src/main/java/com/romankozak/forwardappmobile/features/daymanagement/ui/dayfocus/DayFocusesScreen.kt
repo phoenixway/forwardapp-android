@@ -61,6 +61,10 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusType
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.backlog.backlogitems.EnhancedRelatedLinkChip
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.utils.handleRelatedLinkClick
+import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayThemeUsageSummary
+import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayThemesUiState
+import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.DayThemesViewModel
+import com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes.EntityThemeSelector
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedItemState
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemColors
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemSurface
@@ -75,12 +79,15 @@ fun DayFocusesScreen(
     predictedDayDurationMinutes: Long? = null,
     globalObsidianVaultName: String? = null,
     viewModel: DayFocusesViewModel = hiltViewModel(),
+    dayThemesViewModel: DayThemesViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val dayThemesState by dayThemesViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     LaunchedEffect(initialDayPlanId) {
         viewModel.loadDataForPlan(initialDayPlanId)
+        dayThemesViewModel.loadPlan(initialDayPlanId)
     }
 
     DayFocusesContent(
@@ -90,6 +97,8 @@ fun DayFocusesScreen(
         onDelete = viewModel::requestDelete,
         onReorder = viewModel::updateItemsOrder,
         predictedDayDurationMinutes = predictedDayDurationMinutes,
+        dayThemesState = dayThemesState,
+        onToggleTheme = dayThemesViewModel::toggleTheme,
         onRelatedLinkClick = { link ->
             val resolvedNavController = navController ?: return@DayFocusesContent
             handleRelatedLinkClick(
@@ -111,6 +120,8 @@ private fun DayFocusesContent(
     onDelete: (DayFocusItem) -> Unit,
     onReorder: (List<DayFocusItem>) -> Unit,
     predictedDayDurationMinutes: Long?,
+    dayThemesState: DayThemesUiState,
+    onToggleTheme: (String, String) -> Unit,
     onRelatedLinkClick: (RelatedLink) -> Unit,
 ) {
     val lazyListState = rememberLazyListState()
@@ -142,6 +153,27 @@ private fun DayFocusesContent(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                if (internalItems.any { dayThemesState.themesFor(it.id).isNotEmpty() }) item(key = "day-theme-summary") {
+                    val percentByEntity = internalItems.associate { it.id to (it.budgetPercent ?: 0) }
+                    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                        DayThemeUsageSummary(
+                            label = "Фокуси",
+                            themes = dayThemesState.themes,
+                            entityIds = internalItems.filter { it.type == DayFocusType.FOCUS }.map(DayFocusItem::id),
+                            assignments = dayThemesState.assignments,
+                            percentByEntity = percentByEntity,
+                            predictedDayDurationMinutes = predictedDayDurationMinutes,
+                        )
+                        DayThemeUsageSummary(
+                            label = "Зони",
+                            themes = dayThemesState.themes,
+                            entityIds = internalItems.filter { it.type == DayFocusType.RESPONSIBILITY }.map(DayFocusItem::id),
+                            assignments = dayThemesState.assignments,
+                            percentByEntity = percentByEntity,
+                            predictedDayDurationMinutes = predictedDayDurationMinutes,
+                        )
+                    }
+                }
                 items(internalItems, key = { it.id }) { item ->
                     DayFocusItemRow(
                         item = item,
@@ -152,6 +184,8 @@ private fun DayFocusesContent(
                         contextTitlesById = contextTitlesById,
                         isBudgetOverLimit = isBudgetOverLimit,
                         predictedDayDurationMinutes = predictedDayDurationMinutes,
+                        dayThemesState = dayThemesState,
+                        onToggleTheme = onToggleTheme,
                     )
                 }
             }
@@ -169,6 +203,8 @@ private fun LazyItemScope.DayFocusItemRow(
     contextTitlesById: Map<String, String>,
     isBudgetOverLimit: Boolean,
     predictedDayDurationMinutes: Long?,
+    dayThemesState: DayThemesUiState,
+    onToggleTheme: (String, String) -> Unit,
 ) {
     ReorderableItem(reorderableState, key = item.id) { isDragging ->
         var showActionsSheet by remember(item.id) { mutableStateOf(false) }
@@ -257,6 +293,13 @@ private fun LazyItemScope.DayFocusItemRow(
                             }
                         }
                     }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    EntityThemeSelector(
+                        themes = dayThemesState.themes,
+                        selectedThemeIds = dayThemesState.assignments[item.id].orEmpty(),
+                        entityLabel = item.title,
+                        onToggle = { themeId -> onToggleTheme(item.id, themeId) },
+                    )
                 }
                 IconButton(
                     onClick = { showActionsSheet = true },
