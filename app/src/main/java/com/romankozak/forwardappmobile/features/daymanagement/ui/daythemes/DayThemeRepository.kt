@@ -36,7 +36,11 @@ class DayThemeRepository
         fun observe(dayPlanId: String): Flow<DayThemeDocument> =
             dao.observe(dayPlanId)
                 .map { entity ->
-                    entity?.takeUnless { it.isDeleted }?.contentJson?.let(::decode) ?: DayThemeDocument()
+                    entity?.takeUnless { it.isDeleted }
+                        ?.contentJson
+                        ?.let(::decode)
+                        ?.normalizedForDay(dayPlanId)
+                        ?: DayThemeDocument()
                 }.catch { emit(DayThemeDocument()) }
 
         suspend fun migrateLegacyDayIfNeeded(dayPlanId: String) {
@@ -47,11 +51,12 @@ class DayThemeRepository
                 val themes = legacy.themes.filter { it.dayPlanId == dayPlanId }
                 val assignments = legacy.assignments.filter { it.dayPlanId == dayPlanId }
                 if (themes.isEmpty() && assignments.isEmpty()) return
+                val document = DayThemeDocument(themes, assignments).normalizedForDay(dayPlanId)
                 val now = System.currentTimeMillis()
                 dao.upsert(
                     DayThemeDocumentEntity(
                         dayPlanId = dayPlanId,
-                        contentJson = gson.toJson(DayThemeDocument(themes, assignments)),
+                        contentJson = gson.toJson(document),
                         createdAt = now,
                         updatedAt = now,
                         version = 1,
@@ -66,12 +71,17 @@ class DayThemeRepository
         ) {
             mutex.withLock {
                 val existing = dao.getByDayPlanId(dayPlanId)
-                val current = existing?.takeUnless { it.isDeleted }?.contentJson?.let(::decode) ?: DayThemeDocument()
+                val current = existing?.takeUnless { it.isDeleted }
+                    ?.contentJson
+                    ?.let(::decode)
+                    ?.normalizedForDay(dayPlanId)
+                    ?: DayThemeDocument()
+                val updated = transform(current).normalizedForDay(dayPlanId)
                 val now = System.currentTimeMillis()
                 dao.upsert(
                     DayThemeDocumentEntity(
                         dayPlanId = dayPlanId,
-                        contentJson = gson.toJson(transform(current)),
+                        contentJson = gson.toJson(updated),
                         createdAt = existing?.createdAt ?: now,
                         updatedAt = now,
                         syncedAt = null,

@@ -511,7 +511,7 @@ class MergeLocalDataSourceImpl
                     "merge runtime import phase=${runtimeState.currentPhase} sleepAt=${runtimeState.sleepAt} " +
                         "wokeAt=${runtimeState.wokeAt} updatedAt=${runtimeState.updatedAt}",
                 )
-                dayManagementRuntimeRepository.importSnapshot(runtimeState)
+                dayManagementRuntimeRepository.mergeSnapshot(runtimeState)
             }
             val affectedPlanIds =
                 (dayPlansToInsert.map { plan -> plan.id } + dayTasksToInsert.map { task -> task.dayPlanId })

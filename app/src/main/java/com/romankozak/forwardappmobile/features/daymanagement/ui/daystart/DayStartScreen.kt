@@ -35,8 +35,25 @@ fun DayStartScreen(
     val phaseItems =
         listOf(
             PhaseStatusItem(
-                title = "Фокус дня",
+                title = "Теми дня",
                 startAt = runtimeState.wokeAt,
+                endAt = runtimeState.dayThemesFinalizedAt,
+                currentPhase = runtimeState.currentPhase,
+                activePhase = DayManagementPhase.PREPARATION,
+                blockIfReached = runtimeState.dayThemesFinalizedAt == null &&
+                    listOfNotNull(
+                        runtimeState.dayFocusFinalizedAt,
+                        runtimeState.dayPlanFinalizedAt,
+                        runtimeState.implementationStartedAt,
+                        runtimeState.finalizationStartedAt,
+                        runtimeState.sleepAt,
+                    ).isNotEmpty(),
+            ),
+            PhaseStatusItem(
+                title = "Фокус дня",
+                startAt =
+                    runtimeState.dayThemesFinalizedAt
+                        ?: runtimeState.wokeAt.takeIf { runtimeState.dayFocusFinalizedAt != null },
                 endAt = runtimeState.dayFocusFinalizedAt,
                 currentPhase = runtimeState.currentPhase,
                 activePhase = DayManagementPhase.PREPARATION,
@@ -154,6 +171,10 @@ private fun RuntimeStatusCard(
                 StatusLine(
                     title = "Пробудження",
                     value = runtimeState.wokeAt?.let(::formatTimestamp) ?: "Ще не зафіксоване",
+                )
+                StatusLine(
+                    title = "Теми дня",
+                    value = runtimeState.dayThemesFinalizedAt?.let(::formatTimestamp) ?: "Ще не зафіксовані",
                 )
                 StatusLine(
                     title = "Фокус дня",

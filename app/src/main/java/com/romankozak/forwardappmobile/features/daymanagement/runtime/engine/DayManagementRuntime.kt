@@ -21,6 +21,7 @@ class DayManagementRuntime
         ): DayManagementRuntimeDecision =
             when (command) {
                 is DayManagementRuntimeCommand.WakeUp -> wakeUp(command.now)
+                is DayManagementRuntimeCommand.FinalizeThemes -> finalizeThemes(state, command.now)
                 is DayManagementRuntimeCommand.FinalizeFocus -> finalizeFocus(state, command.now)
                 is DayManagementRuntimeCommand.FinalizePlan -> finalizePlan(state, command.now)
                 is DayManagementRuntimeCommand.ActivatePhase -> activatePhase(state, command.phase, command.now)
@@ -37,6 +38,7 @@ class DayManagementRuntime
                     sleepAt = null,
                     currentPhase = DayManagementPhase.PREPARATION,
                     phaseStartedAt = now,
+                    dayThemesFinalizedAt = null,
                     dayFocusFinalizedAt = null,
                     dayPlanFinalizedAt = null,
                     implementationStartedAt = null,
@@ -57,6 +59,23 @@ class DayManagementRuntime
             )
         }
 
+        private fun finalizeThemes(
+            state: DayManagementRuntimeState,
+            now: Long,
+        ): DayManagementRuntimeDecision {
+            val ensuredState = ensureOpenSession(state, now)
+            return DayManagementRuntimeDecision(
+                newState = ensuredState.copy(dayThemesFinalizedAt = now, updatedAt = now),
+                events =
+                    listOf(
+                        DayManagementRuntimeEvent(
+                            type = DayManagementRuntimeEventType.THEMES_FINALIZED,
+                            timestamp = now,
+                        ),
+                    ),
+            )
+        }
+
         private fun finalizeFocus(
             state: DayManagementRuntimeState,
             now: Long,
@@ -64,6 +83,7 @@ class DayManagementRuntime
             val ensuredState = ensureOpenSession(state, now)
             val newState =
                 ensuredState.copy(
+                    dayThemesFinalizedAt = ensuredState.dayThemesFinalizedAt ?: now,
                     dayFocusFinalizedAt = now,
                     updatedAt = now,
                 )

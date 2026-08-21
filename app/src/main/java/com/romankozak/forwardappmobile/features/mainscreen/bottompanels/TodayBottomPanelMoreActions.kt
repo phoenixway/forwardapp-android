@@ -10,6 +10,7 @@ internal data class TodayMoreActionCallbacks(
     val onSleep: () -> Unit,
     val onSetPredictedDayDuration: () -> Unit,
     val onFinalizePlan: () -> Unit,
+    val onFinalizeThemes: () -> Unit,
     val onFinalizeFocus: () -> Unit,
     val onStartImplementation: () -> Unit,
     val onAddTaskFromContext: () -> Unit,
@@ -49,6 +50,19 @@ internal fun buildTodayAdditionalMoreActions(
                             "План дня готовий"
                         },
                     onClick = callbacks.onFinalizePlan,
+                ),
+            )
+
+        DayManagementTab.DAY_THEMES ->
+            listOf(
+                MoreSheetAction(
+                    label =
+                        if (runtimeUiState.runtimeState.dayThemesFinalizedAt != null) {
+                            "Теми дня зафіксовано"
+                        } else {
+                            "Теми дня зафіксувати"
+                        },
+                    onClick = callbacks.onFinalizeThemes,
                 ),
             )
 

@@ -118,6 +118,7 @@ class SyncRepository @Inject constructor(
         mergeRepository.createBackupDiff(incoming)
 
     private fun sanitizeIncomingBackupJson(rawJson: String): String {
+        requireNoLegacyTaskRecurrenceV1(rawJson)
         return rawJson.replace(
             Regex("\"experimentalCapabilityIds\"\\s*:\\s*null"),
             "\"experimentalCapabilityIds\":[]",

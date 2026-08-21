@@ -53,6 +53,9 @@ dependencies {
     implementation(libs.ktor.client.logging)
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     implementation(libs.timber)
+
+    testImplementation(libs.junit)
+
     // Add other sync-specific dependencies here
     // For example:
     // implementation("androidx.room:room-runtime:2.6.1")

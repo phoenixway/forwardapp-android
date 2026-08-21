@@ -16,12 +16,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.DirectionsRun
+import androidx.compose.material.icons.outlined.Eco
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material.icons.outlined.TrackChanges
+import androidx.compose.material.icons.outlined.WorkOutline
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -50,21 +53,26 @@ internal val dayThemeColors =
         0xFF2F80ED, 0xFF7C4DFF, 0xFFD946EF, 0xFF607D8B,
     )
 
-internal val dayThemeIconKeys = listOf("target", "heart", "home", "spark", "mind", "flag")
+internal val dayThemeIconKeys =
+    listOf("target", "sparkles", "heart", "brain", "work", "home", "activity", "leaf")
 
 @Composable
 internal fun dayThemeIcon(key: String): ImageVector =
     when (key) {
         "heart" -> Icons.Outlined.FavoriteBorder
         "home" -> Icons.Outlined.Home
-        "spark" -> Icons.Outlined.AutoAwesome
-        "mind" -> Icons.Outlined.Psychology
+        "sparkles", "spark" -> Icons.Outlined.AutoAwesome
+        "brain", "mind" -> Icons.Outlined.Psychology
+        "work" -> Icons.Outlined.WorkOutline
+        "activity" -> Icons.Outlined.DirectionsRun
+        "leaf" -> Icons.Outlined.Eco
         "flag" -> Icons.Outlined.Flag
         else -> Icons.Outlined.TrackChanges
     }
 
-@Composable
-internal fun themeColor(theme: DayTheme): Color = Color(theme.colorArgb.toULong())
+internal fun themeColor(theme: DayTheme): Color = dayThemeColor(theme.colorArgb)
+
+internal fun dayThemeColor(argb: Long): Color = Color(argb.toInt())
 
 @Composable
 fun DayThemeChip(

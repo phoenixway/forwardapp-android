@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
 import com.romankozak.forwardappmobile.core.data.models.sync.SettingsContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.CanonicalRecurringSeriesSnapshot
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalRecurringSeriesSyncVersion
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import com.romankozak.forwardappmobile.sync.datasource.SyncLocalDataSource
@@ -22,6 +23,64 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
+
+internal data class CanonicalWifiPushPlan(
+    val snapshotDelta: SnapshotBundle,
+    val recurringSeriesAck: List<CanonicalRecurringSeriesSyncVersion>,
+)
+
+internal fun shouldPushCanonicalWifi(
+    databaseIsEmpty: Boolean,
+    dirtyCanonicalSeries: List<CanonicalRecurringSeriesSnapshot>,
+): Boolean = !databaseIsEmpty || dirtyCanonicalSeries.isNotEmpty()
+
+internal fun buildCanonicalWifiPushPlan(
+    source: DatabaseContent,
+    fullSnapshot: SnapshotBundle,
+    dirtyCanonicalSeries: List<CanonicalRecurringSeriesSnapshot>,
+): CanonicalWifiPushPlan =
+    CanonicalWifiPushPlan(
+        snapshotDelta =
+            buildCanonicalSnapshotDelta(
+                source = source,
+                fullSnapshot = fullSnapshot,
+                explicitCanonicalSeriesIds =
+                    dirtyCanonicalSeries.mapTo(hashSetOf()) { it.id },
+            ),
+        recurringSeriesAck =
+            dirtyCanonicalSeries.map { series ->
+                CanonicalRecurringSeriesSyncVersion(
+                    id = series.id,
+                    version = series.version,
+                )
+            },
+    )
+
+internal fun buildCanonicalSnapshotDelta(
+    source: DatabaseContent,
+    fullSnapshot: SnapshotBundle,
+    explicitCanonicalSeriesIds: Set<String> = emptySet(),
+): SnapshotBundle {
+    val dayPlanIds = source.dayPlans.mapTo(hashSetOf()) { it.id }
+    val dayFocusItemIds = source.dayFocusItems.mapTo(hashSetOf()) { it.id }
+    val dayTaskIds = source.dayTasks.mapTo(hashSetOf()) { it.id }
+    val requiredCanonicalSeriesIds = explicitCanonicalSeriesIds.toMutableSet()
+
+    source.dayTasks.mapNotNullTo(requiredCanonicalSeriesIds) { it.recurrenceSeriesId }
+    source.dayFocusItems.mapNotNullTo(requiredCanonicalSeriesIds) { it.recurrenceSeriesId }
+
+    return SyncMapper.migrateV1ToV2(source).copy(
+        dayPlans = fullSnapshot.dayPlans.filter { it.id in dayPlanIds },
+        dayFocusItems = fullSnapshot.dayFocusItems.filter { it.id in dayFocusItemIds },
+        dayTasks = fullSnapshot.dayTasks.filter { it.id in dayTaskIds },
+        recurringTasks = emptyList(),
+        recurringSeries =
+            fullSnapshot.recurringSeries.filter { series ->
+                series.id in requiredCanonicalSeriesIds
+            },
+        dayManagementRuntimeState = fullSnapshot.dayManagementRuntimeState,
+    )
+}
 
 @Singleton
 class SyncWifiService @Inject constructor(
@@ -57,17 +116,17 @@ class SyncWifiService @Inject constructor(
         try {
             val unsynced = localDataSource.getUnsyncedChanges()
             val dirtyCanonicalSeries = fullBackupLocalDataSource.loadUnsyncedCanonicalRecurringSeries()
+            val databaseIsEmpty = isEmptyDatabaseContent(unsynced)
 
-            if (isEmptyDatabaseContent(unsynced) && dirtyCanonicalSeries.isEmpty()) {
+            if (!shouldPushCanonicalWifi(databaseIsEmpty, dirtyCanonicalSeries)) {
                 Result.success(Unit)
             } else {
                 val fullSnapshot = fullBackupLocalDataSource.loadFullSnapshotBundle()
-                val snapshotDelta =
-                    canonicalSnapshotDelta(
+                val pushPlan =
+                    buildCanonicalWifiPushPlan(
                         source = unsynced,
                         fullSnapshot = fullSnapshot,
-                        explicitCanonicalSeriesIds =
-                            dirtyCanonicalSeries.mapTo(hashSetOf()) { it.id },
+                        dirtyCanonicalSeries = dirtyCanonicalSeries,
                     )
                 val fullUrl = buildWifiUrl(address, "/import")
                 val backupWrapper =
@@ -75,7 +134,7 @@ class SyncWifiService @Inject constructor(
                         backupSchemaVersion = 2,
                         database = unsynced,
                         settings = SettingsContent(fullBackupLocalDataSource.getSettingsSnapshot()),
-                        snapshotBundle = snapshotDelta,
+                        snapshotBundle = pushPlan.snapshotDelta,
                     )
                 val response = client.post(fullUrl) {
                     contentType(ContentType.Application.Json)
@@ -84,12 +143,7 @@ class SyncWifiService @Inject constructor(
                 if (response.status.isSuccess()) {
                     localDataSource.markSyncedNow(unsynced)
                     fullBackupLocalDataSource.markCanonicalRecurringSeriesSynced(
-                        dirtyCanonicalSeries.map { series ->
-                            CanonicalRecurringSeriesSyncVersion(
-                                id = series.id,
-                                version = series.version,
-                            )
-                        },
+                        pushPlan.recurringSeriesAck,
                     )
                     Result.success(Unit)
                 } else {
@@ -133,27 +187,12 @@ class SyncWifiService @Inject constructor(
         source: DatabaseContent,
         fullSnapshot: SnapshotBundle,
         explicitCanonicalSeriesIds: Set<String> = emptySet(),
-    ): SnapshotBundle {
-        val dayPlanIds = source.dayPlans.mapTo(hashSetOf()) { it.id }
-        val dayFocusItemIds = source.dayFocusItems.mapTo(hashSetOf()) { it.id }
-        val dayTaskIds = source.dayTasks.mapTo(hashSetOf()) { it.id }
-        val requiredCanonicalSeriesIds = explicitCanonicalSeriesIds.toMutableSet()
-
-        source.dayTasks.mapNotNullTo(requiredCanonicalSeriesIds) { it.recurrenceSeriesId }
-        source.dayFocusItems.mapNotNullTo(requiredCanonicalSeriesIds) { it.recurrenceSeriesId }
-
-        return SyncMapper.migrateV1ToV2(source).copy(
-            dayPlans = fullSnapshot.dayPlans.filter { it.id in dayPlanIds },
-            dayFocusItems = fullSnapshot.dayFocusItems.filter { it.id in dayFocusItemIds },
-            dayTasks = fullSnapshot.dayTasks.filter { it.id in dayTaskIds },
-            recurringTasks = emptyList(),
-            recurringSeries =
-                fullSnapshot.recurringSeries.filter { series ->
-                    series.id in requiredCanonicalSeriesIds
-                },
-            dayManagementRuntimeState = fullSnapshot.dayManagementRuntimeState,
+    ): SnapshotBundle =
+        buildCanonicalSnapshotDelta(
+            source = source,
+            fullSnapshot = fullSnapshot,
+            explicitCanonicalSeriesIds = explicitCanonicalSeriesIds,
         )
-    }
 
     private suspend fun buildWifiUrl(address: String, path: String): String {
         val cleanAddress = address.trim().let { if (it.startsWith("http")) it else "http://$it" }

@@ -165,6 +165,7 @@ suspend fun createSyncReport(bundle: SnapshotBundle): SyncReport {
     }
 
     private fun sanitizeIncomingBackupJson(rawJson: String): String {
+        requireNoLegacyTaskRecurrenceV1(rawJson)
         return rawJson.replace(
             Regex("\"experimentalCapabilityIds\"\\s*:\\s*null"),
             "\"experimentalCapabilityIds\":[]",

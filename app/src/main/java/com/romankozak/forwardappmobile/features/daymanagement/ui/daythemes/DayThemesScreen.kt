@@ -269,7 +269,7 @@ private fun DayThemeEditorSheet(
                 dayThemeColors.forEach { value ->
                     Surface(
                         shape = CircleShape,
-                        color = Color(value.toULong()),
+                        color = dayThemeColor(value),
                         border = if (color == value) BorderStroke(3.dp, MaterialTheme.colorScheme.onSurface) else null,
                         modifier = Modifier.size(34.dp).clickable { color = value },
                     ) {}
@@ -281,8 +281,8 @@ private fun DayThemeEditorSheet(
                 dayThemeIconKeys.forEach { key ->
                     Surface(
                         shape = MaterialTheme.shapes.medium,
-                        color = if (icon == key) Color(color.toULong()).copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceVariant,
-                        border = if (icon == key) BorderStroke(1.dp, Color(color.toULong())) else null,
+                        color = if (icon == key) dayThemeColor(color).copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceVariant,
+                        border = if (icon == key) BorderStroke(1.dp, dayThemeColor(color)) else null,
                         modifier = Modifier.size(42.dp).clickable { icon = key },
                     ) { Box(contentAlignment = Alignment.Center) { Icon(dayThemeIcon(key), null) } }
                 }

@@ -49,3 +49,28 @@ data class DayThemeDraft(
     val comment: String,
     val budgetPercent: Int,
 )
+
+internal fun canonicalDayThemeIconKey(key: String): String =
+    when (key) {
+        "spark" -> "sparkles"
+        "mind" -> "brain"
+        "flag" -> "target"
+        else -> key
+    }
+
+/**
+ * The outer synced document owns the day identity. Child ids are normalized
+ * because DayPlan ids can be remapped by date while merging older databases.
+ */
+internal fun DayThemeDocument.normalizedForDay(dayPlanId: String): DayThemeDocument =
+    copy(
+        themes = themes.map { theme ->
+            theme.copy(
+                dayPlanId = dayPlanId,
+                iconKey = canonicalDayThemeIconKey(theme.iconKey),
+            )
+        },
+        assignments = assignments.map { assignment ->
+            assignment.copy(dayPlanId = dayPlanId)
+        },
+    )

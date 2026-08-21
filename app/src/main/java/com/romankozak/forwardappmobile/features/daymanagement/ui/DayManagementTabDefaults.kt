@@ -11,5 +11,6 @@ fun defaultTodayTabForRuntimeState(state: DayManagementRuntimeState): DayManagem
         state.dayPlanFinalizedAt != null || state.currentPhase == DayManagementPhase.IMPLEMENTATION ->
             DayManagementTab.JOURNAL
         state.dayFocusFinalizedAt != null -> DayManagementTab.DAY_PLAN
-        else -> DayManagementTab.DAY_FOCUSES
+        state.dayThemesFinalizedAt != null -> DayManagementTab.DAY_FOCUSES
+        else -> DayManagementTab.DAY_THEMES
     }

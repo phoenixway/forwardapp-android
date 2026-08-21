@@ -9,6 +9,7 @@ data class DayManagementRuntimeStateSnapshot(
     @SerializedName("sleepAt") val sleepAt: Long?,
     @SerializedName("currentPhase") val currentPhase: String,
     @SerializedName("phaseStartedAt") val phaseStartedAt: Long?,
+    @SerializedName("dayThemesFinalizedAt") val dayThemesFinalizedAt: Long?,
     @SerializedName("dayFocusFinalizedAt") val dayFocusFinalizedAt: Long?,
     @SerializedName("dayPlanFinalizedAt") val dayPlanFinalizedAt: Long?,
     @SerializedName("implementationStartedAt") val implementationStartedAt: Long?,

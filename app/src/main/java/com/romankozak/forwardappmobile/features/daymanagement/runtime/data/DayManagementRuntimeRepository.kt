@@ -50,6 +50,7 @@ class DayManagementRuntimeRepository
                     sleepAt = prefs[sleepAtKey],
                     currentPhase = prefs[currentPhaseKey]?.let(DayManagementPhase::valueOf) ?: DayManagementPhase.CLOSED,
                     phaseStartedAt = prefs[phaseStartedAtKey],
+                    dayThemesFinalizedAt = prefs[dayThemesFinalizedAtKey],
                     dayFocusFinalizedAt = prefs[dayFocusFinalizedAtKey],
                     dayPlanFinalizedAt = prefs[dayPlanFinalizedAtKey],
                     implementationStartedAt = prefs[implementationStartedAtKey],
@@ -80,6 +81,21 @@ class DayManagementRuntimeRepository
             }
         }
 
+        suspend fun mergeSnapshot(snapshot: DayManagementRuntimeStateSnapshot) {
+            withContext(ioDispatcher) {
+                val current = state.first()
+                val incomingUpdatedAt = snapshot.updatedAt ?: 0L
+                val localUpdatedAt = current.updatedAt ?: 0L
+                if (incomingUpdatedAt <= localUpdatedAt) return@withContext
+
+                val incoming = snapshot.toRuntimeState()
+                context.dayManagementRuntimeDataStore.edit { prefs ->
+                    writeState(prefs, incoming)
+                }
+                notifier.sync(incoming)
+            }
+        }
+
         private suspend fun persistDecision(decision: DayManagementRuntimeDecision) {
             context.dayManagementRuntimeDataStore.edit { prefs ->
                 writeState(prefs, decision.newState)
@@ -98,6 +114,7 @@ class DayManagementRuntimeRepository
             writeNullableLong(prefs, sleepAtKey, state.sleepAt)
             prefs[currentPhaseKey] = state.currentPhase.name
             writeNullableLong(prefs, phaseStartedAtKey, state.phaseStartedAt)
+            writeNullableLong(prefs, dayThemesFinalizedAtKey, state.dayThemesFinalizedAt)
             writeNullableLong(prefs, dayFocusFinalizedAtKey, state.dayFocusFinalizedAt)
             writeNullableLong(prefs, dayPlanFinalizedAtKey, state.dayPlanFinalizedAt)
             writeNullableLong(prefs, implementationStartedAtKey, state.implementationStartedAt)
@@ -154,6 +171,7 @@ class DayManagementRuntimeRepository
             private val sleepAtKey = longPreferencesKey("sleep_at")
             private val currentPhaseKey = stringPreferencesKey("current_phase")
             private val phaseStartedAtKey = longPreferencesKey("phase_started_at")
+            private val dayThemesFinalizedAtKey = longPreferencesKey("day_themes_finalized_at")
             private val dayFocusFinalizedAtKey = longPreferencesKey("day_focus_finalized_at")
             private val dayPlanFinalizedAtKey = longPreferencesKey("day_plan_finalized_at")
             private val implementationStartedAtKey = longPreferencesKey("implementation_started_at")
@@ -172,6 +190,7 @@ private fun DayManagementRuntimeState.toSnapshot(): DayManagementRuntimeStateSna
         sleepAt = sleepAt,
         currentPhase = currentPhase.name,
         phaseStartedAt = phaseStartedAt,
+        dayThemesFinalizedAt = dayThemesFinalizedAt,
         dayFocusFinalizedAt = dayFocusFinalizedAt,
         dayPlanFinalizedAt = dayPlanFinalizedAt,
         implementationStartedAt = implementationStartedAt,
@@ -189,6 +208,7 @@ private fun DayManagementRuntimeStateSnapshot.toRuntimeState(): DayManagementRun
         sleepAt = sleepAt,
         currentPhase = DayManagementPhase.valueOf(currentPhase),
         phaseStartedAt = phaseStartedAt,
+        dayThemesFinalizedAt = dayThemesFinalizedAt,
         dayFocusFinalizedAt = dayFocusFinalizedAt,
         dayPlanFinalizedAt = dayPlanFinalizedAt,
         implementationStartedAt = implementationStartedAt,

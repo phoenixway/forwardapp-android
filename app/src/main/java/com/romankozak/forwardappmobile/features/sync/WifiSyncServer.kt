@@ -256,8 +256,51 @@ class WifiSyncServer(
                                 if (BuildConfig.DEBUG) {
                                     Log.d(DEBUG_TAG, "[WifiSyncServer] /import dump head=${body.take(400)}")
                                 }
+                                // Reject TASK recurrence-v1 while the payload is still raw JSON. Typed
+                                // compatibility DTOs intentionally still know these old fields, so checking
+                                // only after Gson parsing would allow legacy semantics to survive silently.
+                                com.romankozak.forwardappmobile.sync.requireNoLegacyTaskRecurrenceV1(body)
+
+                                // Canonical Wi-Fi import authority is snapshotBundle. Do not deserialize
+                                // the legacy DatabaseContent envelope here: stale legacy entity shapes can
+                                // contain fields that are invalid for current Room entities and must not be
+                                // allowed to block an otherwise valid canonical snapshot import.
+                                val rawRoot =
+                                    com.google.gson.JsonParser.parseString(body).asJsonObject
+                                val rawSnapshot = rawRoot.get("snapshotBundle")
+                                if (rawSnapshot == null || rawSnapshot.isJsonNull) {
+                                    return@post call.respond(
+                                        HttpStatusCode.Companion.BadRequest,
+                                        "Canonical snapshotBundle section is required",
+                                    )
+                                }
+
+                                val canonicalSnapshot =
+                                    gson.fromJson(
+                                        rawSnapshot,
+                                        com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle::class.java,
+                                    )
+                                val canonicalSettings =
+                                    rawRoot.get("settings")
+                                        ?.takeUnless { it.isJsonNull }
+                                        ?.let { rawSettings ->
+                                            gson.fromJson(
+                                                rawSettings,
+                                                com.romankozak.forwardappmobile.core.data.models.sync.SettingsContent::class.java,
+                                            )
+                                        }
+
                                 val backup =
-                                    gson.fromJson(body, FullAppBackup::class.java)
+                                    FullAppBackup(
+                                        backupSchemaVersion =
+                                            rawRoot.get("backupSchemaVersion")
+                                                ?.takeUnless { it.isJsonNull }
+                                                ?.asInt
+                                                ?: 2,
+                                        database = null,
+                                        settings = canonicalSettings,
+                                        snapshotBundle = canonicalSnapshot,
+                                    )
                                 Log.e(DAY_SYNC_IMPORT_TAG, "server received ${backup.describeDayImportPayload(body.length)}")
                                 val snapshotBundle = backup.snapshotBundle
                                 val db = backup.database

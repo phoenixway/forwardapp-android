@@ -781,6 +781,7 @@ private fun MainScreenBottomBar(
                 },
                 runtimeUiState = dayManagementRuntimeUiState,
                 onWakeUp = dayManagementRuntimeViewModel::wakeUp,
+                onFinalizeThemes = dayManagementRuntimeViewModel::finalizeThemes,
                 onFinalizeFocus = dayManagementRuntimeViewModel::finalizeFocus,
                 onFinalizePlan = dayManagementRuntimeViewModel::finalizePlan,
                 onStartImplementation = dayManagementRuntimeViewModel::startImplementation,

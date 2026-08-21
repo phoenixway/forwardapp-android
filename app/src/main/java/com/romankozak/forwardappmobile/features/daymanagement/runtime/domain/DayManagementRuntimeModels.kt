@@ -11,6 +11,7 @@ enum class DayManagementPhase {
 
 enum class DayManagementRuntimeEventType {
     WOKE_UP,
+    THEMES_FINALIZED,
     FOCUS_FINALIZED,
     PLAN_FINALIZED,
     PHASE_ACTIVATED,
@@ -25,6 +26,7 @@ data class DayManagementRuntimeState(
     val sleepAt: Long? = null,
     val currentPhase: DayManagementPhase = DayManagementPhase.CLOSED,
     val phaseStartedAt: Long? = null,
+    val dayThemesFinalizedAt: Long? = null,
     val dayFocusFinalizedAt: Long? = null,
     val dayPlanFinalizedAt: Long? = null,
     val implementationStartedAt: Long? = null,
@@ -39,6 +41,8 @@ data class DayManagementRuntimeState(
 
 sealed interface DayManagementRuntimeCommand {
     data class WakeUp(val now: Long) : DayManagementRuntimeCommand
+
+    data class FinalizeThemes(val now: Long) : DayManagementRuntimeCommand
 
     data class FinalizeFocus(val now: Long) : DayManagementRuntimeCommand
 
