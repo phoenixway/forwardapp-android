@@ -55,11 +55,21 @@ class Migration143To145RoomAcceptanceTest {
         }
     }
 
-    private fun openRoom(dbName: String, vararg migrations: Migration): AppDatabase =
-        Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+    private fun openRoom(dbName: String, vararg migrations: Migration): AppDatabase {
+        val historicalTargetVersion =
+            migrations.maxOfOrNull { it.endVersion }
+                ?: error("At least one migration is required")
+        val tailMigrations =
+            ALL_MIGRATIONS
+                .filter { it.startVersion >= historicalTargetVersion }
+                .toTypedArray()
+
+        return Room.databaseBuilder(context, AppDatabase::class.java, dbName)
             .addMigrations(*migrations)
+            .addMigrations(*tailMigrations)
             .allowMainThreadQueries()
             .build()
+    }
 
     private fun createFixtureDatabase(
         dbName: String,
@@ -303,7 +313,7 @@ class Migration143To145RoomAcceptanceTest {
     }
 
     private fun assert145State(db: SupportSQLiteDatabase) {
-        assertEquals(145L, scalarLong(db, "PRAGMA user_version"))
+        assertTrue(scalarLong(db, "PRAGMA user_version") >= 145L)
         assertEquals(2L, scalarLong(db, "SELECT COUNT(*) FROM day_tasks"))
         assertEquals(
             listOf("occurrence-1", "ordinary-1"),
