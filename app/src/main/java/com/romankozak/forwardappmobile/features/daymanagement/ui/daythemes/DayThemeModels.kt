@@ -2,6 +2,11 @@ package com.romankozak.forwardappmobile.features.daymanagement.ui.daythemes
 
 import java.util.UUID
 
+/**
+ * UI compatibility projection of canonical ThemeDefinition + DayTheme.
+ * Persisted ids are canonical DayTheme ids. The UUID default is only a temporary
+ * client id for a newly-created theme before the repository materializes it.
+ */
 data class DayTheme(
     val id: String = UUID.randomUUID().toString(),
     val dayPlanId: String,
@@ -59,8 +64,9 @@ internal fun canonicalDayThemeIconKey(key: String): String =
     }
 
 /**
- * The outer synced document owns the day identity. Child ids are normalized
- * because DayPlan ids can be remapped by date while merging older databases.
+ * Compatibility projection normalization for the existing Day Themes UI.
+ * Canonical persistence owns identity; this helper only normalizes UI day scope
+ * and legacy icon aliases.
  */
 internal fun DayThemeDocument.normalizedForDay(dayPlanId: String): DayThemeDocument =
     copy(

@@ -10,10 +10,14 @@ import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalDayThemePayload
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.*
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toSnapshot
 import com.romankozak.forwardappmobile.data.dao.*
+import com.romankozak.forwardappmobile.data.database.DayThemeCanonicalBootstrapStateEntity
+import com.romankozak.forwardappmobile.data.daythemes.CanonicalDayThemeBootstrapper
+import com.romankozak.forwardappmobile.data.daythemes.planLegacyDayThemeMerge
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
@@ -25,6 +29,8 @@ import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconDao
 import com.romankozak.forwardappmobile.features.mainscreen.arc.ArcQuestDao
 import com.romankozak.forwardappmobile.features.missions.data.*
 import com.romankozak.forwardappmobile.sync.SyncMapper
+import com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncAck
+import com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncPayload
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalRecurringSeriesSyncVersion
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import javax.inject.Inject
@@ -48,7 +54,8 @@ class FullBackupLocalDataSourceImpl
         private val recentItemDao: RecentItemDao,
         private val dayPlanDao: DayPlanDao,
         private val dayTaskDao: DayTaskDao,
-        private val dayThemeDocumentDao: DayThemeDocumentDao,
+        private val canonicalDayThemeDao: CanonicalDayThemeDao,
+        private val canonicalDayThemeBootstrapper: CanonicalDayThemeBootstrapper,
         private val dailyMetricDao: DailyMetricDao,
         private val chatDao: ChatDao,
         private val reminderDao: ReminderDao,
@@ -86,6 +93,69 @@ class FullBackupLocalDataSourceImpl
         private val focusContextIntervalDao: FocusContextIntervalDao,
         private val userStateIntervalDao: UserStateIntervalDao,
     ) : FullBackupLocalDataSource {
+        override suspend fun loadUnsyncedCanonicalDayThemes(): CanonicalDayThemeSyncPayload {
+            canonicalDayThemeBootstrapper.ensureBootstrapped()
+            return db.withTransaction {
+                CanonicalDayThemeSyncPayload(
+                    themeDefinitions =
+                        canonicalDayThemeDao.getUnsyncedThemeDefinitionsForSync().map { it.toCanonicalSnapshot() },
+                    dayThemes =
+                        canonicalDayThemeDao.getUnsyncedDayThemesForSync().map { it.toCanonicalSnapshot() },
+                    assignmentDocuments =
+                        canonicalDayThemeDao.getUnsyncedAssignmentDocumentsForSync().map { it.toCanonicalSnapshot() },
+                )
+            }
+        }
+
+        override suspend fun loadCanonicalDayThemesChangedSince(timestamp: Long): CanonicalDayThemeSyncPayload {
+            canonicalDayThemeBootstrapper.ensureBootstrapped()
+            return db.withTransaction {
+                CanonicalDayThemeSyncPayload(
+                    themeDefinitions =
+                        canonicalDayThemeDao.getThemeDefinitionsChangedSinceForSync(timestamp).map { it.toCanonicalSnapshot() },
+                    dayThemes =
+                        canonicalDayThemeDao.getDayThemesChangedSinceForSync(timestamp).map { it.toCanonicalSnapshot() },
+                    assignmentDocuments =
+                        canonicalDayThemeDao.getAssignmentDocumentsChangedSinceForSync(timestamp).map { it.toCanonicalSnapshot() },
+                )
+            }
+        }
+
+        override suspend fun markCanonicalDayThemesSynced(ack: CanonicalDayThemeSyncAck) {
+            if (
+                ack.themeDefinitions.isEmpty() &&
+                ack.dayThemes.isEmpty() &&
+                ack.assignmentDocuments.isEmpty()
+            ) {
+                return
+            }
+
+            val syncedAt = System.currentTimeMillis()
+            db.withTransaction {
+                ack.themeDefinitions.forEach { sent ->
+                    canonicalDayThemeDao.markThemeDefinitionSyncedIfVersionMatches(
+                        id = sent.id,
+                        expectedVersion = sent.version,
+                        syncedAt = syncedAt,
+                    )
+                }
+                ack.dayThemes.forEach { sent ->
+                    canonicalDayThemeDao.markDayThemeSyncedIfVersionMatches(
+                        id = sent.id,
+                        expectedVersion = sent.version,
+                        syncedAt = syncedAt,
+                    )
+                }
+                ack.assignmentDocuments.forEach { sent ->
+                    canonicalDayThemeDao.markAssignmentDocumentSyncedIfVersionMatches(
+                        dayPlanId = sent.id,
+                        expectedVersion = sent.version,
+                        syncedAt = syncedAt,
+                    )
+                }
+            }
+        }
+
         override suspend fun loadUnsyncedCanonicalRecurringSeries() =
             canonicalRecurringSeriesDao.getUnsyncedForSync().map { it.toSnapshot() }
 
@@ -110,6 +180,17 @@ class FullBackupLocalDataSourceImpl
         }
 
         override suspend fun loadFullSnapshotBundle(): SnapshotBundle {
+            canonicalDayThemeBootstrapper.ensureBootstrapped()
+
+            val (canonicalThemeDefinitions, canonicalDayThemes, canonicalAssignmentDocuments) =
+                db.withTransaction {
+                    Triple(
+                        canonicalDayThemeDao.getAllThemeDefinitionsSync().map { it.toCanonicalSnapshot() },
+                        canonicalDayThemeDao.getAllDayThemesSync().map { it.toCanonicalSnapshot() },
+                        canonicalDayThemeDao.getAllAssignmentDocumentsSync().map { it.toCanonicalSnapshot() },
+                    )
+                }
+
             Log.d("SyncV2", "Starting export to SnapshotBundle V2")
             return SnapshotBundle(
                 version = 2,
@@ -146,7 +227,12 @@ class FullBackupLocalDataSourceImpl
                         com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceSnapshotMapper
                             .dayTaskSnapshot(task, task.toSnapshot())
                     },
-                dayThemeDocuments = dayThemeDocumentDao.getAllSync().map { it.toSnapshot() },
+                // Canonical Day Themes are authoritative in every new Android snapshot.
+                // Legacy documents are intentionally not exported alongside canonical state.
+                dayThemeDocuments = emptyList(),
+                themeDefinitions = canonicalThemeDefinitions,
+                dayThemes = canonicalDayThemes,
+                dayThemeAssignmentDocuments = canonicalAssignmentDocuments,
                 dailyMetrics = dailyMetricDao.getAll().map { it.toSnapshot() },
                 recurringTasks = emptyList(),
                 recurringSeries = canonicalRecurringSeriesDao.getAllSync().map { it.toSnapshot() },
@@ -188,6 +274,104 @@ class FullBackupLocalDataSourceImpl
                 contextKeyProblems = contextKeyProblemsDao.getAllRaw().map { it.toSnapshot() },
                 focusContextIntervals = focusContextIntervalDao.getAllRaw().map { it.toSnapshot() },
                 userStateIntervals = userStateIntervalDao.getAllRaw().map { it.toSnapshot() },
+            )
+        }
+
+        private suspend fun insertDayThemePayload(bundle: SnapshotBundle) {
+            val canonicalFieldCount =
+                listOf(
+                    bundle.themeDefinitions,
+                    bundle.dayThemes,
+                    bundle.dayThemeAssignmentDocuments,
+                ).count { it != null }
+
+            require(canonicalFieldCount == 0 || canonicalFieldCount == 3) {
+                "Canonical Day Themes must contain either none or all canonical fields."
+            }
+
+            if (canonicalFieldCount == 0) {
+                // Legacy 000 is accepted only as an input language. It is translated
+                // immediately into canonical persistence and is never written back to
+                // day_theme_documents.
+                val localThemeDefinitions =
+                    canonicalDayThemeDao.getAllThemeDefinitionsSync().map { it.toCanonicalSnapshot() }
+                val localDayThemes =
+                    canonicalDayThemeDao.getAllDayThemesSync().map { it.toCanonicalSnapshot() }
+                val localAssignmentDocuments =
+                    canonicalDayThemeDao.getAllAssignmentDocumentsSync().map { it.toCanonicalSnapshot() }
+                val validPlanIds =
+                    dayPlanDao.getAllPlansSync().mapTo(hashSetOf()) { it.id }
+
+                val mergePlan =
+                    planLegacyDayThemeMerge(
+                        incomingLegacyDocuments = bundle.dayThemeDocuments,
+                        incomingPlanIdRemap = emptyMap(),
+                        validPlanIds = validPlanIds,
+                        localThemeDefinitions = localThemeDefinitions,
+                        localDayThemes = localDayThemes,
+                        localAssignmentDocuments = localAssignmentDocuments,
+                    )
+
+                Log.d(
+                    "SyncV2",
+                    "Canonicalizing legacy DayThemeDocuments: legacy=${bundle.dayThemeDocuments.size}, " +
+                        "definitions=${mergePlan.themeDefinitions.size}, " +
+                        "dayThemes=${mergePlan.dayThemes.size}, " +
+                        "assignments=${mergePlan.assignmentDocuments.size}",
+                )
+
+                if (mergePlan.themeDefinitions.isNotEmpty()) {
+                    canonicalDayThemeDao.upsertThemeDefinitions(
+                        mergePlan.themeDefinitions.map { it.toCanonicalEntity() },
+                    )
+                }
+                if (mergePlan.dayThemes.isNotEmpty()) {
+                    canonicalDayThemeDao.upsertDayThemes(
+                        mergePlan.dayThemes.map { it.toCanonicalEntity() },
+                    )
+                }
+                if (mergePlan.assignmentDocuments.isNotEmpty()) {
+                    canonicalDayThemeDao.upsertAssignmentDocuments(
+                        mergePlan.assignmentDocuments.map { it.toCanonicalEntity() },
+                    )
+                }
+
+                canonicalDayThemeDao.upsertBootstrapState(
+                    DayThemeCanonicalBootstrapStateEntity(
+                        version = CanonicalDayThemeBootstrapper.CURRENT_BOOTSTRAP_VERSION,
+                        completedAt = System.currentTimeMillis(),
+                    ),
+                )
+                return
+            }
+
+            requireValidCanonicalDayThemePayload(bundle)
+
+            val definitions = requireNotNull(bundle.themeDefinitions)
+            val dayThemes = requireNotNull(bundle.dayThemes)
+            val assignmentDocuments = requireNotNull(bundle.dayThemeAssignmentDocuments)
+
+            Log.d(
+                "SyncV2",
+                "Inserting canonical Day Themes: definitions=${definitions.size}, " +
+                    "dayThemes=${dayThemes.size}, assignments=${assignmentDocuments.size}",
+            )
+
+            if (definitions.isNotEmpty()) {
+                canonicalDayThemeDao.upsertThemeDefinitions(definitions.map { it.toCanonicalEntity() })
+            }
+            if (dayThemes.isNotEmpty()) {
+                canonicalDayThemeDao.upsertDayThemes(dayThemes.map { it.toCanonicalEntity() })
+            }
+            if (assignmentDocuments.isNotEmpty()) {
+                canonicalDayThemeDao.upsertAssignmentDocuments(assignmentDocuments.map { it.toCanonicalEntity() })
+            }
+
+            canonicalDayThemeDao.upsertBootstrapState(
+                DayThemeCanonicalBootstrapStateEntity(
+                    version = CanonicalDayThemeBootstrapper.CURRENT_BOOTSTRAP_VERSION,
+                    completedAt = System.currentTimeMillis(),
+                ),
             )
         }
 
@@ -234,7 +418,7 @@ class FullBackupLocalDataSourceImpl
 
             Log.d("SyncV2", "Inserting DayPlans: ${bundle.dayPlans.size}")
             dayPlanDao.insertPlans(bundle.dayPlans.map { it.toEntity() })
-            dayThemeDocumentDao.upsertAll(bundle.dayThemeDocuments.map { it.toEntity() })
+            insertDayThemePayload(bundle)
 
             Log.d("SyncV2", "Inserting DayFocusItems: ${bundle.dayFocusItems.size}")
             dayFocusItemDao.insertAll(
@@ -531,7 +715,9 @@ class FullBackupLocalDataSourceImpl
                 dayPlans = dayPlanDao.getAllPlansSync(),
                 dayFocusItems = dayFocusItemDao.getAllSync(),
                 dayTasks = dayTaskDao.getAllTasksSync(),
-                dayThemeDocuments = dayThemeDocumentDao.getAllSync(),
+                // DatabaseContent is a legacy carrier and cannot represent canonical
+                // Day Themes. Never export stale quarantine rows as current state.
+                dayThemeDocuments = emptyList(),
                 dailyMetrics = dailyMetricDao.getAll(),
                 conversations = chatDao.getAllConversationsSync(),
                 chatMessages = chatDao.getAllMessagesSync(),

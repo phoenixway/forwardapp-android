@@ -145,6 +145,10 @@ import com.romankozak.forwardappmobile.features.missions.data.MissionStreamDao
         DayFocusItem::class,
         DayTask::class,
         DayThemeDocumentEntity::class,
+        com.romankozak.forwardappmobile.core.data.models.entities.day_management.ThemeDefinitionEntity::class,
+        com.romankozak.forwardappmobile.core.data.models.entities.day_management.CanonicalDayThemeEntity::class,
+        com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayThemeAssignmentDocumentEntity::class,
+        com.romankozak.forwardappmobile.data.database.DayThemeCanonicalBootstrapStateEntity::class,
         DailyMetric::class,
         LegacyNoteEntity::class,
         NoteDocumentEntity::class,
@@ -178,7 +182,7 @@ import com.romankozak.forwardappmobile.features.missions.data.MissionStreamDao
         ActivityRecordFts::class,
         LegacyNoteFts::class,
     ],
-    version = 146,
+    version = 148,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -242,6 +246,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun dayTaskDao(): DayTaskDao
 
     abstract fun dayThemeDocumentDao(): DayThemeDocumentDao
+
+    abstract fun canonicalDayThemeDao(): com.romankozak.forwardappmobile.data.dao.CanonicalDayThemeDao
 
     abstract fun legacyNoteDao(): LegacyNoteDao
 

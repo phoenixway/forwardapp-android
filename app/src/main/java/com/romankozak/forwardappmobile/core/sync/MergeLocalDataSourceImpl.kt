@@ -14,9 +14,15 @@ import com.romankozak.forwardappmobile.core.data.models.sync.ChangeType
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.SyncChange
+import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalDayThemePayload
+import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toCanonicalEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toCanonicalSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toEntity
 import com.romankozak.forwardappmobile.data.dao.*
+import com.romankozak.forwardappmobile.data.daythemes.CanonicalDayThemeBootstrapper
+import com.romankozak.forwardappmobile.data.daythemes.planCanonicalDayThemeMerge
+import com.romankozak.forwardappmobile.data.daythemes.planLegacyDayThemeMerge
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
@@ -46,7 +52,8 @@ class MergeLocalDataSourceImpl
         private val chatDao: ChatDao,
         private val dayPlanDao: DayPlanDao,
         private val dayTaskDao: DayTaskDao,
-        private val dayThemeDocumentDao: DayThemeDocumentDao,
+        private val canonicalDayThemeDao: CanonicalDayThemeDao,
+        private val canonicalDayThemeBootstrapper: CanonicalDayThemeBootstrapper,
         private val dailyMetricDao: DailyMetricDao,
         private val reminderDao: ReminderDao,
         private val tacticalMissionDao: TacticalMissionDao,
@@ -101,7 +108,8 @@ class MergeLocalDataSourceImpl
                 dayPlans = dayPlanDao.getAllPlansSync(),
                 dayFocusItems = dayFocusItemDao.getAllSync(),
                 dayTasks = dayTaskDao.getAllTasksSync(),
-                dayThemeDocuments = dayThemeDocumentDao.getAllSync(),
+                // Legacy DayThemeDocuments are not part of modern local merge authority.
+                dayThemeDocuments = emptyList(),
                 dailyMetrics = dailyMetricDao.getAll(),
                 conversations = chatDao.getAllConversationsSync(),
                 chatMessages = chatDao.getAllMessagesSync(),
@@ -188,6 +196,17 @@ class MergeLocalDataSourceImpl
         }
 
         override suspend fun applySnapshotBundle(bundle: SnapshotBundle) {
+            requireValidCanonicalDayThemePayload(bundle)
+
+            val hasCanonicalDayThemePayload =
+                bundle.themeDefinitions != null &&
+                    bundle.dayThemes != null &&
+                    bundle.dayThemeAssignmentDocuments != null
+
+            // Both canonical 111 and legacy 000 merge into canonical persistence.
+            // Bootstrap first so local canonical authority is complete before conflict resolution.
+            canonicalDayThemeBootstrapper.ensureBootstrapped()
+
             Log.d(
                 "BackupImport",
                 "Applying Snapshot V${bundle.version} in MergeLocalDataSource: notes=${bundle.notes.size}, docs=${bundle.documents.size}, checklists=${bundle.checklists.size}, scripts=${bundle.scripts.size}",
@@ -221,22 +240,36 @@ class MergeLocalDataSourceImpl
             val validPlanIds =
                 (dayPlanDao.getAllPlansSync().map { plan -> plan.id } + dayPlansToInsert.map { plan -> plan.id })
                     .toSet()
-            val localThemeDocumentsByPlanId = dayThemeDocumentDao.getAllSync().associateBy { it.dayPlanId }
-            val dayThemeDocumentsToInsert =
-                bundle.dayThemeDocuments
-                    .map { document ->
-                        incomingPlanIdRemap[document.dayPlanId]?.let { document.copy(dayPlanId = it) } ?: document
-                    }.filter { document -> document.dayPlanId in validPlanIds }
-                    .filter { incoming ->
-                        val local = localThemeDocumentsByPlanId[incoming.dayPlanId] ?: return@filter true
-                        when {
-                            incoming.version != local.version -> incoming.version > local.version
-                            incoming.updatedAt != (local.updatedAt ?: local.createdAt) ->
-                                incoming.updatedAt > (local.updatedAt ?: local.createdAt)
-                            incoming.isDeleted != local.isDeleted -> incoming.isDeleted
-                            else -> false
-                        }
-                    }
+
+            val localCanonicalThemeDefinitions =
+                canonicalDayThemeDao.getAllThemeDefinitionsSync().map { it.toCanonicalSnapshot() }
+            val localCanonicalDayThemes =
+                canonicalDayThemeDao.getAllDayThemesSync().map { it.toCanonicalSnapshot() }
+            val localCanonicalAssignmentDocuments =
+                canonicalDayThemeDao.getAllAssignmentDocumentsSync().map { it.toCanonicalSnapshot() }
+
+            val canonicalDayThemeMergePlan =
+                if (hasCanonicalDayThemePayload) {
+                    planCanonicalDayThemeMerge(
+                        incomingThemeDefinitions = requireNotNull(bundle.themeDefinitions),
+                        incomingDayThemes = requireNotNull(bundle.dayThemes),
+                        incomingAssignmentDocuments = requireNotNull(bundle.dayThemeAssignmentDocuments),
+                        incomingPlanIdRemap = incomingPlanIdRemap,
+                        validPlanIds = validPlanIds,
+                        localThemeDefinitions = localCanonicalThemeDefinitions,
+                        localDayThemes = localCanonicalDayThemes,
+                        localAssignmentDocuments = localCanonicalAssignmentDocuments,
+                    )
+                } else {
+                    planLegacyDayThemeMerge(
+                        incomingLegacyDocuments = bundle.dayThemeDocuments,
+                        incomingPlanIdRemap = incomingPlanIdRemap,
+                        validPlanIds = validPlanIds,
+                        localThemeDefinitions = localCanonicalThemeDefinitions,
+                        localDayThemes = localCanonicalDayThemes,
+                        localAssignmentDocuments = localCanonicalAssignmentDocuments,
+                    )
+                }
 
             // A DayPlan remap can make an incoming focus/responsibility item
             // share the same logical recurring occurrence with an existing local
@@ -397,7 +430,23 @@ class MergeLocalDataSourceImpl
 
                 conversationFolderDao.insertAll(bundle.conversationFolders.map { it.toEntity() })
                 dayPlanDao.insertPlans(dayPlansToInsert.map { it.toEntity() })
-                dayThemeDocumentDao.upsertAll(dayThemeDocumentsToInsert.map { it.toEntity() })
+
+                if (canonicalDayThemeMergePlan.themeDefinitions.isNotEmpty()) {
+                    canonicalDayThemeDao.upsertThemeDefinitions(
+                        canonicalDayThemeMergePlan.themeDefinitions.map { it.toCanonicalEntity() },
+                    )
+                }
+                if (canonicalDayThemeMergePlan.dayThemes.isNotEmpty()) {
+                    canonicalDayThemeDao.upsertDayThemes(
+                        canonicalDayThemeMergePlan.dayThemes.map { it.toCanonicalEntity() },
+                    )
+                }
+                if (canonicalDayThemeMergePlan.assignmentDocuments.isNotEmpty()) {
+                    canonicalDayThemeDao.upsertAssignmentDocuments(
+                        canonicalDayThemeMergePlan.assignmentDocuments.map { it.toCanonicalEntity() },
+                    )
+                }
+
                 dayFocusItemDao.insertAll(
                     dayFocusItemsToInsert.map { snapshot ->
                         com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceSnapshotMapper

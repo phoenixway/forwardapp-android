@@ -104,7 +104,9 @@ class SyncLocalDataSourceImpl
                 dayPlans = dayPlanDao.getAllPlansSync(),
                 dayFocusItems = dayFocusItemDao.getAllSync(),
                 dayTasks = dayTaskDao.getAllTasksSync(),
-                dayThemeDocuments = dayThemeDocumentDao.getAllSync(),
+                // Legacy DayThemeDocuments are migration/import compatibility only.
+                // Incremental outbound sync is canonical-only for Day Themes.
+                dayThemeDocuments = emptyList(),
                 dailyMetrics = dailyMetricDao.getAll(),
                 conversations = chatDao.getAllConversationsSync(),
                 chatMessages = chatDao.getAllMessagesSync(),
@@ -254,12 +256,7 @@ class SyncLocalDataSourceImpl
                         updatedAt = { it.updatedAt ?: it.createdAt },
                         isDeleted = { it.isDeleted },
                     ),
-                dayThemeDocuments =
-                    local.dayThemeDocuments.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedAt ?: it.createdAt },
-                        isDeleted = { it.isDeleted },
-                    ),
+                dayThemeDocuments = emptyList(),
                 tacticalMissions =
                     local.tacticalMissions.filterUnsynced(
                         syncedAt = { it.syncedAt },
@@ -313,7 +310,7 @@ class SyncLocalDataSourceImpl
                 dayPlans = local.dayPlans.filter { (it.updatedAt ?: it.createdAt) > timestamp },
                 dayFocusItems = local.dayFocusItems.filter { (it.updatedAt ?: it.createdAt) > timestamp },
                 dayTasks = local.dayTasks.filter { (it.updatedAt ?: it.createdAt) > timestamp },
-                dayThemeDocuments = local.dayThemeDocuments.filter { (it.updatedAt ?: it.createdAt) > timestamp },
+                dayThemeDocuments = emptyList(),
                 dailyMetrics = local.dailyMetrics.filter { (it.updatedAt ?: it.createdAt) > timestamp },
                 conversations = local.conversations.filter { it.creationTimestamp > timestamp },
                 chatMessages = local.chatMessages.filter { it.timestamp > timestamp },
@@ -375,9 +372,6 @@ class SyncLocalDataSourceImpl
                 dayPlanDao.insertPlans(content.dayPlans.map { it.copy(syncedAt = ts) })
                 dayFocusItemDao.insertAll(content.dayFocusItems.map { it.copy(syncedAt = ts) })
                 dayTaskDao.insertTasks(content.dayTasks.map { it.copy(syncedAt = ts) })
-                content.dayThemeDocuments.forEach { document ->
-                    dayThemeDocumentDao.markSyncedIfVersionMatches(document.dayPlanId, document.version, ts)
-                }
                 tacticalMissionDao.insertMissions(content.tacticalMissions.map { it.copy(syncedAt = ts) })
                 tacticalIterationDao.insertAll(content.tacticalIterations.map { it.copy(syncedAt = ts) })
                 missionStreamDao.insertAll(content.missionStreams.map { it.copy(syncedAt = ts) })

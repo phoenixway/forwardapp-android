@@ -6,7 +6,11 @@ import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
 import com.romankozak.forwardappmobile.core.data.models.sync.SettingsContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalDayThemePayload
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.CanonicalRecurringSeriesSnapshot
+import com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncAck
+import com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncPayload
+import com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncVersion
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalRecurringSeriesSyncVersion
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import com.romankozak.forwardappmobile.sync.datasource.SyncLocalDataSource
@@ -27,17 +31,24 @@ import javax.inject.Singleton
 internal data class CanonicalWifiPushPlan(
     val snapshotDelta: SnapshotBundle,
     val recurringSeriesAck: List<CanonicalRecurringSeriesSyncVersion>,
+    val dayThemesAck: CanonicalDayThemeSyncAck,
 )
+
+internal fun CanonicalDayThemeSyncPayload.hasChanges(): Boolean =
+    themeDefinitions.isNotEmpty() || dayThemes.isNotEmpty() || assignmentDocuments.isNotEmpty()
 
 internal fun shouldPushCanonicalWifi(
     databaseIsEmpty: Boolean,
     dirtyCanonicalSeries: List<CanonicalRecurringSeriesSnapshot>,
-): Boolean = !databaseIsEmpty || dirtyCanonicalSeries.isNotEmpty()
+    dirtyCanonicalDayThemes: CanonicalDayThemeSyncPayload = CanonicalDayThemeSyncPayload(),
+): Boolean =
+    !databaseIsEmpty || dirtyCanonicalSeries.isNotEmpty() || dirtyCanonicalDayThemes.hasChanges()
 
 internal fun buildCanonicalWifiPushPlan(
     source: DatabaseContent,
     fullSnapshot: SnapshotBundle,
     dirtyCanonicalSeries: List<CanonicalRecurringSeriesSnapshot>,
+    dirtyCanonicalDayThemes: CanonicalDayThemeSyncPayload = CanonicalDayThemeSyncPayload(),
 ): CanonicalWifiPushPlan =
     CanonicalWifiPushPlan(
         snapshotDelta =
@@ -46,6 +57,7 @@ internal fun buildCanonicalWifiPushPlan(
                 fullSnapshot = fullSnapshot,
                 explicitCanonicalSeriesIds =
                     dirtyCanonicalSeries.mapTo(hashSetOf()) { it.id },
+                explicitCanonicalDayThemes = dirtyCanonicalDayThemes,
             ),
         recurringSeriesAck =
             dirtyCanonicalSeries.map { series ->
@@ -54,12 +66,28 @@ internal fun buildCanonicalWifiPushPlan(
                     version = series.version,
                 )
             },
+        dayThemesAck =
+            CanonicalDayThemeSyncAck(
+                themeDefinitions =
+                    dirtyCanonicalDayThemes.themeDefinitions.map { item ->
+                        CanonicalDayThemeSyncVersion(item.id, item.version)
+                    },
+                dayThemes =
+                    dirtyCanonicalDayThemes.dayThemes.map { item ->
+                        CanonicalDayThemeSyncVersion(item.id, item.version)
+                    },
+                assignmentDocuments =
+                    dirtyCanonicalDayThemes.assignmentDocuments.map { item ->
+                        CanonicalDayThemeSyncVersion(item.dayPlanId, item.version)
+                    },
+            ),
     )
 
 internal fun buildCanonicalSnapshotDelta(
     source: DatabaseContent,
     fullSnapshot: SnapshotBundle,
     explicitCanonicalSeriesIds: Set<String> = emptySet(),
+    explicitCanonicalDayThemes: CanonicalDayThemeSyncPayload = CanonicalDayThemeSyncPayload(),
 ): SnapshotBundle {
     val dayPlanIds = source.dayPlans.mapTo(hashSetOf()) { it.id }
     val dayFocusItemIds = source.dayFocusItems.mapTo(hashSetOf()) { it.id }
@@ -69,17 +97,82 @@ internal fun buildCanonicalSnapshotDelta(
     source.dayTasks.mapNotNullTo(requiredCanonicalSeriesIds) { it.recurrenceSeriesId }
     source.dayFocusItems.mapNotNullTo(requiredCanonicalSeriesIds) { it.recurrenceSeriesId }
 
-    return SyncMapper.migrateV1ToV2(source).copy(
-        dayPlans = fullSnapshot.dayPlans.filter { it.id in dayPlanIds },
-        dayFocusItems = fullSnapshot.dayFocusItems.filter { it.id in dayFocusItemIds },
-        dayTasks = fullSnapshot.dayTasks.filter { it.id in dayTaskIds },
-        recurringTasks = emptyList(),
-        recurringSeries =
-            fullSnapshot.recurringSeries.filter { series ->
-                series.id in requiredCanonicalSeriesIds
-            },
-        dayManagementRuntimeState = fullSnapshot.dayManagementRuntimeState,
-    )
+    val includeCanonicalDayThemes = explicitCanonicalDayThemes.hasChanges()
+
+    val fullThemeDefinitions =
+        if (includeCanonicalDayThemes) {
+            requireNotNull(fullSnapshot.themeDefinitions) {
+                "Local full snapshot must expose canonical ThemeDefinitions before building a Day Theme delta."
+            }
+        } else {
+            emptyList()
+        }
+    val fullDayThemes =
+        if (includeCanonicalDayThemes) {
+            requireNotNull(fullSnapshot.dayThemes) {
+                "Local full snapshot must expose canonical DayThemes before building a Day Theme delta."
+            }
+        } else {
+            emptyList()
+        }
+    val fullAssignmentDocuments =
+        if (includeCanonicalDayThemes) {
+            requireNotNull(fullSnapshot.dayThemeAssignmentDocuments) {
+                "Local full snapshot must expose canonical Day Theme assignments before building a Day Theme delta."
+            }
+        } else {
+            emptyList()
+        }
+
+    val dirtyAssignmentDayPlanIds =
+        explicitCanonicalDayThemes.assignmentDocuments.mapTo(hashSetOf()) { it.dayPlanId }
+    val selectedAssignmentDocuments =
+        fullAssignmentDocuments.filter { it.dayPlanId in dirtyAssignmentDayPlanIds }
+
+    val requiredDayThemeIds =
+        explicitCanonicalDayThemes.dayThemes.mapTo(hashSetOf()) { it.id }
+    selectedAssignmentDocuments.forEach { document ->
+        document.assignments.forEach { assignment ->
+            requiredDayThemeIds.addAll(assignment.dayThemeIds)
+        }
+    }
+
+    val selectedDayThemes =
+        fullDayThemes.filter { it.id in requiredDayThemeIds }
+
+    val requiredDefinitionIds =
+        explicitCanonicalDayThemes.themeDefinitions.mapTo(hashSetOf()) { it.id }
+    selectedDayThemes.mapTo(requiredDefinitionIds) { it.themeId }
+
+    val selectedThemeDefinitions =
+        fullThemeDefinitions.filter { it.id in requiredDefinitionIds }
+
+    selectedDayThemes.mapTo(dayPlanIds) { it.dayPlanId }
+    selectedAssignmentDocuments.mapTo(dayPlanIds) { it.dayPlanId }
+
+    val result =
+        SyncMapper.migrateV1ToV2(source).copy(
+            dayPlans = fullSnapshot.dayPlans.filter { it.id in dayPlanIds },
+            dayFocusItems = fullSnapshot.dayFocusItems.filter { it.id in dayFocusItemIds },
+            dayTasks = fullSnapshot.dayTasks.filter { it.id in dayTaskIds },
+            dayThemeDocuments = emptyList(),
+            themeDefinitions = if (includeCanonicalDayThemes) selectedThemeDefinitions else null,
+            dayThemes = if (includeCanonicalDayThemes) selectedDayThemes else null,
+            dayThemeAssignmentDocuments =
+                if (includeCanonicalDayThemes) selectedAssignmentDocuments else null,
+            recurringTasks = emptyList(),
+            recurringSeries =
+                fullSnapshot.recurringSeries.filter { series ->
+                    series.id in requiredCanonicalSeriesIds
+                },
+            dayManagementRuntimeState = fullSnapshot.dayManagementRuntimeState,
+        )
+
+    if (includeCanonicalDayThemes) {
+        requireValidCanonicalDayThemePayload(result)
+    }
+
+    return result
 }
 
 @Singleton
@@ -116,9 +209,10 @@ class SyncWifiService @Inject constructor(
         try {
             val unsynced = localDataSource.getUnsyncedChanges()
             val dirtyCanonicalSeries = fullBackupLocalDataSource.loadUnsyncedCanonicalRecurringSeries()
+            val dirtyCanonicalDayThemes = fullBackupLocalDataSource.loadUnsyncedCanonicalDayThemes()
             val databaseIsEmpty = isEmptyDatabaseContent(unsynced)
 
-            if (!shouldPushCanonicalWifi(databaseIsEmpty, dirtyCanonicalSeries)) {
+            if (!shouldPushCanonicalWifi(databaseIsEmpty, dirtyCanonicalSeries, dirtyCanonicalDayThemes)) {
                 Result.success(Unit)
             } else {
                 val fullSnapshot = fullBackupLocalDataSource.loadFullSnapshotBundle()
@@ -127,6 +221,7 @@ class SyncWifiService @Inject constructor(
                         source = unsynced,
                         fullSnapshot = fullSnapshot,
                         dirtyCanonicalSeries = dirtyCanonicalSeries,
+                        dirtyCanonicalDayThemes = dirtyCanonicalDayThemes,
                     )
                 val fullUrl = buildWifiUrl(address, "/import")
                 val backupWrapper =
@@ -144,6 +239,9 @@ class SyncWifiService @Inject constructor(
                     localDataSource.markSyncedNow(unsynced)
                     fullBackupLocalDataSource.markCanonicalRecurringSeriesSynced(
                         pushPlan.recurringSeriesAck,
+                    )
+                    fullBackupLocalDataSource.markCanonicalDayThemesSynced(
+                        pushPlan.dayThemesAck,
                     )
                     Result.success(Unit)
                 } else {
@@ -166,12 +264,15 @@ class SyncWifiService @Inject constructor(
         val fullSnapshot = fullBackupLocalDataSource.loadFullSnapshotBundle()
         val changedCanonicalSeries =
             fullBackupLocalDataSource.loadCanonicalRecurringSeriesChangedSince(deltaSince)
+        val changedCanonicalDayThemes =
+            fullBackupLocalDataSource.loadCanonicalDayThemesChangedSince(deltaSince)
         val snapshotDelta =
             canonicalSnapshotDelta(
                 source = enrichedChanges,
                 fullSnapshot = fullSnapshot,
                 explicitCanonicalSeriesIds =
                     changedCanonicalSeries.mapTo(hashSetOf()) { it.id },
+                explicitCanonicalDayThemes = changedCanonicalDayThemes,
             )
         val deltaBackup = FullAppBackup(
             backupSchemaVersion = 2,
@@ -187,11 +288,13 @@ class SyncWifiService @Inject constructor(
         source: DatabaseContent,
         fullSnapshot: SnapshotBundle,
         explicitCanonicalSeriesIds: Set<String> = emptySet(),
+        explicitCanonicalDayThemes: CanonicalDayThemeSyncPayload = CanonicalDayThemeSyncPayload(),
     ): SnapshotBundle =
         buildCanonicalSnapshotDelta(
             source = source,
             fullSnapshot = fullSnapshot,
             explicitCanonicalSeriesIds = explicitCanonicalSeriesIds,
+            explicitCanonicalDayThemes = explicitCanonicalDayThemes,
         )
 
     private suspend fun buildWifiUrl(address: String, path: String): String {

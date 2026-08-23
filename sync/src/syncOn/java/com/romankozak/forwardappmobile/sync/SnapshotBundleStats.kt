@@ -28,6 +28,9 @@ internal fun SnapshotBundle.importItemCount(): Int =
         dayFocusItems.size +
         dayTasks.size +
         dayThemeDocuments.size +
+        themeDefinitions.orEmpty().size +
+        dayThemes.orEmpty().size +
+        dayThemeAssignmentDocuments.orEmpty().size +
         dailyMetrics.size +
         conversations.size +
         chatMessages.size +

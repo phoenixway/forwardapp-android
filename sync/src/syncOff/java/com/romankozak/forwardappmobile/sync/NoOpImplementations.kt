@@ -37,6 +37,13 @@ class NoOpFullBackupLocalDataSource @Inject constructor() : FullBackupLocalDataS
     override suspend fun loadUnsyncedCanonicalRecurringSeries() = emptyList<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.CanonicalRecurringSeriesSnapshot>()
     override suspend fun loadCanonicalRecurringSeriesChangedSince(timestamp: Long) = emptyList<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.CanonicalRecurringSeriesSnapshot>()
     override suspend fun markCanonicalRecurringSeriesSynced(series: List<CanonicalRecurringSeriesSyncVersion>) { /* no-op */ }
+    override suspend fun loadUnsyncedCanonicalDayThemes() =
+        com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncPayload()
+    override suspend fun loadCanonicalDayThemesChangedSince(timestamp: Long) =
+        com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncPayload()
+    override suspend fun markCanonicalDayThemesSynced(
+        ack: com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncAck,
+    ) { /* no-op */ }
     override suspend fun restoreDatabaseFromBackup(content: DatabaseContent) {
         Log.d("NoOpSync", "NoOpFullBackupLocalDataSource: restoreDatabaseFromBackup called")
     }

@@ -5,6 +5,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.core.storage.getDocumentsLogsDir
+import com.romankozak.forwardappmobile.data.daythemes.CanonicalDayThemeBootstrapper
 import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.logging.CoroutineFileTree
@@ -24,6 +25,8 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
     @Inject lateinit var settingsRepository: SettingsRepository
 
     @Inject lateinit var tagAssociationHandler: TagAssociationHandler
+
+    @Inject lateinit var canonicalDayThemeBootstrapper: CanonicalDayThemeBootstrapper
 
     private val appScope by lazy { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
 
@@ -59,6 +62,22 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
         }
 
         appScope.launch(Dispatchers.IO) {
+            runCatching {
+                canonicalDayThemeBootstrapper.ensureBootstrapped()
+            }.onSuccess { report ->
+                if (report.performed) {
+                    Timber.i(
+                        "Canonical DayTheme bootstrap completed: definitions=%d dayThemes=%d assignments=%d diagnostics=%d",
+                        report.insertedThemeDefinitions,
+                        report.insertedDayThemes,
+                        report.insertedAssignmentDocuments,
+                        report.diagnostics.size,
+                    )
+                }
+            }.onFailure {
+                Timber.e(it, "Failed to bootstrap canonical Day Themes")
+            }
+
             runCatching {
                 tagAssociationHandler.repairAllAssociations()
             }.onFailure {

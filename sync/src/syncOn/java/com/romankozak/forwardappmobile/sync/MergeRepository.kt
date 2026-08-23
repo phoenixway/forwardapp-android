@@ -105,7 +105,7 @@ suspend fun createBackupDiff(incoming: SnapshotBundle): BackupDiff {
             documents = logicHelper.diffEntities(incoming.documents, local.documents, { doc -> doc.id }, { doc -> doc.version }, { doc -> doc.updatedAt }),
             musicNotes = logicHelper.diffEntities(incoming.musicNotes, local.musicNotes, { note -> note.id }, { note -> note.version }, { note -> note.updatedAt }),
             attachments = logicHelper.diffEntities(incoming.attachments, local.attachments, { attachment -> attachment.id }, { attachment -> attachment.version }, { attachment -> attachment.updatedAt }),
-            dayThemeDocuments = logicHelper.diffEntities(incoming.dayThemeDocuments, local.dayThemeDocuments, { it.dayPlanId }, { it.version }, { it.updatedAt }),
+            // Legacy DayThemeDocuments are compatibility input only and are excluded from modern diff authority.
             contextAttachmentCrossRefs = logicHelper.diffEntities(incoming.crossRefs, local.crossRefs, { crossRef -> "${crossRef.contextId}-${crossRef.attachmentId}" }, { 0L }, { crossRef -> crossRef.updatedAt }),
             tacticalMissions = logicHelper.diffEntities(incoming.tacticalMissions, local.tacticalMissions, { it.id.toString() }, { it.version }, { it.updatedAt ?: it.createdAt }),
             tacticalIterations = logicHelper.diffEntities(incoming.tacticalIterations, local.tacticalIterations, { it.id }, { it.version }, { it.updatedAt ?: it.createdAt }),

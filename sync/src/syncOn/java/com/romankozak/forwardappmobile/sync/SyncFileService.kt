@@ -8,6 +8,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.SettingsContent
+import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalDayThemePayload
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportDescriptor
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceImportSourceMode
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSnapshotFormat
@@ -144,8 +145,25 @@ class SyncFileService @Inject constructor(
                 Timber.tag(tag).w( "Parse failed: Backup file is empty or blank.")
                 return@withContext Result.failure(Exception("Backup file is empty"))
             }
+            val rawRoot = JsonParser.parseString(normalizedJson).asJsonObject
             val backupData = gson.fromJson(normalizedJson, FullAppBackup::class.java)
-            Timber.tag(tag).d( "Successfully parsed backup file object.")
+
+            backupData.snapshotBundle?.let { snapshotBundle ->
+                val rawSnapshotBundle =
+                    rawRoot
+                        .get("snapshotBundle")
+                        ?.takeIf { it.isJsonObject }
+                        ?.asJsonObject
+                        ?: throw IllegalArgumentException("FullAppBackup snapshotBundle must be a JSON object.")
+
+                CanonicalDayThemeImportGate.requireFullRestoreImportable(
+                    rawSnapshotBundle = rawSnapshotBundle,
+                    decodedBundle = snapshotBundle,
+                )
+                requireValidCanonicalDayThemePayload(snapshotBundle)
+            }
+
+            Timber.tag(tag).d( "Successfully parsed and validated backup file object.")
             Result.success(backupData)
         } catch (e: Exception) {
             Timber.tag(tag).e( "Failed to parse backup file", e)
@@ -296,8 +314,19 @@ class SyncFileService @Inject constructor(
             }
             snapshotBundle != null -> {
                 Timber.tag(tag).d("Successfully parsed as FullAppBackup with SnapshotBundle payload.")
+                val rawSnapshotBundle =
+                    jsonObject
+                        .get("snapshotBundle")
+                        ?.takeIf { it.isJsonObject }
+                        ?.asJsonObject
+                        ?: throw IllegalArgumentException("FullAppBackup snapshotBundle must be a JSON object.")
+                val importableSnapshotBundle =
+                    CanonicalDayThemeImportGate.requireImportable(
+                        rawSnapshotBundle = rawSnapshotBundle,
+                        decodedBundle = snapshotBundle,
+                    )
                 ResolvedImportBundle(
-                    snapshotBundle = snapshotBundle,
+                    snapshotBundle = importableSnapshotBundle,
                     descriptor =
                         WorkspaceImportDescriptor(
                             format = WorkspaceSnapshotFormat.AndroidSnapshotBundleV2,
@@ -318,8 +347,14 @@ class SyncFileService @Inject constructor(
             }
             hasSnapshotBundleKeys(jsonObject) -> {
                 Timber.tag(tag).d("Detected raw SnapshotBundle payload.")
+                val decodedSnapshotBundle = gson.fromJson(normalizedJson, SnapshotBundle::class.java)
+                val importableSnapshotBundle =
+                    CanonicalDayThemeImportGate.requireImportable(
+                        rawSnapshotBundle = jsonObject,
+                        decodedBundle = decodedSnapshotBundle,
+                    )
                 ResolvedImportBundle(
-                    snapshotBundle = gson.fromJson(normalizedJson, SnapshotBundle::class.java),
+                    snapshotBundle = importableSnapshotBundle,
                     descriptor =
                         WorkspaceImportDescriptor(
                             format = WorkspaceSnapshotFormat.AndroidSnapshotBundleV2,
