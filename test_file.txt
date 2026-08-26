@@ -1,3 +1,0 @@
-alpha\nbeta
-gamma
-gamma

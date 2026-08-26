@@ -62,3 +62,18 @@ app/google-services.json
 
 # Kotlin/JS local build tooling
 .kotlin/
+# Local analysis and generated artifacts
+artifacts/
+summary-batches-*/
+app_log.txt
+debug.log*
+sync_path.txt
+
+# One-off repository analysis/debug outputs
+/path.txt
+/sources.txt
+/smoke_plan_review_gate_*.txt
+/smoke_test.txt
+/test_file.txt
+/phone_screen.png
+/screenshot.png
