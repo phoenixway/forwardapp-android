@@ -1,8 +1,8 @@
 # Recurrence-v2 Canonicalization Status
 
-**Status:** SHARED KMP CANONICALIZATION IMPLEMENTED / LEGACY CLEANUP PENDING
+**Status:** SHARED KMP CANONICALIZATION IMPLEMENTED / LEGACY CLEANUP ACTIVE
 **Scope:** recurrence-v2, Desktop ↔ Android  
-**Current phase:** canonical FOCUS / RESPONSIBILITY acceptance, followed by legacy-v1 removal
+**Current phase:** recurrence-v1 cleanup with explicit migration/quarantine boundaries
 
 ## Summary
 
@@ -69,190 +69,46 @@ The following recurrence-v2 infrastructure is implemented:
 - Desktop canonical recurrence materialization through a technical KMP adapter;
 - removal of the handwritten Desktop TypeScript materialization engine from the production path;
 - KMP ownership of recurrence rule matching, schedule/lifecycle matching, logical occurrence keys, deterministic physical occurrence IDs, and materialization semantics;
-- quarantine of legacy Android recurrence generation at the live recurrence-v2 sync boundary;
-- Desktop ↔ Android recurrence-v2 synchronization for the tested TASK vertical slice.
+- quarantine of legacy recurrence-v1 payload/ingress compatibility at canonical sync boundaries;
+- accepted Desktop ↔ Android recurrence-v2 lifecycle coverage for TASK, FOCUS, and RESPONSIBILITY.
 
-## TASK recurrence-v2 status
+## Lifecycle acceptance status
 
-The canonical TASK vertical slice has been exercised across Desktop and Android, including the recurrence-v2 transport and anti-resurrection invariants.
-
-Covered behavior includes:
-
-- CREATE;
-- recurring-series editing;
-- concrete occurrence editing;
-- propagation to compatible materialized future occurrences;
-- preservation of individually customized occurrences;
-- occurrence deletion / tombstones;
-- stopping recurrence;
-- recurrence rule changes;
-- canonical provenance preservation;
-- Desktop → Android synchronization;
-- Android → Desktop synchronization;
-- repeated round-trip synchronization without duplicate logical occurrences;
-- tombstone preservation across synchronization and materialization.
-
-TASK recurrence-v2 should therefore be treated as an established vertical slice. It should not be redesigned while completing FOCUS / RESPONSIBILITY unless a concrete regression is demonstrated.
-
-## Current campaign: FOCUS / RESPONSIBILITY recurrence-v2
-
-The immediate remaining recurrence-v2 work is to verify and complete the entire lifecycle for canonical `FOCUS` and `RESPONSIBILITY` series and occurrences.
-
-This is broader than deletion behavior. The acceptance matrix must cover the whole lifecycle.
-
-### CREATE
-
-Verify:
-
-- creation of a normal focus/responsibility;
-- conversion/start of canonical recurrence;
-- canonical `RecurringSeries` persistence;
-- correct canonical occurrence provenance;
-- correct first occurrence;
-- correct future materialization;
-- no legacy duplicate generation.
-
-### READ / MATERIALIZE
-
-Verify:
-
-- current-day loading;
-- future-day loading;
-- application restart;
-- canonical materializer idempotence;
-- deterministic physical IDs;
-- one logical occurrence per `(seriesId, occurrenceDayKey)`;
-- tombstones count as existing;
-- deleted occurrences are never regenerated.
-
-### UPDATE SINGLE
-
-Verify that editing a concrete occurrence:
-
-- changes only that occurrence;
-- does not silently rewrite the recurring-series template;
-- preserves recurrence provenance sufficient to block regeneration;
-- survives restart and sync;
-- is not overwritten by later series propagation when it represents an individual override.
-
-### UPDATE SERIES / EDIT ALL
-
-Verify that editing the recurring-series template:
-
-- updates the canonical master;
-- updates compatible already-materialized occurrences according to canonical semantics;
-- preserves individually customized occurrences;
-- does not revive tombstones;
-- advances recurrence/source version metadata correctly;
-- marks all actually changed entities dirty for sync.
-
-### UPDATE RULE
-
-Verify changes to:
-
-- DAILY;
-- WEEKLY;
-- interval;
-- weekdays;
-- start/end boundaries where exposed by product behavior.
-
-Changing the rule must not create duplicate logical occurrences or revive excluded/deleted occurrences.
-
-### EDIT FROM DATE / SPLIT
-
-Canonical SPLIT semantics are:
+The canonical recurrence-v2 lifecycle is accepted across the implemented
+Desktop ↔ Android path for all three recurrence kinds:
 
 ```text
-old series ends at D - 1
-new series starts at D
+TASK             GREEN
+FOCUS            GREEN
+RESPONSIBILITY   GREEN
+SYNC             GREEN
+BACKUP/RESTORE   GREEN
+ANTI-RESURRECT   GREEN
 ```
 
-Verify existing materialized future occurrences are reconciled according to the canonical contract without producing duplicate logical identities.
+Acceptance coverage includes, where applicable:
 
-### DELETE TODAY
+- canonical series creation and persistence;
+- materialization and restart/rematerialization;
+- deterministic logical and physical occurrence identity;
+- per-occurrence edits and tombstones;
+- series editing;
+- split / edit-from-date behavior;
+- preservation of individual overrides and tombstones;
+- stop / delete-all behavior;
+- Desktop → Android and Android → Desktop synchronization;
+- repeated cross-client round trips;
+- backup/export/restore;
+- stale acknowledgement protection;
+- anti-resurrection behavior.
 
-Deleting one occurrence must:
+FOCUS and RESPONSIBILITY are no longer an acceptance gate for recurrence-v1
+cleanup. Re-open lifecycle acceptance only if new evidence shows a concrete
+regression.
 
-- tombstone only the selected logical occurrence;
-- preserve `(seriesId, occurrenceDayKey)` provenance;
-- keep the recurring series active;
-- prevent canonical rematerialization of the deleted occurrence;
-- survive restart and synchronization.
-
-### STOP / DELETE ALL
-
-Stopping or deleting the recurring series must operate on canonical recurrence state rather than only legacy `isEveryday` / `recurringKey` state.
-
-Verify:
-
-- canonical series is ended or tombstoned according to the operation contract;
-- applicable materialized occurrences are tombstoned as required;
-- future occurrences are not regenerated;
-- no legacy helper recreates aliases after restart;
-- behavior is identical for FOCUS and RESPONSIBILITY where their recurrence semantics are intended to match.
-
-## FOCUS / RESPONSIBILITY UI migration requirement
-
-Canonical recurring focus/responsibility occurrences are identified by canonical provenance, not solely by legacy fields.
-
-Code paths that recognize recurring focus state only through fields such as:
-
-```text
-isEveryday
-recurringKey
-```
-
-must be audited.
-
-Canonical recurrence-aware UI and repository behavior must recognize:
-
-```text
-recurrenceSeriesId != null
-```
-
-and the associated canonical occurrence provenance.
-
-Legacy fields may remain temporarily for compatibility but must not define recurrence-v2 truth.
-
-## Sync acceptance
-
-Before legacy recurrence-v1 runtime removal, perform controlled acceptance for both `FOCUS` and `RESPONSIBILITY`.
-
-Required directions:
-
-```text
-Desktop → Android
-Android → Desktop
-Desktop → Android → Desktop → Android
-```
-
-For each direction exercise, where supported:
-
-- CREATE;
-- UPDATE SINGLE;
-- UPDATE SERIES;
-- UPDATE RULE;
-- SPLIT / edit from date;
-- DELETE TODAY;
-- STOP / DELETE ALL;
-- tombstone preservation;
-- individually overridden occurrence preservation.
-
-Acceptance must verify both user-visible state and persisted canonical state.
-
-## Backup / restore acceptance
-
-Verify full backup/export/restore preserves:
-
-- canonical recurring series;
-- series sync metadata;
-- DayTask recurrence provenance;
-- DayFocusItem recurrence provenance;
-- occurrence tombstones;
-- source series versions;
-- logical identity.
-
-Restore must not fall through a generic mapper that drops canonical recurrence provenance.
+Canonical focus/responsibility behavior is identified by canonical recurrence
+provenance. Legacy `isEveryday` / `recurringKey` fields may remain at explicit
+compatibility boundaries but do not define recurrence-v2 truth.
 
 ## Conflict and anti-resurrection invariants
 
@@ -278,43 +134,63 @@ This rule must be implemented and tested before claiming complete conflict seman
 
 ## Legacy recurrence-v1 status
 
-Legacy Android recurrence code is transitional compatibility debt, not recurrence-v2 domain truth.
+Legacy recurrence-v1 is cleanup debt, not recurrence-v2 domain truth.
 
-Examples of legacy concepts include:
-
-- `RecurringTask` as a runtime master;
-- legacy occurrence generation;
-- `recurringTaskId`-only recurrence identity;
-- focus recurrence driven only by `isEveryday` / `recurringKey`;
-- old backup/protocol projections.
-
-The live canonical recurrence-v2 path must not depend on legacy generation.
-
-## Legacy removal gate
-
-Do not broadly delete recurrence-v1 code until FOCUS / RESPONSIBILITY acceptance is green.
-
-The removal campaign starts when the following matrix is green:
+Current evidence establishes:
 
 ```text
-TASK             GREEN
-FOCUS            GREEN
-RESPONSIBILITY   GREEN
-SYNC             GREEN
-BACKUP/RESTORE   GREEN
-ANTI-RESURRECT   GREEN
+Android legacy runtime/generator
+    RETIRED
+
+Android recurring_tasks current storage
+    RETIRED
+    historical migration support remains
+
+Android legacy recurringTasks payload fields
+    QUARANTINE / compatibility ingress
+
+Desktop legacy recurringTasks parsing
+    MIGRATION / compatibility ingress
+
+Desktop canonical → legacy recurringTasks reverse projection
+    REMOVED
+
+Desktop legacyRecurrenceMaterializationBridge
+    CURRENT canonical applicator with historical name
+
+Desktop legacyCanonicalShadow
+    DIAGNOSTIC TOOLING
 ```
 
-Then inventory every production reference to legacy recurrence and classify it as one of:
+After Desktop ingress, recurrence state is one-way canonical:
 
 ```text
-DELETE
-COMPATIBILITY-ONLY
+legacy input
+    ↓
+migration / quarantine
+    ↓
+canonical recurringSeries
+    ↓
+merge / freshness / delta / acknowledgement / persistence / wire
+```
+
+Production helpers must not project canonical `recurringSeries` back into
+legacy `recurringTasks` merely to preserve an obsolete internal representation.
+
+Remaining legacy surfaces must be classified by actual ownership:
+
+```text
+RUNTIME-REQUIRED
 MIGRATION-ONLY
-UNKNOWN / INVESTIGATE
+QUARANTINE-ONLY
+DIAGNOSTIC
+HISTORICAL-SCHEMA
+DEAD
 ```
 
-Only compatibility or migration boundaries with an explicit reason may remain.
+Delete `DEAD` code. Retain migration, quarantine, diagnostic, or
+historical-schema code only when its purpose is explicit. A `legacy` filename
+alone is not evidence that a component is dead.
 
 ## Target end state
 
@@ -345,7 +221,16 @@ explicit isolated adapters only, if still required
 
 ## Current next step
 
-Perform full cross-client FOCUS / RESPONSIBILITY recurrence-v2 lifecycle
-acceptance across Desktop and Android. Close missing CRUD, materialization,
-series-operation, sync, backup/restore and anti-resurrection cases before
-beginning recurrence-v1 runtime removal.
+Continue evidence-driven recurrence-v1 cleanup.
+
+Remove obsolete runtime compatibility paths first. Preserve intentionally
+supported old-backup/database ingestion, quarantine boundaries, diagnostics,
+and historical migrations. Rename canonical runtime entry points whose legacy
+names obscure current ownership when doing so improves clarity.
+
+Keep production-path tests aligned with canonical `recurringSeries` state while
+retaining dedicated regression coverage for legacy migration and quarantine
+inputs.
+
+Do not redesign recurrence-v2 during cleanup unless a concrete canonical
+behavioral defect is demonstrated.

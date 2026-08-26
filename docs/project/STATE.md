@@ -52,8 +52,20 @@ A materialized recurrence occurrence is a `DayTask` or `DayFocusItem` carrying
 canonical recurrence provenance. There is no separately persisted canonical
 Occurrence entity.
 
-Legacy recurrence-v1 runtime and compatibility code remains transitional debt
-and must not become recurrence-v2 domain truth.
+Cross-client TASK / FOCUS / RESPONSIBILITY recurrence-v2 lifecycle acceptance
+is green for the implemented canonical path, including materialization,
+series and occurrence operations, sync, backup/restore, split behavior, and
+anti-resurrection coverage.
+
+Android recurrence-v1 runtime/storage is retired from the current production
+schema and materialization path. Desktop recurrence sync is one-way canonical
+after ingress: legacy `recurringTasks` may still be accepted and migrated at
+explicit compatibility boundaries, but production merge/delta/ack flows do
+not project canonical `recurringSeries` back into recurrence-v1 state.
+
+Remaining recurrence-v1 work is cleanup of explicitly justified migration,
+quarantine, diagnostic, historical-schema, and misleadingly named
+compatibility surfaces. None of those surfaces owns recurrence-v2 semantics.
 
 ## Known documentation constraint
 
