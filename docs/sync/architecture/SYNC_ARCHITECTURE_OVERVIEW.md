@@ -1,5 +1,19 @@
 # Огляд архітектури та поточного стану синхронізації
 
+Status: HISTORICAL
+
+This document records the sync architecture as understood on 2026-01-30.
+It is not authoritative for current transport, merge ownership, restore
+behavior, Desktop integration, or synchronization feature status.
+
+Its statements about incomplete merge logic, destructive restore behavior,
+future background synchronization, and then-current Desktop assumptions belong
+to that historical implementation stage.
+
+Use current production code, persisted contracts, canonical project state, and
+current focused recurrence/Day Theme documentation for present behavior.
+
+
 Дата: 30 січня 2026
 
 Цей документ описує архітектуру, поточний стан реалізації та відомі проблеми механізму синхронізації даних (кодова назва "Synapse") в додатку ForwardApp.

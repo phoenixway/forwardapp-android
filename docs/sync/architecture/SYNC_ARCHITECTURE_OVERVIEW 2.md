@@ -1,5 +1,20 @@
 # Огляд архітектури та поточного стану синхронізації
 
+Status: HISTORICAL
+
+This document is an expanded 2026-01-30 snapshot of the same historical sync
+architecture described by `SYNC_ARCHITECTURE_OVERVIEW.md`.
+
+It contains additional component and feature-toggle detail, but it is not a
+current architecture specification. Current sync has evolved substantially,
+including SnapshotBundle-v2 flows, the separate Electron Desktop repository,
+canonical recurrence-v2 transport, and canonical Day Theme transport.
+
+Retain this file as architectural history only. Revalidate any component,
+ownership rule, status claim, or recommended next step against current code and
+canonical project memory before reuse.
+
+
 Дата: 30 січня 2026
 
 Цей документ описує архітектуру, поточний стан реалізації та відомі проблеми механізму синхронізації даних (кодова назва "Synapse") в додатку ForwardApp.

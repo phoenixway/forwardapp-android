@@ -1,14 +1,14 @@
 # Next
 
-Audit the two parent sync architecture overview documents:
+Audit the remaining active sync architecture/design documents:
 
-- `docs/sync/architecture/SYNC_ARCHITECTURE_OVERVIEW.md`
-- `docs/sync/architecture/SYNC_ARCHITECTURE_OVERVIEW 2.md`
+- `docs/sync/architecture/SYNAPSE_DESIGN.md`
+- `docs/sync/architecture/SYNC_FEATURE_SPEC.md`
+- `docs/sync/architecture/SYNC_FEATURE_TOGGLE.md`
 
-Determine whether they are duplicates, revisions, or divergent historical
-architectures. Compare their core ownership, transport, merge, SnapshotBundle,
-and Desktop assumptions with current code and canonical project state.
+Classify each independently as CURRENT, REFERENCE, MIXED, or HISTORICAL.
 
-Do not merge them into a new authoritative sync architecture document until
-current claims have been verified. First classify what is CURRENT, REFERENCE,
-HISTORICAL, or conflicting.
+Check especially whether their ownership model, transport shape, feature-toggle
+behavior, merge/conflict rules, and proposed future work still match current
+production code. Do not promote an old design document to current authority
+merely because some named classes still exist.
