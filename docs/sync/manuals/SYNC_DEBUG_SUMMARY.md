@@ -1,7 +1,13 @@
 # Attachment Sync Debug - Summary
 
-CAN BE DEPRECATED
+Status: HISTORICAL
 
+This document is a debugging record for the historical attachment-loss
+incident described below. Its defect counts, code locations, diagnostics,
+planned next steps, and conclusions must not be treated as current sync state.
+
+Retain it as incident history only. Re-establish any present attachment-sync
+problem from current code and current runtime evidence.
 
 ## Problem Statement
 

@@ -1,12 +1,15 @@
 # Next
 
-Audit the active `docs/sync/` documentation and classify stale sync architecture
-and manuals.
+Verify the two remaining mixed sync manuals before classifying them:
 
-Start with documents already marked `CAN BE DEPRECATED`, the duplicate sync
-architecture overviews, and any remaining instructions that describe obsolete
-transport, merge, snapshot, or conflict ownership.
+- `docs/sync/manuals/SYNC_TEST_MANUAL.md`
+- `docs/sync/manuals/attachment_sync_manual.md`
 
-Preserve useful current operational/debugging reference, but do not let old sync
-plans or manuals override current code, persisted contracts, canonical project
-state, or focused canonical recurrence and Day Theme documentation.
+Check their concrete operational claims against current repository code:
+dump commands and paths, sync test commands, attachment HTTP endpoints,
+`AttachmentSyncAction`, attachment storage paths, environment variables, and
+current Wi-Fi sync flow.
+
+Classify each as CURRENT, REFERENCE, MIXED, or HISTORICAL only after that
+verification. Do not preserve obsolete commands merely because the underlying
+sync or attachment subsystem still exists.

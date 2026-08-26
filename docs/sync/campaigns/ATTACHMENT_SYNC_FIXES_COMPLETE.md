@@ -1,6 +1,13 @@
 # Attachment Sync - All 3 Defects Fixed ✅
 
-CAN BE DEPRECATED
+Status: HISTORICAL
+
+This document records completion of an earlier attachment-sync repair campaign.
+It is preserved as implementation and incident history, not as current sync
+architecture or a source of present work.
+
+Paths, commits, data flow, limitations, and follow-up suggestions below refer
+to that historical implementation state and must be revalidated before reuse.
 
 ## Executive Summary
 

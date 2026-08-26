@@ -1,6 +1,13 @@
 # Attachment Sync Debug Guide
 
-CAN BE DEPRECATED
+Status: HISTORICAL
+
+This guide belongs to the historical attachment-loss investigation described
+below. It records then-current hypotheses, line numbers, logging, and debugging
+steps rather than a verified current operational contract.
+
+Do not use its defect descriptions as evidence that those defects still exist.
+Inspect current sync and attachment code before reusing any procedure.
 
 ## Проблеми у синхронізації вкладень
 

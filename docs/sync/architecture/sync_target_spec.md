@@ -1,7 +1,14 @@
 # ForwardApp Sync — Цільова Специфікація (Android ⇄ Desktop)
 
-CAN BE DEPRECATED
+Status: HISTORICAL
 
+This document preserves an earlier Android/Desktop sync target specification.
+It is not the current transport, merge, entity-coverage, or conflict contract.
+
+Current behavior must be established from production sync code, persisted
+contracts, canonical project state, and current focused subsystem
+documentation. In particular, current canonical SnapshotBundle recurrence and
+Day Theme contracts supersede assumptions in this older target specification.
 
 ## 1. Модель даних (Room/KMP ціль)
 - **Обовʼязкові sync-поля для всіх синхронізованих сутностей**: `id` (String, UUID), `version` (Long, інкремент), `updatedAt` (Long, мс UTC), `syncedAt` (Long?, мс), `isDeleted` (Boolean, soft-delete).
