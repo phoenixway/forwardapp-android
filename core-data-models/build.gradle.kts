@@ -1,9 +1,9 @@
 plugins {
-    id("com.android.library")
-    id("org.jetbrains.kotlin.android")
-    id("kotlin-parcelize") // If Parcelable models are used
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23" // If kotlinx.serialization is used
-    id("com.google.devtools.ksp") // Add KSP plugin
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
+    id("kotlin-parcelize")
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -19,8 +19,11 @@ android {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
 
-    kotlinOptions {
-        jvmTarget = "1.8"
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
     }
 }
 

@@ -7,14 +7,14 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23"
+    alias(libs.plugins.kotlin.serialization)
     id("kotlin-parcelize")
 
     alias(libs.plugins.google.services.plugin) apply false
     alias(libs.plugins.firebase.crashlytics.plugin) apply false
 
-    id("io.gitlab.arturbosch.detekt")
-    id("org.jlleitschuh.gradle.ktlint")
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.ktlint)
 }
 
 val signingProps = Properties()
@@ -63,18 +63,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    kotlinOptions {
-        jvmTarget = "11"
-        allWarningsAsErrors = false
-        freeCompilerArgs +=
-            listOf(
-                "-Xjsr305=strict",
-                "-Xcontext-receivers",
-                "-Xannotation-default-target=param-property",
-                "-Xskip-prerelease-check",
-            )
     }
 
     buildFeatures {
@@ -163,6 +151,17 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1,INDEX.LIST,io.netty.versions.properties}"
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        allWarningsAsErrors.set(false)
+        freeCompilerArgs.addAll(
+            "-Xjsr305=strict",
+            "-Xskip-prerelease-check",
+        )
     }
 }
 

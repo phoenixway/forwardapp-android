@@ -1756,7 +1756,7 @@ val MIGRATION_143_144 =
                             version = version + 1
                         WHERE id = ?
                         """.trimIndent(),
-                        arrayOf(template.toString(), now, seriesId),
+                        arrayOf<Any?>(template.toString(), now, seriesId),
                     )
                 }
             }
