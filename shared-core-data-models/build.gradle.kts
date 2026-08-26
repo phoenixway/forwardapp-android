@@ -8,7 +8,17 @@ kotlin {
     jvm()
 
     js(IR) {
+        compilerOptions {
+            freeCompilerArgs.addAll(
+                "-Xes-long-as-bigint",
+                "-XXLanguage:+JsAllowLongInExportedDeclarations",
+            )
+        }
+
         nodejs()
+        useEsModules()
+        binaries.library()
+        generateTypeScriptDefinitions()
     }
 
     sourceSets {
@@ -17,4 +27,3 @@ kotlin {
         }
     }
 }
-

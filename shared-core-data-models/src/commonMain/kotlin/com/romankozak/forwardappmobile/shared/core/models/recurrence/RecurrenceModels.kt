@@ -3,10 +3,13 @@ package com.romankozak.forwardappmobile.shared.core.models.recurrence
 import com.romankozak.forwardappmobile.shared.core.models.day.TaskPriority
 import com.romankozak.forwardappmobile.shared.core.models.link.CanonicalRelatedLink
 import com.romankozak.forwardappmobile.shared.core.models.sync.SyncEntityMeta
+import kotlin.js.JsExport
 
 /** Calendar-day identity. Expected representation: YYYY-MM-DD. */
 typealias LocalDayKey = String
 
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 enum class RecurrenceFrequency {
     DAILY,
     WEEKLY,
@@ -14,6 +17,8 @@ enum class RecurrenceFrequency {
     YEARLY,
 }
 
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 enum class RecurrenceDayOfWeek {
     MONDAY,
     TUESDAY,
@@ -25,12 +30,16 @@ enum class RecurrenceDayOfWeek {
 }
 
 /** interval must be >= 1 in valid canonical domain state. */
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 data class RecurrenceRule(
     val frequency: RecurrenceFrequency,
     val interval: Int,
     val daysOfWeek: List<RecurrenceDayOfWeek>?,
 )
 
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 enum class RecurringSeriesKind {
     TASK,
     FOCUS,
@@ -38,6 +47,8 @@ enum class RecurringSeriesKind {
 }
 
 /** Content/defaults copied into a materialized DayTask. */
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 data class RecurringTaskTemplate(
     val title: String,
     val description: String?,
@@ -53,6 +64,8 @@ data class RecurringTaskTemplate(
 )
 
 /** Content/defaults copied into a FOCUS or RESPONSIBILITY DayFocusItem. */
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 data class RecurringFocusTemplate(
     val title: String,
     val notes: String?,
@@ -66,6 +79,8 @@ data class RecurringFocusTemplate(
  * A series owns what should be materialized and on which calendar days. It does
  * not own per-day completion or deletion state.
  */
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 sealed interface RecurringSeries : SyncEntityMeta {
     val kind: RecurringSeriesKind
     val rule: RecurrenceRule
@@ -73,6 +88,8 @@ sealed interface RecurringSeries : SyncEntityMeta {
     val endDayKey: LocalDayKey?
 }
 
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 data class RecurringTaskSeries(
     override val id: String,
     override val createdAt: Long,
@@ -89,6 +106,8 @@ data class RecurringTaskSeries(
         get() = RecurringSeriesKind.TASK
 }
 
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 data class RecurringFocusSeries(
     override val id: String,
     override val createdAt: Long,
@@ -105,6 +124,8 @@ data class RecurringFocusSeries(
         get() = RecurringSeriesKind.FOCUS
 }
 
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 data class RecurringResponsibilitySeries(
     override val id: String,
     override val createdAt: Long,
@@ -122,6 +143,8 @@ data class RecurringResponsibilitySeries(
 }
 
 /** Provenance carried by the materialized DayTask or DayFocusItem itself. */
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 data class RecurrenceOrigin(
     val seriesId: String,
     val occurrenceDayKey: LocalDayKey,

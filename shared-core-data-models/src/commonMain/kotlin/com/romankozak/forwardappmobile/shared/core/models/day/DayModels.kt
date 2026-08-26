@@ -5,7 +5,10 @@ import com.romankozak.forwardappmobile.shared.core.models.recurrence.LocalDayKey
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurrenceOrigin
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringSeries
 import com.romankozak.forwardappmobile.shared.core.models.sync.SyncEntityMeta
+import kotlin.js.JsExport
 
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 enum class TaskPriority {
     NONE,
     LOW,
@@ -14,6 +17,8 @@ enum class TaskPriority {
     CRITICAL,
 }
 
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 enum class TaskStatus {
     NOT_STARTED,
     IN_PROGRESS,
@@ -21,6 +26,8 @@ enum class TaskStatus {
     CANCELLED,
 }
 
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 enum class DayStatus {
     PLANNED,
     ACTIVE,
@@ -28,6 +35,8 @@ enum class DayStatus {
     SKIPPED,
 }
 
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 enum class DayFocusType {
     FOCUS,
     RESPONSIBILITY,
@@ -46,6 +55,8 @@ enum class DayRuntimeClosedBy {
 }
 
 /** Canonical persisted representation of one calendar day. */
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 data class DayPlan(
     override val id: String,
     override val createdAt: Long,
@@ -73,6 +84,8 @@ data class DayPlan(
  * A recurring occurrence is represented by recurrence provenance, not a separate
  * persistent occurrence entity.
  */
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 data class DayTask(
     override val id: String,
     override val createdAt: Long,
@@ -113,6 +126,8 @@ data class DayTask(
 ) : SyncEntityMeta
 
 /** Canonical concrete focus/responsibility item belonging to one DayPlan. */
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 data class DayFocusItem(
     override val id: String,
     override val createdAt: Long,

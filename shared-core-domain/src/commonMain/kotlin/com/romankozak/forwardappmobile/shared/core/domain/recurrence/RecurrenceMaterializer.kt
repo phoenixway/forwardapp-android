@@ -12,7 +12,10 @@ import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringFo
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringResponsibilitySeries
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringSeries
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringTaskSeries
+import kotlin.js.JsExport
 
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 enum class RecurrenceMaterializationStatus {
     MATERIALIZED,
     PLAN_NOT_FOUND,
@@ -25,6 +28,8 @@ enum class RecurrenceMaterializationStatus {
  * adapters apply tasksToCreate/focusItemsToCreate transactionally to their own
  * storage.
  */
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 data class RecurrenceMaterializationPlan(
     val status: RecurrenceMaterializationStatus,
     val dayKey: LocalDayKey,

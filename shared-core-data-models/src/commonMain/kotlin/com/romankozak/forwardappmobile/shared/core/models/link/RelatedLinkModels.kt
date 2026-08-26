@@ -1,5 +1,9 @@
 package com.romankozak.forwardappmobile.shared.core.models.link
 
+import kotlin.js.JsExport
+
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 enum class CanonicalLinkType {
     CONTEXT,
     NOTE_DOCUMENT,
@@ -10,6 +14,8 @@ enum class CanonicalLinkType {
     OBSIDIAN,
 }
 
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 data class CanonicalRelatedLink(
     val type: CanonicalLinkType?,
     val target: String,

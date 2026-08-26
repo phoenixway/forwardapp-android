@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurrenceO
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurrenceRule
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringSeries
 import com.romankozak.forwardappmobile.shared.core.models.recurrence.RecurringSeriesKind
+import kotlin.js.JsExport
 
 private data class LocalDayParts(
     val year: Int,
@@ -188,6 +189,8 @@ fun recurrenceOrigin(
     )
 }
 
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
 fun recurrenceRuleMatchesDay(
     rule: RecurrenceRule,
     startDayKey: LocalDayKey,
@@ -235,19 +238,36 @@ fun recurrenceRuleMatchesDay(
     }
 }
 
-fun recurringSeriesMatchesDay(
-    series: RecurringSeries,
+@OptIn(kotlin.js.ExperimentalJsExport::class)
+@JsExport
+fun recurrenceScheduleMatchesDay(
+    rule: RecurrenceRule,
+    startDayKey: LocalDayKey,
+    endDayKey: LocalDayKey?,
+    isDeleted: Boolean,
     dayKey: LocalDayKey,
 ): Boolean {
-    if (series.isDeleted) return false
-    if (compareLocalDayKeys(dayKey, series.startDayKey) < 0L) return false
-    if (series.endDayKey != null && compareLocalDayKeys(dayKey, series.endDayKey!!) > 0L) {
+    if (isDeleted) return false
+    if (compareLocalDayKeys(dayKey, startDayKey) < 0L) return false
+    if (endDayKey != null && compareLocalDayKeys(dayKey, endDayKey) > 0L) {
         return false
     }
 
     return recurrenceRuleMatchesDay(
-        rule = series.rule,
-        startDayKey = series.startDayKey,
+        rule = rule,
+        startDayKey = startDayKey,
         targetDayKey = dayKey,
     )
 }
+
+fun recurringSeriesMatchesDay(
+    series: RecurringSeries,
+    dayKey: LocalDayKey,
+): Boolean =
+    recurrenceScheduleMatchesDay(
+        rule = series.rule,
+        startDayKey = series.startDayKey,
+        endDayKey = series.endDayKey,
+        isDeleted = series.isDeleted,
+        dayKey = dayKey,
+    )

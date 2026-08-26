@@ -1,25 +1,37 @@
-# Recurrence-v2 Android Canonicalization Status
+# Recurrence-v2 Canonicalization Status
 
-**Status:** CANONICALIZATION IMPLEMENTED / LEGACY CLEANUP PENDING
+**Status:** SHARED KMP CANONICALIZATION IMPLEMENTED / LEGACY CLEANUP PENDING
 **Scope:** recurrence-v2, Desktop ↔ Android  
 **Current phase:** canonical FOCUS / RESPONSIBILITY acceptance, followed by legacy-v1 removal
 
 ## Summary
 
-Android recurrence-v2 canonicalization is no longer deferred architectural debt.
+Recurrence-v2 canonicalization is no longer deferred architectural debt.
 
-The repository now contains the canonical recurrence model on both sides of the Desktop ↔ Android boundary, canonical Android persistence, canonical occurrence provenance, a canonical materializer, and SnapshotBundle-v2 transport.
+The repository now contains one shared KMP recurrence model/domain used by both
+Android and Desktop, canonical Android persistence, Desktop technical KMP
+adapters, canonical occurrence provenance, a shared canonical materializer, and
+SnapshotBundle-v2 transport.
 
 Current architecture:
 
 ```text
-Desktop RecurringSeries
-          ↕ SnapshotBundle v2
-Android canonical_recurring_series
-          ↓
-canonical materializer
-          ↓
-DayTask / DayFocusItem occurrences
+Desktop persistence/UI                 Android persistence
+        │                                     │
+        │ technical adapter                   │ technical adapter
+        └────────────────┐       ┌────────────┘
+                         ▼       ▼
+                   shared KMP recurrence-v2
+                   shared-core-data-models
+                   shared-core-domain
+              rule / schedule / identity /
+                    materialization
+                         │
+                         ▼
+              DayTask / DayFocusItem
+                 canonical occurrences
+
+Desktop ↔ Android persisted state is transported through SnapshotBundle v2.
 ```
 
 There is intentionally no separately persisted Occurrence entity. A `DayTask` or `DayFocusItem` carrying canonical recurrence provenance is the occurrence.
@@ -52,8 +64,11 @@ The following recurrence-v2 infrastructure is implemented:
 - nested recurrence provenance on SnapshotBundle occurrences;
 - logical occurrence reconciliation by `(seriesId, occurrenceDayKey)`;
 - deterministic canonical physical occurrence IDs;
-- tombstone-aware materialization;
-- Android canonical recurrence materialization;
+- tombstone-aware shared KMP materialization;
+- Android canonical recurrence materialization through the shared KMP domain;
+- Desktop canonical recurrence materialization through a technical KMP adapter;
+- removal of the handwritten Desktop TypeScript materialization engine from the production path;
+- KMP ownership of recurrence rule matching, schedule/lifecycle matching, logical occurrence keys, deterministic physical occurrence IDs, and materialization semantics;
 - quarantine of legacy Android recurrence generation at the live recurrence-v2 sync boundary;
 - Desktop ↔ Android recurrence-v2 synchronization for the tested TASK vertical slice.
 
@@ -304,19 +319,22 @@ Only compatibility or migration boundaries with an explicit reason may remain.
 ## Target end state
 
 ```text
-                    canonical recurrence-v2
-        ┌────────────────────────────────────────┐
-Desktop │ RecurringSeries                        │
-        │ canonical occurrence provenance        │
-        └───────────────────┬────────────────────┘
-                            │ SnapshotBundle v2
-        ┌───────────────────▼────────────────────┐
-Android │ canonical_recurring_series             │
-        │ canonical occurrence provenance        │
-        │ canonical materializer                 │
-        └────────────────────────────────────────┘
+Desktop persistence                    Android persistence
+        │                                     │
+        │ translation-only adapter            │ translation-only adapter
+        └────────────────┐       ┌────────────┘
+                         ▼       ▼
+                   shared KMP recurrence-v2
+                   one canonical model/domain
+                   one materialization engine
+                         │
+                         ▼
+              canonical DayTask / DayFocusItem
+                      occurrences
 
-legacy recurringTasks / legacy generators
+Desktop persistence ↔ SnapshotBundle v2 ↔ Android persistence
+
+legacy recurrence-v1 runtime / generators
         ↓
 removed from production recurrence logic
 
@@ -327,4 +345,7 @@ explicit isolated adapters only, if still required
 
 ## Current next step
 
-Perform a full code and test audit of Android canonical FOCUS / RESPONSIBILITY recurrence behavior, then close missing CRUD, series-operation, sync, backup and anti-resurrection cases before beginning recurrence-v1 runtime removal.
+Perform full cross-client FOCUS / RESPONSIBILITY recurrence-v2 lifecycle
+acceptance across Desktop and Android. Close missing CRUD, materialization,
+series-operation, sync, backup/restore and anti-resurrection cases before
+beginning recurrence-v1 runtime removal.
