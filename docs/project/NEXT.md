@@ -1,9 +1,14 @@
 # Next
 
-Classify and correct
-`docs/recurrence/RECURRENCE_V2_ANDROID_CANONICALIZATION_DEBT.md`.
+Audit the parent-repository `docs/desktop/` documentation against current
+authority.
 
-Its current implementation/status sections are useful, but its `Current next
-step` still instructs recurrence-v1 cleanup even though canonical project state
-records that cleanup as complete. Remove or reclassify stale forward-looking
-claims without weakening the current recurrence architecture reference.
+Classify old campaign, session-ledger, shared-extraction, and
+`Recommended Next Step` claims as CURRENT, REFERENCE, HISTORICAL, or stale.
+
+Respect the accepted decision that `apps/day-goals-desktop/` is a separate
+repository and that detailed Desktop-local implementation truth belongs there.
+
+Do not migrate or delete those documents until their claims have been checked
+against the current Desktop repository and current parent-level architectural
+decisions.

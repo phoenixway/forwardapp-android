@@ -110,6 +110,31 @@ Canonical focus/responsibility behavior is identified by canonical recurrence
 provenance. Legacy `isEveryday` / `recurringKey` fields may remain at explicit
 compatibility boundaries but do not define recurrence-v2 truth.
 
+### Live Desktop compatibility regressions
+
+Two live Android -> Desktop pulls exposed compatibility-boundary defects after
+the shared KMP recurrence cutover.
+
+First, canonical FOCUS / RESPONSIBILITY nested `recurrence` provenance could be
+discarded when legacy `recurringKey` was null. Desktop now treats nested
+canonical provenance as authoritative and `recurringKey` only as a legacy
+fallback.
+
+Second, a canonical occurrence whose persisted `dayPlanId` referenced a stale
+or historical DayPlan could be excluded from the canonical database passed to
+the shared materializer. Because logical occurrence identity is
+`(seriesId, occurrenceDayKey)`, this could cause a second row with the same
+deterministic physical id to be materialized for the current DayPlan.
+
+Desktop now preserves target-day canonical recurrence evidence across stale
+DayPlan references for TASK, FOCUS, and RESPONSIBILITY. It also contains a
+narrow recovery path for residue already produced by that historical bug.
+
+The producer fix and recovery are covered by 112 targeted Desktop tests,
+TypeScript checking, and a live pull against the previously corrupted local
+state. The live pull repaired the duplicate and synchronized all pending
+changes successfully.
+
 ## Conflict and anti-resurrection invariants
 
 The following invariants are non-negotiable:
@@ -122,15 +147,25 @@ The following invariants are non-negotiable:
 6. Legacy aliases must not create a second canonical logical occurrence.
 7. Synchronization must not replace a newer tombstone with stale live state.
 
-Where same-physical-ID conflict resolution is needed, the intended winner ordering is:
+Current ordinary Day physical-id freshness comparison uses:
 
-```text
-version
-then updatedAt
-then tombstone precedence on exact tie
-```
+    version
+    then updatedAt / createdAt timestamp
 
-This rule must be implemented and tested before claiming complete conflict semantics if the current merge layer does not already guarantee it.
+Canonical recurrence conflict handling is stricter than generic physical-id
+last-write-wins. Logical occurrence reconciliation separately protects
+tombstones, detects divergent aliases, and keeps ambiguous recurrence conflicts
+blocking rather than silently overwriting them.
+
+The narrow Desktop recovery for the historical stale-DayPlan duplicate producer
+runs only when duplicate rows have the same physical id and the same canonical
+`(seriesId, occurrenceDayKey)`, and only when the normal
+version-then-timestamp freshness contract yields a strict winner.
+Equal-freshness duplicates remain blocking errors.
+
+Do not infer generic physical-id deduplication or an exact-tie tombstone
+tie-breaker unless the relevant production merge path explicitly implements and
+tests that behavior.
 
 ## Legacy recurrence-v1 status
 
@@ -220,18 +255,23 @@ old backups / migration compatibility
 explicit isolated adapters only, if still required
 ```
 
-## Current next step
+## Current maintenance status
 
-Continue evidence-driven recurrence-v1 cleanup.
+There is no active recurrence-v1 cleanup slice.
 
-Remove obsolete runtime compatibility paths first. Preserve intentionally
-supported old-backup/database ingestion, quarantine boundaries, diagnostics,
-and historical migrations. Rename canonical runtime entry points whose legacy
-names obscure current ownership when doing so improves clarity.
+The recurrence-v1 cleanup previously described by this document is complete.
+Remaining legacy-named surfaces are retained only where current evidence
+classifies them as migration, quarantine, diagnostic, historical-schema, or
+day-storage compatibility boundaries.
 
-Keep production-path tests aligned with canonical `recurringSeries` state while
-retaining dedicated regression coverage for legacy migration and quarantine
-inputs.
+Further deletion or renaming should happen only when repository evidence shows
+that a retained boundary is dead or misleading. A legacy filename alone is not
+a reason to remove working compatibility code.
 
-Do not redesign recurrence-v2 during cleanup unless a concrete canonical
-behavioral defect is demonstrated.
+Production-path tests should remain aligned with canonical `recurringSeries`
+state, while dedicated regression coverage should continue to protect supported
+legacy migration and quarantine inputs.
+
+Re-open recurrence architecture work only for a concrete behavioral defect or
+an explicitly accepted modernization task. Do not restart recurrence-v1 cleanup
+as an assumed project objective.
