@@ -590,7 +590,7 @@ class DayManagementRepository
                 }
             }
         }
-        suspend fun generateRecurringTasksForDate(date: Long) {
+        suspend fun materializeCanonicalRecurrenceForDate(date: Long) {
             val result = canonicalRecurrenceMaterializationAdapter.materializeForDate(date)
 
             android.util.Log.i(

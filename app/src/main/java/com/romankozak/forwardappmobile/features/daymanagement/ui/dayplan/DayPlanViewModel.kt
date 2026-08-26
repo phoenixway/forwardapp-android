@@ -325,7 +325,7 @@ class DayPlanViewModel
                                     "DayPlanViewModel",
                                     "dayPlanFlow: Received dayPlan: ${dayPlan?.id} for planId: $planId",
                                 )
-                                dayPlan?.let { dayManagementRepository.generateRecurringTasksForDate(it.date) }
+                                dayPlan?.let { dayManagementRepository.materializeCanonicalRecurrenceForDate(it.date) }
                             }
 
                     val tasksFlow =

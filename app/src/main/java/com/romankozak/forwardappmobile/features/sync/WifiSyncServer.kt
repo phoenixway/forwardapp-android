@@ -39,7 +39,6 @@ import java.net.Inet4Address
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -437,29 +436,6 @@ class WifiSyncServer(
         wakeLock = null
         Log.d(DEBUG_TAG, "[WifiSyncServer] Background server locks released")
     }
-
-    private suspend fun ensureTodayRecurringTasksAfterImport() {
-        val todayStart = startOfLocalDay(System.currentTimeMillis())
-        runCatching {
-            if (dayManagementRepository.getPlanIdForDate(todayStart) == null) {
-                dayManagementRepository.createOrUpdateDayPlan(todayStart)
-            }
-            dayManagementRepository.generateRecurringTasksForDate(todayStart)
-        }.onSuccess {
-            Log.i("ForwardSync", "post-import recurring generation triggered date=$todayStart")
-        }.onFailure { error ->
-            Log.e(DAY_SYNC_IMPORT_TAG, "post-import recurring generation failed date=$todayStart", error)
-        }
-    }
-
-    private fun startOfLocalDay(timestamp: Long): Long =
-        Calendar.getInstance().apply {
-            timeInMillis = timestamp
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
 
     private fun getWifiIpAddress(): String? {
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
