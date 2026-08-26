@@ -14,3 +14,22 @@ plugins {
     alias(libs.plugins.detekt) apply false
     alias(libs.plugins.ktlint) apply false
 }
+
+// Kotlin 2.4 emits metadata that older transitive kotlin-metadata-jvm
+// readers used by Hilt cannot read. Hilt 2.57+ keeps this dependency
+// overridable, so keep the metadata reader aligned with the compiler.
+val kotlinMetadataVersion =
+    extensions
+        .getByType<org.gradle.api.artifacts.VersionCatalogsExtension>()
+        .named("libs")
+        .findVersion("kotlin")
+        .get()
+        .requiredVersion
+
+subprojects {
+    configurations.configureEach {
+        resolutionStrategy.force(
+            "org.jetbrains.kotlin:kotlin-metadata-jvm:$kotlinMetadataVersion",
+        )
+    }
+}
