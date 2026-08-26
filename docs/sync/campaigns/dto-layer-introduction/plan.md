@@ -1,3 +1,20 @@
+# Historical DTO/Snapshot migration plan
+
+Status: HISTORICAL
+
+This document is the execution plan for the earlier DTO/Snapshot migration.
+
+Its proposed work includes introducing Snapshot DTOs and mappers, moving sync
+flows from DatabaseContent toward SnapshotBundle, adapting merge behavior, and
+introducing LegacyMigrationMapper compatibility. Those ideas belong to the
+historical migration that produced much of the current sync structure.
+
+Some resulting compatibility components remain intentionally current, but that
+does not make this old migration plan an active source of work.
+
+Revalidate any remaining-looking step against current code and canonical
+project memory before treating it as debt.
+
 
   Фаза 1: Розуміння поточного стану та створення DTO Snapshot
 

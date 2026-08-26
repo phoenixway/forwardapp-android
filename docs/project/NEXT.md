@@ -1,14 +1,14 @@
 # Next
 
-Audit the remaining sync migration campaign documents:
+Audit `docs/sync/manuals/adding_new_entity_to_sync.md`.
 
-- `docs/sync/campaigns/all-entities-to-snapshot/masterplan.md`
-- `docs/sync/campaigns/dto-layer-introduction/plan.md`
+This is potentially active operational guidance rather than historical campaign
+material, so verify every important step against current SnapshotBundle,
+mapping, local-data-source, merge, delta, acknowledgement, and test ownership.
 
-Determine whether each is completed historical migration work, still-useful
-reference, or contains unresolved current debt.
+Pay special attention to canonical subsystems whose sync representation is not
+a simple entity-list addition, such as recurrence and Day Themes.
 
-Compare their claimed target architecture and remaining steps with current
-SnapshotBundle code, current legacy compatibility boundaries, and canonical
-project state. Do not resume an old migration campaign solely because its plan
-still contains unchecked or forward-looking steps.
+If the manual is stale, prefer replacing it with a small current checklist
+rather than preserving obsolete implementation steps under an operational
+title.

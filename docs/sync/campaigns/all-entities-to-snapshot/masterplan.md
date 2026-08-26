@@ -1,4 +1,18 @@
 ## Files
+
+Status: HISTORICAL
+
+This document preserves an earlier migration campaign for moving synchronized
+Room entities toward Snapshot DTO transport.
+
+The campaign is no longer an active implementation plan. Current production
+sync already uses SnapshotBundle-based flows, and several entity assumptions in
+this document predate later canonicalization work, including recurrence-v2.
+
+Retain the file as migration history only. Do not resume its incomplete stages
+without re-establishing current requirements from production code and canonical
+project state.
+
 core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/snapshot/SnapshotBundle.kt
 sync/src/main/java/com/romankozak/forwardappmobile/sync/SyncMapper.kt
 core-data-models/src/main/java/com/romankozak/forwardappmobile/core/data/models/sync/snapshot/SnapshotMapper.kt
