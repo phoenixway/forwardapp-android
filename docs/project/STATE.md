@@ -66,6 +66,22 @@ authoritative and uses `recurringKey` only as a legacy fallback. Targeted
 Desktop recurrence tests (25/25), TypeScript checking, and a repeat of the
 previously failing live pull are green.
 
+A later live pull exposed a separate Desktop day-storage compatibility bug:
+canonical recurrence occurrences whose persisted `dayPlanId` referenced a
+stale/historical DayPlan were excluded from the canonical database passed to
+the shared materializer. Because canonical logical occurrence identity is
+`(seriesId, occurrenceDayKey)` and does not include `dayPlanId`, this could
+materialize a second row with the same deterministic physical occurrence id.
+Desktop now preserves target-day canonical recurrence evidence across stale
+DayPlan references for TASK / FOCUS / RESPONSIBILITY. A narrow recovery path
+also repairs residue from this historical producer bug only when duplicate
+rows have the same physical id, the same canonical recurrence identity, and a
+strict winner under the existing version-then-timestamp Day sync freshness
+contract; unrelated or ambiguous physical-id collisions remain blocking
+errors. Targeted Desktop tests (112/112), TypeScript checking, and a live pull
+against the previously corrupted local state are green. The live pull repaired
+the duplicate and synchronized all pending changes successfully.
+
 Android recurrence-v1 runtime/storage is retired from the current production
 schema and materialization path. Desktop recurrence sync is one-way canonical
 after ingress: legacy `recurringTasks` may still be accepted and migrated at
@@ -111,8 +127,12 @@ remained on `themeDefinitions`, `dayThemes`, and
 `dayThemeAssignmentDocuments`; legacy `dayThemeDocuments` is not the runtime
 authority.
 
-A separate live delta edit cycle and exact-version acknowledgement closure have
-not yet been recorded as verified project state.
+The separate live delta edit and exact-version acknowledgement cycle is also
+verified. With canonical Day Theme pending state initially at `Themes 0`, one
+Day Theme edit produced `Themes 1`; after Push and successful cross-client sync,
+the acknowledged state returned to `Themes 0`. The canonical Day Theme live
+acceptance is therefore complete for round-trip state, delta propagation, and
+exact-version acknowledgement closure.
 
 ## Known documentation constraint
 
