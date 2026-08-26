@@ -57,6 +57,15 @@ is green for the implemented canonical path, including materialization,
 series and occurrence operations, sync, backup/restore, split behavior, and
 anti-resurrection coverage.
 
+A live Android -> Desktop pull exposed a Desktop compatibility-boundary bug for
+canonical FOCUS / RESPONSIBILITY occurrences: existing nested `recurrence`
+provenance could be discarded when the legacy `recurringKey` field was null,
+causing the shared materializer to correctly report a deterministic physical-id
+collision. Desktop now treats nested canonical recurrence provenance as
+authoritative and uses `recurringKey` only as a legacy fallback. Targeted
+Desktop recurrence tests (25/25), TypeScript checking, and a repeat of the
+previously failing live pull are green.
+
 Android recurrence-v1 runtime/storage is retired from the current production
 schema and materialization path. Desktop recurrence sync is one-way canonical
 after ingress: legacy `recurringTasks` may still be accepted and migrated at
@@ -94,8 +103,16 @@ creates canonical definitions, per-day themes and assignment documents, writes
 the bootstrap version marker, is idempotent on a second bootstrap, and passes
 foreign-key and SQLite integrity checks.
 
-A live Desktop <-> Android canonical Day Theme round-trip is not yet recorded
-as verified project state.
+A live Desktop <-> Android canonical Day Theme round-trip is verified for the
+canonical trio. The live acceptance exercised Desktop-created Day Theme state
+pushed to Android, Android-side edits, and a successful pull back to Desktop,
+where the Android-side test changes were visible in the Desktop UI. The flow
+remained on `themeDefinitions`, `dayThemes`, and
+`dayThemeAssignmentDocuments`; legacy `dayThemeDocuments` is not the runtime
+authority.
+
+A separate live delta edit cycle and exact-version acknowledgement closure have
+not yet been recorded as verified project state.
 
 ## Known documentation constraint
 

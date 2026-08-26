@@ -1,5 +1,6 @@
 # Next
 
-- Validate a live Desktop <-> Android canonical Day Theme round-trip using
-  `themeDefinitions`, `dayThemes`, and `dayThemeAssignmentDocuments`, including
-  ordering, per-day active state, assignments, delta sync, and acknowledgement.
+- Complete the remaining live canonical Day Theme sync acceptance by verifying
+  a delta edit cycle and exact-version acknowledgement: make one small
+  Day Theme change on one client, sync it, confirm it on the other client, and
+  verify the acknowledged canonical entities no longer remain pending.
