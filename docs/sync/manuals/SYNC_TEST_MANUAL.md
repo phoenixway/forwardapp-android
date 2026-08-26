@@ -1,6 +1,25 @@
 # Посібник з ручного тестування синхронізації (Android ⇄ Desktop)
 
-CAN BE DEPRECATED
+Status: MIXED
+
+This document contains a mixture of still-valid Android sync tooling and
+historical Desktop/test assumptions.
+
+Verified current repository facts include:
+
+- `make get-android-dumps`;
+- `/tmp/android-sync-dumps`;
+- `make sync-contract` / `:app:syncContractTest`;
+- `make debug-cycle`;
+- current `backlog_orders` persistence with `orderVersion`.
+
+The historical Desktop dump path and old backlog-focused end-to-end scenario
+below are not authoritative for the current separate Electron Desktop
+repository. Current Desktop acceptance must be established from that
+repository's code/docs and the feature-specific canonical sync contracts.
+
+Use this file as operational reference only, not as a complete current
+cross-client sync specification.
 
 
 ## 1. Дампи синхронізації

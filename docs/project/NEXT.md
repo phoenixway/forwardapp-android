@@ -1,15 +1,14 @@
 # Next
 
-Verify the two remaining mixed sync manuals before classifying them:
+Audit the two parent sync architecture overview documents:
 
-- `docs/sync/manuals/SYNC_TEST_MANUAL.md`
-- `docs/sync/manuals/attachment_sync_manual.md`
+- `docs/sync/architecture/SYNC_ARCHITECTURE_OVERVIEW.md`
+- `docs/sync/architecture/SYNC_ARCHITECTURE_OVERVIEW 2.md`
 
-Check their concrete operational claims against current repository code:
-dump commands and paths, sync test commands, attachment HTTP endpoints,
-`AttachmentSyncAction`, attachment storage paths, environment variables, and
-current Wi-Fi sync flow.
+Determine whether they are duplicates, revisions, or divergent historical
+architectures. Compare their core ownership, transport, merge, SnapshotBundle,
+and Desktop assumptions with current code and canonical project state.
 
-Classify each as CURRENT, REFERENCE, MIXED, or HISTORICAL only after that
-verification. Do not preserve obsolete commands merely because the underlying
-sync or attachment subsystem still exists.
+Do not merge them into a new authoritative sync architecture document until
+current claims have been verified. First classify what is CURRENT, REFERENCE,
+HISTORICAL, or conflicting.

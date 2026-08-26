@@ -1,6 +1,19 @@
 # Мережевий обмін файлами між десктопом і Android
 
-CAN BE DEPRECATED
+Status: HISTORICAL
+
+This document describes an earlier binary-attachment transport design.
+
+The Android `AttachmentSyncAction` queue still exists in current code, but the
+current separate Electron Desktop repository does not contain the Desktop
+server contract described here: the searched current implementation has no
+`/attachments/:id` endpoint, `FORWARDAPP_ATTACHMENT_DIR`,
+`FORWARDAPP_AUTH_TOKEN`, `make lan-server`, or `npm run lan:server`.
+
+Therefore the end-to-end flow below must not be treated as current attachment
+sync behavior. Preserve it only as historical design context. Re-establish any
+current binary-attachment transport requirements from present Android and
+Desktop repositories before implementing or debugging them.
 
 
 ## Бекенд (десктоп)
