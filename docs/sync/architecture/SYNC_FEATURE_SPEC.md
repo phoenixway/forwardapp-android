@@ -1,5 +1,19 @@
 # 📱↔️🖥️ Синхронізація Даних та Cross-Platform Імпорт/Експорт
 
+
+Status: HISTORICAL
+
+This large document preserves an earlier end-to-end product and technical
+proposal for cross-platform synchronization.
+
+It contains UX concepts, cloud-sync assumptions, KMP/SQLDelight architecture,
+conflict UI, encrypted backup ideas, implementation phases, and future
+expansions that do not describe the current production system.
+
+Retain it as historical design and idea material only. It must not override
+current sync code, persisted contracts, canonical project state, or focused
+current subsystem documentation.
+
 ## Повна Специфікація Дизайну та Архітектури
 
 ---

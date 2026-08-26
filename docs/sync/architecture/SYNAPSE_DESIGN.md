@@ -1,5 +1,20 @@
 ## Фіча: «ForwardApp Synapse» — безшовна синхронізація та екосистема даних
 
+
+Status: HISTORICAL
+
+This document preserves an earlier product and architecture vision for
+ForwardApp Synapse. It includes proposed cloud sync, CRDT-like behavior,
+SQLDelight/KMP application structure, background synchronization, and future
+collaboration concepts.
+
+It is not a current implementation or architecture specification. Some product
+ideas may remain useful, but they are not accepted project commitments unless
+recorded in canonical project memory.
+
+Revalidate any implementation claim or proposed direction against current code,
+`docs/project/STATE.md`, `ROADMAP.md`, and `DECISIONS.md` before reuse.
+
 ### 1. Продуктове бачення
 
 *   **Що досягає в ідеалі:** Synapse перетворює ForwardApp з ізольованого інструменту на єдину, миттєво синхронізовану екосистему на всіх пристроях користувача (Android, Desktop, Web). Дані з'являються там, де вони потрібні, ще до того, як користувач встиг про це подумати.

@@ -1,14 +1,12 @@
 # Next
 
-Audit the remaining active sync architecture/design documents:
+Verify and classify
+`docs/sync/architecture/SYNC_FEATURE_TOGGLE.md`.
 
-- `docs/sync/architecture/SYNAPSE_DESIGN.md`
-- `docs/sync/architecture/SYNC_FEATURE_SPEC.md`
-- `docs/sync/architecture/SYNC_FEATURE_TOGGLE.md`
+Confirm whether the documented build-level `syncEnabled` mechanism,
+`syncOn`/`syncOff` source sets, no-op implementations, product-flavor behavior,
+and UI-level `FeatureToggles` wiring still match current production code.
 
-Classify each independently as CURRENT, REFERENCE, MIXED, or HISTORICAL.
-
-Check especially whether their ownership model, transport shape, feature-toggle
-behavior, merge/conflict rules, and proposed future work still match current
-production code. Do not promote an old design document to current authority
-merely because some named classes still exist.
+If only part of the mechanism remains current, classify the document as MIXED
+and identify the stale portions explicitly rather than rewriting current code
+to match the old document.
