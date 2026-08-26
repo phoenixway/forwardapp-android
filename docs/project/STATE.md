@@ -68,6 +68,35 @@ intentional migration, quarantine, diagnostic, historical-schema, or
 day-storage compatibility boundaries. None of those surfaces owns
 recurrence-v2 semantics.
 
+### Canonical Day Theme persistence authority
+
+Android canonical Day Theme persistence is current in Room database version
+148.
+
+Database migration 146 -> 147 introduces the canonical persistence tables:
+
+- `theme_definitions`;
+- `day_themes`;
+- `day_theme_assignment_documents`.
+
+Migration 147 -> 148 adds the local
+`day_theme_canonical_bootstrap_state` marker used to make the legacy-to-
+canonical bootstrap transactional and versioned.
+
+Legacy `day_theme_documents` storage remains an intentional quarantined
+migration/bootstrap boundary. Current runtime, merge, restore, and sync
+authority is the canonical trio rather than the legacy JSON document.
+
+The real Room migration and bootstrap path is acceptance-tested from a
+database-146 fixture through migrations 146 -> 147 -> 148 and then through
+`CanonicalDayThemeBootstrapper`. The verified path preserves the legacy input,
+creates canonical definitions, per-day themes and assignment documents, writes
+the bootstrap version marker, is idempotent on a second bootstrap, and passes
+foreign-key and SQLite integrity checks.
+
+A live Desktop <-> Android canonical Day Theme round-trip is not yet recorded
+as verified project state.
+
 ## Known documentation constraint
 
 A significant amount of older documentation is still unclassified or mixed.
