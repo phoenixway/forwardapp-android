@@ -1,8 +1,8 @@
 # Recurrence-v2 Canonicalization Status
 
-**Status:** SHARED KMP CANONICALIZATION IMPLEMENTED / LEGACY CLEANUP ACTIVE
+**Status:** SHARED KMP CANONICALIZATION IMPLEMENTED / LEGACY CLEANUP COMPLETE
 **Scope:** recurrence-v2, Desktop ↔ Android  
-**Current phase:** recurrence-v1 cleanup with explicit migration/quarantine boundaries
+**Current phase:** recurrence-v1 cleanup closed; intentional compatibility boundaries retained
 
 ## Summary
 
@@ -134,7 +134,7 @@ This rule must be implemented and tested before claiming complete conflict seman
 
 ## Legacy recurrence-v1 status
 
-Legacy recurrence-v1 is cleanup debt, not recurrence-v2 domain truth.
+Legacy recurrence-v1 cleanup is complete. Remaining legacy surfaces are intentional compatibility boundaries, not recurrence-v2 domain truth.
 
 Current evidence establishes:
 

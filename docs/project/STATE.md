@@ -63,9 +63,10 @@ after ingress: legacy `recurringTasks` may still be accepted and migrated at
 explicit compatibility boundaries, but production merge/delta/ack flows do
 not project canonical `recurringSeries` back into recurrence-v1 state.
 
-Remaining recurrence-v1 work is cleanup of explicitly justified migration,
-quarantine, diagnostic, historical-schema, and misleadingly named
-compatibility surfaces. None of those surfaces owns recurrence-v2 semantics.
+Recurrence-v1 cleanup is complete. Remaining legacy recurrence surfaces are
+intentional migration, quarantine, diagnostic, historical-schema, or
+day-storage compatibility boundaries. None of those surfaces owns
+recurrence-v2 semantics.
 
 ## Known documentation constraint
 
