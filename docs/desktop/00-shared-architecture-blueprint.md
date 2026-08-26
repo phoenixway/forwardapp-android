@@ -1,5 +1,17 @@
 # ForwardApp Shared Architecture Blueprint
 
+Status: HISTORICAL
+
+This document preserves an earlier Desktop/shared architecture direction from
+the April 2026 migration work. It is not authoritative for the current Desktop
+implementation or immediate project work.
+
+Current Desktop implementation truth lives in the separate
+`apps/day-goals-desktop/` repository. Parent-level cross-client architecture and
+accepted decisions live in `docs/project/STATE.md` and
+`docs/project/DECISIONS.md`.
+
+
 ## Status
 
 Орієнтир для desktop/shared migration станом на 2026-04-13.

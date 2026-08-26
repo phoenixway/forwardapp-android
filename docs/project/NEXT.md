@@ -1,14 +1,12 @@
 # Next
 
-Audit the parent-repository `docs/desktop/` documentation against current
-authority.
+Audit the active `docs/sync/` documentation and classify stale sync architecture
+and manuals.
 
-Classify old campaign, session-ledger, shared-extraction, and
-`Recommended Next Step` claims as CURRENT, REFERENCE, HISTORICAL, or stale.
+Start with documents already marked `CAN BE DEPRECATED`, the duplicate sync
+architecture overviews, and any remaining instructions that describe obsolete
+transport, merge, snapshot, or conflict ownership.
 
-Respect the accepted decision that `apps/day-goals-desktop/` is a separate
-repository and that detailed Desktop-local implementation truth belongs there.
-
-Do not migrate or delete those documents until their claims have been checked
-against the current Desktop repository and current parent-level architectural
-decisions.
+Preserve useful current operational/debugging reference, but do not let old sync
+plans or manuals override current code, persisted contracts, canonical project
+state, or focused canonical recurrence and Day Theme documentation.

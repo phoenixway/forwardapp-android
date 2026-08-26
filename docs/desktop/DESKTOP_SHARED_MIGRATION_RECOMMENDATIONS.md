@@ -1,5 +1,17 @@
 # Desktop Shared Functionality Migration Recommendations
 
+Status: HISTORICAL
+
+This document preserves an earlier Desktop/shared architecture direction from
+the April 2026 migration work. It is not authoritative for the current Desktop
+implementation or immediate project work.
+
+Current Desktop implementation truth lives in the separate
+`apps/day-goals-desktop/` repository. Parent-level cross-client architecture and
+accepted decisions live in `docs/project/STATE.md` and
+`docs/project/DECISIONS.md`.
+
+
 ## Огляд проекту та рекомендації щодо перенесення функціоналу в shared частину
 
 На основі аналізу проекту ForwardApp, цей документ містить рекомендації щодо перенесення функціоналу з Android версії в shared модулі для підтримки десктопної версії.
