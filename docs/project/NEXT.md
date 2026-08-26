@@ -1,12 +1,14 @@
 # Next
 
-Verify and classify
-`docs/sync/architecture/SYNC_FEATURE_TOGGLE.md`.
+Audit the remaining sync migration campaign documents:
 
-Confirm whether the documented build-level `syncEnabled` mechanism,
-`syncOn`/`syncOff` source sets, no-op implementations, product-flavor behavior,
-and UI-level `FeatureToggles` wiring still match current production code.
+- `docs/sync/campaigns/all-entities-to-snapshot/masterplan.md`
+- `docs/sync/campaigns/dto-layer-introduction/plan.md`
 
-If only part of the mechanism remains current, classify the document as MIXED
-and identify the stale portions explicitly rather than rewriting current code
-to match the old document.
+Determine whether each is completed historical migration work, still-useful
+reference, or contains unresolved current debt.
+
+Compare their claimed target architecture and remaining steps with current
+SnapshotBundle code, current legacy compatibility boundaries, and canonical
+project state. Do not resume an old migration campaign solely because its plan
+still contains unchecked or forward-looking steps.

@@ -1,63 +1,129 @@
-# Механізм вмикання/вимикання синхронізації (Feature Toggle)
+# Механізм вмикання/вимикання синхронізації
 
-Дата: 30 січня 2026
+Status: CURRENT
 
-Цей документ описує дворівневу систему керування функцією синхронізації в додатку ForwardApp.
+Current Android synchronization availability is controlled by two independent
+layers:
 
-## 1. Загальний огляд
+1. a compile-time capability gate in the `sync` module;
+2. a persisted runtime feature toggle for Wi-Fi sync behavior and UI actions.
 
-Система перемикання синхронізації є дворівневою:
+The two layers solve different problems and must not be conflated.
 
-1.  **Рівень збірки (Build-Level):** Дозволяє повністю виключити або включити код синхронізації під час компіляції. Це основний механізм, що контролює, чи буде функція синхронізації взагалі існувати в зібраному додатку.
-2.  **Рівень інтерфейсу (UI-Level):** Дозволяє контролювати видимість елементів інтерфейсу, пов'язаних із синхронізацією, незалежно від того, чи включено код на рівні збірки.
+## 1. Compile-time sync capability
 
-## 2. Рівень збірки (Build-Level Toggle)
+The `sync` module selects either the real implementation or no-op
+implementations at build time.
 
-Цей механізм використовує систему `sourceSets` в Gradle для повної заміни реалізації синхронізації.
+Current ownership is in:
 
-### Як це працює:
+`sync/build.gradle.kts`
 
-- **Керування:** Здійснюється через властивість `syncEnabled` у файлі `gradle.properties`.
-  - `syncEnabled=true`: Включає реальну логіку синхронізації.
-  - `syncEnabled=false`: Включає "no-op" (порожню) реалізацію, яка нічого не робить.
+The build script reads the Gradle project property:
 
-### Ключові файли:
+`SYNC_ENABLED`
 
--   **`gradle.properties`**:
-    -   **Опис:** Центральний файл для керування перемикачем. Встановлення `syncEnabled=false` вимикає синхронізацію на рівні коду. Якщо властивість відсутня, за замовчуванням `syncEnabled=true`.
+Behavior:
 
--   **`:sync/build.gradle.kts`**:
-    -   **Опис:** Скрипт збірки модуля `sync`. Він зчитує властивість `syncEnabled` і динамічно додає до компіляції одну з двох папок:
-        -   `src/syncOn/java`: Містить *реальну* реалізацію репозиторіїв та сервісів синхронізації (`SyncRepository`, `SyncFileService` і т.д.).
-        -   `src/syncOff/java`: Містить *порожні* (`No-Op`) реалізації.
+- absent or `true` -> real sync implementation;
+- `false` -> no-op sync implementation.
 
--   **`sync/src/syncOn/java/`**:
-    -   **Опис:** Папка з повноцінною реалізацією логіки синхронізації.
+The default is enabled.
 
--   **`sync/src/syncOff/java/`**:
-    -   **Опис:** Папка з "заглушками".
-        -   **`NoOpImplementations.kt`**: Містить порожні реалізації всіх основних класів синхронізації (`NoOpSyncApiImpl`, `NoOpAttachmentsRepository` і т.д.), які забезпечують, що додаток компілюється, але функціональність відсутня.
-        -   **`di/SyncInternalModule.kt`**: Hilt-модуль, який за допомогою `@Binds` прив'язує інтерфейси (`SyncApi`, `AttachmentsRepository`) до їх порожніх `NoOp` реалізацій.
+The real source set combines:
 
-## 3. Рівень інтерфейсу (UI-Level Toggle)
+- `src/main/java`
+- `src/syncOn/java`
 
-Цей механізм використовує `productFlavors` в Gradle для контролю видимості UI елементів, пов'язаних із синхронізацією.
+The disabled source set combines:
 
-### Як це працює:
+- `src/main/java`
+- `src/syncOff/java`
 
-- **Керування:** Здійснюється через вибір варіанту збірки (`build variant`) в Android Studio або через Gradle команди.
-  - `exp` (Experimental): Вмикає видимість UI елементів синхронізації.
-  - `prod` (Production): Приховує UI елементи синхронізації.
+Current `syncOff` contains no-op/disabled implementations including
+`NoOpImplementations.kt`, an alternate `AttachmentsRepository`, and
+`SyncLocalService`.
 
-### Ключові файли:
+This layer determines whether real synchronization capability is compiled into
+the application. A runtime feature toggle cannot restore functionality that was
+excluded here.
 
--   **`:app/build.gradle.kts`**:
-    -   **Опис:** Скрипт збірки головного модуля `app`. У секції `productFlavors` встановлює булеве поле `BuildConfig.IS_EXPERIMENTAL_BUILD`.
-        -   `prod`: `IS_EXPERIMENTAL_BUILD = false`
-        -   `exp`: `IS_EXPERIMENTAL_BUILD = true`
+A Gradle properties entry, when used, must therefore be named:
 
--   **`app/src/main/java/.../core/config/FeatureToggles.kt`**:
-    -   **Опис:** Центральний об'єкт для керування функціями на рівні UI. Він зчитує `BuildConfig.IS_EXPERIMENTAL_BUILD` і на його основі встановлює стан `FeatureFlag.WifiSync`.
+`SYNC_ENABLED=false`
 
--   **UI компоненти (наприклад, `MainScreenTopAppBar.kt`)**:
-    -   **Опис:** Компоненти інтерфейсу, які перевіряють стан `FeatureToggles.isEnabled(FeatureFlag.WifiSync)` для умовного відображення елементів, таких як `SyncStatusIndicator`.
+The older lowercase `syncEnabled` spelling is not the property read by the
+current build script.
+
+## 2. Runtime Wi-Fi sync feature toggle
+
+Wi-Fi sync also has a runtime feature flag:
+
+`FeatureFlag.WifiSync`
+
+Its default value is derived from:
+
+`BuildConfig.IS_EXPERIMENTAL_BUILD`
+
+Therefore the `exp` / `prod` flavor still influences the initial/default state,
+but it is not the complete runtime toggle mechanism.
+
+Current runtime ownership includes:
+
+- `FeatureToggles`;
+- `SettingsRepository`;
+- `SettingsViewModel`;
+- Wi-Fi sync settings and workflow consumers.
+
+`SettingsRepository` persists feature-toggle overrides in DataStore. A stored
+override can therefore differ from the flavor-derived default.
+
+`SettingsViewModel` reads the persisted feature-toggle map and exposes
+`wifiSyncEnabled` to the settings UI.
+
+The Settings UI allows the Wi-Fi sync feature to be enabled or disabled. When
+disabled, dependent server controls are disabled and active Wi-Fi sync
+workflows are gated.
+
+Runtime consumers also check `FeatureFlag.WifiSync` before opening Wi-Fi sync
+dialogs or performing Wi-Fi import/push actions.
+
+## 3. Relationship between the layers
+
+The effective model is:
+
+    build capability
+        SYNC_ENABLED
+            |
+            v
+    syncOn or syncOff implementation
+            |
+            v
+    runtime feature state
+        FeatureFlag.WifiSync
+            |
+            v
+    Settings / dialogs / import / push actions
+
+`SYNC_ENABLED=false` removes the real implementation at build time.
+
+When the real implementation is present, `FeatureFlag.WifiSync` controls
+whether the user-facing/runtime Wi-Fi sync workflows are enabled.
+
+`BuildConfig.IS_EXPERIMENTAL_BUILD` supplies the default runtime value, not an
+absolute visibility or capability rule.
+
+## 4. Maintenance rule
+
+When changing synchronization availability, preserve the distinction between:
+
+- build-time implementation selection;
+- flavor-derived defaults;
+- persisted runtime overrides;
+- feature-gated UI/workflow actions.
+
+Do not document `prod` as permanently disabling Wi-Fi sync unless production
+code again enforces that as a hard rule.
+
+Do not rename or replace `SYNC_ENABLED` in documentation without changing the
+actual Gradle property consumed by `sync/build.gradle.kts`.
