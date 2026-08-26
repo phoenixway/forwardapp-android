@@ -36,6 +36,28 @@ Use exactly:
 #END_AI_TO_CLI
 ```
 
+Any AI CLI Bridge request intended for the user to execute MUST appear in the same user-visible assistant response that asks the user to run it or return its result.
+
+Never place the only copy of an AI CLI Bridge envelope in an intermediate, draft, hidden or otherwise non-user-visible part of a response and then refer to it from visible text.
+
+If visible text says to run a request, send its result, or refers to "this run" or "this request", that same visible response must contain the complete executable envelope.
+
+Do not split one Bridge request across multiple assistant messages. If the complete envelope is absent from the user-visible response, treat the request as not issued.
+
+The Bridge envelope markers are structural transport delimiters, not ordinary Bash text. Never place the literal terminator marker inside the body of a Bridge request, including inside comments, quoted strings, heredocs, Python strings or generated examples. The transport may terminate the request at that marker without interpreting language-level quoting. When a command must generate or document an envelope marker, construct the marker from separate string fragments instead of embedding it literally.
+
+Markdown code fences are also structural delimiters at the chat-rendering layer. Never place a literal fence delimiter inside a Bridge request body when it can close the outer user-visible code block, including inside comments, quoted strings, heredocs, Python strings, or generated documentation. The renderer does not understand language-level quoting and may split the visible request before the Bridge sees a complete envelope.
+
+If a command must generate fenced Markdown, construct the backtick run at execution time, for example with `chr(96) * 3`, instead of embedding the fence literally in the request body. Prefer delimiter-safe request bodies. Before sending a Bridge request, ensure the complete executable envelope will render as one continuous user-visible code block.
+
+The visible executable envelope itself has the form:
+
+```text
+#AI_TO_CLI
+<valid Bash script>
+#END_AI_TO_CLI
+```
+
 After issuing an AI CLI request, do not invent the result.
 
 Wait for:
