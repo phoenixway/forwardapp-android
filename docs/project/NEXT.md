@@ -1,7 +1,9 @@
 # Next
 
-The previously recorded canonical Day Theme live sync acceptance is complete.
+Classify and correct
+`docs/recurrence/RECURRENCE_V2_ANDROID_CANONICALIZATION_DEBT.md`.
 
-No new immediate implementation slice is selected here yet. Select the next
-task from the canonical project state, roadmap, backlog, and accepted decisions
-before starting new implementation work.
+Its current implementation/status sections are useful, but its `Current next
+step` still instructs recurrence-v1 cleanup even though canonical project state
+records that cleanup as complete. Remove or reclassify stale forward-looking
+claims without weakening the current recurrence architecture reference.

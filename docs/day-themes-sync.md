@@ -1,60 +1,137 @@
-# Day themes sync contract
+# Day Themes sync contract
 
-Day themes are stored as one atomic document per `DayPlan` in the
-`day_theme_documents` Room table. `dayPlanId` is both its primary key and a
-foreign key to `day_plans` with cascade deletion.
+Status: CURRENT
 
-## Document payload
+This document describes the current cross-client Day Theme persistence and sync
+contract. Canonical project state remains authoritative in
+`docs/project/STATE.md`.
 
-`contentJson` contains theme metadata and assignments to focus items,
-responsibilities, and day tasks. Each theme includes a persistent `order` and
-an `isActive` flag scoped to that day. Inactive themes keep their assignments
-but are excluded from selectors, badges, usage summaries, and the active
-budget total.
+## Canonical ownership
 
-The document is the conflict unit. Every CRUD, assignment, activation, or DnD
-reorder operation increments `version`, updates `updatedAt`, and clears
-`syncedAt`. This deliberately makes reorder and assignment changes atomic.
-The sync acknowledgement updates `syncedAt` only when the sent document version
-still matches, so a local edit made during transport is not accidentally marked
-as synchronized.
+Current Day Theme state is represented by three canonical collections:
 
-## Transport and merge
+- `themeDefinitions`
+- `dayThemes`
+- `dayThemeAssignmentDocuments`
 
-- DatabaseContent field: `dayThemeDocuments`
-- SnapshotBundle field: `dayThemeDocuments`
-- Snapshot type: `DayThemeDocumentSnapshot`
-- Merge: last-write-wins by `version`, then `updatedAt`, then tombstone state
-- Full backup, restore, delta export, Wi-Fi sync, and sync acknowledgement all
-  include theme documents.
+They are the runtime, persistence, backup/restore, merge, and sync authority.
 
-The outer document `dayPlanId` is authoritative. If the same calendar day has
-different physical `DayPlan` IDs on Android and desktop, the document is
-compared by calendar day, remapped to the canonical plan, and all nested theme
-and assignment `dayPlanId` values are normalized on read/write. A Theme delta
-always includes its owning `DayPlan`, allowing the receiver to perform this
-remap before validating the foreign key.
+There is no current single-document Day Theme source of truth.
 
-Canonical cross-platform icon keys are `target`, `sparkles`, `heart`, `brain`,
-`work`, `home`, `activity`, and `leaf`. Android still reads the early aliases
-`spark`, `mind`, and `flag`; the next write upgrades them to canonical keys.
+## Android persistence
 
-Unknown JSON theme properties remain opaque to the sync layer. Older theme
-payloads without `order` or `isActive` are normalized on read to list order and
-active state respectively.
+Android Room stores canonical Day Theme state in:
 
-The former `local_day_themes` DataStore is read as a one-time compatibility
-source whenever a day without a Room document is opened. Its themes and
-assignments are copied into the synced document without deleting the legacy
-preferences.
+- `theme_definitions`
+- `day_themes`
+- `day_theme_assignment_documents`
 
-## Day workflow integration
+Database migration 146 -> 147 introduced these canonical tables.
 
-The current day's available duration is `DayPlan.predictedDurationMinutes`; it
-travels with the versioned DayPlan in full and delta sync. Editing it increments
-the plan version and clears `syncedAt` on both platforms.
+Migration 147 -> 148 added the versioned
+`day_theme_canonical_bootstrap_state` marker used by
+`CanonicalDayThemeBootstrapper`.
 
-Theme preparation is a first-class workflow step before focuses. Its completion
-timestamp is `dayThemesFinalizedAt` in the synchronized
-`dayManagementRuntimeState`. Runtime merge is last-write-wins by `updatedAt`, so
-an older peer cannot roll back Themes/Focuses/Plan progress.
+The bootstrap converts legacy Day Theme document state into the canonical trio
+transactionally and only once for the current bootstrap version.
+
+## Legacy `day_theme_documents`
+
+`day_theme_documents` is not current runtime authority.
+
+It remains only as an intentional legacy migration/bootstrap boundary for old
+persisted data.
+
+Current production flows must not project canonical Day Theme state back into
+`day_theme_documents` merely to preserve the obsolete representation.
+
+Desktop follows the same rule:
+
+- canonical backups contain the canonical trio;
+- `dayThemeDocuments` is cleared after canonical parsing/migration;
+- old backups without canonical Day Theme state may be migrated through the
+  legacy adapter;
+- after ingress, the canonical trio owns state.
+
+## SnapshotBundle and sync transport
+
+SnapshotBundle v2 transports the canonical trio through:
+
+- `themeDefinitions`
+- `dayThemes`
+- `dayThemeAssignmentDocuments`
+
+Canonical presence is all-or-none. A payload containing only part of the trio
+is malformed and must not be silently interpreted as canonical state.
+
+Canonical Day Theme delta sync also uses the trio. Legacy
+`dayThemeDocuments` is empty on the current canonical sync path.
+
+## Merge and freshness
+
+Canonical Day Theme merge uses entity freshness rather than the legacy atomic
+document representation.
+
+The accepted hierarchy is:
+
+1. higher `version`;
+2. when versions are equal, newer `updatedAt`;
+3. when both are equal, tombstone state wins over live state.
+
+DayPlan-id remapping is handled when the same logical day is reconciled across
+different physical DayPlan ids.
+
+## Dirty state and acknowledgement
+
+Dirty state is tracked across all three canonical collections.
+
+Push acknowledgement is exact-version acknowledgement: only the same entity
+version that was actually sent may be marked synced. A newer local edit made
+while an older version is in flight must remain dirty.
+
+Desktop exposes the aggregate canonical pending count as `Themes` in Sync
+Center. The field name used by some compatibility UI code may still contain the
+historical `dayThemeDocuments` term, but that label does not imply legacy
+storage authority.
+
+## Verified acceptance
+
+The current canonical path has been verified through:
+
+- real Room migration 146 -> 147 -> 148;
+- real `CanonicalDayThemeBootstrapper`;
+- bootstrap idempotence;
+- foreign-key and SQLite integrity checks;
+- Desktop -> Android canonical sync;
+- Android edits pulled back to Desktop;
+- live delta propagation;
+- exact-version acknowledgement closure.
+
+The final live acknowledgement check observed:
+
+    Themes 0
+      -> one canonical Day Theme edit
+    Themes 1
+      -> Push / successful cross-client sync
+    Themes 0
+
+Therefore the canonical Day Theme trio is accepted for current cross-client
+round-trip, delta, and acknowledgement behavior.
+
+## Compatibility rule
+
+Legacy `day_theme_documents` is migration/bootstrap ingress only.
+
+Current ownership is:
+
+    legacy day_theme_documents
+            |
+            | migration / bootstrap ingress only
+            v
+    themeDefinitions
+    dayThemes
+    dayThemeAssignmentDocuments
+            |
+            | canonical runtime / persistence / sync
+            v
+    Desktop <-> SnapshotBundle v2 <-> Android
