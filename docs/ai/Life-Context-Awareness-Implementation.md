@@ -114,7 +114,7 @@
 - **AI Layer Documentation:** `docs/ai/ai-layer.md`
 - **Life Context Intake:** `docs/ai/Life-Context-Intake.md`
 - **Chat History:** `docs/ai/chat_history.md`
-- **Functionality Overview:** `docs/achitecture/functionality_overview.md`
+- **Functionality Overview:** `docs/architecture/functionality_overview.md`
 
 ---
 *Цей документ створено автоматично на основі аналізу коду та документації проекту ForwardApp.*
