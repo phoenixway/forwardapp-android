@@ -155,8 +155,9 @@ Desktop legacy recurringTasks parsing
 Desktop canonical → legacy recurringTasks reverse projection
     REMOVED
 
-Desktop legacyRecurrenceMaterializationBridge
-    CURRENT canonical applicator with historical name
+Desktop legacyDayRecurrenceMaterializationBridge
+    CURRENT compatibility applicator over canonical KMP materialization;
+    `legacy` refers to the day-storage envelope, not recurrence semantics
 
 Desktop legacyCanonicalShadow
     DIAGNOSTIC TOOLING
