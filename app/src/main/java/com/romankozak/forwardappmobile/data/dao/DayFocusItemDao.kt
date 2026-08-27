@@ -11,6 +11,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface DayFocusItemDao {
+    @Query("SELECT * FROM day_focus_items WHERE isDeleted = 0 ORDER BY dayPlanId ASC, `order` ASC, createdAt ASC")
+    fun getAllVisibleItemsFlow(): Flow<List<DayFocusItem>>
+
     @Query("SELECT * FROM day_focus_items ORDER BY dayPlanId ASC, `order` ASC, createdAt ASC")
     suspend fun getAllSync(): List<DayFocusItem>
 

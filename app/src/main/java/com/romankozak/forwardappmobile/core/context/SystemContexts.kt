@@ -46,6 +46,8 @@ object SystemContexts {
             TODAY,
         )
 
+    // A system identity does not fix a context's hierarchy position.
+    // In particular, personal-management may be moved under any regular context.
     private val PINNED_ROOT = emptySet<ContextId>()
 
     fun isSystem(id: ContextId): Boolean = RESERVED.contains(id)

@@ -91,10 +91,12 @@ interface ContextDao {
         parent_project.name as parentContextName,
         pc.path as pathSegments
     FROM contexts AS subproject
-    INNER JOIN list_items AS li ON subproject.id = li.entityId
-    INNER JOIN contexts AS parent_project ON li.context_id = parent_project.id
+    INNER JOIN contexts AS parent_project ON subproject.parentId = parent_project.id
     INNER JOIN path_cte pc ON subproject.id = pc.id
-    WHERE li.itemType = 'SUBLIST' AND subproject.name LIKE :query
+    WHERE subproject.parentId IS NOT NULL
+      AND subproject.is_deleted = 0
+      AND parent_project.is_deleted = 0
+      AND subproject.name LIKE :query
     """,
     )
     suspend fun searchSubprojectsGlobal(query: String): List<GlobalSubcontextSearchResult>

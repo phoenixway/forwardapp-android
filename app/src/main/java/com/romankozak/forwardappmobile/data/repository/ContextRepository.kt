@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.data.repository
 import androidx.room.Transaction
 import com.romankozak.forwardappmobile.core.context.ContextId
 import com.romankozak.forwardappmobile.core.context.SystemContexts
+import com.romankozak.forwardappmobile.core.context.isDirectHierarchyChildContext
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentWithContext
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
@@ -260,15 +261,9 @@ class ContextRepository
             val oldParentId = contextToMove.parentId
             if (oldParentId == newParentId) return
 
-            // 1. Оновлюємо посилання в списках (ListItem)
-            if (oldParentId != null) {
-                listItemRepository.deleteLinkByEntityIdAndContextId(contextToMove.id, oldParentId)
-            }
-            if (newParentId != null) {
-                listItemRepository.addContextLinkToContext(contextToMove.id, newParentId)
-            }
-
-            // 2. Оновлюємо сам об'єкт контексту
+            // Hierarchy ownership lives only on Context.parentId/Context.order.
+            // Backlog SUBLIST is reserved for explicit user-created context references.
+            // Оновлюємо сам об'єкт контексту.
             val updatedContext =
                 contextToMove.copy(
                     parentId = newParentId,
@@ -321,14 +316,7 @@ class ContextRepository
 
         suspend fun getAllGoals() = goalRepository.getAllGoals()
 
-        suspend fun ensureChildContextListItemsExist(contextId: String) {
-            val children = contextDao.getContextsByParentId(contextId)
-            children.forEach { child ->
-                if (!listItemRepository.doesLinkExist(child.id, contextId)) {
-                    listItemRepository.addContextLinkToContext(child.id, contextId)
-                }
-            }
-        }
+
 
         /**
          * Safety-net sync: при відкритті контексту гарантує, що активні дочірні контексти
@@ -642,33 +630,60 @@ class ContextRepository
         }
 
         /**
-         * Видаляє записи в списках (ListItem), для яких фізично більше не існує сутностей (Goal, Note тощо).
+         * Прибирає активні backlog rows, які більше не мають валідної user-facing сутності.
+         *
+         * SUBLIST, що дублює прямий hierarchy relation
+         * (targetContext.parentId == item.contextId), є legacy structural projection.
+         * Ієрархія належить Context.parentId/Context.order; такі rows мають бути tombstone,
+         * а explicit non-child SUBLIST залишається звичайним backlog reference.
          */
-        suspend fun cleanupDanglingListItems() {
+        suspend fun cleanupDanglingAndLegacyStructuralListItems(): Int {
             val allListItems = listItemRepository.getAll()
             val itemsToDelete =
-                allListItems.filter { item ->
-                    val entityId = item.entityId
-                    val itemType = item.itemType
+                allListItems
+                    .filterNot { it.isDeleted }
+                    .filter { item ->
+                        val entityId = item.entityId
+                        val itemType = item.itemType
 
-                    if (entityId == null || itemType == null) {
-                        true // If entityId or itemType is null, the item is corrupt and should be deleted.
-                    } else {
-                        when (itemType) {
-                            BacklogItemTypeValues.GOAL -> goalRepository.getGoalById(entityId) == null
-                            BacklogItemTypeValues.SUBLIST -> contextDao.getContextById(entityId) == null
-                            BacklogItemTypeValues.NOTE_DOCUMENT -> noteDocumentRepository.getDocumentById(entityId) == null
-                            BacklogItemTypeValues.JOURNAL_DOCUMENT -> noteDocumentRepository.getDocumentById(entityId) == null
-                            BacklogItemTypeValues.MUSIC_NOTE -> musicNoteRepository.getById(entityId) == null
-                            BacklogItemTypeValues.CHECKLIST -> checklistRepository.getChecklistById(entityId) == null
-                            else -> false
+                        if (entityId == null || itemType == null) {
+                            true
+                        } else {
+                            when (itemType) {
+                                BacklogItemTypeValues.GOAL ->
+                                    goalRepository.getGoalById(entityId) == null
+
+                                BacklogItemTypeValues.SUBLIST -> {
+                                    val targetContext = contextDao.getContextById(entityId)
+                                    targetContext == null ||
+                                        targetContext.isDeleted ||
+                                        isDirectHierarchyChildContext(
+                                            item.contextId,
+                                            targetContext.parentId,
+                                        )
+                                }
+
+                                BacklogItemTypeValues.NOTE_DOCUMENT ->
+                                    noteDocumentRepository.getDocumentById(entityId) == null
+
+                                BacklogItemTypeValues.JOURNAL_DOCUMENT ->
+                                    noteDocumentRepository.getDocumentById(entityId) == null
+
+                                BacklogItemTypeValues.MUSIC_NOTE ->
+                                    musicNoteRepository.getById(entityId) == null
+
+                                BacklogItemTypeValues.CHECKLIST ->
+                                    checklistRepository.getChecklistById(entityId) == null
+
+                                else -> false
+                            }
                         }
-                    }
-                }.map { it.id }
+                    }.map { it.id }
 
             if (itemsToDelete.isNotEmpty()) {
                 listItemRepository.deleteListItems(itemsToDelete)
             }
+            return itemsToDelete.size
         }
 
         fun getContextLogsStream(contextId: String): Flow<List<ContextLog>> = contextLogRepository.getContextLogsStream(contextId)
@@ -808,15 +823,9 @@ class ContextRepository
             val oldParentId = contextToMove.parentId
             if (oldParentId == newParentId) return
 
-            // 2. Оновлюємо лінки в ListItemRepository
-            if (oldParentId != null) {
-                listItemRepository.deleteLinkByEntityIdAndContextId(contextToMove.id, oldParentId)
-            }
-            if (newParentId != null) {
-                listItemRepository.addContextLinkToContext(contextToMove.id, newParentId)
-            }
-
-            // 3. Оновлюємо запис самого контексту в базі
+            // Hierarchy ownership lives only on Context.parentId/Context.order.
+            // Backlog SUBLIST is reserved for explicit user-created context references.
+            // Оновлюємо запис самого контексту в базі.
             val updatedContext =
                 contextToMove.copy(
                     parentId = newParentId,

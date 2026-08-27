@@ -27,6 +27,7 @@ import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
 import com.romankozak.forwardappmobile.core.navigation.NavigationCommand
 import com.romankozak.forwardappmobile.core.navigation.ui.PlaceholderScreen
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerScreen
+import com.romankozak.forwardappmobile.features.activitytracker.reflection.TimeReflectionScreen
 import com.romankozak.forwardappmobile.features.ai.insights.AiInsightsScreen
 import com.romankozak.forwardappmobile.features.attachments.specifictypes.checklist.ChecklistScreen
 import com.romankozak.forwardappmobile.features.attachments.specifictypes.journaldocument.JournalDocumentScreen
@@ -432,6 +433,9 @@ private fun NavGraphBuilder.mainGraph(
     }
 
     composable(NavigationRoutes.ACTIVITY_TRACKER) { ActivityTrackerScreen(navController = navController) }
+    composable(NavigationRoutes.TIME_REFLECTION) {
+        TimeReflectionScreen(onNavigateBack = { navController.popBackStack() })
+    }
 
     composable(
         route = NavigationRoutes.PROJECT_SETTINGS_PATTERN,

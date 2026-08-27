@@ -28,6 +28,7 @@ object NavigationRoutes {
     const val SETTINGS = "settings_screen"
     const val MANAGE_CONTEXT_MARKERS = "manage_context_markers_screen"
     const val ACTIVITY_TRACKER = "activity_tracker_screen"
+    const val TIME_REFLECTION = "time_reflection_screen"
     const val PROJECT_SETTINGS = "project_settings_screen"
     const val GOAL_SETTINGS = "goal_settings_screen"
     const val SYNC = "sync_screen"

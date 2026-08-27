@@ -4,6 +4,9 @@
 
 package com.romankozak.forwardappmobile.core.sync
 
+import com.romankozak.forwardappmobile.data.logic.InboxAssociationCache
+import com.romankozak.forwardappmobile.core.context.normalizeLegacyStructuralContextBacklog
+
 import android.util.Log
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
@@ -92,6 +95,7 @@ class FullBackupLocalDataSourceImpl
         private val contextKeyProblemsDao: ContextKeyProblemsDao,
         private val focusContextIntervalDao: FocusContextIntervalDao,
         private val userStateIntervalDao: UserStateIntervalDao,
+        private val inboxAssociationCache: InboxAssociationCache,
     ) : FullBackupLocalDataSource {
         override suspend fun loadUnsyncedCanonicalDayThemes(): CanonicalDayThemeSyncPayload {
             canonicalDayThemeBootstrapper.ensureBootstrapped()
@@ -473,8 +477,21 @@ class FullBackupLocalDataSourceImpl
             Log.d("SyncV2", "Inserting LifeSystemStates: ${bundle.lifeSystemStates.size}")
             lifeSystemStateDao.insertAll(bundle.lifeSystemStates.map { it.toEntity() })
 
-            Log.d("SyncV2", "Inserting BacklogItems: ${bundle.backlogItems.size}")
-            backlogItemDao.insertAll(bundle.backlogItems.map { it.toEntity() })
+            val normalizedContextBacklog =
+                normalizeLegacyStructuralContextBacklog(
+                    backlogItems = bundle.backlogItems.map { it.toEntity() },
+                    backlogOrders = bundle.backlogOrders.map { it.toEntity() },
+                    parentByContextId =
+                        contextDao.getAll().associate { it.id to it.parentId },
+                    now = System.currentTimeMillis(),
+                )
+
+            Log.d(
+                "SyncV2",
+                "Inserting BacklogItems: ${normalizedContextBacklog.backlogItems.size} " +
+                    "structuralTombstones=${normalizedContextBacklog.tombstonedItemCount}",
+            )
+            backlogItemDao.insertAll(normalizedContextBacklog.backlogItems)
 
             Log.d("SyncV2", "Inserting InboxRecords: ${bundle.inbox.size}")
             inboxRecordDao.insertAll(bundle.inbox.map { it.toEntity() })
@@ -647,8 +664,8 @@ class FullBackupLocalDataSourceImpl
             Log.d("SyncV2", "Inserting Reminders: ${bundle.reminders.size}")
             reminderDao.insertAll(bundle.reminders.map { it.toEntity() }) // Depends on Context
 
-            Log.d("SyncV2", "Inserting BacklogOrders: ${bundle.backlogOrders.size}")
-            backlogOrderDao.insertAll(bundle.backlogOrders.map { it.toEntity() }) // Depends on BacklogItem
+            Log.d("SyncV2", "Inserting BacklogOrders: ${normalizedContextBacklog.backlogOrders.size}")
+            backlogOrderDao.insertAll(normalizedContextBacklog.backlogOrders) // Depends on BacklogItem
 
             Log.d("SyncV2", "Inserting RecentProjectEntries: ${bundle.recentProjectEntries.size}")
             recentItemDao.insertAllSync(bundle.recentProjectEntries.map { it.toEntity() }) // Depends on Context
@@ -680,6 +697,8 @@ class FullBackupLocalDataSourceImpl
                 Log.d("SyncV2", "Applying bundle V${bundle.version} in Merge Mode")
                 insertBundleData(bundle)
             }
+            // InboxRecordLink is a rebuildable local cache, never backup authority.
+            inboxAssociationCache.rebuild()
             bundle.dayManagementRuntimeState?.let { runtimeState ->
                 dayManagementRuntimeRepository.importSnapshot(runtimeState)
             }
@@ -761,6 +780,7 @@ class FullBackupLocalDataSourceImpl
                 Log.d("SyncV1", "Migrating Legacy V1 to Snapshot V2")
                 insertBundleData(snapshotBundle)
             }
+            inboxAssociationCache.rebuild()
         }
 
         override suspend fun clearAllTables() {

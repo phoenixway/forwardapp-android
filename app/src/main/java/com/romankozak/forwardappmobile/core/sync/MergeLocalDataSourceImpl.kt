@@ -2,6 +2,9 @@
 
 package com.romankozak.forwardappmobile.core.sync
 
+import com.romankozak.forwardappmobile.data.logic.InboxAssociationCache
+import com.romankozak.forwardappmobile.core.context.normalizeLegacyStructuralContextBacklog
+
 import android.util.Log
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
@@ -89,6 +92,7 @@ class MergeLocalDataSourceImpl
         private val focusContextIntervalDao: FocusContextIntervalDao,
         private val userStateIntervalDao: UserStateIntervalDao,
         private val dayManagementRuntimeRepository: DayManagementRuntimeRepository,
+        private val inboxAssociationCache: InboxAssociationCache,
     ) : MergeLocalDataSource {
         override suspend fun getContexts(): List<Context> = contextDao.getAll()
 
@@ -143,7 +147,17 @@ class MergeLocalDataSourceImpl
         override suspend fun insertContextAttachmentLinks(links: List<ContextAttachmentCrossRef>) =
             attachmentDao.insertContextAttachmentLinks(links)
 
-        override suspend fun insertListItems(items: List<BacklogItem>) = listItemDao.insertItems(items)
+        override suspend fun insertListItems(items: List<BacklogItem>) {
+            val normalized =
+                normalizeLegacyStructuralContextBacklog(
+                    backlogItems = items,
+                    backlogOrders = emptyList(),
+                    parentByContextId =
+                        contextDao.getAll().associate { it.id to it.parentId },
+                    now = System.currentTimeMillis(),
+                )
+            listItemDao.insertItems(normalized.backlogItems)
+        }
 
         override suspend fun applyChanges(changes: List<SyncChange>) {
             db.withTransaction {
@@ -480,8 +494,16 @@ class MergeLocalDataSourceImpl
                 tacticalActivitySlotDao.insertAll(bundle.tacticalActivitySlots)
                 arcQuestDao.insertAll(bundle.arcQuests)
 
-                listItemDao.insertItems(bundle.backlogItems.map { it.toEntity() })
-                backlogOrderDao.insertAll(bundle.backlogOrders.map { it.toEntity() })
+                val normalizedContextBacklog =
+                    normalizeLegacyStructuralContextBacklog(
+                        backlogItems = bundle.backlogItems.map { it.toEntity() },
+                        backlogOrders = bundle.backlogOrders.map { it.toEntity() },
+                        parentByContextId =
+                            contextDao.getAll().associate { it.id to it.parentId },
+                        now = System.currentTimeMillis(),
+                    )
+                listItemDao.insertItems(normalizedContextBacklog.backlogItems)
+                backlogOrderDao.insertAll(normalizedContextBacklog.backlogOrders)
                 checklistDao.insertItems(bundle.checklistItems.map { it.toEntity() })
                 contextArtifactDao.insertAll(bundle.artifacts.map { it.toEntity() })
                 scriptDao.insertAll(bundle.scripts.map { it.toEntity() })
@@ -554,6 +576,10 @@ class MergeLocalDataSourceImpl
                 mainBeaconDao.insertAttachmentCrossRefs(bundle.mainBeaconAttachmentCrossRefs.map { it.toEntity() })
                 mainBeaconDao.insertLevelStatuses(bundle.mainBeaconLevelStatuses.map { it.toEntity() })
             }
+            // InboxRecordLink is a local materialized cache only.
+            // Rebuild it from canonical InboxRecord + Context.tags after import.
+            inboxAssociationCache.rebuild()
+
             bundle.dayManagementRuntimeState?.let { runtimeState ->
                 Log.i(
                     "ForwardSync",

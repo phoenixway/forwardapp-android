@@ -52,6 +52,7 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 fun JournalLogView(
     modifier: Modifier = Modifier,
     document: NoteDocumentEntity?,
+    searchQuery: String = "",
     onUpdateLine: (Int, String) -> Unit,
     onDeleteLine: (Int) -> Unit,
     onReorderLines: (List<String>) -> Unit,
@@ -81,10 +82,19 @@ fun JournalLogView(
     var internalReorderMode by remember { mutableStateOf(false) }
     var uiEntries by remember(document?.content) { mutableStateOf(baseEntries) }
     val effectiveReorderMode = reorderMode ?: internalReorderMode
+    val visibleEntries =
+        remember(uiEntries, searchQuery) {
+            if (searchQuery.isBlank()) {
+                uiEntries
+            } else {
+                uiEntries.filter { it.rawLine.contains(searchQuery, ignoreCase = true) }
+            }
+        }
+    val canReorder = effectiveReorderMode && searchQuery.isBlank()
 
     val reorderableState =
         rememberReorderableLazyListState(lazyListState) { from, to ->
-            if (!effectiveReorderMode || uiEntries.isEmpty()) return@rememberReorderableLazyListState
+            if (!canReorder || uiEntries.isEmpty()) return@rememberReorderableLazyListState
             val safeFromIndex = from.index.coerceIn(0, uiEntries.lastIndex)
             val safeToIndex = to.index.coerceIn(0, uiEntries.lastIndex)
             if (safeFromIndex == safeToIndex) return@rememberReorderableLazyListState
@@ -96,13 +106,13 @@ fun JournalLogView(
             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
         }
 
-    LaunchedEffect(autoScrollRequestKey, uiEntries.size) {
-        if (uiEntries.isNotEmpty()) {
-            lazyListState.animateScrollToItem(uiEntries.lastIndex)
+    LaunchedEffect(autoScrollRequestKey, visibleEntries.size) {
+        if (visibleEntries.isNotEmpty()) {
+            lazyListState.animateScrollToItem(visibleEntries.lastIndex)
         }
     }
 
-    if (uiEntries.isEmpty()) {
+    if (visibleEntries.isEmpty()) {
         Box(
             modifier = modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 14.dp),
             contentAlignment = Alignment.TopStart,
@@ -120,11 +130,11 @@ fun JournalLogView(
             verticalArrangement = Arrangement.spacedBy(6.dp),
             contentPadding = PaddingValues(bottom = 24.dp),
         ) {
-            items(uiEntries, key = { "${it.originalIndex}:${it.rawLine}" }) { entry ->
+            items(visibleEntries, key = { "${it.originalIndex}:${it.rawLine}" }) { entry ->
                 ReorderableItem(reorderableState, key = "${entry.originalIndex}:${entry.rawLine}") {
                     JournalPreviewRow(
                         entry = entry,
-                        reorderMode = effectiveReorderMode,
+                        reorderMode = canReorder,
                         dragHandleModifier =
                             with(this@ReorderableItem) {
                                 Modifier.longPressDraggableHandle(

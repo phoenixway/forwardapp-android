@@ -38,12 +38,13 @@ private fun defaultInputMode(currentViewMode: ContextViewMode): InputMode =
 
 private fun allowedInputModes(currentViewMode: ContextViewMode): Set<InputMode> =
     when (currentViewMode) {
-        ContextViewMode.LOG -> setOf(InputMode.AddProjectLog, InputMode.AddMilestone)
+        ContextViewMode.BACKLOG -> setOf(InputMode.AddGoal, InputMode.SearchInList)
+        ContextViewMode.LOG -> setOf(InputMode.AddProjectLog, InputMode.AddMilestone, InputMode.SearchInList)
         ContextViewMode.CONNECTIONS -> setOf(InputMode.AddConnectionNote, InputMode.SearchInList)
         ContextViewMode.DIRECTION -> setOf(InputMode.AddDirection, InputMode.SearchInList)
         ContextViewMode.INBOX -> setOf(InputMode.AddQuickRecord, InputMode.SearchInList)
-        ContextViewMode.JOURNAL_LOG -> setOf(InputMode.AddJournalLogEntry)
-        ContextViewMode.KEY_PROBLEMS -> setOf(InputMode.AddIssue)
+        ContextViewMode.JOURNAL_LOG -> setOf(InputMode.AddJournalLogEntry, InputMode.SearchInList)
+        ContextViewMode.KEY_PROBLEMS -> setOf(InputMode.AddIssue, InputMode.SearchInList)
         else -> setOf(InputMode.AddGoal)
     }
 
@@ -167,12 +168,6 @@ class ContextDataApplyActions(
     ): InputMode =
         when {
             currentState.inputMode in allowedInputModes(currentViewMode) -> currentState.inputMode
-            currentState.inputMode == InputMode.SearchInList &&
-                currentViewMode != ContextViewMode.BACKLOG &&
-                currentViewMode != ContextViewMode.INBOX &&
-                currentViewMode != ContextViewMode.DIRECTION -> {
-                fallbackInputMode(currentViewMode)
-            }
             currentState.inputMode != InputMode.AddGoal &&
                 currentState.inputMode != InputMode.AddIssue &&
                 currentState.inputMode != InputMode.SearchInList -> {

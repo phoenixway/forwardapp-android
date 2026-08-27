@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.data.repository
 import androidx.room.Transaction
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
-import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
+import com.romankozak.forwardappmobile.data.logic.InboxAssociationCache
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordLinkDao
 import kotlinx.coroutines.flow.Flow
@@ -16,8 +16,7 @@ class InboxRepository
         private val inboxRecordDao: InboxRecordDao,
         private val inboxRecordLinkDao: InboxRecordLinkDao,
         private val goalRepository: GoalRepository,
-        private val tagAssociationHandler: TagAssociationHandler,
-        private val contextStructureRepository: ContextStructureRepository,
+        private val inboxAssociationCache: InboxAssociationCache,
     ) {
         suspend fun getInboxRecordById(id: String): InboxRecord? = inboxRecordDao.getRecordById(id)
 
@@ -28,7 +27,6 @@ class InboxRepository
             contextId: String,
         ): String {
             val currentTime = System.currentTimeMillis()
-            val removeAfterAutocopy = shouldRemoveAfterTagAutocopy(contextId)
             val newRecord =
                 InboxRecord(
                     id = UUID.randomUUID().toString(),
@@ -42,42 +40,21 @@ class InboxRepository
                     version = 1,
             )
             inboxRecordDao.insert(newRecord)
-            val associatedContexts = tagAssociationHandler.syncInboxRecordAssociations(newRecord)
-            if (removeAfterAutocopy && associatedContexts.isNotEmpty()) {
-                inboxRecordDao.update(
-                    newRecord.copy(
-                        hideInOwnerInbox = true,
-                        updatedAt = currentTime,
-                        syncedAt = null,
-                        version = newRecord.version + 1,
-                    ),
-                )
-            }
+            inboxAssociationCache.refresh(newRecord)
             return newRecord.id
         }
 
         suspend fun updateInboxRecord(record: InboxRecord) {
             val updatedAt = System.currentTimeMillis()
-            val removeAfterAutocopy = shouldRemoveAfterTagAutocopy(record.contextId)
             val persistedRecord =
                 record.copy(
                     updatedAt = updatedAt,
                     syncedAt = null,
+                    hideInOwnerInbox = false,
                     version = record.version + 1,
                 )
             inboxRecordDao.update(persistedRecord)
-            val associatedContexts = tagAssociationHandler.syncInboxRecordAssociations(persistedRecord)
-            val shouldHide = removeAfterAutocopy && associatedContexts.isNotEmpty()
-            if (persistedRecord.hideInOwnerInbox != shouldHide) {
-                inboxRecordDao.update(
-                    persistedRecord.copy(
-                        hideInOwnerInbox = shouldHide,
-                        updatedAt = updatedAt,
-                        syncedAt = null,
-                        version = persistedRecord.version + 1,
-                    ),
-                )
-            }
+            inboxAssociationCache.refresh(persistedRecord)
         }
 
         suspend fun getInboxRecordsForContext(contextId: String): List<InboxRecord> = inboxRecordLinkDao.getRecordsForContext(contextId)
@@ -109,19 +86,38 @@ class InboxRepository
             }
         }
 
+        private suspend fun tombstoneInboxRecord(recordId: String) {
+            val record = inboxRecordDao.getRecordById(recordId)
+            inboxAssociationCache.remove(recordId)
+
+            if (record == null || record.isDeleted) return
+
+            val previousUpdatedAt = record.updatedAt ?: record.createdAt
+            val tombstoneUpdatedAt =
+                maxOf(
+                    System.currentTimeMillis(),
+                    previousUpdatedAt + 1,
+                )
+
+            inboxRecordDao.update(
+                record.copy(
+                    updatedAt = tombstoneUpdatedAt,
+                    syncedAt = null,
+                    isDeleted = true,
+                    version = record.version + 1,
+                ),
+            )
+        }
+
         suspend fun deleteInboxRecordById(recordId: String) {
-            inboxRecordLinkDao.deleteForRecord(recordId)
-            inboxRecordDao.deleteById(recordId)
+            tombstoneInboxRecord(recordId)
         }
 
         suspend fun deleteInboxRecordsByIds(recordIds: List<String>): Int {
             val uniqueIds = recordIds.distinct()
-            uniqueIds.forEach { inboxRecordDao.deleteById(it) }
+            uniqueIds.forEach { tombstoneInboxRecord(it) }
             return uniqueIds.size
         }
-
-        private suspend fun shouldRemoveAfterTagAutocopy(contextId: String): Boolean =
-            contextStructureRepository.getStructureByContext(contextId)?.removeInboxEntryAfterTagAutocopy == true
 
         @Transaction
         suspend fun promoteInboxRecordToGoal(record: InboxRecord) {

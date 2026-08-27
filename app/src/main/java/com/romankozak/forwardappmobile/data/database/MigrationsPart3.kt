@@ -88,3 +88,12 @@ val MIGRATION_147_148 =
             )
         }
     }
+
+val MIGRATION_148_149 =
+    object : Migration(148, 149) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "ALTER TABLE `activity_records` ADD COLUMN `entity_links` TEXT NOT NULL DEFAULT '[]'",
+            )
+        }
+    }

@@ -1,11 +1,13 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_hierarchy_screen.usecases
 
+import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextParentLinkDao
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconRepository
 import com.romankozak.forwardappmobile.sync.SyncRepository
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -40,6 +42,26 @@ class ContextActionsUseCaseTest {
         val route = useCase.getMoveProjectRoute(project, allProjects = listOf(project))
 
         assertEquals("root", route.currentParentId)
+    }
+
+    @Test
+    fun personalManagementCanBeMovedUnderAnotherContext() = runTest {
+        val targetParent = context(id = "target-parent")
+        val personalManagement = context(id = SystemContexts.PERSONAL_MANAGEMENT.raw)
+
+        useCase.onListChooserResult(
+            newParentId = targetParent.id,
+            projectBeingMovedId = personalManagement.id,
+            allProjects = listOf(personalManagement, targetParent),
+        )
+
+        coVerify(exactly = 1) {
+            contextRepository.moveContext(
+                contextToMove = personalManagement,
+                newParentId = targetParent.id,
+                allowSystemMoves = true,
+            )
+        }
     }
 
     private fun context(

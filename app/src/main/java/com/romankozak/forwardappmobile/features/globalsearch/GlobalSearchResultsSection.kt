@@ -364,6 +364,15 @@ internal fun GlobalSearchResultItem.groupKey(): String =
         is GlobalSearchResultItem.InboxItem -> "inbox"
     }
 
+internal fun List<GlobalSearchResultItem>.withContextsFirst(): List<GlobalSearchResultItem> =
+    sortedBy { result ->
+        when (result) {
+            is GlobalSearchResultItem.ContextItem -> 0
+            is GlobalSearchResultItem.SubcontextItem -> 1
+            else -> 2
+        }
+    }
+
 internal fun GlobalSearchResultItem.typePresentation(): ResultTypePresentation =
     when (this) {
         is GlobalSearchResultItem.AttachmentItem ->

@@ -13,8 +13,7 @@ class ContextViewActions(
     fun applyViewChange(mode: ContextViewMode): ContextViewMode {
         val session = contextSessionStore.dispatch(ContextCommand.SelectView(mode))
         val resolved = session.currentView
-        stateManager.switchViewMode(resolved)
-        stateManager.setInputMode(resolved.defaultInputMode())
+        stateManager.switchViewMode(resolved, resolved.defaultInputMode())
         return resolved
     }
 }

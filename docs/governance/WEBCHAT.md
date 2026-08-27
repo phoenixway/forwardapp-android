@@ -172,6 +172,25 @@ Prefer:
 
 Do not print entire repositories, generated trees, dependency directories or huge logs unless they are specifically required.
 
+## Reporting Incidental Technical Findings
+
+Repository investigation may expose a material architectural weakness or code defect that is not required to complete the current task.
+
+Do not derail the current task by automatically fixing it. Follow the engineering rule in `AGENTS.md` and surface the finding briefly to the user.
+
+A useful report is normally no more than a few lines and should answer:
+
+* **Finding:** what is wrong or suspicious and why it matters.
+* **Refactor:** the likely root-cause direction, not merely a patch.
+* **Cost:** `tiny`, `small`, `medium`, or `large`, with the main code areas affected and important risk when useful.
+* **Urgency:** whether it blocks the current work or is safe to defer.
+
+Prefer a compact form such as:
+
+`Side finding: <problem>. Recommended refactor: <direction>. Cost: <size>, mainly <areas>. Non-blocking / blocking because <reason>.`
+
+Do not present the refactor as approved architecture until the user accepts it. If the user chooses to defer a durable issue, consider recording it in the appropriate canonical backlog only when that decision has actually been made.
+
 ## Documentation
 
 For authoritative project state and documentation rules, follow:

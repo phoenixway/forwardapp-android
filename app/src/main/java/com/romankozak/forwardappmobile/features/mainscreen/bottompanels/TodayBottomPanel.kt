@@ -17,6 +17,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusType
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityTrackerViewModel
+import com.romankozak.forwardappmobile.features.activitytracker.BackdatedActivityDialog
+import com.romankozak.forwardappmobile.features.activitytracker.BackdatedActivityDraft
 import com.romankozak.forwardappmobile.features.activitytracker.copyToClipboard
 import com.romankozak.forwardappmobile.features.activitytracker.exportLogToMarkdown
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
@@ -49,6 +51,8 @@ fun TodayBottomPanel(
     val contextMarkerNames by dayPlanViewModel.contextMarkerNames.collectAsStateWithLifecycle()
     val groupedActivityLog by activityTrackerViewModel.groupedActivityLog.collectAsStateWithLifecycle()
     val activityInputText by activityTrackerViewModel.inputText.collectAsStateWithLifecycle()
+    val activityTagSuggestions by activityTrackerViewModel.tagSuggestions.collectAsStateWithLifecycle()
+    val activityEntityOptions by activityTrackerViewModel.availableEntities.collectAsStateWithLifecycle()
     val lastOngoingActivity by activityTrackerViewModel.lastOngoingActivity.collectAsStateWithLifecycle()
     val dayFocusesUiState by dayFocusesViewModel.uiState.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -57,10 +61,12 @@ fun TodayBottomPanel(
     var showClearJournalConfirmDialog by remember { mutableStateOf(false) }
     var showPredictedDurationDialog by remember { mutableStateOf(false) }
     var journalQuickDoneDialogState by remember { mutableStateOf<String?>(null) }
+    var journalBackdatedDraft by remember { mutableStateOf<BackdatedActivityDraft?>(null) }
     val journalHoldMenuController = rememberHoldMenu2()
 
     LaunchedEffect(dayPlanUiState.dayPlan?.id) {
         dayPlanUiState.dayPlan?.id?.let(dayFocusesViewModel::loadDataForPlan)
+        activityTrackerViewModel.setDayPlanScope(dayPlanUiState.dayPlan?.id)
     }
     val contextOptions =
         remember(dayPlanUiState.availableProjects) {
@@ -87,6 +93,11 @@ fun TodayBottomPanel(
                     onOpenQuickDoneDialog = {
                         if (activityInputText.isNotBlank()) {
                             journalQuickDoneDialogState = activityInputText
+                        }
+                    },
+                    onOpenBackdatedDialog = {
+                        if (activityInputText.isNotBlank()) {
+                            journalBackdatedDraft = BackdatedActivityDraft(activityInputText)
                         }
                     },
                     onTimelessRecordClick = activityTrackerViewModel::onTimelessRecordClick,
@@ -116,6 +127,7 @@ fun TodayBottomPanel(
         allTags = allTags,
         contextMarkerNames = contextMarkerNames,
         activityInputText = activityInputText,
+        activityTagSuggestions = activityTagSuggestions,
         isActivityOngoing = lastOngoingActivity != null,
         journalHoldMenuController = journalHoldMenuController,
         globalActions = globalActions,
@@ -123,9 +135,11 @@ fun TodayBottomPanel(
         runtimeUiState = runtimeUiState,
         onInputValueChange = { inputValue = it },
         onActivityTextChange = activityTrackerViewModel::onInputTextChanged,
+        onActivityTagSuggestionClick = activityTrackerViewModel::onTagSuggestionSelected,
         onToggleActivityStartStop = activityTrackerViewModel::onToggleStartStop,
         onTimelessRecordClick = activityTrackerViewModel::onTimelessRecordClick,
         onQuickDoneClick = { textValue -> journalQuickDoneDialogState = textValue },
+        onBackdatedClick = { textValue -> journalBackdatedDraft = BackdatedActivityDraft(textValue) },
         onDaySummaryClick = activityTrackerViewModel::onAddTodaySummary,
         onSubmitInput = {
             when (currentTab) {
@@ -168,6 +182,18 @@ fun TodayBottomPanel(
             journalQuickDoneDialogState = null
         },
     )
+
+    journalBackdatedDraft?.let { draft ->
+        BackdatedActivityDialog(
+            draft = draft,
+            entityOptions = activityEntityOptions,
+            onDismiss = { journalBackdatedDraft = null },
+            onConfirm = { text, startTime, endTime, links ->
+                activityTrackerViewModel.onAddBackdatedActivity(text, startTime, endTime, links)
+                journalBackdatedDraft = null
+            },
+        )
+    }
 
     TodayFocusDialogsHost(
         dayFocusesUiState = dayFocusesUiState,

@@ -36,7 +36,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "ForwardAppMobile"
 include(":app")
-include(":desktop-app")
 include(":desktop-data")
 include(":shared-application")
 include(":shared-contracts")

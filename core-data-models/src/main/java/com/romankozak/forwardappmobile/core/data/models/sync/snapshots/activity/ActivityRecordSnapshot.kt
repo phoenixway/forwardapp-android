@@ -3,6 +3,7 @@
 package com.romankozak.forwardappmobile.core.data.models.sync.snapshots.activity
 
 import com.google.gson.annotations.SerializedName
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityEntityLink
 
 data class ActivityRecordSnapshot(
     @SerializedName("id") val id: String,
@@ -23,6 +24,7 @@ data class ActivityRecordSnapshot(
 
     @SerializedName("targetId") val targetId: String?,
     @SerializedName("targetType") val targetType: String?,
+    @SerializedName("entityLinks") val entityLinks: List<ActivityEntityLink>? = emptyList(),
     @SerializedName("goalId") val goalId: String?,
     @SerializedName("contextId") val contextId: String?,
     @SerializedName("reminderTime") val reminderTime: Long?,

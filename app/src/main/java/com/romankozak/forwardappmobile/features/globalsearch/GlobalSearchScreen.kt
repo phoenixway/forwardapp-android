@@ -16,17 +16,17 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.MoveToInbox
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -136,6 +136,7 @@ fun MagicBoxScreen(
                         GlobalSearchSort.Alphabetical -> results.sortedBy { resultTitle(it).lowercase(Locale.getDefault()) }
                     }
                 }
+                .withContextsFirst()
         }
     }
     val firstResultsSectionHeaderIndex by remember(visibleHybridCommandResults, filteredResults) {
@@ -161,6 +162,10 @@ fun MagicBoxScreen(
         currentMode == OmniboxMode.DataSearch &&
             !hasSubmittedCurrentQuery &&
             uiState.searchHistory.isNotEmpty()
+    val showCommandHistoryHint =
+        currentMode == OmniboxMode.Command &&
+            !hasQuery &&
+            uiState.recentCommands.isNotEmpty()
     val hasResultContent by remember(
         currentMode,
         filteredResults,
@@ -450,7 +455,7 @@ fun MagicBoxScreen(
         },
         floatingActionButtonPosition = FabPosition.End,
     ) { paddingValues ->
-        val contentBottomPadding = if (showSearchHistoryHint) 278.dp else 224.dp
+        val contentBottomPadding = if (showSearchHistoryHint || showCommandHistoryHint) 278.dp else 224.dp
 
         Box(
             modifier = Modifier
@@ -602,19 +607,29 @@ fun MagicBoxScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 AnimatedVisibility(
-                    visible = showSearchHistoryHint,
+                    visible = showSearchHistoryHint || showCommandHistoryHint,
                     enter = fadeIn(animationSpec = tween(160)) + scaleIn(),
                     exit = fadeOut(animationSpec = tween(120)) + scaleOut(),
                 ) {
-                    SearchHistoryHintStrip(
-                        history = uiState.searchHistory,
-                        palette = modePalette,
-                        onHistoryClick = { query ->
-                            submittedQuery = query
-                            viewModel.onSelectHistoryQuery(query)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                    when {
+                        showSearchHistoryHint ->
+                            SearchHistoryHintStrip(
+                                history = uiState.searchHistory,
+                                containerColor = modePalette.secondaryActionContainer,
+                                onHistoryClick = { query ->
+                                    submittedQuery = query
+                                    viewModel.onSelectHistoryQuery(query)
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        showCommandHistoryHint ->
+                            CommandHistoryHintStrip(
+                                commands = uiState.recentCommands,
+                                containerColor = modePalette.secondaryActionContainer,
+                                onCommandClick = viewModel::onCommandClick,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                    }
                 }
 
                 MagicBoxActionStrip(
@@ -622,6 +637,22 @@ fun MagicBoxScreen(
                     palette = modePalette,
                     hasVisibleResults = hasVisibleResults,
                     resultCount = resultCount,
+                    quickNavigationAction =
+                        when (currentMode) {
+                            OmniboxMode.StartActivity ->
+                                MagicBoxQuickNavigationAction(
+                                    imageVector = Icons.AutoMirrored.Outlined.MenuBook,
+                                    contentDescription = "Показати журнал життя",
+                                    onClick = viewModel::openLifeJournal,
+                                )
+                            OmniboxMode.QuickCatchInbox ->
+                                MagicBoxQuickNavigationAction(
+                                    imageVector = Icons.Outlined.Inbox,
+                                    contentDescription = "Показати Inbox",
+                                    onClick = viewModel::openInbox,
+                                )
+                            else -> null
+                        },
                     onNavigateBack = {
                         if (!navController.popBackStack()) viewModel.enhancedNavigationManager.goBack()
                     },
@@ -673,11 +704,18 @@ fun MagicBoxScreen(
 
 // ── Compact Omnibox ───────────────────────────────────────────────────────────
 
+private data class MagicBoxQuickNavigationAction(
+    val imageVector: ImageVector,
+    val contentDescription: String,
+    val onClick: () -> Unit,
+)
+
 @Composable
 private fun MagicBoxActionStrip(
     palette: OmniboxModePalette,
     hasVisibleResults: Boolean,
     resultCount: Int,
+    quickNavigationAction: MagicBoxQuickNavigationAction?,
     onNavigateBack: () -> Unit,
     onShowSettings: () -> Unit,
     modifier: Modifier = Modifier,
@@ -715,6 +753,15 @@ private fun MagicBoxActionStrip(
                     palette = palette,
                     onClick = onNavigateBack,
                 )
+                quickNavigationAction?.let { action ->
+                    ActionStripButton(
+                        imageVector = action.imageVector,
+                        contentDescription = action.contentDescription,
+                        palette = palette,
+                        onClick = action.onClick,
+                        emphasized = true,
+                    )
+                }
             }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -763,63 +810,6 @@ private fun ActionStripButton(
                 modifier = Modifier.size(20.dp),
                 tint = if (emphasized) palette.iconTint else MaterialTheme.colorScheme.onSurfaceVariant,
             )
-        }
-    }
-}
-
-@Composable
-private fun SearchHistoryHintStrip(
-    history: List<String>,
-    palette: OmniboxModePalette,
-    onHistoryClick: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier.padding(horizontal = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Text(
-            text = "Останні запити",
-            modifier = Modifier.padding(horizontal = 8.dp),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.58f),
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(7.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            history.take(6).forEach { query ->
-                Surface(
-                    onClick = { onHistoryClick(query) },
-                    shape = RoundedCornerShape(14.dp),
-                    color = palette.secondaryActionContainer.copy(alpha = 0.58f),
-                    tonalElevation = 0.dp,
-                    shadowElevation = 0.dp,
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.56f),
-                        )
-                        Text(
-                            text = query,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f),
-                        )
-                    }
-                }
-            }
         }
     }
 }

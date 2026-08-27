@@ -107,14 +107,14 @@ fun GoalDetailContent(
     val missionStreams by viewModel.missionStreams.collectAsStateWithLifecycle()
     val missionStreamTitleById = missionStreams.associate { it.id to it.title }
     val enableKeyProblems = uiState.experimentalCapabilityIds.contains(CapabilityId("key_problems"))
+    val localSearchQuery = uiState.localSearchQuery.trim()
 
     when (currentViewMode) {
         ContextViewMode.BACKLOG -> {
             val listContent by viewModel.listContent.collectAsStateWithLifecycle()
-            val searchQuery = uiState.localSearchQuery.trim()
             val currentContextId = goalList?.id
             val filteredBacklogItems =
-                remember(listContent, searchQuery, currentContextId) {
+                remember(listContent, localSearchQuery, currentContextId) {
                     val backlogItemsWithoutAutoChildContexts =
                         if (currentContextId.isNullOrBlank()) {
                             listContent
@@ -125,10 +125,10 @@ fun GoalDetailContent(
                             }
                         }
 
-                    if (searchQuery.isBlank()) {
+                    if (localSearchQuery.isBlank()) {
                         backlogItemsWithoutAutoChildContexts
                     } else {
-                        backlogItemsWithoutAutoChildContexts.filter { it.matchesLocalSearch(searchQuery) }
+                        backlogItemsWithoutAutoChildContexts.filter { it.matchesLocalSearch(localSearchQuery) }
                     }
                 }
             BacklogListScreen(
@@ -186,7 +186,11 @@ fun GoalDetailContent(
                         onOpenGoalProperties = viewModel::openGoalProperties,
                         onGoalInlineEditSave = viewModel::onSaveGoalInlineEditor,
                         onGoalInlineEditCancel = viewModel::onDismissGoalInlineEditor,
-                        onDragStopped = viewModel::onBacklogDragStopped,
+                        onDragStopped = { reorderedItems ->
+                            if (localSearchQuery.isBlank()) {
+                                viewModel.onBacklogDragStopped(reorderedItems)
+                            }
+                        },
                     ),
             )
         }
@@ -196,7 +200,10 @@ fun GoalDetailContent(
                 viewModel = viewModel,
                 state =
                     InboxViewState(
-                        inboxRecords = inboxRecords,
+                        inboxRecords =
+                            remember(inboxRecords, localSearchQuery) {
+                                inboxRecords.filter { it.text.matchesLocalSearch(localSearchQuery) }
+                            },
                         listState = inboxListState,
                         highlightedRecordId = uiState.inboxRecordToHighlight,
                         isSelectionMode = inboxSelectionMode,
@@ -213,16 +220,34 @@ fun GoalDetailContent(
                 modifier = modifier,
                 viewModel = viewModel,
                 attachmentItems = attachmentItems,
+                localSearchQuery = localSearchQuery,
             )
         }
         ContextViewMode.DIRECTION -> {
+            val filteredDirectionItems =
+                remember(uiState.directionItems, linkedContextNames, localSearchQuery) {
+                    uiState.directionItems.filter { item ->
+                        item.text.matchesLocalSearch(localSearchQuery) ||
+                            item.linkedContextId
+                                ?.let(linkedContextNames::get)
+                                .matchesLocalSearch(localSearchQuery)
+                    }
+                }
             DirectionView(
-                items = uiState.directionItems,
+                items = filteredDirectionItems,
                 modifier = modifier,
                 onAddItem = viewModel::addDirectionItem,
                 onEditItem = viewModel::updateDirectionItemText,
                 onDeleteItem = viewModel::deleteDirectionItem,
-                onMove = viewModel::onMoveDirectionItem,
+                onMove = { from, to ->
+                    val fromId = filteredDirectionItems.getOrNull(from)?.id
+                    val toId = filteredDirectionItems.getOrNull(to)?.id
+                    val originalFrom = uiState.directionItems.indexOfFirst { it.id == fromId }
+                    val originalTo = uiState.directionItems.indexOfFirst { it.id == toId }
+                    if (originalFrom >= 0 && originalTo >= 0) {
+                        viewModel.onMoveDirectionItem(originalFrom, originalTo)
+                    }
+                },
                 onLinkRequest = onLinkDirectionRequest,
                 onUnlinkRequest = onUnlinkDirectionRequest,
                 onOpenLinkedContext = onOpenLinkedDirectionContext,
@@ -255,6 +280,7 @@ fun GoalDetailContent(
             LogContent(
                 modifier = modifier,
                 logs = projectLogs,
+                externalSearchQuery = localSearchQuery,
                 isManagementEnabled = true,
                 onEditLog = onEditLog,
                 onDeleteLog = onDeleteLog,
@@ -264,6 +290,7 @@ fun GoalDetailContent(
             JournalLogView(
                 modifier = modifier,
                 document = journalLogDocument,
+                searchQuery = localSearchQuery,
                 onUpdateLine = viewModel::updateJournalLogLine,
                 onDeleteLine = viewModel::deleteJournalLogLine,
                 onReorderLines = viewModel::replaceJournalLogLines,
@@ -302,6 +329,7 @@ fun GoalDetailContent(
             KeyProblemsView(
                 modifier = modifier,
                 issues = keyProblemsData.issues,
+                searchQuery = localSearchQuery,
                 allContexts = allContexts,
                 pickerContextOptions = pickerContextOptions,
                 pickerAttachmentOptions = pickerAttachmentOptions,
@@ -585,6 +613,9 @@ private fun BacklogItemContent.matchesLocalSearch(query: String): Boolean {
     val normalizedQuery = query.lowercase(Locale.getDefault())
     return searchableTexts().any { it.lowercase(Locale.getDefault()).contains(normalizedQuery) }
 }
+
+private fun String?.matchesLocalSearch(query: String): Boolean =
+    query.isBlank() || this?.contains(query, ignoreCase = true) == true
 
 private fun BacklogItemContent.searchableTexts(): List<String> =
     when (this) {

@@ -28,7 +28,7 @@ Android є джерелом правди. Нижче – повний опис �
   - NoteDocumentItemEntity: `id`, `listId`, `parentId?`, `content`, `isCompleted`, `itemOrder`, `createdAt`, `updatedAt?`.
   - ChecklistEntity: `id`, `projectId`, `name`.
   - ChecklistItemEntity: `id`, `checklistId`, `content`, `isChecked`, `itemOrder`.
-  - ActivityRecord: `id`, `text`, `createdAt`, `startTime?`, `endTime?`, `reminderTime?`, `targetId?`, `targetType?`, `goalId?`, `projectId?`.
+  - ActivityRecord: `id`, `text`, `createdAt`, `startTime?`, `endTime?`, `reminderTime?`, `targetId?`, `targetType?`, `entityLinks[]`, `goalId?`, `projectId?`.
   - ScriptEntity: `id`, `projectId?`, `name`, `description?`, `content`, `createdAt`, `updatedAt?`.
   - LinkItemEntity: `id`, `linkData:{ type?, target, displayName? }`, `createdAt`.
   - InboxRecord: `id`, `projectId`, `text`, `createdAt`, `order`.

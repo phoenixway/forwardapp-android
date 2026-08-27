@@ -2,6 +2,8 @@ package com.romankozak.forwardappmobile.data.repository
 
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityEntityLink
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityEntityType
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecordKind
 import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
 import com.romankozak.forwardappmobile.data.dao.ActivityRecordDao
@@ -318,6 +320,42 @@ class ActivityRepository
                     durationMinutes = 0,
                     xp = xpGained ?: 0,
                     antiXp = antyXp ?: 0,
+                ),
+            )
+        }
+
+        suspend fun addBackdatedActivity(
+            text: String,
+            startTime: Long,
+            endTime: Long,
+            entityLinks: List<ActivityEntityLink>,
+        ) {
+            if (text.isBlank() || endTime <= startTime) return
+            val now = System.currentTimeMillis()
+            val parsed = stateSlashCommandParser.parse(text)
+            val record =
+                ActivityRecord(
+                    text = parsed.cleanedText,
+                    rawNoteText = text,
+                    noteText = parsed.cleanedText,
+                    recordKind = ActivityRecordKind.TIMED_ACTIVITY,
+                    createdAt = now,
+                    startTime = startTime,
+                    endTime = endTime,
+                    entityLinks = entityLinks,
+                    contextId = entityLinks.firstOrNull { it.entityType == ActivityEntityType.CONTEXT }?.entityId,
+                    goalId = entityLinks.firstOrNull { it.entityType == ActivityEntityType.GOAL }?.entityId,
+                    updatedAt = now,
+                    syncedAt = null,
+                    version = 1,
+                )
+            activityRecordDao.insert(record)
+            aiEventRepository.emit(
+                ActivityFinishedEvent(
+                    timestamp = java.time.Instant.ofEpochMilli(endTime),
+                    durationMinutes = ((endTime - startTime) / MINUTES_IN_MILLIS).toInt(),
+                    xp = 0,
+                    antiXp = 0,
                 ),
             )
         }

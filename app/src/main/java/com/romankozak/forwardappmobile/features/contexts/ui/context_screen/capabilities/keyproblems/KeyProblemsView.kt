@@ -93,6 +93,7 @@ private val issueDateTimeFormatter = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale
 fun KeyProblemsView(
     modifier: Modifier = Modifier,
     issues: List<ContextKeyProblemsRepository.IssueItem>,
+    searchQuery: String = "",
     allContexts: List<Context>,
     pickerContextOptions: List<ProjectOption>,
     pickerAttachmentOptions: List<AttachmentOption>,
@@ -105,10 +106,30 @@ fun KeyProblemsView(
     val lazyListState = rememberLazyListState()
     var editingIssue by remember { mutableStateOf<ContextKeyProblemsRepository.IssueItem?>(null) }
     var issueForActions by remember { mutableStateOf<ContextKeyProblemsRepository.IssueItem?>(null) }
+    val visibleItems =
+        remember(uiItems, searchQuery, allContexts, pickerAttachmentOptions) {
+            if (searchQuery.isBlank()) {
+                uiItems
+            } else {
+                val contextNames = allContexts.associate { it.id to it.name }
+                val attachmentNames = pickerAttachmentOptions.associate { it.id to it.name }
+                uiItems.filter { issue ->
+                    issue.title.contains(searchQuery, ignoreCase = true) ||
+                        issue.description.contains(searchQuery, ignoreCase = true) ||
+                        issue.status.name.contains(searchQuery, ignoreCase = true) ||
+                        issue.relatedContextIds.any { id ->
+                            contextNames[id]?.contains(searchQuery, ignoreCase = true) == true
+                        } ||
+                        issue.relatedAttachmentIds.any { id ->
+                            attachmentNames[id]?.contains(searchQuery, ignoreCase = true) == true
+                        }
+                }
+            }
+        }
 
     val reorderableState =
         rememberReorderableLazyListState(lazyListState) { from, to ->
-            if (uiItems.isEmpty()) return@rememberReorderableLazyListState
+            if (searchQuery.isNotBlank() || uiItems.isEmpty()) return@rememberReorderableLazyListState
             val safeFromIndex = from.index.coerceIn(0, uiItems.lastIndex)
             val safeToIndex = to.index.coerceIn(0, uiItems.lastIndex)
             if (safeFromIndex == safeToIndex) return@rememberReorderableLazyListState
@@ -124,7 +145,7 @@ fun KeyProblemsView(
         modifier = modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        if (uiItems.isEmpty()) {
+        if (visibleItems.isEmpty()) {
             ElevatedCard(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
@@ -153,7 +174,7 @@ fun KeyProblemsView(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 24.dp),
             ) {
-                items(uiItems, key = { it.id }) { issue ->
+                items(visibleItems, key = { it.id }) { issue ->
                     ReorderableItem(reorderableState, key = issue.id) {
                         IssueCard(
                             issue = issue,
@@ -164,11 +185,11 @@ fun KeyProblemsView(
                                     .fillMaxWidth(),
                             dragHandleModifier =
                                 with(this@ReorderableItem) {
-                                    Modifier.longPressDraggableHandle(
-                                        onDragStarted = {
-                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        },
-                                    )
+                                            if (searchQuery.isBlank()) Modifier.longPressDraggableHandle(
+                                                onDragStarted = {
+                                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                },
+                                            ) else Modifier
                                 },
                             onEdit = { editingIssue = issue },
                             onMoreClick = { issueForActions = issue },

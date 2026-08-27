@@ -26,6 +26,25 @@ Current architecture has not yet been fully consolidated into this document.
 Until that consolidation is evidence-based, use focused documentation plus
 current code and persisted contracts to establish subsystem behavior.
 
+### Life Journal time reflection
+
+Android Life Journal exposes a `Reflection` screen from its overflow menu.
+The current reflection projection reports total tracked time and time grouped
+by hashtags, linked day entities, contexts, and backlog goals for one, three,
+or seven recorded operational days. Entity statistics also report how many
+operational days contained tracked time. Period bounds
+come from persisted day-management `WOKE_UP` events (with the current
+`wokeAt` state as a compatibility fallback), not from calendar midnight.
+
+An activity carrying multiple hashtags contributes its duration to every
+matching tag, while the total tracked value counts the activity only once.
+Activity records can likewise carry multiple typed entity links. Legacy
+`goalId` and `contextId` links remain part of the reflection projection.
+
+Life Journal supports backdated timed activities by duration and completion
+time. This path does not interrupt the currently running tracker activity and
+can inherit links when invoked as `Додати ще часу` from an existing record.
+
 ### Recurrence-v2 shared domain ownership
 
 The canonical recurrence-v2 model is owned by `shared-core-data-models`.
@@ -95,8 +114,8 @@ recurrence-v2 semantics.
 
 ### Canonical Day Theme persistence authority
 
-Android canonical Day Theme persistence is current in Room database version
-148.
+Android canonical Day Theme persistence was introduced by Room database
+version 148. The current Room database version is 149.
 
 Database migration 146 -> 147 introduces the canonical persistence tables:
 
@@ -133,6 +152,62 @@ Day Theme edit produced `Themes 1`; after Push and successful cross-client sync,
 the acknowledged state returned to `Themes 0`. The canonical Day Theme live
 acceptance is therefore complete for round-trip state, delta propagation, and
 exact-version acknowledgement closure.
+
+### Inbox cross-client association ownership
+
+Inbox hashtag association and owner-visibility semantics are shared cross-client
+domain behavior.
+
+The canonical inputs are:
+
+- `InboxRecord`, especially its text and owner context;
+- `Context.tags`;
+- `ContextConfiguration`, including
+  `removeInboxEntryAfterTagAutocopy`.
+
+The shared implementation lives in `shared-core-domain` and owns hashtag
+normalization/matching plus owner-visibility policy.
+
+Android keeps `InboxRecordLink` only as a rebuildable local materialized cache.
+It is derived from canonical Inbox records and context tags, can be rebuilt
+after startup or bulk import, and is not sync, backup, or business-state
+authority.
+
+Desktop does not persist or reconstruct `InboxRecordLink`. It evaluates the
+same shared KMP policy directly from canonical synced data. The persisted
+`hideInOwnerInbox` field is legacy compatibility residue and is not the current
+visibility authority.
+
+Desktop live sync and SnapshotBundle import merge `ContextConfiguration` by
+entity freshness: version first when both versions are available, then
+timestamp. `contextConfigurations` is the current Desktop representation;
+`projectStructures` is maintained as a compatibility mirror.
+
+Live Android/Desktop smoke validation on 2026-08-27 confirmed:
+
+- foreign-context association from an Inbox hashtag;
+- reassociation after editing the Inbox hashtag;
+- reassociation after changing the target context tags without editing the
+  Inbox record;
+- owner visibility changes driven by
+  `removeInboxEntryAfterTagAutocopy`.
+
+### ActivityRecord entity-link wire compatibility
+
+Room database version 149 persists `ActivityRecord.entityLinks` as a non-null
+list-backed column.
+
+Older Desktop/cache or snapshot data can predate that field. The current
+compatibility boundary therefore normalizes missing or null `entityLinks` to an
+empty list:
+
+- Desktop guarantees a non-null array on the Android sync wire without
+  rewriting Desktop persistence;
+- Android accepts nullable legacy snapshot input and maps it to
+  `ActivityRecord.entityLinks = emptyList()`.
+
+The Android regression test and a real Desktop -> Android Push both passed
+after this compatibility repair.
 
 ## Known documentation constraint
 

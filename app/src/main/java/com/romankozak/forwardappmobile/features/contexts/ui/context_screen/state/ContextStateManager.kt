@@ -50,8 +50,24 @@ class ContextStateManager(
         _uiState.update { ContextUiState() }
     }
 
-    fun switchViewMode(mode: ContextViewMode) {
-        _uiState.update { it.copy(currentViewMode = mode) }
+    fun switchViewMode(
+        mode: ContextViewMode,
+        defaultInputMode: InputMode,
+    ) {
+        _uiState.update { current ->
+            val wasSearching = current.inputMode == InputMode.SearchInList
+            current.copy(
+                currentViewMode = mode,
+                inputMode = defaultInputMode,
+                localSearchQuery = "",
+                inputValue =
+                    if (wasSearching) {
+                        androidx.compose.ui.text.input.TextFieldValue("")
+                    } else {
+                        current.inputValue
+                    },
+            )
+        }
     }
 
     fun switchTab(tab: ContextManagementTab) {

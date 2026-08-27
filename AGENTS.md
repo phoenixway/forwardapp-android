@@ -20,6 +20,34 @@ Project documentation structure and canonical-document status are defined in `do
 * Exceptions are acceptable for generated files, large static data, framework entry points, or migration code, but call out the reason.
 * Prefer files with one clear responsibility over generic utility buckets.
 
+## Incidental Architecture and Code Findings
+
+While implementing or investigating a task, an agent may discover a material defect outside the requested scope: weak ownership, duplicated sources of truth, architectural inconsistency, unsafe sync or persistence semantics, unnecessary coupling, maintainability problems, or other significant technical debt.
+
+Do not silently expand the task to fix such findings unless the fix is required for correctness, data safety, or completion of the requested work.
+
+Do not silently ignore material findings either. Briefly report them to the user and include:
+
+* what appears wrong and why it matters;
+* the recommended root-cause refactor direction;
+* approximate cost and scope;
+* whether it blocks the current task or can safely be deferred.
+
+Use rough cost estimates rather than false precision:
+
+* `tiny` — usually under about 30 minutes;
+* `small` — roughly 0.5–2 hours;
+* `medium` — roughly 2–8 hours;
+* `large` — roughly one or more working days.
+
+Cost estimates describe expected focused engineering effort, not a guaranteed wall-clock completion time. When useful, also indicate whether the refactor is likely to require one focused change or several investigation/change/verification iterations.
+
+Mention the main areas likely to be affected and important risk when useful.
+
+Do not report every stylistic preference or minor imperfection. Surface findings that materially affect correctness, architecture, ownership, maintainability, future change cost, or technical debt.
+
+Treat an incidental finding as an observation or proposal, not an accepted decision. Let the user decide whether to address it now, defer it, or record it as technical debt.
+
 ## Documentation Authority
 
 Use `docs/README.md` to determine which documentation is canonical for a subject.

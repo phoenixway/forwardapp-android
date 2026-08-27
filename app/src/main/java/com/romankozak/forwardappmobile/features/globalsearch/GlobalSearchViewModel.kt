@@ -469,6 +469,25 @@ class GlobalSearchViewModel
             executeCommand(commandId)
         }
 
+        fun openLifeJournal() {
+            enhancedNavigationManager.navigate(target = NavTarget.Tracker)
+        }
+
+        fun openInbox() {
+            viewModelScope.launch {
+                val inboxContextId = resolveInboxContextId() ?: return@launch
+                enhancedNavigationManager.navigate(
+                    target =
+                        NavTarget.ContextDetail(
+                            contextId = inboxContextId,
+                            initialViewMode = "INBOX",
+                        ),
+                    recordInHistory = true,
+                    historyTitle = "Inbox",
+                )
+            }
+        }
+
         fun onDataResultOpened(resultUniqueId: String) {
             dataUsage[resultUniqueId] = (dataUsage[resultUniqueId] ?: 0) + 1
             trimUsageMap(dataUsage)
@@ -851,19 +870,7 @@ class GlobalSearchViewModel
                         target = NavTarget.ContextHierarchy(),
                         recordInHistory = true,
                     )
-                OmniboxCommandId.OpenInbox ->
-                    viewModelScope.launch {
-                        val inboxContextId = resolveInboxContextId() ?: return@launch
-                        enhancedNavigationManager.navigate(
-                            target =
-                                NavTarget.ContextDetail(
-                                    contextId = inboxContextId,
-                                    initialViewMode = "INBOX",
-                                ),
-                            recordInHistory = true,
-                            historyTitle = "Inbox",
-                        )
-                    }
+                OmniboxCommandId.OpenInbox -> openInbox()
                 OmniboxCommandId.OpenTracker -> enhancedNavigationManager.navigate(target = NavTarget.Tracker)
                 OmniboxCommandId.OpenReminders -> enhancedNavigationManager.navigate(target = NavTarget.Reminders)
                 OmniboxCommandId.OpenSettings -> enhancedNavigationManager.navigate(target = NavTarget.Settings)

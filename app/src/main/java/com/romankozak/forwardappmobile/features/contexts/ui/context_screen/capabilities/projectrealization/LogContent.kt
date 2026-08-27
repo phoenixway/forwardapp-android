@@ -60,6 +60,7 @@ private const val PREVIEW_OFFSET_MINUTES = 20
 fun LogContent(
     modifier: Modifier = Modifier,
     logs: List<ContextLog>,
+    externalSearchQuery: String = "",
     isManagementEnabled: Boolean,
     onEditLog: (ContextLog) -> Unit,
     onDeleteLog: (ContextLog) -> Unit,
@@ -87,8 +88,15 @@ fun LogContent(
         logs
             .filter { typeStates[it.type]?.value == true }
             .filter {
-                it.description.contains(searchQuery, true) ||
-                    (it.details?.contains(searchQuery, true) == true)
+                val matchesInternalSearch =
+                    it.description.contains(searchQuery, true) ||
+                        (it.details?.contains(searchQuery, true) == true)
+                val matchesExternalSearch =
+                    externalSearchQuery.isBlank() ||
+                        it.description.contains(externalSearchQuery, true) ||
+                        (it.details?.contains(externalSearchQuery, true) == true) ||
+                        it.type.contains(externalSearchQuery, true)
+                matchesInternalSearch && matchesExternalSearch
             }
             .sortedByDescending { it.timestamp }
 

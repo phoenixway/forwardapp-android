@@ -11,6 +11,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -55,11 +57,18 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityEntityLink
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecordKind
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.core.navigation.NavTargetRouter
+import com.romankozak.forwardappmobile.core.navigation.routes.NavigationRoutes
 import com.romankozak.forwardappmobile.features.activitytracker.dialogs.TimePickerDialog
+import com.romankozak.forwardappmobile.features.activitytracker.entities.ActivityEntityDescriptor
+import com.romankozak.forwardappmobile.features.activitytracker.entities.ActivityEntityLinksEditor
+import com.romankozak.forwardappmobile.features.activitytracker.entities.displayName
+import com.romankozak.forwardappmobile.features.activitytracker.entities.effectiveEntityLinks
+import com.romankozak.forwardappmobile.features.activitytracker.entities.identityKey
 import com.romankozak.forwardappmobile.features.reminders.components.DateTimePickerDialog
 import com.romankozak.forwardappmobile.features.activitytracker.dialogs.formatDuration
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
@@ -69,6 +78,7 @@ import com.romankozak.forwardappmobile.features.common.components.holdmenu2.Hold
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.IconPosition
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.MenuAlignment
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
+import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.AutocompleteSuggestions
 import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
 import com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState
@@ -170,11 +180,15 @@ private enum class ActivityRecordType { COMMENT, TIMED, INSTANT, DAY_SUMMARY }
 fun ActivityTrackerScreen(
     navController: NavController,
     viewModel: ActivityTrackerViewModel = hiltViewModel(),
+    dayPlanId: String? = null,
     showTopBar: Boolean = true,
     showInputBar: Boolean = true,
 ) {
     val groupedByDate by viewModel.groupedActivityLog.collectAsStateWithLifecycle()
     val inputText by viewModel.inputText.collectAsStateWithLifecycle()
+    val tagSuggestions by viewModel.tagSuggestions.collectAsStateWithLifecycle()
+    val entityCatalog by viewModel.entityCatalog.collectAsStateWithLifecycle()
+    val availableEntities by viewModel.availableEntities.collectAsStateWithLifecycle()
     val lastOngoingActivity by viewModel.lastOngoingActivity.collectAsStateWithLifecycle()
     val editingRecord by viewModel.editingRecord.collectAsStateWithLifecycle()
     val recordToDelete by viewModel.recordToDelete.collectAsStateWithLifecycle()
@@ -186,6 +200,10 @@ fun ActivityTrackerScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedTag by rememberSaveable { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(dayPlanId) {
+        viewModel.setDayPlanScope(dayPlanId)
+    }
 
     val filteredGroupedByDate =
         remember(groupedByDate, selectedTag) {
@@ -200,6 +218,7 @@ fun ActivityTrackerScreen(
         }
 
     var quickDoneDialogState by remember { mutableStateOf<String?>(null) }
+    var backdatedDraft by remember { mutableStateOf<BackdatedActivityDraft?>(null) }
     val holdMenuController = rememberHoldMenu2()
 
     LaunchedEffect(Unit) {
@@ -216,6 +235,7 @@ fun ActivityTrackerScreen(
                     {
                         ActivityTrackerTopAppBar(
                             onNavigateBack = { navController.popBackStack() },
+                            onReflectionRequest = { navController.navigate(NavigationRoutes.TIME_REFLECTION) },
                             onClearLogRequest = { showClearConfirmDialog = true },
                             onExportRequest = {
                                 val markdown = exportLogToMarkdown(groupedByDate.values.flatten())
@@ -245,11 +265,14 @@ fun ActivityTrackerScreen(
                     if (showInputBar) {
                         ActivityInputBar(
                             text = inputText,
+                            tagSuggestions = tagSuggestions,
                             isActivityOngoing = lastOngoingActivity != null,
                             onTextChange = viewModel::onInputTextChanged,
+                            onTagSuggestionClick = viewModel::onTagSuggestionSelected,
                             onToggleStartStop = viewModel::onToggleStartStop,
                             onTimelessClick = viewModel::onTimelessRecordClick,
                             onQuickDoneClick = { textValue -> quickDoneDialogState = textValue },
+                            onBackdatedClick = { textValue -> backdatedDraft = BackdatedActivityDraft(textValue) },
                             onDaySummaryClick = viewModel::onAddTodaySummary,
                             holdMenuController = holdMenuController,
                         )
@@ -270,10 +293,18 @@ fun ActivityTrackerScreen(
                 isLoadingOlderRecords = isLoadingOlderRecords,
                 hasMoreOlderRecords = hasMoreOlderRecords,
                 onLoadOlderRecords = viewModel::loadOlderRecords,
+                onAddBackdated = { record ->
+                    backdatedDraft =
+                        BackdatedActivityDraft(
+                            text = record.text,
+                            entityLinks = record.effectiveEntityLinks(),
+                        )
+                },
                 onSearchTagGlobally = { tag ->
                     val encoded = URLEncoder.encode(tag, "UTF-8")
                     navController.navigate(NavTargetRouter.routeOf(NavTarget.GlobalSearch(query = encoded)))
                 },
+                entityCatalog = entityCatalog,
             )
 
             editingRecord?.let { recordToEdit ->
@@ -282,6 +313,7 @@ fun ActivityTrackerScreen(
                     onDismiss = viewModel::onEditDialogDismiss,
                     onConfirm = viewModel::onRecordUpdated,
                     isLastTimedRecord = isEditingLastTimedRecord,
+                    entityOptions = availableEntities,
                 )
             }
 
@@ -344,6 +376,18 @@ fun ActivityTrackerScreen(
                     },
                 )
             }
+
+            backdatedDraft?.let { draft ->
+                BackdatedActivityDialog(
+                    draft = draft,
+                    entityOptions = availableEntities,
+                    onDismiss = { backdatedDraft = null },
+                    onConfirm = { text, startTime, endTime, links ->
+                        viewModel.onAddBackdatedActivity(text, startTime, endTime, links)
+                        backdatedDraft = null
+                    },
+                )
+            }
         }
 
         if (showInputBar) {
@@ -355,6 +399,7 @@ fun ActivityTrackerScreen(
 @Composable
 private fun ActivityTrackerTopAppBar(
     onNavigateBack: () -> Unit,
+    onReflectionRequest: () -> Unit,
     onClearLogRequest: () -> Unit,
     onExportRequest: () -> Unit,
 ) {
@@ -365,6 +410,14 @@ private fun ActivityTrackerTopAppBar(
         actions = {
             IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Default.MoreVert, "Меню") }
             DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                DropdownMenuItem(
+                    text = { Text("Reflection") },
+                    leadingIcon = { Icon(Icons.Default.Insights, contentDescription = null) },
+                    onClick = {
+                        onReflectionRequest()
+                        menuExpanded = false
+                    },
+                )
                 DropdownMenuItem(text = { Text("Експорт в Markdown") }, onClick = {
                     onExportRequest()
                     menuExpanded = false
@@ -394,6 +447,8 @@ private fun ActivityLog(
     hasMoreOlderRecords: Boolean,
     onLoadOlderRecords: () -> Unit,
     onSearchTagGlobally: (String) -> Unit,
+    entityCatalog: List<ActivityEntityDescriptor>,
+    onAddBackdated: (ActivityRecord) -> Unit,
 ) {
     val uiConfig = rememberJournalUiConfig()
     val lazyListState = rememberLazyListState()
@@ -506,6 +561,8 @@ private fun ActivityLog(
                         onSetReminder = onSetReminder,
                         onTagClick = onTagSelected,
                         uiConfig = uiConfig,
+                        entityCatalog = entityCatalog,
+                        onAddBackdated = onAddBackdated,
                     )
                     if (recordIndex < sortedRecords.lastIndex) {
                         Spacer(modifier = Modifier.height(uiConfig.itemSpacing))
@@ -613,6 +670,8 @@ private fun JournalEntryCard(
     onSetReminder: (ActivityRecord) -> Unit,
     onTagClick: (String) -> Unit,
     uiConfig: JournalUiConfig,
+    entityCatalog: List<ActivityEntityDescriptor>,
+    onAddBackdated: (ActivityRecord) -> Unit,
 ) {
     val annotatedText = rememberJournalEntryAnnotatedString(record.text)
     var menuExpanded by remember(record.id) { mutableStateOf(false) }
@@ -681,6 +740,7 @@ private fun JournalEntryCard(
                             record = record,
                             onTagClick = onTagClick,
                             uiConfig = uiConfig,
+                            entityCatalog = entityCatalog,
                         )
                     }
                 }
@@ -702,6 +762,14 @@ private fun JournalEntryCard(
                 onClick = {
                     menuExpanded = false
                     onRestart(record)
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Додати ще часу") },
+                leadingIcon = { Icon(Icons.Default.MoreTime, contentDescription = null) },
+                onClick = {
+                    menuExpanded = false
+                    onAddBackdated(record)
                 },
             )
             if (record.isOngoing) {
@@ -972,9 +1040,11 @@ private fun JournalMetadataRow(
     record: ActivityRecord,
     onTagClick: (String) -> Unit,
     uiConfig: JournalUiConfig,
+    entityCatalog: List<ActivityEntityDescriptor>,
 ) {
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     val tags = remember(record.text) { extractTags(record.text) }
+    val descriptors = remember(entityCatalog) { entityCatalog.associateBy { it.link.identityKey() } }
     val durationText =
         remember(record.startTime, record.endTime, record.isOngoing) {
             val startTime = record.startTime
@@ -1010,6 +1080,14 @@ private fun JournalMetadataRow(
         }
         if ((record.antyXp ?: 0) > 0) {
             CompactMetadataPill(text = "-${record.antyXp} xp", uiConfig = uiConfig, negative = true)
+        }
+        record.effectiveEntityLinks().forEach { link ->
+            val descriptor = descriptors[link.identityKey()]
+            CompactMetadataPill(
+                text = descriptor?.let { "${it.typeLabel}: ${it.title}" } ?: link.entityType.displayName(),
+                uiConfig = uiConfig,
+                emphasized = true,
+            )
         }
         tags.take(uiConfig.maxVisibleTags).forEach { tag ->
             CompactTagPill(tag = tag, onClick = { onTagClick(tag) }, uiConfig = uiConfig)
@@ -1090,7 +1168,7 @@ private fun recordHasTag(
     tag: String,
 ): Boolean = extractTags(text).any { it.equals(tag, ignoreCase = true) }
 
-private fun extractTags(text: String): List<String> = HashTagRegex.findAll(text).mapNotNull { it.groups[2]?.value }.toList()
+private fun extractTags(text: String): List<String> = extractActivityTags(text)
 
 private fun buildRecordTimeLabel(
     record: ActivityRecord,
@@ -1126,11 +1204,14 @@ private fun recordCountLabel(count: Int): String {
 @Composable
 fun ActivityInputBar(
     text: String,
+    tagSuggestions: List<String> = emptyList(),
     isActivityOngoing: Boolean,
     onTextChange: (String) -> Unit,
+    onTagSuggestionClick: (String) -> Unit = {},
     onToggleStartStop: () -> Unit,
     onTimelessClick: () -> Unit,
     onQuickDoneClick: (String) -> Unit,
+    onBackdatedClick: (String) -> Unit = {},
     onDaySummaryClick: (String) -> Unit,
     holdMenuController: HoldMenu2Controller,
     showMoreMenu: Boolean = true,
@@ -1145,160 +1226,177 @@ fun ActivityInputBar(
         shadowElevation = 0.dp,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = uiConfig.inputBarPadding, vertical = uiConfig.inputBarPadding),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Surface(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(uiConfig.cornerRadius),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
+        Column {
+            AutocompleteSuggestions(
+                suggestions = tagSuggestions,
+                onSuggestionClick = onTagSuggestionClick,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(
+                modifier = Modifier.padding(horizontal = uiConfig.inputBarPadding, vertical = uiConfig.inputBarPadding),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = uiConfig.inputMinHeight)
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                    contentAlignment = Alignment.CenterStart,
+                Surface(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(uiConfig.cornerRadius),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
                 ) {
-                    if (text.isBlank()) {
-                        Text(
-                            text = "Що зараз?",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = uiConfig.inputMinHeight)
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        if (text.isBlank()) {
+                            Text(
+                                text = "Що зараз?",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        BasicTextField(
+                            value = text,
+                            onValueChange = onTextChange,
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                         )
                     }
-                    BasicTextField(
-                        value = text,
-                        onValueChange = onTextChange,
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
-                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    )
                 }
-            }
 
-            val menuItems =
-                remember {
-                    listOf(
-                        HoldMenuItem(label = "Події", icon = Icons.Default.CheckCircle),
-                        HoldMenuItem(label = "Коментар", icon = Icons.Default.AddComment),
-                        HoldMenuItem(label = "Резюме дня", icon = Icons.Default.Summarize),
-                    )
+                val menuItems =
+                    remember {
+                        listOf(
+                            HoldMenuItem(label = "Подія", icon = Icons.Default.CheckCircle),
+                            HoldMenuItem(label = "Минула активність", icon = Icons.Default.MoreTime),
+                            HoldMenuItem(label = "Коментар", icon = Icons.Default.AddComment),
+                            HoldMenuItem(label = "Резюме дня", icon = Icons.Default.Summarize),
+                        )
+                    }
+                val onMenuSelect: (Int) -> Unit = { index ->
+                    when (index) {
+                        0 -> if (text.isNotBlank()) onQuickDoneClick(text)
+                        1 -> if (text.isNotBlank()) onBackdatedClick(text)
+                        2 -> onTimelessClick()
+                        3 -> if (text.isNotBlank()) onDaySummaryClick(text)
+                    }
                 }
-            val onMenuSelect: (Int) -> Unit = { index ->
-                when (index) {
-                    0 -> if (text.isNotBlank()) onQuickDoneClick(text)
-                    1 -> onTimelessClick()
-                    2 -> if (text.isNotBlank()) onDaySummaryClick(text)
-                }
-            }
 
-            val icon: ImageVector
-            val tint: Color
-            val description: String
+                val icon: ImageVector
+                val tint: Color
+                val description: String
 
-            if (isActivityOngoing) {
-                if (text.isNotBlank()) {
-                    icon = Icons.Default.Sync
-                    tint = MaterialTheme.colorScheme.tertiary
-                    description = "Зупинити поточну та почати нову"
+                if (isActivityOngoing) {
+                    if (text.isNotBlank()) {
+                        icon = Icons.Default.Sync
+                        tint = MaterialTheme.colorScheme.tertiary
+                        description = "Зупинити поточну та почати нову"
+                    } else {
+                        icon = Icons.Default.StopCircle
+                        tint = MaterialTheme.colorScheme.error
+                        description = "Зупинити"
+                    }
                 } else {
-                    icon = Icons.Default.StopCircle
-                    tint = MaterialTheme.colorScheme.error
-                    description = "Зупинити"
+                    icon = Icons.Default.PlayCircle
+                    tint = MaterialTheme.colorScheme.primary
+                    description = "Почати"
                 }
-            } else {
-                icon = Icons.Default.PlayCircle
-                tint = MaterialTheme.colorScheme.primary
-                description = "Почати"
-            }
 
-            HoldMenu2Button(
-                items = menuItems,
-                controller = holdMenuController,
-                onSelect = onMenuSelect,
-                menuAlignment = MenuAlignment.END,
-                iconPosition = IconPosition.END,
-            ) {
-                FilledTonalIconButton(
-                    onClick = {
-                        if (text.isNotBlank() || isActivityOngoing) onToggleStartStop()
-                    },
-                    modifier = Modifier.size(if (uiConfig.isCompactPhone) 40.dp else 44.dp),
-                    colors =
-                        IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor =
-                                when {
-                                    isActivityOngoing && text.isNotBlank() -> MaterialTheme.colorScheme.tertiaryContainer
-                                    isActivityOngoing -> MaterialTheme.colorScheme.errorContainer
-                                    else -> MaterialTheme.colorScheme.primaryContainer
-                                },
-                            contentColor =
-                                when {
-                                    isActivityOngoing && text.isNotBlank() -> MaterialTheme.colorScheme.onTertiaryContainer
-                                    isActivityOngoing -> MaterialTheme.colorScheme.onErrorContainer
-                                    else -> MaterialTheme.colorScheme.onPrimaryContainer
-                                },
-                        ),
+                HoldMenu2Button(
+                    items = menuItems,
+                    controller = holdMenuController,
+                    onSelect = onMenuSelect,
+                    menuAlignment = MenuAlignment.END,
+                    iconPosition = IconPosition.END,
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = description,
-                        tint = tint,
-                        modifier = Modifier.size(22.dp),
-                    )
-                }
-            }
-
-            if (showMoreMenu) {
-                Box {
-                    IconButton(
-                        onClick = { moreMenuExpanded = true },
-                        modifier = Modifier.size(if (uiConfig.isCompactPhone) 36.dp else 40.dp),
+                    FilledTonalIconButton(
+                        onClick = {
+                            if (text.isNotBlank() || isActivityOngoing) onToggleStartStop()
+                        },
+                        modifier = Modifier.size(if (uiConfig.isCompactPhone) 40.dp else 44.dp),
+                        colors =
+                            IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor =
+                                    when {
+                                        isActivityOngoing && text.isNotBlank() -> MaterialTheme.colorScheme.tertiaryContainer
+                                        isActivityOngoing -> MaterialTheme.colorScheme.errorContainer
+                                        else -> MaterialTheme.colorScheme.primaryContainer
+                                    },
+                                contentColor =
+                                    when {
+                                        isActivityOngoing && text.isNotBlank() -> MaterialTheme.colorScheme.onTertiaryContainer
+                                        isActivityOngoing -> MaterialTheme.colorScheme.onErrorContainer
+                                        else -> MaterialTheme.colorScheme.onPrimaryContainer
+                                    },
+                            ),
                     ) {
                         Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Додаткові дії",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = moreMenuExpanded,
-                        onDismissRequest = { moreMenuExpanded = false },
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Події") },
-                            leadingIcon = { Icon(Icons.Default.CheckCircle, contentDescription = null) },
-                            onClick = {
-                                moreMenuExpanded = false
-                                if (text.isNotBlank()) onQuickDoneClick(text)
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Коментар") },
-                            leadingIcon = { Icon(Icons.Default.AddComment, contentDescription = null) },
-                            onClick = {
-                                moreMenuExpanded = false
-                                onTimelessClick()
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Резюме дня") },
-                            leadingIcon = { Icon(Icons.Default.Summarize, contentDescription = null) },
-                            onClick = {
-                                moreMenuExpanded = false
-                                if (text.isNotBlank()) onDaySummaryClick(text)
-                            },
+                            imageVector = icon,
+                            contentDescription = description,
+                            tint = tint,
+                            modifier = Modifier.size(22.dp),
                         )
                     }
                 }
-            }
 
-            trailingContent?.let { content -> content() }
+                if (showMoreMenu) {
+                    Box {
+                        IconButton(
+                            onClick = { moreMenuExpanded = true },
+                            modifier = Modifier.size(if (uiConfig.isCompactPhone) 36.dp else 40.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Додаткові дії",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = moreMenuExpanded,
+                            onDismissRequest = { moreMenuExpanded = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Подія без тривалості") },
+                                leadingIcon = { Icon(Icons.Default.CheckCircle, contentDescription = null) },
+                                onClick = {
+                                    moreMenuExpanded = false
+                                    if (text.isNotBlank()) onQuickDoneClick(text)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Додати минулу активність") },
+                                leadingIcon = { Icon(Icons.Default.MoreTime, contentDescription = null) },
+                                onClick = {
+                                    moreMenuExpanded = false
+                                    if (text.isNotBlank()) onBackdatedClick(text)
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Коментар") },
+                                leadingIcon = { Icon(Icons.Default.AddComment, contentDescription = null) },
+                                onClick = {
+                                    moreMenuExpanded = false
+                                    onTimelessClick()
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Резюме дня") },
+                                leadingIcon = { Icon(Icons.Default.Summarize, contentDescription = null) },
+                                onClick = {
+                                    moreMenuExpanded = false
+                                    if (text.isNotBlank()) onDaySummaryClick(text)
+                                },
+                            )
+                        }
+                    }
+                }
+
+                trailingContent?.let { content -> content() }
+            }
         }
     }
 }
@@ -1352,8 +1450,9 @@ fun copyToClipboard(
 private fun EditRecordDialog(
     record: ActivityRecord,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, Long?, Long?, Int?, Int?) -> Unit,
+    onConfirm: (String, String, Long?, Long?, Int?, Int?, List<ActivityEntityLink>) -> Unit,
     isLastTimedRecord: Boolean,
+    entityOptions: List<ActivityEntityDescriptor>,
 ) {
     val initialType =
         when {
@@ -1370,6 +1469,7 @@ private fun EditRecordDialog(
     var recordType by remember(record) { mutableStateOf(initialType) }
     var xpText by remember(record) { mutableStateOf(record.xpGained?.toString().orEmpty()) }
     var antyXpText by remember(record) { mutableStateOf(record.antyXp?.toString().orEmpty()) }
+    var entityLinks by remember(record) { mutableStateOf(record.effectiveEntityLinks()) }
 
     var showStartTimePicker by remember { mutableStateOf(false) }
     var showEndTimePicker by remember { mutableStateOf(false) }
@@ -1386,7 +1486,10 @@ private fun EditRecordDialog(
         onDismissRequest = onDismiss,
         title = { Text("Редагувати запис") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -1472,6 +1575,11 @@ private fun EditRecordDialog(
                     singleLine = true,
                     placeholder = { Text("0") },
                 )
+                ActivityEntityLinksEditor(
+                    selectedLinks = entityLinks,
+                    options = entityOptions,
+                    onLinksChanged = { entityLinks = it },
+                )
                 OutlinedTextField(
                     value = antyXpText,
                     onValueChange = { value ->
@@ -1516,7 +1624,7 @@ private fun EditRecordDialog(
                     val adjustedEnd = if (isTimeInvalid) actualStart else actualEnd
                     val xp = xpText.toIntOrNull()
                     val antyXp = antyXpText.toIntOrNull()
-                    onConfirm(text, recordKind, actualStart, adjustedEnd, xp, antyXp)
+                    onConfirm(text, recordKind, actualStart, adjustedEnd, xp, antyXp, entityLinks)
                 },
                 enabled = text.isNotBlank(),
             ) {

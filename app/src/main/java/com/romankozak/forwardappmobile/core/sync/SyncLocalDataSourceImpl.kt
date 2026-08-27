@@ -302,6 +302,7 @@ class SyncLocalDataSourceImpl
                 attachments = local.attachments.filter { it.updatedTs() > timestamp },
                 contextAttachmentCrossRefs = local.contextAttachmentCrossRefs.filter { it.updatedTs() > timestamp },
                 directionItems = local.directionItems.filter { it.updatedTs() > timestamp },
+                inboxRecords = local.inboxRecords.filter { it.updatedTs() > timestamp },
                 scripts = local.scripts.filter { it.updatedTs() > timestamp },
                 contextInboxSortingRules = local.contextInboxSortingRules.filter { it.updatedAt > timestamp },
                 contextKeyProblems = local.contextKeyProblems.filter { it.updatedAt > timestamp },

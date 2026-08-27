@@ -15,6 +15,21 @@ object ActivityRecordKind {
     const val DAY_SUMMARY = "DAY_SUMMARY"
 }
 
+enum class ActivityEntityType {
+    DAY_TASK,
+    DAY_FOCUS,
+    DAY_RESPONSIBILITY,
+    DAY_THEME,
+    CONTEXT,
+    GOAL,
+}
+
+data class ActivityEntityLink(
+    val entityId: String,
+    val entityType: ActivityEntityType,
+    val dayPlanId: String? = null,
+)
+
 @Entity(
     tableName = "activity_records",
     indices = [Index(value = ["record_kind"])],
@@ -39,6 +54,8 @@ data class ActivityRecord(
     @SerializedName("targetId") val targetId: String? = null,
     @ColumnInfo(name = "target_type")
     @SerializedName("targetType") val targetType: String? = null,
+    @ColumnInfo(name = "entity_links", defaultValue = "'[]'")
+    @SerializedName("entityLinks") val entityLinks: List<ActivityEntityLink> = emptyList(),
     @SerializedName("updatedAt") val updatedAt: Long? = null,
     @ColumnInfo(name = "goal_id", index = true)
     @SerializedName("goalId") val goalId: String? = null,

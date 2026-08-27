@@ -183,6 +183,7 @@ private fun DayManagementPagerContent(
                 ActivityTrackerScreen(
                     navController = args.mainNavController,
                     viewModel = args.activityTrackerViewModel,
+                    dayPlanId = args.planId,
                     showTopBar = false,
                     showInputBar = false,
                 )

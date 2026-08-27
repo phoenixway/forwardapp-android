@@ -51,6 +51,9 @@ interface CanonicalDayThemeDao {
     @Query("SELECT * FROM day_themes")
     suspend fun getAllDayThemesSync(): List<CanonicalDayThemeEntity>
 
+    @Query("SELECT * FROM day_themes WHERE isDeleted = 0 AND isActive = 1 ORDER BY dayPlanId ASC, `order` ASC")
+    fun observeAllActiveDayThemes(): Flow<List<CanonicalDayThemeEntity>>
+
     @Query(
         """
         SELECT * FROM day_themes

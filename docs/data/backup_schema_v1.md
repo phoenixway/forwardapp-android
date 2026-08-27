@@ -44,7 +44,7 @@ Android є джерелом правди. Єдиний формат для ім�
 - NoteDocumentItemEntity: `id`, `listId`, `parentId?`, `content`, `isCompleted`, `itemOrder`, `createdAt`, `updatedAt`, sync metadata.
 - ChecklistEntity: `id`, `projectId`, `name`, sync metadata.
 - ChecklistItemEntity: `id`, `checklistId`, `content`, `isChecked`, `itemOrder`, sync metadata.
-- ActivityRecord: `id`, `text`, `createdAt`, `startTime?`, `endTime?`, `reminderTime?`, `targetId?`, `targetType?`, `goalId?`, `projectId?`, sync metadata.
+- ActivityRecord: `id`, `text`, `createdAt`, `startTime?`, `endTime?`, `reminderTime?`, `targetId?`, `targetType?`, `entityLinks[]`, `goalId?`, `projectId?`, sync metadata.
 - ScriptEntity: `id`, `projectId?`, `name`, `description?`, `content`, `createdAt`, `updatedAt`, sync metadata.
 - LinkItemEntity: `id`, `linkData:{ type?, target, displayName? }`, `createdAt`, sync metadata.
 - InboxRecord: `id`, `projectId`, `text`, `createdAt`, `order`, sync metadata.

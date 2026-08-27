@@ -2,7 +2,6 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.comp
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,7 +16,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.romankozak.forwardappmobile.core.capability.CapabilityId
@@ -25,7 +23,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.core.navigation.capability.actions.CapabilityViewActionDescriptor
 import com.romankozak.forwardappmobile.core.theme.LocalInputPanelColors
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller
-import kotlin.math.abs
 
 @Composable
 fun ModernInputPanel(
@@ -195,26 +192,7 @@ fun ModernInputPanel(
                 modifier =
                     Modifier
                         .defaultMinSize(minHeight = 64.dp)
-                        .padding(horizontal = 8.dp, vertical = 10.dp)
-                        .pointerInput(inputMode, swipeInputModes) {
-                            var dragOffsetX = 0f
-                            detectHorizontalDragGestures(
-                                onHorizontalDrag = { _, dragAmount -> dragOffsetX += dragAmount },
-                                onDragEnd = {
-                                    val threshold = 56f
-                                    if (abs(dragOffsetX) >= threshold && swipeInputModes.size > 1) {
-                                        val currentIndex =
-                                            swipeInputModes.indexOf(inputMode).takeIf { it >= 0 } ?: 0
-                                        val step = if (dragOffsetX < 0f) 1 else -1
-                                        val nextIndex =
-                                            (currentIndex + step + swipeInputModes.size) %
-                                                swipeInputModes.size
-                                        onInputModeSelected(swipeInputModes[nextIndex])
-                                    }
-                                    dragOffsetX = 0f
-                                },
-                            )
-                        },
+                        .padding(horizontal = 8.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.Bottom,
             ) {
                 InputTextField(
@@ -228,6 +206,14 @@ fun ModernInputPanel(
                     onClearSearch = {
                         onValueChange(TextFieldValue(""))
                         onCloseSearch()
+                    },
+                    onHorizontalSwipe = { direction ->
+                        if (swipeInputModes.size > 1) {
+                            val currentIndex = swipeInputModes.indexOf(inputMode).takeIf { it >= 0 } ?: 0
+                            val step = if (direction < 0) 1 else -1
+                            val nextIndex = (currentIndex + step + swipeInputModes.size) % swipeInputModes.size
+                            onInputModeSelected(swipeInputModes[nextIndex])
+                        }
                     },
                     isNerActive = isNerActive,
                 )
@@ -257,8 +243,7 @@ private fun defaultInputModeForView(view: ContextViewMode): InputMode =
 
 private fun supportedInputModesForView(view: ContextViewMode): List<InputMode> =
     when (view) {
-        ContextViewMode.LOG -> listOf(InputMode.AddProjectLog, InputMode.AddMilestone)
-        ContextViewMode.JOURNAL_LOG -> listOf(InputMode.AddJournalLogEntry)
+        ContextViewMode.LOG -> listOf(InputMode.AddProjectLog, InputMode.SearchInList, InputMode.AddMilestone)
         else -> {
             val baseMode = defaultInputModeForView(view)
             if (supportsLocalSearchForView(view)) {
@@ -273,7 +258,11 @@ private fun supportsLocalSearchForView(view: ContextViewMode): Boolean =
     when (view) {
         ContextViewMode.BACKLOG,
         ContextViewMode.INBOX,
+        ContextViewMode.CONNECTIONS,
         ContextViewMode.DIRECTION,
+        ContextViewMode.LOG,
+        ContextViewMode.JOURNAL_LOG,
+        ContextViewMode.KEY_PROBLEMS,
         -> true
         else -> false
     }

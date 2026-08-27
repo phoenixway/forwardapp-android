@@ -15,6 +15,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusItem
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityEntityLink
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityEntityType
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.NewTaskParameters
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceFrequency
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.RecurrenceRule
@@ -470,6 +472,23 @@ class DayManagementRepository
                     }
 
                 activityRecord?.let {
+                    val entityLinks =
+                        buildList {
+                            add(ActivityEntityLink(task.id, ActivityEntityType.DAY_TASK, task.dayPlanId))
+                            task.projectId?.let { contextId ->
+                                add(ActivityEntityLink(contextId, ActivityEntityType.CONTEXT))
+                            }
+                            task.goalId?.let { goalId ->
+                                add(ActivityEntityLink(goalId, ActivityEntityType.GOAL))
+                            }
+                        }
+                    activityRepository.updateRecord(
+                        it.copy(
+                            entityLinks = entityLinks,
+                            contextId = task.projectId,
+                            goalId = task.goalId,
+                        ),
+                    )
                     dayTaskDao.linkTaskWithActivity(taskId, it.id, now)
                     dayTaskDao.updateTaskCompletion(taskId, false, TaskStatus.IN_PROGRESS, null, now)
                     syncTaskTimingFromActualStart(taskId = taskId, actualStartTime = it.startTime ?: now)
@@ -779,4 +798,3 @@ class DayManagementRepository
                 recalculateDayProgress(taskId)
             }
     }
-

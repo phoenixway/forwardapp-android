@@ -32,6 +32,7 @@ fun ConnectionsView(
     modifier: Modifier = Modifier,
     viewModel: ContextScreenViewModel,
     attachmentItems: List<BacklogItemContent>,
+    localSearchQuery: String = "",
 ) {
     var activePickerTab by remember { mutableStateOf<LinkPickerTab?>(null) }
     var pendingCreateAction by remember { mutableStateOf<PickerCreateAction?>(null) }
@@ -73,7 +74,7 @@ fun ConnectionsView(
             }
         }
     val items =
-        remember(attachments, scriptItems) {
+        remember(attachments, scriptItems, localSearchQuery) {
             val baseItems =
                 attachments.mapNotNull { item ->
                     val id = item.connectionId()
@@ -95,7 +96,12 @@ fun ConnectionsView(
                     }
                 }
             val baseIds = baseItems.map { it.id }.toSet()
-            baseItems + scriptItems.filterNot { it.id in baseIds }
+            (baseItems + scriptItems.filterNot { it.id in baseIds })
+                .filter { item ->
+                    localSearchQuery.isBlank() ||
+                        item.title.contains(localSearchQuery, ignoreCase = true) ||
+                        item.vault?.contains(localSearchQuery, ignoreCase = true) == true
+                }
         }
 
     val attachmentByConnectionId =

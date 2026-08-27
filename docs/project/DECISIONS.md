@@ -113,3 +113,36 @@ feature without stability guarantees. Kotlin upgrades must explicitly
 revalidate generated TypeScript declarations, runtime `Long`/`bigint`
 behavior, safe-integer guards, KMP JavaScript tests, and the Desktop recurrence
 test slice.
+
+## 2026-08-27 - Shared KMP owns Inbox association and visibility semantics
+
+Decision:
+
+Inbox hashtag association and owner-visibility behavior shared by Android and
+Desktop belongs to `shared-core-domain`.
+
+Canonical behavior is derived from `InboxRecord`, `Context.tags`, and
+`ContextConfiguration`. Platform code must not independently define hashtag
+grammar, context matching, or `removeInboxEntryAfterTagAutocopy` visibility
+semantics.
+
+Android `InboxRecordLink` is a local rebuildable materialized cache only. It is
+not a sync entity, backup authority, or independent source of business truth.
+Desktop evaluates the shared policy directly and does not require this cache.
+
+The persisted `hideInOwnerInbox` field is legacy compatibility state and is not
+canonical visibility authority.
+
+Reason:
+
+Persisting or independently calculating the same Inbox association semantics on
+both clients creates multiple sources of truth. In particular, associations can
+change when context tags or configuration change even when the Inbox record
+itself does not.
+
+Consequence:
+
+Changes to shared Inbox matching or visibility rules belong in the shared KMP
+domain. Android cache maintenance may optimize lookup but must remain
+rebuildable from canonical inputs. Desktop sync must keep those canonical inputs
+fresh rather than transporting Android cache rows.

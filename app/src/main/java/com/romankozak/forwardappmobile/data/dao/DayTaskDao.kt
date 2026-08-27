@@ -54,6 +54,9 @@ interface DayTaskDao {
     @Query("SELECT * FROM day_tasks WHERE id = :taskId LIMIT 1")
     suspend fun getTaskById(taskId: String): DayTask?
 
+    @Query("SELECT * FROM day_tasks WHERE isDeleted = 0")
+    fun getAllVisibleTasksFlow(): Flow<List<DayTask>>
+
     @Query("SELECT * FROM day_tasks WHERE goalId = :goalId ORDER BY createdAt DESC")
     fun getTasksForGoal(goalId: String): Flow<List<DayTask>>
 

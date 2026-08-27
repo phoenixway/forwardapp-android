@@ -18,6 +18,9 @@ interface InboxRecordLinkDao {
     @Query("DELETE FROM inbox_record_links WHERE record_id = :recordId")
     suspend fun deleteForRecord(recordId: String)
 
+    @Query("DELETE FROM inbox_record_links")
+    suspend fun deleteAll()
+
     @Query("SELECT * FROM inbox_record_links WHERE record_id = :recordId")
     suspend fun getLinksForRecord(recordId: String): List<InboxRecordLink>
 
@@ -27,7 +30,23 @@ interface InboxRecordLinkDao {
         FROM inbox_records ir
         WHERE ir.contextId = :contextId
           AND ir.is_deleted = 0
-          AND ir.hide_in_owner_inbox = 0
+          AND (
+            COALESCE(
+              (
+                SELECT cs.remove_inbox_entry_after_tag_autocopy
+                FROM context_structures cs
+                WHERE cs.contextId = ir.contextId
+                  AND cs.isDeleted = 0
+                LIMIT 1
+              ),
+              0
+            ) = 0
+            OR NOT EXISTS (
+              SELECT 1
+              FROM inbox_record_links owner_links
+              WHERE owner_links.record_id = ir.id
+            )
+          )
         UNION
         SELECT ir.*
         FROM inbox_records ir
@@ -45,7 +64,23 @@ interface InboxRecordLinkDao {
         FROM inbox_records ir
         WHERE ir.contextId = :contextId
           AND ir.is_deleted = 0
-          AND ir.hide_in_owner_inbox = 0
+          AND (
+            COALESCE(
+              (
+                SELECT cs.remove_inbox_entry_after_tag_autocopy
+                FROM context_structures cs
+                WHERE cs.contextId = ir.contextId
+                  AND cs.isDeleted = 0
+                LIMIT 1
+              ),
+              0
+            ) = 0
+            OR NOT EXISTS (
+              SELECT 1
+              FROM inbox_record_links owner_links
+              WHERE owner_links.record_id = ir.id
+            )
+          )
         UNION
         SELECT ir.*
         FROM inbox_records ir

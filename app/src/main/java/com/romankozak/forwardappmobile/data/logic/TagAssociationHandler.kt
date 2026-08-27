@@ -7,12 +7,10 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextTagRef
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
-import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecordLink
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextTagRefDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordLinkDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import java.util.UUID
 import javax.inject.Inject
@@ -25,7 +23,7 @@ class TagAssociationHandler
         private val contextTagRefDao: ContextTagRefDao,
         private val contextDao: ContextDao,
         private val listItemDao: ListItemDao,
-        private val inboxRecordLinkDao: InboxRecordLinkDao,
+        private val inboxAssociationCache: InboxAssociationCache,
         private val goalDao: GoalDao,
         private val inboxRecordDao: InboxRecordDao,
     ) {
@@ -123,37 +121,6 @@ class TagAssociationHandler
         }
 
         @Transaction
-        suspend fun syncInboxRecordAssociations(record: InboxRecord): Map<String, String> {
-            val desiredContexts = resolveDesiredContexts(record.text).filterKeys { it != record.contextId }
-            val existingLinks = inboxRecordLinkDao.getLinksForRecord(record.id).associateBy { it.contextId }
-
-            val staleContextIds = existingLinks.keys - desiredContexts.keys
-            if (staleContextIds.isNotEmpty()) {
-                inboxRecordLinkDao.deleteForRecordAndContexts(record.id, staleContextIds.toList())
-            }
-
-            val linksToUpsert =
-                desiredContexts.mapNotNull { (contextId, matchedTag) ->
-                    val existing = existingLinks[contextId]
-                    if (existing != null && existing.associationTag == matchedTag) {
-                        null
-                    } else {
-                        InboxRecordLink(
-                            recordId = record.id,
-                            contextId = contextId,
-                            ownerContextId = record.contextId,
-                            associationTag = matchedTag,
-                            linkedAt = existing?.linkedAt ?: System.currentTimeMillis(),
-                        )
-                    }
-                }
-            if (linksToUpsert.isNotEmpty()) {
-                inboxRecordLinkDao.insertAll(linksToUpsert)
-            }
-            return desiredContexts
-        }
-
-        @Transaction
         suspend fun reconcileChangedTags(changedTags: List<String>) {
             if (changedTags.isEmpty()) return
             val changedSet = changedTags.map { it.lowercase() }.toSet()
@@ -164,7 +131,7 @@ class TagAssociationHandler
 
             inboxRecordDao.getAll().asSequence()
                 .filter { record -> !record.isDeleted && extractHashtags(record.text).any { it in changedSet } }
-                .forEach { record -> syncInboxRecordAssociations(record) }
+                .forEach { record -> inboxAssociationCache.refresh(record) }
         }
 
         @Transaction
@@ -177,11 +144,7 @@ class TagAssociationHandler
                 syncGoalAssociations(goal, sourceContextId = null)
             }
 
-            inboxRecordDao.getAll()
-                .filterNot { it.isDeleted }
-                .forEach { record ->
-                    syncInboxRecordAssociations(record)
-                }
+            inboxAssociationCache.rebuild()
         }
 
         private suspend fun resolveDesiredContexts(text: String): Map<String, String> {

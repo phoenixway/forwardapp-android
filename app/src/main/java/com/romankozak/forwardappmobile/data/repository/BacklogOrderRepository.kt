@@ -19,6 +19,8 @@ class BacklogOrderRepository
 
         fun observeAll(): Flow<List<BacklogOrder>> = backlogOrderDao.observeAll()
 
+        suspend fun getAllRaw(): List<BacklogOrder> = backlogOrderDao.getAllRaw()
+
         suspend fun upsertOrders(orders: List<BacklogOrder>) {
             if (orders.isEmpty()) return
             Log.d(TAG, "[upsertOrders] count=${orders.size} sample=${orders.take(3)}")

@@ -4,13 +4,18 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityEntityLink
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityEntityType
 import com.romankozak.forwardappmobile.data.repository.ActivityInputOutcome
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
+import com.romankozak.forwardappmobile.data.repository.TagCatalogRepository
 import com.romankozak.forwardappmobile.domain.reminders.AlarmScheduler
 import com.romankozak.forwardappmobile.domain.reminders.cancelForActivityRecord
 import com.romankozak.forwardappmobile.domain.reminders.scheduleForActivityRecord
 import com.romankozak.forwardappmobile.domain.userawareness.StateSlashCommandParser
 import com.romankozak.forwardappmobile.domain.userawareness.UserAwarenessStateType
+import com.romankozak.forwardappmobile.features.activitytracker.entities.ActivityEntityCatalogRepository
+import com.romankozak.forwardappmobile.features.activitytracker.entities.ActivityEntityDescriptor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -32,6 +37,8 @@ class ActivityTrackerViewModel
         private val alarmScheduler: AlarmScheduler,
         private val savedStateHandle: SavedStateHandle,
         private val slashCommandParser: StateSlashCommandParser,
+        tagCatalogRepository: TagCatalogRepository,
+        entityCatalogRepository: ActivityEntityCatalogRepository,
     ) : ViewModel() {
         private companion object {
             const val INITIAL_RECENT_RECORDS = 320
@@ -40,6 +47,19 @@ class ActivityTrackerViewModel
 
         private val _inputText = MutableStateFlow("")
         val inputText = _inputText.asStateFlow()
+        private val dayPlanScope = MutableStateFlow<String?>(null)
+
+        val entityCatalog: StateFlow<List<ActivityEntityDescriptor>> =
+            entityCatalogRepository.entities
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+        val availableEntities: StateFlow<List<ActivityEntityDescriptor>> =
+            combine(entityCatalog, dayPlanScope) { entities, planId ->
+                entities.filter { descriptor ->
+                    val entityPlanId = descriptor.link.dayPlanId
+                    planId == null || entityPlanId == null || entityPlanId == planId
+                }
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
         private val _editingRecord = MutableStateFlow<ActivityRecord?>(null)
         val editingRecord = _editingRecord.asStateFlow()
@@ -72,6 +92,15 @@ class ActivityTrackerViewModel
                     .sortedBy { it.startTime ?: it.createdAt }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+        private val knownTags: StateFlow<List<String>> =
+            tagCatalogRepository.tags
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+        val tagSuggestions: StateFlow<List<String>> =
+            combine(_inputText, knownTags) { text, availableTags ->
+                buildActivityTagSuggestions(text, availableTags)
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
         val groupedActivityLog: StateFlow<Map<String, List<ActivityRecord>>> =
             activityLog.map { log ->
                 log.groupBy { toDateHeader(it.startTime ?: it.createdAt) }
@@ -84,6 +113,14 @@ class ActivityTrackerViewModel
 
         fun onInputTextChanged(text: String) {
             _inputText.value = text
+        }
+
+        fun onTagSuggestionSelected(tag: String) {
+            _inputText.update { text -> applyActivityTagSuggestion(text, tag) }
+        }
+
+        fun setDayPlanScope(dayPlanId: String?) {
+            dayPlanScope.value = dayPlanId
         }
 
         fun loadOlderRecords() {
@@ -227,6 +264,7 @@ class ActivityTrackerViewModel
             newEndTime: Long?,
             xpGained: Int?,
             antyXp: Int?,
+            entityLinks: List<ActivityEntityLink>,
         ) = viewModelScope.launch {
             val recordToUpdate = _editingRecord.value
             if (recordToUpdate != null && newText.isNotBlank()) {
@@ -248,6 +286,9 @@ class ActivityTrackerViewModel
                             endTime = newEndTime,
                             xpGained = xpGained,
                             antyXp = antyXp,
+                            entityLinks = entityLinks,
+                            contextId = entityLinks.firstOrNull { it.entityType == ActivityEntityType.CONTEXT }?.entityId,
+                            goalId = entityLinks.firstOrNull { it.entityType == ActivityEntityType.GOAL }?.entityId,
                         )
                     repository.updateRecord(updatedRecord)
                     _loadedOlderRecords.update { records ->
@@ -268,6 +309,16 @@ class ActivityTrackerViewModel
             repository.addCompletedActivity(text, xpGained, antyXp)
         }
 
+        fun onAddBackdatedActivity(
+            text: String,
+            startTime: Long,
+            endTime: Long,
+            entityLinks: List<ActivityEntityLink>,
+        ) = viewModelScope.launch {
+            repository.addBackdatedActivity(text, startTime, endTime, entityLinks)
+            clearInput()
+        }
+
         fun onAddTodaySummary(text: String) =
             viewModelScope.launch {
                 repository.upsertTodaySummary(text)
@@ -283,7 +334,14 @@ class ActivityTrackerViewModel
                     repository.endLastActivity(now)
                 }
 
-                repository.startActivity(record.text, now)
+                val restarted = repository.startActivity(record.text, now)
+                repository.updateRecord(
+                    restarted.copy(
+                        entityLinks = record.entityLinks,
+                        contextId = record.contextId,
+                        goalId = record.goalId,
+                    ),
+                )
                 clearInput()
             }
 

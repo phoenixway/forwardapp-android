@@ -122,6 +122,17 @@ class Converters {
         return gson.fromJson(value, objectType)
     }
 
+    @TypeConverter
+    fun fromActivityEntityLinks(value: List<ActivityEntityLink>?): String = gson.toJson(value.orEmpty())
+
+    @TypeConverter
+    fun toActivityEntityLinks(value: String?): List<ActivityEntityLink> {
+        if (value.isNullOrBlank()) return emptyList()
+        val listType = object : TypeToken<List<ActivityEntityLink>>() {}.type
+        return runCatching { gson.fromJson<List<ActivityEntityLink>>(value, listType).orEmpty() }
+            .getOrDefault(emptyList())
+    }
+
     // --- Конвертери для статусів та пріоритетів місій ---
 
     @TypeConverter

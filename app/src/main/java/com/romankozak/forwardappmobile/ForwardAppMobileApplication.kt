@@ -7,6 +7,7 @@ import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.core.storage.getDocumentsLogsDir
 import com.romankozak.forwardappmobile.data.daythemes.CanonicalDayThemeBootstrapper
 import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
+import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.logging.CoroutineFileTree
 import dagger.hilt.android.HiltAndroidApp
@@ -27,6 +28,8 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
     @Inject lateinit var tagAssociationHandler: TagAssociationHandler
 
     @Inject lateinit var canonicalDayThemeBootstrapper: CanonicalDayThemeBootstrapper
+
+    @Inject lateinit var contextRepository: ContextRepository
 
     private val appScope by lazy { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
 
@@ -76,6 +79,19 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
                 }
             }.onFailure {
                 Timber.e(it, "Failed to bootstrap canonical Day Themes")
+            }
+
+            runCatching {
+                contextRepository.cleanupDanglingAndLegacyStructuralListItems()
+            }.onSuccess { cleanedCount ->
+                if (cleanedCount > 0) {
+                    Timber.i(
+                        "Context backlog cleanup tombstoned %d dangling/legacy structural rows",
+                        cleanedCount,
+                    )
+                }
+            }.onFailure {
+                Timber.e(it, "Failed to cleanup dangling/legacy structural backlog rows")
             }
 
             runCatching {

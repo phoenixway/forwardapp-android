@@ -1,5 +1,11 @@
 package com.romankozak.forwardappmobile.data.repository
 
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
+
+import com.romankozak.forwardappmobile.core.context.tombstoneBacklogOrdersForItems
+
+import com.romankozak.forwardappmobile.core.context.isDirectHierarchyChildContext
+
 import android.util.Log
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
@@ -20,6 +26,7 @@ class ListItemRepository
         private val listItemDao: ListItemDao,
         private val linkItemDao: LinkItemDao,
         private val backlogOrderRepository: BacklogOrderRepository,
+        private val contextDao: ContextDao,
     ) {
         private val TAG = "ListItemRepository"
 
@@ -27,9 +34,20 @@ class ListItemRepository
         suspend fun addContextLinkToContext(
             targetContextId: String,
             currentContextId: String,
-        ): String {
-            Log.d(TAG, "addContextLinkToContext: targetContextId=$targetContextId, currentContextId=$currentContextId")
-            val newBacklogItem =
+        ): String? {
+            val target = contextDao.getContextById(targetContextId)
+            if (
+                target != null &&
+                isDirectHierarchyChildContext(currentContextId, target.parentId)
+            ) {
+                Log.i(
+                    TAG,
+                    "Skipping direct-child backlog SUBLIST owner=$currentContextId target=$targetContextId",
+                )
+                return null
+            }
+
+            val item =
                 BacklogItem(
                     id = UUID.randomUUID().toString(),
                     contextId = currentContextId,
@@ -37,16 +55,8 @@ class ListItemRepository
                     entityId = targetContextId,
                     order = -System.currentTimeMillis(),
                 )
-            Log.d(TAG, "Constructed ListItem to insert: $newBacklogItem")
-            try {
-                Log.d(TAG, "Attempting to insert via listItemDao.insertItems...")
-                listItemDao.insertItems(listOf(newBacklogItem))
-                Log.d(TAG, "Insertion successful for ListItem ID: ${newBacklogItem.id}")
-            } catch (e: Exception) {
-                Log.e(TAG, "DATABASE INSERTION FAILED for ListItem: $newBacklogItem", e)
-                throw e
-            }
-            return newBacklogItem.id
+            listItemDao.insertItems(listOf(item))
+            return item.id
         }
 
         suspend fun moveListItemsToContext(
@@ -67,17 +77,25 @@ class ListItemRepository
         }
 
         suspend fun deleteListItems(itemIds: List<String>) {
-            if (itemIds.isNotEmpty()) {
-                val now = System.currentTimeMillis()
-                val items = listItemDao.getItemsByIds(itemIds)
-                if (items.isNotEmpty()) {
-                    listItemDao.insertItems(
-                        items.map { it.softDelete(now) },
-                    )
-                } else {
-                    listItemDao.deleteItemsByIds(itemIds)
-                }
+            if (itemIds.isEmpty()) return
+            val now = System.currentTimeMillis()
+            val items = listItemDao.getItemsByIds(itemIds)
+
+            if (items.isEmpty()) {
+                listItemDao.deleteItemsByIds(itemIds)
+                return
             }
+
+            val tombstones = items.map { it.softDelete(now) }
+            listItemDao.insertItems(tombstones)
+
+            backlogOrderRepository.upsertOrders(
+                tombstoneBacklogOrdersForItems(
+                    backlogOrderRepository.getAllRaw(),
+                    tombstones,
+                    now,
+                ),
+            )
         }
 
         suspend fun restoreListItems(items: List<BacklogItem>) {

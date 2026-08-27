@@ -20,7 +20,10 @@ still relevant to the current implementation.
 
 ## DEFERRED
 
-None recorded yet.
+- Remove legacy persisted `InboxRecord.hideInOwnerInbox` after the current
+  cross-client Inbox policy has remained stable long enough to perform the
+  schema/snapshot compatibility cleanup deliberately. It is no longer business
+  authority.
 
 ## IDEA
 

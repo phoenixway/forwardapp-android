@@ -17,6 +17,7 @@ internal data class TodayMoreActionCallbacks(
     val onAddFocus: () -> Unit,
     val onAddResponsibility: () -> Unit,
     val onOpenQuickDoneDialog: () -> Unit,
+    val onOpenBackdatedDialog: () -> Unit,
     val onTimelessRecordClick: () -> Unit,
     val onExportJournalToMarkdown: () -> Unit,
     val onClearJournal: () -> Unit,
@@ -99,8 +100,12 @@ internal fun buildTodayAdditionalMoreActions(
                     onClick = callbacks.onStartImplementation,
                 ),
                 MoreSheetAction(
-                    label = "Події",
+                    label = "Подія без тривалості",
                     onClick = callbacks.onOpenQuickDoneDialog,
+                ),
+                MoreSheetAction(
+                    label = "Додати минулу активність",
+                    onClick = callbacks.onOpenBackdatedDialog,
                 ),
                 MoreSheetAction(
                     label = "Коментар",

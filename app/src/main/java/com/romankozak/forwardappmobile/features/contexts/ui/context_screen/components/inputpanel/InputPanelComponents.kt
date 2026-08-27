@@ -8,6 +8,8 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -46,6 +48,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,6 +59,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -68,7 +72,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import kotlinx.coroutines.delay
 
 private const val MAX_INPUT_HEIGHT_DIVISOR = 3
-private const val MODE_SWITCH_DRAG_THRESHOLD = 50f
+private const val MODE_SWITCH_DRAG_THRESHOLD = 44f
 private const val ICON_RESTORE_DELAY_MS = 400L
 
 @Composable
@@ -81,14 +85,35 @@ internal fun InputTextField(
     onValueChange: (TextFieldValue) -> Unit,
     onSubmit: () -> Unit,
     onClearSearch: () -> Unit,
+    onHorizontalSwipe: (Int) -> Unit,
     isNerActive: Boolean,
 ) {
     val unusedOnSubmit = onSubmit
+    val currentOnHorizontalSwipe by rememberUpdatedState(onHorizontalSwipe)
     Surface(
         modifier =
             modifier
                 .heightIn(max = LocalConfiguration.current.screenHeightDp.dp / MAX_INPUT_HEIGHT_DIVISOR)
-                .defaultMinSize(minHeight = 44.dp),
+                .defaultMinSize(minHeight = 44.dp)
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                        var swipeHandled = false
+                        do {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            val pointer = event.changes.firstOrNull { it.id == down.id } ?: break
+                            val horizontalDistance = pointer.position.x - down.position.x
+                            val verticalDistance = pointer.position.y - down.position.y
+                            val isHorizontalSwipe =
+                                kotlin.math.abs(horizontalDistance) >= MODE_SWITCH_DRAG_THRESHOLD &&
+                                    kotlin.math.abs(horizontalDistance) > kotlin.math.abs(verticalDistance)
+                            if (!swipeHandled && isHorizontalSwipe) {
+                                swipeHandled = true
+                                currentOnHorizontalSwipe(if (horizontalDistance < 0f) -1 else 1)
+                            }
+                        } while (pointer.pressed)
+                    }
+                },
         shape = RoundedCornerShape(20.dp),
         color = panelColors.inputFieldColor,
         border =
@@ -127,7 +152,7 @@ internal fun InputTextField(
                                         InputMode.AddQuickRecord -> stringResource(R.string.hint_add_quick_record)
                                         InputMode.AddProjectLog -> "Додати запис у лог"
                                         InputMode.AddMilestone -> "Додати віху"
-                                        InputMode.SearchInList -> "Search in backlog.."
+                                        InputMode.SearchInList -> "Пошук у цьому виді…"
                                         else -> "Додати..."
                                     },
                                 color = panelColors.contentColor.copy(alpha = 0.6f),

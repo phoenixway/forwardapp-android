@@ -15,6 +15,7 @@ import com.romankozak.forwardappmobile.features.daymanagement.runtime.domain.Day
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.domain.DayManagementRuntimeCommand
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.domain.DayManagementRuntimeDecision
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.domain.DayManagementRuntimeEvent
+import com.romankozak.forwardappmobile.features.daymanagement.runtime.domain.DayManagementRuntimeEventType
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.domain.DayManagementRuntimeState
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.engine.DayManagementRuntime
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.platform.DayManagementRuntimeNotifier
@@ -94,6 +95,32 @@ class DayManagementRuntimeRepository
                 }
                 notifier.sync(incoming)
             }
+        }
+
+        suspend fun getRecordedEvents(): List<DayManagementRuntimeEvent> =
+            withContext(ioDispatcher) {
+                val logFile = eventLogFile()
+                if (!logFile.exists()) return@withContext emptyList()
+
+                logFile.useLines { lines ->
+                    lines.mapNotNull { line ->
+                        runCatching { gson.fromJson(line, DayManagementRuntimeEvent::class.java) }.getOrNull()
+                    }.toList()
+                }
+            }
+
+        suspend fun getRecordedDayStarts(): List<Long> {
+            val currentWakeTime = state.first().wokeAt
+            val loggedWakeTimes =
+                getRecordedEvents()
+                    .asSequence()
+                    .filter { event -> event.type == DayManagementRuntimeEventType.WOKE_UP }
+                    .map { event -> event.timestamp }
+
+            return (loggedWakeTimes + listOfNotNull(currentWakeTime).asSequence())
+                .distinct()
+                .sorted()
+                .toList()
         }
 
         private suspend fun persistDecision(decision: DayManagementRuntimeDecision) {
