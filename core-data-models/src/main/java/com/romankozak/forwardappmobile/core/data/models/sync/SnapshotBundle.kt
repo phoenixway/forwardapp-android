@@ -62,6 +62,17 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.Main
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.MainBeaconSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.RecentProjectEntrySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.misc.UserStateIntervalSnapshot
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.AspectEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.AspectOrientationRefEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentRevisionEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationRelationEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.SavedOrientationViewEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBindingEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 
 
 /**
@@ -107,6 +118,27 @@ data class SnapshotBundle(
     @SerializedName("dayThemes") val dayThemes: List<DayThemeSnapshot>? = null,
     @SerializedName("dayThemeAssignmentDocuments")
     val dayThemeAssignmentDocuments: List<DayThemeAssignmentDocumentSnapshot>? = null,
+
+    // Canonical Orientation contract. null means the whole contract is absent;
+    // emptyList() means the corresponding authoritative collection is empty.
+    @SerializedName("managedSubjects") val managedSubjects: List<ManagedSubjectEntity>? = null,
+    @SerializedName("orientations") val orientations: List<OrientationEntity>? = null,
+    @SerializedName("aspects") val aspects: List<AspectEntity>? = null,
+    @SerializedName("orientationAssessments")
+    val orientationAssessments: List<OrientationAssessmentEntity>? = null,
+    @SerializedName("orientationAssessmentRevisions")
+    val orientationAssessmentRevisions: List<OrientationAssessmentRevisionEntity>? = null,
+    @SerializedName("legacySubjectMappings")
+    val legacySubjectMappings: List<LegacySubjectMappingEntity>? = null,
+    @SerializedName("orientationRelations")
+    val orientationRelations: List<OrientationRelationEntity>? = null,
+    @SerializedName("aspectOrientationRefs")
+    val aspectOrientationRefs: List<AspectOrientationRefEntity>? = null,
+    @SerializedName("workspaceBindings") val workspaceBindings: List<WorkspaceBindingEntity>? = null,
+    @SerializedName("workspaceCapabilityInstances")
+    val workspaceCapabilityInstances: List<WorkspaceCapabilityInstanceEntity>? = null,
+    @SerializedName("savedOrientationViews")
+    val savedOrientationViews: List<SavedOrientationViewEntity>? = null,
 
     @SerializedName("dailyMetrics") val dailyMetrics: List<DailyMetricSnapshot> = emptyList(),
     @SerializedName("conversations") val conversations: List<ConversationSnapshot> = emptyList(),

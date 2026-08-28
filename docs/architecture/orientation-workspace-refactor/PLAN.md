@@ -199,6 +199,9 @@ Existing entities remain authoritative. The projection must not write back.
 
 ## Phase 3 — Canonical Orientation persistence
 
+Implementation status: completed as a shadow-persistence boundary on
+2026-08-29. See [PHASE3-IMPLEMENTATION.md](PHASE3-IMPLEMENTATION.md).
+
 Estimated scope: medium to large.
 
 ### Work

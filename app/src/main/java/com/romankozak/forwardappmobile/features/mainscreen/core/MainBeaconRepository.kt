@@ -216,6 +216,11 @@ class MainBeaconRepository
             }
         }
 
+        suspend fun removeContextsFromAllBeacons(contextIds: Set<String>) {
+            if (contextIds.isEmpty()) return
+            mainBeaconDao.deleteContextCrossRefsForContexts(contextIds)
+        }
+
         suspend fun reorderBeacons(beaconIdsInOrder: List<String>) {
             if (beaconIdsInOrder.isEmpty()) return
             appDatabase.withTransaction {

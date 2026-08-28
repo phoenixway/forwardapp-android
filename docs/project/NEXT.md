@@ -1,16 +1,22 @@
 # Next
 
-Live-validate the repaired Desktop collection-sync boundary.
+Begin Phase 4 of the accepted Orientation/Aspect/Workspace plan with the Main
+Beacon and Main Beacon Group vertical slice.
 
-Use one focused Android <-> Desktop smoke cycle to verify that:
+The next focused implementation should first establish the non-UI ownership
+transition:
 
-- an Android Direction update reaches a non-empty Desktop collection;
-- a Context hierarchy-link update/tombstone reaches Desktop;
-- a Main Beacon authoritative relation-set change, including removal, replaces
-  the corresponding Desktop relation set;
-- an unrelated Desktop context edit does not send Android-owned opaque state
-  such as `ActivityRecord` back to Android.
+- make common title, description, lifecycle/assessment, version, tombstone,
+  and sync writes canonical for Beacon and Group;
+- preserve readiness, blocker, next action, hierarchy, memberships,
+  attachments, status records, and other specialized fields in their existing
+  owners;
+- turn legacy common fields into deterministic compatibility projections;
+- convert Group membership to the accepted typed composite relation while
+  preserving order and rollback evidence;
+- keep shadow comparison active and stop on divergence or identity mismatch;
+- verify Android backup/sync and Desktop read-only projection after cutover.
 
-If those checks pass, close the collection-sync audit slice. Treat the
-timestamp-only physical-deletion contract recorded in `BACKLOG.md` as separate
-deferred work rather than expanding this slice into schema migrations.
+Do not implement Group assessment controls, editors, Workspace controls,
+navigation changes, labels, or any other user-facing UI without a new explicit
+authorization for that UI scope.

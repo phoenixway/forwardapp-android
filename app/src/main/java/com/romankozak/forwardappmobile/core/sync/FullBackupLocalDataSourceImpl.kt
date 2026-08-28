@@ -13,6 +13,7 @@ import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.hasCanonicalOrientationPayload
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalDayThemePayload
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.*
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toEntity
@@ -20,6 +21,9 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toSnapsho
 import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.data.database.DayThemeCanonicalBootstrapStateEntity
 import com.romankozak.forwardappmobile.data.daythemes.CanonicalDayThemeBootstrapper
+import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationBootstrapper
+import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationSyncStore
+import com.romankozak.forwardappmobile.data.orientation.storeCanonicalPayload
 import com.romankozak.forwardappmobile.data.daythemes.planLegacyDayThemeMerge
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.database.AppDatabase
@@ -35,6 +39,8 @@ import com.romankozak.forwardappmobile.sync.SyncMapper
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncAck
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncPayload
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalRecurringSeriesSyncVersion
+import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncAck
+import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncPayload
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -59,6 +65,8 @@ class FullBackupLocalDataSourceImpl
         private val dayTaskDao: DayTaskDao,
         private val canonicalDayThemeDao: CanonicalDayThemeDao,
         private val canonicalDayThemeBootstrapper: CanonicalDayThemeBootstrapper,
+        private val canonicalOrientationBootstrapper: CanonicalOrientationBootstrapper,
+        private val canonicalOrientationSyncStore: CanonicalOrientationSyncStore,
         private val dailyMetricDao: DailyMetricDao,
         private val chatDao: ChatDao,
         private val reminderDao: ReminderDao,
@@ -97,6 +105,13 @@ class FullBackupLocalDataSourceImpl
         private val userStateIntervalDao: UserStateIntervalDao,
         private val inboxAssociationCache: InboxAssociationCache,
     ) : FullBackupLocalDataSource {
+        override suspend fun loadUnsyncedCanonicalOrientations(): CanonicalOrientationSyncPayload =
+            canonicalOrientationSyncStore.loadUnsynced()
+
+        override suspend fun markCanonicalOrientationsSynced(ack: CanonicalOrientationSyncAck) {
+            canonicalOrientationSyncStore.markSynced(ack)
+        }
+
         override suspend fun loadUnsyncedCanonicalDayThemes(): CanonicalDayThemeSyncPayload {
             canonicalDayThemeBootstrapper.ensureBootstrapped()
             return db.withTransaction {
@@ -185,6 +200,7 @@ class FullBackupLocalDataSourceImpl
 
         override suspend fun loadFullSnapshotBundle(): SnapshotBundle {
             canonicalDayThemeBootstrapper.ensureBootstrapped()
+            canonicalOrientationBootstrapper.ensureBootstrapped()
 
             val (canonicalThemeDefinitions, canonicalDayThemes, canonicalAssignmentDocuments) =
                 db.withTransaction {
@@ -237,6 +253,17 @@ class FullBackupLocalDataSourceImpl
                 themeDefinitions = canonicalThemeDefinitions,
                 dayThemes = canonicalDayThemes,
                 dayThemeAssignmentDocuments = canonicalAssignmentDocuments,
+                managedSubjects = db.orientationDao().getAllManagedSubjects(),
+                orientations = db.orientationDao().getAllOrientations(),
+                aspects = db.orientationDao().getAllAspects(),
+                orientationAssessments = db.orientationDao().getAllAssessments(),
+                orientationAssessmentRevisions = db.orientationDao().getAllAssessmentRevisions(),
+                legacySubjectMappings = db.orientationDao().getAllLegacyMappings(),
+                orientationRelations = db.orientationDao().getAllOrientationRelations(),
+                aspectOrientationRefs = db.orientationDao().getAllAspectOrientationRefs(),
+                workspaceBindings = db.orientationDao().getAllWorkspaceBindings(),
+                workspaceCapabilityInstances = db.orientationDao().getAllWorkspaceCapabilities(),
+                savedOrientationViews = db.orientationDao().getAllSavedViews(),
                 dailyMetrics = dailyMetricDao.getAll().map { it.toSnapshot() },
                 recurringTasks = emptyList(),
                 recurringSeries = canonicalRecurringSeriesDao.getAllSync().map { it.toSnapshot() },
@@ -676,6 +703,7 @@ class FullBackupLocalDataSourceImpl
             Log.d("SyncV2", "--- Data insertion finished. Ensuring system contexts. ---")
             // Ensure system contexts exist after all other data is inserted.
             systemContextEnsurer.ensureAllSystemContextsExist()
+            db.orientationDao().storeCanonicalPayload(bundle, merge = true)
         }
 
         override suspend fun applySnapshotBundle(bundle: SnapshotBundle) {
@@ -696,6 +724,9 @@ class FullBackupLocalDataSourceImpl
             db.withTransaction {
                 Log.d("SyncV2", "Applying bundle V${bundle.version} in Merge Mode")
                 insertBundleData(bundle)
+            }
+            if (!bundle.hasCanonicalOrientationPayload()) {
+                canonicalOrientationBootstrapper.ensureBootstrapped()
             }
             // InboxRecordLink is a rebuildable local cache, never backup authority.
             inboxAssociationCache.rebuild()
@@ -780,6 +811,7 @@ class FullBackupLocalDataSourceImpl
                 Log.d("SyncV1", "Migrating Legacy V1 to Snapshot V2")
                 insertBundleData(snapshotBundle)
             }
+            canonicalOrientationBootstrapper.ensureBootstrapped()
             inboxAssociationCache.rebuild()
         }
 

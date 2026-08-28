@@ -18,6 +18,8 @@ import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.SyncChange
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalDayThemePayload
+import com.romankozak.forwardappmobile.core.data.models.sync.hasCanonicalOrientationPayload
+import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalOrientationPayload
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toCanonicalEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toCanonicalSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toEntity
@@ -26,6 +28,8 @@ import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.data.daythemes.CanonicalDayThemeBootstrapper
 import com.romankozak.forwardappmobile.data.daythemes.planCanonicalDayThemeMerge
 import com.romankozak.forwardappmobile.data.daythemes.planLegacyDayThemeMerge
+import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationBootstrapper
+import com.romankozak.forwardappmobile.data.orientation.storeCanonicalPayload
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
@@ -57,6 +61,7 @@ class MergeLocalDataSourceImpl
         private val dayTaskDao: DayTaskDao,
         private val canonicalDayThemeDao: CanonicalDayThemeDao,
         private val canonicalDayThemeBootstrapper: CanonicalDayThemeBootstrapper,
+        private val canonicalOrientationBootstrapper: CanonicalOrientationBootstrapper,
         private val dailyMetricDao: DailyMetricDao,
         private val reminderDao: ReminderDao,
         private val tacticalMissionDao: TacticalMissionDao,
@@ -211,6 +216,7 @@ class MergeLocalDataSourceImpl
 
         override suspend fun applySnapshotBundle(bundle: SnapshotBundle) {
             requireValidCanonicalDayThemePayload(bundle)
+            requireValidCanonicalOrientationPayload(bundle)
 
             val hasCanonicalDayThemePayload =
                 bundle.themeDefinitions != null &&
@@ -575,10 +581,14 @@ class MergeLocalDataSourceImpl
                 mainBeaconDao.insertContextCrossRefs(bundle.mainBeaconContextCrossRefs.map { it.toEntity() })
                 mainBeaconDao.insertAttachmentCrossRefs(bundle.mainBeaconAttachmentCrossRefs.map { it.toEntity() })
                 mainBeaconDao.insertLevelStatuses(bundle.mainBeaconLevelStatuses.map { it.toEntity() })
+                db.orientationDao().storeCanonicalPayload(bundle, merge = true)
             }
             // InboxRecordLink is a local materialized cache only.
             // Rebuild it from canonical InboxRecord + Context.tags after import.
             inboxAssociationCache.rebuild()
+            if (!bundle.hasCanonicalOrientationPayload()) {
+                canonicalOrientationBootstrapper.ensureBootstrapped()
+            }
 
             bundle.dayManagementRuntimeState?.let { runtimeState ->
                 Log.i(

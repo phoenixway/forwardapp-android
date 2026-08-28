@@ -360,6 +360,42 @@ class ContextClipboardCoordinator
             )
         }
 
+        suspend fun pasteIntoNoBeacon(
+            allProjects: List<Context>,
+        ): ContextClipboardResult {
+            val current = payload.value ?: return ContextClipboardResult("Буфер порожній")
+            if (current.operation != Operation.CUT) {
+                return ContextClipboardResult("У No beacon можна лише перемістити контекст")
+            }
+
+            val sources = resolveClipboardContexts(allProjects, current)
+            if (sources.isEmpty()) {
+                clear()
+                return ContextClipboardResult("Контекст у буфері більше не існує")
+            }
+
+            val contextIds = sources.mapTo(linkedSetOf()) { it.id }
+            withContext(ioDispatcher) {
+                sources.forEach { source ->
+                    detachContextFromDisplayedLocation(
+                        source = source,
+                        sourceParentId = current.sourceParentIds[source.id],
+                    )
+                }
+                mainBeaconRepository.removeContextsFromAllBeacons(contextIds)
+            }
+
+            clear()
+            return ContextClipboardResult(
+                toast =
+                    if (sources.size == 1) {
+                        "Контекст переміщено в No beacon"
+                    } else {
+                        "Контексти переміщено в No beacon: ${sources.size}"
+                    },
+            )
+        }
+
         suspend fun addContextAppearance(
             parentContext: Context,
             allProjects: List<Context>,

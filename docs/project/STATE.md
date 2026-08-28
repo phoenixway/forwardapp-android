@@ -130,7 +130,8 @@ recurrence-v2 semantics.
 ### Canonical Day Theme persistence authority
 
 Android canonical Day Theme persistence was introduced by Room database
-version 148. The current Room database version is 149.
+version 148. The current Room database version is 150; migration 149 -> 150
+adds the separate canonical Orientation shadow-persistence boundary.
 
 Database migration 146 -> 147 introduces the canonical persistence tables:
 
@@ -147,7 +148,7 @@ migration/bootstrap boundary. Current runtime, merge, restore, and sync
 authority is the canonical trio rather than the legacy JSON document.
 
 The real Room migration and bootstrap path is acceptance-tested from a
-database-146 fixture through migrations 146 -> 147 -> 148 and then through
+database-146 fixture through the current schema 150 and then through
 `CanonicalDayThemeBootstrapper`. The verified path preserves the legacy input,
 creates canonical definitions, per-day themes and assignment documents, writes
 the bootstrap version marker, is idempotent on a second bootstrap, and passes
@@ -253,10 +254,10 @@ relation collections use authoritative replacement semantics.
 Targeted Desktop sync coverage is green at 21/21 tests together with TypeScript
 type checking.
 
-### Orientation contract read-only foundation
+### Orientation contract and canonical shadow persistence
 
-Phase 2 of the accepted Orientation/Aspect/Workspace refactor is implemented as
-a read-only foundation.
+Phases 2 and 3 of the accepted Orientation/Aspect/Workspace refactor are
+implemented as shared contracts plus a canonical shadow-persistence boundary.
 
 `shared-core-data-models` owns Orientation contract v1 platform-neutral types,
 including ManagedSubject, Orientation, Aspect, assessment/value origins,
@@ -273,12 +274,33 @@ Source-backed Arc Quests remain placements of their source rather than becoming
 duplicate Orientations. Context classification remains a review-required
 suggestion.
 
-No new persistence or write authority exists yet. Room schema, SnapshotBundle,
-Desktop sync ownership, navigation, and UI remain unchanged. Final
-deterministic legacy UUID mapping and canonical persistence belong to Phase 3.
+Room schema 150 now persists constrained ManagedSubject identity,
+Orientations, Aspects, current and revision assessments, durable legacy
+mappings, typed relations, Aspect membership, Workspace bindings and
+capability instances, and versioned saved views. A transactional bootstrap
+materializes deterministic UUIDv5 shadow rows for Beacon, Beacon Group, Goal,
+Direction, ThemeDefinition, and manual Arc Quest sources without deleting or
+rewriting legacy rows. New sources are added idempotently; collisions and
+semantic/axis divergence are persisted as blocking diagnostics.
 
-Shared JVM and JS tests, generated TypeScript validation, and the focused
-Android adapter unit test are green.
+SnapshotBundle carries the eleven canonical collections atomically. Android
+backup/restore and merge validate the domain references and use
+version-then-timestamp freshness, including tombstone anti-resurrection.
+Android Wi-Fi sends a full atomic set when any canonical row is dirty and
+acknowledges exact `(id, version)` pairs. Desktop stores the set as
+Android-read-only authoritative projection and strips it from all
+Android-bound payloads.
+
+Existing specialized entities and feature repositories remain runtime write
+authority. An edit to an already mapped legacy row is detected as divergence;
+it is not silently dual-written into canonical state. No Context has been
+classified, no ownership cutover has occurred, and no UI/navigation behavior
+uses the canonical rows yet.
+
+Shared JVM/JS contract tests, Room migration and clean-restore acceptance,
+bootstrap/UUID/payload tests, Android Wi-Fi delta/ack coverage, Desktop
+ownership tests, and Desktop TypeScript checking are green for the implemented
+boundary.
 
 ## Known documentation constraint
 

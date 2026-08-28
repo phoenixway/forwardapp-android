@@ -7,6 +7,7 @@ import androidx.room.Room
 import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.dao.ScriptDao
 import com.romankozak.forwardappmobile.data.database.ALL_MIGRATIONS
+import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
@@ -195,6 +196,10 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideCanonicalDayThemeDao(appDatabase: AppDatabase) = appDatabase.canonicalDayThemeDao()
+
+    @Provides
+    @Singleton
+    fun provideOrientationDao(appDatabase: AppDatabase): OrientationDao = appDatabase.orientationDao()
 
     @Provides
     @Singleton

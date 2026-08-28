@@ -6,6 +6,7 @@ import androidx.work.Configuration
 import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.core.storage.getDocumentsLogsDir
 import com.romankozak.forwardappmobile.data.daythemes.CanonicalDayThemeBootstrapper
+import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationBootstrapper
 import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
@@ -28,6 +29,8 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
     @Inject lateinit var tagAssociationHandler: TagAssociationHandler
 
     @Inject lateinit var canonicalDayThemeBootstrapper: CanonicalDayThemeBootstrapper
+
+    @Inject lateinit var canonicalOrientationBootstrapper: CanonicalOrientationBootstrapper
 
     @Inject lateinit var contextRepository: ContextRepository
 
@@ -79,6 +82,21 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
                 }
             }.onFailure {
                 Timber.e(it, "Failed to bootstrap canonical Day Themes")
+            }
+
+            runCatching {
+                canonicalOrientationBootstrapper.ensureBootstrapped()
+            }.onSuccess { report ->
+                if (report.performed) {
+                    Timber.i(
+                        "Canonical Orientation bootstrap: materialized=%d compared=%d issues=%d",
+                        report.materialized,
+                        report.compared,
+                        report.issues.size,
+                    )
+                }
+            }.onFailure {
+                Timber.e(it, "Failed to bootstrap canonical Orientations")
             }
 
             runCatching {

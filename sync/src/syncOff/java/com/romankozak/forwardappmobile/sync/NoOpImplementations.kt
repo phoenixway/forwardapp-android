@@ -44,6 +44,11 @@ class NoOpFullBackupLocalDataSource @Inject constructor() : FullBackupLocalDataS
     override suspend fun markCanonicalDayThemesSynced(
         ack: com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncAck,
     ) { /* no-op */ }
+    override suspend fun loadUnsyncedCanonicalOrientations() =
+        com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncPayload()
+    override suspend fun markCanonicalOrientationsSynced(
+        ack: com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncAck,
+    ) { /* no-op */ }
     override suspend fun restoreDatabaseFromBackup(content: DatabaseContent) {
         Log.d("NoOpSync", "NoOpFullBackupLocalDataSource: restoreDatabaseFromBackup called")
     }

@@ -116,6 +116,13 @@ The following directories contain subsystem documentation:
   semantics, and Android read-only compatibility projections. It explicitly
   records that current persistence and UI authority are unchanged.
 
+`architecture/orientation-workspace-refactor/PHASE3-IMPLEMENTATION.md`
+- `CURRENT`
+- Implemented Room schema 150 canonical shadow persistence, deterministic
+  legacy UUIDv5 mappings, idempotent/divergence-blocking bootstrap, atomic
+  SnapshotBundle collections, Android exact-version sync acknowledgement, and
+  Desktop Android-read-only ownership. Runtime/UI authority remains legacy.
+
 These directories currently contain a mixture of current, historical,
 proposed, and reference material.
 

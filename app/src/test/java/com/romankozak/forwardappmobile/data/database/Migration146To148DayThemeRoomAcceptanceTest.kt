@@ -26,7 +26,7 @@ class Migration146To148DayThemeRoomAcceptanceTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun migrate146To148_thenBootstrapLegacyDocumentIntoCanonicalAuthority() {
+    fun migrate146To150_thenBootstrapLegacyDocumentIntoCanonicalAuthority() {
         val dbName = "migration_146_148_day_theme_room_acceptance"
 
         createFixtureDatabase(dbName)
@@ -37,6 +37,7 @@ class Migration146To148DayThemeRoomAcceptanceTest {
                     MIGRATION_146_147,
                     MIGRATION_147_148,
                     MIGRATION_148_149,
+                    MIGRATION_149_150,
                 )
                 .allowMainThreadQueries()
                 .build()
@@ -44,12 +45,20 @@ class Migration146To148DayThemeRoomAcceptanceTest {
         try {
             val db = room.openHelper.writableDatabase
 
-            assertEquals(149L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(150L, scalarLong(db, "PRAGMA user_version"))
             assertTrue(tableExists(db, "day_theme_documents"))
             assertTrue(tableExists(db, "theme_definitions"))
             assertTrue(tableExists(db, "day_themes"))
             assertTrue(tableExists(db, "day_theme_assignment_documents"))
             assertTrue(tableExists(db, "day_theme_canonical_bootstrap_state"))
+            assertTrue(tableExists(db, "managed_subjects"))
+            assertTrue(tableExists(db, "orientations"))
+            assertTrue(tableExists(db, "orientation_assessments"))
+            assertTrue(tableExists(db, "orientation_assessment_revisions"))
+            assertTrue(tableExists(db, "legacy_subject_mappings"))
+            assertTrue(tableExists(db, "aspects"))
+            assertTrue(tableExists(db, "workspace_bindings"))
+            assertTrue(tableExists(db, "orientation_bootstrap_state"))
 
             db.query(
                 """

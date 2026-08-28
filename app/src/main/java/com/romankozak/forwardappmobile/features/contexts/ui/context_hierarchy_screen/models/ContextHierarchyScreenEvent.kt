@@ -142,6 +142,8 @@ sealed interface ContextHierarchyScreenEvent {
 
     data class PasteContextLinksIntoBeacon(val beaconNodeId: String) : ContextHierarchyScreenEvent
 
+    data object PasteContextLinksIntoNoBeacon : ContextHierarchyScreenEvent
+
     data class CopyBeacon(val beaconNodeId: String) : ContextHierarchyScreenEvent
 
     data class CopyBeaconAsLink(val beaconNodeId: String) : ContextHierarchyScreenEvent

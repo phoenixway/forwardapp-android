@@ -7,11 +7,15 @@ import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
 import com.romankozak.forwardappmobile.core.data.models.sync.SettingsContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalDayThemePayload
+import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalOrientationPayload
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.CanonicalRecurringSeriesSnapshot
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncAck
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncPayload
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncVersion
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalRecurringSeriesSyncVersion
+import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncAck
+import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncPayload
+import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncVersion
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import com.romankozak.forwardappmobile.sync.datasource.SyncLocalDataSource
 import com.romankozak.forwardappmobile.sync.datasource.SyncSettingsSource
@@ -32,23 +36,55 @@ internal data class CanonicalWifiPushPlan(
     val snapshotDelta: SnapshotBundle,
     val recurringSeriesAck: List<CanonicalRecurringSeriesSyncVersion>,
     val dayThemesAck: CanonicalDayThemeSyncAck,
+    val orientationsAck: CanonicalOrientationSyncAck,
 )
 
 internal fun CanonicalDayThemeSyncPayload.hasChanges(): Boolean =
     themeDefinitions.isNotEmpty() || dayThemes.isNotEmpty() || assignmentDocuments.isNotEmpty()
 
+internal fun CanonicalOrientationSyncPayload.hasChanges(): Boolean =
+    managedSubjects.isNotEmpty() ||
+        orientations.isNotEmpty() ||
+        aspects.isNotEmpty() ||
+        assessments.isNotEmpty() ||
+        assessmentRevisions.isNotEmpty() ||
+        legacyMappings.isNotEmpty() ||
+        relations.isNotEmpty() ||
+        aspectRefs.isNotEmpty() ||
+        workspaceBindings.isNotEmpty() ||
+        workspaceCapabilities.isNotEmpty() ||
+        savedViews.isNotEmpty()
+
+private fun CanonicalOrientationSyncPayload.toAck() =
+    CanonicalOrientationSyncAck(
+        managedSubjects = managedSubjects.map { CanonicalOrientationSyncVersion(it.id, it.version) },
+        assessments = assessments.map { CanonicalOrientationSyncVersion(it.orientationId, it.version) },
+        assessmentRevisions = assessmentRevisions.map { CanonicalOrientationSyncVersion(it.id, it.version) },
+        legacyMappings = legacyMappings.map { CanonicalOrientationSyncVersion(it.id, it.version) },
+        relations = relations.map { CanonicalOrientationSyncVersion(it.id, it.version) },
+        aspectRefs = aspectRefs.map { CanonicalOrientationSyncVersion(it.id, it.version) },
+        workspaceBindings = workspaceBindings.map { CanonicalOrientationSyncVersion(it.id, it.version) },
+        workspaceCapabilities = workspaceCapabilities.map { CanonicalOrientationSyncVersion(it.id, it.version) },
+        savedViews = savedViews.map { CanonicalOrientationSyncVersion(it.id, it.version) },
+    )
+
 internal fun shouldPushCanonicalWifi(
     databaseIsEmpty: Boolean,
     dirtyCanonicalSeries: List<CanonicalRecurringSeriesSnapshot>,
     dirtyCanonicalDayThemes: CanonicalDayThemeSyncPayload = CanonicalDayThemeSyncPayload(),
+    dirtyCanonicalOrientations: CanonicalOrientationSyncPayload = CanonicalOrientationSyncPayload(),
 ): Boolean =
-    !databaseIsEmpty || dirtyCanonicalSeries.isNotEmpty() || dirtyCanonicalDayThemes.hasChanges()
+    !databaseIsEmpty ||
+        dirtyCanonicalSeries.isNotEmpty() ||
+        dirtyCanonicalDayThemes.hasChanges() ||
+        dirtyCanonicalOrientations.hasChanges()
 
 internal fun buildCanonicalWifiPushPlan(
     source: DatabaseContent,
     fullSnapshot: SnapshotBundle,
     dirtyCanonicalSeries: List<CanonicalRecurringSeriesSnapshot>,
     dirtyCanonicalDayThemes: CanonicalDayThemeSyncPayload = CanonicalDayThemeSyncPayload(),
+    dirtyCanonicalOrientations: CanonicalOrientationSyncPayload = CanonicalOrientationSyncPayload(),
 ): CanonicalWifiPushPlan =
     CanonicalWifiPushPlan(
         snapshotDelta =
@@ -58,6 +94,7 @@ internal fun buildCanonicalWifiPushPlan(
                 explicitCanonicalSeriesIds =
                     dirtyCanonicalSeries.mapTo(hashSetOf()) { it.id },
                 explicitCanonicalDayThemes = dirtyCanonicalDayThemes,
+                explicitCanonicalOrientations = dirtyCanonicalOrientations,
             ),
         recurringSeriesAck =
             dirtyCanonicalSeries.map { series ->
@@ -81,6 +118,7 @@ internal fun buildCanonicalWifiPushPlan(
                         CanonicalDayThemeSyncVersion(item.dayPlanId, item.version)
                     },
             ),
+        orientationsAck = dirtyCanonicalOrientations.toAck(),
     )
 
 internal fun buildCanonicalSnapshotDelta(
@@ -88,6 +126,7 @@ internal fun buildCanonicalSnapshotDelta(
     fullSnapshot: SnapshotBundle,
     explicitCanonicalSeriesIds: Set<String> = emptySet(),
     explicitCanonicalDayThemes: CanonicalDayThemeSyncPayload = CanonicalDayThemeSyncPayload(),
+    explicitCanonicalOrientations: CanonicalOrientationSyncPayload = CanonicalOrientationSyncPayload(),
 ): SnapshotBundle {
     val dayPlanIds = source.dayPlans.mapTo(hashSetOf()) { it.id }
     val dayFocusItemIds = source.dayFocusItems.mapTo(hashSetOf()) { it.id }
@@ -98,6 +137,7 @@ internal fun buildCanonicalSnapshotDelta(
     source.dayFocusItems.mapNotNullTo(requiredCanonicalSeriesIds) { it.recurrenceSeriesId }
 
     val includeCanonicalDayThemes = explicitCanonicalDayThemes.hasChanges()
+    val includeCanonicalOrientations = explicitCanonicalOrientations.hasChanges()
 
     val fullThemeDefinitions =
         if (includeCanonicalDayThemes) {
@@ -166,10 +206,26 @@ internal fun buildCanonicalSnapshotDelta(
                     series.id in requiredCanonicalSeriesIds
                 },
             dayManagementRuntimeState = fullSnapshot.dayManagementRuntimeState,
+            managedSubjects = explicitCanonicalOrientations.managedSubjects.takeIf { includeCanonicalOrientations },
+            orientations = explicitCanonicalOrientations.orientations.takeIf { includeCanonicalOrientations },
+            aspects = explicitCanonicalOrientations.aspects.takeIf { includeCanonicalOrientations },
+            orientationAssessments = explicitCanonicalOrientations.assessments.takeIf { includeCanonicalOrientations },
+            orientationAssessmentRevisions =
+                explicitCanonicalOrientations.assessmentRevisions.takeIf { includeCanonicalOrientations },
+            legacySubjectMappings = explicitCanonicalOrientations.legacyMappings.takeIf { includeCanonicalOrientations },
+            orientationRelations = explicitCanonicalOrientations.relations.takeIf { includeCanonicalOrientations },
+            aspectOrientationRefs = explicitCanonicalOrientations.aspectRefs.takeIf { includeCanonicalOrientations },
+            workspaceBindings = explicitCanonicalOrientations.workspaceBindings.takeIf { includeCanonicalOrientations },
+            workspaceCapabilityInstances =
+                explicitCanonicalOrientations.workspaceCapabilities.takeIf { includeCanonicalOrientations },
+            savedOrientationViews = explicitCanonicalOrientations.savedViews.takeIf { includeCanonicalOrientations },
         )
 
     if (includeCanonicalDayThemes) {
         requireValidCanonicalDayThemePayload(result)
+    }
+    if (includeCanonicalOrientations) {
+        requireValidCanonicalOrientationPayload(result)
     }
 
     return result
@@ -210,9 +266,10 @@ class SyncWifiService @Inject constructor(
             val unsynced = localDataSource.getUnsyncedChanges()
             val dirtyCanonicalSeries = fullBackupLocalDataSource.loadUnsyncedCanonicalRecurringSeries()
             val dirtyCanonicalDayThemes = fullBackupLocalDataSource.loadUnsyncedCanonicalDayThemes()
+            val dirtyCanonicalOrientations = fullBackupLocalDataSource.loadUnsyncedCanonicalOrientations()
             val databaseIsEmpty = isEmptyDatabaseContent(unsynced)
 
-            if (!shouldPushCanonicalWifi(databaseIsEmpty, dirtyCanonicalSeries, dirtyCanonicalDayThemes)) {
+            if (!shouldPushCanonicalWifi(databaseIsEmpty, dirtyCanonicalSeries, dirtyCanonicalDayThemes, dirtyCanonicalOrientations)) {
                 Result.success(Unit)
             } else {
                 val fullSnapshot = fullBackupLocalDataSource.loadFullSnapshotBundle()
@@ -222,6 +279,7 @@ class SyncWifiService @Inject constructor(
                         fullSnapshot = fullSnapshot,
                         dirtyCanonicalSeries = dirtyCanonicalSeries,
                         dirtyCanonicalDayThemes = dirtyCanonicalDayThemes,
+                        dirtyCanonicalOrientations = dirtyCanonicalOrientations,
                     )
                 val fullUrl = buildWifiUrl(address, "/import")
                 val backupWrapper =
@@ -242,6 +300,9 @@ class SyncWifiService @Inject constructor(
                     )
                     fullBackupLocalDataSource.markCanonicalDayThemesSynced(
                         pushPlan.dayThemesAck,
+                    )
+                    fullBackupLocalDataSource.markCanonicalOrientationsSynced(
+                        pushPlan.orientationsAck,
                     )
                     Result.success(Unit)
                 } else {

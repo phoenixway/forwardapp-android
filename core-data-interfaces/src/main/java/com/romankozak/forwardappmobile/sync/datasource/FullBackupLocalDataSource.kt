@@ -6,6 +6,17 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_manag
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayThemeAssignmentDocumentSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayThemeSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.ThemeDefinitionSnapshot
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.AspectEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.AspectOrientationRefEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentRevisionEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationRelationEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.SavedOrientationViewEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBindingEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 
 data class CanonicalRecurringSeriesSyncVersion(
     val id: String,
@@ -29,6 +40,34 @@ data class CanonicalDayThemeSyncAck(
     val assignmentDocuments: List<CanonicalDayThemeSyncVersion> = emptyList(),
 )
 
+data class CanonicalOrientationSyncPayload(
+    val managedSubjects: List<ManagedSubjectEntity> = emptyList(),
+    val orientations: List<OrientationEntity> = emptyList(),
+    val aspects: List<AspectEntity> = emptyList(),
+    val assessments: List<OrientationAssessmentEntity> = emptyList(),
+    val assessmentRevisions: List<OrientationAssessmentRevisionEntity> = emptyList(),
+    val legacyMappings: List<LegacySubjectMappingEntity> = emptyList(),
+    val relations: List<OrientationRelationEntity> = emptyList(),
+    val aspectRefs: List<AspectOrientationRefEntity> = emptyList(),
+    val workspaceBindings: List<WorkspaceBindingEntity> = emptyList(),
+    val workspaceCapabilities: List<WorkspaceCapabilityInstanceEntity> = emptyList(),
+    val savedViews: List<SavedOrientationViewEntity> = emptyList(),
+)
+
+data class CanonicalOrientationSyncVersion(val id: String, val version: Long)
+
+data class CanonicalOrientationSyncAck(
+    val managedSubjects: List<CanonicalOrientationSyncVersion> = emptyList(),
+    val assessments: List<CanonicalOrientationSyncVersion> = emptyList(),
+    val assessmentRevisions: List<CanonicalOrientationSyncVersion> = emptyList(),
+    val legacyMappings: List<CanonicalOrientationSyncVersion> = emptyList(),
+    val relations: List<CanonicalOrientationSyncVersion> = emptyList(),
+    val aspectRefs: List<CanonicalOrientationSyncVersion> = emptyList(),
+    val workspaceBindings: List<CanonicalOrientationSyncVersion> = emptyList(),
+    val workspaceCapabilities: List<CanonicalOrientationSyncVersion> = emptyList(),
+    val savedViews: List<CanonicalOrientationSyncVersion> = emptyList(),
+)
+
 interface FullBackupLocalDataSource {
     // === Legacy Methods ===
     suspend fun loadFullDatabaseContent(): DatabaseContent
@@ -50,6 +89,10 @@ interface FullBackupLocalDataSource {
     suspend fun loadCanonicalDayThemesChangedSince(timestamp: Long): CanonicalDayThemeSyncPayload
 
     suspend fun markCanonicalDayThemesSynced(ack: CanonicalDayThemeSyncAck)
+
+    suspend fun loadUnsyncedCanonicalOrientations(): CanonicalOrientationSyncPayload
+
+    suspend fun markCanonicalOrientationsSynced(ack: CanonicalOrientationSyncAck)
 
     suspend fun restoreSettings(settings: Map<String, String>)
 

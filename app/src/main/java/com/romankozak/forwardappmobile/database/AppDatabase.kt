@@ -50,6 +50,17 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
 import com.romankozak.forwardappmobile.core.data.models.entities.ScriptEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.SystemAppEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.UserStateIntervalEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.AspectEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.AspectOrientationRefEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentRevisionEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationRelationEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.SavedOrientationViewEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBindingEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.AiEventEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.AiInsightEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.ChatMessageEntity
@@ -112,6 +123,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalMissionDao
 import com.romankozak.forwardappmobile.features.missions.data.TacticalActivitySlotDao
 import com.romankozak.forwardappmobile.features.missions.data.TacticalIterationDao
 import com.romankozak.forwardappmobile.features.missions.data.MissionStreamDao
+import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 
 @Database(
     entities = [
@@ -176,13 +188,26 @@ import com.romankozak.forwardappmobile.features.missions.data.MissionStreamDao
         LifeManagementLevelStatusEntity::class,
         LifeSystemStateEntity::class,
         UserStateIntervalEntity::class,
+        ManagedSubjectEntity::class,
+        OrientationEntity::class,
+        AspectEntity::class,
+        OrientationAssessmentEntity::class,
+        OrientationAssessmentRevisionEntity::class,
+        LegacySubjectMappingEntity::class,
+        OrientationRelationEntity::class,
+        AspectOrientationRefEntity::class,
+        WorkspaceBindingEntity::class,
+        WorkspaceCapabilityInstanceEntity::class,
+        SavedOrientationViewEntity::class,
+        com.romankozak.forwardappmobile.data.database.OrientationBootstrapStateEntity::class,
+        com.romankozak.forwardappmobile.data.database.OrientationBootstrapIssueEntity::class,
         AiInsightEntity::class,
         GoalFts::class,
         ContextsFts::class,
         ActivityRecordFts::class,
         LegacyNoteFts::class,
     ],
-    version = 149,
+    version = 150,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -282,4 +307,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun aiInsightDao(): AiInsightDao
 
     abstract fun userStateIntervalDao(): UserStateIntervalDao
+
+    abstract fun orientationDao(): OrientationDao
 }

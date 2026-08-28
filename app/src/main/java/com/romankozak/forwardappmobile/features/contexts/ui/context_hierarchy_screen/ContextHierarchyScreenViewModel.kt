@@ -709,6 +709,15 @@ class ContextHierarchyScreenViewModel
                         )
                     }
                 }
+                ContextHierarchyScreenEvent.PasteContextLinksIntoNoBeacon -> {
+                    viewModelScope.launch {
+                        emitClipboardResult(
+                            contextClipboardCoordinator.pasteIntoNoBeacon(
+                                allProjects = _allProjectsFlat.value,
+                            ),
+                        )
+                    }
+                }
                 is ContextHierarchyScreenEvent.CopyBeacon -> {
                     val toast = contextClipboardCoordinator.copyBeacon(event.beaconNodeId)
                     viewModelScope.launch {

@@ -74,10 +74,11 @@ not infer lifecycle, `relativeSize` is not mapped, Theme archived state remains
 specialized, and unknown numeric score values remain unset instead of being
 clamped.
 
-The adapters require a `LegacySubjectIdResolver`. Phase 2 deliberately does not
-generate or persist final IDs. Phase 3 will own deterministic UUIDv5 generation
-and the durable mapping table. Requiring an injected resolver prevents a
-read-only projection from becoming accidental identity authority.
+The adapters require a `LegacySubjectIdResolver`. Phase 2 deliberately did not
+generate or persist final IDs. The implemented Phase 3 boundary now owns
+deterministic UUIDv5 generation and the durable mapping table; see
+[PHASE3-IMPLEMENTATION.md](PHASE3-IMPLEMENTATION.md). Requiring an injected
+resolver keeps the compatibility projection itself outside identity authority.
 
 ## Authority boundaries
 
