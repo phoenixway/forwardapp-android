@@ -1,10 +1,11 @@
 # Orientation, Aspect, and Workspace Architecture Rules
 
-Status: PROPOSED
+Status: DECIDED
 
-These are implementation invariants for the proposed architecture in
-[PROPOSAL.md](PROPOSAL.md). They do not describe the current persisted model and
-do not make the refactor a committed roadmap item.
+These are accepted implementation invariants for the target architecture in
+[PROPOSAL.md](PROPOSAL.md). They do not describe the current persisted model.
+Exact v1 vocabulary and matrices are defined in
+[DOMAIN-CONTRACT.md](DOMAIN-CONTRACT.md).
 
 ## Scope
 

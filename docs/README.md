@@ -75,19 +75,40 @@ The following directories contain subsystem documentation:
 ### Orientation and Workspace refactor
 
 `architecture/orientation-workspace-refactor/PROPOSAL.md`
-- `PROPOSED`
+- `DECIDED`
 - Target domain model separating Orientations, configurable Workspaces,
   first-class Aspects, placements, planning, and execution.
 
 `architecture/orientation-workspace-refactor/PLAN.md`
-- `PROPOSED`
+- `DECIDED`
 - Detailed incremental migration and feature-preservation plan for the proposed
   Orientation and Workspace refactor.
 
 `architecture/orientation-workspace-refactor/RULES.md`
-- `PROPOSED`
+- `DECIDED`
 - Implementation invariants for semantic identity, capabilities, relations,
   assessment history, attribution, queries, migration, and UI authorization.
+
+`architecture/orientation-workspace-refactor/BASELINE.md`
+- `CURRENT`
+- Verified Phase 0 inventory of current entities, relationships, capabilities,
+  navigation contracts, version boundaries, and Desktop sync ownership that a
+  future refactor must preserve.
+
+`architecture/orientation-workspace-refactor/baseline-scenarios.json`
+- `CURRENT`
+- Machine-readable preservation assertions and representative fixture
+  scenarios for migration and cross-client comparison.
+
+`architecture/orientation-workspace-refactor/DOMAIN-CONTRACT.md`
+- `DECIDED`
+- Accepted v1 decisions for domain vocabulary, identity, assessment, relations,
+  Workspace capabilities, attribution, filtering, and legacy mapping.
+
+`architecture/orientation-workspace-refactor/domain-contract-v1.json`
+- `DECIDED`
+- Machine-readable value sets and contract matrices corresponding to the
+  accepted Phase 1 domain contract.
 
 These directories currently contain a mixture of current, historical,
 proposed, and reference material.

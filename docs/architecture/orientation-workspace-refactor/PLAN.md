@@ -1,10 +1,9 @@
 # Orientation and Workspace Refactor Plan
 
-Status: PROPOSED
+Status: DECIDED
 
 This plan implements the architecture proposed in [PROPOSAL.md](PROPOSAL.md).
-It is intentionally not listed in the canonical project roadmap until the
-proposal and open domain decisions are accepted.
+The implementation direction is recorded in the canonical project roadmap.
 
 All implementation phases are constrained by [RULES.md](RULES.md).
 
@@ -45,6 +44,12 @@ ForwardApp should have:
 
 Estimated scope: medium.
 
+Current evidence:
+
+- [BASELINE.md](BASELINE.md) records the verified implemented state;
+- [baseline-scenarios.json](baseline-scenarios.json) defines stable preservation
+  assertions and representative fixture scenarios.
+
 ### Work
 
 - Record current database and snapshot versions.
@@ -77,6 +82,15 @@ Estimated scope: medium.
 ## Phase 1 — Accept domain vocabulary and invariants
 
 Estimated scope: small to medium.
+
+Accepted Phase 1 contract:
+
+- [DOMAIN-CONTRACT.md](DOMAIN-CONTRACT.md) contains the accepted decisions and
+  rationale;
+- [domain-contract-v1.json](domain-contract-v1.json) contains the
+  machine-readable value sets and matrices intended for Phase 2 contracts.
+
+Phase status: completed on 2026-08-28.
 
 ### Decisions
 

@@ -1,0 +1,384 @@
+{
+  "schemaVersion": 1,
+  "status": "CURRENT",
+  "capturedAt": "2026-08-28",
+  "purpose": "Phase 0 machine-readable preservation inventory; seed specification for later migration fixtures and cross-client comparisons.",
+  "sourceVersions": {
+    "androidRoom": 149,
+    "snapshotBundle": 1,
+    "sharedDayModel": 2,
+    "sharedRecurrenceModel": 2
+  },
+  "existingFixtureCoverage": {
+    "resources": [
+      "sync-fixtures/full_base.json",
+      "sync-fixtures/delta_added.json",
+      "sync-fixtures/invalid_fk.json"
+    ],
+    "shape": "legacy Desktop backup schema",
+    "coveredDomains": [
+      "context",
+      "goal",
+      "backlog placement",
+      "document",
+      "attachment"
+    ],
+    "activeGeneralTestGate": false,
+    "limitation": "SyncContractFixturesTest currently contains only a disabled-tests marker; these resources do not cover the full preservation inventory."
+  },
+  "knownCapabilities": [
+    "artifact",
+    "backlog",
+    "connections",
+    "dashboard",
+    "direction",
+    "inbox",
+    "inbox_sorting",
+    "journal_log",
+    "key_problems",
+    "log"
+  ],
+  "reservedContextRoles": [
+    "project",
+    "direction",
+    "aspect",
+    "main-beacon",
+    "management",
+    "crisis_case"
+  ],
+  "navigationTargets": [
+    "ContextHierarchy",
+    "ContextDetail",
+    "ContextStructure",
+    "StructurePresets",
+    "StructurePresetEditor",
+    "ProjectSettings",
+    "GoalSettings",
+    "DayPlan",
+    "DayManagement",
+    "EditTask",
+    "TacticalManagement",
+    "StrategicManagement",
+    "Tracker",
+    "TimeReflection",
+    "NoteDocument",
+    "JournalDocument",
+    "Checklist",
+    "MusicNote",
+    "ScriptEditor",
+    "AttachmentsLibrary",
+    "GlobalSearch",
+    "ListChooser",
+    "Reminders",
+    "ImportExport"
+  ],
+  "assertions": [
+    {
+      "id": "CTX-001",
+      "statement": "Context stable IDs, names, descriptions, primary parents, secondary parent links, ordering, and tombstones survive migration."
+    },
+    {
+      "id": "CTX-002",
+      "statement": "Context roleCode, tags, related links, lifecycle/management fields, scoring inputs and calculated values remain recoverable without changed meaning."
+    },
+    {
+      "id": "CTX-003",
+      "statement": "A Context currently used as a semantic domain remains navigable and retains all attached content even if later classified as or related to an Aspect."
+    },
+    {
+      "id": "CAP-001",
+      "statement": "ADDITIVE capability resolution preserves role defaults, explicit legacy overrides, and experimental capability IDs."
+    },
+    {
+      "id": "CAP-002",
+      "statement": "OVERRIDE capability resolution does not reintroduce role defaults."
+    },
+    {
+      "id": "CAP-003",
+      "statement": "A configuration with no preset or overrides retains the compatibility dashboard default, and legacy attachments remains compatible with connections."
+    },
+    {
+      "id": "CAP-004",
+      "statement": "Backlog, inbox, direction, log, journal log, key problems, sorting, artifacts, connections and their payloads remain addressable and correctly owned."
+    },
+    {
+      "id": "BKL-001",
+      "statement": "Every supported heterogeneous backlog itemType resolves to the same content identity after migration."
+    },
+    {
+      "id": "BKL-002",
+      "statement": "The same semantic content placed in multiple Context backlogs retains distinct placement IDs, association metadata, deletion state and per-list order."
+    },
+    {
+      "id": "BKL-003",
+      "statement": "BacklogOrder orderVersion and special merge semantics are preserved independently from content and placement versions."
+    },
+    {
+      "id": "BKN-001",
+      "statement": "Main Beacon identity and all strategic narrative, readiness, blocker, next-action, ordering and expansion fields survive."
+    },
+    {
+      "id": "BKN-002",
+      "statement": "Main Beacon Group identity, title, description, order and ordered memberships survive independently from member Beacons."
+    },
+    {
+      "id": "BKN-003",
+      "statement": "Beacon parent graph, Context links, Attachment links and per-level statuses preserve endpoints, order and current authoritative-set/composite semantics."
+    },
+    {
+      "id": "ORI-001",
+      "statement": "Goal title, description, status, completion, tags, links, importance, impact, scoring, relative size and cost fields survive with original meaning."
+    },
+    {
+      "id": "ORI-002",
+      "statement": "Direction item identity, Context placement, content, order, version and tombstone survive."
+    },
+    {
+      "id": "ORI-003",
+      "statement": "Manual Arc Quest remains its own identity; source-backed Arc Quest preserves its source identity and does not become a duplicate canonical semantic object."
+    },
+    {
+      "id": "ORI-004",
+      "statement": "ThemeDefinition remains reusable and distinct from its dated DayTheme assignment, budget, order and active state."
+    },
+    {
+      "id": "TAC-001",
+      "statement": "Tactical Mission generated Long identity remains resolvable through any future canonical identity mapping."
+    },
+    {
+      "id": "TAC-002",
+      "statement": "Every MissionSourceType retains source Context/backlog/ArcQuest/carry-forward provenance as applicable."
+    },
+    {
+      "id": "TAC-003",
+      "statement": "Mission status, priority, deadline, week, iteration, stream, activity slot, Context links, attachments and all ordering dimensions survive."
+    },
+    {
+      "id": "DAY-001",
+      "statement": "Day Plan identity, date, state, reflection, linked entities and aggregate fields survive."
+    },
+    {
+      "id": "DAY-002",
+      "statement": "Day Focus and Responsibility retain type, budget, notes, links, order and recurrence provenance."
+    },
+    {
+      "id": "DAY-003",
+      "statement": "Day Task retains Goal, Context, Activity, recurrence, task source, scheduling, status, priority, scoring copies, tags and attachments."
+    },
+    {
+      "id": "DAY-004",
+      "statement": "Legacy day-theme payload and canonical theme payload preserve absent-versus-empty semantics through import and sync."
+    },
+    {
+      "id": "JRN-001",
+      "statement": "An ongoing activity remains one record with startTime set and endTime null; completing it updates that identity rather than duplicating it."
+    },
+    {
+      "id": "JRN-002",
+      "statement": "Activity kind, notes, timestamps, reminder, target, multiple entity links and legacy Goal/Context compatibility fields survive."
+    },
+    {
+      "id": "JRN-003",
+      "statement": "Daily metrics, focus Context intervals and user-state intervals remain usable by reflection with current Android ownership."
+    },
+    {
+      "id": "DEL-001",
+      "statement": "Deleted versioned rows remain tombstoned and cannot be resurrected by an older snapshot or legacy projection."
+    },
+    {
+      "id": "DEL-002",
+      "statement": "Orphan-like rows accepted by current storage are reported and preserved or quarantined; they are never silently dropped or guessed into a relation."
+    },
+    {
+      "id": "DEL-003",
+      "statement": "Authoritative-set relations, local composite relations and versioned tombstones retain their distinct deletion semantics until explicit cutover."
+    },
+    {
+      "id": "NAV-001",
+      "statement": "Existing Context detail arguments and highlight/deep-link behavior resolve to the same visible subject."
+    },
+    {
+      "id": "NAV-002",
+      "statement": "Main Beacon/Core, Strategic, Tactical, Day, Journal and Reflection destinations remain reachable from their existing entry points."
+    },
+    {
+      "id": "SYN-001",
+      "statement": "Every added canonical collection declares Desktop ownership, receive strategy and push scope in the same phase."
+    },
+    {
+      "id": "SYN-002",
+      "statement": "Existing aliases and collection-specific ownership remain unchanged until an explicit cutover with comparison and repair rules."
+    },
+    {
+      "id": "SYN-003",
+      "statement": "Snapshot round-trip preserves canonical day-theme null-versus-empty presence semantics and all tombstone/version metadata."
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "baseline.context.full-capability",
+      "domain": "context",
+      "records": [
+        "context with role crisis_case and all scoring fields",
+        "ADDITIVE context configuration with one legacy disable and one experimental capability",
+        "context structure items",
+        "inbox sorting payload",
+        "key problems opaque payload",
+        "artifact, inbox, log, direction and attachment content"
+      ],
+      "assertions": ["CTX-001", "CTX-002", "CAP-001", "CAP-004", "SYN-002"]
+    },
+    {
+      "id": "baseline.context.override-and-default",
+      "domain": "context",
+      "records": [
+        "context with no role or configuration overrides",
+        "context with project role and OVERRIDE configuration",
+        "legacy enableAttachments configuration"
+      ],
+      "assertions": ["CAP-002", "CAP-003"]
+    },
+    {
+      "id": "baseline.context.aspect-candidate",
+      "domain": "context",
+      "records": [
+        "domain-like Engineering context with aspect role",
+        "child Context and secondary parent link",
+        "backlog, key problems, documents and attachments"
+      ],
+      "assertions": ["CTX-001", "CTX-003", "CAP-004", "NAV-001"]
+    },
+    {
+      "id": "baseline.backlog.heterogeneous-multi-placement",
+      "domain": "backlog",
+      "records": [
+        "Goal placement",
+        "Context-link placement",
+        "link placement",
+        "legacy note placement",
+        "note document placement",
+        "journal document placement",
+        "checklist placement",
+        "music note placement",
+        "same Goal in two Contexts with different placement and order rows"
+      ],
+      "assertions": ["BKL-001", "BKL-002", "BKL-003", "ORI-001"]
+    },
+    {
+      "id": "baseline.beacon.composite-graph",
+      "domain": "main_beacon",
+      "records": [
+        "two Main Beacons with strategic narratives",
+        "one Main Beacon Group with ordered membership",
+        "legacy parentBeaconId and explicit parent link",
+        "two Context links",
+        "one Attachment link",
+        "status rows for multiple life-management levels"
+      ],
+      "assertions": ["BKN-001", "BKN-002", "BKN-003", "NAV-002"]
+    },
+    {
+      "id": "baseline.orientation-candidates",
+      "domain": "orientation_candidates",
+      "records": [
+        "scored Goal with tags and links",
+        "versioned Direction item",
+        "manual Arc Quest",
+        "Context-, Mission-, Beacon- and Beacon-Group-backed Arc Quests",
+        "ThemeDefinition used on two dates"
+      ],
+      "assertions": ["ORI-001", "ORI-002", "ORI-003", "ORI-004"]
+    },
+    {
+      "id": "baseline.tactical.all-source-types",
+      "domain": "tactical",
+      "records": [
+        "manual Mission",
+        "Context backlog Mission",
+        "slot backlog Mission",
+        "Arc Quest Mission",
+        "previous-week carried Mission",
+        "iteration, stream, activity slot and attachment relations"
+      ],
+      "assertions": ["TAC-001", "TAC-002", "TAC-003", "NAV-002"]
+    },
+    {
+      "id": "baseline.day.complete",
+      "domain": "day",
+      "records": [
+        "Day Plan with reflection and linked Contexts",
+        "Day Focus and Day Responsibility with budgets",
+        "Day Task linked to Goal, Context and Activity",
+        "canonical recurrence series with occurrence provenance",
+        "ThemeDefinition and DayTheme assignments",
+        "legacy day theme document"
+      ],
+      "assertions": ["DAY-001", "DAY-002", "DAY-003", "DAY-004", "ORI-004", "NAV-002"]
+    },
+    {
+      "id": "baseline.journal.ongoing-multilink",
+      "domain": "journal",
+      "records": [
+        "ongoing TIMED_ACTIVITY with Day Task, Focus, Responsibility, Theme, Context and Goal links",
+        "completed timed activity",
+        "EVENT, COMMENT and DAY_SUMMARY records",
+        "focus Context interval",
+        "user-state interval",
+        "daily metrics"
+      ],
+      "assertions": ["JRN-001", "JRN-002", "JRN-003", "DAY-003"]
+    },
+    {
+      "id": "baseline.compatibility.theme-presence",
+      "domain": "snapshot",
+      "variants": [
+        "canonical theme fields absent/null with legacy document present",
+        "canonical theme fields present and empty",
+        "canonical theme fields present and populated"
+      ],
+      "assertions": ["DAY-004", "SYN-003"]
+    },
+    {
+      "id": "baseline.deletion-and-orphans",
+      "domain": "integrity",
+      "records": [
+        "newer deleted versioned row and older live remote row",
+        "deleted Context parent link",
+        "deleted backlog placement and deleted order row",
+        "authoritative-set Beacon relation omitted from newer set",
+        "legacy Goal without a placement",
+        "source-backed Arc Quest whose source is unavailable",
+        "Activity entity link whose target is deleted"
+      ],
+      "assertions": ["DEL-001", "DEL-002", "DEL-003", "SYN-002"]
+    },
+    {
+      "id": "baseline.navigation.representative",
+      "domain": "navigation",
+      "records": [
+        "Context deep link with goal highlight",
+        "Context deep link with inbox highlight and initial view",
+        "Context hierarchy reveal target",
+        "Day Task editor target",
+        "Main Beacon/Core tab entry",
+        "Strategic and Tactical management targets",
+        "Activity Tracker and Time Reflection targets"
+      ],
+      "assertions": ["NAV-001", "NAV-002"]
+    },
+    {
+      "id": "baseline.sync.android-desktop-roundtrip",
+      "domain": "sync",
+      "records": [
+        "one representative row from each bidirectional collection",
+        "one representative Android-read-only collection",
+        "one representative Android-opaque collection",
+        "one alias collection",
+        "one special Day collection",
+        "one authoritative-set Beacon relation",
+        "conflicting versions and tombstones"
+      ],
+      "assertions": ["SYN-001", "SYN-002", "SYN-003", "DEL-001", "DEL-003"]
+    }
+  ]
+}

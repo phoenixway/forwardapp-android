@@ -185,3 +185,41 @@ collection now requires an explicit sync-policy decision covered by tests.
 Context push is a whitelist derived from that policy instead of a whole-database
 projection.
 
+## 2026-08-28 - Orientation, Aspect, and Workspace domain contract v1
+
+Decision:
+
+Adopt `docs/architecture/orientation-workspace-refactor/DOMAIN-CONTRACT.md` as
+the authoritative domain contract for the incremental refactor.
+
+The accepted model separates:
+
+- Orientation as direction, desired outcome, or standard;
+- Aspect as stable domain or lens;
+- Workspace as configurable capability host;
+- placement and semantic relations;
+- planning/commitment;
+- execution and evidence.
+
+`ManagedSubject` is constrained to Orientation and Aspect. Contexts are
+classified individually into Workspace/Aspect/Orientation combinations rather
+than universally converted. Main Beacon Group owns its own assessment. A
+subject and Workspace may participate in at most one primary `EMBODIES`
+binding each. The contract also fixes v1 Orientation kinds, ordered assessment
+axes, lifecycle, relation vocabulary, capability-instance rules, assessment
+history, time attribution, Filter AST semantics, legacy mappings, and stable ID
+strategy.
+
+Reason:
+
+The current entities overlap semantically and technically. Adding another
+metadata layer without canonical identity and ownership would increase
+duplication and ambiguity. The accepted model provides a migration target while
+preserving specialized entities and existing product behavior.
+
+Consequence:
+
+Subsequent phases must follow the accepted contract and incremental plan.
+Existing entities remain authoritative until an explicit cutover. No UI change
+is implied or authorized by this decision. Any contract revision requires a
+new recorded decision and contract version.

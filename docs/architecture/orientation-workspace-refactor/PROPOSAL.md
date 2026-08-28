@@ -1,9 +1,10 @@
 # Orientation and Workspace Domain Refactor
 
-Status: PROPOSED
+Status: DECIDED
 
-This document is a design proposal. It does not describe the current persisted
-architecture and is not an accepted roadmap commitment.
+This document records the accepted target architecture direction. It does not
+describe the current persisted architecture. Precise vocabulary and contracts
+are authoritative in [DOMAIN-CONTRACT.md](DOMAIN-CONTRACT.md).
 
 ## Purpose
 

@@ -1,0 +1,212 @@
+{
+  "schemaVersion": 1,
+  "status": "DECIDED",
+  "preparedAt": "2026-08-28",
+  "acceptedAt": "2026-08-28",
+  "managedSubject": {
+    "allowedTypes": ["ORIENTATION", "ASPECT"],
+    "idType": "UUID_STRING",
+    "newIdStrategy": "UUID_V4",
+    "legacyIdStrategy": "UUID_V5_FIXED_NAMESPACE_SOURCE_TYPE_AND_ID",
+    "workspaceIsSubject": false
+  },
+  "orientationKinds": [
+    "MAIN_BEACON",
+    "MAIN_BEACON_GROUP",
+    "GOAL",
+    "DIRECTION",
+    "MILESTONE",
+    "ONGOING_STANDARD",
+    "OPPORTUNITY",
+    "DAY_THEME",
+    "ARC_QUEST"
+  ],
+  "valueOrigins": [
+    "EXPLICIT",
+    "INHERITED",
+    "DERIVED",
+    "UNSET",
+    "NOT_APPLICABLE"
+  ],
+  "axes": {
+    "IMPORTANCE": ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+    "IMPACT": ["TINY", "SMALL", "MEDIUM", "LARGE", "TRANSFORMATIVE"],
+    "BREADTH": ["LOCAL", "AREA", "SYSTEM", "MULTI_SYSTEM", "LIFE_WIDE"],
+    "EXPECTED_SPAN": ["INSTANT", "DAYS", "WEEKS", "MONTHS", "YEAR_PLUS", "ONGOING"],
+    "TARGET_WINDOW": ["NOW", "THIS_WEEK", "THIS_MONTH", "THIS_QUARTER", "THIS_YEAR", "LATER", "SOMEDAY"],
+    "ATTENTION_TIER": ["P3_LATER", "P2_NEXT", "P1_ACTIVE", "P0_NOW"],
+    "COMMITMENT": ["IDEA", "CANDIDATE", "INTENDED", "COMMITTED", "OBLIGATION"],
+    "CONFIDENCE": ["SPECULATIVE", "POSSIBLE", "LIKELY", "CONFIDENT", "CERTAIN"]
+  },
+  "orientationLifecycle": [
+    "EXPLORING",
+    "READY",
+    "ACTIVE",
+    "PAUSED",
+    "REALIZED",
+    "DROPPED"
+  ],
+  "applicability": {
+    "MAIN_BEACON": "ALL_AXES",
+    "MAIN_BEACON_GROUP": "ALL_AXES",
+    "GOAL": "ALL_AXES",
+    "DIRECTION": "ALL_AXES",
+    "MILESTONE": "ALL_AXES",
+    "OPPORTUNITY": "ALL_AXES",
+    "ARC_QUEST": "ALL_AXES",
+    "ONGOING_STANDARD": {
+      "IMPORTANCE": "APPLICABLE",
+      "IMPACT": "APPLICABLE",
+      "BREADTH": "APPLICABLE",
+      "EXPECTED_SPAN": "DERIVED_ONGOING",
+      "TARGET_WINDOW": "NOT_APPLICABLE",
+      "ATTENTION_TIER": "APPLICABLE",
+      "COMMITMENT": "APPLICABLE",
+      "CONFIDENCE": "APPLICABLE"
+    },
+    "DAY_THEME": {
+      "IMPORTANCE": "APPLICABLE",
+      "IMPACT": "APPLICABLE",
+      "BREADTH": "APPLICABLE",
+      "EXPECTED_SPAN": "NOT_APPLICABLE",
+      "TARGET_WINDOW": "NOT_APPLICABLE",
+      "ATTENTION_TIER": "NOT_APPLICABLE_ON_DEFINITION",
+      "COMMITMENT": "APPLICABLE",
+      "CONFIDENCE": "APPLICABLE"
+    },
+    "ASPECT": "NO_ORIENTATION_AXES"
+  },
+  "aspect": {
+    "parentCardinality": "ZERO_OR_ONE",
+    "hierarchyCycles": "FORBIDDEN",
+    "membershipTypes": ["BELONGS_TO", "RELEVANT_TO"],
+    "maxPrimaryBelongsToPerOrientation": 1,
+    "tagAutoPromotion": false
+  },
+  "workspace": {
+    "parentCardinality": "ZERO_OR_ONE",
+    "hierarchyCycles": "FORBIDDEN",
+    "bindingTypes": ["EMBODIES", "REALIZES", "SUPPORTS", "MONITORS"],
+    "primaryAllowedFor": ["EMBODIES"],
+    "maxPrimaryEmbodiedWorkspacePerSubject": 1,
+    "maxEmbodiedSubjectPerWorkspace": 1,
+    "semanticTitleOwner": "MANAGED_SUBJECT",
+    "operationalTitleOverrideOwner": "WORKSPACE"
+  },
+  "orientationRelations": {
+    "PART_OF": {"direction": "FROM_CHILD_TO_PARENT", "ordered": true, "cycles": "FORBIDDEN"},
+    "SUPPORTS": {"direction": "DIRECTED", "ordered": false, "cycles": "ALLOWED_WITHOUT_SELF_EDGE"},
+    "REALIZES": {"direction": "DIRECTED", "ordered": false, "cycles": "ALLOWED_WITHOUT_SELF_EDGE"},
+    "DEPENDS_ON": {"direction": "DIRECTED", "ordered": false, "cycles": "FORBIDDEN"},
+    "CONFLICTS_WITH": {"direction": "SYMMETRIC_CANONICAL_PAIR", "ordered": false, "cycles": "NOT_APPLICABLE"},
+    "PRECEDES": {"direction": "DIRECTED", "ordered": false, "cycles": "FORBIDDEN"},
+    "REFINES": {"direction": "FROM_SPECIFIC_TO_GENERAL", "ordered": false, "cycles": "FORBIDDEN"},
+    "DERIVED_FROM": {"direction": "FROM_DERIVED_TO_SOURCE", "ordered": false, "cycles": "FORBIDDEN"}
+  },
+  "capabilities": {
+    "instanceIdentity": "UUID",
+    "logicalIdentity": ["workspaceId", "capabilityType", "instanceKey"],
+    "defaultInstanceKey": "default",
+    "states": ["ACTIVE", "DISABLED", "ARCHIVED"],
+    "schemaSupportsMultipleInstances": true,
+    "initialMaxActivePerType": 1,
+    "registry": {
+      "BACKLOG": {"legacyIds": ["backlog"], "activation": "MIGRATE_IF_ENABLED"},
+      "INBOX": {"legacyIds": ["inbox"], "activation": "MIGRATE_IF_ENABLED"},
+      "INBOX_SORTING": {"legacyIds": ["inbox_sorting"], "activation": "MIGRATE_IF_ENABLED", "requires": ["INBOX"]},
+      "KEY_PROBLEMS": {"legacyIds": ["key_problems"], "activation": "MIGRATE_IF_ENABLED"},
+      "DIRECTION": {"legacyIds": ["direction"], "activation": "MIGRATE_IF_ENABLED"},
+      "ARTIFACT": {"legacyIds": ["artifact"], "activation": "MIGRATE_IF_ENABLED"},
+      "DASHBOARD": {"legacyIds": ["dashboard"], "activation": "MIGRATE_IF_ENABLED"},
+      "JOURNAL": {"legacyIds": ["journal_log"], "activation": "MIGRATE_IF_ENABLED"},
+      "EXECUTION_LOG": {"legacyIds": ["log"], "activation": "MIGRATE_IF_ENABLED"},
+      "CONNECTIONS": {"legacyIds": ["connections", "attachments"], "activation": "MIGRATE_IF_ENABLED"},
+      "DOCUMENTS": {"legacyIds": [], "activation": "RESERVED_NO_AUTO_ACTIVATION"},
+      "NOTES": {"legacyIds": [], "activation": "RESERVED_NO_AUTO_ACTIVATION"},
+      "ATTACHMENTS": {"legacyIds": [], "activation": "RESERVED_NO_AUTO_ACTIVATION"}
+    }
+  },
+  "contribution": {
+    "roles": ["ADVANCES", "MAINTAINS", "EXPLORES", "PREVENTS", "SUPPORTS"],
+    "attributionModes": ["INCLUSIVE", "ALLOCATED", "PRIMARY_ONLY"],
+    "defaultGroupedReflectionMode": "INCLUSIVE",
+    "uniqueTotalCountsActivityOnce": true,
+    "deduplicationKey": "CANONICAL_ORIENTATION_ID",
+    "directLinkPrecedesDerivedPath": true
+  },
+  "assessmentHistory": {
+    "revisionsImmutable": true,
+    "currentProjectionMaterialized": true,
+    "automaticInheritanceInV1": false,
+    "historicalModes": ["CURRENT_ASSESSMENT", "AS_OF_ACTIVITY_TIME", "AS_OF_PERIOD_END"],
+    "interactiveInventoryDefault": "CURRENT_ASSESSMENT",
+    "historicalReflectionDefault": "AS_OF_ACTIVITY_TIME"
+  },
+  "filterAst": {
+    "version": 1,
+    "booleanNodes": ["ALL", "ANY", "NOT"],
+    "maxRelationTraversalDepth": 8,
+    "unknownHandling": "FAIL_CLOSED_AND_PRESERVE_RAW",
+    "predicateFamilies": [
+      "ORIENTATION_KIND",
+      "LIFECYCLE",
+      "AXIS_COMPARE",
+      "AXIS_RANGE",
+      "VALUE_ORIGIN",
+      "ASPECT_MEMBERSHIP",
+      "RELATION_TRAVERSAL",
+      "WORKSPACE_CAPABILITY",
+      "PLANNING_COVERAGE",
+      "CONTRIBUTION",
+      "TAG_OR_CATEGORY",
+      "TEXT",
+      "TIME_WINDOW"
+    ]
+  },
+  "legacyMapping": {
+    "importance": {
+      "appliesWhen": "SCORING_STATUS_ASSESSED",
+      "ranges": {"1..3": "LOW", "4..6": "MEDIUM", "7..9": "HIGH", "10..12": "CRITICAL"},
+      "unknown": "UNSET_WITH_DIAGNOSTIC",
+      "origin": "DERIVED"
+    },
+    "impact": {
+      "appliesWhen": "SCORING_STATUS_ASSESSED",
+      "values": {"1": "TINY", "2": "SMALL", "3": "MEDIUM", "5": "LARGE", "8": "TRANSFORMATIVE", "13": "TRANSFORMATIVE"},
+      "unknown": "UNSET_WITH_DIAGNOSTIC",
+      "origin": "DERIVED"
+    },
+    "dayTaskAssessmentCopies": "PRESERVE_COMPATIBILITY_NEVER_AUTHORITY",
+    "goalRelativeSize": "PRESERVE_NO_CANONICAL_AXIS_MAPPING",
+    "beaconDecisionImpact": "PRESERVE_NARRATIVE_NO_IMPACT_MAPPING",
+    "operationalPriorityToAttentionTier": "NO_MAPPING"
+  },
+  "contextClassification": {
+    "blanketOrientationConversion": false,
+    "outcomes": [
+      "WORKSPACE_ONLY",
+      "ASPECT_AND_WORKSPACE",
+      "ORIENTATION_AND_WORKSPACE",
+      "WORKSPACE_WITH_RELATIONS",
+      "SYSTEM_OR_COMPATIBILITY_WORKSPACE",
+      "REVIEW_REQUIRED"
+    ],
+    "suggestionsAreAuthority": false,
+    "ambiguousDefault": "REMAIN_COMPATIBILITY_WORKSPACE"
+  },
+  "dayTheme": {
+    "semanticOwner": "THEME_DEFINITION_ORIENTATION",
+    "assignmentOwns": ["DAY_PLAN_LINK", "BUDGET_PERCENT", "ORDER", "ACTIVE_STATE", "OPTIONAL_DAY_ATTENTION_TIER"],
+    "assignmentCannotOverride": ["TITLE", "DESCRIPTION", "IMPORTANCE", "IMPACT", "BREADTH", "COMMITMENT", "CONFIDENCE"]
+  },
+  "syncRollout": {
+    "initialDesktopOwnership": "ANDROID_READ_ONLY",
+    "bidirectionalRequires": [
+      "SHARED_VALIDATION",
+      "MERGE_RULES",
+      "TOMBSTONE_TESTS",
+      "ACKNOWLEDGEMENT_TESTS",
+      "ROUND_TRIP_TESTS"
+    ]
+  }
+}
