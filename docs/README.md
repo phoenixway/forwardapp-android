@@ -110,6 +110,12 @@ The following directories contain subsystem documentation:
 - Machine-readable value sets and contract matrices corresponding to the
   accepted Phase 1 domain contract.
 
+`architecture/orientation-workspace-refactor/PHASE2-IMPLEMENTATION.md`
+- `CURRENT`
+- Implemented shared KMP Orientation contracts, domain validators, Filter AST
+  semantics, and Android read-only compatibility projections. It explicitly
+  records that current persistence and UI authority are unchanged.
+
 These directories currently contain a mixture of current, historical,
 proposed, and reference material.
 

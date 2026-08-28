@@ -152,6 +152,14 @@ NOT_APPLICABLE
 
 Estimated scope: medium.
 
+Phase status: completed on 2026-08-28.
+
+Current implementation evidence:
+
+- [PHASE2-IMPLEMENTATION.md](PHASE2-IMPLEMENTATION.md) records the shared
+  contracts, validators, read-only adapters, authority boundary, and verified
+  test targets.
+
 ### Work
 
 - Introduce canonical cross-client Orientation value types in shared KMP model

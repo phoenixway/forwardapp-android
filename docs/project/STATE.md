@@ -253,6 +253,33 @@ relation collections use authoritative replacement semantics.
 Targeted Desktop sync coverage is green at 21/21 tests together with TypeScript
 type checking.
 
+### Orientation contract read-only foundation
+
+Phase 2 of the accepted Orientation/Aspect/Workspace refactor is implemented as
+a read-only foundation.
+
+`shared-core-data-models` owns Orientation contract v1 platform-neutral types,
+including ManagedSubject, Orientation, Aspect, assessment/value origins,
+relations, Workspace bindings and capabilities, contribution, Filter AST v1,
+saved views, legacy mappings, and EffectiveOrientation projections.
+
+`shared-core-domain` owns cross-client applicability, validation, legacy
+Importance/Impact and lifecycle projection, relation/hierarchy/cardinality,
+capability, contribution-attribution, and Filter AST evaluation semantics.
+
+Android has read-only adapters for current Goal, reviewed Context, Main Beacon,
+Main Beacon Group, Direction, ThemeDefinition, and Arc Quest entities.
+Source-backed Arc Quests remain placements of their source rather than becoming
+duplicate Orientations. Context classification remains a review-required
+suggestion.
+
+No new persistence or write authority exists yet. Room schema, SnapshotBundle,
+Desktop sync ownership, navigation, and UI remain unchanged. Final
+deterministic legacy UUID mapping and canonical persistence belong to Phase 3.
+
+Shared JVM and JS tests, generated TypeScript validation, and the focused
+Android adapter unit test are green.
+
 ## Known documentation constraint
 
 A significant amount of older documentation is still unclassified or mixed.
