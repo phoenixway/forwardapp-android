@@ -20,6 +20,22 @@ Project documentation structure and canonical-document status are defined in `do
 * Exceptions are acceptable for generated files, large static data, framework entry points, or migration code, but call out the reason.
 * Prefer files with one clear responsibility over generic utility buckets.
 
+## UI Change Ownership
+
+* Do not change user-facing UI without explicit user authorization.
+* UI includes visual styling, layout, component composition, labels, navigation,
+  interaction behavior, information hierarchy, animations, and accessibility
+  behavior.
+* A user request that explicitly asks for a UI change authorizes only the UI
+  scope described in that request. It does not authorize adjacent redesign,
+  cleanup, or unrelated UX changes.
+* Domain, data, sync, migration, or architecture work must preserve current UI
+  behavior through adapters or compatibility boundaries unless the user also
+  authorizes a UI change.
+* When an architectural change will eventually require a UI decision, document
+  the decision point and stop before implementing the UI portion unless it has
+  been explicitly authorized.
+
 ## Incidental Architecture and Code Findings
 
 While implementing or investigating a task, an agent may discover a material defect outside the requested scope: weak ownership, duplicated sources of truth, architectural inconsistency, unsafe sync or persistence semantics, unnecessary coupling, maintainability problems, or other significant technical debt.
@@ -92,4 +108,3 @@ When code and documentation disagree, investigate the discrepancy instead of sil
 For `apps/day-goals-desktop`, keep detailed desktop-specific documentation close to that subproject when it is not a cross-project concern.
 
 Cross-client contracts, canonical ownership and shared sync architecture belong in project-level documentation under `docs/`.
-

@@ -43,6 +43,8 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -66,11 +68,8 @@ import com.romankozak.forwardappmobile.core.navigation.routes.NavigationRoutes
 import com.romankozak.forwardappmobile.features.activitytracker.dialogs.TimePickerDialog
 import com.romankozak.forwardappmobile.features.activitytracker.entities.ActivityEntityDescriptor
 import com.romankozak.forwardappmobile.features.activitytracker.entities.ActivityEntityLinksEditor
-import com.romankozak.forwardappmobile.features.activitytracker.entities.displayName
 import com.romankozak.forwardappmobile.features.activitytracker.entities.effectiveEntityLinks
-import com.romankozak.forwardappmobile.features.activitytracker.entities.identityKey
 import com.romankozak.forwardappmobile.features.reminders.components.DateTimePickerDialog
-import com.romankozak.forwardappmobile.features.activitytracker.dialogs.formatDuration
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Button
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Overlay
@@ -80,8 +79,6 @@ import com.romankozak.forwardappmobile.features.common.components.holdmenu2.Menu
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.rememberHoldMenu2
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.AutocompleteSuggestions
 import com.romankozak.forwardappmobile.features.reminders.dialogs.ReminderPropertiesDialog
-import com.romankozak.forwardappmobile.ui.shared.InProgressIndicator
-import com.romankozak.forwardappmobile.ui.shared.InProgressIndicatorState
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.*
@@ -94,7 +91,7 @@ private data class ScrollRestoreAnchor(
     val offset: Int,
 )
 
-private data class JournalUiConfig(
+internal data class JournalUiConfig(
     val isCompactPhone: Boolean,
     val listHorizontalPadding: Dp,
     val listVerticalPadding: Dp,
@@ -106,7 +103,6 @@ private data class JournalUiConfig(
     val sectionHorizontalPadding: Dp,
     val sectionVerticalPadding: Dp,
     val dayHeaderBackgroundHorizontalPadding: Dp,
-    val dayHeaderBackgroundVerticalPadding: Dp,
     val cornerRadius: Dp,
     val metadataSpacing: Dp,
     val textMaxLines: Int,
@@ -114,7 +110,6 @@ private data class JournalUiConfig(
     val inputMinHeight: Dp,
     val inputBarPadding: Dp,
     val pillHorizontalPadding: Dp,
-    val pillVerticalPadding: Dp,
 )
 
 @Composable
@@ -125,47 +120,43 @@ private fun rememberJournalUiConfig(): JournalUiConfig {
             JournalUiConfig(
                 isCompactPhone = true,
                 listHorizontalPadding = 10.dp,
-                listVerticalPadding = 8.dp,
-                itemSpacing = 8.dp,
-                headerBottomSpacing = 8.dp,
-                sectionSpacing = 22.dp,
+                listVerticalPadding = 6.dp,
+                itemSpacing = 6.dp,
+                headerBottomSpacing = 6.dp,
+                sectionSpacing = 18.dp,
                 entryHorizontalPadding = 12.dp,
-                entryVerticalPadding = 10.dp,
+                entryVerticalPadding = 8.dp,
                 sectionHorizontalPadding = 6.dp,
-                sectionVerticalPadding = 4.dp,
-                dayHeaderBackgroundHorizontalPadding = 10.dp,
-                dayHeaderBackgroundVerticalPadding = 8.dp,
-                cornerRadius = 16.dp,
-                metadataSpacing = 6.dp,
+                sectionVerticalPadding = 3.dp,
+                dayHeaderBackgroundHorizontalPadding = 8.dp,
+                cornerRadius = 14.dp,
+                metadataSpacing = 4.dp,
                 textMaxLines = 2,
                 maxVisibleTags = 2,
                 inputMinHeight = 42.dp,
                 inputBarPadding = 8.dp,
                 pillHorizontalPadding = 7.dp,
-                pillVerticalPadding = 3.dp,
             )
         } else {
             JournalUiConfig(
                 isCompactPhone = false,
                 listHorizontalPadding = 12.dp,
-                listVerticalPadding = 10.dp,
-                itemSpacing = 10.dp,
-                headerBottomSpacing = 10.dp,
-                sectionSpacing = 26.dp,
+                listVerticalPadding = 8.dp,
+                itemSpacing = 8.dp,
+                headerBottomSpacing = 8.dp,
+                sectionSpacing = 22.dp,
                 entryHorizontalPadding = 14.dp,
-                entryVerticalPadding = 12.dp,
+                entryVerticalPadding = 9.dp,
                 sectionHorizontalPadding = 8.dp,
-                sectionVerticalPadding = 6.dp,
-                dayHeaderBackgroundHorizontalPadding = 12.dp,
-                dayHeaderBackgroundVerticalPadding = 9.dp,
-                cornerRadius = 18.dp,
-                metadataSpacing = 8.dp,
+                sectionVerticalPadding = 4.dp,
+                dayHeaderBackgroundHorizontalPadding = 9.dp,
+                cornerRadius = 16.dp,
+                metadataSpacing = 5.dp,
                 textMaxLines = 3,
                 maxVisibleTags = 2,
                 inputMinHeight = 46.dp,
                 inputBarPadding = 10.dp,
                 pillHorizontalPadding = 8.dp,
-                pillVerticalPadding = 4.dp,
             )
         }
     }
@@ -189,6 +180,7 @@ fun ActivityTrackerScreen(
     val tagSuggestions by viewModel.tagSuggestions.collectAsStateWithLifecycle()
     val entityCatalog by viewModel.entityCatalog.collectAsStateWithLifecycle()
     val availableEntities by viewModel.availableEntities.collectAsStateWithLifecycle()
+    val pendingEntityLinks by viewModel.pendingEntityLinks.collectAsStateWithLifecycle()
     val lastOngoingActivity by viewModel.lastOngoingActivity.collectAsStateWithLifecycle()
     val editingRecord by viewModel.editingRecord.collectAsStateWithLifecycle()
     val recordToDelete by viewModel.recordToDelete.collectAsStateWithLifecycle()
@@ -196,6 +188,12 @@ fun ActivityTrackerScreen(
     val recordForReminder by viewModel.recordForReminder.collectAsStateWithLifecycle()
     val isLoadingOlderRecords by viewModel.isLoadingOlderRecords.collectAsStateWithLifecycle()
     val hasMoreOlderRecords by viewModel.hasMoreOlderRecords.collectAsStateWithLifecycle()
+    val activeElapsedState = rememberActiveElapsedState(lastOngoingActivity)
+    var liveEntryVisibility by
+        remember(lastOngoingActivity?.id) {
+            mutableStateOf(JournalLiveEntryVisibility.UNKNOWN)
+        }
+    var scrollToLiveEntryRequest by remember { mutableIntStateOf(0) }
     var showClearConfirmDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -229,6 +227,7 @@ fun ActivityTrackerScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
+            containerColor = journalBackgroundColor(),
             snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
             topBar =
                 if (showTopBar) {
@@ -254,25 +253,32 @@ fun ActivityTrackerScreen(
                             .navigationBarsPadding()
                             .imePadding(),
                 ) {
-                    val indicatorState = remember { InProgressIndicatorState(isInitiallyExpanded = true) }
-                    InProgressIndicator(
-                        ongoingActivity = lastOngoingActivity,
-                        onStopClick = viewModel::onToggleStartStop,
-                        onReminderClick = { lastOngoingActivity?.let { viewModel.onSetReminder(it) } },
-                        onIndicatorClick = { },
-                        indicatorState = indicatorState,
+                    ActiveTrackingStickyStrip(
+                        activity = lastOngoingActivity,
+                        elapsedState = activeElapsedState,
+                        liveEntryVisibility = liveEntryVisibility,
+                        onOpen = {
+                            selectedTag = null
+                            scrollToLiveEntryRequest++
+                        },
+                        onStop = viewModel::onStopTracking,
                     )
                     if (showInputBar) {
                         ActivityInputBar(
                             text = inputText,
                             tagSuggestions = tagSuggestions,
+                            selectedEntityLinks = pendingEntityLinks,
+                            entityOptions = availableEntities,
                             isActivityOngoing = lastOngoingActivity != null,
                             onTextChange = viewModel::onInputTextChanged,
                             onTagSuggestionClick = viewModel::onTagSuggestionSelected,
+                            onEntityLinksChanged = viewModel::onPendingEntityLinksChanged,
                             onToggleStartStop = viewModel::onToggleStartStop,
                             onTimelessClick = viewModel::onTimelessRecordClick,
                             onQuickDoneClick = { textValue -> quickDoneDialogState = textValue },
-                            onBackdatedClick = { textValue -> backdatedDraft = BackdatedActivityDraft(textValue) },
+                            onBackdatedClick = { textValue ->
+                                backdatedDraft = BackdatedActivityDraft(textValue, entityLinks = pendingEntityLinks)
+                            },
                             onDaySummaryClick = viewModel::onAddTodaySummary,
                             holdMenuController = holdMenuController,
                         )
@@ -305,6 +311,11 @@ fun ActivityTrackerScreen(
                     navController.navigate(NavTargetRouter.routeOf(NavTarget.GlobalSearch(query = encoded)))
                 },
                 entityCatalog = entityCatalog,
+                activeActivity = lastOngoingActivity,
+                activeElapsedState = activeElapsedState,
+                onStopActive = viewModel::onStopTracking,
+                onLiveEntryVisibilityChanged = { liveEntryVisibility = it },
+                scrollToLiveEntryRequest = scrollToLiveEntryRequest,
             )
 
             editingRecord?.let { recordToEdit ->
@@ -371,7 +382,7 @@ fun ActivityTrackerScreen(
                     onDismiss = { quickDoneDialogState = null },
                     onConfirm = { desc, xp, antyXp ->
                         viewModel.onAddCompletedAction(desc, xp, antyXp)
-                        viewModel.onInputTextChanged("")
+                        viewModel.clearActivityComposer()
                         quickDoneDialogState = null
                     },
                 )
@@ -406,6 +417,21 @@ private fun ActivityTrackerTopAppBar(
     var menuExpanded by remember { mutableStateOf(false) }
     TopAppBar(
         title = { Text("Life Journal") },
+        colors =
+            TopAppBarDefaults.topAppBarColors(
+                containerColor =
+                    lerp(
+                        MaterialTheme.colorScheme.surfaceContainerLow,
+                        MaterialTheme.colorScheme.primaryContainer,
+                        0.14f,
+                    ),
+                scrolledContainerColor =
+                    lerp(
+                        MaterialTheme.colorScheme.surfaceContainer,
+                        MaterialTheme.colorScheme.primaryContainer,
+                        0.18f,
+                    ),
+            ),
         navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Назад") } },
         actions = {
             IconButton(onClick = { menuExpanded = true }) { Icon(Icons.Default.MoreVert, "Меню") }
@@ -449,6 +475,11 @@ private fun ActivityLog(
     onSearchTagGlobally: (String) -> Unit,
     entityCatalog: List<ActivityEntityDescriptor>,
     onAddBackdated: (ActivityRecord) -> Unit,
+    activeActivity: ActivityRecord?,
+    activeElapsedState: State<Long>,
+    onStopActive: () -> Unit,
+    onLiveEntryVisibilityChanged: (JournalLiveEntryVisibility) -> Unit,
+    scrollToLiveEntryRequest: Int,
 ) {
     val uiConfig = rememberJournalUiConfig()
     val lazyListState = rememberLazyListState()
@@ -461,10 +492,22 @@ private fun ActivityLog(
                 selectedTag = selectedTag,
             )
         }
+    ObserveLiveEntryVisibility(
+        lazyListState = lazyListState,
+        activeKey = activeActivity?.id,
+        knownItemKeys = listKeys,
+        onVisibilityChanged = onLiveEntryVisibilityChanged,
+    )
+    ScrollToLiveEntryEffect(
+        lazyListState = lazyListState,
+        activeKey = activeActivity?.id,
+        knownItemKeys = listKeys,
+        request = scrollToLiveEntryRequest,
+    )
 
-    LaunchedEffect(groupedByDate.isNotEmpty()) {
+    LaunchedEffect(listKeys, groupedByDate.isNotEmpty()) {
         if (groupedByDate.isNotEmpty() && !didInitialScroll) {
-            val lastIndex = (lazyListState.layoutInfo.totalItemsCount - 1).coerceAtLeast(0)
+            val lastIndex = listKeys.lastIndex.coerceAtLeast(0)
             lazyListState.scrollToItem(lastIndex)
             didInitialScroll = true
         }
@@ -540,11 +583,21 @@ private fun ActivityLog(
                     }
                 }
                 stickyHeader(key = "day_header_$dateHeader") {
-                    Box(modifier = Modifier.padding(top = 2.dp)) {
+                    Column(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .background(journalDayHeaderColor())
+                                .padding(top = 2.dp),
+                    ) {
                         JournalDayHeader(
                             dateHeader = dateHeader,
                             entryCount = records.size,
                             uiConfig = uiConfig,
+                        )
+                        HorizontalDivider(
+                            modifier = Modifier.padding(top = 3.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f),
                         )
                     }
                 }
@@ -563,6 +616,9 @@ private fun ActivityLog(
                         uiConfig = uiConfig,
                         entityCatalog = entityCatalog,
                         onAddBackdated = onAddBackdated,
+                        isActive = record.id == activeActivity?.id && record.isOngoing,
+                        activeElapsedState = activeElapsedState,
+                        onStopActive = onStopActive,
                     )
                     if (recordIndex < sortedRecords.lastIndex) {
                         Spacer(modifier = Modifier.height(uiConfig.itemSpacing))
@@ -598,7 +654,7 @@ private fun buildJournalListKeys(
         }
         keys += "day_header_$dateHeader"
         keys += "day_header_gap_$dateHeader"
-        keys.addAll(records.map { it.id })
+        keys.addAll(sortRecordsForDay(records).map { it.id })
     }
     return keys
 }
@@ -672,11 +728,24 @@ private fun JournalEntryCard(
     uiConfig: JournalUiConfig,
     entityCatalog: List<ActivityEntityDescriptor>,
     onAddBackdated: (ActivityRecord) -> Unit,
+    isActive: Boolean,
+    activeElapsedState: State<Long>,
+    onStopActive: () -> Unit,
 ) {
     val annotatedText = rememberJournalEntryAnnotatedString(record.text)
     var menuExpanded by remember(record.id) { mutableStateOf(false) }
-    val cardColor = lerp(MaterialTheme.colorScheme.surfaceContainerLow, MaterialTheme.colorScheme.secondaryContainer, 0.08f)
-    val cardBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.11f)
+    val tonalCardBase =
+        lerp(
+            MaterialTheme.colorScheme.surfaceContainerLow,
+            MaterialTheme.colorScheme.surfaceContainerHigh,
+            0.58f,
+        )
+    val cardColor =
+        lerp(
+            tonalCardBase,
+            MaterialTheme.colorScheme.primaryContainer,
+            0.07f,
+        )
     val dismissState =
         rememberSwipeToDismissBoxState(
             confirmValueChange = { value ->
@@ -710,6 +779,15 @@ private fun JournalEntryCard(
                     modifier =
                         Modifier
                             .fillMaxWidth()
+                            .then(
+                                if (isActive) {
+                                    Modifier.semantics {
+                                        stateDescription = "Активна активність, відстеження триває"
+                                    }
+                                } else {
+                                    Modifier
+                                },
+                            )
                             .combinedClickable(
                                 onClick = { onEdit(record) },
                                 onLongClick = { menuExpanded = true },
@@ -717,31 +795,67 @@ private fun JournalEntryCard(
                     shape = RoundedCornerShape(uiConfig.cornerRadius),
                     color = cardColor,
                     tonalElevation = 0.dp,
-                    shadowElevation = 0.dp,
-                    border = BorderStroke(1.dp, cardBorderColor),
+                    shadowElevation = 1.dp,
                 ) {
-                    Column(
-                        modifier =
-                            Modifier.padding(
-                                horizontal = uiConfig.entryHorizontalPadding,
-                                vertical = uiConfig.entryVerticalPadding,
-                            ),
-                        verticalArrangement = Arrangement.spacedBy(uiConfig.metadataSpacing),
-                    ) {
-                        JournalEntryText(
-                            text = annotatedText,
-                            style = MaterialTheme.typography.bodyLarge,
-                            onTagClick = onTagClick,
-                            onTextClick = { onEdit(record) },
-                            maxLines = uiConfig.textMaxLines,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        JournalMetadataRow(
-                            record = record,
-                            onTagClick = onTagClick,
-                            uiConfig = uiConfig,
-                            entityCatalog = entityCatalog,
-                        )
+                    Box {
+                        if (isActive) {
+                            Box(modifier = Modifier.matchParentSize()) {
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .align(Alignment.CenterStart)
+                                            .fillMaxHeight()
+                                            .width(3.dp)
+                                            .background(
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.58f),
+                                                RoundedCornerShape(topEnd = 3.dp, bottomEnd = 3.dp),
+                                            ),
+                                )
+                            }
+                        }
+                        Column(
+                            modifier =
+                                Modifier.padding(
+                                    horizontal = uiConfig.entryHorizontalPadding,
+                                    vertical = uiConfig.entryVerticalPadding,
+                                ),
+                            verticalArrangement = Arrangement.spacedBy(uiConfig.metadataSpacing),
+                        ) {
+                            if (isActive) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    ActiveTrackingDot()
+                                    JournalEntryText(
+                                        text = annotatedText,
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                        modifier = Modifier.weight(1f),
+                                        onTagClick = onTagClick,
+                                        onTextClick = { onEdit(record) },
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            } else {
+                                JournalEntryText(
+                                    text = annotatedText,
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                    onTagClick = onTagClick,
+                                    onTextClick = { onEdit(record) },
+                                    maxLines = uiConfig.textMaxLines,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            JournalMetadataRow(
+                                record = record,
+                                onTagClick = onTagClick,
+                                uiConfig = uiConfig,
+                                entityCatalog = entityCatalog,
+                                activeElapsedState = if (isActive) activeElapsedState else null,
+                                onStopActive = onStopActive,
+                            )
+                        }
                     }
                 }
             },
@@ -927,22 +1041,10 @@ private fun JournalDayHeader(
     entryCount: Int,
     uiConfig: JournalUiConfig,
 ) {
-    val headerBackgroundColor = MaterialTheme.colorScheme.surface
-    val chipColor = MaterialTheme.colorScheme.secondaryContainer
-    val headerShape = RoundedCornerShape(14.dp)
-    val headerTextColor = lerp(
-        MaterialTheme.colorScheme.onSurface,
-        MaterialTheme.colorScheme.primary,
-        0.32f,
-    )
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .background(
-                    color = headerBackgroundColor,
-                    shape = headerShape,
-                )
                 .padding(
                     horizontal = uiConfig.sectionHorizontalPadding,
                     vertical = uiConfig.sectionVerticalPadding,
@@ -953,27 +1055,43 @@ private fun JournalDayHeader(
         Text(
             text = dateHeader,
             style = MaterialTheme.typography.titleSmall,
-            color = headerTextColor,
+            color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.weight(1f),
         )
         Surface(
-            color = chipColor,
+            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.38f),
             shape = RoundedCornerShape(999.dp),
         ) {
             Text(
                 text = recordCountLabel(entryCount),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier =
                     Modifier.padding(
                         horizontal = uiConfig.dayHeaderBackgroundHorizontalPadding,
-                        vertical = uiConfig.dayHeaderBackgroundVerticalPadding,
+                        vertical = 3.dp,
                     ),
             )
         }
     }
 }
+
+@Composable
+private fun journalBackgroundColor(): Color =
+    lerp(
+        MaterialTheme.colorScheme.background,
+        MaterialTheme.colorScheme.primaryContainer,
+        0.04f,
+    )
+
+@Composable
+private fun journalDayHeaderColor(): Color =
+    lerp(
+        journalBackgroundColor(),
+        MaterialTheme.colorScheme.surfaceContainerLow,
+        0.58f,
+    )
 
 @Composable
 private fun JournalSwipeBackground(
@@ -1035,161 +1153,12 @@ private fun JournalSwipeBackground(
     }
 }
 
-@Composable
-private fun JournalMetadataRow(
-    record: ActivityRecord,
-    onTagClick: (String) -> Unit,
-    uiConfig: JournalUiConfig,
-    entityCatalog: List<ActivityEntityDescriptor>,
-) {
-    val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
-    val tags = remember(record.text) { extractTags(record.text) }
-    val descriptors = remember(entityCatalog) { entityCatalog.associateBy { it.link.identityKey() } }
-    val durationText =
-        remember(record.startTime, record.endTime, record.isOngoing) {
-            val startTime = record.startTime
-            val endTime = record.endTime
-            if (record.isOngoing || startTime == null || endTime == null) {
-                null
-            } else {
-                val duration = endTime - startTime
-                if (duration > 0) formatDuration(duration) else null
-            }
-        }
-
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(uiConfig.metadataSpacing),
-        verticalArrangement = Arrangement.spacedBy(uiConfig.metadataSpacing),
-    ) {
-        CompactMetadataPill(
-            text = buildRecordTimeLabel(record, timeFormat),
-            uiConfig = uiConfig,
-            emphasized = record.isOngoing,
-        )
-        recordTypeLabel(record)?.let { label ->
-            CompactMetadataPill(text = label, uiConfig = uiConfig)
-        }
-        durationText?.let { duration ->
-            CompactMetadataPill(text = duration, uiConfig = uiConfig)
-        }
-        if (record.reminderTime != null) {
-            CompactMetadataPill(text = "нагадування", uiConfig = uiConfig)
-        }
-        if ((record.xpGained ?: 0) > 0) {
-            CompactMetadataPill(text = "+${record.xpGained} xp", uiConfig = uiConfig, positive = true)
-        }
-        if ((record.antyXp ?: 0) > 0) {
-            CompactMetadataPill(text = "-${record.antyXp} xp", uiConfig = uiConfig, negative = true)
-        }
-        record.effectiveEntityLinks().forEach { link ->
-            val descriptor = descriptors[link.identityKey()]
-            CompactMetadataPill(
-                text = descriptor?.let { "${it.typeLabel}: ${it.title}" } ?: link.entityType.displayName(),
-                uiConfig = uiConfig,
-                emphasized = true,
-            )
-        }
-        tags.take(uiConfig.maxVisibleTags).forEach { tag ->
-            CompactTagPill(tag = tag, onClick = { onTagClick(tag) }, uiConfig = uiConfig)
-        }
-        if (tags.size > uiConfig.maxVisibleTags) {
-            CompactMetadataPill(text = "+${tags.size - uiConfig.maxVisibleTags}", uiConfig = uiConfig)
-        }
-    }
-}
-
-@Composable
-private fun CompactMetadataPill(
-    text: String,
-    uiConfig: JournalUiConfig,
-    emphasized: Boolean = false,
-    positive: Boolean = false,
-    negative: Boolean = false,
-) {
-    val containerColor =
-        when {
-            positive -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f)
-            negative -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.85f)
-            emphasized -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
-            else -> MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.65f)
-        }
-    val contentColor =
-        when {
-            positive -> MaterialTheme.colorScheme.onPrimaryContainer
-            negative -> MaterialTheme.colorScheme.onErrorContainer
-            emphasized -> MaterialTheme.colorScheme.onSecondaryContainer
-            else -> MaterialTheme.colorScheme.onSurfaceVariant
-        }
-    Surface(
-        color = containerColor,
-        shape = RoundedCornerShape(999.dp),
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            color = contentColor,
-            modifier =
-                Modifier.padding(
-                    horizontal = uiConfig.pillHorizontalPadding,
-                    vertical = uiConfig.pillVerticalPadding,
-                ),
-            maxLines = 1,
-        )
-    }
-}
-
-@Composable
-private fun CompactTagPill(
-    tag: String,
-    onClick: () -> Unit,
-    uiConfig: JournalUiConfig,
-) {
-    Surface(
-        onClick = onClick,
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
-        shape = RoundedCornerShape(999.dp),
-    ) {
-        Text(
-            text = tag,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-            modifier =
-                Modifier.padding(
-                    horizontal = uiConfig.pillHorizontalPadding,
-                    vertical = uiConfig.pillVerticalPadding,
-                ),
-            maxLines = 1,
-        )
-    }
-}
-
 private fun recordHasTag(
     text: String,
     tag: String,
 ): Boolean = extractTags(text).any { it.equals(tag, ignoreCase = true) }
 
 private fun extractTags(text: String): List<String> = extractActivityTags(text)
-
-private fun buildRecordTimeLabel(
-    record: ActivityRecord,
-    timeFormat: SimpleDateFormat,
-): String =
-    when {
-        record.isTimeless -> timeFormat.format(Date(record.createdAt))
-        record.isOngoing -> "${timeFormat.format(Date(record.startTime!!))} → ..."
-        record.endTime != null && record.startTime == record.endTime -> timeFormat.format(Date(record.startTime!!))
-        else -> "${timeFormat.format(Date(record.startTime!!))} → ${timeFormat.format(Date(record.endTime!!))}"
-    }
-
-private fun recordTypeLabel(record: ActivityRecord): String? =
-    when {
-        record.recordKind == ActivityRecordKind.DAY_SUMMARY -> "резюме дня"
-        record.recordKind == ActivityRecordKind.EVENT -> "подія"
-        record.recordKind == ActivityRecordKind.COMMENT -> "коментар"
-        record.isOngoing -> "триває"
-        record.startTime != null && record.endTime != null && record.startTime == record.endTime -> "подія"
-        else -> null
-    }
 
 private fun recordCountLabel(count: Int): String {
     val suffix =
@@ -1205,42 +1174,59 @@ private fun recordCountLabel(count: Int): String {
 fun ActivityInputBar(
     text: String,
     tagSuggestions: List<String> = emptyList(),
+    selectedEntityLinks: List<ActivityEntityLink> = emptyList(),
+    entityOptions: List<ActivityEntityDescriptor> = emptyList(),
     isActivityOngoing: Boolean,
     onTextChange: (String) -> Unit,
     onTagSuggestionClick: (String) -> Unit = {},
+    onEntityLinksChanged: (List<ActivityEntityLink>) -> Unit = {},
     onToggleStartStop: () -> Unit,
     onTimelessClick: () -> Unit,
     onQuickDoneClick: (String) -> Unit,
     onBackdatedClick: (String) -> Unit = {},
     onDaySummaryClick: (String) -> Unit,
     holdMenuController: HoldMenu2Controller,
-    showMoreMenu: Boolean = true,
     trailingContent: @Composable (() -> Unit)? = null,
 ) {
     val uiConfig = rememberJournalUiConfig()
-    var moreMenuExpanded by remember { mutableStateOf(false) }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        color =
+            lerp(
+                MaterialTheme.colorScheme.surfaceContainerLow,
+                MaterialTheme.colorScheme.primaryContainer,
+                0.04f,
+            ),
         tonalElevation = 0.dp,
-        shadowElevation = 0.dp,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
+        shadowElevation = 2.dp,
     ) {
         Column {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
             AutocompleteSuggestions(
                 suggestions = tagSuggestions,
                 onSuggestionClick = onTagSuggestionClick,
                 modifier = Modifier.fillMaxWidth(),
             )
             Row(
-                modifier = Modifier.padding(horizontal = uiConfig.inputBarPadding, vertical = uiConfig.inputBarPadding),
+                modifier =
+                    Modifier.padding(
+                        horizontal = uiConfig.inputBarPadding,
+                        vertical = 8.dp,
+                    ),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Surface(
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(uiConfig.cornerRadius),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(if (uiConfig.isCompactPhone) 15.dp else 17.dp),
+                    color =
+                        lerp(
+                            MaterialTheme.colorScheme.surfaceContainerHigh,
+                            MaterialTheme.colorScheme.primaryContainer,
+                            0.10f,
+                        ),
                 ) {
                     Box(
                         modifier =
@@ -1254,7 +1240,7 @@ fun ActivityInputBar(
                             Text(
                                 text = "Що зараз?",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
                             )
                         }
                         BasicTextField(
@@ -1286,117 +1272,68 @@ fun ActivityInputBar(
                     }
                 }
 
-                val icon: ImageVector
-                val tint: Color
-                val description: String
+                if (!isActivityOngoing || text.isNotBlank()) {
+                    val icon: ImageVector
+                    val tint: Color
+                    val description: String
 
-                if (isActivityOngoing) {
-                    if (text.isNotBlank()) {
+                    if (isActivityOngoing) {
                         icon = Icons.Default.Sync
                         tint = MaterialTheme.colorScheme.tertiary
                         description = "Зупинити поточну та почати нову"
                     } else {
-                        icon = Icons.Default.StopCircle
-                        tint = MaterialTheme.colorScheme.error
-                        description = "Зупинити"
+                        icon = Icons.Default.PlayCircle
+                        tint = MaterialTheme.colorScheme.primary
+                        description = "Почати"
                     }
-                } else {
-                    icon = Icons.Default.PlayCircle
-                    tint = MaterialTheme.colorScheme.primary
-                    description = "Почати"
-                }
 
-                HoldMenu2Button(
-                    items = menuItems,
-                    controller = holdMenuController,
-                    onSelect = onMenuSelect,
-                    menuAlignment = MenuAlignment.END,
-                    iconPosition = IconPosition.END,
-                ) {
-                    FilledTonalIconButton(
-                        onClick = {
-                            if (text.isNotBlank() || isActivityOngoing) onToggleStartStop()
-                        },
-                        modifier = Modifier.size(if (uiConfig.isCompactPhone) 40.dp else 44.dp),
-                        colors =
-                            IconButtonDefaults.filledTonalIconButtonColors(
-                                containerColor =
-                                    when {
-                                        isActivityOngoing && text.isNotBlank() -> MaterialTheme.colorScheme.tertiaryContainer
-                                        isActivityOngoing -> MaterialTheme.colorScheme.errorContainer
-                                        else -> MaterialTheme.colorScheme.primaryContainer
-                                    },
-                                contentColor =
-                                    when {
-                                        isActivityOngoing && text.isNotBlank() -> MaterialTheme.colorScheme.onTertiaryContainer
-                                        isActivityOngoing -> MaterialTheme.colorScheme.onErrorContainer
-                                        else -> MaterialTheme.colorScheme.onPrimaryContainer
-                                    },
-                            ),
+                    HoldMenu2Button(
+                        items = menuItems,
+                        controller = holdMenuController,
+                        onSelect = onMenuSelect,
+                        menuAlignment = MenuAlignment.END,
+                        iconPosition = IconPosition.END,
                     ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = description,
-                            tint = tint,
-                            modifier = Modifier.size(22.dp),
-                        )
-                    }
-                }
-
-                if (showMoreMenu) {
-                    Box {
-                        IconButton(
-                            onClick = { moreMenuExpanded = true },
-                            modifier = Modifier.size(if (uiConfig.isCompactPhone) 36.dp else 40.dp),
+                        FilledTonalIconButton(
+                            onClick = onToggleStartStop,
+                            modifier = Modifier.size(if (uiConfig.isCompactPhone) 40.dp else 44.dp),
+                            colors =
+                                IconButtonDefaults.filledTonalIconButtonColors(
+                                    containerColor =
+                                        if (isActivityOngoing) {
+                                            MaterialTheme.colorScheme.tertiaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.primaryContainer
+                                        },
+                                    contentColor =
+                                        if (isActivityOngoing) {
+                                            MaterialTheme.colorScheme.onTertiaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        },
+                                ),
                         ) {
                             Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "Додаткові дії",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = moreMenuExpanded,
-                            onDismissRequest = { moreMenuExpanded = false },
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Подія без тривалості") },
-                                leadingIcon = { Icon(Icons.Default.CheckCircle, contentDescription = null) },
-                                onClick = {
-                                    moreMenuExpanded = false
-                                    if (text.isNotBlank()) onQuickDoneClick(text)
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Додати минулу активність") },
-                                leadingIcon = { Icon(Icons.Default.MoreTime, contentDescription = null) },
-                                onClick = {
-                                    moreMenuExpanded = false
-                                    if (text.isNotBlank()) onBackdatedClick(text)
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Коментар") },
-                                leadingIcon = { Icon(Icons.Default.AddComment, contentDescription = null) },
-                                onClick = {
-                                    moreMenuExpanded = false
-                                    onTimelessClick()
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Резюме дня") },
-                                leadingIcon = { Icon(Icons.Default.Summarize, contentDescription = null) },
-                                onClick = {
-                                    moreMenuExpanded = false
-                                    if (text.isNotBlank()) onDaySummaryClick(text)
-                                },
+                                imageVector = icon,
+                                contentDescription = description,
+                                tint = tint,
+                                modifier = Modifier.size(22.dp),
                             )
                         }
                     }
                 }
-
-                trailingContent?.let { content -> content() }
             }
+            ActivityInputActionsRow(
+                text = text,
+                selectedEntityLinks = selectedEntityLinks,
+                entityOptions = entityOptions,
+                onEntityLinksChanged = onEntityLinksChanged,
+                onQuickDoneClick = onQuickDoneClick,
+                onBackdatedClick = onBackdatedClick,
+                onTimelessClick = onTimelessClick,
+                onDaySummaryClick = onDaySummaryClick,
+                trailingContent = trailingContent,
+            )
         }
     }
 }
@@ -1473,9 +1410,13 @@ private fun EditRecordDialog(
 
     var showStartTimePicker by remember { mutableStateOf(false) }
     var showEndTimePicker by remember { mutableStateOf(false) }
-    val context = LocalContext.current
-
-    val timeFormatter = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    val currentStartTime = startTime
+    val currentEndTime = endTime
+    val isTimeInvalid =
+        recordType == ActivityRecordType.TIMED &&
+            currentStartTime != null &&
+            currentEndTime != null &&
+            currentEndTime < currentStartTime
     val chipColors =
         FilterChipDefaults.filterChipColors(
             selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -1526,44 +1467,15 @@ private fun EditRecordDialog(
                     label = { Text("Текст запису") },
                 )
                 if (recordType != ActivityRecordType.COMMENT && recordType != ActivityRecordType.DAY_SUMMARY) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        OutlinedButton(
-                            onClick = { showStartTimePicker = true },
-                            modifier =
-                                Modifier
-                                    .weight(1f)
-                                    .heightIn(min = 44.dp),
-                        ) {
-                            Text(startTime?.let { SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(it)) } ?: "Start")
-                        }
-                        if (startTime != null) {
-                            IconButton(onClick = { startTime = null }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Очистити час початку")
-                            }
-                        }
-                        if (recordType == ActivityRecordType.TIMED) {
-                            Text("-")
-                            OutlinedButton(
-                                onClick = { showEndTimePicker = true },
-                                modifier =
-                                    Modifier
-                                        .weight(1f)
-                                        .heightIn(min = 44.dp),
-                                enabled = !record.isOngoing,
-                            ) {
-                                Text(endTime?.let { SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(it)) } ?: "Зараз")
-                            }
-                            if (isLastTimedRecord && endTime != null) {
-                                IconButton(onClick = { endTime = null }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "Зробити поточним")
-                                }
-                            }
-                        }
-                    }
+                    ActivityRecordTimeEditor(
+                        startTime = startTime ?: record.createdAt,
+                        endTime = endTime,
+                        isTimed = recordType == ActivityRecordType.TIMED,
+                        canRemainOngoing = isLastTimedRecord,
+                        onStartClick = { showStartTimePicker = true },
+                        onEndClick = { showEndTimePicker = true },
+                        onMakeOngoing = { endTime = null },
+                    )
                 }
                 OutlinedTextField(
                     value = xpText,
@@ -1616,17 +1528,11 @@ private fun EditRecordDialog(
                             ActivityRecordType.INSTANT -> ActivityRecordKind.EVENT
                             ActivityRecordType.TIMED -> ActivityRecordKind.TIMED_ACTIVITY
                         }
-                    val isTimeInvalid =
-                        recordType == ActivityRecordType.TIMED &&
-                            actualStart != null &&
-                            actualEnd != null &&
-                            actualEnd < actualStart
-                    val adjustedEnd = if (isTimeInvalid) actualStart else actualEnd
                     val xp = xpText.toIntOrNull()
                     val antyXp = antyXpText.toIntOrNull()
-                    onConfirm(text, recordKind, actualStart, adjustedEnd, xp, antyXp, entityLinks)
+                    onConfirm(text, recordKind, actualStart, actualEnd, xp, antyXp, entityLinks)
                 },
-                enabled = text.isNotBlank(),
+                enabled = text.isNotBlank() && !isTimeInvalid,
             ) {
                 Text("Зберегти")
             }
@@ -1643,6 +1549,8 @@ private fun EditRecordDialog(
                 showStartTimePicker = false
             },
             enablePastValues = true,
+            title = if (recordType == ActivityRecordType.INSTANT) "Час події" else "Початок активності",
+            summaryLabel = "Обраний час",
         )
     }
 
@@ -1655,6 +1563,8 @@ private fun EditRecordDialog(
                 showEndTimePicker = false
             },
             enablePastValues = true,
+            title = "Завершення активності",
+            summaryLabel = "Обраний час",
         )
     }
 }

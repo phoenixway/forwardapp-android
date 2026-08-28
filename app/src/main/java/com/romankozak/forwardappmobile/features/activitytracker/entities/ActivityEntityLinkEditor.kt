@@ -57,7 +57,7 @@ fun ActivityEntityLinksEditor(
     }
 
     if (pickerVisible) {
-        ActivityEntityLinkPicker(
+        ActivityEntityLinkPickerDialog(
             selectedLinks = selectedLinks,
             options = options,
             onLinksChanged = onLinksChanged,
@@ -67,7 +67,7 @@ fun ActivityEntityLinksEditor(
 }
 
 @Composable
-private fun ActivityEntityLinkPicker(
+fun ActivityEntityLinkPickerDialog(
     selectedLinks: List<ActivityEntityLink>,
     options: List<ActivityEntityDescriptor>,
     onLinksChanged: (List<ActivityEntityLink>) -> Unit,

@@ -47,4 +47,9 @@ data class TimeReflectionUiState(
             entityStats = emptyList(),
         ),
     val isLoading: Boolean = true,
+    val availableDayStarts: List<Long> = emptyList(),
+    val selectedDayStart: Long? = null,
+    val hasPreviousDay: Boolean = false,
+    val hasNextDay: Boolean = false,
+    val isLatestDay: Boolean = true,
 )

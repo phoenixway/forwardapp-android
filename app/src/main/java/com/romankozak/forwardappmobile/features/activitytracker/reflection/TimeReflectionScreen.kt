@@ -45,7 +45,7 @@ fun TimeReflectionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Reflection") },
+                title = { Text("Рефлексія часу") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
@@ -64,8 +64,12 @@ fun TimeReflectionScreen(
             }
         } else {
             ReflectionContent(
-                reflection = uiState.reflection,
+                uiState = uiState,
                 onPeriodSelected = viewModel::selectPeriod,
+                onPreviousDay = viewModel::selectPreviousDay,
+                onNextDay = viewModel::selectNextDay,
+                onLatestDay = viewModel::selectLatestDay,
+                onDaySelected = viewModel::selectCalendarDay,
                 modifier = Modifier.padding(innerPadding),
             )
         }
@@ -74,15 +78,33 @@ fun TimeReflectionScreen(
 
 @Composable
 private fun ReflectionContent(
-    reflection: TimeReflection,
+    uiState: TimeReflectionUiState,
     onPeriodSelected: (ReflectionPeriod) -> Unit,
+    onPreviousDay: () -> Unit,
+    onNextDay: () -> Unit,
+    onLatestDay: () -> Unit,
+    onDaySelected: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val reflection = uiState.reflection
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        item {
+            ReflectionDayNavigator(
+                selectedDayStart = uiState.selectedDayStart,
+                availableDayStarts = uiState.availableDayStarts,
+                hasPreviousDay = uiState.hasPreviousDay,
+                hasNextDay = uiState.hasNextDay,
+                isLatestDay = uiState.isLatestDay,
+                onPreviousDay = onPreviousDay,
+                onNextDay = onNextDay,
+                onLatestDay = onLatestDay,
+                onDaySelected = onDaySelected,
+            )
+        }
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),

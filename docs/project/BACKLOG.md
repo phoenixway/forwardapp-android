@@ -20,6 +20,13 @@ still relevant to the current implementation.
 
 ## DEFERRED
 
+- Define explicit deletion semantics for timestamp-only cross-client collections
+  that currently support update freshness but cannot always represent physical
+  deletion in an Android delta: `contextArtifacts`, `contextKeyProblems`,
+  `mainBeaconParentLinks`, and `mainBeaconLevelStatuses`. Prefer an explicit
+  owner-scoped authoritative-set contract where valid; otherwise add durable
+  deletion metadata/versioning deliberately rather than inferring absence.
+
 - Remove legacy persisted `InboxRecord.hideInOwnerInbox` after the current
   cross-client Inbox policy has remained stable long enough to perform the
   schema/snapshot compatibility cleanup deliberately. It is no longer business

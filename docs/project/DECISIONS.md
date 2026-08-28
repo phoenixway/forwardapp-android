@@ -146,3 +146,42 @@ Changes to shared Inbox matching or visibility rules belong in the shared KMP
 domain. Android cache maintenance may optimize lookup but must remain
 rebuildable from canonical inputs. Desktop sync must keep those canonical inputs
 fresh rather than transporting Android cache rows.
+
+## 2026-08-28 - Desktop sync collection ownership is explicit
+
+Decision:
+
+Desktop sync collections must have an explicit ownership and transport policy.
+The Desktop policy registry records whether each collection is bidirectional,
+Android read-only, Android opaque, special, or a compatibility alias, together
+with its receive and push policy.
+
+The registry is the authority for deciding which collections may participate in
+Desktop context push. Domain-specific merge implementations remain close to
+their existing sync logic rather than being replaced by a generic registry
+engine.
+
+Android-owned opaque/read-only collections must not be sent back merely because
+they are present in Desktop backup storage. Collections that Android sends as
+complete relation sets may use authoritative replacement; versioned,
+timestamped, composite-identity, recurrence, Day Theme, and other special
+domains retain their own merge contracts.
+
+Reason:
+
+The previous context push copied nearly the whole Desktop database. Some
+Android-owned collections were not refreshed on Desktop after the initial seed,
+so an unrelated Desktop context edit could send stale rows back to Android,
+where replace-style import could overwrite newer Android state.
+
+The same missing ownership model also allowed several Desktop-used collections
+to remain on seed-only receive behavior, making first import work while later
+Android updates were silently ignored.
+
+Consequence:
+
+Adding a Desktop database-list collection or Android `SnapshotBundle`
+collection now requires an explicit sync-policy decision covered by tests.
+Context push is a whitelist derived from that policy instead of a whole-database
+projection.
+

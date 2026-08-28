@@ -18,17 +18,25 @@ fun calculateTimeReflection(
     period: ReflectionPeriod,
     now: Long,
     entityTitles: Map<Pair<ActivityEntityType, String>, String> = emptyMap(),
+    anchorDayStart: Long? = null,
 ): TimeReflection {
-    val applicableStarts =
+    val availableStarts =
         recordedDayStarts
             .asSequence()
             .filter { start -> start <= now }
             .distinct()
             .sorted()
             .toList()
+    val anchorIndex = anchorDayStart?.let(availableStarts::indexOf) ?: availableStarts.lastIndex
+    if (anchorIndex < 0) return TimeReflection(period, null, now, 0, 0, emptyList())
+
+    val applicableStarts =
+        availableStarts
+            .subList(0, anchorIndex + 1)
             .takeLast(period.operationalDayCount)
     val rangeStart = applicableStarts.firstOrNull()
         ?: return TimeReflection(period, null, now, 0, 0, emptyList())
+    val rangeEnd = availableStarts.getOrNull(anchorIndex + 1)?.coerceAtMost(now) ?: now
 
     val durationByTag = linkedMapOf<String, Long>()
     val displayTagByKey = linkedMapOf<String, String>()
@@ -40,9 +48,9 @@ fun calculateTimeReflection(
     records.forEach { record ->
         if (record.isDeleted) return@forEach
         val activityStart = record.startTime ?: return@forEach
-        val activityEnd = record.endTime ?: now
+        val activityEnd = record.endTime ?: rangeEnd
         val overlapStart = max(activityStart, rangeStart)
-        val overlapEnd = min(activityEnd, now)
+        val overlapEnd = min(activityEnd, rangeEnd)
         val duration = (overlapEnd - overlapStart).coerceAtLeast(0L)
         if (duration == 0L) return@forEach
 
@@ -59,7 +67,7 @@ fun calculateTimeReflection(
             linkByEntity.putIfAbsent(key, link)
             durationByEntity[key] = durationByEntity.getOrDefault(key, 0L) + duration
             applicableStarts.forEachIndexed { index, dayStart ->
-                val dayEnd = applicableStarts.getOrNull(index + 1) ?: now
+                val dayEnd = applicableStarts.getOrNull(index + 1) ?: rangeEnd
                 if (activityStart < dayEnd && activityEnd > dayStart) {
                     daysByEntity.getOrPut(key) { linkedSetOf() }.add(index)
                 }
@@ -92,7 +100,7 @@ fun calculateTimeReflection(
     return TimeReflection(
         period = period,
         rangeStart = rangeStart,
-        rangeEnd = now,
+        rangeEnd = rangeEnd,
         recordedDayCount = applicableStarts.size,
         totalTrackedMillis = totalTrackedMillis,
         tagStats = stats,

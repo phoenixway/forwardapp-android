@@ -107,6 +107,8 @@ fun BackdatedActivityDialog(
                 showEndPicker = false
             },
             enablePastValues = true,
+            title = "Завершення активності",
+            summaryLabel = "Обраний час",
         )
     }
 }

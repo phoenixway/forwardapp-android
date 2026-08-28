@@ -72,6 +72,23 @@ The following directories contain subsystem documentation:
 - `desktop/`
 - `architecture/`
 
+### Orientation and Workspace refactor
+
+`architecture/orientation-workspace-refactor/PROPOSAL.md`
+- `PROPOSED`
+- Target domain model separating Orientations, configurable Workspaces,
+  first-class Aspects, placements, planning, and execution.
+
+`architecture/orientation-workspace-refactor/PLAN.md`
+- `PROPOSED`
+- Detailed incremental migration and feature-preservation plan for the proposed
+  Orientation and Workspace refactor.
+
+`architecture/orientation-workspace-refactor/RULES.md`
+- `PROPOSED`
+- Implementation invariants for semantic identity, capabilities, relations,
+  assessment history, attribution, queries, migration, and UI authorization.
+
 These directories currently contain a mixture of current, historical,
 proposed, and reference material.
 

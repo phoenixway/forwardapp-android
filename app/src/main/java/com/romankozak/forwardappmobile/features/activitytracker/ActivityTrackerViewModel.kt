@@ -16,6 +16,7 @@ import com.romankozak.forwardappmobile.domain.userawareness.StateSlashCommandPar
 import com.romankozak.forwardappmobile.domain.userawareness.UserAwarenessStateType
 import com.romankozak.forwardappmobile.features.activitytracker.entities.ActivityEntityCatalogRepository
 import com.romankozak.forwardappmobile.features.activitytracker.entities.ActivityEntityDescriptor
+import com.romankozak.forwardappmobile.features.activitytracker.entities.effectiveEntityLinks
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -47,6 +48,8 @@ class ActivityTrackerViewModel
 
         private val _inputText = MutableStateFlow("")
         val inputText = _inputText.asStateFlow()
+        private val _pendingEntityLinks = MutableStateFlow<List<ActivityEntityLink>>(emptyList())
+        val pendingEntityLinks = _pendingEntityLinks.asStateFlow()
         private val dayPlanScope = MutableStateFlow<String?>(null)
 
         val entityCatalog: StateFlow<List<ActivityEntityDescriptor>> =
@@ -119,6 +122,10 @@ class ActivityTrackerViewModel
             _inputText.update { text -> applyActivityTagSuggestion(text, tag) }
         }
 
+        fun onPendingEntityLinksChanged(links: List<ActivityEntityLink>) {
+            _pendingEntityLinks.value = links.distinctBy { it.entityType to it.entityId }
+        }
+
         fun setDayPlanScope(dayPlanId: String?) {
             dayPlanScope.value = dayPlanId
         }
@@ -166,7 +173,10 @@ class ActivityTrackerViewModel
 
         private fun clearInput() {
             _inputText.value = ""
+            _pendingEntityLinks.value = emptyList()
         }
+
+        fun clearActivityComposer() = clearInput()
 
         init {
             viewModelScope.launch {
@@ -221,13 +231,20 @@ class ActivityTrackerViewModel
                             )
                         }
                     } else {
-                        repository.startActivity(text, now)
+                        repository.startActivity(text, now, _pendingEntityLinks.value)
                     }
                 } else if (ongoingActivity != null) {
                     repository.endLastActivity(now)
                 }
 
                 clearInput()
+            }
+
+        fun onStopTracking() =
+            viewModelScope.launch {
+                if (lastOngoingActivity.value != null) {
+                    repository.endLastActivity(System.currentTimeMillis())
+                }
             }
 
         private fun stateChangeMessage(
@@ -334,14 +351,7 @@ class ActivityTrackerViewModel
                     repository.endLastActivity(now)
                 }
 
-                val restarted = repository.startActivity(record.text, now)
-                repository.updateRecord(
-                    restarted.copy(
-                        entityLinks = record.entityLinks,
-                        contextId = record.contextId,
-                        goalId = record.goalId,
-                    ),
-                )
+                repository.startActivity(record.text, now, record.effectiveEntityLinks())
                 clearInput()
             }
 

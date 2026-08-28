@@ -53,6 +53,7 @@ fun TodayBottomPanel(
     val activityInputText by activityTrackerViewModel.inputText.collectAsStateWithLifecycle()
     val activityTagSuggestions by activityTrackerViewModel.tagSuggestions.collectAsStateWithLifecycle()
     val activityEntityOptions by activityTrackerViewModel.availableEntities.collectAsStateWithLifecycle()
+    val activityEntityLinks by activityTrackerViewModel.pendingEntityLinks.collectAsStateWithLifecycle()
     val lastOngoingActivity by activityTrackerViewModel.lastOngoingActivity.collectAsStateWithLifecycle()
     val dayFocusesUiState by dayFocusesViewModel.uiState.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -97,7 +98,8 @@ fun TodayBottomPanel(
                     },
                     onOpenBackdatedDialog = {
                         if (activityInputText.isNotBlank()) {
-                            journalBackdatedDraft = BackdatedActivityDraft(activityInputText)
+                            journalBackdatedDraft =
+                                BackdatedActivityDraft(activityInputText, entityLinks = activityEntityLinks)
                         }
                     },
                     onTimelessRecordClick = activityTrackerViewModel::onTimelessRecordClick,
@@ -128,6 +130,8 @@ fun TodayBottomPanel(
         contextMarkerNames = contextMarkerNames,
         activityInputText = activityInputText,
         activityTagSuggestions = activityTagSuggestions,
+        activityEntityLinks = activityEntityLinks,
+        activityEntityOptions = activityEntityOptions,
         isActivityOngoing = lastOngoingActivity != null,
         journalHoldMenuController = journalHoldMenuController,
         globalActions = globalActions,
@@ -136,10 +140,13 @@ fun TodayBottomPanel(
         onInputValueChange = { inputValue = it },
         onActivityTextChange = activityTrackerViewModel::onInputTextChanged,
         onActivityTagSuggestionClick = activityTrackerViewModel::onTagSuggestionSelected,
+        onActivityEntityLinksChanged = activityTrackerViewModel::onPendingEntityLinksChanged,
         onToggleActivityStartStop = activityTrackerViewModel::onToggleStartStop,
         onTimelessRecordClick = activityTrackerViewModel::onTimelessRecordClick,
         onQuickDoneClick = { textValue -> journalQuickDoneDialogState = textValue },
-        onBackdatedClick = { textValue -> journalBackdatedDraft = BackdatedActivityDraft(textValue) },
+        onBackdatedClick = { textValue ->
+            journalBackdatedDraft = BackdatedActivityDraft(textValue, entityLinks = activityEntityLinks)
+        },
         onDaySummaryClick = activityTrackerViewModel::onAddTodaySummary,
         onSubmitInput = {
             when (currentTab) {
@@ -178,7 +185,7 @@ fun TodayBottomPanel(
         onDismissQuickDone = { journalQuickDoneDialogState = null },
         onConfirmQuickDone = { desc, xp, antyXp ->
             activityTrackerViewModel.onAddCompletedAction(desc, xp, antyXp)
-            activityTrackerViewModel.onInputTextChanged("")
+            activityTrackerViewModel.clearActivityComposer()
             journalQuickDoneDialogState = null
         },
     )

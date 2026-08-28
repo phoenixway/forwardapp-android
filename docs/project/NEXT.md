@@ -1,19 +1,16 @@
 # Next
 
-Investigate Desktop/Android automatic sync triggering.
+Live-validate the repaired Desktop collection-sync boundary.
 
-The Inbox cross-client policy itself is live-validated. Keep the next
-investigation at the transport/trigger layer unless repository evidence points
-back to data semantics.
+Use one focused Android <-> Desktop smoke cycle to verify that:
 
-Reproduce the earlier case where Android changes became visible on Desktop only
-after a manual Pull, then trace:
+- an Android Direction update reaches a non-empty Desktop collection;
+- a Context hierarchy-link update/tombstone reaches Desktop;
+- a Main Beacon authoritative relation-set change, including removal, replaces
+  the corresponding Desktop relation set;
+- an unrelated Desktop context edit does not send Android-owned opaque state
+  such as `ActivityRecord` back to Android.
 
-- what schedules or requests automatic Pull/Push;
-- what state/change signal is expected to wake it;
-- whether the request runs but is skipped, fails, or never starts;
-- whether successful automatic sync persists and refreshes the same data path
-  as manual sync.
-
-Prefer fixing the missing trigger or lifecycle ownership rather than adding
-Inbox-specific polling or refresh behavior.
+If those checks pass, close the collection-sync audit slice. Treat the
+timestamp-only physical-deletion contract recorded in `BACKLOG.md` as separate
+deferred work rather than expanding this slice into schema migrations.

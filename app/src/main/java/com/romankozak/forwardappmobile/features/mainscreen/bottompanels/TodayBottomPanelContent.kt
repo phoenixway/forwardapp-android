@@ -6,7 +6,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.romankozak.forwardappmobile.core.data.models.entities.ActivityEntityLink
 import com.romankozak.forwardappmobile.features.activitytracker.ActivityInputBar
+import com.romankozak.forwardappmobile.features.activitytracker.entities.ActivityEntityDescriptor
 import com.romankozak.forwardappmobile.features.common.components.holdmenu2.HoldMenu2Controller
 import com.romankozak.forwardappmobile.features.daymanagement.runtime.presentation.DayManagementRuntimeUiState
 import com.romankozak.forwardappmobile.features.daymanagement.ui.DayManagementTab
@@ -24,6 +26,8 @@ internal fun TodayBottomPanelContent(
     contextMarkerNames: List<String>,
     activityInputText: String,
     activityTagSuggestions: List<String>,
+    activityEntityLinks: List<ActivityEntityLink>,
+    activityEntityOptions: List<ActivityEntityDescriptor>,
     isActivityOngoing: Boolean,
     journalHoldMenuController: HoldMenu2Controller,
     globalActions: BottomPanelGlobalActions,
@@ -32,6 +36,7 @@ internal fun TodayBottomPanelContent(
     onInputValueChange: (TextFieldValue) -> Unit,
     onActivityTextChange: (String) -> Unit,
     onActivityTagSuggestionClick: (String) -> Unit,
+    onActivityEntityLinksChanged: (List<ActivityEntityLink>) -> Unit,
     onToggleActivityStartStop: () -> Unit,
     onTimelessRecordClick: () -> Unit,
     onQuickDoneClick: (String) -> Unit,
@@ -57,16 +62,18 @@ internal fun TodayBottomPanelContent(
             ActivityInputBar(
                 text = activityInputText,
                 tagSuggestions = activityTagSuggestions,
+                selectedEntityLinks = activityEntityLinks,
+                entityOptions = activityEntityOptions,
                 isActivityOngoing = isActivityOngoing,
                 onTextChange = onActivityTextChange,
                 onTagSuggestionClick = onActivityTagSuggestionClick,
+                onEntityLinksChanged = onActivityEntityLinksChanged,
                 onToggleStartStop = onToggleActivityStartStop,
                 onTimelessClick = onTimelessRecordClick,
                 onQuickDoneClick = onQuickDoneClick,
                 onBackdatedClick = onBackdatedClick,
                 onDaySummaryClick = onDaySummaryClick,
                 holdMenuController = journalHoldMenuController,
-                showMoreMenu = false,
                 trailingContent = {
                     BottomPanelMoreActionButton(
                         actions = globalActions,

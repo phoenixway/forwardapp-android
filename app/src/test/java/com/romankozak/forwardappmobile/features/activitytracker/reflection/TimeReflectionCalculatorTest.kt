@@ -44,6 +44,44 @@ class TimeReflectionCalculatorTest {
     }
 
     @Test
+    fun historicalDayEndsAtNextRecordedDayStart() {
+        val reflection =
+            calculateTimeReflection(
+                records =
+                    listOf(
+                        activity("selected #work", 1_100, 1_700),
+                        activity("next day #rest", 2_100, 2_400),
+                    ),
+                recordedDayStarts = listOf(1_000, 2_000, 3_000),
+                period = ReflectionPeriod.DAY,
+                now = 3_500,
+                anchorDayStart = 1_000,
+            )
+
+        assertEquals(1_000L, reflection.rangeStart)
+        assertEquals(2_000L, reflection.rangeEnd)
+        assertEquals(600L, reflection.totalTrackedMillis)
+        assertEquals(listOf("#work"), reflection.tagStats.map { it.tag })
+    }
+
+    @Test
+    fun historicalMultiDayPeriodEndsAtSelectedOperationalDay() {
+        val reflection =
+            calculateTimeReflection(
+                records = listOf(activity("#focus", 100, 3_800)),
+                recordedDayStarts = listOf(100, 1_000, 2_000, 3_000, 4_000),
+                period = ReflectionPeriod.THREE_DAYS,
+                now = 5_000,
+                anchorDayStart = 3_000,
+            )
+
+        assertEquals(1_000L, reflection.rangeStart)
+        assertEquals(4_000L, reflection.rangeEnd)
+        assertEquals(2_800L, reflection.totalTrackedMillis)
+        assertEquals(3, reflection.recordedDayCount)
+    }
+
+    @Test
     fun ongoingAndMultiTagActivityContributesToEachTag() {
         val reflection =
             calculateTimeReflection(

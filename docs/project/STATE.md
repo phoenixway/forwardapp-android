@@ -35,15 +35,30 @@ or seven recorded operational days. Entity statistics also report how many
 operational days contained tracked time. Period bounds
 come from persisted day-management `WOKE_UP` events (with the current
 `wokeAt` state as a compatibility fallback), not from calendar midnight.
+The reflection anchor can be moved across recorded operational days with
+previous/next controls, a horizontal swipe, or a calendar limited to dates
+that have a recorded day start. Historical ranges end at the next recorded
+day start; the latest range ends at the current time.
 
 An activity carrying multiple hashtags contributes its duration to every
 matching tag, while the total tracked value counts the activity only once.
 Activity records can likewise carry multiple typed entity links. Legacy
 `goalId` and `contextId` links remain part of the reflection projection.
+The Life Journal activity composer can attach multiple typed entity links
+before a timed activity starts; those links and the legacy context/goal
+compatibility fields are persisted in the initial `ActivityRecord` insert.
 
 Life Journal supports backdated timed activities by duration and completion
 time. This path does not interrupt the currently running tracker activity and
 can inherit links when invoked as `Додати ще часу` from an existing record.
+
+The canonical ongoing `ActivityRecord` is rendered as the live final entry in
+the journal timeline. Its elapsed projection comes from the persisted start
+time and one screen-level clock state. While a meaningful part of that entry
+is visible, no second running indicator is shown; when it leaves the lazy-list
+viewport, a compact status strip with elapsed time and Stop is shown directly
+above the composer. Stable item-key bounds and visibility hysteresis drive
+that transition rather than a fixed scroll offset.
 
 ### Recurrence-v2 shared domain ownership
 
@@ -208,6 +223,35 @@ empty list:
 
 The Android regression test and a real Desktop -> Android Push both passed
 after this compatibility repair.
+
+### Desktop sync collection ownership and merge coverage
+
+Desktop live-sync collection ownership is now explicit rather than inferred from
+the shape of the persisted database.
+
+`syncCollectionPolicy.ts` classifies every normalized Desktop database
+collection as bidirectional, Android read-only, Android opaque, special, or a
+compatibility alias. It also records receive and push policy. A coverage test
+checks every Desktop database-list key and every Android `SnapshotBundle`
+collection field so that a newly added sync collection cannot silently exist
+without an ownership decision.
+
+Desktop context push no longer clones and sends the whole local database.
+The context payload is derived from the explicit policy registry and contains
+only collections that Desktop actually owns under the context-dirty boundary.
+Android-owned opaque/read-only state such as `ActivityRecord`, AI/chat state,
+role profiles, intervals, and other Android-only collections therefore cannot
+ride along with an unrelated Desktop edit and overwrite fresher Android rows.
+
+Android -> Desktop live merge now explicitly handles Desktop-used collections
+that previously fell through the generic seed-only path, including direction
+items, context hierarchy links, logs, artifacts, key problems, and Main Beacon
+relations/statuses. Version/timestamp entities use freshness merge; composite
+relations use their canonical composite identity; Android full-set Main Beacon
+relation collections use authoritative replacement semantics.
+
+Targeted Desktop sync coverage is green at 21/21 tests together with TypeScript
+type checking.
 
 ## Known documentation constraint
 

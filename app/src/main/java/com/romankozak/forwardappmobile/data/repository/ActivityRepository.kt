@@ -85,6 +85,7 @@ class ActivityRepository
         suspend fun startActivity(
             text: String,
             startTime: Long,
+            entityLinks: List<ActivityEntityLink> = emptyList(),
         ): ActivityRecord {
             val parsed = stateSlashCommandParser.parse(text)
             val now = System.currentTimeMillis()
@@ -105,6 +106,9 @@ class ActivityRepository
                     endTime = null,
                     xpGained = null,
                     antyXp = null,
+                    entityLinks = entityLinks,
+                    contextId = entityLinks.firstOrNull { it.entityType == ActivityEntityType.CONTEXT }?.entityId,
+                    goalId = entityLinks.firstOrNull { it.entityType == ActivityEntityType.GOAL }?.entityId,
                     updatedAt = now,
                     syncedAt = null,
                     version = 1,

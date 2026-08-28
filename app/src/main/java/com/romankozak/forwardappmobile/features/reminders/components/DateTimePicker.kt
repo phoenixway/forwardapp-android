@@ -99,6 +99,8 @@ fun DateTimePickerDialog(
     onDismiss: () -> Unit,
     onConfirm: (Long) -> Unit,
     enablePastValues: Boolean = false,
+    title: String = "Виберіть дату і час",
+    summaryLabel: String = "Нагадування",
 ) {
     val calendar = Calendar.getInstance()
     var selectedDate by remember {
@@ -127,7 +129,7 @@ fun DateTimePickerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Виберіть дату і час") },
+        title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 DateTimeSelectionButtons(
@@ -146,7 +148,7 @@ fun DateTimePickerDialog(
                         ),
                 ) {
                     Text(
-                        text = "Нагадування: ${formatDateTime(finalDateTime)}",
+                        text = "$summaryLabel: ${formatDateTime(finalDateTime)}",
                         modifier = Modifier.padding(12.dp),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
