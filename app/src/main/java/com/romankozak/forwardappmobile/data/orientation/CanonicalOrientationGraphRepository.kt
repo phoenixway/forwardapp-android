@@ -36,6 +36,7 @@ class CanonicalOrientationGraphRepository
             }
         }
 
+        @Deprecated("Use CanonicalAspectLinksRepository membership commands")
         suspend fun saveAspectRefs(changes: List<AspectOrientationRef>) {
             database.withTransaction {
                 val final = mergeById(dao.getAllAspectOrientationRefs().map { it.toModel() }, changes) { it.id }

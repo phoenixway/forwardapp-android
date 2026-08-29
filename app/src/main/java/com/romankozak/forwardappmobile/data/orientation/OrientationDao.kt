@@ -35,6 +35,12 @@ interface OrientationDao {
     @Query("SELECT * FROM aspects")
     suspend fun getAllAspects(): List<AspectEntity>
 
+    @Query("SELECT * FROM aspects ORDER BY parentAspectId, aspectOrder")
+    fun observeAspects(): Flow<List<AspectEntity>>
+
+    @Query("SELECT * FROM aspects WHERE subjectId = :id LIMIT 1")
+    suspend fun getAspect(id: String): AspectEntity?
+
     @Query("SELECT * FROM orientation_assessments")
     suspend fun getAllAssessments(): List<OrientationAssessmentEntity>
 
@@ -56,8 +62,14 @@ interface OrientationDao {
     @Query("SELECT * FROM aspect_orientation_refs")
     suspend fun getAllAspectOrientationRefs(): List<AspectOrientationRefEntity>
 
+    @Query("SELECT * FROM aspect_orientation_refs ORDER BY aspectId, refOrder")
+    fun observeAspectOrientationRefs(): Flow<List<AspectOrientationRefEntity>>
+
     @Query("SELECT * FROM workspace_bindings")
     suspend fun getAllWorkspaceBindings(): List<WorkspaceBindingEntity>
+
+    @Query("SELECT * FROM workspace_bindings ORDER BY workspaceId, bindingOrder")
+    fun observeWorkspaceBindings(): Flow<List<WorkspaceBindingEntity>>
 
     @Query("SELECT * FROM workspace_capability_instances")
     suspend fun getAllWorkspaceCapabilities(): List<WorkspaceCapabilityInstanceEntity>

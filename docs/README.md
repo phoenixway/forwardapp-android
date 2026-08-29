@@ -129,6 +129,12 @@ The following directories contain subsystem documentation:
   common fields and tombstones, typed ordered Group membership, transactional
   legacy projections, Desktop compatibility ingress, and unchanged UI.
 
+`architecture/orientation-workspace-refactor/PHASE5-NON-UI-IMPLEMENTATION.md`
+- `CURRENT`
+- Implemented canonical Aspect lifecycle/hierarchy commands, ordered and
+  primary membership, Context compatibility-Workspace binding, and
+  non-destructive classification preview. Aspect UI remains unimplemented.
+
 These directories currently contain a mixture of current, historical,
 proposed, and reference material.
 

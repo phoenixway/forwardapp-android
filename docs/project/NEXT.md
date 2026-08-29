@@ -1,22 +1,24 @@
 # Next
 
-Begin the non-UI part of Phase 5 of the accepted Orientation/Aspect/Workspace
-plan: make Aspect a complete canonical domain rather than only a persisted
-contract row.
+Begin the non-UI foundation of Phase 6 of the accepted
+Orientation/Aspect/Workspace plan: separate canonical Workspace identity and
+capability configuration from the current Context compatibility host while
+preserving every current Context feature.
 
 The next focused implementation should:
 
-- audit current Context roles, tags, hierarchy, and potential Aspect sources
-  without automatically converting them;
-- complete canonical Aspect create/update/archive/tombstone and ordered
-  single-parent hierarchy operations behind validated repository boundaries;
-- complete `BELONGS_TO` / `RELEVANT_TO` membership operations, including one
-  primary membership, versioning, tombstones, and cycle/cardinality tests;
-- define a non-destructive Context classification preview/result model using
-  the accepted `WORKSPACE_ONLY` / `ASPECT_AND_WORKSPACE` / other outcomes;
-- keep ambiguous Contexts as compatibility Workspaces and record diagnostics;
-- verify backup/sync ownership and anti-resurrection for Aspect rows and refs.
+- audit Context identity, hierarchy, role/configuration, capability content,
+  sync, and deletion ownership against the accepted Workspace contract;
+- define the canonical Workspace persistence/cutover boundary and stable
+  Context-to-Workspace mapping without rewriting current Context rows;
+- provide read-only compatibility projection and divergence diagnostics before
+  any authority cutover;
+- preserve existing Context hierarchy, backlog, inbox, direction, problems,
+  documents, notes, log, attachments, navigation, and Desktop sync behavior;
+- verify atomic sync, backup/restore, tombstones, and anti-resurrection for the
+  Workspace foundation;
+- keep the new Aspect compatibility binding valid across the transition.
 
-Do not implement Aspect screens, pickers, filters, navigation, Context
-classification review UI, or any other user-facing change without explicit
-authorization for that exact UI scope.
+The unfinished user-facing portion of Phase 5 remains deferred: do not add
+Aspect screens, pickers, filters, navigation, classification review UI, or any
+other user-facing change without explicit authorization for that exact scope.

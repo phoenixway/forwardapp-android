@@ -302,6 +302,21 @@ relations. A newer supported Desktop legacy common-field edit is converted at
 Android ingress into a canonical write; stale compatibility drift is repaired
 from canonical state.
 
+The non-UI canonical Aspect foundation is now operational. Transactional
+repositories own Aspect create/update, ordered acyclic one-parent hierarchy,
+archive, and tombstone semantics; deleting a parent promotes direct children
+to root without deleting them. Aspect-to-Orientation `BELONGS_TO` and
+`RELEVANT_TO` refs support multiple memberships, one atomic primary
+`BELONGS_TO`, ordering, versions, and tombstones. An Aspect can bind to a
+current Context as its primary compatibility Workspace without changing or
+deleting the Context.
+
+Context classification remains a read-only, review-required preview. It emits
+accepted outcome codes, evidence/confidence, the retained compatibility
+Workspace id, and stable proposed semantic ids where justified. System and
+ambiguous Contexts remain compatibility Workspaces, and tags are not promoted.
+No Context classification or Aspect user interface has been applied.
+
 All other projected legacy domains remain shadow-only and retain their current
 runtime authority. No Context has been classified. No user-facing UI or
 navigation was changed for the Phase 4 cutover; assessment and Workspace

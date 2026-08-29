@@ -52,6 +52,7 @@ class CanonicalOrientationRepository
             }
         }
 
+        @Deprecated("Use CanonicalAspectRepository lifecycle commands")
         suspend fun saveAspect(subject: ManagedSubject, aspect: AspectNode) {
             require(subject.subjectType == ManagedSubjectType.ASPECT)
             require(subject.id == aspect.subjectId)

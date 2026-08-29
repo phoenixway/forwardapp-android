@@ -159,4 +159,30 @@ class LegacyOrientationAdaptersTest {
         assertEquals(ContextClassificationOutcome.ASPECT_AND_WORKSPACE, suggestion.suggestedOutcome)
         assertTrue(suggestion.requiresReview)
     }
+
+    @Test
+    fun contextClassificationPreviewIsStableAndKeepsAmbiguousContextsAsCompatibilityWorkspaces() {
+        val aspect =
+            Context(
+                id = "engineering",
+                name = "Engineering",
+                description = null,
+                parentId = null,
+                createdAt = 1L,
+                updatedAt = 2L,
+                roleCode = "aspect",
+            )
+        val ambiguous = aspect.copy(id = "unclear", roleCode = null)
+
+        val first = aspect.classificationPreview()
+        val second = aspect.classificationPreview()
+        val unresolved = ambiguous.classificationPreview()
+
+        assertEquals(first.proposedAspectId, second.proposedAspectId)
+        assertEquals(aspect.id, first.compatibilityWorkspaceId)
+        assertEquals(ContextClassificationConfidence.HIGH, first.confidence)
+        assertEquals(ContextClassificationOutcome.REVIEW_REQUIRED, unresolved.suggestedOutcome)
+        assertEquals(ambiguous.id, unresolved.compatibilityWorkspaceId)
+        assertTrue(unresolved.requiresReview)
+    }
 }
