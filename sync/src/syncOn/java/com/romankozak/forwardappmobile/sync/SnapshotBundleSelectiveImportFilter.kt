@@ -63,6 +63,11 @@ class SnapshotBundleSelectiveImportFilter {
             linkItemEntities = filteredLinks,
             inbox = filteredInbox,
             logs = filteredLogs,
+            // Selective-import UI currently selects legacy Context logs only.
+            // Canonical Workspace-owned EXECUTION_LOG requires a separate
+            // Workspace-aware selection contract before it can participate.
+            canonicalExecutionLogs = null,
+            workspaceDirectionEntries = null,
             scripts = filteredScripts,
             attachments = filteredAttachments,
             crossRefs =

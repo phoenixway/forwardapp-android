@@ -27,6 +27,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
 import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
+import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
@@ -71,6 +72,7 @@ class ContextRepository
         // ДОДАНО: Потрібен провайдер для уникнення циклічної залежності
         private val contextMarkerHandlerProvider: Provider<ContextMarkerHandler>,
         private val tagAssociationHandler: TagAssociationHandler,
+        private val workspaceWriteThrough: ContextWorkspaceWriteThrough,
     ) {
         private val contextMarkerHandler: ContextMarkerHandler by lazy { contextMarkerHandlerProvider.get() }
 
@@ -271,7 +273,9 @@ class ContextRepository
                     version = contextToMove.version + 1,
                     syncedAt = null,
                 )
-            contextDao.update(updatedContext)
+            workspaceWriteThrough.mutate(updatedContext.updatedAt ?: System.currentTimeMillis()) {
+                contextDao.update(updatedContext)
+            }
             ensureDirectionFrontLinkForParentChangeIfNeeded(
                 oldParentId = oldParentId,
                 newParentId = newParentId,
@@ -387,7 +391,7 @@ class ContextRepository
             // bumpSync повертає копію об'єкта з новою версією та скинутим syncedAt
             val bumped = context.bumpSync(now)
 
-            contextDao.update(bumped)
+            workspaceWriteThrough.mutate(now) { contextDao.update(bumped) }
             tagAssociationHandler.syncContextTags(bumped, previous?.tags)
             ensureDirectionFrontLinkForParentChangeIfNeeded(
                 oldParentId = previous?.parentId,
@@ -409,7 +413,7 @@ class ContextRepository
             val previousById = contextDao.getContextsByIds(contexts.map { it.id }.distinct()).associateBy { it.id }
             val now = System.currentTimeMillis()
             val bumpedList = contexts.map { it.bumpSync(now) }
-            val updated = contextDao.update(bumpedList)
+            val updated = workspaceWriteThrough.mutate(now) { contextDao.update(bumpedList) }
             bumpedList.forEach { bumped ->
                 ensureDirectionFrontLinkForParentChangeIfNeeded(
                     oldParentId = previousById[bumped.id]?.parentId,
@@ -444,7 +448,9 @@ class ContextRepository
             listItemRepository.deleteItemsForContexts(ids)
             val now = System.currentTimeMillis()
             directionDao.markDeletedByLinkedContextIds(ids, now)
-            contextsToDelete.forEach { contextDao.insert(it.softDelete(now)) }
+            workspaceWriteThrough.mutate(now) {
+                contextsToDelete.forEach { contextDao.insert(it.softDelete(now)) }
+            }
         }
 
         private suspend fun rebindSharedAttachmentEntitiesBeforeContextDeletion(deletingContextIds: Set<String>) {
@@ -708,23 +714,25 @@ class ContextRepository
                     version = 1,
                     roleCode = normalizedRoleCode,
                 )
-            contextDao.insert(newContext)
+            workspaceWriteThrough.mutate(now) {
+                contextDao.insert(newContext)
+                contextStructureDao.insertStructure(
+                    ContextConfiguration(
+                        id = UUID.randomUUID().toString(),
+                        contextId = id,
+                        basePresetCode = normalizedRoleCode,
+                        enableInbox = preset?.enableInbox,
+                        enableLog = preset?.enableLog,
+                        enableArtifact = preset?.enableArtifact,
+                        enableAdvanced = preset?.enableAdvanced,
+                        enableDashboard = preset?.enableDashboard,
+                        enableBacklog = preset?.enableBacklog,
+                        enableAttachments = preset?.enableAttachments,
+                        enableAutoLinkSubprojects = preset?.enableAutoLinkSubprojects ?: true,
+                    ),
+                )
+            }
             tagAssociationHandler.syncContextTags(newContext)
-            contextStructureDao.insertStructure(
-                ContextConfiguration(
-                    id = UUID.randomUUID().toString(),
-                    contextId = id,
-                    basePresetCode = normalizedRoleCode,
-                    enableInbox = preset?.enableInbox,
-                    enableLog = preset?.enableLog,
-                    enableArtifact = preset?.enableArtifact,
-                    enableAdvanced = preset?.enableAdvanced,
-                    enableDashboard = preset?.enableDashboard,
-                    enableBacklog = preset?.enableBacklog,
-                    enableAttachments = preset?.enableAttachments,
-                    enableAutoLinkSubprojects = preset?.enableAutoLinkSubprojects ?: true,
-                ),
-            )
 
             ensureChildContextDirectionFrontLinkIfEnabled(
                 parentContextId = parentId,
@@ -833,7 +841,9 @@ class ContextRepository
                     version = contextToMove.version + 1,
                     syncedAt = null, // Скидаємо для синхронізації
                 )
-            contextDao.update(updatedContext)
+            workspaceWriteThrough.mutate(updatedContext.updatedAt ?: System.currentTimeMillis()) {
+                contextDao.update(updatedContext)
+            }
             ensureDirectionFrontLinkForParentChangeIfNeeded(
                 oldParentId = oldParentId,
                 newParentId = newParentId,

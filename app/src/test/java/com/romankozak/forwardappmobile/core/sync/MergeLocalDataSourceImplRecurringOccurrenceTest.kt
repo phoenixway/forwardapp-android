@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.core.sync
 import androidx.room.withTransaction
 import com.google.common.truth.Truth.assertThat
 import com.google.gson.Gson
+import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.DayStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusItem
@@ -10,11 +11,13 @@ import com.romankozak.forwardappmobile.core.data.models.entities.day_management.
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayPlan
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayTask
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextLogSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toSnapshot
 import com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceSnapshotMapper
 import com.romankozak.forwardappmobile.data.dao.DayFocusItemDao
 import com.romankozak.forwardappmobile.data.dao.DayPlanDao
 import com.romankozak.forwardappmobile.data.dao.DayTaskDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
 import com.romankozak.forwardappmobile.database.AppDatabase
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -674,11 +677,81 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
             .isEqualTo(localPlanId)
     }
 
+    @Test
+    fun `log merge does not resurrect older live row over newer local tombstone`() = runTest {
+        val db = mockk<AppDatabase>(relaxed = true)
+        val dayPlanDao = mockk<DayPlanDao>(relaxed = true)
+        val dayTaskDao = mockk<DayTaskDao>(relaxed = true)
+        val contextManagementDao = mockk<ContextManagementDao>(relaxed = true)
+
+        val localTombstone =
+            ContextLog(
+                id = "log-1",
+                contextId = "context-1",
+                timestamp = 1_000L,
+                type = "COMMENT",
+                description = "deleted locally",
+                details = null,
+                updatedAt = 5_000L,
+                syncedAt = null,
+                isDeleted = true,
+                version = 5L,
+            )
+
+        coEvery { contextManagementDao.getAllLogs() } returns listOf(localTombstone)
+
+        val insertedLogs = slot<List<ContextLog>>()
+        coEvery { contextManagementDao.insertLogs(capture(insertedLogs)) } returns Unit
+
+        val transactionBlock = slot<suspend () -> Unit>()
+        mockkStatic("androidx.room.RoomDatabaseKt")
+        try {
+            coEvery { db.withTransaction<Unit>(capture(transactionBlock)) } coAnswers {
+                transactionBlock.captured.invoke()
+            }
+
+            val subject =
+                createSubject(
+                    db = db,
+                    dayPlanDao = dayPlanDao,
+                    dayTaskDao = dayTaskDao,
+                    contextManagementDao = contextManagementDao,
+                )
+
+            val incomingOlderLive =
+                ContextLogSnapshot(
+                    id = localTombstone.id,
+                    contextId = requireNotNull(localTombstone.contextId),
+                    timestamp = localTombstone.timestamp,
+                    type = localTombstone.type,
+                    description = "older remote live row",
+                    details = null,
+                    updatedAt = 6_000L,
+                    version = 4L,
+                    isDeleted = false,
+                )
+
+            subject.applySnapshotBundle(
+                SnapshotBundle(
+                    version = 2,
+                    exportedAt = 7_000L,
+                    logs = listOf(incomingOlderLive),
+                ),
+            )
+        } finally {
+            unmockkStatic("androidx.room.RoomDatabaseKt")
+        }
+
+        assertThat(insertedLogs.isCaptured).isTrue()
+        assertThat(insertedLogs.captured).isEmpty()
+    }
+
     private fun createSubject(
         db: AppDatabase,
         dayPlanDao: DayPlanDao,
         dayTaskDao: DayTaskDao,
         dayFocusItemDao: DayFocusItemDao? = null,
+        contextManagementDao: ContextManagementDao? = null,
     ): MergeLocalDataSourceImpl {
         val constructor = MergeLocalDataSourceImpl::class.java.declaredConstructors.single()
         constructor.isAccessible = true
@@ -689,6 +762,7 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
                     DayPlanDao::class.java -> dayPlanDao
                     DayTaskDao::class.java -> dayTaskDao
                     DayFocusItemDao::class.java -> dayFocusItemDao ?: relaxedMock(parameterType)
+                    ContextManagementDao::class.java -> contextManagementDao ?: relaxedMock(parameterType)
                     else -> relaxedMock(parameterType)
                 }
             }.toTypedArray()

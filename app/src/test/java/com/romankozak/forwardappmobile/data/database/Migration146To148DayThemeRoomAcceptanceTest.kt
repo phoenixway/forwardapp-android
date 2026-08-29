@@ -38,6 +38,8 @@ class Migration146To148DayThemeRoomAcceptanceTest {
                     MIGRATION_147_148,
                     MIGRATION_148_149,
                     MIGRATION_149_150,
+                    MIGRATION_150_151,
+                    MIGRATION_151_152,
                 )
                 .allowMainThreadQueries()
                 .build()
@@ -45,7 +47,7 @@ class Migration146To148DayThemeRoomAcceptanceTest {
         try {
             val db = room.openHelper.writableDatabase
 
-            assertEquals(150L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(152L, scalarLong(db, "PRAGMA user_version"))
             assertTrue(tableExists(db, "day_theme_documents"))
             assertTrue(tableExists(db, "theme_definitions"))
             assertTrue(tableExists(db, "day_themes"))
@@ -58,6 +60,8 @@ class Migration146To148DayThemeRoomAcceptanceTest {
             assertTrue(tableExists(db, "legacy_subject_mappings"))
             assertTrue(tableExists(db, "aspects"))
             assertTrue(tableExists(db, "workspace_bindings"))
+            assertTrue(tableExists(db, "workspaces"))
+            assertTrue(tableExists(db, "workspace_bootstrap_state"))
             assertTrue(tableExists(db, "orientation_bootstrap_state"))
 
             db.query(

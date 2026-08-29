@@ -8,6 +8,8 @@ import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
 import com.romankozak.forwardappmobile.data.dao.ScriptDao
 import com.romankozak.forwardappmobile.data.database.ALL_MIGRATIONS
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceDirectionEntryDao
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
@@ -200,6 +202,14 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideOrientationDao(appDatabase: AppDatabase): OrientationDao = appDatabase.orientationDao()
+
+    @Provides
+    fun provideWorkspaceDao(appDatabase: AppDatabase): WorkspaceDao = appDatabase.workspaceDao()
+
+    @Provides
+    @Singleton
+    fun provideWorkspaceDirectionEntryDao(appDatabase: AppDatabase): WorkspaceDirectionEntryDao =
+        appDatabase.workspaceDirectionEntryDao()
 
     @Provides
     @Singleton

@@ -4,7 +4,6 @@ import android.util.Log
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
 import com.romankozak.forwardappmobile.core.data.interfaces.sync.IContentProvider
-import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.SettingsContent
@@ -32,7 +31,6 @@ data class ResolvedImportBundle(
 class SyncFileService @Inject constructor(
     private val contentProvider: IContentProvider,
     private val localDataSource: FullBackupLocalDataSource,
-    private val legacyMigrationMapper: LegacyMigrationMapper,
     private val mergeRepository: MergeRepository,
 ) {
     private val tag = "SyncFileService"
@@ -66,72 +64,19 @@ class SyncFileService @Inject constructor(
     }
 
     suspend fun createFullBackupJsonString(): String {
-        val databaseContent = localDataSource.loadFullDatabaseContent()
-        val snapshotBundle = localDataSource.loadFullSnapshotBundle()
+                val snapshotBundle = localDataSource.loadFullSnapshotBundle()
         val settingsMap = localDataSource.getSettingsSnapshot()
 
         val fullBackup = FullAppBackup(
             backupSchemaVersion = 2,
-            database = databaseContent,
             settings = SettingsContent(settingsMap),
             snapshotBundle = snapshotBundle,
         )
         return gson.toJson(fullBackup)
     }
 
-    suspend fun importFullBackupFromFile(uriString: String): Result<String> = withContext(Dispatchers.IO) {
-        Log.e("FullJsonImport", "importFullBackupFromFile start uri=$uriString")
-        Timber.tag(tag).d( "Attempting to import full backup from URI: $uriString")
-        try {
-            val backupResult = parseBackupFile(uriString)
-            if (backupResult.isFailure) {
-                throw backupResult.exceptionOrNull() ?: Exception("Unknown parsing error")
-            }
-            val backupData = backupResult.getOrThrow()
-            val database = backupData.database
-            val snapshotBundle = backupData.snapshotBundle
-            Log.i(
-                "FullJsonImport",
-                "parsed backup schema=${backupData.backupSchemaVersion} hasDb=${database != null} " +
-                    "hasSnapshot=${snapshotBundle != null} dbStats=${database?.debugStats()} " +
-                    "snapshotItems=${snapshotBundle?.importItemCount()}",
-            )
-
-            if (snapshotBundle == null && database != null) {
-                throw IllegalArgumentException(
-                    "Legacy database-only backup is no longer supported; canonical snapshotBundle is required.",
-                )
-            }
-
-            when {
-                database != null && snapshotBundle == null -> {
-                    Log.e("FullJsonImport", "applying full restore from database")
-                    localDataSource.restoreDatabaseFromBackup(database)
-                    Log.e("FullJsonImport", "full restore from database completed")
-                }
-                snapshotBundle != null -> {
-                    Log.e("FullJsonImport", "applying full restore from snapshot")
-                    localDataSource.clearAllTables()
-                    localDataSource.applySnapshotBundle(snapshotBundle)
-                    Log.e("FullJsonImport", "full restore from snapshot completed")
-                }
-                else -> throw IllegalArgumentException("Backup payload is empty. Nothing to import.")
-            }
-            backupData.settings?.settings?.let { localDataSource.restoreSettings(it) }
-            val importedCount =
-                snapshotBundle?.importItemCount()
-                    ?: database?.let { legacyMigrationMapper.toSnapshotBundle(it).importItemCount() }
-                    ?: 0
-
-            Timber.tag(tag).i("Full backup successfully imported from URI: $uriString")
-            Log.e("FullJsonImport", "importFullBackupFromFile success importedCount=$importedCount")
-            Result.success("Дані імпортовано: $importedCount items")
-        } catch (e: Exception) {
-            Timber.tag(tag).e("A critical error occurred during the import process.", e)
-            Log.e("FullJsonImport", "importFullBackupFromFile failed message=${e.message}", e)
-            Result.failure(e)
-        }
-    }
+    suspend fun importFullBackupFromFile(uriString: String): Result<String> =
+        importFullBackupFromFileV2(uriString)
 
     suspend fun parseBackupFile(uriString: String): Result<FullAppBackup> = withContext(Dispatchers.IO) {
         Timber.tag(tag).d("Parsing backup file from URI: $uriString")
@@ -212,7 +157,6 @@ class SyncFileService @Inject constructor(
 
         val fullBackup = FullAppBackup(
             backupSchemaVersion = 2,
-            database = null,
             settings = SettingsContent(settingsMap),
             snapshotBundle = snapshotBundle,
         )
@@ -281,52 +225,26 @@ class SyncFileService @Inject constructor(
         }
     }
 
-    fun legacyImportDescriptor(): WorkspaceImportDescriptor =
-        WorkspaceImportDescriptor(
-            format = WorkspaceSnapshotFormat.AndroidLegacyDatabase,
-            sourceMode = WorkspaceImportSourceMode.LegacyDatabase,
-        )
-
     private fun resolveIncomingImportBundle(normalizedJson: String): ResolvedImportBundle {
         val jsonObject = JsonParser.parseString(normalizedJson).asJsonObject
-        val backupData = gson.fromJson(normalizedJson, FullAppBackup::class.java)
-        val database = backupData.database
-        val snapshotBundle = backupData.snapshotBundle
-        val resolvedWorkspaceSnapshot = workspaceSnapshotResolver.resolve(normalizedJson)
-
-        if (snapshotBundle == null && (database != null || hasDatabaseContentKeys(jsonObject))) {
-            throw IllegalArgumentException(
-                "Legacy database-only backup is no longer supported; canonical snapshotBundle is required.",
-            )
-        }
+        val backup = gson.fromJson(normalizedJson, FullAppBackup::class.java)
+        val snapshot = backup.snapshotBundle
+        val desktop = workspaceSnapshotResolver.resolve(normalizedJson)
 
         return when {
-            database != null && snapshotBundle == null -> {
-                Timber.tag(tag).d("Parsed as FullAppBackup database payload. Migrating to SnapshotBundle...")
-                ResolvedImportBundle(
-                    snapshotBundle = legacyMigrationMapper.toSnapshotBundle(database),
-                    descriptor =
-                        WorkspaceImportDescriptor(
-                            format = WorkspaceSnapshotFormat.AndroidLegacyDatabase,
-                            sourceMode = WorkspaceImportSourceMode.LegacyDatabase,
-                        ),
-                )
-            }
-            snapshotBundle != null -> {
-                Timber.tag(tag).d("Successfully parsed as FullAppBackup with SnapshotBundle payload.")
-                val rawSnapshotBundle =
-                    jsonObject
-                        .get("snapshotBundle")
+            snapshot != null -> {
+                val raw =
+                    jsonObject.get("snapshotBundle")
                         ?.takeIf { it.isJsonObject }
                         ?.asJsonObject
-                        ?: throw IllegalArgumentException("FullAppBackup snapshotBundle must be a JSON object.")
-                val importableSnapshotBundle =
-                    CanonicalDayThemeImportGate.requireImportable(
-                        rawSnapshotBundle = rawSnapshotBundle,
-                        decodedBundle = snapshotBundle,
-                    )
+                        ?: error("FullAppBackup snapshotBundle must be a JSON object.")
+
                 ResolvedImportBundle(
-                    snapshotBundle = importableSnapshotBundle,
+                    snapshotBundle =
+                        CanonicalDayThemeImportGate.requireImportable(
+                            rawSnapshotBundle = raw,
+                            decodedBundle = snapshot,
+                        ),
                     descriptor =
                         WorkspaceImportDescriptor(
                             format = WorkspaceSnapshotFormat.AndroidSnapshotBundleV2,
@@ -334,27 +252,26 @@ class SyncFileService @Inject constructor(
                         ),
                 )
             }
-            resolvedWorkspaceSnapshot?.format == WorkspaceSnapshotFormat.Desktop -> {
-                Timber.tag(tag).d("Detected raw DesktopWorkspaceSnapshot payload. Bridging to SnapshotBundle...")
+
+            desktop?.format == WorkspaceSnapshotFormat.Desktop ->
                 ResolvedImportBundle(
-                    snapshotBundle = desktopWorkspaceSnapshotSyncAdapter.toSnapshotBundle(resolvedWorkspaceSnapshot.snapshot),
+                    snapshotBundle =
+                        desktopWorkspaceSnapshotSyncAdapter.toSnapshotBundle(desktop.snapshot),
                     descriptor =
                         WorkspaceImportDescriptor(
                             format = WorkspaceSnapshotFormat.Desktop,
                             sourceMode = WorkspaceImportSourceMode.DesktopSnapshot,
                         ),
                 )
-            }
+
             hasSnapshotBundleKeys(jsonObject) -> {
-                Timber.tag(tag).d("Detected raw SnapshotBundle payload.")
-                val decodedSnapshotBundle = gson.fromJson(normalizedJson, SnapshotBundle::class.java)
-                val importableSnapshotBundle =
-                    CanonicalDayThemeImportGate.requireImportable(
-                        rawSnapshotBundle = jsonObject,
-                        decodedBundle = decodedSnapshotBundle,
-                    )
+                val decoded = gson.fromJson(normalizedJson, SnapshotBundle::class.java)
                 ResolvedImportBundle(
-                    snapshotBundle = importableSnapshotBundle,
+                    snapshotBundle =
+                        CanonicalDayThemeImportGate.requireImportable(
+                            rawSnapshotBundle = jsonObject,
+                            decodedBundle = decoded,
+                        ),
                     descriptor =
                         WorkspaceImportDescriptor(
                             format = WorkspaceSnapshotFormat.AndroidSnapshotBundleV2,
@@ -362,26 +279,13 @@ class SyncFileService @Inject constructor(
                         ),
                 )
             }
-            hasDatabaseContentKeys(jsonObject) -> {
-                Timber.tag(tag).d("Detected raw DatabaseContent payload. Migrating to SnapshotBundle...")
-                val databaseContent = gson.fromJson(normalizedJson, DatabaseContent::class.java)
-                ResolvedImportBundle(
-                    snapshotBundle = legacyMigrationMapper.toSnapshotBundle(databaseContent),
-                    descriptor = legacyImportDescriptor(),
-                )
-            }
-            else -> {
-                throw IllegalArgumentException("Unsupported backup format: no recognizable SnapshotBundle or DatabaseContent payload.")
-            }
+
+            else -> error("Unsupported backup format: canonical SnapshotBundle is required.")
         }
     }
 
     private fun hasSnapshotBundleKeys(jsonObject: com.google.gson.JsonObject): Boolean {
         return jsonObject.has("contexts") || jsonObject.has("snapshotVersion")
-    }
-
-    private fun hasDatabaseContentKeys(jsonObject: com.google.gson.JsonObject): Boolean {
-        return jsonObject.has("projects") || jsonObject.has("goals") || jsonObject.has("backlogItems")
     }
 
     private fun isEffectivelyEmpty(bundle: SnapshotBundle): Boolean {
@@ -421,10 +325,3 @@ private fun SnapshotBundle.describeDayPayload(): String {
         "focusSample=$focusSample",
     ).joinToString(" ")
 }
-
-private fun DatabaseContent.debugStats(): String =
-    "contexts=${projects.size}, contextLinks=${contextParentLinks.size}, goals=${goals.size}, " +
-        "backlog=${backlogItems.size}, docs=${documents.size}, checklists=${checklists.size}, " +
-        "dayPlans=${dayPlans.size}, dayFocus=${dayFocusItems.size}, dayTasks=${dayTasks.size}, " +
-        "beacons=${mainBeacons.size}, beaconGroups=${mainBeaconGroups.size}, " +
-        "beaconContextRefs=${mainBeaconContextCrossRefs.size}"

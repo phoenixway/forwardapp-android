@@ -20,6 +20,7 @@ internal fun SnapshotBundle.importItemCount(): Int =
         crossRefs.size +
         inbox.size +
         logs.size +
+        canonicalExecutionLogs.orEmpty().size +
         systemApps.size +
         activityRecords.size +
         recentProjectEntries.size +

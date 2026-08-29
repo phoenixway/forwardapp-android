@@ -6,7 +6,6 @@ import com.romankozak.forwardappmobile.data.logic.InboxAssociationCache
 import com.romankozak.forwardappmobile.core.context.normalizeLegacyStructuralContextBacklog
 
 import android.util.Log
-import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
@@ -14,9 +13,9 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachme
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.sync.ChangeType
-import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.SyncChange
+import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalDayThemePayload
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalOrientationPayload
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toCanonicalEntity
@@ -29,6 +28,11 @@ import com.romankozak.forwardappmobile.data.daythemes.planCanonicalDayThemeMerge
 import com.romankozak.forwardappmobile.data.daythemes.planLegacyDayThemeMerge
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationBootstrapper
 import com.romankozak.forwardappmobile.data.orientation.storeCanonicalPayload
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceDirectionEntrySyncStore
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceDirectionEntryShadowMaterializer
+import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
+import com.romankozak.forwardappmobile.data.workspace.capability.ExecutionLogWorkspaceOwnershipBridge
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogSyncStore
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
@@ -61,6 +65,11 @@ class MergeLocalDataSourceImpl
         private val canonicalDayThemeDao: CanonicalDayThemeDao,
         private val canonicalDayThemeBootstrapper: CanonicalDayThemeBootstrapper,
         private val canonicalOrientationBootstrapper: CanonicalOrientationBootstrapper,
+        private val contextWorkspaceWriteThrough: ContextWorkspaceWriteThrough,
+        private val executionLogWorkspaceOwnershipBridge: ExecutionLogWorkspaceOwnershipBridge,
+        private val canonicalExecutionLogSyncStore: CanonicalExecutionLogSyncStore,
+        private val canonicalWorkspaceDirectionEntrySyncStore: CanonicalWorkspaceDirectionEntrySyncStore,
+        private val workspaceDirectionEntryShadowMaterializer: WorkspaceDirectionEntryShadowMaterializer,
         private val dailyMetricDao: DailyMetricDao,
         private val reminderDao: ReminderDao,
         private val tacticalMissionDao: TacticalMissionDao,
@@ -102,47 +111,8 @@ class MergeLocalDataSourceImpl
 
         override suspend fun getGoals(): List<Goal> = goalDao.getAll()
 
-        override suspend fun getLocalDatabaseContent(): DatabaseContent {
-            return DatabaseContent(
-                projects = contextDao.getAll(),
-                contextParentLinks = contextParentLinkDao.getAllRaw(),
-                goals = goalDao.getAll(),
-                backlogItems = listItemDao.getAll(),
-                directionItems = directionDao.getAllRaw(),
-                documents = noteDocumentDao.getAllDocuments(),
-                musicNotes = musicNoteDao.getAll(),
-                attachments = attachmentDao.getAll(),
-                contextAttachmentCrossRefs = attachmentDao.getAllContextAttachmentCrossRefs(),
-                dayPlans = dayPlanDao.getAllPlansSync(),
-                dayFocusItems = dayFocusItemDao.getAllSync(),
-                dayTasks = dayTaskDao.getAllTasksSync(),
-                // Legacy DayThemeDocuments are not part of modern local merge authority.
-                dayThemeDocuments = emptyList(),
-                dailyMetrics = dailyMetricDao.getAll(),
-                conversations = chatDao.getAllConversationsSync(),
-                chatMessages = chatDao.getAllMessagesSync(),
-                reminders = reminderDao.getAllRemindersSync(),
-                tacticalMissions = tacticalMissionDao.getAllMissionsSync(),
-                tacticalIterations = tacticalIterationDao.getAllSync(),
-                missionStreams = missionStreamDao.getAllSync(),
-                tacticalActivitySlots = tacticalActivitySlotDao.getAllSync(),
-                arcQuests = arcQuestDao.getAllSync(),
-                aiInsights = aiInsightDao.getAllSync(),
-                mainBeacons = mainBeaconDao.getAllBeaconsSync(),
-                mainBeaconGroups = mainBeaconDao.getAllGroupsSync(),
-                mainBeaconGroupMembers = mainBeaconDao.getAllGroupMembersSync(),
-                mainBeaconParentLinks = mainBeaconDao.getAllParentLinksSync(),
-                mainBeaconContextCrossRefs = mainBeaconDao.getAllContextCrossRefsSync(),
-                mainBeaconAttachmentCrossRefs = mainBeaconDao.getAllAttachmentCrossRefsSync(),
-                mainBeaconLevelStatuses = mainBeaconDao.getAllLevelStatusesSync(),
-                contextInboxSortingRules = contextInboxSortingDao.getAllRaw(),
-                contextKeyProblems = contextKeyProblemsDao.getAllRaw(),
-                focusContextIntervals = focusContextIntervalDao.getAllRaw(),
-                userStateIntervals = userStateIntervalDao.getAllRaw(),
-            )
-        }
-
-        override suspend fun insertContexts(contexts: List<Context>) = contextDao.insertContexts(contexts)
+        override suspend fun insertContexts(contexts: List<Context>) =
+            contextWorkspaceWriteThrough.mutate { contextDao.insertContexts(contexts) }
 
         override suspend fun insertGoals(goals: List<Goal>) = goalDao.insertGoals(goals)
 
@@ -164,7 +134,7 @@ class MergeLocalDataSourceImpl
         }
 
         override suspend fun applyChanges(changes: List<SyncChange>) {
-            db.withTransaction {
+            contextWorkspaceWriteThrough.mutate {
                 changes.forEach { change ->
                     when (change.type) {
                         ChangeType.Add, ChangeType.Update -> applyUpsert(change)
@@ -192,7 +162,10 @@ class MergeLocalDataSourceImpl
             // Використовуємо правильні назви полів: entityType та id
             when (change.entityType) {
                 "Ціль" -> goalDao.deleteGoalById(change.id)
-                "Список" -> contextDao.delete(change.id)
+                "Список" -> {
+                    val context = contextDao.getContextById(change.id)
+                    if (context == null) contextDao.delete(change.id) else contextDao.insert(context.softDelete())
+                }
                 "Вкладення" -> attachmentDao.deleteAttachment(change.id)
             }
         }
@@ -204,7 +177,7 @@ class MergeLocalDataSourceImpl
             attachments: List<AttachmentEntity>,
             crossRefs: List<ContextAttachmentCrossRef>,
         ) {
-            db.withTransaction {
+            contextWorkspaceWriteThrough.mutate {
                 if (projects.isNotEmpty()) contextDao.insertContexts(projects)
                 if (goals.isNotEmpty()) goalDao.insertGoals(goals)
                 if (listItems.isNotEmpty()) listItemDao.insertItems(listItems)
@@ -426,7 +399,7 @@ class MergeLocalDataSourceImpl
                     "remap=$incomingPlanIdRemap",
             )
 
-            db.withTransaction {
+            contextWorkspaceWriteThrough.mutate {
                 contextDao.insertAll(bundle.contexts.map { it.toEntity() })
                 val validContextIds = bundle.contexts.map { it.id }.toSet()
                 contextParentLinkDao.insertAll(bundle.contextParentLinks.map { it.toEntity() })
@@ -513,7 +486,34 @@ class MergeLocalDataSourceImpl
                 contextArtifactDao.insertAll(bundle.artifacts.map { it.toEntity() })
                 scriptDao.insertAll(bundle.scripts.map { it.toEntity() })
                 inboxRecordDao.insertAll(bundle.inbox.map { it.toEntity() })
-                contextManagementDao.insertLogs(bundle.logs.map { it.toEntity() })
+
+                val localContextLogsById =
+                    contextManagementDao.getAllLogs().associateBy { log -> log.id }
+                val canonicalIncomingIds =
+                    bundle.canonicalExecutionLogs.orEmpty().mapTo(hashSetOf()) { it.id }
+
+                require(bundle.logs.none { it.id in canonicalIncomingIds }) {
+                    "EXECUTION_LOG payload contains the same id in legacy and canonical streams"
+                }
+
+                contextManagementDao.insertLogs(
+                    bundle.logs
+                        .filter { incoming ->
+                            val local = localContextLogsById[incoming.id] ?: return@filter true
+                            require(local.contextId != null) {
+                                "EXECUTION_LOG id collision between legacy Context and canonical Workspace streams: ${incoming.id}"
+                            }
+                            val localUpdatedAt = local.updatedAt ?: Long.MIN_VALUE
+                            when {
+                                incoming.version != local.version -> incoming.version > local.version
+                                incoming.updatedAt != localUpdatedAt -> incoming.updatedAt > localUpdatedAt
+                                incoming.isDeleted != local.isDeleted -> incoming.isDeleted
+                                else -> false
+                            }
+                        }
+                        .map { it.toEntity() },
+                )
+
                 systemAppDao.insertAll(
                     bundle.systemApps.mapNotNull { app ->
                         when {
@@ -580,12 +580,16 @@ class MergeLocalDataSourceImpl
                 mainBeaconDao.insertContextCrossRefs(bundle.mainBeaconContextCrossRefs.map { it.toEntity() })
                 mainBeaconDao.insertAttachmentCrossRefs(bundle.mainBeaconAttachmentCrossRefs.map { it.toEntity() })
                 mainBeaconDao.insertLevelStatuses(bundle.mainBeaconLevelStatuses.map { it.toEntity() })
-                db.orientationDao().storeCanonicalPayload(bundle, merge = true)
+                db.orientationDao().storeCanonicalPayload(bundle, merge = true, workspaceDao = db.workspaceDao())
+                canonicalWorkspaceDirectionEntrySyncStore.mergeIncoming(bundle.workspaceDirectionEntries)
+                canonicalExecutionLogSyncStore.mergeIncoming(bundle.canonicalExecutionLogs)
             }
+            executionLogWorkspaceOwnershipBridge.repairUnresolved()
             // InboxRecordLink is a local materialized cache only.
             // Rebuild it from canonical InboxRecord + Context.tags after import.
             inboxAssociationCache.rebuild()
             canonicalOrientationBootstrapper.ensureBootstrapped()
+            workspaceDirectionEntryShadowMaterializer.ensureMaterialized()
 
             bundle.dayManagementRuntimeState?.let { runtimeState ->
                 Log.i(

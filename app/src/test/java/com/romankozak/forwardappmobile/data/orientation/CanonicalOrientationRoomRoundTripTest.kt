@@ -9,8 +9,11 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Man
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentRevisionEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import com.romankozak.forwardappmobile.shared.core.models.orientation.emptyApplicableAssessment
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -29,13 +32,18 @@ class CanonicalOrientationRoomRoundTripTest {
         val first = database()
         val second = database()
         try {
-            first.orientationDao().storeCanonicalPayload(payload(version = 1, deleted = false), merge = false)
-            val exported = first.orientationDao().exportBundle()
+            first.orientationDao().storeCanonicalPayload(
+                payload(version = 1, deleted = false),
+                merge = false,
+                workspaceDao = first.workspaceDao(),
+            )
+            val exported = first.orientationDao().exportBundle(first.workspaceDao())
             val decoded = gson.fromJson(gson.toJson(exported), SnapshotBundle::class.java)
 
-            second.orientationDao().storeCanonicalPayload(decoded, merge = false)
+            second.orientationDao().storeCanonicalPayload(decoded, merge = false, workspaceDao = second.workspaceDao())
 
             assertEquals(first.orientationDao().getAllManagedSubjects(), second.orientationDao().getAllManagedSubjects())
+            assertEquals(first.workspaceDao().getAll(), second.workspaceDao().getAll())
             assertEquals(first.orientationDao().getAllAssessments(), second.orientationDao().getAllAssessments())
             assertEquals(first.orientationDao().getAllLegacyMappings(), second.orientationDao().getAllLegacyMappings())
         } finally {
@@ -45,16 +53,55 @@ class CanonicalOrientationRoomRoundTripTest {
     }
 
     @Test
+    fun `schema 151 Workspace JSON without provenance restores as Context-backed`() = runBlocking {
+        val database = database()
+        try {
+            val legacyJson =
+                gson.toJson(
+                    payload(version = 1, deleted = false),
+                ).replace(
+                    "\"provenance\":\"CANONICAL_ONLY\",",
+                    "",
+                ).replace(
+                    "\"sourceContextId\":null,",
+                    "",
+                )
+            val decoded = gson.fromJson(legacyJson, SnapshotBundle::class.java)
+
+            database.orientationDao().storeCanonicalPayload(
+                decoded,
+                merge = false,
+                workspaceDao = database.workspaceDao(),
+            )
+
+            val workspace = database.workspaceDao().getById("workspace")
+            assertEquals(WorkspaceProvenance.CONTEXT_BACKED.name, workspace?.provenance)
+            assertEquals("workspace", workspace?.sourceContextId)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
     fun `repeated merge cannot resurrect a higher version tombstone`() = runBlocking {
         val database = database()
         try {
-            database.orientationDao().storeCanonicalPayload(payload(version = 1, deleted = false), merge = true)
-            database.orientationDao().storeCanonicalPayload(payload(version = 2, deleted = true), merge = true)
-            database.orientationDao().storeCanonicalPayload(payload(version = 1, deleted = false), merge = true)
+            database.orientationDao().storeCanonicalPayload(
+                payload(version = 1, deleted = false), merge = true, workspaceDao = database.workspaceDao(),
+            )
+            database.orientationDao().storeCanonicalPayload(
+                payload(version = 2, deleted = true), merge = true, workspaceDao = database.workspaceDao(),
+            )
+            database.orientationDao().storeCanonicalPayload(
+                payload(version = 1, deleted = false), merge = true, workspaceDao = database.workspaceDao(),
+            )
 
             val subject = database.orientationDao().getManagedSubject(SUBJECT_ID)
             assertEquals(2L, subject?.version)
             assertTrue(subject?.isDeleted == true)
+            val workspace = database.workspaceDao().getById("workspace")
+            assertEquals(2L, workspace?.version)
+            assertTrue(workspace?.isDeleted == true)
         } finally {
             database.close()
         }
@@ -85,6 +132,24 @@ class CanonicalOrientationRoomRoundTripTest {
                 ),
             orientations = listOf(OrientationEntity(SUBJECT_ID, "GOAL", null, "UNSET")),
             aspects = emptyList(),
+            workspaces =
+                listOf(
+                    WorkspaceEntity(
+                        id = "workspace",
+                        nameOverride = "Workspace",
+                        descriptionOverride = null,
+                        parentWorkspaceId = null,
+                        roleCode = null,
+                        workspaceOrder = 0L,
+                        createdAt = 10L,
+                        updatedAt = updatedAt,
+                        syncedAt = null,
+                        isDeleted = deleted,
+                        version = version,
+                        provenance = WorkspaceProvenance.CANONICAL_ONLY.name,
+                        sourceContextId = null,
+                    ),
+                ),
             orientationAssessments = listOf(assessmentEntity(version, updatedAt, deleted)),
             orientationAssessmentRevisions =
                 listOf(
@@ -155,7 +220,7 @@ class CanonicalOrientationRoomRoundTripTest {
             version = version,
         )
 
-    private suspend fun OrientationDao.exportBundle() =
+    private suspend fun OrientationDao.exportBundle(workspaceDao: WorkspaceDao) =
         SnapshotBundle(
             managedSubjects = getAllManagedSubjects(),
             orientations = getAllOrientations(),
@@ -165,6 +230,7 @@ class CanonicalOrientationRoomRoundTripTest {
             legacySubjectMappings = getAllLegacyMappings(),
             orientationRelations = getAllOrientationRelations(),
             aspectOrientationRefs = getAllAspectOrientationRefs(),
+            workspaces = workspaceDao.getAll(),
             workspaceBindings = getAllWorkspaceBindings(),
             workspaceCapabilityInstances = getAllWorkspaceCapabilities(),
             savedOrientationViews = getAllSavedViews(),

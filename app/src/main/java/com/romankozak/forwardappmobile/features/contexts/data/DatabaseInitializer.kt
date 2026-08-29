@@ -3,6 +3,7 @@ package com.romankozak.forwardappmobile.features.contexts.data
 import com.romankozak.forwardappmobile.core.context.SystemContexts
 import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
+import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -12,10 +13,11 @@ class DatabaseInitializer
     @Inject
     constructor(
         private val contextDao: ContextDao,
+        private val workspaceWriteThrough: ContextWorkspaceWriteThrough,
         // private val systemAppRepository: SystemAppRepository, // Removed to break cycle
     ) : SystemContextEnsurer { // Implement SystemContextEnsurer
         override suspend fun ensureAllSystemContextsExist() { // Renamed from prePopulate
-            prePopulateProjects(contextDao)
+            workspaceWriteThrough.mutate { prePopulateProjects(contextDao) }
             // prePopulateSystemApps() // Removed to break cycle
         }
 

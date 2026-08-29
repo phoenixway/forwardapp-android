@@ -223,3 +223,122 @@ Subsequent phases must follow the accepted contract and incremental plan.
 Existing entities remain authoritative until an explicit cutover. No UI change
 is implied or authorized by this decision. Any contract revision requires a
 new recorded decision and contract version.
+
+## 2026-08-29 - Android-first canonical DIRECTION cutover and legacy persistence retirement
+
+Decision:
+
+DIRECTION will use an Android-first hard cutover rather than a long-lived
+dual-write or bidirectional compatibility-authority phase.
+
+The current Android `direction_items` table is migration input, not permanent
+post-cutover persistence. A dedicated Room schema migration will transfer every
+existing Direction row into the canonical DIRECTION model before the legacy
+table is removed.
+
+The migration must fail closed:
+
+- all live and tombstoned legacy Direction rows are included;
+- unlinked semantic rows resolve to canonical `Orientation(kind=DIRECTION)` plus
+  their `WorkspaceDirectionEntry`;
+- linked rows preserve the navigation fact as `targetWorkspaceId` without
+  guessing semantic Orientation intent;
+- existing quarantine/diagnostic state preserves unresolved semantic ambiguity;
+- every legacy row must be explicitly accounted for before the legacy table is
+  dropped;
+- if accounting or canonical dependency validation fails, the migration fails
+  and the pre-migration database remains authoritative.
+
+After successful cutover:
+
+- `direction_items` is removed from active Android persistence;
+- Android DIRECTION reads and writes use only canonical Orientation /
+  WorkspaceDirectionEntry repositories;
+- `LEGACY_DIRECTION_ITEM` becomes provenance meaning "migrated from the legacy
+  Direction model", not a statement of current write authority;
+- both migrated and newly created Direction entries are canonical-owned;
+- the runtime legacy-to-canonical Direction shadow materializer is retired;
+- canonical DIRECTION sync becomes the active Direction sync contract.
+
+The legacy `DatabaseContent.directionItems` / sync-v1 Direction collection no
+longer exists as an active transport path. The later SnapshotBundle-only
+decision supersedes the earlier possibility of retaining backward parsing:
+old sync-v1 backup/client formats are intentionally unsupported and no
+DatabaseContent migration ingress remains.
+
+`SnapshotBundle.directionItems` is a different concern. It remains temporarily
+as the current-format DIRECTION representation until the accepted Android
+DIRECTION authority cutover accounts for the legacy `direction_items` table and
+moves Direction state fully to canonical Orientation +
+WorkspaceDirectionEntry. DIRECTION must not reintroduce DatabaseContent
+compatibility work.
+
+Desktop DIRECTION compatibility is intentionally allowed to lag behind the
+Android cutover. Desktop will be migrated afterward to author the canonical
+Direction model. During that interval, old Desktop `directionItems` writes must
+not regain Android Direction authority.
+
+Rationale:
+
+A one-time migration followed by deletion of the legacy persistence and
+Direction-specific v1 sync path removes dual ownership, continuous
+materialization, and bidirectional compatibility logic. It yields one
+persistent model, one writer boundary, and one canonical sync contract while
+preserving all existing Android data before destructive cleanup.
+
+## 2026-08-29 - SnapshotBundle is the sole sync model; sync v1 is removed
+
+Decision:
+
+`SnapshotBundle` is the sole target live-sync, full-export, restore, delta, and
+selective-transfer model for ForwardApp.
+
+The legacy `DatabaseContent` / sync-v1 transport is approved for complete
+removal. It is not a compatibility architecture and must receive no new
+features, adapters, collection mappings, or ownership logic.
+
+The completed model inventory found no legacy `DatabaseContent` state that
+lacks a representation in the current full `SnapshotBundle` model:
+
+- 47 DatabaseContent fields have direct SnapshotBundle representation;
+- 6 are naming aliases (`projects` -> `contexts`, `inboxRecords` -> `inbox`,
+  `contextLogs` -> `logs`, `contextArtifacts` -> `artifacts`,
+  `contextAttachmentCrossRefs` -> `crossRefs`, `legacyNotes` -> `notes`);
+- legacy `recurringTasks` has already been replaced by canonical
+  `recurringSeries`;
+- legacy `dayThemeDocuments` has already been replaced by canonical Day Theme
+  collections;
+- legacy `directionItems` is transitional and will be replaced by canonical
+  Orientation + WorkspaceDirectionEntry during the accepted Android-first
+  DIRECTION cutover.
+
+The accepted transport shape is:
+
+- full transfer: SnapshotBundle;
+- incremental transfer: SnapshotBundle containing changed rows/collections;
+- selective transfer: SnapshotBundle containing the selected subset;
+- receive/merge: SnapshotBundle only.
+
+Old sync-v1 backups and clients are intentionally unsupported. They are relic
+formats and are not a reason to retain compatibility code or an importer-only
+legacy subsystem.
+
+The architecture must not retain two parallel sync models.
+
+Implementation status: **CURRENT / VERIFIED** as of 2026-08-30.
+
+The transport/mechanics retirement described above is complete:
+
+- `SnapshotBundle` is the only current live/full/delta/selective/merge transport;
+- `DatabaseContent` and `LegacyMigrationMapper` are deleted;
+- legacy `migrateV1ToV2`, broad DatabaseContent delta/ACK, and legacy backup
+  restore paths are removed;
+- local dirty transport uses `LocalSyncSelection` plus exact-version
+  acknowledgement without adding sync bookkeeping to `SnapshotBundle`;
+- old database-only backup JSON and raw legacy database payloads are rejected;
+- `:app:assembleDebug`, targeted canonical Wi-Fi sync tests, and
+  `SyncFileServiceSnapshotTest` are green.
+
+The still-present `SnapshotBundle.directionItems` field belongs to the separate
+DIRECTION authority migration and does not constitute a second sync transport
+model.

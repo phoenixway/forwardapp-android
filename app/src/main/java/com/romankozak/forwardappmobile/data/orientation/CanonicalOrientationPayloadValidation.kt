@@ -79,14 +79,30 @@ internal fun validateCanonicalPayloadReferences(bundle: SnapshotBundle) {
         "Aspect references violate DOMAIN-CONTRACT v1."
     }
 
+    val workspaceIds = bundle.workspaces?.mapTo(hashSetOf()) { it.id }
+    bundle.workspaces?.let { workspaces ->
+        require(
+            validateSingleParentHierarchy(
+                workspaces.associate { it.id to it.parentWorkspaceId },
+            ).isEmpty(),
+        ) {
+            "Workspace hierarchy violates DOMAIN-CONTRACT v1."
+        }
+    }
     val bindings = requireNotNull(bundle.workspaceBindings).map { it.toModel() }
     require(bindings.all { it.subjectId in subjects }) {
         "Every Workspace binding must reference a ManagedSubject."
+    }
+    require(workspaceIds == null || bindings.all { it.workspaceId in workspaceIds }) {
+        "Every Workspace binding must reference a Workspace in the payload."
     }
     require(validateWorkspaceBindings(bindings).isEmpty()) {
         "Workspace bindings violate DOMAIN-CONTRACT v1."
     }
     val capabilities = requireNotNull(bundle.workspaceCapabilityInstances).map { it.toModel() }
+    require(workspaceIds == null || capabilities.all { it.workspaceId in workspaceIds }) {
+        "Every capability instance must reference a Workspace in the payload."
+    }
     require(validateCapabilityInstances(capabilities).isEmpty()) {
         "Workspace capabilities violate DOMAIN-CONTRACT v1."
     }

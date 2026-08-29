@@ -4,6 +4,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLogEntryTypeValues
 import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
 import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
+import com.romankozak.forwardappmobile.data.workspace.capability.ExecutionLogWorkspaceOwnershipBridge
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
@@ -15,6 +16,7 @@ class ContextLogRepository
     @Inject
     constructor(
         private val contextManagementDao: ContextManagementDao,
+        private val workspaceOwnershipBridge: ExecutionLogWorkspaceOwnershipBridge,
     ) {
         companion object {
             private const val DEFAULT_CONTEXT_LOG_KEEP_COUNT = 40
@@ -78,19 +80,33 @@ class ContextLogRepository
                     updatedAt = now,
                     syncedAt = null,
                     version = 1,
-            )
+                    workspaceId = workspaceOwnershipBridge.resolveContextBackedWorkspaceId(contextId),
+                )
             contextManagementDao.insertLog(logEntry)
-            contextManagementDao.deleteLogsForContextKeepingNewest(
-                contextId = contextId,
-                keepCount = DEFAULT_CONTEXT_LOG_KEEP_COUNT,
-            )
+
+            val overflow =
+                contextManagementDao.getLogsForContextBeyondKeepCount(
+                    contextId = contextId,
+                    keepCount = DEFAULT_CONTEXT_LOG_KEEP_COUNT,
+                )
+            if (overflow.isNotEmpty()) {
+                contextManagementDao.insertLogs(
+                    overflow.map { log -> log.softDelete(now) },
+                )
+            }
         }
 
         suspend fun updateContextExecutionLog(log: ContextLog) {
+            require(log.contextId != null) {
+                "ContextLogRepository cannot mutate a canonical-only EXECUTION_LOG row"
+            }
             contextManagementDao.updateLog(log.bumpSync())
         }
 
         suspend fun deleteContextExecutionLog(log: ContextLog) {
+            require(log.contextId != null) {
+                "ContextLogRepository cannot mutate a canonical-only EXECUTION_LOG row"
+            }
             contextManagementDao.insertLog(log.softDelete())
         }
     }

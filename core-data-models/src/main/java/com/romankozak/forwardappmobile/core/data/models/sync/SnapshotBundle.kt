@@ -27,6 +27,7 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.B
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.BacklogOrderSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextConfigurationSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextLogSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.CanonicalExecutionLogSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextParentLinkSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextInboxSortingSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextKeyProblemsSnapshot
@@ -73,6 +74,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Ori
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.SavedOrientationViewEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBindingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySnapshot
 
 
 /**
@@ -103,6 +106,16 @@ data class SnapshotBundle(
     @SerializedName("crossRefs") val crossRefs: List<ContextAttachmentCrossRefSnapshot> = emptyList(),
     @SerializedName("inbox") val inbox: List<InboxRecordSnapshot> = emptyList(),
     @SerializedName("logs") val logs: List<ContextLogSnapshot> = emptyList(),
+
+    // Canonical EXECUTION_LOG contract. null means absent/unsupported;
+    // emptyList() means canonical authority is present and currently empty.
+    @SerializedName("canonicalExecutionLogs")
+    val canonicalExecutionLogs: List<CanonicalExecutionLogSnapshot>? = null,
+
+    // Canonical DIRECTION ordered-placement contract.
+    // null = absent/unsupported; [] = authoritative empty.
+    @SerializedName("workspaceDirectionEntries")
+    val workspaceDirectionEntries: List<WorkspaceDirectionEntrySnapshot>? = null,
     @SerializedName("systemApps") val systemApps: List<SystemAppSnapshot> = emptyList(),
     @SerializedName("activityRecords") val activityRecords: List<ActivityRecordSnapshot> = emptyList(),
     @SerializedName("recentProjectEntries") val recentProjectEntries: List<RecentProjectEntrySnapshot> = emptyList(),
@@ -134,6 +147,7 @@ data class SnapshotBundle(
     val orientationRelations: List<OrientationRelationEntity>? = null,
     @SerializedName("aspectOrientationRefs")
     val aspectOrientationRefs: List<AspectOrientationRefEntity>? = null,
+    @SerializedName("workspaces") val workspaces: List<WorkspaceEntity>? = null,
     @SerializedName("workspaceBindings") val workspaceBindings: List<WorkspaceBindingEntity>? = null,
     @SerializedName("workspaceCapabilityInstances")
     val workspaceCapabilityInstances: List<WorkspaceCapabilityInstanceEntity>? = null,

@@ -11,7 +11,6 @@ import android.util.Log
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
-import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalDayThemePayload
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.*
@@ -23,6 +22,12 @@ import com.romankozak.forwardappmobile.data.daythemes.CanonicalDayThemeBootstrap
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationBootstrapper
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationSyncStore
 import com.romankozak.forwardappmobile.data.orientation.storeCanonicalPayload
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstrapper
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceDirectionEntrySyncStore
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceDirectionEntryShadowMaterializer
+import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
+import com.romankozak.forwardappmobile.data.workspace.capability.ExecutionLogWorkspaceOwnershipBridge
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogSyncStore
 import com.romankozak.forwardappmobile.data.daythemes.planLegacyDayThemeMerge
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.database.AppDatabase
@@ -40,6 +45,8 @@ import com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncPayl
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalRecurringSeriesSyncVersion
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncAck
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncPayload
+import com.romankozak.forwardappmobile.sync.datasource.CanonicalExecutionLogSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySyncVersion
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -65,6 +72,12 @@ class FullBackupLocalDataSourceImpl
         private val canonicalDayThemeDao: CanonicalDayThemeDao,
         private val canonicalDayThemeBootstrapper: CanonicalDayThemeBootstrapper,
         private val canonicalOrientationBootstrapper: CanonicalOrientationBootstrapper,
+        private val canonicalWorkspaceBootstrapper: CanonicalWorkspaceBootstrapper,
+        private val contextWorkspaceWriteThrough: ContextWorkspaceWriteThrough,
+        private val executionLogWorkspaceOwnershipBridge: ExecutionLogWorkspaceOwnershipBridge,
+        private val canonicalExecutionLogSyncStore: CanonicalExecutionLogSyncStore,
+        private val canonicalWorkspaceDirectionEntrySyncStore: CanonicalWorkspaceDirectionEntrySyncStore,
+        private val workspaceDirectionEntryShadowMaterializer: WorkspaceDirectionEntryShadowMaterializer,
         private val canonicalOrientationSyncStore: CanonicalOrientationSyncStore,
         private val dailyMetricDao: DailyMetricDao,
         private val chatDao: ChatDao,
@@ -106,6 +119,30 @@ class FullBackupLocalDataSourceImpl
     ) : FullBackupLocalDataSource {
         override suspend fun loadUnsyncedCanonicalOrientations(): CanonicalOrientationSyncPayload =
             canonicalOrientationSyncStore.loadUnsynced()
+
+        override suspend fun loadUnsyncedCanonicalExecutionLogs() =
+            canonicalExecutionLogSyncStore.loadUnsynced()
+
+        override suspend fun loadCanonicalExecutionLogsChangedSince(timestamp: Long) =
+            canonicalExecutionLogSyncStore.loadChangedSince(timestamp)
+
+        override suspend fun markCanonicalExecutionLogsSynced(
+            logs: List<CanonicalExecutionLogSyncVersion>,
+        ) {
+            canonicalExecutionLogSyncStore.markSynced(logs)
+        }
+
+        override suspend fun loadUnsyncedCanonicalWorkspaceDirectionEntries() =
+            canonicalWorkspaceDirectionEntrySyncStore.loadUnsynced()
+
+        override suspend fun loadCanonicalWorkspaceDirectionEntriesChangedSince(timestamp: Long) =
+            canonicalWorkspaceDirectionEntrySyncStore.loadChangedSince(timestamp)
+
+        override suspend fun markCanonicalWorkspaceDirectionEntriesSynced(
+            entries: List<WorkspaceDirectionEntrySyncVersion>,
+        ) {
+            canonicalWorkspaceDirectionEntrySyncStore.markSynced(entries)
+        }
 
         override suspend fun markCanonicalOrientationsSynced(ack: CanonicalOrientationSyncAck) {
             canonicalOrientationSyncStore.markSynced(ack)
@@ -200,6 +237,7 @@ class FullBackupLocalDataSourceImpl
         override suspend fun loadFullSnapshotBundle(): SnapshotBundle {
             canonicalDayThemeBootstrapper.ensureBootstrapped()
             canonicalOrientationBootstrapper.ensureBootstrapped()
+            canonicalWorkspaceBootstrapper.ensureBootstrapped()
 
             val (canonicalThemeDefinitions, canonicalDayThemes, canonicalAssignmentDocuments) =
                 db.withTransaction {
@@ -222,7 +260,9 @@ class FullBackupLocalDataSourceImpl
                 backlogOrders = backlogOrderDao.getAllRaw().map { it.toSnapshot() },
                 directionItems = directionDao.getAllRaw().map { it.toSnapshot() },
                 inbox = inboxRecordDao.getAllRaw().map { it.toSnapshot() },
-                logs = contextLogDao.getAllLogs().map { it.toSnapshot() },
+                logs = contextLogDao.getLegacyContextLogs().map { it.toSnapshot() },
+                canonicalExecutionLogs = canonicalExecutionLogSyncStore.loadAll(),
+                workspaceDirectionEntries = canonicalWorkspaceDirectionEntrySyncStore.loadAll(),
                 artifacts = contextArtifactDao.getAllRaw().map { it.toSnapshot() },
                 // Knowledge Base
                 documents = noteDocumentDao.getAllDocumentsRaw().map { it.toSnapshot() },
@@ -260,6 +300,7 @@ class FullBackupLocalDataSourceImpl
                 legacySubjectMappings = db.orientationDao().getAllLegacyMappings(),
                 orientationRelations = db.orientationDao().getAllOrientationRelations(),
                 aspectOrientationRefs = db.orientationDao().getAllAspectOrientationRefs(),
+                workspaces = db.workspaceDao().getAll(),
                 workspaceBindings = db.orientationDao().getAllWorkspaceBindings(),
                 workspaceCapabilityInstances = db.orientationDao().getAllWorkspaceCapabilities(),
                 savedOrientationViews = db.orientationDao().getAllSavedViews(),
@@ -702,7 +743,9 @@ class FullBackupLocalDataSourceImpl
             Log.d("SyncV2", "--- Data insertion finished. Ensuring system contexts. ---")
             // Ensure system contexts exist after all other data is inserted.
             systemContextEnsurer.ensureAllSystemContextsExist()
-            db.orientationDao().storeCanonicalPayload(bundle, merge = true)
+            db.orientationDao().storeCanonicalPayload(bundle, merge = true, workspaceDao = db.workspaceDao())
+            canonicalWorkspaceDirectionEntrySyncStore.mergeIncoming(bundle.workspaceDirectionEntries)
+            canonicalExecutionLogSyncStore.mergeIncoming(bundle.canonicalExecutionLogs)
         }
 
         override suspend fun applySnapshotBundle(bundle: SnapshotBundle) {
@@ -720,96 +763,17 @@ class FullBackupLocalDataSourceImpl
                 "Legacy recurrence-v1 DayTask payload is not supported by canonical backup restore"
             }
 
-            db.withTransaction {
+            contextWorkspaceWriteThrough.mutate {
                 Log.d("SyncV2", "Applying bundle V${bundle.version} in Merge Mode")
                 insertBundleData(bundle)
             }
+            executionLogWorkspaceOwnershipBridge.repairUnresolved()
             canonicalOrientationBootstrapper.ensureBootstrapped()
             // InboxRecordLink is a rebuildable local cache, never backup authority.
             inboxAssociationCache.rebuild()
             bundle.dayManagementRuntimeState?.let { runtimeState ->
                 dayManagementRuntimeRepository.importSnapshot(runtimeState)
             }
-        }
-
-        override suspend fun loadFullDatabaseContent(): DatabaseContent {
-            return DatabaseContent(
-                projects = contextDao.getAll(),
-                contextParentLinks = contextParentLinkDao.getAllRaw(),
-                goals = goalDao.getAll(),
-                backlogItems = backlogItemDao.getAllRaw(),
-                backlogOrders = backlogOrderDao.getAllRaw(),
-                legacyNotes = legacyNoteDao.getAllRaw(),
-                documents = noteDocumentDao.getAllDocuments(),
-                musicNotes = musicNoteDao.getAll(),
-                checklists = checklistDao.getAllChecklistsRaw(),
-                checklistItems = checklistDao.getAllChecklistItemsRaw(),
-                scripts = scriptDao.getAllRaw(),
-                attachments = attachmentDao.getAllRaw(),
-                contextAttachmentCrossRefs = attachmentDao.getAllContextAttachmentCrossRefsRaw(),
-                directionItems = directionDao.getAllRaw(),
-                activityRecords = activityRecordDao.getAllRaw(),
-                inboxRecords = inboxRecordDao.getAllRaw(),
-                contextLogs = contextLogDao.getAllLogs(),
-                recentProjectEntries =
-                    recentItemDao.getAllSync().map {
-                        com.romankozak.forwardappmobile.core.data.models.sync.RecentProjectEntry(
-                            contextId = it.target,
-                            timestamp = it.lastAccessed,
-                        )
-                    },
-                linkItemEntities = linkItemDao.getAllRaw(),
-                dayPlans = dayPlanDao.getAllPlansSync(),
-                dayFocusItems = dayFocusItemDao.getAllSync(),
-                dayTasks = dayTaskDao.getAllTasksSync(),
-                // DatabaseContent is a legacy carrier and cannot represent canonical
-                // Day Themes. Never export stale quarantine rows as current state.
-                dayThemeDocuments = emptyList(),
-                dailyMetrics = dailyMetricDao.getAll(),
-                conversations = chatDao.getAllConversationsSync(),
-                chatMessages = chatDao.getAllMessagesSync(),
-                conversationFolders = conversationFolderDao.getAllSync(),
-                reminders = reminderDao.getAllRemindersSync(),
-                recurringTasks = emptyList(),
-                systemApps = systemAppDao.getAllRaw(),
-                contextArtifacts = contextArtifactDao.getAllRaw(),
-                tacticalMissions = tacticalMissionDao.getAllMissionsSync(),
-                tacticalMissionAttachments = tacticalMissionDao.getAllMissionAttachmentCrossRefs(),
-                tacticalIterations = tacticalIterationDao.getAllSync(),
-                missionStreams = missionStreamDao.getAllSync(),
-                tacticalActivitySlots = tacticalActivitySlotDao.getAllSync(),
-                arcQuests = arcQuestDao.getAllSync(),
-                aiEvents = aiEventDao.getAllSync(),
-                aiInsights = aiInsightDao.getAllSync(),
-                mainBeacons = mainBeaconDao.getAllBeaconsSync(),
-                mainBeaconGroups = mainBeaconDao.getAllGroupsSync(),
-                mainBeaconGroupMembers = mainBeaconDao.getAllGroupMembersSync(),
-                mainBeaconParentLinks = mainBeaconDao.getAllParentLinksSync(),
-                mainBeaconContextCrossRefs = mainBeaconDao.getAllContextCrossRefsSync(),
-                mainBeaconAttachmentCrossRefs = mainBeaconDao.getAllAttachmentCrossRefsSync(),
-                mainBeaconLevelStatuses = mainBeaconDao.getAllLevelStatusesSync(),
-                lifeSystemStates = lifeSystemStateDao.getAllSync(),
-                contextRoleProfiles = structurePresetDao.getAllSync(),
-                contextRoleProfileItems = structurePresetItemDao.getAllSync(),
-                contextConfigurations = contextStructureDao.getAllSync(),
-                projectStructureItems = contextStructureDao.getAllItemsSync(),
-                contextInboxSortingRules = contextInboxSortingDao.getAllRaw(),
-                contextKeyProblems = contextKeyProblemsDao.getAllRaw(),
-                focusContextIntervals = focusContextIntervalDao.getAllRaw(),
-                userStateIntervals = userStateIntervalDao.getAllRaw(),
-            )
-        }
-
-        override suspend fun restoreDatabaseFromBackup(content: DatabaseContent) {
-            val snapshotBundle = SyncMapper.migrateV1ToV2(content)
-            // Clear tables outside of transaction to prevent nesting issues
-            clearAllTables()
-            db.withTransaction {
-                Log.d("SyncV1", "Migrating Legacy V1 to Snapshot V2")
-                insertBundleData(snapshotBundle)
-            }
-            canonicalOrientationBootstrapper.ensureBootstrapped()
-            inboxAssociationCache.rebuild()
         }
 
         override suspend fun clearAllTables() {

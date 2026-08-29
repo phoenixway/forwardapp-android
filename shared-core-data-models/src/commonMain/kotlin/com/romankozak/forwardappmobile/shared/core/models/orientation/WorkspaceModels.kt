@@ -6,6 +6,12 @@ import com.romankozak.forwardappmobile.shared.core.models.sync.SyncEntityMeta
 import kotlin.js.JsExport
 
 @JsExport
+enum class WorkspaceProvenance {
+    CONTEXT_BACKED,
+    CANONICAL_ONLY,
+}
+
+@JsExport
 data class Workspace(
     override val id: String,
     override val createdAt: Long,
@@ -18,6 +24,8 @@ data class Workspace(
     val parentWorkspaceId: String?,
     val roleCode: String?,
     val order: Long,
+    val provenance: WorkspaceProvenance = WorkspaceProvenance.CONTEXT_BACKED,
+    val sourceContextId: String? = if (provenance == WorkspaceProvenance.CONTEXT_BACKED) id else null,
 ) : SyncEntityMeta
 
 @JsExport

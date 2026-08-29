@@ -96,8 +96,10 @@ data class Goal(
 )
 data class ContextLog(
     @PrimaryKey @SerializedName("id") val id: String,
+    // Legacy Context compatibility locator. Canonical-only EXECUTION_LOG rows
+    // may leave this null once their canonical transport/repository is enabled.
     @SerializedName(value = "contextId", alternate = ["projectId"])
-    @ColumnInfo(index = true) val contextId: String = "",
+    @ColumnInfo(index = true) val contextId: String? = null,
     @SerializedName("timestamp") val timestamp: Long,
     @ColumnInfo(name = "type") @SerializedName("type") val type: String,
     @SerializedName("description") val description: String,
@@ -106,6 +108,9 @@ data class ContextLog(
     @ColumnInfo(name = "synced_at") @SerializedName("syncedAt") val syncedAt: Long? = null,
     @ColumnInfo(name = "is_deleted", defaultValue = "0") @SerializedName("isDeleted") val isDeleted: Boolean = false,
     @ColumnInfo(name = "version", defaultValue = "0") @SerializedName("version") val version: Long = 0,
+    // Transitional EXECUTION_LOG ownership bridge.
+    // null means Workspace ownership has not yet been proven.
+    @ColumnInfo(index = true) @SerializedName("workspaceId") val workspaceId: String? = null,
 )
 
 @Entity(

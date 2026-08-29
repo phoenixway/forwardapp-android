@@ -1,18 +1,18 @@
 package com.romankozak.forwardappmobile.core.data.models.sync
 
-private const val CANONICAL_ORIENTATION_FIELD_COUNT = 11
-
 fun SnapshotBundle.hasCanonicalOrientationPayload(): Boolean =
-    canonicalOrientationFieldCount() == CANONICAL_ORIENTATION_FIELD_COUNT
+    legacyCanonicalOrientationFields().all { it != null }
 
 fun requireValidCanonicalOrientationPayload(bundle: SnapshotBundle) {
-    val count = bundle.canonicalOrientationFieldCount()
-    require(count == 0 || count == CANONICAL_ORIENTATION_FIELD_COUNT) {
-        "Canonical Orientation payload must contain either none or all $CANONICAL_ORIENTATION_FIELD_COUNT fields."
+    val legacyFields = bundle.legacyCanonicalOrientationFields()
+    val empty = legacyFields.all { it == null } && bundle.workspaces == null
+    val legacyOrCurrentComplete = legacyFields.all { it != null }
+    require(empty || legacyOrCurrentComplete) {
+        "Canonical Orientation payload must contain none, the legacy 11 fields, or all 12 fields."
     }
 }
 
-private fun SnapshotBundle.canonicalOrientationFieldCount(): Int =
+private fun SnapshotBundle.legacyCanonicalOrientationFields(): List<Any?> =
     listOf(
         managedSubjects,
         orientations,
@@ -25,4 +25,4 @@ private fun SnapshotBundle.canonicalOrientationFieldCount(): Int =
         workspaceBindings,
         workspaceCapabilityInstances,
         savedOrientationViews,
-    ).count { it != null }
+    )

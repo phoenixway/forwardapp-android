@@ -124,6 +124,7 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalActivitySl
 import com.romankozak.forwardappmobile.features.missions.data.TacticalIterationDao
 import com.romankozak.forwardappmobile.features.missions.data.MissionStreamDao
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
 
 @Database(
     entities = [
@@ -198,16 +199,21 @@ import com.romankozak.forwardappmobile.data.orientation.OrientationDao
         AspectOrientationRefEntity::class,
         WorkspaceBindingEntity::class,
         WorkspaceCapabilityInstanceEntity::class,
+        com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity::class,
+        com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceDirectionEntryEntity::class,
+        com.romankozak.forwardappmobile.data.database.WorkspaceDirectionEntryIssueEntity::class,
         SavedOrientationViewEntity::class,
         com.romankozak.forwardappmobile.data.database.OrientationBootstrapStateEntity::class,
         com.romankozak.forwardappmobile.data.database.OrientationBootstrapIssueEntity::class,
+        com.romankozak.forwardappmobile.data.database.WorkspaceBootstrapStateEntity::class,
+        com.romankozak.forwardappmobile.data.database.WorkspaceBootstrapIssueEntity::class,
         AiInsightEntity::class,
         GoalFts::class,
         ContextsFts::class,
         ActivityRecordFts::class,
         LegacyNoteFts::class,
     ],
-    version = 150,
+    version = 155,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -309,4 +315,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun userStateIntervalDao(): UserStateIntervalDao
 
     abstract fun orientationDao(): OrientationDao
+
+    abstract fun workspaceDao(): WorkspaceDao
+
+    abstract fun workspaceDirectionEntryDao(): com.romankozak.forwardappmobile.data.workspace.WorkspaceDirectionEntryDao
 }

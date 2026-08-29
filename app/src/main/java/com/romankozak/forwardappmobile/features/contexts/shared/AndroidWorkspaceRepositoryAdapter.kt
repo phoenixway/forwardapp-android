@@ -8,8 +8,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.GoalStatusValues
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
+import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogItem
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogItemKind
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogPriority
@@ -24,7 +24,7 @@ import kotlinx.coroutines.flow.first
 class AndroidWorkspaceRepositoryAdapter(
     private val contextRepository: ContextRepository,
     private val goalRepository: GoalRepository,
-    private val contextStructureDao: ContextStructureDao,
+    private val contextStructureRepository: ContextStructureRepository,
 ) : DesktopWorkspaceRepository {
     override suspend fun getContexts(): List<SharedContextSummary> =
         contextRepository.getAllContextsFlow()
@@ -33,7 +33,7 @@ class AndroidWorkspaceRepositoryAdapter(
             .sortedBy { context -> context.order }
             .map { context ->
                 context.toSharedSummary(
-                    configuration = contextStructureDao.getStructureByContext(context.id),
+                    configuration = contextStructureRepository.getStructureByContext(context.id),
                 )
             }
 
@@ -187,7 +187,7 @@ class AndroidWorkspaceRepositoryAdapter(
                     experimentalCapabilityIds +
                     SharedContextCapabilityCatalog.defaultCapabilityIdsFor(defaultView),
             )
-        val current = contextStructureDao.getStructureByContext(contextId) ?: ContextConfiguration.default(contextId)
+        val current = contextStructureRepository.getStructureByContext(contextId) ?: ContextConfiguration.default(contextId)
         val updated =
             current.copy(
                 enableInbox = capabilityIds.contains("inbox"),
@@ -204,7 +204,7 @@ class AndroidWorkspaceRepositoryAdapter(
                 version = current.version + 1,
                 isDeleted = false,
             )
-        contextStructureDao.insertStructure(updated)
+        contextStructureRepository.upsertStructure(updated)
         return updated
     }
 }

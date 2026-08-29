@@ -15,7 +15,15 @@ class CanonicalOrientationPayloadTest {
             requireValidCanonicalOrientationPayload(SnapshotBundle(managedSubjects = emptyList()))
         }
 
-        requireValidCanonicalOrientationPayload(completeEmptyPayload())
+        val legacy = completeEmptyPayload()
+        requireValidCanonicalOrientationPayload(legacy)
+        requireValidCanonicalOrientationPayload(legacy.copy(workspaces = emptyList()))
+
+        assertThrows(IllegalArgumentException::class.java) {
+            requireValidCanonicalOrientationPayload(
+                legacy.copy(workspaces = emptyList(), savedOrientationViews = null),
+            )
+        }
     }
 
     @Test

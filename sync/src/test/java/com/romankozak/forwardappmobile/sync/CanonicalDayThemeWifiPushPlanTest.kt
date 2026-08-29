@@ -1,6 +1,6 @@
 package com.romankozak.forwardappmobile.sync
 
-import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
+import com.romankozak.forwardappmobile.core.data.models.sync.LocalSyncSelection
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.ThemeDefinitionSnapshot
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncPayload
@@ -41,7 +41,7 @@ class CanonicalDayThemeWifiPushPlanTest {
         val dirty = definition(version = 5)
         val plan =
             buildCanonicalWifiPushPlan(
-                source = DatabaseContent(),
+                selection = LocalSyncSelection(),
                 fullSnapshot =
                     SnapshotBundle(
                         version = 2,
@@ -70,7 +70,7 @@ class CanonicalDayThemeWifiPushPlanTest {
         val dirty = definition(version = 7)
         val plan =
             buildCanonicalWifiPushPlan(
-                source = DatabaseContent(),
+                selection = LocalSyncSelection(),
                 fullSnapshot =
                     SnapshotBundle(
                         themeDefinitions = listOf(dirty),

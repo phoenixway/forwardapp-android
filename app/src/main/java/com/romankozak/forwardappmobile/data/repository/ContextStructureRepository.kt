@@ -6,6 +6,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProf
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfileItem
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
 import com.romankozak.forwardappmobile.core.gate.ContextRoleRegistry
+import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureWithItems
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
@@ -23,6 +24,7 @@ class ContextStructureRepository
         private val contextStructureDao: ContextStructureDao,
         private val structurePresetDao: StructurePresetDao,
         private val structurePresetItemDao: StructurePresetItemDao,
+        private val workspaceWriteThrough: ContextWorkspaceWriteThrough,
     ) {
         suspend fun ensureReservedBaseRolePresets() {
             val now = System.currentTimeMillis()
@@ -68,7 +70,7 @@ class ContextStructureRepository
                     removeInboxEntryAfterTagAutocopy = false,
                     removeBacklogEntryAfterTagAutocopy = false,
                 )
-            contextStructureDao.insertStructure(structure)
+            workspaceWriteThrough.mutate { contextStructureDao.insertStructure(structure) }
             return structure
         }
 
@@ -85,7 +87,15 @@ class ContextStructureRepository
         fun observeStructureOnly(contextId: String): Flow<ContextConfiguration?> = contextStructureDao.observeStructureByContext(contextId)
 
         suspend fun updateStructure(structure: ContextConfiguration) {
-            contextStructureDao.updateStructure(structure)
+            workspaceWriteThrough.mutate(structure.updatedAt) {
+                contextStructureDao.updateStructure(structure)
+            }
+        }
+
+        suspend fun upsertStructure(structure: ContextConfiguration) {
+            workspaceWriteThrough.mutate(structure.updatedAt) {
+                contextStructureDao.insertStructure(structure)
+            }
         }
 
         suspend fun applyPresetToContext(
@@ -125,10 +135,12 @@ class ContextStructureRepository
                     removeBacklogEntryAfterTagAutocopy = structure.removeBacklogEntryAfterTagAutocopy ?: false,
                     experimentalCapabilityIds = experimentalIdsFromPreset,
                 )
-            contextStructureDao.updateStructure(updatedStructure)
             val presetItems = structurePresetItemDao.getItemsByPresetOnce(preset.id)
             val projectItems = presetItems.map { it.toContextStructureItem(structure.id) }
-            contextStructureDao.replaceItems(structure.id, projectItems)
+            workspaceWriteThrough.mutate(updatedStructure.updatedAt) {
+                contextStructureDao.updateStructure(updatedStructure)
+                contextStructureDao.replaceItems(structure.id, projectItems)
+            }
         }
 
         suspend fun addOrUpdateItem(

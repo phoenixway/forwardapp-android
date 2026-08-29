@@ -3,10 +3,16 @@
 package com.romankozak.forwardappmobile.core.sync
 
 import androidx.room.withTransaction
-import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
+import com.romankozak.forwardappmobile.core.data.models.sync.LocalSyncCrossRefVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.LocalSyncSelection
+import com.romankozak.forwardappmobile.core.data.models.sync.LocalSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.RecentProjectEntry
+import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+import com.romankozak.forwardappmobile.core.data.models.sync.mappers.*
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.*
 import com.romankozak.forwardappmobile.data.dao.*
 import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiEventDao
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
@@ -30,6 +36,7 @@ class SyncLocalDataSourceImpl
         private val logicHelper: SyncLogicHelper,
         private val goalDao: GoalDao,
         private val contextDao: ContextDao,
+        private val contextWorkspaceWriteThrough: ContextWorkspaceWriteThrough,
         private val contextParentLinkDao: ContextParentLinkDao,
         private val listItemDao: ListItemDao,
         private val linkItemDao: LinkItemDao,
@@ -72,317 +79,449 @@ class SyncLocalDataSourceImpl
         private val userStateIntervalDao: UserStateIntervalDao,
         private val mainBeaconDao: MainBeaconDao,
     ) : SyncLocalDataSource {
-        override suspend fun loadLocalDatabaseContent(): DatabaseContent {
-            val recentProjectEntries =
-                recentItemDao.getAll().map {
-                    RecentProjectEntry(contextId = it.target, timestamp = it.lastAccessed)
-                }
-            val scripts = scriptDao.getAll()
-            val listItems = listItemDao.getAll()
+        override suspend fun getUnsyncedSelection(): LocalSyncSelection {
+            val projects = contextDao.getAll()
+            val goals = goalDao.getAll()
+            val backlogItems = listItemDao.getAll()
             val backlogOrders = logicHelper.dedupBacklogOrders(backlogOrderDao.getAll())
+            val legacyNotes = legacyNoteDao.getAll()
+            val documents = noteDocumentDao.getAllDocuments()
+            val musicNotes = musicNoteDao.getAll()
+            val checklists = checklistDao.getAllChecklists()
+            val checklistItems = checklistDao.getAllChecklistItems()
+            val activityRecords = activityRecordDao.getAllRecordsStream().first()
+            val linkItemEntities = linkItemDao.getAllEntities()
+            val directionItems = directionDao.getAllRaw()
+            val inboxRecords = inboxRecordDao.getAll()
+            val contextLogs = contextManagementDao.getLegacyContextLogs()
+            val scripts = scriptDao.getAll()
+            val attachments = attachmentDao.getAll()
+            val contextAttachmentCrossRefs = attachmentDao.getAllContextAttachmentCrossRefs()
+            val dayPlans = dayPlanDao.getAllPlansSync()
+            val dayFocusItems = dayFocusItemDao.getAllSync()
+            val dayTasks = dayTaskDao.getAllTasksSync()
+            val tacticalMissions = tacticalMissionDao.getAllMissionsSync()
+            val tacticalIterations = tacticalIterationDao.getAllSync()
+            val missionStreams = missionStreamDao.getAllSync()
+            val tacticalActivitySlots = tacticalActivitySlotDao.getAllSync()
+            val arcQuests = arcQuestDao.getAllSync()
 
-            return DatabaseContent(
-                goals = goalDao.getAll(),
-                projects = contextDao.getAll(),
-                contextParentLinks = contextParentLinkDao.getAllRaw(),
-                backlogItems = listItems,
-                backlogOrders = backlogOrders,
-                legacyNotes = legacyNoteDao.getAll(),
-                documents = noteDocumentDao.getAllDocuments(),
-                musicNotes = musicNoteDao.getAll(),
-                checklists = checklistDao.getAllChecklists(),
-                checklistItems = checklistDao.getAllChecklistItems(),
-                activityRecords = activityRecordDao.getAllRecordsStream().first(),
-                linkItemEntities = linkItemDao.getAllEntities(),
-                directionItems = directionDao.getAllRaw(),
-                inboxRecords = inboxRecordDao.getAll(),
-                contextLogs = contextManagementDao.getAllLogs(),
-                recentProjectEntries = recentProjectEntries,
-                scripts = scripts,
-                attachments = attachmentDao.getAll(),
-                contextAttachmentCrossRefs = attachmentDao.getAllContextAttachmentCrossRefs(),
-                dayPlans = dayPlanDao.getAllPlansSync(),
-                dayFocusItems = dayFocusItemDao.getAllSync(),
-                dayTasks = dayTaskDao.getAllTasksSync(),
-                // Legacy DayThemeDocuments are migration/import compatibility only.
-                // Incremental outbound sync is canonical-only for Day Themes.
-                dayThemeDocuments = emptyList(),
-                dailyMetrics = dailyMetricDao.getAll(),
-                conversations = chatDao.getAllConversationsSync(),
-                chatMessages = chatDao.getAllMessagesSync(),
-                conversationFolders = conversationFolderDao.getAllSync(),
-                reminders = reminderDao.getAllRemindersSync(),
-                recurringTasks = emptyList(),
-                contextArtifacts = contextArtifactDao.getAllRaw(),
-                tacticalMissions = tacticalMissionDao.getAllMissionsSync(),
-                tacticalMissionAttachments = tacticalMissionDao.getAllMissionAttachmentCrossRefs(),
-                tacticalIterations = tacticalIterationDao.getAllSync(),
-                missionStreams = missionStreamDao.getAllSync(),
-                tacticalActivitySlots = tacticalActivitySlotDao.getAllSync(),
-                arcQuests = arcQuestDao.getAllSync(),
-                systemApps = systemAppDao.getAllRaw(),
-                aiEvents = aiEventDao.getAllSync(),
-                aiInsights = aiInsightDao.getAllSync(),
-                mainBeacons = mainBeaconDao.getAllBeaconsSync(),
-                mainBeaconGroups = mainBeaconDao.getAllGroupsSync(),
-                mainBeaconGroupMembers = mainBeaconDao.getAllGroupMembersSync(),
-                mainBeaconParentLinks = mainBeaconDao.getAllParentLinksSync(),
-                mainBeaconContextCrossRefs = mainBeaconDao.getAllContextCrossRefsSync(),
-                mainBeaconAttachmentCrossRefs = mainBeaconDao.getAllAttachmentCrossRefsSync(),
-                mainBeaconLevelStatuses = mainBeaconDao.getAllLevelStatusesSync(),
-                lifeSystemStates = lifeSystemStateDao.getAllSync(),
-                contextRoleProfiles = structurePresetDao.getAllSync(),
-                contextRoleProfileItems = structurePresetItemDao.getAllSync(),
-                contextConfigurations = contextStructureDao.getAllSync(),
-                projectStructureItems = contextStructureDao.getAllItemsSync(),
-                contextInboxSortingRules = contextInboxSortingDao.getAllRaw(),
-                contextKeyProblems = contextKeyProblemsDao.getAllRaw(),
-                focusContextIntervals = focusContextIntervalDao.getAllRaw(),
-                userStateIntervals = userStateIntervalDao.getAllRaw(),
+            fun <T> versions(
+                items: List<T>,
+                id: (T) -> String,
+                version: (T) -> Long,
+                syncedAt: (T) -> Long?,
+                updatedAt: (T) -> Long,
+                isDeleted: (T) -> Boolean,
+            ): List<LocalSyncVersion> =
+                items
+                    .filterUnsynced(syncedAt, updatedAt, isDeleted)
+                    .map { LocalSyncVersion(id(it), version(it)) }
+
+            return LocalSyncSelection(
+                contexts = versions(projects, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
+                goals = versions(goals, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
+                backlogItems = versions(backlogItems, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
+                backlogOrders = versions(backlogOrders, { it.id }, { it.orderVersion }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
+                notes = versions(legacyNotes, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
+                documents = versions(documents, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
+                musicNotes = versions(musicNotes, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
+                checklists = versions(checklists, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
+                checklistItems = versions(checklistItems, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
+                activityRecords = versions(activityRecords, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
+                linkItemEntities = versions(linkItemEntities, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
+                directionItems = versions(directionItems, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
+                inbox = versions(inboxRecords, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
+                logs = versions(contextLogs, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
+                scripts = versions(scripts, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
+                attachments = versions(attachments, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
+                crossRefs =
+                    contextAttachmentCrossRefs
+                        .filterUnsynced({ it.syncedAt }, { it.updatedTs() }, { it.isDeleted })
+                        .map {
+                            LocalSyncCrossRefVersion(
+                                contextId = it.contextId,
+                                attachmentId = it.attachmentId,
+                                version = it.version,
+                            )
+                        },
+                dayPlans = versions(dayPlans, { it.id }, { it.version }, { it.syncedAt }, { it.updatedAt ?: it.createdAt }, { it.isDeleted }),
+                dayFocusItems = versions(dayFocusItems, { it.id }, { it.version }, { it.syncedAt }, { it.updatedAt ?: it.createdAt }, { it.isDeleted }),
+                dayTasks = versions(dayTasks, { it.id }, { it.version }, { it.syncedAt }, { it.updatedAt ?: it.createdAt }, { it.isDeleted }),
+                tacticalMissions = versions(tacticalMissions, { it.id.toString() }, { it.version }, { it.syncedAt }, { it.updatedAt ?: it.createdAt }, { it.isDeleted }),
+                tacticalIterations = versions(tacticalIterations, { it.id }, { it.version }, { it.syncedAt }, { it.updatedAt ?: it.createdAt }, { it.isDeleted }),
+                missionStreams = versions(missionStreams, { it.id }, { it.version }, { it.syncedAt }, { it.updatedAt ?: it.createdAt }, { it.isDeleted }),
+                tacticalActivitySlots = versions(tacticalActivitySlots, { it.id }, { it.version }, { it.syncedAt }, { it.updatedAt ?: it.createdAt }, { it.isDeleted }),
+                arcQuests = versions(arcQuests, { it.id }, { it.version }, { it.syncedAt }, { it.updatedAt ?: it.createdAt }, { it.isDeleted }),
             )
         }
 
-        override suspend fun getUnsyncedChanges(): DatabaseContent {
-            val local = loadLocalDatabaseContent()
+        override suspend fun getChangesSince(timestamp: Long): SnapshotBundle {
+            val projects = contextDao.getAll()
+            val contextParentLinks = contextParentLinkDao.getAllRaw()
+            val goals = goalDao.getAll()
+            val backlogItems = listItemDao.getAll()
+            val documents = noteDocumentDao.getAllDocuments()
+            val musicNotes = musicNoteDao.getAll()
+            val attachments = attachmentDao.getAll()
+            val contextAttachmentCrossRefs = attachmentDao.getAllContextAttachmentCrossRefs()
+            val directionItems = directionDao.getAllRaw()
+            val inboxRecords = inboxRecordDao.getAll()
+            val scripts = scriptDao.getAll()
+            val contextInboxSortingRules = contextInboxSortingDao.getAllRaw()
+            val contextKeyProblems = contextKeyProblemsDao.getAllRaw()
+            val focusContextIntervals = focusContextIntervalDao.getAllRaw()
+            val userStateIntervals = userStateIntervalDao.getAllRaw()
+            val dayPlans = dayPlanDao.getAllPlansSync()
+            val dayFocusItems = dayFocusItemDao.getAllSync()
+            val dayTasks = dayTaskDao.getAllTasksSync()
+            val dailyMetrics = dailyMetricDao.getAll()
+            val conversations = chatDao.getAllConversationsSync()
+            val chatMessages = chatDao.getAllMessagesSync()
+            val conversationFolders = conversationFolderDao.getAllSync()
+            val reminders = reminderDao.getAllRemindersSync()
+            val contextArtifacts = contextArtifactDao.getAllRaw()
+            val tacticalMissions = tacticalMissionDao.getAllMissionsSync()
+            val tacticalMissionAttachments = tacticalMissionDao.getAllMissionAttachmentCrossRefs()
+            val tacticalIterations = tacticalIterationDao.getAllSync()
+            val missionStreams = missionStreamDao.getAllSync()
+            val tacticalActivitySlots = tacticalActivitySlotDao.getAllSync()
+            val arcQuests = arcQuestDao.getAllSync()
+            val systemApps = systemAppDao.getAllRaw()
+            val aiEvents = aiEventDao.getAllSync()
+            val aiInsights = aiInsightDao.getAllSync()
+            val mainBeacons = mainBeaconDao.getAllBeaconsSync()
+            val mainBeaconGroups = mainBeaconDao.getAllGroupsSync()
+            val mainBeaconGroupMembers = mainBeaconDao.getAllGroupMembersSync()
+            val mainBeaconParentLinks = mainBeaconDao.getAllParentLinksSync()
+            val mainBeaconContextCrossRefs = mainBeaconDao.getAllContextCrossRefsSync()
+            val mainBeaconAttachmentCrossRefs = mainBeaconDao.getAllAttachmentCrossRefsSync()
+            val mainBeaconLevelStatuses = mainBeaconDao.getAllLevelStatusesSync()
+            val lifeSystemStates = lifeSystemStateDao.getAllSync()
+            val contextRoleProfiles = structurePresetDao.getAllSync()
+            val contextRoleProfileItems = structurePresetItemDao.getAllSync()
+            val contextConfigurations = contextStructureDao.getAllSync()
+            val projectStructureItems = contextStructureDao.getAllItemsSync()
 
-            return local.copy(
-                projects = local.projects.filterUnsynced({ it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
-                goals = local.goals.filterUnsynced({ it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
+            val changedAttachments =
+                attachments.filter { it.updatedTs() > timestamp }
+            val changedAttachmentIds =
+                changedAttachments.mapTo(hashSetOf()) { it.id }
+
+            val selectedCrossRefs =
+                (
+                    contextAttachmentCrossRefs.filter { it.updatedTs() > timestamp } +
+                        contextAttachmentCrossRefs.filter { it.attachmentId in changedAttachmentIds }
+                ).distinctBy { "${it.contextId}\u0000${it.attachmentId}" }
+
+            return SnapshotBundle(
+                version = 2,
+                exportedAt = System.currentTimeMillis(),
+                contexts = projects.filter { it.updatedTs() > timestamp }.map { it.toSnapshot() },
+                contextParentLinks =
+                    contextParentLinks
+                        .filter { (it.updatedAt ?: it.createdAt) > timestamp }
+                        .map { it.toSnapshot() },
+                goals = goals.filter { it.updatedTs() > timestamp }.map { it.toSnapshot() },
                 backlogItems =
-                    local.backlogItems.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedTs() },
-                        isDeleted = { it.isDeleted },
-                    ),
-                backlogOrders =
-                    local.backlogOrders.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedTs() },
-                        isDeleted = { it.isDeleted },
-                    ),
-                legacyNotes =
-                    local.legacyNotes.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedTs() },
-                        isDeleted = { it.isDeleted },
-                    ),
+                    backlogItems.filter { it.updatedTs() > timestamp }.map { it.toSnapshot() },
                 documents =
-                    local.documents.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedTs() },
-                        isDeleted = { it.isDeleted },
-                    ),
+                    documents.filter { it.updatedTs() > timestamp }.map { it.toSnapshot() },
                 musicNotes =
-                    local.musicNotes.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedTs() },
-                        isDeleted = { it.isDeleted },
-                    ),
-                checklists =
-                    local.checklists.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedTs() },
-                        isDeleted = { it.isDeleted },
-                    ),
-                checklistItems =
-                    local.checklistItems.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedTs() },
-                        isDeleted = { it.isDeleted },
-                    ),
-                activityRecords =
-                    local.activityRecords.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedTs() },
-                        isDeleted = { it.isDeleted },
-                    ),
-                linkItemEntities =
-                    local.linkItemEntities.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedTs() },
-                        isDeleted = { it.isDeleted },
-                    ),
+                    musicNotes.filter { it.updatedTs() > timestamp }.map { it.toSnapshot() },
+                attachments = changedAttachments.map { it.toSnapshot() },
+                crossRefs = selectedCrossRefs.map { it.toSnapshot() },
                 directionItems =
-                    local.directionItems.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedTs() },
-                        isDeleted = { it.isDeleted },
-                    ),
-                inboxRecords =
-                    local.inboxRecords.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedTs() },
-                        isDeleted = { it.isDeleted },
-                    ),
-                contextLogs =
-                    local.contextLogs.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedTs() },
-                        isDeleted = { it.isDeleted },
-                    ),
+                    directionItems.filter { it.updatedTs() > timestamp }.map { it.toSnapshot() },
+                inbox =
+                    inboxRecords.filter { it.updatedTs() > timestamp }.map { it.toSnapshot() },
                 scripts =
-                    local.scripts.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedTs() },
-                        isDeleted = { it.isDeleted },
-                    ),
-                attachments =
-                    local.attachments.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedTs() },
-                        isDeleted = { it.isDeleted },
-                    ),
-                contextAttachmentCrossRefs =
-                    local.contextAttachmentCrossRefs.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedTs() },
-                        isDeleted = { it.isDeleted },
-                    ),
+                    scripts.filter { it.updatedTs() > timestamp }.map { it.toSnapshot() },
+                contextInboxSortingRules =
+                    contextInboxSortingRules
+                        .filter { it.updatedAt > timestamp }
+                        .map { it.toSnapshot() },
+                contextKeyProblems =
+                    contextKeyProblems
+                        .filter { it.updatedAt > timestamp }
+                        .map { it.toSnapshot() },
+                focusContextIntervals =
+                    focusContextIntervals
+                        .filter {
+                            it.startedAt > timestamp ||
+                                (it.endedAt ?: 0L) > timestamp
+                        }
+                        .map { it.toSnapshot() },
+                userStateIntervals =
+                    userStateIntervals
+                        .filter {
+                            it.startedAt > timestamp ||
+                                (it.endedAt ?: 0L) > timestamp
+                        }
+                        .map { it.toSnapshot() },
                 dayPlans =
-                    local.dayPlans.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedAt ?: it.createdAt },
-                        isDeleted = { it.isDeleted },
-                    ),
+                    dayPlans
+                        .filter { (it.updatedAt ?: it.createdAt) > timestamp }
+                        .map { it.toSnapshot() },
                 dayFocusItems =
-                    local.dayFocusItems.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedAt ?: it.createdAt },
-                        isDeleted = { it.isDeleted },
-                    ),
+                    dayFocusItems
+                        .filter { (it.updatedAt ?: it.createdAt) > timestamp }
+                        .map { item ->
+                            com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceSnapshotMapper
+                                .dayFocusItemSnapshot(item, item.toSnapshot())
+                        },
                 dayTasks =
-                    local.dayTasks.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedAt ?: it.createdAt },
-                        isDeleted = { it.isDeleted },
-                    ),
+                    dayTasks
+                        .filter { (it.updatedAt ?: it.createdAt) > timestamp }
+                        .map { task ->
+                            com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceSnapshotMapper
+                                .dayTaskSnapshot(task, task.toSnapshot())
+                        },
                 dayThemeDocuments = emptyList(),
-                tacticalMissions =
-                    local.tacticalMissions.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedAt ?: it.createdAt },
-                        isDeleted = { it.isDeleted },
-                    ),
-                tacticalIterations =
-                    local.tacticalIterations.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedAt ?: it.createdAt },
-                        isDeleted = { it.isDeleted },
-                    ),
-                missionStreams =
-                    local.missionStreams.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedAt ?: it.createdAt },
-                        isDeleted = { it.isDeleted },
-                    ),
-                tacticalActivitySlots =
-                    local.tacticalActivitySlots.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedAt ?: it.createdAt },
-                        isDeleted = { it.isDeleted },
-                    ),
-                arcQuests =
-                    local.arcQuests.filterUnsynced(
-                        syncedAt = { it.syncedAt },
-                        updatedAt = { it.updatedAt ?: it.createdAt },
-                        isDeleted = { it.isDeleted },
-                    ),
-            )
-        }
-
-        override suspend fun getChangesSince(timestamp: Long): DatabaseContent {
-            val local = loadLocalDatabaseContent()
-            return DatabaseContent(
-                projects = local.projects.filter { it.updatedTs() > timestamp },
-                contextParentLinks = local.contextParentLinks.filter { (it.updatedAt ?: it.createdAt) > timestamp },
-                goals = local.goals.filter { it.updatedTs() > timestamp },
-                backlogItems = local.backlogItems.filter { it.updatedTs() > timestamp },
-                documents = local.documents.filter { it.updatedTs() > timestamp },
-                musicNotes = local.musicNotes.filter { it.updatedTs() > timestamp },
-                attachments = local.attachments.filter { it.updatedTs() > timestamp },
-                contextAttachmentCrossRefs = local.contextAttachmentCrossRefs.filter { it.updatedTs() > timestamp },
-                directionItems = local.directionItems.filter { it.updatedTs() > timestamp },
-                inboxRecords = local.inboxRecords.filter { it.updatedTs() > timestamp },
-                scripts = local.scripts.filter { it.updatedTs() > timestamp },
-                contextInboxSortingRules = local.contextInboxSortingRules.filter { it.updatedAt > timestamp },
-                contextKeyProblems = local.contextKeyProblems.filter { it.updatedAt > timestamp },
-                focusContextIntervals = local.focusContextIntervals.filter { it.startedAt > timestamp || (it.endedAt ?: 0L) > timestamp },
-                userStateIntervals = local.userStateIntervals.filter { it.startedAt > timestamp || (it.endedAt ?: 0L) > timestamp },
-                dayPlans = local.dayPlans.filter { (it.updatedAt ?: it.createdAt) > timestamp },
-                dayFocusItems = local.dayFocusItems.filter { (it.updatedAt ?: it.createdAt) > timestamp },
-                dayTasks = local.dayTasks.filter { (it.updatedAt ?: it.createdAt) > timestamp },
-                dayThemeDocuments = emptyList(),
-                dailyMetrics = local.dailyMetrics.filter { (it.updatedAt ?: it.createdAt) > timestamp },
-                conversations = local.conversations.filter { it.creationTimestamp > timestamp },
-                chatMessages = local.chatMessages.filter { it.timestamp > timestamp },
-                conversationFolders = local.conversationFolders,
-                reminders = local.reminders.filter { (it.updatedAt ?: it.creationTime) > timestamp },
+                dailyMetrics =
+                    dailyMetrics
+                        .filter { (it.updatedAt ?: it.createdAt) > timestamp }
+                        .map { it.toSnapshot() },
+                conversations =
+                    conversations
+                        .filter { it.creationTimestamp > timestamp }
+                        .map { it.toSnapshot() },
+                chatMessages =
+                    chatMessages
+                        .filter { it.timestamp > timestamp }
+                        .map { it.toSnapshot() },
+                conversationFolders =
+                    conversationFolders.map { it.toSnapshot() },
+                reminders =
+                    reminders
+                        .filter { (it.updatedAt ?: it.creationTime) > timestamp }
+                        .map { it.toSnapshot() },
                 recurringTasks = emptyList(),
-                contextArtifacts = local.contextArtifacts.filter { (it.updatedAt ?: it.createdAt) > timestamp },
-                tacticalMissions = local.tacticalMissions.filter { (it.updatedAt ?: it.createdAt) > timestamp },
-                tacticalMissionAttachments = local.tacticalMissionAttachments,
-                tacticalIterations = local.tacticalIterations.filter { (it.updatedAt ?: it.createdAt) > timestamp },
-                missionStreams = local.missionStreams.filter { (it.updatedAt ?: it.createdAt) > timestamp },
-                tacticalActivitySlots = local.tacticalActivitySlots.filter { (it.updatedAt ?: it.createdAt) > timestamp },
-                arcQuests = local.arcQuests.filter { (it.updatedAt ?: it.createdAt) > timestamp },
-                systemApps = local.systemApps.filter { (it.updatedAt ?: it.createdAt) > timestamp },
-                aiEvents = local.aiEvents.filter { it.timestamp > timestamp },
-                aiInsights = local.aiInsights.filter { it.timestamp > timestamp },
-                mainBeacons = local.mainBeacons.filter { it.updatedAt > timestamp },
-                mainBeaconGroups = local.mainBeaconGroups.filter { it.updatedAt > timestamp },
-                mainBeaconGroupMembers = local.mainBeaconGroupMembers,
-                mainBeaconParentLinks = local.mainBeaconParentLinks.filter { it.updatedAt > timestamp },
-                mainBeaconContextCrossRefs = local.mainBeaconContextCrossRefs,
-                mainBeaconAttachmentCrossRefs = local.mainBeaconAttachmentCrossRefs,
-                mainBeaconLevelStatuses = local.mainBeaconLevelStatuses.filter { it.updatedAt > timestamp },
-                lifeSystemStates = local.lifeSystemStates.filter { it.updatedAt > timestamp },
-                contextRoleProfiles = local.contextRoleProfiles.filter { it.updatedAt > timestamp },
-                contextRoleProfileItems = local.contextRoleProfileItems.filter { it.updatedAt > timestamp },
-                contextConfigurations = local.contextConfigurations.filter { it.updatedAt > timestamp },
-                projectStructureItems = local.projectStructureItems.filter { it.updatedAt > timestamp },
+                artifacts =
+                    contextArtifacts
+                        .filter { (it.updatedAt ?: it.createdAt) > timestamp }
+                        .map { it.toSnapshot() },
+                tacticalMissions =
+                    tacticalMissions
+                        .filter { (it.updatedAt ?: it.createdAt) > timestamp }
+                        .map { it.toSnapshot() },
+                tacticalMissionAttachments =
+                    tacticalMissionAttachments.map { it.toSnapshot() },
+                tacticalIterations =
+                    tacticalIterations.filter {
+                        (it.updatedAt ?: it.createdAt) > timestamp
+                    },
+                missionStreams =
+                    missionStreams.filter {
+                        (it.updatedAt ?: it.createdAt) > timestamp
+                    },
+                tacticalActivitySlots =
+                    tacticalActivitySlots.filter {
+                        (it.updatedAt ?: it.createdAt) > timestamp
+                    },
+                arcQuests =
+                    arcQuests.filter {
+                        (it.updatedAt ?: it.createdAt) > timestamp
+                    },
+                systemApps =
+                    systemApps
+                        .filter { (it.updatedAt ?: it.createdAt) > timestamp }
+                        .map { it.toSnapshot() },
+                aiEvents =
+                    aiEvents.filter { it.timestamp > timestamp }.map { it.toSnapshot() },
+                aiInsights =
+                    aiInsights.filter { it.timestamp > timestamp }.map { it.toSnapshot() },
+                mainBeacons =
+                    mainBeacons.filter { it.updatedAt > timestamp }.map { it.toSnapshot() },
+                mainBeaconGroups =
+                    mainBeaconGroups.filter { it.updatedAt > timestamp }.map { it.toSnapshot() },
+                mainBeaconGroupMembers =
+                    mainBeaconGroupMembers.map { it.toSnapshot() },
+                mainBeaconParentLinks =
+                    mainBeaconParentLinks
+                        .filter { it.updatedAt > timestamp }
+                        .map { it.toSnapshot() },
+                mainBeaconContextCrossRefs =
+                    mainBeaconContextCrossRefs.map { it.toSnapshot() },
+                mainBeaconAttachmentCrossRefs =
+                    mainBeaconAttachmentCrossRefs.map { it.toSnapshot() },
+                mainBeaconLevelStatuses =
+                    mainBeaconLevelStatuses
+                        .filter { it.updatedAt > timestamp }
+                        .map { it.toSnapshot() },
+                lifeSystemStates =
+                    lifeSystemStates
+                        .filter { it.updatedAt > timestamp }
+                        .map { it.toSnapshot() },
+                contextRoleProfiles =
+                    contextRoleProfiles
+                        .filter { it.updatedAt > timestamp }
+                        .map { it.toSnapshot() },
+                contextRoleProfileItems =
+                    contextRoleProfileItems
+                        .filter { it.updatedAt > timestamp }
+                        .map { it.toSnapshot() },
+                contextConfigurations =
+                    contextConfigurations
+                        .filter { it.updatedAt > timestamp }
+                        .map { it.toSnapshot() },
+                projectStructureItems =
+                    projectStructureItems
+                        .filter { it.updatedAt > timestamp }
+                        .map { it.toSnapshot() },
             )
         }
 
-        override suspend fun markSyncedNow(content: DatabaseContent) {
+        override suspend fun acknowledge(selection: LocalSyncSelection) {
             val ts = System.currentTimeMillis()
+
             db.withTransaction {
-                contextDao.insertContexts(content.projects.map { it.copy(syncedAt = ts) })
-                goalDao.insertGoals(content.goals.map { it.copy(syncedAt = ts) })
-                listItemDao.insertItems(content.backlogItems.map { it.copy(syncedAt = ts) })
+                val projects = contextDao.getAll()
+                val goals = goalDao.getAll()
+                val backlogItems = listItemDao.getAll()
+                val backlogOrders = logicHelper.dedupBacklogOrders(backlogOrderDao.getAll())
+                val legacyNotes = legacyNoteDao.getAll()
+                val documents = noteDocumentDao.getAllDocuments()
+                val musicNotes = musicNoteDao.getAll()
+                val checklists = checklistDao.getAllChecklists()
+                val checklistItems = checklistDao.getAllChecklistItems()
+                val activityRecords = activityRecordDao.getAllRecordsStream().first()
+                val linkItemEntities = linkItemDao.getAllEntities()
+                val directionItems = directionDao.getAllRaw()
+                val inboxRecords = inboxRecordDao.getAll()
+                val contextLogs = contextManagementDao.getLegacyContextLogs()
+                val scripts = scriptDao.getAll()
+                val attachments = attachmentDao.getAll()
+                val contextAttachmentCrossRefs = attachmentDao.getAllContextAttachmentCrossRefs()
+                val dayPlans = dayPlanDao.getAllPlansSync()
+                val dayFocusItems = dayFocusItemDao.getAllSync()
+                val dayTasks = dayTaskDao.getAllTasksSync()
+                val tacticalMissions = tacticalMissionDao.getAllMissionsSync()
+                val tacticalIterations = tacticalIterationDao.getAllSync()
+                val missionStreams = missionStreamDao.getAllSync()
+                val tacticalActivitySlots = tacticalActivitySlotDao.getAllSync()
+                val arcQuests = arcQuestDao.getAllSync()
 
-                if (content.backlogOrders.isNotEmpty()) {
-                    backlogOrderDao.insertOrders(content.backlogOrders.map { it.copy(syncedAt = ts) })
-                }
+                fun versions(items: List<LocalSyncVersion>): Map<String, Long> =
+                    items.associate { it.id to it.version }
 
-                legacyNoteDao.insertAll(content.legacyNotes.map { it.copy(syncedAt = ts) })
-                noteDocumentDao.insertAllDocuments(content.documents.map { it.copy(syncedAt = ts) })
-                musicNoteDao.insertAll(content.musicNotes.map { it.copy(syncedAt = ts) })
+                val contextVersions = versions(selection.contexts)
+                val goalVersions = versions(selection.goals)
+                val backlogItemVersions = versions(selection.backlogItems)
+                val backlogOrderVersions = versions(selection.backlogOrders)
+                val noteVersions = versions(selection.notes)
+                val documentVersions = versions(selection.documents)
+                val musicNoteVersions = versions(selection.musicNotes)
+                val checklistVersions = versions(selection.checklists)
+                val checklistItemVersions = versions(selection.checklistItems)
+                val activityRecordVersions = versions(selection.activityRecords)
+                val linkVersions = versions(selection.linkItemEntities)
+                val directionVersions = versions(selection.directionItems)
+                val inboxVersions = versions(selection.inbox)
+                val logVersions = versions(selection.logs)
+                val scriptVersions = versions(selection.scripts)
+                val attachmentVersions = versions(selection.attachments)
+                val planVersions = versions(selection.dayPlans)
+                val focusItemVersions = versions(selection.dayFocusItems)
+                val taskVersions = versions(selection.dayTasks)
+                val missionVersions = versions(selection.tacticalMissions)
+                val iterationVersions = versions(selection.tacticalIterations)
+                val streamVersions = versions(selection.missionStreams)
+                val slotVersions = versions(selection.tacticalActivitySlots)
+                val questVersions = versions(selection.arcQuests)
+                val crossRefVersions =
+                    selection.crossRefs.associate {
+                        "${it.contextId}\u0000${it.attachmentId}" to it.version
+                    }
 
-                checklistDao.insertChecklists(content.checklists.map { it.copy(syncedAt = ts) })
-                checklistDao.insertItems(content.checklistItems.map { it.copy(syncedAt = ts) })
-
-                activityRecordDao.insertAll(content.activityRecords.map { it.copy(syncedAt = ts) })
-                linkItemDao.insertAll(content.linkItemEntities.map { it.copy(syncedAt = ts) })
-                directionDao.updateAll(content.directionItems.map { it.copy(syncedAt = ts) })
-                inboxRecordDao.insertAll(content.inboxRecords.map { it.copy(syncedAt = ts) })
-                contextManagementDao.insertAllLogs(content.contextLogs.map { it.copy(syncedAt = ts) })
-
-                content.scripts.forEach { scriptDao.insert(it.copy(syncedAt = ts)) }
-                attachmentDao.insertAttachments(content.attachments.map { it.copy(syncedAt = ts) })
-                attachmentDao.insertContextAttachmentLinks(content.contextAttachmentCrossRefs.map { it.copy(syncedAt = ts) })
-                dayPlanDao.insertPlans(content.dayPlans.map { it.copy(syncedAt = ts) })
-                dayFocusItemDao.insertAll(content.dayFocusItems.map { it.copy(syncedAt = ts) })
-                dayTaskDao.insertTasks(content.dayTasks.map { it.copy(syncedAt = ts) })
-                tacticalMissionDao.insertMissions(content.tacticalMissions.map { it.copy(syncedAt = ts) })
-                tacticalIterationDao.insertAll(content.tacticalIterations.map { it.copy(syncedAt = ts) })
-                missionStreamDao.insertAll(content.missionStreams.map { it.copy(syncedAt = ts) })
-                tacticalActivitySlotDao.insertAll(content.tacticalActivitySlots.map { it.copy(syncedAt = ts) })
-                arcQuestDao.insertAll(content.arcQuests.map { it.copy(syncedAt = ts) })
+                contextDao.insertContexts(
+                    projects.filter { contextVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
+                )
+                goalDao.insertGoals(
+                    goals.filter { goalVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
+                )
+                listItemDao.insertItems(
+                    backlogItems.filter { backlogItemVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
+                )
+                backlogOrderDao.insertOrders(
+                    backlogOrders
+                        .filter { backlogOrderVersions[it.id] == it.orderVersion }
+                        .map { it.copy(syncedAt = ts) },
+                )
+                legacyNoteDao.insertAll(
+                    legacyNotes.filter { noteVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
+                )
+                noteDocumentDao.insertAllDocuments(
+                    documents.filter { documentVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
+                )
+                musicNoteDao.insertAll(
+                    musicNotes.filter { musicNoteVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
+                )
+                checklistDao.insertChecklists(
+                    checklists.filter { checklistVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
+                )
+                checklistDao.insertItems(
+                    checklistItems.filter { checklistItemVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
+                )
+                activityRecordDao.insertAll(
+                    activityRecords.filter { activityRecordVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
+                )
+                linkItemDao.insertAll(
+                    linkItemEntities.filter { linkVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
+                )
+                directionDao.updateAll(
+                    directionItems.filter { directionVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
+                )
+                inboxRecordDao.insertAll(
+                    inboxRecords.filter { inboxVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
+                )
+                contextManagementDao.insertAllLogs(
+                    contextLogs.filter { logVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
+                )
+                scripts
+                    .filter { scriptVersions[it.id] == it.version }
+                    .forEach { scriptDao.insert(it.copy(syncedAt = ts)) }
+                attachmentDao.insertAttachments(
+                    attachments.filter { attachmentVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
+                )
+                attachmentDao.insertContextAttachmentLinks(
+                    contextAttachmentCrossRefs
+                        .filter {
+                            crossRefVersions["${it.contextId}\u0000${it.attachmentId}"] == it.version
+                        }
+                        .map { it.copy(syncedAt = ts) },
+                )
+                dayPlanDao.insertPlans(
+                    dayPlans.filter { planVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
+                )
+                dayFocusItemDao.insertAll(
+                    dayFocusItems.filter { focusItemVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
+                )
+                dayTaskDao.insertTasks(
+                    dayTasks.filter { taskVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
+                )
+                tacticalMissionDao.insertMissions(
+                    tacticalMissions
+                        .filter { missionVersions[it.id.toString()] == it.version }
+                        .map { it.copy(syncedAt = ts) },
+                )
+                tacticalIterationDao.insertAll(
+                    tacticalIterations.filter { iterationVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
+                )
+                missionStreamDao.insertAll(
+                    missionStreams.filter { streamVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
+                )
+                tacticalActivitySlotDao.insertAll(
+                    tacticalActivitySlots.filter { slotVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
+                )
+                arcQuestDao.insertAll(
+                    arcQuests.filter { questVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
+                )
             }
         }
 
         override suspend fun clearAllTables() {
-            db.withTransaction {
+            contextWorkspaceWriteThrough.mutate {
                 contextManagementDao.deleteAllLogs()
                 inboxRecordDao.deleteAll()
                 linkItemDao.deleteAll()

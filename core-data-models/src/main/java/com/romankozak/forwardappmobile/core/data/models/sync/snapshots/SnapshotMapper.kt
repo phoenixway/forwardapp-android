@@ -202,7 +202,9 @@ fun ContextArtifactSnapshot.toEntity(): ContextArtifact =
 
 fun ContextLog.toSnapshot(): ContextLogSnapshot = ContextLogSnapshot(
     id,
-    contextId,
+    requireNotNull(contextId) {
+        "Canonical-only ContextLog cannot be serialized through legacy ContextLogSnapshot"
+    },
     timestamp,
     type,
     description,

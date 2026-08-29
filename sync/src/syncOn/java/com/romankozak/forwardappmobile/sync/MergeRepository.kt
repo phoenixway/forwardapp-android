@@ -20,54 +20,19 @@ class MergeRepository @Inject constructor(
         .create()
 
     suspend fun createSyncReport(jsonString: String): SyncReport {
-        val backup = gson.fromJson(sanitizeIncomingBackupJson(jsonString), FullAppBackup::class.java)
-        val incomingDb = backup.database ?: return SyncReport(emptyList())
-
-        val localProjects = mergeLocalDataSource.getContexts().associateBy { it.id }
-        val localGoals = mergeLocalDataSource.getGoals().associateBy { it.id }
-        val changes = mutableListOf<SyncChange>()
-
-        incomingDb.goals.forEach { incomingRaw ->
-            val incoming = SyncMapper.normalizeGoal(incomingRaw)
-            val local = localGoals[incoming.id]?.let { SyncMapper.normalizeGoal(it) }
-
-            if (local == null) {
-                changes.add(SyncChange(ChangeType.Add, "Ціль", incoming.id, "Нова ціль: ${incoming.text}", entity = incoming))
-            } else if ((incoming.updatedAt ?: incoming.createdAt) > (local.updatedAt ?: local.createdAt)) {
-                changes.add(SyncChange(ChangeType.Update, "Ціль", incoming.id, "Оновлено ціль: ${incoming.text}", entity = incoming))
-            }
-        }
-
-        incomingDb.projects.forEach { incomingRaw ->
-            val incoming = SyncMapper.normalizeProject(incomingRaw)
-            val local = localProjects[incoming.id]?.let { SyncMapper.normalizeProject(it) }
-
-            if (local == null) {
-                changes.add(SyncChange(ChangeType.Add, "Список", incoming.id, "Новий список: ${incoming.name}", entity = incoming))
-            } else if ((incoming.updatedAt ?: incoming.createdAt) > (local.updatedAt ?: local.createdAt)) {
-                changes.add(SyncChange(ChangeType.Update, "Список", incoming.id, "Оновлено список: ${incoming.name}", entity = incoming))
-            }
-        }
-
-        return SyncReport(changes)
+        val backup =
+            gson.fromJson(
+                sanitizeIncomingBackupJson(jsonString),
+                FullAppBackup::class.java,
+            )
+        val snapshot =
+            backup.snapshotBundle
+                ?: throw IllegalArgumentException(
+                    "Canonical snapshotBundle section is required.",
+                )
+        return createSyncReport(snapshot)
     }
 
-    suspend fun applyServerChanges(changes: DatabaseContent): Result<Unit> {
-        return applyServerChanges(LegacyMigrationMapper().toSnapshotBundle(changes))
-    }
-
-    suspend fun createBackupDiff(incoming: DatabaseContent): LegacyBackupDiff {
-        val local = mergeLocalDataSource.getLocalDatabaseContent()
-        return LegacyBackupDiff(
-            projects = logicHelper.diffEntities(incoming.projects.map { SyncMapper.normalizeProject(it) }, local.projects, { it.id }, { it.version }, { it.updatedAt ?: 0L }),
-            goals = logicHelper.diffEntities(incoming.goals.map { SyncMapper.normalizeGoal(it) }, local.goals, { it.id }, { it.version }, { it.updatedAt ?: 0L }),
-            backlogItems = logicHelper.diffEntities(incoming.backlogItems, local.backlogItems, { it.id }, { it.version }, { it.updatedAt ?: 0L }),
-            documents = logicHelper.diffEntities(incoming.documents, local.documents, { it.id }, { it.version }, { it.updatedAt }),
-            musicNotes = logicHelper.diffEntities(incoming.musicNotes, local.musicNotes, { it.id }, { it.version }, { it.updatedAt }),
-            attachments = logicHelper.diffEntities(incoming.attachments, local.attachments, { it.id }, { it.version }, { it.updatedAt }),
-            contextAttachmentCrossRefs = logicHelper.diffEntities(incoming.contextAttachmentCrossRefs, local.contextAttachmentCrossRefs, { "${it.contextId}-${it.attachmentId}" }, { 0L }, { it.updatedAt ?: 0L })
-        )
-    }
     // У MergeRepository.kt додайте ці "проксі" методи:
 
     /**
@@ -77,26 +42,7 @@ class MergeRepository @Inject constructor(
         mergeLocalDataSource.applyChanges(approvedChanges)
     }
 
-    /**
-     * Імпортує лише вибрані дані (наприклад, тільки певні проекти).
-     */
-    suspend fun importSelectedData(selectedData: DatabaseContent): Result<String> {
-        return try {
-            mergeLocalDataSource.importSelectedData(
-                projects = selectedData.projects,
-                goals = selectedData.goals,
-                listItems = selectedData.backlogItems,
-                attachments = selectedData.attachments,
-                crossRefs = selectedData.contextAttachmentCrossRefs
-            )
-            Result.success("Вибрані дані успішно імпортовано")
-        } catch (e: Exception) {
-            Log.e(TAG, "Selective import failed", e)
-            Result.failure(e)
-        }
-    }
-
-suspend fun createBackupDiff(incoming: SnapshotBundle): BackupDiff {
+    suspend fun createBackupDiff(incoming: SnapshotBundle): BackupDiff {
         val local = fullBackupLocalDataSource.loadFullSnapshotBundle()
         return BackupDiff(
             projects = logicHelper.diffEntities(incoming.contexts, local.contexts, { project -> project.id }, { project -> project.version }, { project -> project.updatedAt }),
@@ -115,7 +61,7 @@ suspend fun createBackupDiff(incoming: SnapshotBundle): BackupDiff {
         )
     }
 
-suspend fun createSyncReport(bundle: SnapshotBundle): SyncReport {
+    suspend fun createSyncReport(bundle: SnapshotBundle): SyncReport {
         val localBundle = fullBackupLocalDataSource.loadFullSnapshotBundle()
         val changes = mutableListOf<SyncChange>()
 

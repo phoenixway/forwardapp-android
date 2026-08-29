@@ -93,12 +93,6 @@ class SyncRepository @Inject constructor(
         pendingSettingsFromLastSyncReport = null
     }
 
-    override suspend fun applyServerChanges(changes: DatabaseContent): Result<Unit> {
-        val result = mergeRepository.applyServerChanges(changes)
-        systemContextEnsurer.ensureAllSystemContextsExist()
-        return result
-    }
-
     suspend fun applyServerChanges(changes: SnapshotBundle): Result<Unit> {
         val result = mergeRepository.applyServerChanges(changes)
         systemContextEnsurer.ensureAllSystemContextsExist()
@@ -111,9 +105,6 @@ class SyncRepository @Inject constructor(
         return result
     }
 
-    override suspend fun createBackupDiff(incoming: DatabaseContent): LegacyBackupDiff =
-        mergeRepository.createBackupDiff(incoming)
-
     suspend fun createBackupDiff(incoming: SnapshotBundle): BackupDiff =
         mergeRepository.createBackupDiff(incoming)
 
@@ -125,37 +116,16 @@ class SyncRepository @Inject constructor(
         )
     }
 
-    suspend fun loadSelectiveImportPreview(uri: Uri): Result<SelectiveImportPreviewBundle> =
-        parseBackupFile(uri).fold(
-            onSuccess = { fullAppBackup ->
-                val version = fullAppBackup.backupSchemaVersion.takeIf { it != 0 } ?: 1
-                if (version !in setOf(1, 2)) {
-                    return@fold Result.failure(
-                        IllegalArgumentException("Unsupported backup version: $version. Expected 1 or 2."),
-                    )
-                }
-
-                val database = fullAppBackup.database
-                if (database != null) {
-                    return@fold Result.success(
-                        SelectiveImportPreviewBundle(
-                            descriptor = fileService.legacyImportDescriptor(),
-                            sourceSnapshotBundle = null,
-                            legacyDiff = createBackupDiff(database),
-                        ),
-                    )
-                }
-
-                resolveSnapshotBundleForImport(uri).map { resolvedImportBundle ->
-                    SelectiveImportPreviewBundle(
-                        descriptor = resolvedImportBundle.descriptor,
-                        sourceSnapshotBundle = resolvedImportBundle.snapshotBundle,
-                        snapshotDiff = createBackupDiff(resolvedImportBundle.snapshotBundle),
-                    )
-                }
-            },
-            onFailure = { Result.failure(it) },
-        )
+    suspend fun loadSelectiveImportPreview(
+        uri: Uri,
+    ): Result<SelectiveImportPreviewBundle> =
+        resolveSnapshotBundleForImport(uri).map { resolved ->
+            SelectiveImportPreviewBundle(
+                descriptor = resolved.descriptor,
+                sourceSnapshotBundle = resolved.snapshotBundle,
+                snapshotDiff = createBackupDiff(resolved.snapshotBundle),
+            )
+        }
 
     suspend fun importSelectedSnapshotBundle(bundle: SnapshotBundle): Result<String> {
         val result = mergeRepository.importSelectedSnapshotBundle(bundle)
@@ -168,11 +138,6 @@ class SyncRepository @Inject constructor(
         selection: WorkspaceSelectiveImportSelection,
     ): SnapshotBundle = selectiveImportFilter.filter(bundle, selection)
 
-    override suspend fun importSelectedData(selectedData: DatabaseContent): Result<String> {
-        val result = mergeRepository.importSelectedData(selectedData)
-        systemContextEnsurer.ensureAllSystemContextsExist()
-        return result
-    }
 
     // === ATTACHMENTS ===
 

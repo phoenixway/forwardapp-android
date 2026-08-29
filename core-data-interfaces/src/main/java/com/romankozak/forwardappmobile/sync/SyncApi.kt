@@ -17,9 +17,6 @@ interface SyncApi {
     suspend fun getLastSyncTime(): Long?
     suspend fun createSyncReport(jsonString: String): SyncReport
     suspend fun applyChanges(approvedChanges: List<SyncChange>)
-    suspend fun applyServerChanges(changes: DatabaseContent): Result<Unit>
-    suspend fun createBackupDiff(incoming: DatabaseContent): LegacyBackupDiff
-    suspend fun importSelectedData(selectedData: DatabaseContent): Result<String>
 
     suspend fun exportFullBackupToFileV2(): Result<String>
     suspend fun importFullBackupFromFileV2(uri: Uri): Result<String>

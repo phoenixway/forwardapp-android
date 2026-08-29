@@ -1,5 +1,7 @@
 package com.romankozak.forwardappmobile.sync
 
+import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+
 import android.content.Context
 import android.net.Uri
 import android.util.Log
@@ -11,7 +13,7 @@ import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRe
 import com.romankozak.forwardappmobile.core.data.models.Goal
 import com.romankozak.forwardappmobile.core.data.models.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.sync.BackupDiff
-import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
+import com.romankozak.forwardappmobile.core.data.models.sync.LocalSyncSelection
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
 import com.romankozak.forwardappmobile.core.data.models.sync.SettingsContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SyncChange
@@ -32,11 +34,6 @@ import javax.inject.Singleton
 
 @Singleton
 class NoOpFullBackupLocalDataSource @Inject constructor() : FullBackupLocalDataSource {
-    override suspend fun loadFullDatabaseContent(): DatabaseContent = DatabaseContent()
-    override suspend fun getSettingsSnapshot(): Map<String, String> = emptyMap()
-    override suspend fun loadUnsyncedCanonicalRecurringSeries() = emptyList<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.CanonicalRecurringSeriesSnapshot>()
-    override suspend fun loadCanonicalRecurringSeriesChangedSince(timestamp: Long) = emptyList<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.CanonicalRecurringSeriesSnapshot>()
-    override suspend fun markCanonicalRecurringSeriesSynced(series: List<CanonicalRecurringSeriesSyncVersion>) { /* no-op */ }
     override suspend fun loadUnsyncedCanonicalDayThemes() =
         com.romankozak.forwardappmobile.sync.datasource.CanonicalDayThemeSyncPayload()
     override suspend fun loadCanonicalDayThemesChangedSince(timestamp: Long) =
@@ -49,9 +46,20 @@ class NoOpFullBackupLocalDataSource @Inject constructor() : FullBackupLocalDataS
     override suspend fun markCanonicalOrientationsSynced(
         ack: com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncAck,
     ) { /* no-op */ }
-    override suspend fun restoreDatabaseFromBackup(content: DatabaseContent) {
-        Log.d("NoOpSync", "NoOpFullBackupLocalDataSource: restoreDatabaseFromBackup called")
-    }
+    override suspend fun loadUnsyncedCanonicalExecutionLogs() =
+        emptyList<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.CanonicalExecutionLogSnapshot>()
+    override suspend fun loadCanonicalExecutionLogsChangedSince(timestamp: Long) =
+        emptyList<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.CanonicalExecutionLogSnapshot>()
+    override suspend fun markCanonicalExecutionLogsSynced(
+        logs: List<com.romankozak.forwardappmobile.sync.datasource.CanonicalExecutionLogSyncVersion>,
+    ) { /* no-op */ }
+    override suspend fun loadUnsyncedCanonicalWorkspaceDirectionEntries() =
+        emptyList<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySnapshot>()
+    override suspend fun loadCanonicalWorkspaceDirectionEntriesChangedSince(timestamp: Long) =
+        emptyList<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySnapshot>()
+    override suspend fun markCanonicalWorkspaceDirectionEntriesSynced(
+        entries: List<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySyncVersion>,
+    ) { /* no-op */ }
     override suspend fun restoreSettings(settings: Map<String, String>) {
         Log.d("NoOpSync", "NoOpFullBackupLocalDataSource: restoreSettings called")
     }
@@ -62,12 +70,9 @@ class NoOpFullBackupLocalDataSource @Inject constructor() : FullBackupLocalDataS
 
 @Singleton
 class NoOpSyncLocalDataSource @Inject constructor() : SyncLocalDataSource {
-    override suspend fun getUnsyncedChanges(): DatabaseContent = DatabaseContent()
-    override suspend fun getChangesSince(timestamp: Long): DatabaseContent = DatabaseContent()
-    override suspend fun markSyncedNow(content: DatabaseContent) {
-        Log.d("NoOpSync", "NoOpSyncLocalDataSource: markSyncedNow called")
-    }
-    override suspend fun loadLocalDatabaseContent(): DatabaseContent = DatabaseContent()
+    override suspend fun getUnsyncedSelection(): LocalSyncSelection = LocalSyncSelection()
+    override suspend fun acknowledge(selection: LocalSyncSelection) { }
+    override suspend fun getChangesSince(timestamp: Long): SnapshotBundle = SnapshotBundle()
     override suspend fun clearAllTables() {
         Log.d("NoOpSync", "NoOpSyncLocalDataSource: clearAllTables called")
     }
@@ -88,10 +93,6 @@ open class NoOpSyncLogicHelper @Inject constructor() : SyncLogicHelper() {
 class NoOpMergeLocalDataSource @Inject constructor() : MergeLocalDataSource {
     override suspend fun getContexts(): List<Context> = emptyList()
     override suspend fun getGoals(): List<Goal> = emptyList()
-    override suspend fun getLocalDatabaseContent(): DatabaseContent = DatabaseContent()
-    override suspend fun insertContexts(contexts: List<Context>) {
-        Log.d("NoOpSync", "NoOpMergeLocalDataSource: insertContexts called")
-    }
     override suspend fun insertGoals(goals: List<Goal>) {
         Log.d("NoOpSync", "NoOpMergeLocalDataSource: insertGoals called")
     }
@@ -153,61 +154,6 @@ open class NoOpMergeRepository @Inject constructor(
     logicHelper: SyncLogicHelper
 ) {
     open suspend fun createSyncReport(jsonString: String): SyncReport = SyncReport(emptyList())
-    open suspend fun applyServerChanges(changes: DatabaseContent): Result<Unit> = Result.failure(Exception("Disabled"))
-    open suspend fun createBackupDiff(incoming: DatabaseContent): LegacyBackupDiff = LegacyBackupDiff()
-    open suspend fun applyChanges(approvedChanges: List<SyncChange>) {
-        Log.d("NoOpSync", "NoOpMergeRepository: applyChanges called")
-    }
-    open suspend fun importSelectedData(selectedData: DatabaseContent): Result<String> = Result.failure(Exception("Disabled"))
-}
-
-@Singleton
-class NoOpAttachmentsRepository @Inject constructor() : AttachmentsRepository {
-    override suspend fun exportAttachmentsToFile(): Result<String> = Result.failure(Exception("Disabled"))
-    override suspend fun createAttachmentsBackupJsonString(): String = ""
-    override suspend fun importAttachmentsFromFile(uri: Uri): Result<String> = Result.failure(Exception("Disabled"))
-
-    override suspend fun ensureAttachmentLinkedToContext(
-        attachmentType: String,
-        entityId: String,
-        contextId: String,
-        ownerContextId: String?,
-        createdAt: Long,
-        roleCode: String?,
-        isSystem: Boolean
-    ) {
-        Log.d("NoOpSync", "NoOpAttachmentsRepository: ensureAttachmentLinkedToContext called")
-    }
-
-    override suspend fun findAttachmentByEntity(attachmentType: String, entityId: String): AttachmentEntity? = null
-    override suspend fun deleteAttachment(attachmentId: String) {
-        Log.d("NoOpSync", "NoOpAttachmentsRepository: deleteAttachment called")
-    }
-
-    override fun getAttachmentLibraryItems(): Flow<List<AttachmentLibraryQueryResult>> = flowOf(emptyList())
-    override fun getAllAttachmentLinks(): Flow<List<ContextAttachmentCrossRef>> = flowOf(emptyList())
-    override suspend fun linkAttachmentToContext(attachmentId: String, contextId: String) {
-        Log.d("NoOpSync", "NoOpAttachmentsRepository: linkAttachmentToContext called")
-    }
-
-    override fun getAttachmentsForContext(contextId: String): Flow<List<AttachmentWithContext>> = flowOf(emptyList())
-    override suspend fun getAttachmentById(id: String): AttachmentEntity? = null
-    override suspend fun unlinkAttachmentFromContext(attachmentId: String, contextId: String) {
-        Log.d("NoOpSync", "NoOpAttachmentsRepository: unlinkAttachmentFromContext called")
-    }
-    override suspend fun updateAttachmentOrders(contextId: String, orders: Map<String, Long>) {
-        Log.d("NoOpSync", "NoOpAttachmentsRepository: updateAttachmentOrders called")
-    }
-    override suspend fun createLinkAttachment(
-        contextId: String,
-        link: RelatedLink,
-        roleCode: String?,
-        isSystem: Boolean
-    ): String = ""
-
-    override suspend fun findAttachmentByRole(contextId: String, roleCode: String): AttachmentEntity? = null
-}
-
 @Singleton
 open class NoOpSyncApi @Inject constructor(
     private val fileService: NoOpSyncFileService,
@@ -229,9 +175,6 @@ open class NoOpSyncApi @Inject constructor(
     override suspend fun getLastSyncTime(): Long? = null
     override suspend fun createSyncReport(jsonString: String): SyncReport = mergeRepository.createSyncReport(jsonString)
     override suspend fun applyChanges(approvedChanges: List<SyncChange>) = mergeRepository.applyChanges(approvedChanges)
-    override suspend fun applyServerChanges(changes: DatabaseContent): Result<Unit> = mergeRepository.applyServerChanges(changes)
-    override suspend fun createBackupDiff(incoming: DatabaseContent): BackupDiff = mergeRepository.createBackupDiff(incoming)
-    override suspend fun importSelectedData(selectedData: DatabaseContent): Result<String> = mergeRepository.importSelectedData(selectedData)
 
     override suspend fun exportAttachmentsToFile(): Result<String> = attachmentsRepository.exportAttachmentsToFile()
     override suspend fun createAttachmentsBackupJsonString(): String = attachmentsRepository.createAttachmentsBackupJsonString()

@@ -1,12 +1,16 @@
 package com.romankozak.forwardappmobile.data.orientation
 
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.hasCanonicalOrientationPayload
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalOrientationPayload
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 
 internal suspend fun OrientationDao.storeCanonicalPayload(
     bundle: SnapshotBundle,
     merge: Boolean,
+    workspaceDao: WorkspaceDao,
 ) {
     requireValidCanonicalOrientationPayload(bundle)
     if (!bundle.hasCanonicalOrientationPayload()) return
@@ -32,6 +36,20 @@ internal suspend fun OrientationDao.storeCanonicalPayload(
     val aspects = requireNotNull(bundle.aspects).filter { !merge || it.subjectId in acceptedSubjectIds }
     if (orientations.isNotEmpty()) upsertOrientations(orientations)
     if (aspects.isNotEmpty()) upsertAspects(aspects)
+
+    bundle.workspaces?.let { rawIncoming ->
+        val incoming = rawIncoming.map { it.normalizeProvenanceForPersistence() }
+        val workspaces =
+            mergeByFreshnessIfNeeded(
+                merge,
+                workspaceDao.getAll(),
+                incoming,
+                { it.id },
+                { it.version },
+                { it.updatedAt },
+            )
+        if (workspaces.isNotEmpty()) workspaceDao.upsert(workspaces)
+    }
 
     val assessments =
         mergeByFreshnessIfNeeded(
@@ -114,6 +132,33 @@ internal suspend fun OrientationDao.storeCanonicalPayload(
     if (bindings.isNotEmpty()) upsertWorkspaceBindings(bindings)
     if (capabilities.isNotEmpty()) upsertWorkspaceCapabilities(capabilities)
     if (views.isNotEmpty()) upsertSavedViews(views)
+}
+
+private fun WorkspaceEntity.normalizeProvenanceForPersistence(): WorkspaceEntity {
+    val rawProvenance: String? = provenance
+    return when (rawProvenance) {
+        null ->
+            copy(
+                provenance = WorkspaceProvenance.CONTEXT_BACKED.name,
+                sourceContextId = id,
+            )
+
+        WorkspaceProvenance.CONTEXT_BACKED.name -> {
+            require(sourceContextId == null || sourceContextId == id) {
+                "Context-backed Workspace $id must use itself as sourceContextId"
+            }
+            if (sourceContextId == null) copy(sourceContextId = id) else this
+        }
+
+        WorkspaceProvenance.CANONICAL_ONLY.name -> {
+            require(sourceContextId == null) {
+                "Canonical-only Workspace $id must not have sourceContextId"
+            }
+            this
+        }
+
+        else -> throw IllegalArgumentException("Unknown Workspace provenance '$rawProvenance' for $id")
+    }
 }
 
 private fun <T> mergeByFreshnessIfNeeded(

@@ -1,7 +1,6 @@
 package com.romankozak.forwardappmobile.sync
 
-import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
-import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.InboxRecordSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -11,14 +10,13 @@ class InboxCanonicalDeltaTest {
     @Test
     fun inboxTombstoneIsProjectedIntoCanonicalSnapshotDelta() {
         val tombstone =
-            InboxRecord(
+            InboxRecordSnapshot(
                 id = "inbox-1",
                 contextId = "context-1",
                 text = "deleted inbox record",
                 createdAt = 100L,
                 order = -100L,
                 updatedAt = 500L,
-                syncedAt = null,
                 hideInOwnerInbox = false,
                 isDeleted = true,
                 version = 3L,
@@ -26,7 +24,7 @@ class InboxCanonicalDeltaTest {
 
         val delta =
             buildCanonicalSnapshotDelta(
-                source = DatabaseContent(inboxRecords = listOf(tombstone)),
+                baseDelta = SnapshotBundle(version = 2, inbox = listOf(tombstone)),
                 fullSnapshot = SnapshotBundle(version = 2),
             )
 

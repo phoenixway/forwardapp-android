@@ -168,12 +168,12 @@ class WifiSyncServer(
                                         syncRepository.createFullBackupJsonString()
                                     }
                                 val backup = gson.fromJson(rawBackupJson, FullAppBackup::class.java)
-                                val projects = backup.database?.projects.orEmpty()
+                                val projects = backup.snapshotBundle?.contexts.orEmpty()
                                 val missingSystemKeys = projects.count { !SystemContexts.isSystem(ContextId(it.id)) }
                                 val systemKeyStats = "systemKeys=${projects.size - missingSystemKeys}/${projects.size}"
                                 val backupJson = gson.toJson(backup)
                                 Log.d(DEBUG_TAG, "[WifiSyncServer] Export prepared $systemKeyStats")
-                                val tacticalMissions = backup.database?.tacticalMissions.orEmpty()
+                                val tacticalMissions = backup.snapshotBundle?.tacticalMissions.orEmpty()
                                 Log.d(
                                     TACTICAL_TRACE_TAG,
                                     "android export delta=${deltaSinceParam != null} count=${tacticalMissions.size} " +
@@ -188,14 +188,12 @@ class WifiSyncServer(
 
                                 // ========== DEFECT #2 DEBUG: Log attachments in export ==========
                                 try {
-                                    val attachmentsCount = backup.database?.attachments?.size ?: 0
+                                    val attachmentsCount = backup.snapshotBundle?.attachments?.size ?: 0
                                     val crossRefsCount =
-                                        backup.database?.contextAttachmentCrossRefs?.size ?: 0
+                                        backup.snapshotBundle?.crossRefs?.size ?: 0
                                     Log.i(
                                         "ForwardSync",
-                                        "wifi export bytes=${backupJson.length} dbPlans=${backup.database?.dayPlans?.size ?: 0} " +
-                                            "dbFocus=${backup.database?.dayFocusItems?.size ?: 0} " +
-                                            "dbTasks=${backup.database?.dayTasks?.size ?: 0} " +
+                                        "wifi export bytes=${backupJson.length} " +
                                             "snapshotPlans=${backup.snapshotBundle?.dayPlans?.size ?: 0} " +
                                             "snapshotFocus=${backup.snapshotBundle?.dayFocusItems?.size ?: 0} " +
                                             "snapshotTasks=${backup.snapshotBundle?.dayTasks?.size ?: 0} " +
@@ -261,7 +259,7 @@ class WifiSyncServer(
                                 com.romankozak.forwardappmobile.sync.requireNoLegacyTaskRecurrenceV1(body)
 
                                 // Canonical Wi-Fi import authority is snapshotBundle. Do not deserialize
-                                // the legacy DatabaseContent envelope here: stale legacy entity shapes can
+                                // legacy entity envelopes are intentionally not accepted here: stale shapes can
                                 // contain fields that are invalid for current Room entities and must not be
                                 // allowed to block an otherwise valid canonical snapshot import.
                                 val rawRoot =
@@ -296,21 +294,14 @@ class WifiSyncServer(
                                                 ?.takeUnless { it.isJsonNull }
                                                 ?.asInt
                                                 ?: 2,
-                                        database = null,
-                                        settings = canonicalSettings,
+                                                                    settings = canonicalSettings,
                                         snapshotBundle = canonicalSnapshot,
                                     )
                                 Log.e(DAY_SYNC_IMPORT_TAG, "server received ${backup.describeDayImportPayload(body.length)}")
                                 val snapshotBundle = backup.snapshotBundle
-                                val db = backup.database
                                 Log.i(
                                     "ForwardSync",
                                     "wifi import received bytes=${body.length} hasSnapshot=${snapshotBundle != null} " +
-                                        "hasDb=${db != null} dbPlans=${db?.dayPlans?.size ?: 0} " +
-                                        "dbFocus=${db?.dayFocusItems?.size ?: 0} dbTasks=${db?.dayTasks?.size ?: 0} " +
-                                        "dbRuntime=${db?.dayManagementRuntimeState != null} " +
-                                        "dbRuntimePhase=${db?.dayManagementRuntimeState?.currentPhase} " +
-                                        "dbRuntimeSleepAt=${db?.dayManagementRuntimeState?.sleepAt} " +
                                         "snapshotPlans=${snapshotBundle?.dayPlans?.size ?: 0} " +
                                         "snapshotFocus=${snapshotBundle?.dayFocusItems?.size ?: 0} " +
                                         "snapshotTasks=${snapshotBundle?.dayTasks?.size ?: 0} " +
@@ -490,44 +481,10 @@ private const val TACTICAL_TRACE_TAG = "TacticalMissionDebug"
 private const val TACTICAL_TRACE_SAMPLE_SIZE = 12
 
 private fun FullAppBackup.describeDayImportPayload(bodyLength: Int): String {
-    val dbPlans = database?.dayPlans.orEmpty()
-    val dbTasks = database?.dayTasks.orEmpty()
-    val dbFocus = database?.dayFocusItems.orEmpty()
-    val dbRecurring = database?.recurringTasks.orEmpty()
-    val snapshotPlans = snapshotBundle?.dayPlans.orEmpty()
-    val snapshotTasks = snapshotBundle?.dayTasks.orEmpty()
-    val snapshotFocus = snapshotBundle?.dayFocusItems.orEmpty()
-    val snapshotRecurring = snapshotBundle?.recurringTasks.orEmpty()
-    val dbPlanSample = dbPlans
-        .sortedByDescending { it.updatedAt ?: it.createdAt }
-        .take(4)
-        .joinToString { "${it.id}:${it.date}:v${it.version}:u${it.updatedAt}:s${it.syncedAt}" }
-    val dbTaskSample = dbTasks
-        .sortedByDescending { it.updatedAt ?: it.createdAt }
-        .take(6)
-        .joinToString { "${it.id}:${it.dayPlanId}:v${it.version}:u${it.updatedAt}:s${it.syncedAt}:${it.title.take(28)}" }
-    val snapshotPlanSample = snapshotPlans
-        .sortedByDescending { it.updatedAt }
-        .take(4)
-        .joinToString { "${it.id}:${it.date}:v${it.version}:u${it.updatedAt}" }
-    val snapshotTaskSample = snapshotTasks
-        .sortedByDescending { it.updatedAt }
-        .take(6)
-        .joinToString { "${it.id}:${it.dayPlanId}:v${it.version}:u${it.updatedAt}:${it.title.take(28)}" }
+    val plans = snapshotBundle?.dayPlans.orEmpty()
+    val tasks = snapshotBundle?.dayTasks.orEmpty()
+    val focus = snapshotBundle?.dayFocusItems.orEmpty()
 
-    return listOf(
-        "bytes=$bodyLength",
-        "dbPlans=${dbPlans.size}",
-        "dbTasks=${dbTasks.size}",
-        "dbFocus=${dbFocus.size}",
-        "dbRecurring=${dbRecurring.size}",
-        "snapshotPlans=${snapshotPlans.size}",
-        "snapshotTasks=${snapshotTasks.size}",
-        "snapshotFocus=${snapshotFocus.size}",
-        "snapshotRecurring=${snapshotRecurring.size}",
-        "dbPlanSample=$dbPlanSample",
-        "dbTaskSample=$dbTaskSample",
-        "snapshotPlanSample=$snapshotPlanSample",
-        "snapshotTaskSample=$snapshotTaskSample",
-    ).joinToString(" ")
+    return "bytes=$bodyLength snapshotPlans=${plans.size} " +
+        "snapshotTasks=${tasks.size} snapshotFocus=${focus.size}"
 }

@@ -4,8 +4,6 @@ import com.google.common.truth.Truth.assertThat
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonSyntaxException
 import com.romankozak.forwardappmobile.core.data.interfaces.sync.IContentProvider
-import com.romankozak.forwardappmobile.core.data.models.entities.Context
-import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.FullAppBackup
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextSnapshot
@@ -15,7 +13,6 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Test
@@ -27,7 +24,6 @@ class SyncFileServiceSnapshotTest {
     // Оголошення моків
     private val mockContentProvider: IContentProvider = mockk()
     private val mockLocalDataSource: FullBackupLocalDataSource = mockk()
-    private val mockLegacyMigrationMapper: LegacyMigrationMapper = mockk()
     private val mockMergeRepository: MergeRepository = mockk()
 
     private val gson = GsonBuilder().create()
@@ -38,7 +34,6 @@ class SyncFileServiceSnapshotTest {
             SyncFileService(
                 contentProvider = mockContentProvider,
                 localDataSource = mockLocalDataSource,
-                legacyMigrationMapper = mockLegacyMigrationMapper,
                 mergeRepository = mockMergeRepository,
             )
     }
@@ -68,7 +63,6 @@ class SyncFileServiceSnapshotTest {
             FullAppBackup(
                 backupSchemaVersion = 2,
                 snapshotBundle = snapshot,
-                database = null,
                 settings = null,
             )
         return gson.toJson(backup)
@@ -139,108 +133,33 @@ class SyncFileServiceSnapshotTest {
             FullAppBackup(
                 backupSchemaVersion = 2,
                 snapshotBundle = snapshot,
-                database = null,
                 settings = null,
             )
         return gson.toJson(backup)
     }
 
-    private fun createLegacyFormatJson(): String {
-        val dbContent =
-            DatabaseContent(
-                projects =
-                    listOf(
-                        Context(
-                            id = "legacy_c1",
-                            name = "Legacy Context",
-                            createdAt = 50L,
-                            updatedAt = 50L,
-                            parentId = null,
-                            description = null,
-                            isExpanded = false,
-                            isDeleted = false,
-                            version = 0,
-                            tags = emptyList(),
-                            relatedLinks = emptyList(),
-                            order = 0L,
-                            isAttachmentsExpanded = false,
-                            defaultViewModeName = null,
-                            isCompleted = false,
-                            isContextManagementEnabled = false,
-                            contextStatus = "NO_PLAN",
-                            contextStatusText = null,
-                            contextLogLevel = null,
-                            totalTimeSpentMinutes = 0L,
-                            valueImportance = 0f,
-                            valueImpact = 0f,
-                            effort = 0f,
-                            cost = 0f,
-                            risk = 0f,
-                            weightEffort = 1f,
-                            weightCost = 1f,
-                            weightRisk = 1f,
-                            rawScore = 0f,
-                            displayScore = 0,
-                            scoringStatus = "NOT_ASSESSED",
-                            showCheckboxes = false,
-                            roleCode = null,
-                        ),
-                    ),
-            )
-        val backup =
-            FullAppBackup(
-                backupSchemaVersion = 1,
-                database = dbContent,
-                settings = null,
-                snapshotBundle = null,
-            )
-        return gson.toJson(backup)
-    }
+    private fun createLegacyFormatJson(): String =
+        """{
+          "backupSchemaVersion": 1,
+          "database": {
+            "projects": [
+              {
+                "id": "legacy_c1",
+                "name": "Legacy Context"
+              }
+            ]
+          }
+        }""".trimIndent()
 
-    private fun createOldDatabaseContentJson(): String {
-        val dbContent =
-            DatabaseContent(
-                projects =
-                    listOf(
-                        Context(
-                            id = "raw_c1",
-                            name = "Raw DB Content",
-                            createdAt = 20L,
-                            updatedAt = 20L,
-                            parentId = null,
-                            description = null,
-                            isExpanded = false,
-                            isDeleted = false,
-                            version = 0,
-                            tags = emptyList(),
-                            relatedLinks = emptyList(),
-                            order = 0L,
-                            isAttachmentsExpanded = false,
-                            defaultViewModeName = null,
-                            isCompleted = false,
-                            isContextManagementEnabled = false,
-                            contextStatus = "NO_PLAN",
-                            contextStatusText = null,
-                            contextLogLevel = null,
-                            totalTimeSpentMinutes = 0L,
-                            valueImportance = 0f,
-                            valueImpact = 0f,
-                            effort = 0f,
-                            cost = 0f,
-                            risk = 0f,
-                            weightEffort = 1f,
-                            weightCost = 1f,
-                            weightRisk = 1f,
-                            rawScore = 0f,
-                            displayScore = 0,
-                            scoringStatus = "NOT_ASSESSED",
-                            showCheckboxes = false,
-                            roleCode = null,
-                        ),
-                    ),
-            )
-        return gson.toJson(dbContent)
-    }
+    private fun createOldDatabaseContentJson(): String =
+        """{
+          "projects": [
+            {
+              "id": "raw_c1",
+              "name": "Raw legacy database content"
+            }
+          ]
+        }""".trimIndent()
 
     // === Тести ===
 
@@ -278,9 +197,6 @@ class SyncFileServiceSnapshotTest {
             val result = syncFileService.importFullBackupFromFileV2(uriString)
 
             assertThat(result.isFailure).isTrue()
-            assertThat(result.exceptionOrNull()?.message)
-                .contains("Legacy database-only backup is no longer supported")
-            verify(exactly = 0) { mockLegacyMigrationMapper.toSnapshotBundle(any<DatabaseContent>()) }
             coVerify(exactly = 0) { mockMergeRepository.applyServerChanges(any<SnapshotBundle>()) }
         }
 
@@ -317,9 +233,6 @@ class SyncFileServiceSnapshotTest {
             val result = syncFileService.importFullBackupFromFileV2(uriString)
 
             assertThat(result.isFailure).isTrue()
-            assertThat(result.exceptionOrNull()?.message)
-                .contains("Legacy database-only backup is no longer supported")
-            verify(exactly = 0) { mockLegacyMigrationMapper.toSnapshotBundle(any<DatabaseContent>()) }
             coVerify(exactly = 0) { mockMergeRepository.applyServerChanges(any<SnapshotBundle>()) }
         }
 

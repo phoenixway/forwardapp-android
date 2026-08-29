@@ -1,13 +1,12 @@
 package com.romankozak.forwardappmobile.sync
 
+import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
+
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class SyncLocalService @Inject constructor() {
-    suspend fun loadLocalDatabaseContent(): DatabaseContent = DatabaseContent()
-    suspend fun getUnsyncedChanges(): DatabaseContent = DatabaseContent()
-    suspend fun getChangesSince(since: Long): DatabaseContent = DatabaseContent()
+    suspend fun getChangesSince(since: Long): SnapshotBundle = SnapshotBundle()
     suspend fun clearAllTables() { /* no-op */ }
-    suspend fun markSyncedNow(content: DatabaseContent) { /* no-op */ }
 }

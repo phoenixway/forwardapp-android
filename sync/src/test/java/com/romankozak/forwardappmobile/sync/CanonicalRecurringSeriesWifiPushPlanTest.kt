@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.sync
 
 import com.google.gson.JsonObject
-import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
+import com.romankozak.forwardappmobile.core.data.models.sync.LocalSyncSelection
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.CanonicalRecurrenceRuleSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.CanonicalRecurringSeriesSnapshot
@@ -37,7 +37,7 @@ class CanonicalRecurringSeriesWifiPushPlanTest {
         val clean = series(id = "series-clean", version = 9L)
         val plan =
             buildCanonicalWifiPushPlan(
-                source = DatabaseContent(),
+                selection = LocalSyncSelection(),
                 fullSnapshot =
                     SnapshotBundle(
                         version = 2,
@@ -57,7 +57,7 @@ class CanonicalRecurringSeriesWifiPushPlanTest {
         val dirty = series(id = "series-ack", version = 5L)
         val plan =
             buildCanonicalWifiPushPlan(
-                source = DatabaseContent(),
+                selection = LocalSyncSelection(),
                 fullSnapshot =
                     SnapshotBundle(
                         version = 2,

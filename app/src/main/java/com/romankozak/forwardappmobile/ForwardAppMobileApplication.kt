@@ -7,6 +7,8 @@ import com.romankozak.forwardappmobile.core.config.FeatureToggles
 import com.romankozak.forwardappmobile.core.storage.getDocumentsLogsDir
 import com.romankozak.forwardappmobile.data.daythemes.CanonicalDayThemeBootstrapper
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationBootstrapper
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstrapper
+import com.romankozak.forwardappmobile.data.workspace.capability.ExecutionLogWorkspaceOwnershipBridge
 import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
@@ -31,6 +33,10 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
     @Inject lateinit var canonicalDayThemeBootstrapper: CanonicalDayThemeBootstrapper
 
     @Inject lateinit var canonicalOrientationBootstrapper: CanonicalOrientationBootstrapper
+
+    @Inject lateinit var canonicalWorkspaceBootstrapper: CanonicalWorkspaceBootstrapper
+
+    @Inject lateinit var executionLogWorkspaceOwnershipBridge: ExecutionLogWorkspaceOwnershipBridge
 
     @Inject lateinit var contextRepository: ContextRepository
 
@@ -97,6 +103,35 @@ class ForwardAppMobileApplication : Application(), Configuration.Provider {
                 }
             }.onFailure {
                 Timber.e(it, "Failed to bootstrap canonical Orientations")
+            }
+
+            runCatching {
+                canonicalWorkspaceBootstrapper.ensureBootstrapped()
+            }.onSuccess { report ->
+                if (report.performed || report.issues.isNotEmpty()) {
+                    Timber.i(
+                        "Canonical Workspace bootstrap: workspaces=%d capabilities=%d issues=%d",
+                        report.projectedWorkspaces,
+                        report.projectedCapabilities,
+                        report.issues.size,
+                    )
+                }
+            }.onFailure {
+                Timber.e(it, "Failed to bootstrap canonical Workspaces")
+            }
+
+            runCatching {
+                executionLogWorkspaceOwnershipBridge.repairUnresolved()
+            }.onSuccess { report ->
+                if (report.assignedLogs > 0 || report.unresolvedContexts > 0) {
+                    Timber.i(
+                        "EXECUTION_LOG Workspace ownership repair: assigned=%d unresolvedContexts=%d",
+                        report.assignedLogs,
+                        report.unresolvedContexts,
+                    )
+                }
+            }.onFailure {
+                Timber.e(it, "Failed to repair EXECUTION_LOG Workspace ownership")
             }
 
             runCatching {

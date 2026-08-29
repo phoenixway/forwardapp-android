@@ -2,6 +2,8 @@ package com.romankozak.forwardappmobile.data.orientation
 
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstrapper
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncAck
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncPayload
 import javax.inject.Inject
@@ -14,9 +16,12 @@ class CanonicalOrientationSyncStore
         private val database: AppDatabase,
         private val dao: OrientationDao,
         private val bootstrapper: CanonicalOrientationBootstrapper,
+        private val workspaceDao: WorkspaceDao,
+        private val workspaceBootstrapper: CanonicalWorkspaceBootstrapper,
     ) {
         suspend fun loadUnsynced(): CanonicalOrientationSyncPayload {
             bootstrapper.ensureBootstrapped()
+            workspaceBootstrapper.ensureBootstrapped()
             return database.withTransaction {
                 val payload = loadFullPayload()
                 if (payload.hasDirtyRows()) payload else CanonicalOrientationSyncPayload()
@@ -32,6 +37,7 @@ class CanonicalOrientationSyncStore
                 ack.legacyMappings.forEach { dao.markLegacyMappingSynced(it.id, it.version, syncedAt) }
                 ack.relations.forEach { dao.markRelationSynced(it.id, it.version, syncedAt) }
                 ack.aspectRefs.forEach { dao.markAspectRefSynced(it.id, it.version, syncedAt) }
+                ack.workspaces.forEach { workspaceDao.markSynced(it.id, it.version, syncedAt) }
                 ack.workspaceBindings.forEach { dao.markWorkspaceBindingSynced(it.id, it.version, syncedAt) }
                 ack.workspaceCapabilities.forEach { dao.markWorkspaceCapabilitySynced(it.id, it.version, syncedAt) }
                 ack.savedViews.forEach { dao.markSavedViewSynced(it.id, it.version, syncedAt) }
@@ -48,6 +54,7 @@ class CanonicalOrientationSyncStore
                 legacyMappings = dao.getAllLegacyMappings(),
                 relations = dao.getAllOrientationRelations(),
                 aspectRefs = dao.getAllAspectOrientationRefs(),
+                workspaces = workspaceDao.getAll(),
                 workspaceBindings = dao.getAllWorkspaceBindings(),
                 workspaceCapabilities = dao.getAllWorkspaceCapabilities(),
                 savedViews = dao.getAllSavedViews(),
@@ -60,7 +67,8 @@ private fun CanonicalOrientationSyncPayload.hasDirtyRows(): Boolean =
         assessmentRevisions.any { it.syncedAt == null } ||
         legacyMappings.any { it.syncedAt == null } ||
         relations.any { it.syncedAt == null } ||
-        aspectRefs.any { it.syncedAt == null } ||
+    aspectRefs.any { it.syncedAt == null } ||
+        workspaces.any { it.syncedAt == null } ||
         workspaceBindings.any { it.syncedAt == null } ||
         workspaceCapabilities.any { it.syncedAt == null } ||
         savedViews.any { it.syncedAt == null }

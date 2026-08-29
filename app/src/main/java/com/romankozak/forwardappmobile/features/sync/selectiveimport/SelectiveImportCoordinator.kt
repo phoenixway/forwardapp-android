@@ -17,7 +17,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntit
 import com.romankozak.forwardappmobile.core.data.models.entities.LinkItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ScriptEntity
-import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.shared.contracts.contexts.WorkspaceSelectiveImportSelection
 import com.romankozak.forwardappmobile.sync.SyncRepository
@@ -46,15 +45,19 @@ class SelectiveImportCoordinator @Inject constructor(
                     "System projects: ${selection.selectedProjects.size - selection.regularProjects.size}",
             )
 
-        return if (state.sourceSnapshotBundle != null) {
-            importSnapshotSelection(
-                snapshotBundle = state.sourceSnapshotBundle,
-                selection = selection,
-                sharedSelection = state.selection,
-            )
-        } else {
-            importLegacySelection(selection)
-        }
+        val snapshotBundle =
+            state.sourceSnapshotBundle
+                ?: return Result.failure(
+                    IllegalArgumentException(
+                        "Selective import requires a canonical SnapshotBundle source.",
+                    ),
+                )
+
+        return importSnapshotSelection(
+            snapshotBundle = snapshotBundle,
+            selection = selection,
+            sharedSelection = state.selection,
+        )
     }
 
     private suspend fun importSnapshotSelection(
@@ -69,30 +72,6 @@ class SelectiveImportCoordinator @Inject constructor(
             )
 
         return syncRepository.importSelectedSnapshotBundle(filteredSnapshotBundle).map { Unit }
-    }
-
-    private suspend fun importLegacySelection(selection: PreparedSelection): Result<Unit> {
-        val databaseContent =
-            DatabaseContent(
-                projects = selection.projectsWithValidParents,
-                goals = selection.selectedGoals,
-                legacyNotes = selection.selectedLegacyNotes,
-                activityRecords = selection.selectedActivityRecords,
-                backlogItems = selection.filteredListItems,
-                backlogOrders = selection.selectedBacklogOrdersFiltered,
-                documents = selection.selectedDocuments,
-                checklists = selection.selectedChecklists,
-                checklistItems = selection.filteredChecklistItems,
-                linkItemEntities = selection.selectedLinkItems,
-                inboxRecords = selection.selectedInboxRecords,
-                contextLogs = selection.selectedContextLogs,
-                recentProjectEntries = emptyList(),
-                attachments = selection.selectedAttachments,
-                contextAttachmentCrossRefs = selection.filteredCrossRefs,
-                scripts = selection.filteredScripts,
-            )
-
-        return syncRepository.importSelectedData(databaseContent).map { Unit }
     }
 
     private data class PreparedSelection(

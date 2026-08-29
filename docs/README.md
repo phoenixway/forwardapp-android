@@ -135,6 +135,20 @@ The following directories contain subsystem documentation:
   primary membership, Context compatibility-Workspace binding, and
   non-destructive classification preview. Aspect UI remains unimplemented.
 
+`architecture/orientation-workspace-refactor/PHASE6-FOUNDATION-IMPLEMENTATION.md`
+- `CURRENT`
+- Implemented Room schema 151 canonical Workspace identity, Context-backed
+  compatibility projection and diagnostics, capability projection, atomic
+  Android transport, and Desktop read-only ownership. Context runtime/UI
+  authority remains unchanged.
+
+`architecture/orientation-workspace-refactor/DIRECTION-CAPABILITY-AUDIT.md`
+- `CURRENT` for the verified legacy boundary and `PROPOSED` for the precise
+  canonical cutover shape.
+- Records the heterogeneous semantic-Direction/Workspace-link row model,
+  ordering, auto-link, clipboard, lifecycle, and bidirectional Desktop sync
+  constraints that must be split before DIRECTION authority cutover.
+
 These directories currently contain a mixture of current, historical,
 proposed, and reference material.
 
