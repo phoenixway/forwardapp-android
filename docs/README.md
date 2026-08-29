@@ -123,6 +123,12 @@ The following directories contain subsystem documentation:
   SnapshotBundle collections, Android exact-version sync acknowledgement, and
   Desktop Android-read-only ownership. Runtime/UI authority remains legacy.
 
+`architecture/orientation-workspace-refactor/PHASE4-IMPLEMENTATION.md`
+- `CURRENT`
+- Implemented non-UI Main Beacon/Main Beacon Group ownership cutover: canonical
+  common fields and tombstones, typed ordered Group membership, transactional
+  legacy projections, Desktop compatibility ingress, and unchanged UI.
+
 These directories currently contain a mixture of current, historical,
 proposed, and reference material.
 

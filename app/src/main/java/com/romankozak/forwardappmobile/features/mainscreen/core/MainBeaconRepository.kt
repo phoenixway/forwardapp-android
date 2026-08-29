@@ -13,9 +13,11 @@ import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconLevel
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconReadinessStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.MainBeaconSyncStatus
+import com.romankozak.forwardappmobile.data.orientation.MainBeaconOrientationBridge
 import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -25,6 +27,7 @@ class MainBeaconRepository
     constructor(
         private val appDatabase: AppDatabase,
         private val mainBeaconDao: MainBeaconDao,
+        private val orientationBridge: MainBeaconOrientationBridge,
     ) {
         companion object {
             val DefaultLevels: List<MainBeaconLevelType> =
@@ -48,49 +51,61 @@ class MainBeaconRepository
         }
 
         fun observeMainBeaconDetails(): Flow<List<MainBeaconWithRelations>> =
-            mainBeaconDao
-                .observeMainBeaconRelations()
-                .map { relationRows ->
-                    relationRows.map { row ->
-                        val beacon = row.beacon
-                        val ensuredStatuses =
-                            ensureAllLevelStatuses(
-                                beacon.id,
-                                row.levelStatuses.sortedBy { it.levelType },
-                            )
-                        val contextOrders = row.contextCrossRefs.associate { it.contextId to it.order }
-                        val relatedContexts =
-                            row.relatedContexts.sortedWith(
-                                compareBy<Context> { contextOrders[it.id] ?: Long.MAX_VALUE }
-                                    .thenBy { it.name.lowercase() },
-                            )
-                        val relatedAttachments =
-                            row.relatedAttachments.sortedWith(
-                                compareByDescending<AttachmentEntity> { it.updatedAt }
-                                    .thenByDescending { it.createdAt },
-                            )
-                        val groupIds = row.groupMembers.sortedBy { it.order }.map { it.groupId }
-                        val groupOrders = row.groupMembers.associate { it.groupId to it.order }
-
-                        MainBeaconWithRelations(
-                            beacon = beacon,
-                            relatedContexts = relatedContexts,
-                            relatedAttachments = relatedAttachments,
-                            levelStatuses = ensuredStatuses,
-                            groupIds = groupIds,
-                            groupOrders = groupOrders,
+            combine(
+                mainBeaconDao.observeMainBeaconRelations(),
+                orientationBridge.observeCommonProjection(),
+            ) { relationRows, commonProjection ->
+                relationRows.map { row ->
+                    val canonical = commonProjection.beaconsByLegacyId[row.beacon.id]
+                    val beacon =
+                        canonical?.let { row.beacon.copy(title = it.title, description = it.description) }
+                            ?: row.beacon
+                    val ensuredStatuses =
+                        ensureAllLevelStatuses(
+                            beacon.id,
+                            row.levelStatuses.sortedBy { it.levelType },
                         )
-                    }
-                }
+                    val contextOrders = row.contextCrossRefs.associate { it.contextId to it.order }
+                    val relatedContexts =
+                        row.relatedContexts.sortedWith(
+                            compareBy<Context> { contextOrders[it.id] ?: Long.MAX_VALUE }
+                                .thenBy { it.name.lowercase() },
+                        )
+                    val relatedAttachments =
+                        row.relatedAttachments.sortedWith(
+                            compareByDescending<AttachmentEntity> { it.updatedAt }
+                                .thenByDescending { it.createdAt },
+                        )
+                    val groupIds = row.groupMembers.sortedBy { it.order }.map { it.groupId }
+                    val groupOrders = row.groupMembers.associate { it.groupId to it.order }
 
-        fun observeGroups(): Flow<List<MainBeaconGroup>> = mainBeaconDao.observeGroups()
+                    MainBeaconWithRelations(
+                        beacon = beacon,
+                        relatedContexts = relatedContexts,
+                        relatedAttachments = relatedAttachments,
+                        levelStatuses = ensuredStatuses,
+                        groupIds = groupIds,
+                        groupOrders = groupOrders,
+                    )
+                }
+            }
+
+        fun observeGroups(): Flow<List<MainBeaconGroup>> =
+            combine(mainBeaconDao.observeGroups(), orientationBridge.observeCommonProjection()) { groups, projection ->
+                groups.map { group ->
+                    projection.groupsByLegacyId[group.id]
+                        ?.let { group.copy(title = it.title, description = it.description) }
+                        ?: group
+                }
+            }
 
         fun observeParentLinks(): Flow<List<MainBeaconParentLink>> = mainBeaconDao.observeParentLinks()
 
-        suspend fun getBeaconById(beaconId: String): MainBeacon? = mainBeaconDao.getBeaconById(beaconId)
+        suspend fun getBeaconById(beaconId: String): MainBeacon? =
+            mainBeaconDao.getBeaconById(beaconId)?.let { orientationBridge.project(it) }
 
         suspend fun getGroupById(groupId: String): MainBeaconGroup? =
-            mainBeaconDao.getAllGroupsSync().firstOrNull { it.id == groupId }
+            mainBeaconDao.getAllGroupsSync().firstOrNull { it.id == groupId }?.let { orientationBridge.project(it) }
 
         suspend fun createBeacon(
             beacon: MainBeacon,
@@ -121,7 +136,13 @@ class MainBeaconRepository
         }
 
         suspend fun deleteBeacon(beaconId: String) {
-            mainBeaconDao.deleteBeacon(beaconId)
+            orientationBridge.ensureCutOver()
+            val now = System.currentTimeMillis()
+            appDatabase.withTransaction {
+                orientationBridge.tombstone(LegacyOrientationSourceType.MAIN_BEACON, beaconId, now)
+                mainBeaconDao.deleteBeacon(beaconId)
+                orientationBridge.syncMembershipProjection(now)
+            }
         }
 
         suspend fun setBeaconExpanded(
@@ -143,31 +164,45 @@ class MainBeaconRepository
             if (normalizedTitle.isBlank()) return
             val now = System.currentTimeMillis()
             val nextOrder = mainBeaconDao.getMaxGroupOrder() + 1L
-            mainBeaconDao.insertGroup(
+            val group =
                 MainBeaconGroup(
                     title = normalizedTitle,
                     description = description?.trim()?.ifBlank { null },
                     order = nextOrder,
                     updatedAt = now,
                     createdAt = now,
-                ),
-            )
+                )
+            orientationBridge.ensureCutOver()
+            appDatabase.withTransaction {
+                mainBeaconDao.insertGroup(group)
+                orientationBridge.writeCommon(group)
+            }
         }
 
         suspend fun updateGroup(group: MainBeaconGroup) {
             val normalizedTitle = group.title.trim()
             if (normalizedTitle.isBlank()) return
-            mainBeaconDao.updateGroup(
+            val updated =
                 group.copy(
                     title = normalizedTitle,
                     description = group.description?.trim()?.ifBlank { null },
                     updatedAt = System.currentTimeMillis(),
-                ),
-            )
+                )
+            orientationBridge.ensureCutOver()
+            appDatabase.withTransaction {
+                orientationBridge.writeCommon(updated)
+                mainBeaconDao.updateGroup(updated)
+            }
         }
 
         suspend fun deleteGroup(groupId: String) {
-            mainBeaconDao.deleteGroup(groupId)
+            orientationBridge.ensureCutOver()
+            val now = System.currentTimeMillis()
+            appDatabase.withTransaction {
+                orientationBridge.tombstone(LegacyOrientationSourceType.MAIN_BEACON_GROUP, groupId, now)
+                mainBeaconDao.deleteGroup(groupId)
+                orientationBridge.syncMembershipProjection(now)
+            }
         }
 
         suspend fun addRelatedContexts(
@@ -244,6 +279,7 @@ class MainBeaconRepository
             beaconIdsInOrder: List<String>,
         ) {
             if (beaconIdsInOrder.isEmpty()) return
+            orientationBridge.ensureCutOver()
             appDatabase.withTransaction {
                 beaconIdsInOrder.forEachIndexed { index, beaconId ->
                     mainBeaconDao.updateGroupMemberOrder(
@@ -252,6 +288,7 @@ class MainBeaconRepository
                         order = index.toLong(),
                     )
                 }
+                orientationBridge.syncMembershipProjection()
             }
         }
 
@@ -327,6 +364,7 @@ class MainBeaconRepository
             beaconId: String,
             groupId: String?,
         ) {
+            orientationBridge.ensureCutOver()
             appDatabase.withTransaction {
                 mainBeaconDao.updateBeaconParent(
                     beaconId = beaconId,
@@ -345,6 +383,7 @@ class MainBeaconRepository
                         ),
                     )
                 }
+                orientationBridge.syncMembershipProjection()
             }
         }
 
@@ -358,15 +397,19 @@ class MainBeaconRepository
                     .getAllGroupMembersSync()
                     .any { it.groupId == groupId && it.beaconId == beaconId }
             if (alreadyInGroup) return false
-            mainBeaconDao.insertGroupMembers(
-                listOf(
-                    MainBeaconGroupMember(
-                        groupId = groupId,
-                        beaconId = beaconId,
-                        order = mainBeaconDao.getMaxOrder() + 1L,
+            orientationBridge.ensureCutOver()
+            appDatabase.withTransaction {
+                mainBeaconDao.insertGroupMembers(
+                    listOf(
+                        MainBeaconGroupMember(
+                            groupId = groupId,
+                            beaconId = beaconId,
+                            order = mainBeaconDao.getMaxOrder() + 1L,
+                        ),
                     ),
-                ),
-            )
+                )
+                orientationBridge.syncMembershipProjection()
+            }
             return true
         }
 
@@ -487,6 +530,7 @@ class MainBeaconRepository
             levelStatuses: List<MainBeaconLevelStatus>,
             exists: Boolean,
         ) {
+            orientationBridge.ensureCutOver()
             appDatabase.withTransaction {
                 val existingContextOrders =
                     mainBeaconDao
@@ -496,9 +540,11 @@ class MainBeaconRepository
                 var nextContextOrder = (existingContextOrders.values.maxOrNull() ?: -1L) + 1L
 
                 if (exists) {
+                    orientationBridge.writeCommon(beacon)
                     mainBeaconDao.updateBeacon(beacon)
                 } else {
                     mainBeaconDao.insertBeacon(beacon)
+                    orientationBridge.writeCommon(beacon)
                 }
 
                 mainBeaconDao.deleteContextCrossRefsForBeacon(beacon.id)
@@ -536,6 +582,7 @@ class MainBeaconRepository
                         },
                     )
                 }
+                orientationBridge.syncMembershipProjection(beacon.updatedAt)
 
                 mainBeaconDao.insertLevelStatuses(
                     ensureAllLevelStatuses(

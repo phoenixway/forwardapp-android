@@ -13,7 +13,6 @@ import com.romankozak.forwardappmobile.core.data.interfaces.SystemContextEnsurer
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
-import com.romankozak.forwardappmobile.core.data.models.sync.hasCanonicalOrientationPayload
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalDayThemePayload
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.*
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.toEntity
@@ -725,9 +724,7 @@ class FullBackupLocalDataSourceImpl
                 Log.d("SyncV2", "Applying bundle V${bundle.version} in Merge Mode")
                 insertBundleData(bundle)
             }
-            if (!bundle.hasCanonicalOrientationPayload()) {
-                canonicalOrientationBootstrapper.ensureBootstrapped()
-            }
+            canonicalOrientationBootstrapper.ensureBootstrapped()
             // InboxRecordLink is a rebuildable local cache, never backup authority.
             inboxAssociationCache.rebuild()
             bundle.dayManagementRuntimeState?.let { runtimeState ->

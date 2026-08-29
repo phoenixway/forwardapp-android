@@ -1,9 +1,8 @@
 package com.romankozak.forwardappmobile.data.orientation
 
 import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Upsert
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.AspectEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.AspectOrientationRefEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
@@ -45,6 +44,9 @@ interface OrientationDao {
     @Query("SELECT * FROM legacy_subject_mappings")
     suspend fun getAllLegacyMappings(): List<LegacySubjectMappingEntity>
 
+    @Query("SELECT * FROM legacy_subject_mappings")
+    fun observeLegacyMappings(): Flow<List<LegacySubjectMappingEntity>>
+
     @Query("SELECT * FROM legacy_subject_mappings WHERE sourceType = :sourceType AND sourceId = :sourceId LIMIT 1")
     suspend fun getLegacyMapping(sourceType: String, sourceId: String): LegacySubjectMappingEntity?
 
@@ -63,49 +65,49 @@ interface OrientationDao {
     @Query("SELECT * FROM saved_orientation_views")
     suspend fun getAllSavedViews(): List<SavedOrientationViewEntity>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun upsertManagedSubjects(items: List<ManagedSubjectEntity>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun upsertOrientations(items: List<OrientationEntity>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun upsertAspects(items: List<AspectEntity>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun upsertAssessments(items: List<OrientationAssessmentEntity>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun upsertAssessmentRevisions(items: List<OrientationAssessmentRevisionEntity>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun upsertLegacyMappings(items: List<LegacySubjectMappingEntity>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun upsertOrientationRelations(items: List<OrientationRelationEntity>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun upsertAspectOrientationRefs(items: List<AspectOrientationRefEntity>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun upsertWorkspaceBindings(items: List<WorkspaceBindingEntity>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun upsertWorkspaceCapabilities(items: List<WorkspaceCapabilityInstanceEntity>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun upsertSavedViews(items: List<SavedOrientationViewEntity>)
 
     @Query("SELECT * FROM orientation_bootstrap_state WHERE id = 1 LIMIT 1")
     suspend fun getBootstrapState(): OrientationBootstrapStateEntity?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun upsertBootstrapState(state: OrientationBootstrapStateEntity)
 
     @Query("SELECT * FROM orientation_bootstrap_issues WHERE resolvedAt IS NULL")
     suspend fun getOpenBootstrapIssues(): List<OrientationBootstrapIssueEntity>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun upsertBootstrapIssues(items: List<OrientationBootstrapIssueEntity>)
 
     @Query("UPDATE orientation_bootstrap_issues SET resolvedAt = :resolvedAt WHERE resolvedAt IS NULL")

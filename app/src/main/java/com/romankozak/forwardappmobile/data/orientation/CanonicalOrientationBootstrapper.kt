@@ -15,6 +15,8 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.mainscreen.arc.ArcQuestDao
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconDao
 import com.romankozak.forwardappmobile.shared.core.models.orientation.EffectiveOrientation
+import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacyOrientationSourceType
+import com.romankozak.forwardappmobile.shared.core.models.orientation.LegacySubjectMappingState
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.UUID
@@ -56,8 +58,26 @@ class CanonicalOrientationBootstrapper
                     }
 
                     val now = System.currentTimeMillis()
+                    val cutover =
+                        planMainBeaconCutover(
+                            projections = projections,
+                            mappings = orientationDao.getAllLegacyMappings(),
+                            subjects = orientationDao.getAllManagedSubjects(),
+                            orientations = orientationDao.getAllOrientations(),
+                            legacyMembers = mainBeaconDao.getAllGroupMembersSync(),
+                            existingRelations = orientationDao.getAllOrientationRelations(),
+                            now = now,
+                            migrationVersion = CURRENT_BOOTSTRAP_VERSION,
+                        )
+                    if (cutover.mappings.isNotEmpty()) orientationDao.upsertLegacyMappings(cutover.mappings)
+                    if (cutover.relationChanges.isNotEmpty()) {
+                        orientationDao.upsertOrientationRelations(cutover.relationChanges)
+                    }
+                    ingestNewerMainBeaconCompatibilityWrites(orientationDao, mainBeaconDao)
+                    repairMainBeaconCompatibilityProjections(orientationDao, mainBeaconDao)
+
                     val comparisonIssues = compareCanonicalRows(projections, orientationDao)
-                    val issues = plan.issues + comparisonIssues
+                    val issues = plan.issues + cutover.issues + comparisonIssues
                     orientationDao.resolveOpenBootstrapIssues(now)
                     if (issues.isNotEmpty()) orientationDao.upsertBootstrapIssues(issues)
                     orientationDao.upsertBootstrapState(
@@ -101,7 +121,7 @@ class CanonicalOrientationBootstrapper
         }
 
         companion object {
-            const val CURRENT_BOOTSTRAP_VERSION: Int = 1
+            const val CURRENT_BOOTSTRAP_VERSION: Int = 2
             const val STATUS_COMPLETE: String = "COMPLETE"
             const val STATUS_BLOCKED: String = "BLOCKED"
         }
@@ -159,6 +179,7 @@ private suspend fun compareCanonicalRows(
     val subjects = dao.getAllManagedSubjects().associateBy { it.id }
     val orientations = dao.getAllOrientations().associateBy { it.subjectId }
     val assessments = dao.getAllAssessments().associateBy { it.orientationId }
+    val mappings = dao.getAllLegacyMappings().associateBy { it.sourceType to it.sourceId }
     return projections.mapNotNull { expected ->
         val subject = subjects[expected.subject.id]
         val orientation = orientations[expected.subject.id]
@@ -168,20 +189,98 @@ private suspend fun compareCanonicalRows(
                 Gson(),
                 CanonicalOrientationBootstrapper.CURRENT_BOOTSTRAP_VERSION,
             ).assessment
-        val mismatch =
+        val mapping = mappings[expected.source.sourceType.name to expected.source.sourceId]
+        val isCutOverMainBeacon =
+            expected.source.sourceType in MAIN_BEACON_SOURCE_TYPES &&
+                mapping?.state == LegacySubjectMappingState.CUT_OVER.name
+        val identityMismatch =
             subject == null || orientation == null || assessment == null ||
                 subject.subjectType != expected.subject.subjectType.name ||
+                orientation.kind != expected.orientation.kind.name
+        val shadowOnlyMismatch =
+            if (isCutOverMainBeacon || subject == null || orientation == null || assessment == null) {
+                false
+            } else {
                 subject.title != expected.subject.title ||
-                subject.description != expected.subject.description ||
-                subject.createdAt != expected.subject.createdAt ||
-                subject.updatedAt != expected.subject.updatedAt ||
-                subject.isDeleted != expected.subject.isDeleted ||
-                orientation.kind != expected.orientation.kind.name ||
-                orientation.lifecycle != expected.orientation.lifecycle?.name ||
-                orientation.lifecycleOrigin != expected.orientation.lifecycleOrigin.name ||
-                !assessment.hasSameAxisValues(expectedAssessment)
+                    subject.description != expected.subject.description ||
+                    subject.isDeleted != expected.subject.isDeleted ||
+                    orientation.lifecycle != expected.orientation.lifecycle?.name ||
+                    orientation.lifecycleOrigin != expected.orientation.lifecycleOrigin.name ||
+                    subject.createdAt != expected.subject.createdAt ||
+                    subject.updatedAt != expected.subject.updatedAt ||
+                    !assessment.hasSameAxisValues(expectedAssessment)
+            }
+        val mismatch = identityMismatch || shadowOnlyMismatch
         expected.issue("SHADOW_MISMATCH", "Canonical row differs from the legacy projection").takeIf { mismatch }
     }
+}
+
+private suspend fun repairMainBeaconCompatibilityProjections(
+    orientationDao: OrientationDao,
+    mainBeaconDao: MainBeaconDao,
+) {
+    val mappings = orientationDao.getAllLegacyMappings()
+    val subjects = orientationDao.getAllManagedSubjects().associateBy { it.id }
+    mappings.filter {
+        !it.isDeleted &&
+            it.state == LegacySubjectMappingState.CUT_OVER.name
+    }.forEach { mapping ->
+        val subject = subjects[mapping.subjectId]?.takeUnless { it.isDeleted } ?: return@forEach
+        when (mapping.sourceType) {
+            LegacyOrientationSourceType.MAIN_BEACON.name ->
+                mainBeaconDao.projectBeaconCommonFields(mapping.sourceId, subject.title, subject.description)
+            LegacyOrientationSourceType.MAIN_BEACON_GROUP.name ->
+                mainBeaconDao.projectGroupCommonFields(mapping.sourceId, subject.title, subject.description)
+        }
+    }
+
+    val canonicalMembers =
+        projectCanonicalMainBeaconMemberships(
+            mappings = mappings,
+            relations = orientationDao.getAllOrientationRelations(),
+        )
+    val legacyMembers = mainBeaconDao.getAllGroupMembersSync()
+    if (canonicalMembers != legacyMembers) {
+        mainBeaconDao.deleteAllGroupMembers()
+        if (canonicalMembers.isNotEmpty()) mainBeaconDao.insertGroupMembers(canonicalMembers)
+    }
+}
+
+private suspend fun ingestNewerMainBeaconCompatibilityWrites(
+    orientationDao: OrientationDao,
+    mainBeaconDao: MainBeaconDao,
+) {
+    val mappings =
+        orientationDao.getAllLegacyMappings().filter {
+            !it.isDeleted &&
+                it.state == LegacySubjectMappingState.CUT_OVER.name
+        }
+    val subjects = orientationDao.getAllManagedSubjects().associateBy { it.id }
+    val beacons = mainBeaconDao.getAllBeaconsSync().associateBy { it.id }
+    val groups = mainBeaconDao.getAllGroupsSync().associateBy { it.id }
+    val changes =
+        mappings.mapNotNull { mapping ->
+            val subject = subjects[mapping.subjectId]?.takeUnless { it.isDeleted } ?: return@mapNotNull null
+            val compatibilityValue =
+                when (mapping.sourceType) {
+                    LegacyOrientationSourceType.MAIN_BEACON.name ->
+                        beacons[mapping.sourceId]?.let { Triple(it.title, it.description, it.updatedAt) }
+                    LegacyOrientationSourceType.MAIN_BEACON_GROUP.name ->
+                        groups[mapping.sourceId]?.let { Triple(it.title, it.description, it.updatedAt) }
+                    else -> null
+                } ?: return@mapNotNull null
+            val (title, description, updatedAt) = compatibilityValue
+            subject.takeIf {
+                updatedAt > it.updatedAt && (title != it.title || description != it.description)
+            }?.copy(
+                title = title,
+                description = description,
+                updatedAt = updatedAt,
+                syncedAt = null,
+                version = subject.version + 1L,
+            )
+        }
+    if (changes.isNotEmpty()) orientationDao.upsertManagedSubjects(changes)
 }
 
 private fun com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationAssessmentEntity.hasSameAxisValues(
@@ -196,7 +295,7 @@ private fun com.romankozak.forwardappmobile.core.data.models.entities.orientatio
         commitmentValue == other.commitmentValue && commitmentOrigin == other.commitmentOrigin &&
         confidenceValue == other.confidenceValue && confidenceOrigin == other.confidenceOrigin
 
-private fun EffectiveOrientation.issue(code: String, detail: String): OrientationBootstrapIssueEntity {
+internal fun EffectiveOrientation.issue(code: String, detail: String): OrientationBootstrapIssueEntity {
     val stableName = "${source.sourceType.name}:${source.sourceId}:$code"
     return OrientationBootstrapIssueEntity(
         id =

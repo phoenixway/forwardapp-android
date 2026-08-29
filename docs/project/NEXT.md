@@ -1,22 +1,22 @@
 # Next
 
-Begin Phase 4 of the accepted Orientation/Aspect/Workspace plan with the Main
-Beacon and Main Beacon Group vertical slice.
+Begin the non-UI part of Phase 5 of the accepted Orientation/Aspect/Workspace
+plan: make Aspect a complete canonical domain rather than only a persisted
+contract row.
 
-The next focused implementation should first establish the non-UI ownership
-transition:
+The next focused implementation should:
 
-- make common title, description, lifecycle/assessment, version, tombstone,
-  and sync writes canonical for Beacon and Group;
-- preserve readiness, blocker, next action, hierarchy, memberships,
-  attachments, status records, and other specialized fields in their existing
-  owners;
-- turn legacy common fields into deterministic compatibility projections;
-- convert Group membership to the accepted typed composite relation while
-  preserving order and rollback evidence;
-- keep shadow comparison active and stop on divergence or identity mismatch;
-- verify Android backup/sync and Desktop read-only projection after cutover.
+- audit current Context roles, tags, hierarchy, and potential Aspect sources
+  without automatically converting them;
+- complete canonical Aspect create/update/archive/tombstone and ordered
+  single-parent hierarchy operations behind validated repository boundaries;
+- complete `BELONGS_TO` / `RELEVANT_TO` membership operations, including one
+  primary membership, versioning, tombstones, and cycle/cardinality tests;
+- define a non-destructive Context classification preview/result model using
+  the accepted `WORKSPACE_ONLY` / `ASPECT_AND_WORKSPACE` / other outcomes;
+- keep ambiguous Contexts as compatibility Workspaces and record diagnostics;
+- verify backup/sync ownership and anti-resurrection for Aspect rows and refs.
 
-Do not implement Group assessment controls, editors, Workspace controls,
-navigation changes, labels, or any other user-facing UI without a new explicit
-authorization for that UI scope.
+Do not implement Aspect screens, pickers, filters, navigation, Context
+classification review UI, or any other user-facing change without explicit
+authorization for that exact UI scope.

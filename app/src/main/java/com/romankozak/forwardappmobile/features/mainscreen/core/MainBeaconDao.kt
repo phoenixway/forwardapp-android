@@ -227,6 +227,20 @@ interface MainBeaconDao {
     @Query("UPDATE main_beacon_groups SET group_order = :order WHERE id = :groupId")
     suspend fun updateGroupOrder(groupId: String, order: Long)
 
+    @Query("UPDATE main_beacons SET title = :title, description = :description WHERE id = :beaconId")
+    suspend fun projectBeaconCommonFields(
+        beaconId: String,
+        title: String,
+        description: String?,
+    )
+
+    @Query("UPDATE main_beacon_groups SET title = :title, description = :description WHERE id = :groupId")
+    suspend fun projectGroupCommonFields(
+        groupId: String,
+        title: String,
+        description: String?,
+    )
+
     @Query("DELETE FROM main_beacons WHERE id = :beaconId")
     suspend fun deleteBeacon(beaconId: String)
 
@@ -235,6 +249,9 @@ interface MainBeaconDao {
 
     @Query("DELETE FROM main_beacon_group_members WHERE beacon_id = :beaconId")
     suspend fun deleteGroupMembersForBeacon(beaconId: String)
+
+    @Query("DELETE FROM main_beacon_group_members")
+    suspend fun deleteAllGroupMembers()
 
     @Query(
         """

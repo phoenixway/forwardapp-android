@@ -291,16 +291,26 @@ acknowledges exact `(id, version)` pairs. Desktop stores the set as
 Android-read-only authoritative projection and strips it from all
 Android-bound payloads.
 
-Existing specialized entities and feature repositories remain runtime write
-authority. An edit to an already mapped legacy row is detected as divergence;
-it is not silently dual-written into canonical state. No Context has been
-classified, no ownership cutover has occurred, and no UI/navigation behavior
-uses the canonical rows yet.
+Main Beacon and Main Beacon Group have completed the non-UI Phase 4 ownership
+cutover. Their title, description, assessment, version, sync state, and
+tombstone are canonical. Existing Android feature reads overlay canonical
+common fields; writes use a transactional compatibility bridge while Beacon
+readiness, hierarchy, attachments, levels, ordering, and other specialized
+fields remain in their existing owners. Group membership is also represented
+as ordered, versioned, tombstoned `MAIN_BEACON PART_OF MAIN_BEACON_GROUP`
+relations. A newer supported Desktop legacy common-field edit is converted at
+Android ingress into a canonical write; stale compatibility drift is repaired
+from canonical state.
+
+All other projected legacy domains remain shadow-only and retain their current
+runtime authority. No Context has been classified. No user-facing UI or
+navigation was changed for the Phase 4 cutover; assessment and Workspace
+controls still require separate authorization.
 
 Shared JVM/JS contract tests, Room migration and clean-restore acceptance,
-bootstrap/UUID/payload tests, Android Wi-Fi delta/ack coverage, Desktop
-ownership tests, and Desktop TypeScript checking are green for the implemented
-boundary.
+bootstrap/UUID/payload tests, Phase 4 cutover/Room compatibility tests, Android
+Wi-Fi delta/ack coverage, Desktop ownership tests, and Desktop TypeScript
+checking are green for their implemented boundaries.
 
 ## Known documentation constraint
 

@@ -18,7 +18,6 @@ import com.romankozak.forwardappmobile.core.data.models.sync.DatabaseContent
 import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.SyncChange
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalDayThemePayload
-import com.romankozak.forwardappmobile.core.data.models.sync.hasCanonicalOrientationPayload
 import com.romankozak.forwardappmobile.core.data.models.sync.requireValidCanonicalOrientationPayload
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toCanonicalEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.mappers.toCanonicalSnapshot
@@ -586,9 +585,7 @@ class MergeLocalDataSourceImpl
             // InboxRecordLink is a local materialized cache only.
             // Rebuild it from canonical InboxRecord + Context.tags after import.
             inboxAssociationCache.rebuild()
-            if (!bundle.hasCanonicalOrientationPayload()) {
-                canonicalOrientationBootstrapper.ensureBootstrapped()
-            }
+            canonicalOrientationBootstrapper.ensureBootstrapped()
 
             bundle.dayManagementRuntimeState?.let { runtimeState ->
                 Log.i(
