@@ -29,7 +29,6 @@ data class LocalSyncSelection(
     val checklistItems: List<LocalSyncVersion> = emptyList(),
     val activityRecords: List<LocalSyncVersion> = emptyList(),
     val linkItemEntities: List<LocalSyncVersion> = emptyList(),
-    val directionItems: List<LocalSyncVersion> = emptyList(),
     val inbox: List<LocalSyncVersion> = emptyList(),
     val logs: List<LocalSyncVersion> = emptyList(),
     val scripts: List<LocalSyncVersion> = emptyList(),
@@ -56,7 +55,6 @@ data class LocalSyncSelection(
             checklistItems.isEmpty() &&
             activityRecords.isEmpty() &&
             linkItemEntities.isEmpty() &&
-            directionItems.isEmpty() &&
             inbox.isEmpty() &&
             logs.isEmpty() &&
             scripts.isEmpty() &&

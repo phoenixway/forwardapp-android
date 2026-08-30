@@ -152,8 +152,15 @@ class CanonicalExecutionLogContentRoomTest {
         CanonicalExecutionLogRepository(
             database = database,
             workspaceDao = database.workspaceDao(),
-            orientationDao = database.orientationDao(),
             contextManagementDao = database.contextManagementDao(),
+            instanceStore = instanceStore(database),
+        )
+
+    private fun instanceStore(database: AppDatabase) =
+        CanonicalCapabilityInstanceStore(
+            database = database,
+            workspaceDao = database.workspaceDao(),
+            orientationDao = database.orientationDao(),
         )
 
     private fun database() =

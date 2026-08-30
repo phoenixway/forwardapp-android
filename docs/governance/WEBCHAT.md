@@ -58,6 +58,41 @@ The visible executable envelope itself has the form:
 #END_AI_TO_CLI
 ```
 
+## User-visible Bridge Collaboration
+
+Unless the user explicitly asks for commands only, a Bridge request should not
+be sent as a bare command block. The same user-visible assistant response must
+contain the useful explanation that belongs with the request: the question
+being answered, why the inspection or change matters, the current
+hypothesis/interpretation when relevant, and the complete executable Bridge
+envelope.
+
+Do not put the explanation in one assistant message and the executable request
+in another. The user should be able to read one response and understand both
+what is being done and exactly what to execute.
+
+## Host Build and Test Verification
+
+The AI CLI Bridge is the repository inspection and focused execution channel,
+but its sandbox is not the authoritative environment for JVM/Gradle
+verification when the host environment is available.
+
+If Gradle/JVM verification cannot run reliably inside the Bridge because of
+sandbox, JDK, security-file, cache-lock, or similar environment constraints:
+
+* do not spend repeated Bridge requests trying to repair or bypass the sandbox
+  merely to run Gradle;
+* give the user one exact host-terminal command from the correct repository
+  directory;
+* let the user run that command in the normal host environment and return its
+  output;
+* treat a successful host run as the verification result;
+* if the host run fails, diagnose the returned compiler/test output through the
+  normal evidence loop.
+
+This does not authorize unnecessary full builds. `AGENTS.md` remains
+authoritative for build scope and for avoiding redundant verification passes.
+
 After issuing an AI CLI request, do not invent the result.
 
 Wait for:

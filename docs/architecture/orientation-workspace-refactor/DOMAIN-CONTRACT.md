@@ -332,6 +332,13 @@ Each capability module must declare:
 
 Initial type mapping is:
 
+The 2026-08-30 accepted retirement decision supersedes the target status of
+`ARTIFACT` and context `JOURNAL` in this original v1 mapping. They remain listed
+below only as legacy migration identifiers. New code must preserve their text
+as ordinary note/document content and must not activate canonical capability
+instances for them. A future machine-readable contract revision will encode
+that retirement explicitly.
+
 | Capability type | Current source |
 | --- | --- |
 | `BACKLOG` | `backlog` |

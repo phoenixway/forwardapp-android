@@ -4,14 +4,12 @@ import androidx.room.withTransaction
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestSourceType
-import com.romankozak.forwardappmobile.core.data.models.entities.DirectionItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.LegacySubjectMappingEntity
 import com.romankozak.forwardappmobile.data.dao.CanonicalDayThemeDao
 import com.romankozak.forwardappmobile.data.daythemes.CanonicalDayThemeBootstrapper
 import com.romankozak.forwardappmobile.data.database.OrientationBootstrapIssueEntity
 import com.romankozak.forwardappmobile.data.database.OrientationBootstrapStateEntity
 import com.romankozak.forwardappmobile.database.AppDatabase
-import com.romankozak.forwardappmobile.features.contexts.data.dao.DirectionDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.mainscreen.arc.ArcQuestDao
 import com.romankozak.forwardappmobile.features.mainscreen.core.MainBeaconDao
@@ -31,7 +29,6 @@ class CanonicalOrientationBootstrapper
         private val database: AppDatabase,
         private val orientationDao: OrientationDao,
         private val goalDao: GoalDao,
-        private val directionDao: DirectionDao,
         private val mainBeaconDao: MainBeaconDao,
         private val arcQuestDao: ArcQuestDao,
         private val canonicalDayThemeDao: CanonicalDayThemeDao,
@@ -46,23 +43,7 @@ class CanonicalOrientationBootstrapper
                 database.withTransaction {
                     val now = System.currentTimeMillis()
                     val state = orientationDao.getBootstrapState()
-                    val directionRepair =
-                        planDirectionOrientationShadowRepair(
-                            rows = directionDao.getAllRaw(),
-                            mappings = orientationDao.getAllLegacyMappings(),
-                            subjects = orientationDao.getAllManagedSubjects(),
-                            orientations = orientationDao.getAllOrientations(),
-                            now = now,
-                            migrationVersion = DIRECTION_SHADOW_REPAIR_VERSION,
-                        )
-                    if (directionRepair.subjectChanges.isNotEmpty()) {
-                        orientationDao.upsertManagedSubjects(directionRepair.subjectChanges)
-                    }
-                    if (directionRepair.mappingChanges.isNotEmpty()) {
-                        orientationDao.upsertLegacyMappings(directionRepair.mappingChanges)
-                    }
-
-                    val projections = loadLegacyProjections(directionRepair.projectableRows)
+                    val projections = loadLegacyProjections()
                     val existingMappings = orientationDao.getAllLegacyMappings()
                     val existingSubjects = orientationDao.getAllManagedSubjects().associateBy { it.id }
                     val plan = planBootstrap(projections, existingMappings, existingSubjects.keys, gson)
@@ -94,7 +75,7 @@ class CanonicalOrientationBootstrapper
                     repairMainBeaconCompatibilityProjections(orientationDao, mainBeaconDao)
 
                     val comparisonIssues = compareCanonicalRows(projections, orientationDao)
-                    val issues = directionRepair.issues + plan.issues + cutover.issues + comparisonIssues
+                    val issues = plan.issues + cutover.issues + comparisonIssues
                     orientationDao.resolveOpenBootstrapIssues(now)
                     if (issues.isNotEmpty()) orientationDao.upsertBootstrapIssues(issues)
                     orientationDao.upsertBootstrapState(
@@ -107,9 +88,7 @@ class CanonicalOrientationBootstrapper
                     )
                     OrientationBootstrapReport(
                         performed =
-                            directionRepair.subjectChanges.isNotEmpty() ||
-                                directionRepair.mappingChanges.isNotEmpty() ||
-                                plan.rows.isNotEmpty() ||
+                            plan.rows.isNotEmpty() ||
                                 state == null ||
                                 state.version != CURRENT_BOOTSTRAP_VERSION ||
                                 state.status != STATUS_COMPLETE ||
@@ -122,7 +101,6 @@ class CanonicalOrientationBootstrapper
             }
 
         private suspend fun loadLegacyProjections(
-            projectableDirections: List<DirectionItemEntity>,
         ): List<EffectiveOrientation> {
             val resolver = LegacySubjectUuid
             val manualArcQuests =
@@ -135,14 +113,13 @@ class CanonicalOrientationBootstrapper
                 addAll(mainBeaconDao.getAllBeaconsSync().map { it.toEffectiveOrientation(resolver) })
                 addAll(mainBeaconDao.getAllGroupsSync().map { it.toEffectiveOrientation(resolver) })
                 addAll(goalDao.getAllRaw().map { it.toEffectiveOrientation(resolver) })
-                addAll(projectableDirections.map { it.toEffectiveOrientation(resolver) })
                 addAll(canonicalDayThemeDao.getAllThemeDefinitionsSync().map { it.toEffectiveOrientation(resolver) })
                 addAll(manualArcQuests)
             }
         }
 
         companion object {
-            const val CURRENT_BOOTSTRAP_VERSION: Int = DIRECTION_SHADOW_REPAIR_VERSION
+            const val CURRENT_BOOTSTRAP_VERSION: Int = 3
             const val STATUS_COMPLETE: String = "COMPLETE"
             const val STATUS_BLOCKED: String = "BLOCKED"
         }

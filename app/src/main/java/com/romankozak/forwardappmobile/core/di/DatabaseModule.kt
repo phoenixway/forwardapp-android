@@ -10,6 +10,7 @@ import com.romankozak.forwardappmobile.data.database.ALL_MIGRATIONS
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDirectionEntryDao
+import com.romankozak.forwardappmobile.data.workspace.capability.WorkspaceProblemDao
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
@@ -18,12 +19,10 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextArtifactDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextInboxSortingDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextKeyProblemsDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextParentLinkDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextTagRefDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.DirectionDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordLinkDao
@@ -106,11 +105,6 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideContextParentLinkDao(appDatabase: AppDatabase): ContextParentLinkDao = appDatabase.contextParentLinkDao()
-
-    @Provides
-    @Singleton
-    fun provideContextKeyProblemsDao(appDatabase: AppDatabase): ContextKeyProblemsDao = appDatabase.contextKeyProblemsDao()
-
     @Provides
     @Singleton
     fun provideContextInboxSortingDao(appDatabase: AppDatabase): ContextInboxSortingDao = appDatabase.contextInboxSortingDao()
@@ -146,11 +140,6 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideMainBeaconDao(appDatabase: AppDatabase): MainBeaconDao = appDatabase.mainBeaconDao()
-
-    @Provides
-    @Singleton
-    fun provideDirectionDao(appDatabase: AppDatabase): DirectionDao = appDatabase.directionDao()
-
     @Provides
     @Singleton
     fun provideArcQuestDao(appDatabase: AppDatabase): ArcQuestDao = appDatabase.arcQuestDao()
@@ -266,4 +255,9 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideContextStructureDao(appDatabase: AppDatabase): ContextStructureDao = appDatabase.contextStructureDao()
+    @Provides
+    @Singleton
+    fun provideWorkspaceProblemDao(appDatabase: AppDatabase): WorkspaceProblemDao =
+        appDatabase.workspaceProblemDao()
+
 }

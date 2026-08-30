@@ -85,12 +85,37 @@ KEY_PROBLEMS
 DIRECTION
 DOCUMENTS
 NOTES
-JOURNAL
 EXECUTION_LOG
 ATTACHMENTS
 CONNECTIONS
 DASHBOARD
 ```
+
+Legacy `ARTIFACT` and context `JOURNAL` identifiers are migration inputs, not
+target capability families. Their text must be preserved as ordinary
+note/document content before their legacy wrappers are retired. This does not
+affect Life Journal or EXECUTION_LOG.
+
+Capability modules use the accepted kernel and one declared archetype:
+
+```text
+PRESENTATION
+OWNED_COLLECTION
+ORDERED_PLACEMENT
+POLICY
+CONTENT_HOST
+RETIRED_LEGACY
+```
+
+The kernel owns instance identity, lifecycle, configuration validation,
+canonical Workspace authorization, common sync metadata, and contract
+validation. It must not own domain content or become a dispatcher with optional
+methods for every capability.
+
+Typed capability modules own content tables, target rules, relations,
+placement semantics, domain commands, and content deletion. A generic
+`capability_items(type, targetType, targetId, payloadJson)` store and a
+universal polymorphic capability graph are prohibited.
 
 ## 5. Ownership, placement, and relation
 
@@ -223,14 +248,18 @@ DASHBOARD
 
 ## 14. Sync, persistence, and deletion
 
-1. Every new canonical collection has explicit Android/Desktop ownership,
-   receive, push, merge, acknowledgement, and deletion policy.
+1. Every new canonical collection has explicit Android SnapshotBundle
+   ownership, receive, push, merge, acknowledgement, and deletion policy.
+   Capability cutovers are Android-first; Desktop parity and compatibility
+   work are deferred and are not a cutover requirement.
 2. Stable IDs, versions, tombstones, and anti-resurrection behavior are designed
    in the initial schema, not added after rollout.
 3. Relation and placement identity is deterministic or durably persisted.
 4. Bootstrap and migration are idempotent and interruption-safe.
-5. No old field is removed until all readers, writers, sync, backup, restore,
-   and Desktop compatibility paths have cut over.
+5. An old capability field or table is removed only after all Android rows,
+   readers, writers, sync, backup, and restore paths are accounted for by a
+   fail-closed hard cutover. Deferred Desktop compatibility is not a reason to
+   retain legacy Android authority.
 6. Legacy data is quarantined or adapted, never silently discarded.
 
 ## 15. Feature preservation and authorization

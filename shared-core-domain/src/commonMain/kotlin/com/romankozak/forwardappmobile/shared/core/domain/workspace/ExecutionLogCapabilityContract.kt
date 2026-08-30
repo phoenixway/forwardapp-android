@@ -9,8 +9,19 @@ package com.romankozak.forwardappmobile.shared.core.domain.workspace
  */
 data object ExecutionLogCapabilityConfigurationV1
 
-object ExecutionLogCapabilityConfigurationCodec {
+object ExecutionLogCapabilityConfigurationCodec : CapabilityConfigurationCodec {
     const val CURRENT_VERSION: Int = 1
+
+    override val currentVersion: Int = CURRENT_VERSION
+
+    override fun encodeDefault(): String = encode()
+
+    override fun validate(
+        version: Int,
+        raw: String,
+    ) {
+        decode(version, raw)
+    }
 
     fun encode(
         configuration: ExecutionLogCapabilityConfigurationV1 =

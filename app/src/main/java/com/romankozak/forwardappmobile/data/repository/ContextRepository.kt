@@ -66,7 +66,7 @@ class ContextRepository
         private val listItemRepository: ListItemRepository,
         private val contextStructureDao: ContextStructureDao,
         private val structurePresetDao: StructurePresetDao,
-        private val directionDao: DirectionDao,
+        private val directionRepository: DirectionRepository,
         private val backlogOrderRepository: BacklogOrderRepository,
         private val aiEventRepository: AiEventRepository,
         // ДОДАНО: Потрібен провайдер для уникнення циклічної залежності
@@ -336,8 +336,7 @@ class ContextRepository
             if (children.isEmpty()) return 0
 
             val existingLinkedIds =
-                directionDao
-                    .getDirectionItemsForContextSync(normalizedParentId)
+                directionRepository.getDirectionItemsForContextSync(normalizedParentId)
                     .mapNotNull { it.linkedContextId }
                     .toMutableSet()
             var added = 0
@@ -447,7 +446,7 @@ class ContextRepository
             rebindSharedAttachmentEntitiesBeforeContextDeletion(ids.toSet())
             listItemRepository.deleteItemsForContexts(ids)
             val now = System.currentTimeMillis()
-            directionDao.markDeletedByLinkedContextIds(ids, now)
+            directionRepository.deleteWorkspaceLinksTargeting(ids, now)
             workspaceWriteThrough.mutate(now) {
                 contextsToDelete.forEach { contextDao.insert(it.softDelete(now)) }
             }
@@ -781,32 +780,10 @@ class ContextRepository
             childContextId: String,
             childContextName: String,
         ) {
-            val existing = directionDao.getDirectionItemsForContextSync(parentContextId)
-            if (existing.any { it.linkedContextId == childContextId && !it.isDeleted }) return
-
-            val now = System.currentTimeMillis()
-            if (existing.isNotEmpty()) {
-                directionDao.updateAll(
-                    existing.map { item ->
-                        item.copy(
-                            itemOrder = item.itemOrder + 1,
-                            updatedAt = now,
-                            version = item.version + 1,
-                            syncedAt = null,
-                        )
-                    },
-                )
-            }
-
-            directionDao.insert(
-                DirectionItemEntity(
-                    contextId = parentContextId,
-                    text = childContextName,
-                    linkedContextId = childContextId,
-                    itemOrder = 0,
-                    updatedAt = now,
-                    version = 1,
-                ),
+            directionRepository.addDirectionLinkedAtFront(
+                parentContextId = parentContextId,
+                childContextId = childContextId,
+                childContextName = childContextName,
             )
         }
 

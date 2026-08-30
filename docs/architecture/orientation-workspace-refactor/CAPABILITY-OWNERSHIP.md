@@ -28,6 +28,13 @@ must enter through a capability-specific command boundary. Configuration
 mutation additionally requires the typed shared-domain codec and migration
 chain required by `DOMAIN-CONTRACT.md`.
 
+Canonical instance metadata lifecycle is implemented by the shared capability
+kernel. Capability definitions declare an archetype and availability; the
+kernel owns only identity, config validation, lifecycle transitions, canonical
+Workspace authorization, version/tombstone mutation, and whole-contract
+validation. Typed repositories continue to own content and placement. There is
+no generic capability-content store.
+
 For a `CANONICAL_ONLY` Workspace, capability-specific canonical ownership may
 be introduced only after the row below for that capability has explicit
 enable/disable/archive/restore/delete, configuration, content, placement,
@@ -38,10 +45,10 @@ backup, and sync rules.
 | Capability | Current enable/config authority | Current content / specialized state owner | Placement / links | Current deletion / disable behavior | Current Android/Desktop sync boundary | Canonical cutover status |
 | --- | --- | --- | --- | --- | --- | --- |
 | `BACKLOG` | `ContextConfiguration.enableBacklog`, role defaults, resolver | `BacklogItem` plus `BacklogOrder`; heterogeneous backlog content also points to external domain entities | `list_items` / backlog ordering and external entity references remain legacy owners | Disabling capability does not transfer or delete backlog content; item deletion remains repository/type-specific | Backlog rows/orders are bidirectional with Context-scoped Desktop push | NOT CUT OVER |
-| `INBOX` | `ContextConfiguration.enableInbox`, role defaults, resolver; `removeInboxEntryAfterTagAutocopy` remains Context configuration | `InboxRecord`; association behavior uses shared policy | `InboxRecordLink` is Android-local rebuildable cache, not sync authority | Capability disable does not own Inbox-record deletion; record deletion remains `InboxRepository` behavior | Inbox is bidirectional; Desktop evaluates shared association policy without persisting Android link cache | NOT CUT OVER |
-| `INBOX_SORTING` | Non-legacy capability from role/experimental capability ids; requires `INBOX` | `ContextInboxSortingEntity.rulesText` through `ContextInboxSortingRepository` | Operates on existing Inbox/backlog targets rather than owning their placement | No general tombstone/version lifecycle for the settings row; do not invent archive/restore semantics | `contextInboxSortingRules` is Android opaque on Desktop | BLOCKED pending replacement lifecycle + typed codec |
-| `KEY_PROBLEMS` | Non-legacy capability from role/experimental capability ids | `ContextKeyProblemsEntity.payloadJson` through `ContextKeyProblemsRepository`; payload currently owns issue items and related Context/Attachment ids | Related Context and Attachment ids are embedded in the capability-owned payload | Issue deletion rewrites the opaque per-Context payload; the collection lacks a general tombstone/version contract | `contextKeyProblems` is Android read-only on Desktop; Android -> Desktop merge exists | BLOCKED pending normalized lifecycle/anti-resurrection contract |
-| `DIRECTION` | Non-legacy capability from role/experimental capability ids. User-facing auto-link configuration is owned by `ContextConfiguration.enableAutoLinkSubprojects`; typed canonical config v1 projects its effective value | Legacy `DirectionItemEntity` / `DirectionRepository` remain current write authority. Schema-155 `WorkspaceDirectionEntry` is the separate canonical ordered-placement boundary; unlinked semantic content remains owned by canonical Orientation. Bootstrap v3 quarantines ambiguous linked semantic shadows reversibly | Legacy `contextId`, `itemOrder`, and nullable `linkedContextId` still drive current UI/runtime writes. The canonical placement row separates owning Workspace, DIRECTION capability, optional Orientation target, optional Workspace target, label override, and order | Legacy item deletion/tombstone behavior is preserved. Ambiguous linked mappings become `QUARANTINED`; shadow subjects tombstone and restore with the same identity after unlink. Canonical placement freshness is version, then `updatedAt`, then tombstone tie; capability lifecycle does not sever placement identity | Legacy `directionItems` remain bidirectional and Desktop-authored. Separate nullable `workspaceDirectionEntries` travels through full SnapshotBundle/restore, changed-since Wi-Fi delta, dirty push and exact-version ACK. Desktop stores it as `ANDROID_READ_ONLY`, validates dependencies/immutable identity, merges by freshness, and strips it from Android-bound payloads. Selective import drops it until Workspace-aware selection exists | READ-ONLY CANONICAL WIRE FOUNDATION IMPLEMENTED; LEGACY WRITE AUTHORITY + UI/RUNTIME NOT CUT OVER |
+| `INBOX` | Runtime authority remains `ContextConfiguration.enableInbox` and `removeInboxEntryAfterTagAutocopy`. Shared canonical config v1 now models owner visibility explicitly | Runtime content remains `InboxRecord`. Shared `WorkspaceInboxRecord`, validation, and fail-closed migration planner are implemented | `InboxRecordLink` remains an Android-local rebuildable cache, never canonical/sync authority | Runtime deletion remains `InboxRepository` tombstone behavior. Canonical contract preserves records across capability lifecycle and omits per-row hide state | Legacy Inbox remains active SnapshotBundle authority; no Desktop or canonical transport cutover is part of the safe slice | SHARED SOURCE CONTRACT + MIGRATION PLANNER IMPLEMENTED; ANDROID CUTOVER DEFERRED UNTIL AFTER KEY_PROBLEMS |
+| `INBOX_SORTING` | Runtime authority remains role/experimental enablement plus `ContextInboxSortingEntity.rulesText`. Shared canonical config v1 and strict migration planner are implemented | Policy owns typed rules only; it owns no target content or order rows | Applies conditionally to Backlog, Inbox, or Connections. The registry has no false unconditional Inbox dependency; an eventual command must validate the selected target capability and delegate to its canonical order owner | Capability lifecycle preserves target state. Legacy settings row has no tombstone/version; eventual migration writes versioned instance config only after full accounting | `contextInboxSortingRules` remains Android opaque and legacy SnapshotBundle state; no canonical transport cutover is part of the safe slice | SHARED POLICY CONTRACT + MIGRATION PLANNER IMPLEMENTED; APPLY/ROOM/SYNC/RUNTIME CUTOVER BLOCKED ON CANONICAL TARGET ORDER OWNERS |
+| `KEY_PROBLEMS` | Schema 157 canonical KEY_PROBLEMS instance/config; role/experimental enablement is resolved during the frozen `156 -> 157` cutover and canonical lifecycle continues through `CanonicalCapabilityInstanceStore` | `WorkspaceProblem` plus typed Workspace/Attachment ref rows; `ContextKeyProblemsRepository` is compatibility API only and delegates canonical storage/authoring | Unordered `WorkspaceProblemWorkspaceRef` and `WorkspaceProblemAttachmentRef` rows own relation identity/history; live new refs require existing non-deleted targets | Problem deletion tombstones the Problem and its live refs transactionally; `RESOLVED`/`CLOSED` remain live statuses; update never creates; capability lifecycle preserves content | `workspaceProblems`, `workspaceProblemWorkspaceRefs`, and `workspaceProblemAttachmentRefs` are the sole Android SnapshotBundle authority with backup/restore, merge, changed-since, Wi-Fi push and exact-version ACK; selective import waits for Workspace-aware selection; Desktop parity is not the Android completion gate | HARD CUTOVER CURRENT / VERIFIED AT SCHEMA 157 |
+| `DIRECTION` | Schema 156 canonical DIRECTION instance/config | Semantic Direction = `Orientation(kind=DIRECTION)`; placement/navigation = `WorkspaceDirectionEntry`; `DirectionItemEntity` is compatibility DTO only | Entry owns order/label and exactly one target; owner, capability, target, provenance and createdAt are immutable | Canonical capability lifecycle; legacy Direction persistence retired | `workspaceDirectionEntries` is sole Android Direction placement transport; selective import waits for Workspace-aware selection | HARD CUTOVER CURRENT / VERIFIED AT SCHEMA 156 |
 | `ARTIFACT` | `ContextConfiguration.enableArtifact`, role defaults, resolver | `ContextArtifact` / `ContextArtifactRepository` | Context-scoped legacy ownership | Artifact deletion/content lifecycle remains its current repository; capability disable does not own it | Android -> Desktop live merge handles artifacts; focused baseline classifies these as Android-owned/readable rather than a canonical Workspace collection | NOT CUT OVER |
 | `DASHBOARD` | `ContextConfiguration.enableDashboard`, role defaults, resolver; dashboard is the compatibility default when no preset/override exists | No dedicated persisted Dashboard content collection was found | Presentation/runtime composition over other owned data | Canonical-only v1 commands mutate instance metadata only; disable preserves data, archive requires explicit restore, restore returns to `DISABLED`, delete tombstones only the instance | No dedicated Dashboard content snapshot collection; canonical instance metadata travels in the atomic canonical Workspace payload | CANONICAL_ONLY COMMAND BOUNDARY IMPLEMENTED; CONTEXT_BACKED NOT CUT OVER |
 | `JOURNAL` | Non-legacy `journal_log` capability from role/experimental capability ids | A deterministic `NoteDocument` (`system_journal_log_<contextId>`) via `NoteDocumentRepository` | The journal document remains Context-associated document data | Journal line/document mutation is document-repository behavior; disabling capability must not delete the document unless separately decided | Documents are bidirectional with Context-scoped Desktop push | NOT CUT OVER |
@@ -70,17 +77,22 @@ strips it from Android-bound payloads. Canonical `EXECUTION_LOG` content is a
 separate Android-owned read-only Desktop collection rather than part of that
 atomic Orientation set; Desktop validates its canonical-only Workspace owner,
 merges by version/time/tombstone freshness, and never pushes it to Android.
-DIRECTION now also has schema-155 canonical ordered-entry persistence and a
-separate `workspaceDirectionEntries` wire contract. Android exports the
-canonical view and accepts persistence ingress only for `CANONICAL_ONLY`;
-legacy-provenance rows remain owned by `direction_items` plus the materializer.
-Desktop persists the canonical collection as Android read-only, applies
-freshness and dependency validation, and never pushes it back. Legacy
-`directionItems` remain the bidirectional cross-client writer and current
-runtime/UI authority.
+DIRECTION is hard-cut over on Android at schema 156.
+`workspaceDirectionEntries` is the sole Android Direction placement transport.
+Both migrated `LEGACY_DIRECTION_ITEM` and `CANONICAL_ONLY` entries are
+canonical-owned. Legacy `direction_items`, runtime materialization, and
+`SnapshotBundle.directionItems` are retired. Desktop parity is not an Android
+cutover gate, and old Desktop Direction writes cannot regain Android authority.
 
-Other capability content listed above has not been moved into a canonical
-payload.
+KEY_PROBLEMS is hard-cut over on Android at schema 157. The legacy
+`context_key_problems` table is historical migration input only; runtime
+authority is the typed Problem/ref collection and the canonical SnapshotBundle
+triplet. The existing Context UI continues through a compatibility repository
+facade that delegates canonical authoring. Desktop parity is not an Android
+cutover gate.
+
+Other capability content not explicitly described above as canonical remains on
+its recorded legacy or partial ownership boundary.
 
 ## Cutover rules
 
@@ -107,6 +119,10 @@ projection and canonical commands must not mutate them.
 `DASHBOARD` now has the first capability-specific canonical command boundary for
 `CANONICAL_ONLY` Workspaces.
 
+Its repository is now a typed PRESENTATION façade over
+`CanonicalCapabilityInstanceStore`; the shared store does not acquire any
+Dashboard content or presentation responsibility.
+
 The implemented v1 contract is intentionally narrow:
 
 - typed configuration v1 is the empty object `{}`;
@@ -128,10 +144,12 @@ targeted Gradle runs. `git diff --check` is clean.
 This does not cut over current Context-backed Dashboard behavior and does not
 add UI.
 
-`INBOX_SORTING` and `KEY_PROBLEMS` should still not be early follow-up
-candidates. Their current specialized state lacks the general
-lifecycle/version/tombstone contract needed for a clean canonical authority
-transition.
+`KEY_PROBLEMS` has completed its Android authority hard cutover at schema 157.
+`INBOX` and `INBOX_SORTING` retain their shared source contracts and fail-closed
+migration planners but have not been cut over. Their authority cutovers remain
+separate reviewed work and must not begin without explicit approval;
+INBOX_SORTING additionally waits for each selected target's canonical order
+owner.
 
 ## Next content-bearing candidate: EXECUTION_LOG
 

@@ -2,6 +2,9 @@
 
 package com.romankozak.forwardappmobile.core.sync
 
+import com.romankozak.forwardappmobile.data.workspace.toCanonicalWorkspaceProblemSyncPayloadOrNull
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceProblemSyncStore
+
 import com.romankozak.forwardappmobile.data.logic.InboxAssociationCache
 import com.romankozak.forwardappmobile.core.context.normalizeLegacyStructuralContextBacklog
 
@@ -29,7 +32,6 @@ import com.romankozak.forwardappmobile.data.daythemes.planLegacyDayThemeMerge
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationBootstrapper
 import com.romankozak.forwardappmobile.data.orientation.storeCanonicalPayload
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceDirectionEntrySyncStore
-import com.romankozak.forwardappmobile.data.workspace.WorkspaceDirectionEntryShadowMaterializer
 import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
 import com.romankozak.forwardappmobile.data.workspace.capability.ExecutionLogWorkspaceOwnershipBridge
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogSyncStore
@@ -69,7 +71,6 @@ class MergeLocalDataSourceImpl
         private val executionLogWorkspaceOwnershipBridge: ExecutionLogWorkspaceOwnershipBridge,
         private val canonicalExecutionLogSyncStore: CanonicalExecutionLogSyncStore,
         private val canonicalWorkspaceDirectionEntrySyncStore: CanonicalWorkspaceDirectionEntrySyncStore,
-        private val workspaceDirectionEntryShadowMaterializer: WorkspaceDirectionEntryShadowMaterializer,
         private val dailyMetricDao: DailyMetricDao,
         private val reminderDao: ReminderDao,
         private val tacticalMissionDao: TacticalMissionDao,
@@ -99,9 +100,8 @@ class MergeLocalDataSourceImpl
         private val structurePresetDao: StructurePresetDao,
         private val structurePresetItemDao: StructurePresetItemDao,
         private val contextStructureDao: ContextStructureDao,
-        private val directionDao: DirectionDao,
         private val contextInboxSortingDao: ContextInboxSortingDao,
-        private val contextKeyProblemsDao: ContextKeyProblemsDao,
+        private val canonicalWorkspaceProblemSyncStore: CanonicalWorkspaceProblemSyncStore,
         private val focusContextIntervalDao: FocusContextIntervalDao,
         private val userStateIntervalDao: UserStateIntervalDao,
         private val dayManagementRuntimeRepository: DayManagementRuntimeRepository,
@@ -403,7 +403,6 @@ class MergeLocalDataSourceImpl
                 contextDao.insertAll(bundle.contexts.map { it.toEntity() })
                 val validContextIds = bundle.contexts.map { it.id }.toSet()
                 contextParentLinkDao.insertAll(bundle.contextParentLinks.map { it.toEntity() })
-                directionDao.insertAll(bundle.directionItems.map { it.toEntity() })
                 goalDao.insertAll(bundle.goals.map { it.toEntity() })
                 noteDocumentDao.insertAllDocuments(bundle.documents.map { it.toEntity() })
                 val validDocumentIds = bundle.documents.map { it.id }.toSet()
@@ -572,7 +571,6 @@ class MergeLocalDataSourceImpl
                 )
                 contextStructureDao.insertAllItems(bundle.projectStructureItems.map { it.toEntity() })
                 contextInboxSortingDao.insertAll(bundle.contextInboxSortingRules.map { it.toEntity() })
-                contextKeyProblemsDao.insertAll(bundle.contextKeyProblems.map { it.toEntity() })
                 focusContextIntervalDao.insertAll(bundle.focusContextIntervals.map { it.toEntity() })
                 userStateIntervalDao.insertAll(bundle.userStateIntervals.map { it.toEntity() })
                 mainBeaconDao.insertGroupMembers(bundle.mainBeaconGroupMembers.map { it.toEntity() })
@@ -581,6 +579,9 @@ class MergeLocalDataSourceImpl
                 mainBeaconDao.insertAttachmentCrossRefs(bundle.mainBeaconAttachmentCrossRefs.map { it.toEntity() })
                 mainBeaconDao.insertLevelStatuses(bundle.mainBeaconLevelStatuses.map { it.toEntity() })
                 db.orientationDao().storeCanonicalPayload(bundle, merge = true, workspaceDao = db.workspaceDao())
+                bundle.toCanonicalWorkspaceProblemSyncPayloadOrNull()?.let {
+                    canonicalWorkspaceProblemSyncStore.mergeIncoming(it)
+                }
                 canonicalWorkspaceDirectionEntrySyncStore.mergeIncoming(bundle.workspaceDirectionEntries)
                 canonicalExecutionLogSyncStore.mergeIncoming(bundle.canonicalExecutionLogs)
             }
@@ -589,7 +590,6 @@ class MergeLocalDataSourceImpl
             // Rebuild it from canonical InboxRecord + Context.tags after import.
             inboxAssociationCache.rebuild()
             canonicalOrientationBootstrapper.ensureBootstrapped()
-            workspaceDirectionEntryShadowMaterializer.ensureMaterialized()
 
             bundle.dayManagementRuntimeState?.let { runtimeState ->
                 Log.i(

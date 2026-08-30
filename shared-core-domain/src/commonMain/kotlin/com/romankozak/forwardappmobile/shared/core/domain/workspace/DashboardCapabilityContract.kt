@@ -8,8 +8,19 @@ package com.romankozak.forwardappmobile.shared.core.domain.workspace
  */
 data object DashboardCapabilityConfigurationV1
 
-object DashboardCapabilityConfigurationCodec {
+object DashboardCapabilityConfigurationCodec : CapabilityConfigurationCodec {
     const val CURRENT_VERSION: Int = 1
+
+    override val currentVersion: Int = CURRENT_VERSION
+
+    override fun encodeDefault(): String = encode()
+
+    override fun validate(
+        version: Int,
+        raw: String,
+    ) {
+        decode(version, raw)
+    }
 
     fun encode(
         configuration: DashboardCapabilityConfigurationV1 =

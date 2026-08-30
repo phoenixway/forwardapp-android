@@ -26,6 +26,122 @@ Current architecture has not yet been fully consolidated into this document.
 Until that consolidation is evidence-based, use focused documentation plus
 current code and persisted contracts to establish subsystem behavior.
 
+### Workspace capability kernel
+
+Canonical capability-instance metadata now uses a shared typed kernel rather
+than duplicated repository lifecycle code. Shared models declare capability
+archetype and availability. Shared domain owns the configuration-codec contract
+and pure lifecycle state machine. Android owns a narrow instance store for
+canonical Workspace authorization, logical identity, version/tombstone
+mutation, and whole-contract validation.
+
+`DASHBOARD` delegates its metadata-only lifecycle to this store.
+`EXECUTION_LOG` delegates only instance lifecycle and retains its specialized
+content repository. No universal content table, polymorphic graph, UI change,
+or content ownership cutover was introduced.
+
+The shared kernel contract test is green. The Android DIRECTION hard cutover is
+also host-verified at schema 156 after canonical repository, transport, and
+fail-closed migration acceptance coverage. The earlier
+`LocalSyncSelection.directionItems` compile blocker is resolved.
+
+### DIRECTION canonical hard cutover
+
+`DIRECTION` is `CURRENT / VERIFIED` on Android at Room schema 156.
+
+Migration `155 -> 156` accounts for every live and tombstoned legacy
+`direction_items` row before dropping the table. Unlinked rows become canonical
+`Orientation(kind=DIRECTION)` plus `WorkspaceDirectionEntry`; linked rows
+preserve Workspace navigation through `targetWorkspaceId` without inventing
+semantic Orientation intent.
+
+Post-cutover:
+
+- `direction_items`, `DirectionDao`, runtime shadow materialization and legacy
+  Direction snapshot transport are retired;
+- `DirectionItemEntity` remains only as a UI/clipboard compatibility DTO;
+- `WorkspaceDirectionEntry` is canonical ordered placement;
+- owner Workspace, capability, target identity, provenance and `createdAt` are
+  immutable; order and `labelOverride` remain mutable;
+- `LEGACY_DIRECTION_ITEM` is historical provenance, not legacy authority;
+- `SnapshotBundle.workspaceDirectionEntries` is the sole Android Direction
+  placement transport;
+- selective import omits canonical Direction entries until Workspace-aware
+  selection exists.
+
+The historical `155 -> 156` implementation is frozen inside the migration and
+does not depend on mutable runtime Direction adapters, codecs or enum ordinals.
+
+Final host verification is green for shared-domain tests,
+`CanonicalDirectionRepositoryRoomTest`,
+`CanonicalWorkspaceDirectionEntrySyncStoreRoomTest`, and
+`Migration155To156DirectionCutoverRoomAcceptanceTest`.
+
+### KEY_PROBLEMS canonical hard cutover
+
+`KEY_PROBLEMS` is `CURRENT / VERIFIED` on Android at Room schema 157.
+
+Migration `156 -> 157` reads the raw legacy `context_key_problems` payload
+directly, resolves Context-backed Workspace ownership, provisions or reconciles
+the default KEY_PROBLEMS capability instance, materializes typed
+`workspace_problems`, `workspace_problem_workspace_refs`, and
+`workspace_problem_attachment_refs`, and drops the legacy table only after
+complete source-to-target accounting. Any populated legacy `dateTime`,
+malformed payload, duplicate identity, unresolved owner/dependency, collision,
+or live content under a deleted owner blocks the migration and rolls back.
+
+Canonical v1 deliberately has no generic `dateTime`. Problem rows own text,
+status, order, Workspace/capability ownership, version/timestamps/tombstone, and
+typed Workspace/Attachment ref rows own relation history. Update never means
+create; deleting a Problem tombstones its live refs transactionally; capability
+disable/archive/metadata-delete preserve content.
+
+`ContextKeyProblemsRepository` is now only the compatibility facade used by the
+existing UI and delegates canonical authoring to `CanonicalKeyProblemsRepository`.
+Legacy Room DAO/entity/snapshot authority is retired. `SnapshotBundle` carries
+only the nullable canonical triplet `workspaceProblems`,
+`workspaceProblemWorkspaceRefs`, and `workspaceProblemAttachmentRefs` for this
+capability. Full backup/restore, merge ingress, changed-since delta, Wi-Fi dirty
+push, dependency closure, and exact-version ACK use
+`CanonicalWorkspaceProblemSyncStore`. Selective import omits the triplet until
+Workspace-aware selection exists.
+
+Host verification is green for the shared-domain capability tests,
+`Migration156To157KeyProblemsCutoverRoomAcceptanceTest`,
+`CanonicalKeyProblemsRepositoryRoomTest`,
+`CanonicalWorkspaceProblemSyncStoreRoomTest`, and
+`CanonicalKeyProblemsWifiPushPlanTest`. `git diff --check` is clean.
+
+### INBOX canonical source foundation
+
+`INBOX` now has a shared typed `OWNED_COLLECTION` source contract without a
+persistence/runtime cutover. `WorkspaceInboxRecord` owns content and sync
+metadata. Typed v1 config owns owner visibility, while the existing hashtag
+association policy remains shared and `InboxRecordLink` remains a rebuildable
+local projection.
+
+The pure planner preserves legacy identity/lifecycle metadata, normalizes the
+current visible order, resolves Workspace/capability ownership, and fails closed
+on duplicates, unresolved provenance, collisions, invalid versions, or live
+legacy hide flags. Room, SnapshotBundle, legacy repository, Goal promotion, and
+UI authority remain unchanged. The combined focused capability/kernel run is
+green with 16 tests.
+
+### INBOX_SORTING canonical source foundation
+
+`INBOX_SORTING` now has a shared typed `POLICY` configuration contract and a
+strict legacy migration planner without a persistence/runtime cutover. It owns
+rules for Backlog, Inbox, and Connections but owns none of their content or
+order rows. Blank policy projects to `NEWEST`; target-specific modes and the
+legacy `attachments` alias are explicit.
+
+The registry no longer declares the semantically false unconditional Inbox
+dependency. Shared domain maps each sorting target to the capability that an
+eventual apply command must validate. The planner fails closed on malformed,
+unknown, duplicate, ambiguous, or unresolved legacy state. Room,
+SnapshotBundle, repositories, apply behavior, and UI remain unchanged. The
+combined focused capability/kernel run is green with 23 tests.
+
 ### Life Journal time reflection
 
 Android Life Journal exposes a `Reflection` screen from its overflow menu.
@@ -373,84 +489,6 @@ Canonical log authoring requires an active non-deleted `CANONICAL_ONLY`
 Workspace and an `ACTIVE` EXECUTION_LOG capability. Log update uses the existing
 version/sync bump contract and explicit log deletion creates a tombstone.
 Legacy Context rows are rejected by the canonical mutation boundary.
-
-The focused `DIRECTION` capability audit is recorded in
-`DIRECTION-CAPABILITY-AUDIT.md`. Current `DirectionItemEntity` rows are a
-composite of semantic content, mixed-list placement/order, and optional Context
-navigation. Unlinked rows are safe semantic-Direction candidates. Linked rows
-are ambiguous because the same shape is produced both by child-Context
-auto-link and by manually linking an existing Direction; persistence has no
-origin field. Content cutover therefore remains blocked rather than guessing.
-
-DIRECTION configuration v1 is implemented as the typed payload
-`{"autoLinkChildWorkspaces": Boolean}`. Context-backed capability projection
-derives it from the existing effective
-`ContextConfiguration.enableAutoLinkSubprojects` value, defaulting to the
-current behavior `true` when unset. Context remains runtime/write authority.
-A shared pure classifier exposes `SEMANTIC_DIRECTION` versus
-`LINKED_ENTRY_REQUIRES_REVIEW`; it does not mutate or reclassify existing rows.
-Schema 155 now provides separate canonical DIRECTION ordered-entry persistence
-through `workspace_direction_entries`, with explicit
-`LEGACY_DIRECTION_ITEM` / `CANONICAL_ONLY` provenance. This is placement
-persistence rather than a semantic-content duplication: unlinked semantic
-Direction content continues to belong to canonical Orientation subjects.
-
-`WorkspaceDirectionEntryShadowMaterializer` now projects the current
-Context-backed legacy Direction collection into this ordered-entry boundary
-without mutating `direction_items` or canonical-only entries. Owner and target
-Workspace endpoints require proven Context-backed provenance; linked rows
-project Workspace navigation without guessing semantic Orientation intent.
-Existing legacy-owned shadows are tombstoned when their owner/target/semantic
-provenance becomes unresolved and resurrect with the same id if that provenance
-later becomes valid.
-
-Direction-entry compatibility diagnostics are independently owned in
-`workspace_direction_entry_issues`; they are not mixed into the Orientation or
-Workspace bootstrap issue streams.
-
-An isolated Android canonical transport core also exists through
-`WorkspaceDirectionEntrySnapshot` and
-`CanonicalWorkspaceDirectionEntrySyncStore`. Canonical-only ingress applies
-version/`updatedAt`/tombstone freshness, exact-version acknowledgement, legacy
-id-collision rejection, and immutable owner/capability/target identity.
-Legacy-provenance incoming entries are projection-only and are not Android
-persistence authority.
-
-The canonical Direction transport is now connected as nullable
-`workspaceDirectionEntries` across `SnapshotBundle`, full backup/restore,
-merge ingress, changed-since Wi-Fi delta, dirty canonical push, and
-exact-version acknowledgement. Canonical Direction deltas include the full
-Orientation/Workspace dependency closure. After legacy Direction import, the
-shadow materializer refreshes the Context-backed projection outside the outer
-write transaction.
-
-Desktop stores `workspaceDirectionEntries` as an Android-owned read-only
-collection. It validates duplicate ids, provenance, Workspace/capability/target
-dependencies and immutable identity; merge freshness is version, then
-`updatedAt`, then tombstone preference on an exact tie. A present empty
-collection is authoritative empty. Desktop strips the canonical Direction
-collection from both Android-bound database and SnapshotBundle payloads.
-
-Legacy `directionItems` remain the current bidirectional cross-client Direction
-writer and current UI/runtime authority. No UI, clipboard, repository, or
-Desktop legacy Direction authoring cutover has occurred.
-
-Focused Desktop wire tests passed 14/14 and `npx tsc --noEmit` passed. Pure
-planner and Room transport tests for the Android schema-155 slice remain
-unexecuted in the current AI CLI Bridge sandbox because the sandboxed JDK
-cannot resolve its `/etc/java` security configuration. Static
-`git diff --check` verification is clean.
-
-Canonical Orientation bootstrap version 3 now applies a reversible DIRECTION
-shadow repair. New ambiguous linked rows receive a stable diagnostic and are
-not automatically materialized as semantic Orientations. Existing linked-row
-shadows keep their durable mapping identity, move to `QUARANTINED`, and receive
-a versioned subject tombstone without changing the legacy row or removing
-assessment history. Repeated repair is idempotent. Explicit unlink restores the
-same subject/mapping identity when the quarantine belongs to this repair;
-foreign-version quarantines fail closed. Canonical description is preserved
-because the legacy row has no authority over that field. Focused pure-planner,
-Room integration, bootstrap-regression, and restoration tests are green.
 
 `EXECUTION_LOG` v1 has an explicit shared-domain configuration codec whose only
 accepted payload is `{}`. Unknown configuration versions fail closed and raw

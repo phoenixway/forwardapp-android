@@ -1,13 +1,16 @@
 package com.romankozak.forwardappmobile.data.workspace
 
 import androidx.room.withTransaction
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceDirectionEntryEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceDirectionEntryProvenance
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySyncVersion
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.database.AppDatabase
-import com.romankozak.forwardappmobile.features.contexts.data.dao.DirectionDao
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubjectType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.OrientationKind
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityType
@@ -17,11 +20,8 @@ import javax.inject.Singleton
 /**
  * Canonical transport boundary for ordered DIRECTION placements.
  *
- * Outbound transport may expose both provenance partitions as one canonical
- * view. Inbound LEGACY_DIRECTION_ITEM rows are never persistence authority on
- * Android: direction_items + shadow materialization own that partition.
- *
- * Only CANONICAL_ONLY rows may be merged from canonical transport.
+ * Schema 156 has one persistence authority. LEGACY_DIRECTION_ITEM is retained
+ * only as historical provenance and is synchronized like CANONICAL_ONLY.
  */
 @Singleton
 class CanonicalWorkspaceDirectionEntrySyncStore
@@ -31,29 +31,18 @@ class CanonicalWorkspaceDirectionEntrySyncStore
         private val entryDao: WorkspaceDirectionEntryDao,
         private val workspaceDao: WorkspaceDao,
         private val orientationDao: OrientationDao,
-        private val directionDao: DirectionDao,
-        private val materializer: WorkspaceDirectionEntryShadowMaterializer,
     ) {
-        suspend fun loadAll(): List<WorkspaceDirectionEntrySnapshot> {
-            materializer.ensureMaterialized()
-            return entryDao.getAll().map { it.toSnapshot() }
-        }
+        suspend fun loadAll(): List<WorkspaceDirectionEntrySnapshot> =
+            entryDao.getAll().map { it.toSnapshot() }
 
-        suspend fun loadUnsynced(): List<WorkspaceDirectionEntrySnapshot> {
-            materializer.ensureMaterialized()
-            return entryDao.getUnsyncedForSync().map { it.toSnapshot() }
-        }
+        suspend fun loadUnsynced(): List<WorkspaceDirectionEntrySnapshot> =
+            entryDao.getUnsyncedForSync().map { it.toSnapshot() }
 
-        suspend fun loadChangedSince(timestamp: Long): List<WorkspaceDirectionEntrySnapshot> {
-            materializer.ensureMaterialized()
-            return entryDao.getChangedSinceForSync(timestamp).map { it.toSnapshot() }
-        }
+        suspend fun loadChangedSince(timestamp: Long): List<WorkspaceDirectionEntrySnapshot> =
+            entryDao.getChangedSinceForSync(timestamp).map { it.toSnapshot() }
 
         /**
-         * Callers must apply Workspace / Orientation canonical dependencies
-         * before this method.
-         *
-         * LEGACY_DIRECTION_ITEM transport rows are projection-only and ignored.
+         * Workspace and Orientation canonical dependencies must be applied first.
          */
         suspend fun mergeIncoming(incoming: List<WorkspaceDirectionEntrySnapshot>?) {
             if (incoming == null || incoming.isEmpty()) return
@@ -61,28 +50,10 @@ class CanonicalWorkspaceDirectionEntrySyncStore
             require(incoming.map { it.id }.toSet().size == incoming.size) {
                 "Canonical DIRECTION entry payload contains duplicate ids"
             }
-
-            val canonicalIncoming =
-                incoming.filter {
-                    it.provenance == WorkspaceDirectionEntryProvenance.CANONICAL_ONLY.name
-                }
-
-            require(
-                incoming.all {
-                    it.provenance in
-                        setOf(
-                            WorkspaceDirectionEntryProvenance.LEGACY_DIRECTION_ITEM.name,
-                            WorkspaceDirectionEntryProvenance.CANONICAL_ONLY.name,
-                        )
-                },
-            ) {
+            require(incoming.all { it.hasSupportedProvenance() }) {
                 "Canonical DIRECTION entry payload contains unsupported provenance"
             }
 
-            if (canonicalIncoming.isEmpty()) return
-
-            val legacyDirectionIds =
-                directionDao.getAllRaw().mapTo(hashSetOf()) { it.id }
             val localById = entryDao.getAll().associateBy { it.id }
             val workspaceById = workspaceDao.getAll().associateBy { it.id }
             val capabilityById =
@@ -92,10 +63,9 @@ class CanonicalWorkspaceDirectionEntrySyncStore
             val orientationById =
                 orientationDao.getAllOrientations().associateBy { it.subjectId }
 
-            canonicalIncoming.forEach { candidate ->
-                validateCanonicalOnlyCandidate(
+            incoming.forEach { candidate ->
+                validateCanonicalCandidate(
                     candidate = candidate,
-                    legacyDirectionIds = legacyDirectionIds,
                     local = localById[candidate.id],
                     workspaceById = workspaceById,
                     capabilityById = capabilityById,
@@ -105,13 +75,13 @@ class CanonicalWorkspaceDirectionEntrySyncStore
             }
 
             val winners =
-                canonicalIncoming.filter { candidate ->
+                incoming.filter { candidate ->
                     val local = localById[candidate.id] ?: return@filter true
                     incomingWins(candidate, local)
                 }
 
             if (winners.isNotEmpty()) {
-                entryDao.upsert(winners.map { it.toCanonicalOnlyEntity() })
+                entryDao.upsert(winners.map { it.toCanonicalEntity() })
             }
         }
 
@@ -130,14 +100,13 @@ class CanonicalWorkspaceDirectionEntrySyncStore
             }
         }
 
-        private fun validateCanonicalOnlyCandidate(
+        private fun validateCanonicalCandidate(
             candidate: WorkspaceDirectionEntrySnapshot,
-            legacyDirectionIds: Set<String>,
             local: WorkspaceDirectionEntryEntity?,
-            workspaceById: Map<String, com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity>,
-            capabilityById: Map<String, com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity>,
-            subjectById: Map<String, com.romankozak.forwardappmobile.core.data.models.entities.orientation.ManagedSubjectEntity>,
-            orientationById: Map<String, com.romankozak.forwardappmobile.core.data.models.entities.orientation.OrientationEntity>,
+            workspaceById: Map<String, WorkspaceEntity>,
+            capabilityById: Map<String, WorkspaceCapabilityInstanceEntity>,
+            subjectById: Map<String, ManagedSubjectEntity>,
+            orientationById: Map<String, OrientationEntity>,
         ) {
             require(candidate.id.isNotBlank()) {
                 "Canonical DIRECTION entry id must not be blank"
@@ -148,14 +117,14 @@ class CanonicalWorkspaceDirectionEntrySyncStore
             require(candidate.capabilityInstanceId.isNotBlank()) {
                 "Canonical DIRECTION entry ${candidate.id} capabilityInstanceId must not be blank"
             }
-            require(
-                !candidate.orientationId.isNullOrBlank() ||
-                    !candidate.targetWorkspaceId.isNullOrBlank(),
-            ) {
-                "Canonical DIRECTION entry ${candidate.id} must target an Orientation, Workspace, or both"
+            require(candidate.hasSupportedProvenance()) {
+                "Canonical DIRECTION entry ${candidate.id} has unsupported provenance"
             }
-            require(candidate.id !in legacyDirectionIds) {
-                "Canonical DIRECTION entry ${candidate.id} collides with legacy Direction authority"
+
+            val hasOrientation = !candidate.orientationId.isNullOrBlank()
+            val hasWorkspaceTarget = !candidate.targetWorkspaceId.isNullOrBlank()
+            require(hasOrientation xor hasWorkspaceTarget) {
+                "Canonical DIRECTION entry ${candidate.id} must have exactly one target"
             }
 
             val owner =
@@ -214,23 +183,23 @@ class CanonicalWorkspaceDirectionEntrySyncStore
             }
 
             local?.let { current ->
-                require(
-                    current.provenance ==
-                        WorkspaceDirectionEntryProvenance.CANONICAL_ONLY.name,
-                ) {
-                    "Canonical DIRECTION entry ${candidate.id} collides with legacy shadow persistence"
-                }
                 require(current.workspaceId == candidate.workspaceId) {
                     "Canonical DIRECTION entry ownership cannot move between Workspaces: ${candidate.id}"
                 }
                 require(current.capabilityInstanceId == candidate.capabilityInstanceId) {
                     "Canonical DIRECTION entry capability ownership is immutable: ${candidate.id}"
                 }
-                require(current.orientationId == candidate.orientationId) {
-                    "Canonical DIRECTION entry Orientation target identity is immutable: ${candidate.id}"
+                require(
+                    current.orientationId == candidate.orientationId &&
+                        current.targetWorkspaceId == candidate.targetWorkspaceId,
+                ) {
+                    "Canonical DIRECTION entry target identity is immutable: ${candidate.id}"
                 }
-                require(current.targetWorkspaceId == candidate.targetWorkspaceId) {
-                    "Canonical DIRECTION entry Workspace target identity is immutable: ${candidate.id}"
+                require(current.provenance == candidate.provenance) {
+                    "Canonical DIRECTION entry provenance is immutable: ${candidate.id}"
+                }
+                require(current.createdAt == candidate.createdAt) {
+                    "Canonical DIRECTION entry createdAt is immutable: ${candidate.id}"
                 }
             }
         }
@@ -250,6 +219,10 @@ class CanonicalWorkspaceDirectionEntrySyncStore
             }
     }
 
+private fun WorkspaceDirectionEntrySnapshot.hasSupportedProvenance(): Boolean =
+    provenance == WorkspaceDirectionEntryProvenance.LEGACY_DIRECTION_ITEM.name ||
+        provenance == WorkspaceDirectionEntryProvenance.CANONICAL_ONLY.name
+
 private fun WorkspaceDirectionEntryEntity.toSnapshot() =
     WorkspaceDirectionEntrySnapshot(
         id = id,
@@ -266,7 +239,7 @@ private fun WorkspaceDirectionEntryEntity.toSnapshot() =
         isDeleted = isDeleted,
     )
 
-private fun WorkspaceDirectionEntrySnapshot.toCanonicalOnlyEntity() =
+private fun WorkspaceDirectionEntrySnapshot.toCanonicalEntity() =
     WorkspaceDirectionEntryEntity(
         id = id,
         workspaceId = workspaceId,
@@ -275,7 +248,7 @@ private fun WorkspaceDirectionEntrySnapshot.toCanonicalOnlyEntity() =
         targetWorkspaceId = targetWorkspaceId,
         labelOverride = labelOverride,
         entryOrder = entryOrder,
-        provenance = WorkspaceDirectionEntryProvenance.CANONICAL_ONLY.name,
+        provenance = provenance,
         createdAt = createdAt,
         updatedAt = updatedAt,
         syncedAt = null,

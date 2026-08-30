@@ -2,6 +2,8 @@ package com.romankozak.forwardappmobile.shared.core.domain.orientation
 
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceBinding
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceBindingType
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityArchetype
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityAvailability
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityDefinition
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityInstance
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
@@ -28,11 +30,46 @@ val orientationCapabilityRegistry: List<WorkspaceCapabilityDefinition> =
             }
         WorkspaceCapabilityDefinition(
             type = type,
+            archetype = capabilityArchetype(type),
+            availability = capabilityAvailability(type),
             maxActiveInstances = 1,
-            requiredTypes = if (type == WorkspaceCapabilityType.INBOX_SORTING) listOf(WorkspaceCapabilityType.INBOX) else emptyList(),
+            requiredTypes = emptyList(),
             legacyIds = legacyIds,
             autoMigrateWhenEnabled = legacyIds.isNotEmpty(),
         )
+    }
+
+private fun capabilityArchetype(type: WorkspaceCapabilityType): WorkspaceCapabilityArchetype =
+    when (type) {
+        WorkspaceCapabilityType.DASHBOARD -> WorkspaceCapabilityArchetype.PRESENTATION
+        WorkspaceCapabilityType.INBOX,
+        WorkspaceCapabilityType.KEY_PROBLEMS,
+        WorkspaceCapabilityType.EXECUTION_LOG,
+        -> WorkspaceCapabilityArchetype.OWNED_COLLECTION
+        WorkspaceCapabilityType.BACKLOG,
+        WorkspaceCapabilityType.DIRECTION,
+        WorkspaceCapabilityType.CONNECTIONS,
+        -> WorkspaceCapabilityArchetype.ORDERED_PLACEMENT
+        WorkspaceCapabilityType.INBOX_SORTING -> WorkspaceCapabilityArchetype.POLICY
+        WorkspaceCapabilityType.DOCUMENTS,
+        WorkspaceCapabilityType.NOTES,
+        WorkspaceCapabilityType.ATTACHMENTS,
+        -> WorkspaceCapabilityArchetype.CONTENT_HOST
+        WorkspaceCapabilityType.ARTIFACT,
+        WorkspaceCapabilityType.JOURNAL,
+        -> WorkspaceCapabilityArchetype.RETIRED_LEGACY
+    }
+
+private fun capabilityAvailability(type: WorkspaceCapabilityType): WorkspaceCapabilityAvailability =
+    when (type) {
+        WorkspaceCapabilityType.ARTIFACT,
+        WorkspaceCapabilityType.JOURNAL,
+        -> WorkspaceCapabilityAvailability.RETIRED
+        WorkspaceCapabilityType.DOCUMENTS,
+        WorkspaceCapabilityType.NOTES,
+        WorkspaceCapabilityType.ATTACHMENTS,
+        -> WorkspaceCapabilityAvailability.RESERVED
+        else -> WorkspaceCapabilityAvailability.TARGET
     }
 
 fun validateWorkspaceBindings(bindings: List<WorkspaceBinding>): List<OrientationContractViolation> {

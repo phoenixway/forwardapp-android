@@ -1,15 +1,16 @@
 # DIRECTION Capability Audit
 
-Status: `CURRENT` for the implementation inventory, canonical ordered-entry
-persistence/materialization foundation, Android canonical transport, and the
-read-only cross-client wire foundation; `PROPOSED` for Direction write-authority
-and UI/runtime cutover.
+Status: `CURRENT / VERIFIED` for the Android DIRECTION hard cutover at schema
+156.
 
-This document records the focused Phase 6 DIRECTION boundary. It does not
-authorize a UI cutover. Canonical ordered-entry persistence/materialization and
-the `workspaceDirectionEntries` SnapshotBundle/Wi-Fi/Desktop read-only wire are
-implemented. Legacy `directionItems` remain the bidirectional compatibility
-writer while user-facing authority cutover remains incomplete.
+Android persistence and transport now use canonical
+`Orientation(kind=DIRECTION)` plus `WorkspaceDirectionEntry`.
+`direction_items`, runtime shadow materialization, `DirectionItemSnapshot`, and
+`SnapshotBundle.directionItems` are retired.
+
+> **HISTORICAL NOTE:** sections below describing schema-155 legacy authority,
+> shadow materialization, or pre-cutover planning are retained as history, not
+> current architecture.
 
 ## Conclusion
 
@@ -44,7 +45,7 @@ pure shortcut would erase the possible semantic intent of manually linked
 rows. Linked legacy rows must therefore fail closed into a review/quarantine
 state before `DIRECTION` can become canonical authority.
 
-## Verified current behavior
+## HISTORICAL pre-cutover behavior
 
 ### Persistence and mutation
 
@@ -247,7 +248,7 @@ Before authority cutover, tests must cover:
 - capability disable/archive/delete do not destroy content;
 - no UI behavior changes before separate authorization.
 
-## Accepted Android-first authority cutover
+## Implemented Android-first authority cutover
 
 The accepted next authority phase is a hard Android-first cutover, not a
 long-lived dual-write phase.
@@ -272,7 +273,7 @@ Desktop canonical authoring is a later step and may temporarily lag Android.
 Legacy Desktop Direction writes must not become Android authority after the
 cutover.
 
-## Staged implementation decision
+## HISTORICAL staged implementation
 
 The next safe implementation slice is deliberately smaller than a content
 cutover:
@@ -316,7 +317,7 @@ This avoids adding `workspaceId` to the current composite row and calling the
 result canonical. Such a change would preserve the ambiguity between content,
 placement, and relation that the refactor is intended to remove.
 
-## Implemented reversible quarantine
+## HISTORICAL reversible quarantine foundation
 
 Bootstrap version 3 now runs a pure planned repair before materializing legacy
 Directions:
@@ -342,81 +343,44 @@ All changes occur in the existing canonical bootstrap transaction. Current
 Direction rows, UI, ordering, clipboard behavior, and Desktop authorship remain
 untouched.
 
-## Implemented ordered-entry foundation
+## Current schema-156 authority
 
-Room schema 155 adds `workspace_direction_entries` as a separate canonical
-placement collection rather than adding Workspace ownership fields to the
-legacy composite `direction_items` row.
+Room schema 156 completes the Android DIRECTION hard cutover.
 
-The implemented row owns:
+Current model:
 
-- stable entry identity;
-- owning `workspaceId`;
-- owning DIRECTION `capabilityInstanceId`;
-- optional semantic `orientationId`;
-- optional navigation `targetWorkspaceId`;
-- optional local `labelOverride`;
-- mixed-list `entryOrder`;
-- version/timestamp/tombstone/sync metadata;
-- explicit provenance: `LEGACY_DIRECTION_ITEM` or `CANONICAL_ONLY`.
+```text
+semantic Direction
+  -> Orientation(kind = DIRECTION)
+  -> WorkspaceDirectionEntry(orientationId = ...)
 
-Legacy compatibility identity is intentionally the legacy Direction row id
-itself. No second persisted `sourceDirectionItemId` mapping column exists.
+navigation entry
+  -> WorkspaceDirectionEntry(targetWorkspaceId = ...)
+```
 
-`WorkspaceDirectionEntryShadowMaterializer` is the Context-backed compatibility
-boundary. It first refreshes canonical Orientation and Workspace foundations,
-then plans and applies legacy-owned entry shadows in its own Room transaction.
-It reads `direction_items` but never writes them. It also never mutates
-`CANONICAL_ONLY` rows.
+Each entry has exactly one target. Workspace owner, capability instance, target
+identity, provenance, and `createdAt` are immutable for an entry id.
+`entryOrder` and `labelOverride` remain mutable.
 
-Workspace endpoints are accepted only when provenance proves all of
-`Workspace.provenance = CONTEXT_BACKED`, `sourceContextId = contextId`, and
-`Workspace.id = contextId`. Equal ids alone are not treated as evidence.
+`LEGACY_DIRECTION_ITEM` is historical provenance only and is synchronized under
+the same canonical contract as `CANONICAL_ONLY`.
 
-For unlinked semantic rows, exactly one live non-quarantined DIRECTION legacy
-mapping must resolve to a live DIRECTION Orientation. For linked rows, only the
-Workspace navigation endpoint is projected; semantic Orientation intent is
-still not guessed.
+Retired Android machinery includes `direction_items`, `DirectionDao`, runtime
+shadow materialization/planning/repair, `DirectionItemSnapshot`,
+`SnapshotBundle.directionItems`, and `LocalSyncSelection.directionItems`.
 
-If previously valid owner, target, or semantic provenance becomes unresolved,
-the existing `LEGACY_DIRECTION_ITEM` entry shadow is version-tombstoned and an
-owned diagnostic is persisted. If the provenance later becomes valid again,
-the same entry id is resurrected with a newer version. Capability
-disable/archive/tombstone does not sever entry identity because the stable
-capability instance row remains the collection owner.
+`DirectionItemEntity` remains only as the compatibility DTO for the existing
+UI/clipboard surface.
 
-Direction-entry diagnostics use the dedicated
-`workspace_direction_entry_issues` table. They are not stored in the global
-Orientation or Workspace bootstrap issue streams, whose current bootstrappers
-resolve their own open issues independently.
+`SnapshotBundle.workspaceDirectionEntries` is the sole Android Direction
+placement transport through backup/restore, merge, Wi-Fi delta/dirty push, and
+exact-version acknowledgement. Selective import deliberately waits for a
+Workspace-aware selection contract.
 
-The Android transport boundary is implemented through
-`WorkspaceDirectionEntrySnapshot` plus
-`CanonicalWorkspaceDirectionEntrySyncStore`, and is now wired into
-`SnapshotBundle`, full backup/restore, merge ingress, changed-since delta,
-Wi-Fi dirty push, and exact-version acknowledgement. Selective import
-deliberately excludes the collection until Workspace-aware selection exists.
+Migration `155 -> 156` is frozen and migration-private: its legacy row shape,
+UUIDv5 identity, DIRECTION constants/config encoding, and empty assessment
+projection do not depend on mutable runtime adapters or enums.
 
-The transport core exports the canonical view but accepts persistence ingress
-only for `CANONICAL_ONLY` rows. Incoming legacy-provenance rows are ignored on
-Android because `direction_items` plus the compatibility materializer remain
-their authority. Canonical-only ingress rejects legacy Direction id collisions,
-missing/deleted dependencies for live entries, ownership/capability/target
-movement, malformed targets, and non-DIRECTION capabilities. Freshness is
-version, then `updatedAt`, then tombstone preference on an exact tie.
-Acknowledgement is exact-version.
-
-Pure planner and Room transport tests for the Android persistence slice are
-present but have not been executable in the current AI CLI Bridge environment
-because the sandboxed JDK cannot resolve its `/etc/java` security files. This
-remains an Android verification gap, not a claim that those tests passed.
-
-Desktop read-only wire behavior is covered by focused Vitest tests, including
-freshness/tombstone handling, authoritative empty, immutable identity, and
-Android-bound stripping; the targeted Desktop suite passed 14/14 and
-`npx tsc --noEmit` passed.
-
-Legacy `directionItems` remain the bidirectional Desktop/Android Direction
-contract and current Desktop writer. `workspaceDirectionEntries` is an
-additional Android-owned read-only canonical projection, not an authority
-replacement.
+The final host verification gate is green for the canonical repository,
+canonical sync-store, shared-domain tests, and fail-closed Room migration
+acceptance tests.

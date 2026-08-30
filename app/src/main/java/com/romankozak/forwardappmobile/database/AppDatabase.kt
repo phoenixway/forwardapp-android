@@ -18,7 +18,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextInboxSortingEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextKeyProblemsEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
@@ -26,7 +25,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProf
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextsFts
 import com.romankozak.forwardappmobile.core.data.models.entities.Converters
-import com.romankozak.forwardappmobile.core.data.models.entities.DirectionItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.FocusContextIntervalEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.Goal
 import com.romankozak.forwardappmobile.core.data.models.entities.GoalFts
@@ -102,12 +100,10 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextArtifactDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextInboxSortingDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextKeyProblemsDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextTagRefDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextParentLinkDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.DirectionDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordLinkDao
@@ -132,7 +128,6 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
         Goal::class,
         Context::class,
         ContextTagRef::class,
-        DirectionItemEntity::class,
         ArcQuestEntity::class,
         BacklogItem::class,
         BacklogOrder::class,
@@ -152,7 +147,6 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
         ContextLog::class,
         ContextParentLink::class,
         ContextInboxSortingEntity::class,
-        ContextKeyProblemsEntity::class,
         FocusContextIntervalEntity::class,
         DayPlan::class,
         DayFocusItem::class,
@@ -201,6 +195,9 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
         WorkspaceCapabilityInstanceEntity::class,
         com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity::class,
         com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceDirectionEntryEntity::class,
+        com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceProblemEntity::class,
+        com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceProblemWorkspaceRefEntity::class,
+        com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceProblemAttachmentRefEntity::class,
         com.romankozak.forwardappmobile.data.database.WorkspaceDirectionEntryIssueEntity::class,
         SavedOrientationViewEntity::class,
         com.romankozak.forwardappmobile.data.database.OrientationBootstrapStateEntity::class,
@@ -213,7 +210,7 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
         ActivityRecordFts::class,
         LegacyNoteFts::class,
     ],
-    version = 155,
+    version = 157,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -232,7 +229,6 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun mainBeaconDao(): MainBeaconDao
 
-    abstract fun directionDao(): DirectionDao
 
     abstract fun arcQuestDao(): ArcQuestDao
 
@@ -243,9 +239,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun contextManagementDao(): ContextManagementDao
 
     abstract fun contextParentLinkDao(): ContextParentLinkDao
-
-    abstract fun contextKeyProblemsDao(): ContextKeyProblemsDao
-
     abstract fun contextInboxSortingDao(): ContextInboxSortingDao
 
     abstract fun focusContextIntervalDao(): FocusContextIntervalDao
@@ -319,4 +312,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun workspaceDao(): WorkspaceDao
 
     abstract fun workspaceDirectionEntryDao(): com.romankozak.forwardappmobile.data.workspace.WorkspaceDirectionEntryDao
+
+    abstract fun workspaceProblemDao(): com.romankozak.forwardappmobile.data.workspace.capability.WorkspaceProblemDao
 }

@@ -1,7 +1,5 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.keyproblems
 
-import android.app.DatePickerDialog
-import android.app.TimePickerDialog
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -80,13 +78,8 @@ import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedListItemTok
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusChipSpec
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedStatusRow
 import com.romankozak.forwardappmobile.ui.components.listitem.UnifiedTrailingActionButton
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
-
-private val issueDateTimeFormatter = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -441,14 +434,6 @@ private fun buildIssueMetaItems(
                 contentColor = issueStatusColor(issue.status),
             ),
         )
-        issue.dateTime?.let {
-            add(
-                UnifiedStatusChipSpec(
-                    icon = Icons.Outlined.Schedule,
-                    text = issueDateTimeFormatter.format(it),
-                ),
-            )
-        }
         issue.relatedContextIds
             .take(2)
             .forEach { id ->
@@ -563,48 +548,6 @@ private fun IssueEditorSheet(
                         )
                     }
                 }
-            }
-
-            OutlinedButton(
-                onClick = {
-                    val calendar = Calendar.getInstance().apply {
-                        timeInMillis = draft.dateTime ?: System.currentTimeMillis()
-                    }
-                    DatePickerDialog(
-                        context,
-                        { _, year, month, dayOfMonth ->
-                            calendar.set(Calendar.YEAR, year)
-                            calendar.set(Calendar.MONTH, month)
-                            calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
-                            TimePickerDialog(
-                                context,
-                                { _, hour, minute ->
-                                    calendar.set(Calendar.HOUR_OF_DAY, hour)
-                                    calendar.set(Calendar.MINUTE, minute)
-                                    calendar.set(Calendar.SECOND, 0)
-                                    draft = draft.copy(dateTime = calendar.timeInMillis)
-                                },
-                                calendar.get(Calendar.HOUR_OF_DAY),
-                                calendar.get(Calendar.MINUTE),
-                                true,
-                            ).show()
-                        },
-                        calendar.get(Calendar.YEAR),
-                        calendar.get(Calendar.MONTH),
-                        calendar.get(Calendar.DAY_OF_MONTH),
-                    ).show()
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(Icons.Outlined.Schedule, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    if (draft.dateTime != null) {
-                        "Datetime: ${issueDateTimeFormatter.format(draft.dateTime!!)}"
-                    } else {
-                        "Встановити datetime"
-                    },
-                )
             }
 
             HorizontalDivider()

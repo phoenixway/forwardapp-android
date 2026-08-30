@@ -3,8 +3,6 @@ package com.romankozak.forwardappmobile.data.workspace
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import com.romankozak.forwardappmobile.core.data.models.entities.Context as ContextEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.DirectionItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceDirectionEntryProvenance
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
@@ -27,90 +25,102 @@ class CanonicalWorkspaceDirectionEntrySyncStoreRoomTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun `legacy projection ingress is ignored while canonical-only entry persists`() = runBlocking {
+    fun `legacy provenance ingress persists as canonical placement history`() = runBlocking {
         val database = database()
         try {
             seedNavigationDependencies(database)
             val store = store(database)
 
-            store.mergeIncoming(
-                listOf(
-                    entry(
-                        id = "legacy-projection",
-                        provenance = WorkspaceDirectionEntryProvenance.LEGACY_DIRECTION_ITEM.name,
-                    ),
-                ),
-            )
-
-            assertNull(database.workspaceDirectionEntryDao().getById("legacy-projection"))
+            val migrated =
+                entry(
+                    id = "legacy-provenance",
+                    provenance = WorkspaceDirectionEntryProvenance.LEGACY_DIRECTION_ITEM.name,
+                    version = 3L,
+                    updatedAt = 30L,
+                )
 
             val canonical =
                 entry(
                     id = "canonical",
                     provenance = WorkspaceDirectionEntryProvenance.CANONICAL_ONLY.name,
-                    version = 3L,
-                    updatedAt = 30L,
+                    version = 4L,
+                    updatedAt = 40L,
                 )
 
-            store.mergeIncoming(listOf(canonical))
+            store.mergeIncoming(listOf(migrated, canonical))
 
-            val persisted =
+            val migratedPersisted =
+                requireNotNull(database.workspaceDirectionEntryDao().getById("legacy-provenance"))
+            val canonicalPersisted =
                 requireNotNull(database.workspaceDirectionEntryDao().getById("canonical"))
 
             assertEquals(
-                WorkspaceDirectionEntryProvenance.CANONICAL_ONLY.name,
-                persisted.provenance,
+                WorkspaceDirectionEntryProvenance.LEGACY_DIRECTION_ITEM.name,
+                migratedPersisted.provenance,
             )
-            assertEquals("owner", persisted.workspaceId)
-            assertEquals("capability-owner", persisted.capabilityInstanceId)
-            assertEquals("target", persisted.targetWorkspaceId)
-            assertEquals(3L, persisted.version)
-            assertEquals(30L, persisted.updatedAt)
-            assertNull(persisted.syncedAt)
+            assertEquals("owner", migratedPersisted.workspaceId)
+            assertEquals("capability-owner", migratedPersisted.capabilityInstanceId)
+            assertEquals("target", migratedPersisted.targetWorkspaceId)
+            assertEquals(3L, migratedPersisted.version)
+            assertEquals(30L, migratedPersisted.updatedAt)
+            assertNull(migratedPersisted.syncedAt)
+
+            assertEquals(
+                WorkspaceDirectionEntryProvenance.CANONICAL_ONLY.name,
+                canonicalPersisted.provenance,
+            )
+            assertEquals(4L, canonicalPersisted.version)
+
+            assertEquals(
+                setOf("legacy-provenance", "canonical"),
+                store.loadAll().map { it.id }.toSet(),
+            )
         } finally {
             database.close()
         }
     }
 
     @Test
-    fun `canonical-only ingress rejects id owned by legacy Direction source`() = runBlocking {
+    fun `historical Direction provenance is immutable after cutover`() = runBlocking {
         val database = database()
         try {
             seedNavigationDependencies(database)
+            val store = store(database)
 
-            database.contextDao().insert(
-                ContextEntity(
-                    id = "owner",
-                    name = "Owner",
-                    description = null,
-                    parentId = null,
-                    createdAt = 1L,
-                    updatedAt = 1L,
-                    roleCode = "management",
-                ),
-            )
-
-            database.directionDao().insert(
-                DirectionItemEntity(
+            val migrated =
+                entry(
                     id = "shared-id",
-                    contextId = "owner",
-                    text = "Legacy source",
-                    linkedContextId = "target",
-                    itemOrder = 1,
-                    updatedAt = 10L,
+                    provenance = WorkspaceDirectionEntryProvenance.LEGACY_DIRECTION_ITEM.name,
                     version = 1L,
-                ),
-            )
+                    updatedAt = 10L,
+                )
+
+            store.mergeIncoming(listOf(migrated))
 
             val failure =
                 runCatching {
-                    store(database).mergeIncoming(
-                        listOf(entry(id = "shared-id")),
+                    store.mergeIncoming(
+                        listOf(
+                            migrated.copy(
+                                provenance = WorkspaceDirectionEntryProvenance.CANONICAL_ONLY.name,
+                                version = 2L,
+                                updatedAt = 20L,
+                            ),
+                        ),
                     )
                 }.exceptionOrNull()
 
             assertTrue(failure is IllegalArgumentException)
-            assertNull(database.workspaceDirectionEntryDao().getById("shared-id"))
+
+            val preserved =
+                requireNotNull(database.workspaceDirectionEntryDao().getById("shared-id"))
+
+            assertEquals(
+                WorkspaceDirectionEntryProvenance.LEGACY_DIRECTION_ITEM.name,
+                preserved.provenance,
+            )
+            assertEquals(1L, preserved.version)
+            assertEquals(10L, preserved.updatedAt)
         } finally {
             database.close()
         }
@@ -360,8 +370,6 @@ class CanonicalWorkspaceDirectionEntrySyncStoreRoomTest {
             entryDao = database.workspaceDirectionEntryDao(),
             workspaceDao = database.workspaceDao(),
             orientationDao = database.orientationDao(),
-            directionDao = database.directionDao(),
-            materializer = mockk<WorkspaceDirectionEntryShadowMaterializer>(relaxed = true),
         )
 
     private suspend fun seedNavigationDependencies(database: AppDatabase) {

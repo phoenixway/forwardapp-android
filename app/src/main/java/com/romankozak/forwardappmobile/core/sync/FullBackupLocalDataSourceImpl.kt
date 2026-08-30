@@ -4,6 +4,10 @@
 
 package com.romankozak.forwardappmobile.core.sync
 
+import com.romankozak.forwardappmobile.sync.datasource.CanonicalWorkspaceProblemSyncAck
+import com.romankozak.forwardappmobile.data.workspace.toCanonicalWorkspaceProblemSyncPayloadOrNull
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceProblemSyncStore
+
 import com.romankozak.forwardappmobile.data.logic.InboxAssociationCache
 import com.romankozak.forwardappmobile.core.context.normalizeLegacyStructuralContextBacklog
 
@@ -24,7 +28,6 @@ import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationSync
 import com.romankozak.forwardappmobile.data.orientation.storeCanonicalPayload
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstrapper
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceDirectionEntrySyncStore
-import com.romankozak.forwardappmobile.data.workspace.WorkspaceDirectionEntryShadowMaterializer
 import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
 import com.romankozak.forwardappmobile.data.workspace.capability.ExecutionLogWorkspaceOwnershipBridge
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogSyncStore
@@ -77,7 +80,6 @@ class FullBackupLocalDataSourceImpl
         private val executionLogWorkspaceOwnershipBridge: ExecutionLogWorkspaceOwnershipBridge,
         private val canonicalExecutionLogSyncStore: CanonicalExecutionLogSyncStore,
         private val canonicalWorkspaceDirectionEntrySyncStore: CanonicalWorkspaceDirectionEntrySyncStore,
-        private val workspaceDirectionEntryShadowMaterializer: WorkspaceDirectionEntryShadowMaterializer,
         private val canonicalOrientationSyncStore: CanonicalOrientationSyncStore,
         private val dailyMetricDao: DailyMetricDao,
         private val chatDao: ChatDao,
@@ -110,9 +112,8 @@ class FullBackupLocalDataSourceImpl
         private val structurePresetDao: StructurePresetDao,
         private val structurePresetItemDao: StructurePresetItemDao,
         private val contextStructureDao: ContextStructureDao,
-        private val directionDao: DirectionDao,
         private val contextInboxSortingDao: ContextInboxSortingDao,
-        private val contextKeyProblemsDao: ContextKeyProblemsDao,
+        private val canonicalWorkspaceProblemSyncStore: CanonicalWorkspaceProblemSyncStore,
         private val focusContextIntervalDao: FocusContextIntervalDao,
         private val userStateIntervalDao: UserStateIntervalDao,
         private val inboxAssociationCache: InboxAssociationCache,
@@ -142,6 +143,18 @@ class FullBackupLocalDataSourceImpl
             entries: List<WorkspaceDirectionEntrySyncVersion>,
         ) {
             canonicalWorkspaceDirectionEntrySyncStore.markSynced(entries)
+        }
+
+        override suspend fun loadUnsyncedCanonicalWorkspaceProblems() =
+            canonicalWorkspaceProblemSyncStore.loadUnsynced()
+
+        override suspend fun loadCanonicalWorkspaceProblemsChangedSince(timestamp: Long) =
+            canonicalWorkspaceProblemSyncStore.loadChangedSince(timestamp)
+
+        override suspend fun markCanonicalWorkspaceProblemsSynced(
+            ack: CanonicalWorkspaceProblemSyncAck,
+        ) {
+            canonicalWorkspaceProblemSyncStore.markSynced(ack)
         }
 
         override suspend fun markCanonicalOrientationsSynced(ack: CanonicalOrientationSyncAck) {
@@ -248,6 +261,8 @@ class FullBackupLocalDataSourceImpl
                     )
                 }
 
+            val canonicalWorkspaceProblems = canonicalWorkspaceProblemSyncStore.loadAll()
+
             Log.d("SyncV2", "Starting export to SnapshotBundle V2")
             return SnapshotBundle(
                 version = 2,
@@ -258,11 +273,13 @@ class FullBackupLocalDataSourceImpl
                 goals = goalDao.getAllRaw().map { it.toSnapshot() },
                 backlogItems = backlogItemDao.getAllRaw().map { it.toSnapshot() },
                 backlogOrders = backlogOrderDao.getAllRaw().map { it.toSnapshot() },
-                directionItems = directionDao.getAllRaw().map { it.toSnapshot() },
                 inbox = inboxRecordDao.getAllRaw().map { it.toSnapshot() },
                 logs = contextLogDao.getLegacyContextLogs().map { it.toSnapshot() },
                 canonicalExecutionLogs = canonicalExecutionLogSyncStore.loadAll(),
                 workspaceDirectionEntries = canonicalWorkspaceDirectionEntrySyncStore.loadAll(),
+                workspaceProblems = canonicalWorkspaceProblems.problems,
+                workspaceProblemWorkspaceRefs = canonicalWorkspaceProblems.workspaceRefs,
+                workspaceProblemAttachmentRefs = canonicalWorkspaceProblems.attachmentRefs,
                 artifacts = contextArtifactDao.getAllRaw().map { it.toSnapshot() },
                 // Knowledge Base
                 documents = noteDocumentDao.getAllDocumentsRaw().map { it.toSnapshot() },
@@ -342,7 +359,6 @@ class FullBackupLocalDataSourceImpl
                 // В ContextStructureDao є метод для отримання айтемів
                 projectStructureItems = contextStructureDao.getAllItemsSync().map { it.toSnapshot() },
                 contextInboxSortingRules = contextInboxSortingDao.getAllRaw().map { it.toSnapshot() },
-                contextKeyProblems = contextKeyProblemsDao.getAllRaw().map { it.toSnapshot() },
                 focusContextIntervals = focusContextIntervalDao.getAllRaw().map { it.toSnapshot() },
                 userStateIntervals = userStateIntervalDao.getAllRaw().map { it.toSnapshot() },
             )
@@ -464,8 +480,6 @@ class FullBackupLocalDataSourceImpl
             Log.d("SyncV2", "Inserting ContextParentLinks: ${bundle.contextParentLinks.size}")
             contextParentLinkDao.insertAll(bundle.contextParentLinks.map { it.toEntity() })
 
-            Log.d("SyncV2", "Inserting DirectionItems: ${bundle.directionItems.size}")
-            directionDao.insertAll(bundle.directionItems.map { it.toEntity() })
 
             val validContextIds = bundle.contexts.map { it.id }.toSet()
             val missionsToInsert =
@@ -620,9 +634,6 @@ class FullBackupLocalDataSourceImpl
             Log.d("SyncV2", "Inserting ContextInboxSorting: ${bundle.contextInboxSortingRules.size}")
             contextInboxSortingDao.insertAll(bundle.contextInboxSortingRules.map { it.toEntity() }) // Depends on Context
 
-            Log.d("SyncV2", "Inserting ContextKeyProblems: ${bundle.contextKeyProblems.size}")
-            contextKeyProblemsDao.insertAll(bundle.contextKeyProblems.map { it.toEntity() }) // Depends on Context
-
             Log.d("SyncV2", "Inserting FocusContextIntervals: ${bundle.focusContextIntervals.size}")
             focusContextIntervalDao.insertAll(bundle.focusContextIntervals.map { it.toEntity() })
 
@@ -745,6 +756,9 @@ class FullBackupLocalDataSourceImpl
             systemContextEnsurer.ensureAllSystemContextsExist()
             db.orientationDao().storeCanonicalPayload(bundle, merge = true, workspaceDao = db.workspaceDao())
             canonicalWorkspaceDirectionEntrySyncStore.mergeIncoming(bundle.workspaceDirectionEntries)
+            bundle.toCanonicalWorkspaceProblemSyncPayloadOrNull()?.let {
+                canonicalWorkspaceProblemSyncStore.mergeIncoming(it)
+            }
             canonicalExecutionLogSyncStore.mergeIncoming(bundle.canonicalExecutionLogs)
         }
 

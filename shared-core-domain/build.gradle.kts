@@ -24,6 +24,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":shared-core-data-models"))
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
         }
 
         commonTest.dependencies {

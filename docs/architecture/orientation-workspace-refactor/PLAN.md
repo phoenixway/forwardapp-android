@@ -7,6 +7,29 @@ The implementation direction is recorded in the canonical project roadmap.
 
 All implementation phases are constrained by [RULES.md](RULES.md).
 
+The 2026-08-30 project decision supersedes older Desktop-parity requirements in
+this plan for capabilities undergoing canonical migration. Such cutovers are
+Android-first; Desktop implementation is paused and is not a completion gate.
+
+Accepted capability simplification as of 2026-08-30:
+
+- canonical `KEY_PROBLEMS` v1 omits the semantically unspecified `dateTime`;
+  populated legacy values block cutover pending an explicit lossless mapping;
+- `ARTIFACT` is retired rather than canonicalized; existing text migrates to
+  ordinary connected notes/documents;
+- context `JOURNAL` / `journal_log` is retired rather than normalized; its
+  existing `NoteDocument` content remains as ordinary reachable document data;
+- neither retirement refers to Life Journal or EXECUTION_LOG.
+
+Accepted capability implementation shape:
+
+- build one narrow capability-instance kernel for shared identity, typed config,
+  lifecycle, canonical authorization, sync metadata, and contract validation;
+- classify every capability as presentation, owned collection, ordered
+  placement, policy, content host, or retired legacy;
+- keep content schemas and domain commands inside typed capability modules;
+- do not introduce a universal capability content table or polymorphic graph.
+
 ## Outcome
 
 ForwardApp should have:
@@ -17,11 +40,13 @@ ForwardApp should have:
   Arc Quests represented through that identity;
 - configurable Workspaces that can be attached to any Orientation or Aspect
   and expose backlog, key problems, inbox, direction, log, notes, attachments,
-  and other capabilities;
+  connections, documents, and other capabilities with distinct semantics;
 - Missions, Day Tasks, Focus items, and Activities linked to Orientations
   without copying strategic values;
 - unified filtering and reflection across Orientation types;
-- full preservation of existing Android/Desktop functionality and stored data.
+- full preservation of existing Android functionality and Android stored data;
+- no accidental changes to unrelated Desktop functionality, while migrated
+  capability support on Desktop is explicitly deferred.
 
 ## Delivery rules
 
@@ -31,14 +56,20 @@ ForwardApp should have:
    changes ownership.
 3. Do not dual-write two authorities without deterministic comparison and
    repair rules.
-4. Every new synced collection receives an explicit Desktop ownership and
-   transport policy in the same phase.
+4. Every new synced collection receives an explicit Android SnapshotBundle
+   ownership, merge, deletion, and acknowledgement policy in the same phase;
+   Desktop parity is not part of a migrated capability's Android cutover.
 5. Every migration has an old-database fixture, post-migration invariant checks,
    and backup/restore coverage before production cutover.
 6. Existing features are tested through behavior, not merely row counts.
-7. Legacy fields are removed only in the final cleanup phase.
+7. Capability legacy fields may be removed in their hard cutover after all
+   Android rows and readers/writers are accounted for; do not retain them for
+   deferred Desktop compatibility.
 8. No phase changes user-facing UI unless the user explicitly authorizes the
    specific UI scope.
+9. Retiring a redundant capability does not authorize deleting its user data;
+   text is migrated to the simplest canonical document/note representation and
+   reachability is verified before legacy cleanup.
 
 ## Phase 0 — Baseline and acceptance inventory
 
@@ -672,7 +703,7 @@ Every row must be verified before final cutover.
 | Aspects | identity, hierarchy, multi-membership, primary presentation, Workspace, filtering, reflection |
 | Workspace hierarchy | parent hierarchy, secondary appearances, ordering, focus and breadcrumbs |
 | Workspace operations | create, rename, move, copy, cut, paste, delete, restore, search |
-| Capabilities | backlog, inbox, direction, problems, log, journal, dashboard, connections, notes, artifacts, attachments |
+| Capabilities | backlog, inbox, direction, problems, execution log, dashboard, connections, notes, documents, attachments; retire Artifact/context Journal wrappers only after their text remains reachable |
 | Roles/configuration | presets, roleCode, capability enablement, default views |
 | Main Beacons | hierarchy, readiness, blocker, next action, meaning tests, levels, attachments |
 | Beacon Groups | own assessment, membership, member order, editor behavior |

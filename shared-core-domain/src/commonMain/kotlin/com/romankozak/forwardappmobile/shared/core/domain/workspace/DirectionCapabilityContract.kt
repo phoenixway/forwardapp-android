@@ -4,8 +4,20 @@ data class DirectionCapabilityConfigurationV1(
     val autoLinkChildWorkspaces: Boolean,
 )
 
-object DirectionCapabilityConfigurationCodec {
+object DirectionCapabilityConfigurationCodec : CapabilityConfigurationCodec {
     const val CURRENT_VERSION: Int = 1
+
+    override val currentVersion: Int = CURRENT_VERSION
+
+    override fun encodeDefault(): String =
+        encode(DirectionCapabilityConfigurationV1(autoLinkChildWorkspaces = true))
+
+    override fun validate(
+        version: Int,
+        raw: String,
+    ) {
+        decode(version, raw)
+    }
 
     fun encode(configuration: DirectionCapabilityConfigurationV1): String =
         "{\"autoLinkChildWorkspaces\":${configuration.autoLinkChildWorkspaces}}"

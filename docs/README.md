@@ -149,6 +149,34 @@ The following directories contain subsystem documentation:
   ordering, auto-link, clipboard, lifecycle, and bidirectional Desktop sync
   constraints that must be split before DIRECTION authority cutover.
 
+`architecture/orientation-workspace-refactor/REMAINING-CAPABILITIES-RESEARCH.md`
+- `CURRENT` for the verified source inventory and legacy ownership defects;
+  `PROPOSED` for target contracts and migration order.
+- Classifies the remaining capabilities as owned collections, placements,
+  documents, policies, or presentation; records per-capability migration gates
+  and the Android-first continuation after DIRECTION.
+
+`architecture/orientation-workspace-refactor/KEY-PROBLEMS-CAPABILITY-AUDIT.md`
+- `CURRENT` for the verified legacy payload boundary and implemented shared
+  typed model/config/parser/planner foundation; `PROPOSED` for persistence and
+  authority cutover.
+- Defines normalized Problem/ref ownership, fail-closed accounting, accepted
+  `dateTime` removal, and the safe parallel boundary with DIRECTION.
+
+`architecture/orientation-workspace-refactor/INBOX-CAPABILITY-AUDIT.md`
+- `CURRENT` for the verified legacy ownership/cache boundary and implemented
+  shared typed model/config/planner foundation; `PROPOSED` for persistence and
+  authority cutover.
+- Separates canonical Inbox content and owner-visibility config from the local
+  rebuildable hashtag association projection.
+
+`architecture/orientation-workspace-refactor/INBOX-SORTING-CAPABILITY-AUDIT.md`
+- `CURRENT` for the verified legacy policy boundary and implemented shared
+  typed config/parser/planner foundation; `PROPOSED` for persistence, apply
+  command, and authority cutover.
+- Defines sorting as cross-capability policy with command-scoped target
+  dependencies rather than content or an unconditional Inbox dependency.
+
 These directories currently contain a mixture of current, historical,
 proposed, and reference material.
 

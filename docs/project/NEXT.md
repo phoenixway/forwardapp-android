@@ -1,5 +1,20 @@
 # Next
 
+- DIRECTION hard cutover is `CURRENT / VERIFIED` at schema 156. Legacy
+  `direction_items`, runtime shadow materialization and
+  `SnapshotBundle.directionItems` are retired; canonical Orientation plus
+  `WorkspaceDirectionEntry` is the sole Android authority.
+
+- KEY_PROBLEMS hard cutover is `CURRENT / VERIFIED` at schema 157. Legacy
+  `context_key_problems` runtime persistence and `SnapshotBundle.contextKeyProblems`
+  authority are retired; typed Workspace Problem/ref rows plus the canonical
+  SnapshotBundle triplet are the sole Android authority. Desktop parity was not
+  a completion gate.
+
+- No next capability cutover is selected. Do not begin another capability
+  migration until the user explicitly approves which capability is next.
+
+
 Continue the non-UI compatibility boundary of Phase 6 after the canonical
 Workspace persistence foundation recorded in
 `PHASE6-FOUNDATION-IMPLEMENTATION.md`.
@@ -30,54 +45,15 @@ The next focused implementation should:
 - keep safe physical garbage collection of acknowledged `ContextLog`
   tombstones as separate deferred work; do not reintroduce physical retention
   deletion merely to bound table size;
-- do not choose `INBOX_SORTING` or `KEY_PROBLEMS` until their missing
-  lifecycle/version/tombstone contracts are designed explicitly;
-- use `DIRECTION-CAPABILITY-AUDIT.md` as the verified current boundary and
-  proposed split contract. The audit found that unlinked rows combine a
-  semantic DIRECTION Orientation with placement, while linked rows are
-  ambiguous: they may be generated Workspace shortcuts or manually linked
-  semantic Directions. Do not infer either meaning and do not add a
-  `workspaceId` to the current composite row as a false cutover;
-- retain the implemented typed DIRECTION configuration v1 projection, pure
-  legacy-row classifier, and bootstrap-v3 reversible quarantine/restore for
-  ambiguous linked shadows;
-- treat schema-155 `WorkspaceDirectionEntry` persistence and the
-  Context-backed compatibility materializer as implemented current foundation.
-  Legacy Direction row ids remain stable compatibility entry ids; unresolved
-  owner/target/semantic provenance fails closed by tombstoning only the
-  legacy-owned entry shadow and persisting dedicated diagnostics;
-- retain the isolated Android Direction-entry transport core:
-  `WorkspaceDirectionEntrySnapshot` and
-  `CanonicalWorkspaceDirectionEntrySyncStore`. It may export both provenance
-  partitions, but Android ingress accepts only `CANONICAL_ONLY`; legacy
-  projections remain owned by `direction_items` plus the materializer.
-  Freshness is version, then `updatedAt`, then tombstone on an exact tie, with
-  exact-version acknowledgement and immutable owner/capability/target identity;
-- treat the read-only canonical Direction wire as implemented current state:
-  nullable `workspaceDirectionEntries` participates in full SnapshotBundle,
-  restore/merge, changed-since Wi-Fi delta, dirty push, exact-version ACK, and
-  Desktop Android-read-only storage. Desktop must continue stripping it from
-  Android-bound payloads;
-- implement the accepted Android-first DIRECTION authority cutover. Use a
-  fail-closed Room migration that accounts for every existing live/tombstoned
-  `direction_items` row in canonical Orientation + WorkspaceDirectionEntry
-  state before dropping the legacy table. Linked rows preserve Workspace
-  navigation without guessing semantic Orientation intent;
-- after that migration, retire Android runtime reads/writes through
-  `DirectionRepository` / `direction_items`, retire the runtime shadow
-  materializer, and make both `LEGACY_DIRECTION_ITEM` and `CANONICAL_ONLY`
-  provenance partitions canonical-owned;
-- keep `SnapshotBundle.directionItems` only as the transitional current-format
-  DIRECTION representation until the Android authority cutover. It is not a
-  legacy sync-v1 compatibility path. After the accepted migration proves every
-  legacy row accounted for, remove this collection and use only canonical
-  Orientation / WorkspaceDirectionEntry state;
+- treat `KEY_PROBLEMS` as complete/current on Android at schema 157; preserve its
+  frozen `156 -> 157` migration and canonical repository/sync ownership;
+- retain the implemented INBOX shared foundation, but do not start its Android
+  authority cutover until explicitly approved;
+- retain the implemented INBOX_SORTING shared foundation; do not start its
+  runtime cutover without explicit approval, and it still requires canonical
+  order ownership for every selected target;
 - allow Desktop DIRECTION authoring to lag temporarily. Old Desktop
   `directionItems` writes must not regain Android authority after the cutover;
-- before any write-authority cutover, execute the Android planner/Room transport
-  tests in an environment where the JDK security configuration is available.
-  Desktop read-only wire tests currently pass 14/14 and TypeScript checking
-  passes;
 - keep Context as runtime authority for Context-backed Workspaces and preserve
   every existing capability until a separately reviewed cutover proves parity;
 - do not restore a generic graph-level capability writer.

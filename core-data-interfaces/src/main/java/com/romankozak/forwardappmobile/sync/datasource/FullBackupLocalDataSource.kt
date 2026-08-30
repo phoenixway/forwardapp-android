@@ -4,6 +4,12 @@ import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.CanonicalExecutionLogSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceProblemAttachmentRefSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceProblemAttachmentRefSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceProblemSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceProblemSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceProblemWorkspaceRefSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceProblemWorkspaceRefSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.CanonicalRecurringSeriesSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayThemeAssignmentDocumentSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayThemeSnapshot
@@ -78,6 +84,18 @@ data class CanonicalOrientationSyncAck(
     val savedViews: List<CanonicalOrientationSyncVersion> = emptyList(),
 )
 
+data class CanonicalWorkspaceProblemSyncPayload(
+    val problems: List<WorkspaceProblemSnapshot> = emptyList(),
+    val workspaceRefs: List<WorkspaceProblemWorkspaceRefSnapshot> = emptyList(),
+    val attachmentRefs: List<WorkspaceProblemAttachmentRefSnapshot> = emptyList(),
+)
+
+data class CanonicalWorkspaceProblemSyncAck(
+    val problems: List<WorkspaceProblemSyncVersion> = emptyList(),
+    val workspaceRefs: List<WorkspaceProblemWorkspaceRefSyncVersion> = emptyList(),
+    val attachmentRefs: List<WorkspaceProblemAttachmentRefSyncVersion> = emptyList(),
+)
+
 interface FullBackupLocalDataSource {
     // === Legacy Methods ===
     suspend fun clearAllTables()
@@ -111,6 +129,12 @@ interface FullBackupLocalDataSource {
     suspend fun loadCanonicalWorkspaceDirectionEntriesChangedSince(timestamp: Long): List<WorkspaceDirectionEntrySnapshot>
 
     suspend fun markCanonicalWorkspaceDirectionEntriesSynced(entries: List<WorkspaceDirectionEntrySyncVersion>)
+
+    suspend fun loadUnsyncedCanonicalWorkspaceProblems(): CanonicalWorkspaceProblemSyncPayload
+
+    suspend fun loadCanonicalWorkspaceProblemsChangedSince(timestamp: Long): CanonicalWorkspaceProblemSyncPayload
+
+    suspend fun markCanonicalWorkspaceProblemsSynced(ack: CanonicalWorkspaceProblemSyncAck)
 
     suspend fun restoreSettings(settings: Map<String, String>)
 

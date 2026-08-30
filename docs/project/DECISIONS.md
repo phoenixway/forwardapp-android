@@ -147,6 +147,13 @@ domain. Android cache maintenance may optimize lookup but must remain
 rebuildable from canonical inputs. Desktop sync must keep those canonical inputs
 fresh rather than transporting Android cache rows.
 
+For the canonical INBOX capability, owner visibility is typed capability config
+(`KEEP_VISIBLE` or `HIDE_WHEN_ASSOCIATED`), not record content. Canonical Inbox
+rows omit `hideInOwnerInbox`; a live legacy true value blocks hard cutover until
+review so visible behavior cannot change silently. Canonical order is zero-based
+inside the capability instance, while migration preserves the current legacy
+display sequence deterministically.
+
 ## 2026-08-28 - Desktop sync collection ownership is explicit
 
 Decision:
@@ -266,12 +273,13 @@ decision supersedes the earlier possibility of retaining backward parsing:
 old sync-v1 backup/client formats are intentionally unsupported and no
 DatabaseContent migration ingress remains.
 
-`SnapshotBundle.directionItems` is a different concern. It remains temporarily
-as the current-format DIRECTION representation until the accepted Android
-DIRECTION authority cutover accounts for the legacy `direction_items` table and
-moves Direction state fully to canonical Orientation +
-WorkspaceDirectionEntry. DIRECTION must not reintroduce DatabaseContent
-compatibility work.
+Implementation status: **CURRENT / VERIFIED** as of 2026-08-30.
+
+The Android schema-156 DIRECTION hard cutover is complete.
+`SnapshotBundle.directionItems` and legacy `direction_items` persistence are
+removed; canonical Orientation + `WorkspaceDirectionEntry` is the active
+Android persistence and transport contract. DIRECTION must not reintroduce
+DatabaseContent compatibility work.
 
 Desktop DIRECTION compatibility is intentionally allowed to lag behind the
 Android cutover. Desktop will be migrated afterward to author the canonical
@@ -308,9 +316,8 @@ lacks a representation in the current full `SnapshotBundle` model:
   `recurringSeries`;
 - legacy `dayThemeDocuments` has already been replaced by canonical Day Theme
   collections;
-- legacy `directionItems` is transitional and will be replaced by canonical
-  Orientation + WorkspaceDirectionEntry during the accepted Android-first
-  DIRECTION cutover.
+- legacy `directionItems` was transitional and is now replaced on Android by
+  canonical Orientation + WorkspaceDirectionEntry at schema 156.
 
 The accepted transport shape is:
 
@@ -339,6 +346,180 @@ The transport/mechanics retirement described above is complete:
 - `:app:assembleDebug`, targeted canonical Wi-Fi sync tests, and
   `SyncFileServiceSnapshotTest` are green.
 
-The still-present `SnapshotBundle.directionItems` field belongs to the separate
-DIRECTION authority migration and does not constitute a second sync transport
-model.
+The separate DIRECTION authority migration is now complete at schema 156.
+`SnapshotBundle.directionItems` is removed; `workspaceDirectionEntries` is the
+current canonical Direction placement collection.
+
+## 2026-08-30 - Capability cutovers are Android-first and do not wait for Desktop parity
+
+Decision:
+
+The Android migration of each Workspace capability uses a hard canonical
+authority cutover after fail-closed data accounting. It does not preserve or
+extend Desktop compatibility for that migrated capability and does not wait for
+a corresponding Desktop implementation.
+
+For a capability being cut over:
+
+- Android persistence, repositories, backup, restore, merge, delta, and exact
+  acknowledgement move to the canonical capability contract;
+- every legacy Android row, including tombstones, must be accounted for before
+  retired persistence is removed;
+- no new Desktop persistence, adapter, compatibility writer, transport alias,
+  or UI work is part of the Android capability migration;
+- old Desktop writes for the retired legacy collection must not regain Android
+  authority after cutover;
+- Desktop support may be implemented later as a separate canonical client
+  migration;
+- unrelated Desktop features and unrelated SnapshotBundle collections remain
+  outside the capability cutover.
+
+SnapshotBundle remains the only sync model. This decision does not permit a
+Desktop bridge through `DatabaseContent`, sync v1, a shadow legacy collection,
+or a long-lived dual-write path.
+
+Rationale:
+
+Requiring simultaneous Desktop parity preserved legacy ownership, multiplied
+adapters and tests, and made removal of obsolete persistence contingent on a
+paused client. Android-first cutovers make each capability converge on one
+model and one writer boundary. Data safety is provided by migration accounting,
+provenance validation, tombstones, and fail-closed behavior rather than by
+retaining obsolete cross-client authority.
+
+## 2026-08-30 - Retire ARTIFACT and context JOURNAL capabilities; omit KEY_PROBLEMS dateTime
+
+Decision:
+
+The canonical `KEY_PROBLEMS` v1 item model does not contain a generic
+`dateTime` field. No temporal meaning has a current demonstrated requirement,
+and a semantically unspecified timestamp must not become permanent canonical
+schema. A future concrete requirement may introduce a specifically named field
+or relation such as a deadline, review time, or schedule link.
+
+Legacy migration must not silently discard a populated `dateTime`. Preflight
+counts and reports all non-null values. If any exist, the hard cutover remains
+blocked until their meaning and lossless mapping are explicitly decided. If
+none exist, the field is omitted from the canonical schema.
+
+`ARTIFACT` is retired as a target Workspace capability. It predates the current
+document/note and connection model and no longer owns a distinct product
+concept. No canonical Artifact entity, singleton binding, repository, or UI is
+to be built. Existing non-empty `ContextArtifact` text is preserved by the
+simplest lossless migration into an ordinary note/document associated with the
+owning Workspace through the normal connection/placement model. Duplicate
+legacy artifact rows are diagnosed and preserved individually rather than
+arbitrarily collapsed. Legacy Artifact persistence and enablement are removed
+only after accounting proves the migrated text remains reachable.
+
+The Context capability `JOURNAL` / legacy `journal_log` is also retired. It is
+not Life Journal and must not become a second structured event-log model. Its
+current content is already a `NoteDocument`; migration preserves that document
+as an ordinary note/document and removes only its special system-journal role,
+capability instance/configuration, and legacy-specific runtime paths after
+reachability is proven. Existing text is not deleted merely because the
+capability is retired.
+
+The `ARTIFACT` and `JOURNAL` entries in DOMAIN-CONTRACT v1 remain historical
+legacy-mapping evidence but are superseded as target capability types by this
+decision. A later machine-readable contract revision must mark them retired;
+new code must not activate or canonicalize them in the meantime.
+
+Rationale:
+
+Artifact and context Journal duplicate the more general document/note plus
+Workspace-connection composition. Preserving them as capabilities would add
+repositories, lifecycle, sync, and UI concepts without distinct semantics.
+Retiring the capability wrappers while losslessly retaining their text reduces
+the ontology and avoids creating another permanent compatibility layer.
+
+For canonical `KEY_PROBLEMS`, related Workspace and Attachment references are
+unordered typed sets. A target tombstone preserves the historical relation;
+deleting the owning Problem tombstones its live refs transactionally.
+`RESOLVED` and `CLOSED` remain live statuses rather than deletion aliases, and
+an update command must reject an absent or tombstoned Problem id instead of
+implicitly creating or resurrecting it.
+
+## 2026-08-30 - Capability kernel with typed archetypes, not a universal content store
+
+Decision:
+
+Workspace capabilities share one architectural kernel and a closed set of
+data-shape archetypes. They do not share one universal content table,
+polymorphic graph, EAV model, or opaque `payloadJson` repository.
+
+The kernel owns only cross-capability invariants:
+
+- capability definition and archetype registry;
+- stable instance identity and default-instance convention;
+- configuration codec/version boundary;
+- enable, disable, archive, non-activating restore, and metadata-delete state
+  transitions;
+- canonical Workspace authorization and provenance checks;
+- version/timestamp/tombstone mutation;
+- whole-contract instance validation;
+- reusable sync freshness, migration-accounting, and contract-test patterns.
+
+Workspace authorization is explicit per typed module. Before authority
+cutover, canonical commands may be restricted to `CANONICAL_ONLY`. After a
+capability's accepted hard cutover, that module may opt into canonical
+authority for active Context-backed Workspaces as well; provenance is not a
+permanent blanket ban on already migrated capability state.
+
+Initial archetypes are:
+
+- `PRESENTATION` — metadata/configuration without owned content;
+- `OWNED_COLLECTION` — independently identified capability-owned records;
+- `ORDERED_PLACEMENT` — ordered appearances or links to separately owned
+  targets;
+- `POLICY` — configuration and commands over other capability owners;
+- `CONTENT_HOST` — typed note/document/attachment hosting surfaces;
+- `RETIRED_LEGACY` — migration input that must not become a target capability.
+
+Capability modules still own their typed content schema, target constraints,
+relations, deletion semantics, search/navigation contribution, cross-domain
+commands, and migrations. A shared implementation may provide ordering or sync
+algorithms, but it cannot decide domain semantics.
+
+Rationale:
+
+Copying complete repositories per capability duplicates lifecycle and sync
+rules. Conversely, putting Problems, Inbox records, Backlog placements,
+Connections, and policies into one generic row removes referential integrity,
+type-safe queries, and meaningful deletion contracts. A small kernel plus a
+few explicit archetypes unifies what is genuinely invariant while preserving
+domain-specific ownership.
+
+## 2026-08-30 - INBOX_SORTING is typed policy with command-scoped dependencies
+
+Decision:
+
+`INBOX_SORTING` owns versioned sorting configuration, not the collections or
+order rows it affects. Its target vocabulary is `BACKLOG`, `INBOX`, and
+`CONNECTIONS`; legacy `attachments` is an explicit migration alias for
+`CONNECTIONS`.
+
+The capability has no unconditional dependency on `INBOX`. An eventual apply
+command must instead require the active capability corresponding to the
+selected target and delegate the reorder transaction to that capability's
+canonical owner. Disabling, archiving, restoring, or deleting the sorting
+policy must not reorder or delete target content.
+
+Configuration v1 is a strict typed list with at most one rule per target.
+Absent rules mean `NEWEST`. Invalid legacy lines, unknown modes, duplicate
+effective targets, unresolved owners, and multiple legacy rows for one
+Workspace block cutover rather than being silently discarded.
+
+Implementation status:
+
+The shared typed codec, target/mode contract, conditional dependency mapping,
+strict legacy planner, and fail-closed accounting are current. Room,
+SnapshotBundle, runtime apply behavior, and UI remain legacy and unchanged.
+Authority cutover waits until every allowed target has a canonical order owner.
+
+Rationale:
+
+A static Inbox dependency both over-constrains non-Inbox policies and fails to
+protect Backlog/Connection mutation. Treating sorting as content would also
+create false ownership. Command-scoped dependency checks preserve capability
+boundaries and let each target remain authoritative for its own order.

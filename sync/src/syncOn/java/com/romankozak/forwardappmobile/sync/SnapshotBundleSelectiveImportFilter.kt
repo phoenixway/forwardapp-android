@@ -130,10 +130,11 @@ class SnapshotBundleSelectiveImportFilter {
             contextConfigurations = emptyList(),
             projectStructureItems = emptyList(),
             contextInboxSortingRules = emptyList(),
-            contextKeyProblems = emptyList(),
+            workspaceProblems = null,
+            workspaceProblemWorkspaceRefs = null,
+            workspaceProblemAttachmentRefs = null,
             focusContextIntervals = emptyList(),
             userStateIntervals = emptyList(),
-            directionItems = emptyList(),
         )
     }
 }

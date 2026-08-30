@@ -76,6 +76,23 @@ enum class WorkspaceCapabilityState {
 }
 
 @JsExport
+enum class WorkspaceCapabilityArchetype {
+    PRESENTATION,
+    OWNED_COLLECTION,
+    ORDERED_PLACEMENT,
+    POLICY,
+    CONTENT_HOST,
+    RETIRED_LEGACY,
+}
+
+@JsExport
+enum class WorkspaceCapabilityAvailability {
+    TARGET,
+    RESERVED,
+    RETIRED,
+}
+
+@JsExport
 data class WorkspaceCapabilityInstance(
     override val id: String,
     override val createdAt: Long,
@@ -95,6 +112,8 @@ data class WorkspaceCapabilityInstance(
 @JsExport
 data class WorkspaceCapabilityDefinition(
     val type: WorkspaceCapabilityType,
+    val archetype: WorkspaceCapabilityArchetype,
+    val availability: WorkspaceCapabilityAvailability,
     val maxActiveInstances: Int,
     val requiredTypes: List<WorkspaceCapabilityType>,
     val legacyIds: List<String>,

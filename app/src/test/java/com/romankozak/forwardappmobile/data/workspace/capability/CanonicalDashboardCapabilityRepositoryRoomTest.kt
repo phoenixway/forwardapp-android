@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.database.AppDatabase
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.DashboardCapabilityConfigurationCodec
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
@@ -20,6 +21,59 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class CanonicalDashboardCapabilityRepositoryRoomTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
+
+    @Test
+    fun `kernel rejects retired capability activation`() = runBlocking {
+        val database = database()
+        try {
+            val workspaceId = "canonical"
+            database.workspaceDao().upsert(listOf(canonicalWorkspace(workspaceId)))
+
+            val failure =
+                runCatching {
+                    instanceStore(database).enable(
+                        spec =
+                            CanonicalCapabilityInstanceSpec(
+                                type = WorkspaceCapabilityType.ARTIFACT,
+                                configurationCodec = DashboardCapabilityConfigurationCodec,
+                            ),
+                        workspaceId = workspaceId,
+                        now = 10L,
+                    )
+                }.exceptionOrNull()
+
+            assertTrue(failure is IllegalArgumentException)
+            assertTrue(database.orientationDao().getAllWorkspaceCapabilities().isEmpty())
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `kernel permits Context backed Workspace only with explicit cutover authority`() = runBlocking {
+        val database = database()
+        try {
+            val workspaceId = "legacy"
+            database.workspaceDao().upsert(listOf(contextBackedWorkspace(workspaceId)))
+
+            val id =
+                instanceStore(database).enable(
+                    spec =
+                        CanonicalCapabilityInstanceSpec(
+                            type = WorkspaceCapabilityType.DASHBOARD,
+                            configurationCodec = DashboardCapabilityConfigurationCodec,
+                            workspaceAuthority =
+                                CapabilityWorkspaceAuthority.ALL_ACTIVE_WORKSPACES_AFTER_CUTOVER,
+                        ),
+                    workspaceId = workspaceId,
+                    now = 10L,
+                )
+
+            assertEquals(id, dashboard(database, workspaceId).id)
+        } finally {
+            database.close()
+        }
+    }
 
     @Test
     fun `dashboard lifecycle reuses logical instance and restore is non activating`() = runBlocking {
@@ -180,6 +234,11 @@ class CanonicalDashboardCapabilityRepositoryRoomTest {
 
     private fun repository(database: AppDatabase) =
         CanonicalDashboardCapabilityRepository(
+            instanceStore = instanceStore(database),
+        )
+
+    private fun instanceStore(database: AppDatabase) =
+        CanonicalCapabilityInstanceStore(
             database = database,
             workspaceDao = database.workspaceDao(),
             orientationDao = database.orientationDao(),

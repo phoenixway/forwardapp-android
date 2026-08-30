@@ -8,13 +8,11 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextInboxSortingEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextKeyProblemsEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextParentLink
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfile
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProfileItem
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
-import com.romankozak.forwardappmobile.core.data.models.entities.DirectionItemEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.FocusContextIntervalEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
 import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
@@ -76,13 +74,11 @@ import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.B
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.BacklogOrderSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextConfigurationSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextInboxSortingSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextKeyProblemsSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextLogSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextParentLinkSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextRoleProfileItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextRoleProfileSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.ContextStructureItemSnapshot
-import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.DirectionItemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.InboxRecordSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.LinkItemEntitySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.RelatedLinkSnapshot
@@ -148,31 +144,7 @@ fun ContextParentLinkSnapshot.toEntity(): ContextParentLink =
         version = version,
     )
 
-fun DirectionItemEntity.toSnapshot(): DirectionItemSnapshot =
-    DirectionItemSnapshot(
-        id = id,
-        contextId = contextId,
-        text = text,
-        linkedContextId = linkedContextId,
-        itemOrder = itemOrder,
-        updatedAt = updatedAt,
-        syncedAt = syncedAt,
-        isDeleted = isDeleted,
-        version = version,
-    )
 
-fun DirectionItemSnapshot.toEntity(): DirectionItemEntity =
-    DirectionItemEntity(
-        id = id,
-        contextId = contextId,
-        text = text,
-        linkedContextId = linkedContextId,
-        itemOrder = itemOrder,
-        updatedAt = updatedAt,
-        syncedAt = syncedAt,
-        isDeleted = isDeleted,
-        version = version,
-    )
 
 fun LegacyNoteEntity.toSnapshot(): LegacyNoteSnapshot = LegacyNoteSnapshot(
     id = id,
@@ -504,18 +476,6 @@ fun ContextInboxSortingEntity.toSnapshot(): ContextInboxSortingSnapshot = Contex
 fun ContextInboxSortingSnapshot.toEntity(): ContextInboxSortingEntity = ContextInboxSortingEntity(
     contextId = contextId,
     rulesText = rulesText,
-    updatedAt = updatedAt,
-)
-
-fun ContextKeyProblemsEntity.toSnapshot(): ContextKeyProblemsSnapshot = ContextKeyProblemsSnapshot(
-    contextId = contextId,
-    payloadJson = payloadJson,
-    updatedAt = updatedAt,
-)
-
-fun ContextKeyProblemsSnapshot.toEntity(): ContextKeyProblemsEntity = ContextKeyProblemsEntity(
-    contextId = contextId,
-    payloadJson = payloadJson,
     updatedAt = updatedAt,
 )
 

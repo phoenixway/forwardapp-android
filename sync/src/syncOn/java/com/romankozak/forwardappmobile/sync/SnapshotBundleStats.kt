@@ -8,7 +8,7 @@ internal fun SnapshotBundle.importItemCount(): Int =
         goals.size +
         backlogItems.size +
         backlogOrders.size +
-        directionItems.size +
+        workspaceDirectionEntries.orEmpty().size +
         notes.size +
         documents.size +
         musicNotes.size +
@@ -60,7 +60,9 @@ internal fun SnapshotBundle.importItemCount(): Int =
         contextConfigurations.size +
         projectStructureItems.size +
         contextInboxSortingRules.size +
-        contextKeyProblems.size +
+        workspaceProblems.orEmpty().size +
+        workspaceProblemWorkspaceRefs.orEmpty().size +
+        workspaceProblemAttachmentRefs.orEmpty().size +
         focusContextIntervals.size +
         userStateIntervals.size +
         if (dayManagementRuntimeState != null) 1 else 0

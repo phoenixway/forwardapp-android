@@ -2,6 +2,8 @@
 
 package com.romankozak.forwardappmobile.core.sync
 
+import com.romankozak.forwardappmobile.data.workspace.capability.WorkspaceProblemDao
+
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.sync.LocalSyncCrossRefVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.LocalSyncSelection
@@ -40,7 +42,6 @@ class SyncLocalDataSourceImpl
         private val contextParentLinkDao: ContextParentLinkDao,
         private val listItemDao: ListItemDao,
         private val linkItemDao: LinkItemDao,
-        private val directionDao: DirectionDao,
         private val activityRecordDao: ActivityRecordDao,
         private val inboxRecordDao: InboxRecordDao,
         private val contextManagementDao: ContextManagementDao,
@@ -74,7 +75,7 @@ class SyncLocalDataSourceImpl
         private val structurePresetItemDao: StructurePresetItemDao,
         private val contextStructureDao: ContextStructureDao,
         private val contextInboxSortingDao: ContextInboxSortingDao,
-        private val contextKeyProblemsDao: ContextKeyProblemsDao,
+        private val workspaceProblemDao: WorkspaceProblemDao,
         private val focusContextIntervalDao: FocusContextIntervalDao,
         private val userStateIntervalDao: UserStateIntervalDao,
         private val mainBeaconDao: MainBeaconDao,
@@ -91,7 +92,6 @@ class SyncLocalDataSourceImpl
             val checklistItems = checklistDao.getAllChecklistItems()
             val activityRecords = activityRecordDao.getAllRecordsStream().first()
             val linkItemEntities = linkItemDao.getAllEntities()
-            val directionItems = directionDao.getAllRaw()
             val inboxRecords = inboxRecordDao.getAll()
             val contextLogs = contextManagementDao.getLegacyContextLogs()
             val scripts = scriptDao.getAll()
@@ -130,7 +130,6 @@ class SyncLocalDataSourceImpl
                 checklistItems = versions(checklistItems, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
                 activityRecords = versions(activityRecords, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
                 linkItemEntities = versions(linkItemEntities, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
-                directionItems = versions(directionItems, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
                 inbox = versions(inboxRecords, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
                 logs = versions(contextLogs, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
                 scripts = versions(scripts, { it.id }, { it.version }, { it.syncedAt }, { it.updatedTs() }, { it.isDeleted }),
@@ -165,11 +164,9 @@ class SyncLocalDataSourceImpl
             val musicNotes = musicNoteDao.getAll()
             val attachments = attachmentDao.getAll()
             val contextAttachmentCrossRefs = attachmentDao.getAllContextAttachmentCrossRefs()
-            val directionItems = directionDao.getAllRaw()
             val inboxRecords = inboxRecordDao.getAll()
             val scripts = scriptDao.getAll()
             val contextInboxSortingRules = contextInboxSortingDao.getAllRaw()
-            val contextKeyProblems = contextKeyProblemsDao.getAllRaw()
             val focusContextIntervals = focusContextIntervalDao.getAllRaw()
             val userStateIntervals = userStateIntervalDao.getAllRaw()
             val dayPlans = dayPlanDao.getAllPlansSync()
@@ -231,18 +228,12 @@ class SyncLocalDataSourceImpl
                     musicNotes.filter { it.updatedTs() > timestamp }.map { it.toSnapshot() },
                 attachments = changedAttachments.map { it.toSnapshot() },
                 crossRefs = selectedCrossRefs.map { it.toSnapshot() },
-                directionItems =
-                    directionItems.filter { it.updatedTs() > timestamp }.map { it.toSnapshot() },
                 inbox =
                     inboxRecords.filter { it.updatedTs() > timestamp }.map { it.toSnapshot() },
                 scripts =
                     scripts.filter { it.updatedTs() > timestamp }.map { it.toSnapshot() },
                 contextInboxSortingRules =
                     contextInboxSortingRules
-                        .filter { it.updatedAt > timestamp }
-                        .map { it.toSnapshot() },
-                contextKeyProblems =
-                    contextKeyProblems
                         .filter { it.updatedAt > timestamp }
                         .map { it.toSnapshot() },
                 focusContextIntervals =
@@ -387,7 +378,6 @@ class SyncLocalDataSourceImpl
                 val checklistItems = checklistDao.getAllChecklistItems()
                 val activityRecords = activityRecordDao.getAllRecordsStream().first()
                 val linkItemEntities = linkItemDao.getAllEntities()
-                val directionItems = directionDao.getAllRaw()
                 val inboxRecords = inboxRecordDao.getAll()
                 val contextLogs = contextManagementDao.getLegacyContextLogs()
                 val scripts = scriptDao.getAll()
@@ -416,7 +406,6 @@ class SyncLocalDataSourceImpl
                 val checklistItemVersions = versions(selection.checklistItems)
                 val activityRecordVersions = versions(selection.activityRecords)
                 val linkVersions = versions(selection.linkItemEntities)
-                val directionVersions = versions(selection.directionItems)
                 val inboxVersions = versions(selection.inbox)
                 val logVersions = versions(selection.logs)
                 val scriptVersions = versions(selection.scripts)
@@ -468,9 +457,6 @@ class SyncLocalDataSourceImpl
                 )
                 linkItemDao.insertAll(
                     linkItemEntities.filter { linkVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
-                )
-                directionDao.updateAll(
-                    directionItems.filter { directionVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
                 )
                 inboxRecordDao.insertAll(
                     inboxRecords.filter { inboxVersions[it.id] == it.version }.map { it.copy(syncedAt = ts) },
@@ -556,13 +542,14 @@ class SyncLocalDataSourceImpl
                 contextStructureDao.deleteAllItems()
                 contextStructureDao.deleteAllStructures()
                 contextInboxSortingDao.deleteAll()
-                contextKeyProblemsDao.deleteAll()
+                workspaceProblemDao.deleteAllAttachmentRefs()
+                workspaceProblemDao.deleteAllWorkspaceRefs()
+                workspaceProblemDao.deleteAllProblems()
                 focusContextIntervalDao.deleteAll()
                 userStateIntervalDao.deleteAll()
                 systemAppDao.deleteAll()
                 recentItemDao.deleteAll()
                 scriptDao.deleteAll()
-                directionDao.deleteAll()
                 contextDao.deleteAll()
                 goalDao.deleteAll()
             }
