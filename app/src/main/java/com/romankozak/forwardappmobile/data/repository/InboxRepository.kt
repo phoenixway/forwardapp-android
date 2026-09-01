@@ -1,68 +1,52 @@
 package com.romankozak.forwardappmobile.data.repository
+
 import androidx.room.Transaction
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecord
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceInboxRecordEntity
 import com.romankozak.forwardappmobile.data.logic.InboxAssociationCache
-import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalInboxRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordLinkDao
 import kotlinx.coroutines.flow.Flow
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/** Legacy-facing adapter over the canonical Workspace-owned INBOX collection. */
 @Singleton
 class InboxRepository
     @Inject
     constructor(
-        private val inboxRecordDao: InboxRecordDao,
+        private val canonicalRepository: CanonicalInboxRepository,
         private val inboxRecordLinkDao: InboxRecordLinkDao,
         private val goalRepository: GoalRepository,
         private val inboxAssociationCache: InboxAssociationCache,
     ) {
-        suspend fun getInboxRecordById(id: String): InboxRecord? = inboxRecordDao.getRecordById(id)
+        suspend fun getInboxRecordById(id: String): InboxRecord? =
+            canonicalRepository.getRecord(id)?.toCompatibility()
 
-        fun getInboxRecordsStream(contextId: String): Flow<List<InboxRecord>> = inboxRecordLinkDao.getRecordsForContextStream(contextId)
+        fun getInboxRecordsStream(contextId: String): Flow<List<InboxRecord>> =
+            inboxRecordLinkDao.getRecordsForContextStream(contextId)
 
         suspend fun addInboxRecord(
             text: String,
             contextId: String,
         ): String {
-            val currentTime = System.currentTimeMillis()
-            val newRecord =
-                InboxRecord(
-                    id = UUID.randomUUID().toString(),
-                    contextId = contextId,
-                    text = text,
-                    createdAt = currentTime,
-                    order = -currentTime,
-                    updatedAt = currentTime,
-                    syncedAt = null,
-                    hideInOwnerInbox = false,
-                    version = 1,
-            )
-            inboxRecordDao.insert(newRecord)
-            inboxAssociationCache.refresh(newRecord)
-            return newRecord.id
+            val id = canonicalRepository.createRecord(contextId, text)
+            canonicalRepository.getRecord(id)?.toCompatibility()?.let { inboxAssociationCache.refresh(it) }
+            return id
         }
 
         suspend fun updateInboxRecord(record: InboxRecord) {
-            val updatedAt = System.currentTimeMillis()
-            val persistedRecord =
-                record.copy(
-                    updatedAt = updatedAt,
-                    syncedAt = null,
-                    hideInOwnerInbox = false,
-                    version = record.version + 1,
-                )
-            inboxRecordDao.update(persistedRecord)
-            inboxAssociationCache.refresh(persistedRecord)
+            canonicalRepository.updateRecord(record.id, record.text)
+            canonicalRepository.getRecord(record.id)?.toCompatibility()?.let { inboxAssociationCache.refresh(it) }
         }
 
-        suspend fun getInboxRecordsForContext(contextId: String): List<InboxRecord> = inboxRecordLinkDao.getRecordsForContext(contextId)
+        suspend fun getInboxRecordsForContext(contextId: String): List<InboxRecord> =
+            inboxRecordLinkDao.getRecordsForContext(contextId)
 
         suspend fun getInboxRecordsByIds(recordIds: List<String>): List<InboxRecord> {
             if (recordIds.isEmpty()) return emptyList()
-            val byId = inboxRecordDao.getAll().associateBy { it.id }
-            return recordIds.mapNotNull(byId::get)
+            val byId = canonicalRepository.getRecordsByIds(recordIds).associateBy { it.id }
+            return recordIds.mapNotNull { byId[it]?.toCompatibility() }
         }
 
         suspend fun updateInboxRecordsOrder(
@@ -70,52 +54,26 @@ class InboxRepository
             orders: Map<String, Long>,
         ) {
             if (orders.isEmpty()) return
-            val now = System.currentTimeMillis()
-            val existing = inboxRecordDao.getOwnedRecordsForContext(contextId)
-            existing.forEach { record ->
-                val nextOrder = orders[record.id] ?: return@forEach
-                if (record.order == nextOrder) return@forEach
-                inboxRecordDao.update(
-                    record.copy(
-                        order = nextOrder,
-                        updatedAt = now,
-                        syncedAt = null,
-                        version = record.version + 1,
-                    ),
-                )
-            }
-        }
-
-        private suspend fun tombstoneInboxRecord(recordId: String) {
-            val record = inboxRecordDao.getRecordById(recordId)
-            inboxAssociationCache.remove(recordId)
-
-            if (record == null || record.isDeleted) return
-
-            val previousUpdatedAt = record.updatedAt ?: record.createdAt
-            val tombstoneUpdatedAt =
-                maxOf(
-                    System.currentTimeMillis(),
-                    previousUpdatedAt + 1,
-                )
-
-            inboxRecordDao.update(
-                record.copy(
-                    updatedAt = tombstoneUpdatedAt,
-                    syncedAt = null,
-                    isDeleted = true,
-                    version = record.version + 1,
-                ),
-            )
+            val orderedIds =
+                canonicalRepository.getRecords(contextId)
+                    .sortedWith(compareBy<WorkspaceInboxRecordEntity> { orders[it.id] ?: it.recordOrder }.thenBy { it.id })
+                    .map { it.id }
+            canonicalRepository.reorder(contextId, orderedIds)
         }
 
         suspend fun deleteInboxRecordById(recordId: String) {
-            tombstoneInboxRecord(recordId)
+            inboxAssociationCache.remove(recordId)
+            val record = canonicalRepository.getRecord(recordId) ?: return
+            if (record.isDeleted) return
+            canonicalRepository.tombstoneRecord(
+                id = recordId,
+                now = maxOf(System.currentTimeMillis(), record.updatedAt + 1L),
+            )
         }
 
         suspend fun deleteInboxRecordsByIds(recordIds: List<String>): Int {
             val uniqueIds = recordIds.distinct()
-            uniqueIds.forEach { tombstoneInboxRecord(it) }
+            uniqueIds.forEach { deleteInboxRecordById(it) }
             return uniqueIds.size
         }
 
@@ -134,3 +92,17 @@ class InboxRepository
             deleteInboxRecordById(record.id)
         }
     }
+
+private fun WorkspaceInboxRecordEntity.toCompatibility() =
+    InboxRecord(
+        id = id,
+        contextId = workspaceId,
+        text = text,
+        createdAt = createdAt,
+        order = recordOrder,
+        updatedAt = updatedAt,
+        syncedAt = syncedAt,
+        isDeleted = isDeleted,
+        hideInOwnerInbox = false,
+        version = version,
+    )

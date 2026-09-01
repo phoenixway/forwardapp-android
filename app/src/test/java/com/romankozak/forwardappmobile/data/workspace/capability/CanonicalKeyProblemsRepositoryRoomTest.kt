@@ -12,6 +12,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -159,6 +160,45 @@ class CanonicalKeyProblemsRepositoryRoomTest {
             assertEquals(20L, remaining.updatedAt)
 
             assertEquals(listOf(second), repository.getItems("owner").map { it.problem.id })
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `owner deletion cascade tombstones Problems and typed refs without active guard`() = runBlocking {
+        val database = database()
+        try {
+            seedOwner(database)
+            seedTargets(database)
+            val repository = repository(database)
+            val problemId =
+                repository.createProblem(
+                    workspaceId = "owner",
+                    title = "Owner-bound",
+                    relatedWorkspaceIds = listOf("related"),
+                    relatedAttachmentIds = listOf("attachment"),
+                    now = 10L,
+                )
+            repository.disable("owner", now = 15L)
+
+            assertEquals(
+                1,
+                repository.tombstoneOwnedContentForWorkspaces(listOf("owner"), now = 20L),
+            )
+
+            val problem = requireNotNull(database.workspaceProblemDao().getProblem(problemId))
+            val workspaceRef = database.workspaceProblemDao().getWorkspaceRefs(problemId).single()
+            val attachmentRef = database.workspaceProblemDao().getAttachmentRefs(problemId).single()
+            assertTrue(problem.isDeleted)
+            assertTrue(workspaceRef.isDeleted)
+            assertTrue(attachmentRef.isDeleted)
+            assertEquals(2L, problem.version)
+            assertEquals(2L, workspaceRef.version)
+            assertEquals(2L, attachmentRef.version)
+            assertNull(problem.syncedAt)
+            assertNull(workspaceRef.syncedAt)
+            assertNull(attachmentRef.syncedAt)
         } finally {
             database.close()
         }

@@ -78,6 +78,21 @@ class CanonicalCapabilityInstanceStore
                 changed.id
             }
 
+        suspend fun findInstance(
+            spec: CanonicalCapabilityInstanceSpec,
+            workspaceId: String,
+        ): WorkspaceCapabilityInstanceEntity? {
+            requireAuthorizedWorkspace(workspaceId, spec)
+            val current =
+                logicalInstance(
+                    orientationDao.getAllWorkspaceCapabilities(),
+                    workspaceId,
+                    spec,
+                )
+            current?.let { validateMutableConfiguration(it, spec) }
+            return current
+        }
+
         suspend fun disable(
             spec: CanonicalCapabilityInstanceSpec,
             workspaceId: String,
@@ -124,6 +139,40 @@ class CanonicalCapabilityInstanceStore
                 "${spec.type} authoring requires an active capability"
             }
             return current
+        }
+
+        suspend fun updateConfiguration(
+            spec: CanonicalCapabilityInstanceSpec,
+            workspaceId: String,
+            configurationVersion: Int,
+            configuration: String,
+            now: Long,
+        ) = database.withTransaction {
+            requireAuthorizedWorkspace(workspaceId, spec)
+            spec.configurationCodec.validate(configurationVersion, configuration)
+            val all = orientationDao.getAllWorkspaceCapabilities()
+            val current =
+                requireNotNull(logicalInstance(all, workspaceId, spec)) {
+                    "${spec.type} capability does not exist"
+                }
+            require(!current.isDeleted) { "${spec.type} capability is deleted" }
+            validateMutableConfiguration(current, spec)
+            require(current.state == WorkspaceCapabilityState.ACTIVE.name) {
+                "${spec.type} configuration authoring requires an active capability"
+            }
+            if (
+                current.configurationVersion == configurationVersion &&
+                current.configuration == configuration
+            ) {
+                return@withTransaction
+            }
+            persistValidated(
+                all,
+                current.bump(now).copy(
+                    configurationVersion = configurationVersion,
+                    configuration = configuration,
+                ),
+            )
         }
 
         private suspend fun mutate(

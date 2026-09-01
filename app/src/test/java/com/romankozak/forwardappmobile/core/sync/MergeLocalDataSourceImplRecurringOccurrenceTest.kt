@@ -3,7 +3,6 @@ package com.romankozak.forwardappmobile.core.sync
 import androidx.room.withTransaction
 import com.google.common.truth.Truth.assertThat
 import com.google.gson.Gson
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.DayStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.TaskPriority
 import com.romankozak.forwardappmobile.core.data.models.entities.day_management.DayFocusItem
@@ -20,6 +19,7 @@ import com.romankozak.forwardappmobile.data.dao.DayTaskDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
 import com.romankozak.forwardappmobile.database.AppDatabase
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.mockkClass
 import io.mockk.mockkStatic
@@ -678,30 +678,11 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
     }
 
     @Test
-    fun `log merge does not resurrect older live row over newer local tombstone`() = runTest {
+    fun `legacy Context logs are ignored after EXECUTION_LOG authority cutover`() = runTest {
         val db = mockk<AppDatabase>(relaxed = true)
         val dayPlanDao = mockk<DayPlanDao>(relaxed = true)
         val dayTaskDao = mockk<DayTaskDao>(relaxed = true)
         val contextManagementDao = mockk<ContextManagementDao>(relaxed = true)
-
-        val localTombstone =
-            ContextLog(
-                id = "log-1",
-                contextId = "context-1",
-                timestamp = 1_000L,
-                type = "COMMENT",
-                description = "deleted locally",
-                details = null,
-                updatedAt = 5_000L,
-                syncedAt = null,
-                isDeleted = true,
-                version = 5L,
-            )
-
-        coEvery { contextManagementDao.getAllLogs() } returns listOf(localTombstone)
-
-        val insertedLogs = slot<List<ContextLog>>()
-        coEvery { contextManagementDao.insertLogs(capture(insertedLogs)) } returns Unit
 
         val transactionBlock = slot<suspend () -> Unit>()
         mockkStatic("androidx.room.RoomDatabaseKt")
@@ -718,32 +699,32 @@ class MergeLocalDataSourceImplRecurringOccurrenceTest {
                     contextManagementDao = contextManagementDao,
                 )
 
-            val incomingOlderLive =
-                ContextLogSnapshot(
-                    id = localTombstone.id,
-                    contextId = requireNotNull(localTombstone.contextId),
-                    timestamp = localTombstone.timestamp,
-                    type = localTombstone.type,
-                    description = "older remote live row",
-                    details = null,
-                    updatedAt = 6_000L,
-                    version = 4L,
-                    isDeleted = false,
-                )
-
             subject.applySnapshotBundle(
                 SnapshotBundle(
                     version = 2,
                     exportedAt = 7_000L,
-                    logs = listOf(incomingOlderLive),
+                    logs =
+                        listOf(
+                            ContextLogSnapshot(
+                                id = "legacy-log",
+                                contextId = "context-1",
+                                timestamp = 1_000L,
+                                type = "COMMENT",
+                                description = "legacy remote row",
+                                details = null,
+                                updatedAt = 6_000L,
+                                version = 4L,
+                                isDeleted = false,
+                            ),
+                        ),
                 ),
             )
         } finally {
             unmockkStatic("androidx.room.RoomDatabaseKt")
         }
 
-        assertThat(insertedLogs.isCaptured).isTrue()
-        assertThat(insertedLogs.captured).isEmpty()
+        coVerify(exactly = 0) { contextManagementDao.getAllLogs() }
+        coVerify(exactly = 0) { contextManagementDao.insertLogs(any()) }
     }
 
     private fun createSubject(

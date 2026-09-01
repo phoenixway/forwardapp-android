@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.core.context
 
 import com.google.common.truth.Truth.assertThat
+import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.capability.CapabilitySet
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextViewMode
@@ -86,5 +87,29 @@ class ContextSessionStoreTest {
         val resolved = store.selectView(ContextViewMode.INBOX)
         assertThat(resolved).isEqualTo(ContextViewMode.BACKLOG)
         assertThat(store.state.value.currentView).isEqualTo(ContextViewMode.BACKLOG)
+    }
+
+    @Test
+    fun `syncFromConfig dashboard override wins over legacy config`() {
+        val store = createStore()
+        val config =
+            ContextConfiguration(
+                id = "cfg",
+                contextId = "c1",
+                enableDashboard = true,
+                enableBacklog = true,
+            )
+
+        val state =
+            store.syncFromConfig(
+                contextId = "c1",
+                config = config,
+                preferredViewName = ContextViewMode.DASHBOARD.name,
+                currentView = ContextViewMode.DASHBOARD,
+                dashboardEnabledOverride = false,
+            )
+
+        assertThat(state.enabledCapabilities).doesNotContain(CapabilityId("dashboard"))
+        assertThat(state.currentView).isEqualTo(ContextViewMode.BACKLOG)
     }
 }

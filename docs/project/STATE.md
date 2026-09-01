@@ -36,9 +36,10 @@ canonical Workspace authorization, logical identity, version/tombstone
 mutation, and whole-contract validation.
 
 `DASHBOARD` delegates its metadata-only lifecycle to this store.
-`EXECUTION_LOG` delegates only instance lifecycle and retains its specialized
-content repository. No universal content table, polymorphic graph, UI change,
-or content ownership cutover was introduced.
+`EXECUTION_LOG` also uses the typed kernel for capability lifecycle while
+retaining its specialized content repository. Its Android authority has since
+been hard-cut over end-to-end without introducing a universal content table or
+polymorphic graph.
 
 The shared kernel contract test is green. The Android DIRECTION hard cutover is
 also host-verified at schema 156 after canonical repository, transport, and
@@ -63,6 +64,8 @@ Post-cutover:
 - `WorkspaceDirectionEntry` is canonical ordered placement;
 - owner Workspace, capability, target identity, provenance and `createdAt` are
   immutable; order and `labelOverride` remain mutable;
+- Workspace deletion tombstones both its owned Direction placements and live
+  navigation placements that target it;
 - `LEGACY_DIRECTION_ITEM` is historical provenance, not legacy authority;
 - `SnapshotBundle.workspaceDirectionEntries` is the sole Android Direction
   placement transport;
@@ -96,6 +99,10 @@ typed Workspace/Attachment ref rows own relation history. Update never means
 create; deleting a Problem tombstones its live refs transactionally; capability
 disable/archive/metadata-delete preserve content.
 
+Deleting either a Context-backed or canonical-only owning Workspace now
+transactionally tombstones its live Problems and typed refs before the owner
+becomes a tombstone.
+
 `ContextKeyProblemsRepository` is now only the compatibility facade used by the
 existing UI and delegates canonical authoring to `CanonicalKeyProblemsRepository`.
 Legacy Room DAO/entity/snapshot authority is retired. `SnapshotBundle` carries
@@ -112,35 +119,224 @@ Host verification is green for the shared-domain capability tests,
 `CanonicalWorkspaceProblemSyncStoreRoomTest`, and
 `CanonicalKeyProblemsWifiPushPlanTest`. `git diff --check` is clean.
 
-### INBOX canonical source foundation
+### INBOX hard cutover
 
-`INBOX` now has a shared typed `OWNED_COLLECTION` source contract without a
-persistence/runtime cutover. `WorkspaceInboxRecord` owns content and sync
-metadata. Typed v1 config owns owner visibility, while the existing hashtag
-association policy remains shared and `InboxRecordLink` remains a rebuildable
-local projection.
+`INBOX` is `CURRENT / VERIFIED` on Android at schema 158. Legacy
+`inbox_records` is retired; `WorkspaceInboxRecord` plus an active INBOX
+capability instance is the sole persisted content authority. `InboxRecord`
+remains a compatibility DTO projected from canonical rows so existing UI
+behavior is preserved.
 
-The pure planner preserves legacy identity/lifecycle metadata, normalizes the
-current visible order, resolves Workspace/capability ownership, and fails closed
-on duplicates, unresolved provenance, collisions, invalid versions, or live
-legacy hide flags. Room, SnapshotBundle, legacy repository, Goal promotion, and
-UI authority remain unchanged. The combined focused capability/kernel run is
-green with 16 tests.
+Typed INBOX config v1 owns owner visibility. `InboxRecordLink` remains an
+Android-local rebuildable hashtag projection, not content or sync authority.
+Full backup/restore, merge ingress, changed-since delta, Wi-Fi dirty push,
+dependency closure, and exact-version ACK use
+`CanonicalWorkspaceInboxSyncStore`. Selective import omits canonical Inbox until
+Workspace-aware selection exists.
 
-### INBOX_SORTING canonical source foundation
+Host verification is green for `Migration157To158InboxCutoverRoomAcceptanceTest`,
+`CanonicalInboxRepositoryRoomTest`, `CanonicalWorkspaceInboxSyncStoreRoomTest`,
+and `InboxCanonicalDeltaTest`.
 
-`INBOX_SORTING` now has a shared typed `POLICY` configuration contract and a
-strict legacy migration planner without a persistence/runtime cutover. It owns
-rules for Backlog, Inbox, and Connections but owns none of their content or
-order rows. Blank policy projects to `NEWEST`; target-specific modes and the
-legacy `attachments` alias are explicit.
+### INBOX_SORTING canonical hard cutover
 
-The registry no longer declares the semantically false unconditional Inbox
-dependency. Shared domain maps each sorting target to the capability that an
-eventual apply command must validate. The planner fails closed on malformed,
-unknown, duplicate, ambiguous, or unresolved legacy state. Room,
-SnapshotBundle, repositories, apply behavior, and UI remain unchanged. The
-combined focused capability/kernel run is green with 23 tests.
+`INBOX_SORTING` is `CURRENT / VERIFIED` on Android at schema 163. Its typed v1
+policy configuration is stored on the canonical capability instance. The
+policy owns rules only; it owns no Inbox, Backlog, Connections, content, or
+order rows. Blank policy projects to `NEWEST`, target-specific modes and the
+legacy `attachments` alias are explicit, and dependencies are validated at
+apply time against the selected target capability.
+
+Migration `162 -> 163` reuses the frozen fail-closed planner, writes the
+versioned configuration atomically, verifies the result, and clears legacy
+settings rows. Runtime settings remain compatible through the text adapter.
+Canonical Android backup/restore, merge and delta use the capability
+configuration; legacy live export/delta is empty and legacy merge is ignored.
+The physical legacy table remains only for historical schema evidence and the
+guarded pre-cutover full-backup fallback. No UI behavior was changed.
+
+
+### CONNECTIONS hard cutover
+
+`CONNECTIONS` is hard-cut over on Android at schema 159.
+
+`WorkspaceConnection` is the canonical ordered placement shape for one existing
+reusable Attachment inside one CONNECTIONS capability instance. Attachment
+content/reference identity remains outside CONNECTIONS ownership. The logical
+placement key is `(capabilityInstanceId, attachmentId)`.
+
+Legacy `ContextAttachmentCrossRef` is now a compatibility DTO, not a Room table
+or sync authority. Runtime attachment placement APIs read/write canonical
+`workspace_connections`. Legacy `attachmentOrder` was treated only as order
+state, never as creation time; migrated placement `createdAt = 0` means
+historical creation time is unknown. Full backup/restore, merge ingress,
+changed-since delta, Wi-Fi dirty push, Attachment dependency closure, and
+exact-version ACK use `CanonicalWorkspaceConnectionSyncStore`. Legacy
+`SnapshotBundle.crossRefs` export/delta is empty and import is ignored.
+
+Capability lifecycle preserves placements and Attachment content. Unlink
+tombstones only the placement. Context/Workspace deletion tombstones live owned
+placements without deleting referenced Attachments. Selective import omits
+canonical Connections until Workspace-aware selection exists.
+
+Host verification is green for the CONNECTIONS migration/repository/sync-store
+tests, `ConnectionsCanonicalDeltaTest`, and migration chain regressions through
+schema 159.
+
+### BACKLOG canonical program current / verified
+
+`BACKLOG` Stages 1-8 are **CURRENT / VERIFIED on Android** through schema 162.
+
+The corrected focused source audit remains the migration baseline. Legacy Backlog
+is an ordered-placement surface over heterogeneous typed content. Supported
+migration targets include GOAL, SUBLIST/PROJECT, LINK_ITEM, NOTE as the distinct
+canonical `LEGACY_NOTE`, NOTE_DOCUMENT, JOURNAL_DOCUMENT, CHECKLIST, and
+MUSIC_NOTE. Unsupported SCRIPT/CONTEXT/LINK/unknown states remain explicit fail-closed migration
+cases rather than being silently discarded.
+
+Schema 160 introduced `workspace_backlog_entries` as the typed canonical
+explicit-placement foundation. `CanonicalBacklogRepository` owns canonical
+placement identity, add/resurrect, stable-id move, dense reorder, tombstone,
+target validation, capability lifecycle preservation, and owner-deletion
+behavior.
+
+Schema 161 separated non-authoritative projections from explicit placement
+authority. Hashtag-generated Goal appearances use the rebuildable local
+`backlog_goal_association_links` cache. Direct hierarchy-child Context rows are
+structural projections rather than canonical Backlog placements. External
+references to provably derived hashtag rows are migrated to deterministic
+projection identities.
+
+`BacklogPlacementCommands` is the typed explicit-placement mutation boundary.
+`BacklogCanonicalTargetResolver` maps legacy GOAL identity only through a live
+`CUT_OVER` canonical Orientation mapping, maps SUBLIST/PROJECT only through a
+proven Context-backed Workspace, maps supported typed external targets, and
+fails closed on unresolved or unsupported legacy states.
+
+Stage 4 froze migration semantics in the shared `BacklogMigrationPlanner`.
+`BacklogMigrationDryRunAdapter` snapshots the relevant Room evidence without
+mutation and requires complete item/order/source accounting. Owner lifecycle,
+target lifecycle, deterministic capability identity, destination contamination,
+identity collisions, malformed projections, unsupported targets, orphan legacy
+order evidence, and invalid lifecycle/version state are all accounted for
+explicitly. Deleted owners block migration; tombstoned placements may still
+preserve history to deleted targets.
+
+Schema 162 performs the atomic Context-backed authority switch. The
+`161 -> 162` migration snapshots schema-161 evidence, reruns the same frozen
+planner contract, fails closed before mutation on any blocking diagnostic or
+incomplete accounting, ensures the expected BACKLOG capability identity,
+materializes canonical `WorkspaceBacklogEntry` rows with dense canonical order,
+and verifies the written result before commit. No partial owner-by-owner cutover
+or legacy/canonical double-write is permitted.
+
+After schema 162, canonical `workspace_backlog_entries` are the sole Android
+runtime explicit-placement authority for both canonical-only and authorized
+Context-backed Workspaces. The BACKLOG capability specification uses
+`ALL_ACTIVE_WORKSPACES_AFTER_CUTOVER`. `CanonicalBacklogCompatibilityReader`
+projects canonical rows into existing `BacklogItem` DTOs so current UI and
+feature consumers do not regain legacy persistence authority.
+
+Context-backed add, move, delete, restore, visibility, target deletion, and
+reorder paths route through canonical BACKLOG boundaries. Goal, Legacy Note,
+search, tactical mission, day-management, time-tracking, tag-association,
+clipboard, checklist, Inbox sorting, Context screen ordering, and owner
+deletion paths have been audited and switched or proven non-authoritative.
+Context/Workspace deletion tombstones canonical owned BACKLOG placements.
+Legacy Note is preserved as historical `LEGACY_NOTE`, not converted to
+`NOTE_DOCUMENT`; the latter descends from the former `CUSTOM_LIST` model.
+
+Post-cutover dangling/structural startup cleanup reads canonical placements and
+typed target state only. Retained `list_items` no longer influence this runtime
+repair path.
+
+Cross-Workspace Backlog clipboard move partitions compatibility rows before
+mutation: rebuildable hashtag projections are not movable explicit placements,
+and target duplicates are detected by canonical typed target identity for every
+supported Backlog kind rather than by the historical SUBLIST-only check.
+
+Context Backlog delete/undo uses an identity-aware presentation lifecycle.
+Canonical placements tombstone/restore through BACKLOG, Attachment-backed
+CONNECTIONS presentations unlink/relink without deleting target content, and
+projection ids do not become explicit placements during undo. Destructive
+content deletion remains a separate typed-domain command.
+
+`BacklogOrder` has no active runtime authority after the cutover.
+`list_items` and `backlog_orders` remain physically present only as retained
+legacy evidence, the guarded old-full-backup planner fallback, and Stage-8
+cleanup debt. They are absent from canonical full export, live merge authority,
+and Wi-Fi delta. The production authority census found no external caller of
+legacy repository mutation methods.
+
+LinkItem deletion also has an explicit post-cutover identity contract.
+`LinkItem.id`, Attachment id, and canonical placement id are distinct.
+`ContextRepository.deleteLinkItemEverywhere(linkItemId)` resolves the
+Attachment through the typed LinkItem domain id and tombstones every canonical
+BACKLOG `LINK_ITEM` placement through `BacklogPlacementCommands`. The old path
+that treated a placement id as an Attachment id and deleted legacy
+`list_items` by entity id is retired and regression-tested.
+
+Verification is green for the shared migration planner, schema
+159 -> 160 -> 161 historical checkpoints, the schema 161 -> 162 atomic
+cutover acceptance tests, `CanonicalBacklogRepositoryRoomTest`,
+`BacklogCanonicalTargetResolverTest`, `BacklogMigrationDryRunAdapterRoomTest`,
+`CanonicalBacklogCompatibilityReaderRoomTest`,
+`BacklogPlacementCommandsTest`, `BacklogItemActionsTest`,
+`SearchRepositoryTest`, `:shared-core-domain:jsNodeTest`,
+`:app:compileProdDebugKotlin`, and the combined BACKLOG Stages 1-5 targeted
+regression gate. `git diff --check` is clean.
+
+Stage 6 preserves runtime compatibility without returning authority to legacy
+storage. It covers projection-safe movement/reorder, typed duplicate detection,
+identity-aware delete/undo, Legacy Note presentation, canonical Goal/LinkItem
+search and membership queries, structural child observation, stable tactical
+and restoration identities, and auto-hidden Goal recovery. Focused regression
+gates for these repairs are green.
+
+Stage 7 adds typed `workspaceBacklogEntries` transport, canonical full
+backup/restore and live merge, changed-since delta, Wi-Fi dirty push,
+exact-version acknowledgement, and typed-target dependency closure. Legacy
+Backlog export/delta is empty and live legacy import is ignored. Pre-cutover
+full backup is accepted only through the frozen migration planner and rolls
+back on ambiguity. Focused transport, Room sync-store and fallback tests are
+green.
+
+Stage 8 removes dead legacy mutation/order repositories, generic merge writers,
+legacy sync selection/delta/ACK branches, obsolete mixed-attachments
+ViewModels, and unused DAO queries. `ListItemRepository` remains only as a
+canonical compatibility read facade. The final census leaves physical
+`list_items` and `backlog_orders` solely as historical migration and guarded
+old-full-backup planner evidence; no runtime or transport path reads them as
+BACKLOG authority.
+
+The Android BACKLOG canonical migration program is complete. Physical evidence
+tables may be dropped only together with an explicit decision to retire the
+pre-cutover full-backup fallback.
+
+### ARTIFACT and Context JOURNAL retirement readiness
+
+Focused source audits confirm the already accepted retirement direction for
+legacy ARTIFACT and Context `JOURNAL` / `journal_log`.
+
+ARTIFACT remains a live legacy `ContextArtifact` persistence/UI surface, but no
+canonical Artifact entity, repository, binding, or capability is to be built.
+Each non-empty legacy row must eventually survive as ordinary note/document
+content reachable from the owning Workspace, preserving multiple rows
+individually when present.
+
+Context JOURNAL is already physically a deterministic `NoteDocument` with id
+`system_journal_log_<contextId>`. Its UI treats document lines as entries, but
+those lines have no independent ids, timestamps, versions, tombstones, or sync
+lifecycle. Retirement therefore preserves the existing document as ordinary
+reachable content and must not manufacture a row-per-line canonical journal
+model.
+
+Both retirements are implementation-blocked on the canonical
+CONNECTIONS/document reachability path. Current legacy Context/Backlog deletion
+paths can still delete document content where canonical CONNECTIONS semantics
+must unlink placement only. Retirement must wait until placement-only lifecycle
+and explicit destructive content deletion are separated and reachability is
+proven.
 
 ### Life Journal time reflection
 
@@ -419,90 +615,74 @@ semantic/axis divergence are persisted as blocking diagnostics.
 Room schema 151 adds first-class canonical Workspace identity, bootstrap state,
 and persistent compatibility diagnostics. Schema 152 adds explicit
 `CONTEXT_BACKED` / `CANONICAL_ONLY` provenance and source Context identity.
-Schema 153 starts the `EXECUTION_LOG` content-ownership migration by adding a
-nullable `ContextLog.workspaceId` plus index. SQL migration does not infer
-ownership from id equality. Runtime repair assigns the owner only after
-provenance proves a matching Context-backed Workspace; collision or otherwise
-unresolved rows remain null. New Context-backed execution-log writes use the
-same resolver. Startup, full restore, and live merge run repair after the
-Context-to-Workspace projection is current.
+### EXECUTION_LOG Android hard cutover
 
-Schema 154 makes the legacy `ContextLog.contextId` compatibility locator
-nullable while retaining its Context foreign key for non-null rows. Existing
-rows are copied unchanged and no canonical-only row is created by migration.
-This opens the same-table canonical shape `contextId = null`,
-`workspaceId != null`. Legacy Context sync/backup is explicitly fenced to rows
-with non-null `contextId`, and the legacy `ContextLogSnapshot` mapper fails
-closed if asked to serialize a canonical-only row.
+`EXECUTION_LOG` is `CURRENT / VERIFIED` on Android. Its persistence bridge was
+introduced by schemas 153 and 154; the completed authority cutover required no
+new EXECUTION_LOG schema bump and runs on the current schema 159.
 
-Canonical `EXECUTION_LOG` transport is now implemented at source level as a
-separate nullable `SnapshotBundle.canonicalExecutionLogs` contract. `null`
-means the canonical contract is absent, while an empty list means the contract
-is present and currently empty. Canonical snapshots use `workspaceId` and do
-not expose `contextId`.
+The physical `context_execution_logs` collection remains intentionally shared
+during compatibility cleanup, but canonical authority has one row shape:
+`contextId = null, workspaceId != null`. Schema 153 added nullable
+`workspaceId`; schema 154 made the legacy Context locator nullable. SQL
+migration deliberately did not infer Workspace ownership from id equality.
+`ExecutionLogWorkspaceOwnershipBridge` materializes legacy Context rows only
+when a live `CONTEXT_BACKED` Workspace proves `sourceContextId = contextId`.
+Unresolved, deleted-owner, malformed, or collision cases fail closed.
 
-`CanonicalExecutionLogSyncStore` owns the canonical partition boundary without
-creating a second content source of truth. Content remains in
-`context_execution_logs`. Canonical ingress requires a nonblank id and
-Workspace id, an existing `CANONICAL_ONLY` Workspace, immutable Workspace
-ownership for an existing canonical row, and no id collision with the legacy
-Context stream. Freshness is version first, then `updatedAt`, with tombstone
-preference on an otherwise exact tie. Canonical sync acknowledgement marks a
-row synced only when the exact sent version still matches.
+Runtime and UI no longer use `ContextConfiguration.enableLog` as authority.
+That legacy flag remains only as bootstrap/import compatibility input.
+Canonical EXECUTION_LOG state is the default `WorkspaceCapabilityInstance`;
+`CanonicalExecutionLogRepository.isEnabled` and `setEnabled` provide the typed
+read/command boundary through `CanonicalCapabilityInstanceStore`. Context
+session projection and `CapabilityGate` consume canonical state, so legacy
+configuration cannot resurrect a disabled canonical capability.
 
-Full snapshot export carries legacy Context logs and canonical Workspace-owned
-logs in separate collections. Full restore and merge apply canonical
-Orientation/Workspace state before canonical execution logs, so Workspace
-ownership can be validated in the same transaction. Merge also rejects a
-payload that carries the same log id in both legacy and canonical streams, and
-legacy merge refuses to overwrite an existing canonical-only row.
+`CanonicalExecutionLogRepository` owns user/system authoring and lifecycle.
+After cutover the capability is authorized for live Workspaces according to its
+typed `ALL_ACTIVE_WORKSPACES_AFTER_CUTOVER` specification, including proven
+Context-backed owners. User authoring requires an `ACTIVE` EXECUTION_LOG
+instance; system audit writes require a live Workspace. Disable/archive/delete
+of capability metadata preserve log content. Explicit log deletion creates a
+versioned tombstone. Owner deletion tombstones live owned logs, and deletion of
+a Context-backed owner also tombstones its canonical capability instance during
+Workspace bootstrap reconciliation. The old newest-40 physical-retention rule
+is not part of canonical runtime authority.
 
-Wi-Fi push now includes dirty canonical execution logs in push eligibility,
-delta generation, and exact-version acknowledgement. A canonical-log delta
-carries the complete canonical Orientation/Workspace contract from the local
-full snapshot as a transport dependency. Those dependency rows are not added
-to the Orientation acknowledgement unless they were independently dirty.
-Changed-since delta export includes canonical execution logs as well.
+`SnapshotBundle.canonicalExecutionLogs` is the sole current Android execution-log
+transport. `null` means the canonical contract is absent; an empty list means
+the canonical contract is present and empty. Full export emits legacy
+`logs = []`. Live merge ignores legacy Context logs. Full restore accepts legacy
+logs only from a pre-cutover backup where `canonicalExecutionLogs` is absent,
+then refreshes Context-backed Workspace projection and materializes only proven
+owners. Canonical merge accepts both authorized `CONTEXT_BACKED` and
+`CANONICAL_ONLY` Workspace ownership, preserves immutable owner identity, and
+uses version, then `updatedAt`, then tombstone preference on an exact tie.
 
-Desktop persists `canonicalExecutionLogs` as an Android-read-only collection.
-Ingress first applies the canonical Orientation/Workspace dependency set, then
-validates canonical-only ownership and legacy-id separation. Desktop merge uses
-the Android freshness order (version, `updatedAt`, tombstone on an exact tie),
-treats a present empty collection as authoritative empty, and strips canonical
-logs from every Android-bound payload. This prevents a successful Desktop sync
-response from acknowledging canonical logs that Desktop silently discarded.
+Wi-Fi push, changed-since delta, dependency closure, and exact-version ACK use
+the canonical collection. Desktop stores canonical execution logs as
+Android-read-only state and strips them from Android-bound payloads so Desktop
+cannot regain Android write authority.
 
-Selective import still exposes only the legacy Context-log selection model.
-`canonicalExecutionLogs` is explicitly cleared from a selectively filtered
-SnapshotBundle until a Workspace-aware selection contract is accepted. Import
-item counting includes canonical execution logs so a canonical-log-only payload
-is not rejected as empty.
+Selective import is also cut over. Canonical Workspace-owned rows are projected
+into the existing Context-shaped preview only for live, proven
+`CONTEXT_BACKED` owners. The UI continues to select stable log ids, but the
+filtered `SnapshotBundle` emits only matching `canonicalExecutionLogs` for the
+selected owner Contexts and always emits legacy `logs = []`. CANONICAL_ONLY,
+deleted-owner, malformed-owner, unselected-owner, and legacy-only rows fail
+closed. An absent canonical contract remains absent rather than becoming an
+authoritative empty collection.
 
-Canonical-only `EXECUTION_LOG` authoring now has a capability-specific
-repository boundary at source level. `CanonicalExecutionLogRepository` owns the
-`CANONICAL_ONLY` default capability instance lifecycle plus canonical log
-create/update/delete commands. Enable creates or resurrects the stable logical
-default instance; disable moves it to `DISABLED`; archive moves it to
-`ARCHIVED`; restore is deliberately non-activating and returns to `DISABLED`;
-capability deletion tombstones instance metadata without deleting log content.
-Canonical log authoring requires an active non-deleted `CANONICAL_ONLY`
-Workspace and an `ACTIVE` EXECUTION_LOG capability. Log update uses the existing
-version/sync bump contract and explicit log deletion creates a tombstone.
-Legacy Context rows are rejected by the canonical mutation boundary.
+Targeted host verification is green for capability lifecycle, Context session
+cutover, compatibility repository routing, ownership materialization, canonical
+content, canonical sync, owner lifecycle, and selective-import regression
+coverage. This does not claim that the complete `:app:testProdDebugUnitTest`
+suite is green; unrelated known recurrence, historical migration-fixture, and
+Orientation failures remain separate work.
 
-`EXECUTION_LOG` v1 has an explicit shared-domain configuration codec whose only
-accepted payload is `{}`. Unknown configuration versions fail closed and raw
-configuration is preserved. Legacy `Context.contextLogLevel` is not promoted
-into canonical configuration because no current runtime authority was found for
-it.
-
-Canonical Workspace tombstone now also tombstones all live canonical-only
-execution-log rows owned by that Workspace in the same Room transaction. This
-prevents a deleted Workspace from retaining live canonical content while
-preserving sync history and anti-resurrection semantics. Capability
-disable/archive/delete still preserve content; only deletion of the owning
-Workspace cascades content tombstones. No legacy Context retention limit is
-applied to canonical-only logs. A Workspace foreign key remains deferred.
+Safe physical garbage collection of acknowledged execution-log tombstones and
+a Workspace foreign key remain deferred maintenance rather than authority
+cutover requirements.
 
 The compatibility projection reuses Context ids and mirrors current Context
 hierarchy, role, order, lifecycle, and effective capabilities without changing
@@ -516,23 +696,38 @@ projection and persist `WORKSPACE_ID_COLLISION` diagnostics.
 The Phase 6 capability ownership inventory is recorded in
 `docs/architecture/orientation-workspace-refactor/CAPABILITY-OWNERSHIP.md`.
 For `CONTEXT_BACKED` Workspaces, `WorkspaceCapabilityInstance` remains
-projection metadata rather than capability configuration/content authority.
-The unused generic graph-level capability writer has been removed so local
-canonical capability mutation cannot bypass capability-specific repository,
-codec, lifecycle, and ownership contracts. No existing Context-backed
-capability content has been moved into canonical ownership.
+projection metadata only for capabilities that have not completed an explicit
+Context-backed authority cutover. `DASHBOARD` and `EXECUTION_LOG` are current
+exceptions: their typed capability specifications authorize canonical state for
+Context-backed Workspaces after cutover, and EXECUTION_LOG also owns canonical
+Workspace-scoped content. The unused generic graph-level capability writer has
+been removed so local canonical capability mutation cannot bypass
+capability-specific repository, codec, lifecycle, and ownership contracts.
 
-`DASHBOARD` is the first implemented capability-specific canonical command
-boundary for `CANONICAL_ONLY` Workspaces. Configuration v1 is the typed empty
-payload `{}`. Unknown configuration versions are preserved and non-mutable.
-The repository owns explicit enable/disable/archive/restore/delete semantics,
-reuses the stable `default` logical instance, tombstones metadata without a
-content cascade, and rejects all `CONTEXT_BACKED` Workspace mutation.
-Context-backed Dashboard behavior remains under the existing Context resolver
-and configuration authority. No Dashboard UI cutover has occurred.
+`DASHBOARD` is `CURRENT / VERIFIED` end-to-end on Android. Its
+capability-specific canonical command boundary is authorized for both
+`CANONICAL_ONLY` and `CONTEXT_BACKED` Workspaces after cutover. Configuration
+v1 is the typed empty payload `{}`. Unknown configuration versions are
+preserved and non-mutable. The repository owns explicit
+enable/disable/archive/restore/delete semantics, typed `isEnabled` /
+`setEnabled` commands, reuses the stable `default` logical instance, and
+tombstones metadata without a content cascade.
 
-Shared-domain codec tests and Android Room repository tests for this boundary
-are green. Targeted `ContextLog` retention, merge anti-resurrection, Workspace
+For a live Context-backed owner, the first compatibility bootstrap always
+materializes the canonical Dashboard instance as either `ACTIVE` or `DISABLED`
+from the resolved legacy state. Once that instance exists, later
+`ContextConfiguration.enableDashboard`, role, or default changes cannot
+overwrite or resurrect canonical Dashboard state. Context session/runtime
+gating, shared Workspace projection, and settings commands consume the typed
+canonical boundary. This required no Dashboard content table, schema bump, or
+UI redesign.
+
+Targeted host verification is green for the Dashboard repository lifecycle,
+Context-backed bootstrap including disabled-state anti-resurrection, Context
+session state, `CapabilityGate`, and Context navigation. Production
+`:app:compileProdDebugKotlin` is also green. This is a focused verification
+boundary, not a claim that the complete prodDebug unit-test suite is green.
+Targeted `ContextLog` retention, merge anti-resurrection, Workspace
 ownership-bridge, schema-151-to-154 migration, canonical log content/lifecycle,
 SnapshotBundle, and Wi-Fi dependency/ack tests are also green. Room schema 154
 is exported. Focused Desktop canonical-log and canonical-Orientation sync tests
@@ -610,11 +805,11 @@ of the transport model.
 `getUnsyncedChanges`, `markSyncedNow`, and `loadLocalDatabaseContent` are removed
 from active production code. File ingress is Snapshot-only; legacy database-only
 backup shapes and raw legacy database payloads are rejected rather than migrated.
-Old sync-v1 backups and clients are intentionally unsupported. The remaining
-`SnapshotBundle.directionItems` collection is not sync-v1 compatibility: it is
-the transitional current-format DIRECTION representation that remains until the
-separately accepted Android DIRECTION authority migration replaces it with
-canonical Orientation + WorkspaceDirectionEntry state.
+Old sync-v1 backups and clients are intentionally unsupported. Android
+`SnapshotBundle.directionItems` was subsequently retired by the schema-156
+DIRECTION authority cutover. `SnapshotBundle.workspaceDirectionEntries` is now
+the sole Android Direction placement transport alongside canonical Orientation
+state.
 
 Verification for the sync-v1 cutover is green: `:app:assembleDebug`, the targeted
 canonical Orientation / Day Theme / recurring-series / inbox Wi-Fi tests, and

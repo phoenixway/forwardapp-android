@@ -113,17 +113,7 @@ data class ContextLog(
     @ColumnInfo(index = true) @SerializedName("workspaceId") val workspaceId: String? = null,
 )
 
-@Entity(
-    tableName = "inbox_records",
-    foreignKeys = [
-        ForeignKey(
-            entity = Context::class,
-            parentColumns = ["id"],
-            childColumns = ["contextId"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-    ],
-)
+/** Legacy UI/backup compatibility projection. Canonical persistence is WorkspaceInboxRecordEntity. */
 data class InboxRecord(
     @PrimaryKey @SerializedName("id") val id: String,
     @SerializedName(value = "contextId", alternate = ["projectId"])

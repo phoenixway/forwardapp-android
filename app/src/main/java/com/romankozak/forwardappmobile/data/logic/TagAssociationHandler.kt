@@ -1,7 +1,7 @@
 package com.romankozak.forwardappmobile.data.logic
 
 import androidx.room.Transaction
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogGoalAssociationLink
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextTagRef
@@ -11,8 +11,8 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextTagRefD
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
-import java.util.UUID
+import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogGoalAssociationLinkDao
+import com.romankozak.forwardappmobile.data.repository.BacklogPlacementCommands
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,7 +22,8 @@ class TagAssociationHandler
     constructor(
         private val contextTagRefDao: ContextTagRefDao,
         private val contextDao: ContextDao,
-        private val listItemDao: ListItemDao,
+        private val backlogPlacementCommands: BacklogPlacementCommands,
+        private val backlogGoalAssociationLinkDao: BacklogGoalAssociationLinkDao,
         private val inboxAssociationCache: InboxAssociationCache,
         private val goalDao: GoalDao,
         private val inboxRecordDao: InboxRecordDao,
@@ -68,57 +69,77 @@ class TagAssociationHandler
             goal: Goal,
             sourceContextId: String?,
         ): Map<String, String> {
+            val directContextIds =
+                backlogPlacementCommands
+                    .findLiveWorkspaceIds(
+                        itemType = BacklogItemTypeValues.GOAL,
+                        entityId = goal.id,
+                    )
+                    .filter { workspaceId ->
+                        contextDao.getContextById(workspaceId) != null
+                    }
+                    .toSet()
+
             val ownerContextId =
                 sourceContextId?.takeIf { it.isNotBlank() }
-                    ?: listItemDao.getDirectContextIdsForEntity(goal.id, BacklogItemTypeValues.GOAL).firstOrNull()
+                    ?: directContextIds.sorted().firstOrNull()
                     ?: return emptyMap()
-            val directContextIds = listItemDao.getDirectContextIdsForEntity(goal.id, BacklogItemTypeValues.GOAL).toSet()
             val desiredContexts = resolveDesiredContexts(goal.text).filterKeys { it !in directContextIds }
             val existingAutoItems =
-                listItemDao
-                    .getAssociatedItemsForOwner(goal.id, BacklogItemTypeValues.GOAL, ownerContextId)
+                backlogGoalAssociationLinkDao
+                    .getLinksForGoal(goal.id)
                     .associateBy { it.contextId }
 
             val staleContextIds = existingAutoItems.keys - desiredContexts.keys
             if (staleContextIds.isNotEmpty()) {
-                listItemDao.deleteItemsByIds(staleContextIds.mapNotNull { existingAutoItems[it]?.id })
+                backlogGoalAssociationLinkDao.deleteForGoalAndContexts(
+                    goalId = goal.id,
+                    contextIds = staleContextIds.toList(),
+                )
             }
 
             val now = System.currentTimeMillis()
+            val desiredOrder = -(goal.updatedAt ?: goal.createdAt)
             val itemsToUpsert =
                 desiredContexts.mapNotNull { (contextId, matchedTag) ->
-                    if (contextId in existingAutoItems.keys) {
-                        val existing = existingAutoItems.getValue(contextId)
-                        if (existing.associationTag == matchedTag) {
-                            null
-                        } else {
-                            existing.copy(
-                                associationTag = matchedTag,
-                                updatedAt = now,
-                                syncedAt = null,
-                                version = existing.version + 1,
-                            )
-                        }
+                    val existing = existingAutoItems[contextId]
+                    if (
+                        existing != null &&
+                        existing.ownerContextId == ownerContextId &&
+                        existing.associationTag == matchedTag &&
+                        existing.order == desiredOrder
+                    ) {
+                        null
                     } else {
-                        BacklogItem(
-                            id = UUID.randomUUID().toString(),
+                        BacklogGoalAssociationLink(
+                            projectionId = stableGoalAssociationProjectionId(goal.id, contextId),
+                            goalId = goal.id,
                             contextId = contextId,
-                            itemType = BacklogItemTypeValues.GOAL,
-                            entityId = goal.id,
-                            associationOwnerContextId = ownerContextId,
+                            ownerContextId = ownerContextId,
                             associationTag = matchedTag,
-                            order = -(goal.updatedAt ?: goal.createdAt),
-                            updatedAt = now,
-                            syncedAt = null,
-                            version = 1,
+                            order = desiredOrder,
+                            linkedAt = existing?.linkedAt ?: now,
                         )
                     }
                 }
             if (itemsToUpsert.isNotEmpty()) {
-                listItemDao.insertItems(itemsToUpsert)
+                backlogGoalAssociationLinkDao.insertAll(itemsToUpsert)
             }
             return desiredContexts
         }
+
+        /**
+         * A projection owner is retained while auto-move policy hides the
+         * source placement. It is the safe recovery hint for a later edit:
+         * unlike arbitrary placement history, it cannot resurrect an item
+         * that the user removed explicitly.
+         */
+        suspend fun findGoalAssociationOwnerContextId(goalId: String): String? =
+            backlogGoalAssociationLinkDao
+                .getLinksForGoal(goalId)
+                .map { it.ownerContextId }
+                .distinct()
+                .singleOrNull()
 
         @Transaction
         suspend fun reconcileChangedTags(changedTags: List<String>) {
@@ -135,7 +156,14 @@ class TagAssociationHandler
         }
 
         @Transaction
+        suspend fun removeGoalAssociations(goalId: String) {
+            backlogGoalAssociationLinkDao.deleteForGoal(goalId)
+        }
+
+        @Transaction
         suspend fun repairAllAssociations() {
+            backlogGoalAssociationLinkDao.deleteAll()
+
             contextDao.getAll()
                 .filterNot { it.isDeleted }
                 .forEach { context -> syncContextTags(context, previousTags = null) }
@@ -158,4 +186,9 @@ class TagAssociationHandler
         private companion object {
             val TAG_REGEX = Regex("#(\\p{L}[\\p{L}0-9_-]*)")
         }
+        private fun stableGoalAssociationProjectionId(
+            goalId: String,
+            contextId: String,
+        ): String = "goal_association:$goalId:$contextId"
+
     }

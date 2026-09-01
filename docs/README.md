@@ -177,6 +177,21 @@ The following directories contain subsystem documentation:
 - Defines sorting as cross-capability policy with command-scoped target
   dependencies rather than content or an unconditional Inbox dependency.
 
+`architecture/orientation-workspace-refactor/BACKLOG-CAPABILITY-AUDIT.md`
+- `CURRENT` for the corrected runtime/order audit and implemented shared typed
+  model/config/validator/planner foundation; `PROPOSED` for persistence and
+  authority cutover.
+- Defines BACKLOG as ordered explicit typed placement, keeps target content in
+  its owning domain, retires rebuildable hashtag/hierarchy projections, and
+  accounts for `BacklogOrder` without preserving it as order authority.
+
+`architecture/orientation-workspace-refactor/BACKLOG-CUTOVER-PLAN.md`
+- `DECIDED` for the staged Android persistence/runtime/transport migration and
+  feature-preservation gates.
+- Separates the canonical-only schema/repository foundation from the later
+  atomic Context-backed hard cutover because `list_items` has broad runtime,
+  projection, clipboard, tactical, and transport consumers.
+
 These directories currently contain a mixture of current, historical,
 proposed, and reference material.
 

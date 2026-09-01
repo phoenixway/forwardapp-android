@@ -7,7 +7,6 @@ import android.net.Uri
 import android.util.Log
 import com.romankozak.forwardappmobile.core.data.models.AttachmentEntity
 import com.romankozak.forwardappmobile.core.data.models.AttachmentWithContext
-import com.romankozak.forwardappmobile.core.data.models.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.Context
 import com.romankozak.forwardappmobile.core.data.models.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.Goal
@@ -67,6 +66,27 @@ class NoOpFullBackupLocalDataSource @Inject constructor() : FullBackupLocalDataS
     override suspend fun markCanonicalWorkspaceProblemsSynced(
         ack: com.romankozak.forwardappmobile.sync.datasource.CanonicalWorkspaceProblemSyncAck,
     ) { /* no-op */ }
+    override suspend fun loadUnsyncedCanonicalWorkspaceInbox() =
+        emptyList<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceInboxRecordSnapshot>()
+    override suspend fun loadCanonicalWorkspaceInboxChangedSince(timestamp: Long) =
+        emptyList<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceInboxRecordSnapshot>()
+    override suspend fun markCanonicalWorkspaceInboxSynced(
+        records: List<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceInboxRecordSyncVersion>,
+    ) { /* no-op */ }
+    override suspend fun loadUnsyncedCanonicalWorkspaceConnections() =
+        emptyList<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceConnectionSnapshot>()
+    override suspend fun loadCanonicalWorkspaceConnectionsChangedSince(timestamp: Long) =
+        emptyList<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceConnectionSnapshot>()
+    override suspend fun markCanonicalWorkspaceConnectionsSynced(
+        connections: List<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceConnectionSyncVersion>,
+    ) { /* no-op */ }
+    override suspend fun loadUnsyncedCanonicalWorkspaceBacklog() =
+        emptyList<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySnapshot>()
+    override suspend fun loadCanonicalWorkspaceBacklogChangedSince(timestamp: Long) =
+        emptyList<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySnapshot>()
+    override suspend fun markCanonicalWorkspaceBacklogSynced(
+        entries: List<com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySyncVersion>,
+    ) { /* no-op */ }
     override suspend fun restoreSettings(settings: Map<String, String>) {
         Log.d("NoOpSync", "NoOpFullBackupLocalDataSource: restoreSettings called")
     }
@@ -109,16 +129,12 @@ class NoOpMergeLocalDataSource @Inject constructor() : MergeLocalDataSource {
     override suspend fun insertContextAttachmentLinks(links: List<ContextAttachmentCrossRef>) {
         Log.d("NoOpSync", "NoOpMergeLocalDataSource: insertContextAttachmentLinks called")
     }
-    override suspend fun insertListItems(items: List<BacklogItem>) {
-        Log.d("NoOpSync", "NoOpMergeLocalDataSource: insertListItems called")
-    }
     override suspend fun applyChanges(changes: List<SyncChange>) {
         Log.d("NoOpSync", "NoOpMergeLocalDataSource: applyChanges called")
     }
     override suspend fun importSelectedData(
         projects: List<Context>,
         goals: List<Goal>,
-        listItems: List<BacklogItem>,
         attachments: List<AttachmentEntity>,
         crossRefs: List<ContextAttachmentCrossRef>
     ) {

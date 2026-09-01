@@ -74,9 +74,12 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Wor
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceConnectionSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceProblemAttachmentRefSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceProblemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceProblemWorkspaceRefSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceInboxRecordSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySnapshot
 
 
 /**
@@ -116,12 +119,20 @@ data class SnapshotBundle(
     // null = absent/unsupported; [] = authoritative empty.
     @SerializedName("workspaceDirectionEntries")
     val workspaceDirectionEntries: List<WorkspaceDirectionEntrySnapshot>? = null,
+    @SerializedName("workspaceConnections")
+    val workspaceConnections: List<WorkspaceConnectionSnapshot>? = null,
     @SerializedName("workspaceProblems")
     val workspaceProblems: List<WorkspaceProblemSnapshot>? = null,
     @SerializedName("workspaceProblemWorkspaceRefs")
     val workspaceProblemWorkspaceRefs: List<WorkspaceProblemWorkspaceRefSnapshot>? = null,
     @SerializedName("workspaceProblemAttachmentRefs")
     val workspaceProblemAttachmentRefs: List<WorkspaceProblemAttachmentRefSnapshot>? = null,
+    @SerializedName("workspaceInboxRecords")
+    val workspaceInboxRecords: List<WorkspaceInboxRecordSnapshot>? = null,
+    // Canonical BACKLOG ordered-placement contract.
+    // null = absent/pre-cutover backup; [] = authoritative empty.
+    @SerializedName("workspaceBacklogEntries")
+    val workspaceBacklogEntries: List<WorkspaceBacklogEntrySnapshot>? = null,
     @SerializedName("systemApps") val systemApps: List<SystemAppSnapshot> = emptyList(),
     @SerializedName("activityRecords") val activityRecords: List<ActivityRecordSnapshot> = emptyList(),
     @SerializedName("recentProjectEntries") val recentProjectEntries: List<RecentProjectEntrySnapshot> = emptyList(),

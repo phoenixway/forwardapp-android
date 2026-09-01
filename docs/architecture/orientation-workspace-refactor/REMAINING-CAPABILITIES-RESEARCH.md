@@ -464,9 +464,9 @@ DIRECTION diff and updated database/sync version boundaries.
 6. **Retire ARTIFACT and context JOURNAL** (`small` to `medium`): after the
    ordinary document/note connection path is canonical, migrate existing text,
    prove reachability, and remove the redundant capability wrappers.
-7. **INBOX_SORTING / sorting policy** (`medium`): shared typed policy/planner
-   foundation is implemented; apply and authority cutover wait until all
-   configured target order owners are canonical.
+7. **INBOX_SORTING / sorting policy** (`medium`): typed policy, command-scoped
+   target validation, canonical delegation, and Android schema-163 authority
+   cutover are complete; retain only guarded legacy full-backup compatibility.
 
 Inbox and Goal + Backlog ordering may be reconsidered after KEY_PROBLEMS. The
 Backlog slice should not be pulled ahead merely because it is prominent: it has
@@ -498,7 +498,7 @@ For every capability, produce a focused cutover audit containing:
 | KEY_PROBLEMS opaque JSON overwrite | Lost updates and resurrection cannot be prevented per issue | Normalize item and typed relation rows | `medium` |
 | BACKLOG has two order authorities | Reorder/sync can diverge | One canonical placement row owns order | `large` as part of cutover |
 | Hashtag backlog rows mix cache and authority | Rebuildable state can delete or duplicate explicit state | Separate derived projection from explicit placement | `medium` within Backlog work |
-| INBOX_SORTING legacy dependency model was false | It could mutate capabilities it did not declare | Shared typed policy and conditional mapping are implemented; enforce them in the future apply command | `medium`; source foundation complete, authority blocked |
+| INBOX_SORTING legacy dependency model was false | It could mutate capabilities it did not declare | Typed policy, conditional target validation, canonical delegation, and schema-163 cutover are implemented | `medium`; Android authority current/verified |
 | ARTIFACT singleton is not constrained | Multiple rows lead to arbitrary reads/data loss on migration | Preserve every non-empty row as ordinary connected document; retire capability | `small` to `medium` |
 | CONNECTIONS uses physical deletes | Stale remote rows can resurrect and shared content may be destroyed | Tombstone placement; explicit content deletion | `medium` |
 | Context JOURNAL duplicates documents | Canonicalizing it would create a second weak log/document concept | Preserve its NoteDocument and retire capability wrapper | `small` |

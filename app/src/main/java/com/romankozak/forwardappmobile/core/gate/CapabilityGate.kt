@@ -30,6 +30,9 @@ class CapabilityGate
          */
         fun isEnabled(id: CapabilityId): Boolean {
             val currentState = contextController.current()
+            if (id.raw == "dashboard") {
+                return isRegisteredOrLegacyAlias(id) && currentState.features.active.contains(id)
+            }
             val config = (currentState as? ConfigurableState)?.config
             val enabledByRole = config?.let { currentConfig ->
                 val useRoleDefaults =
@@ -39,14 +42,18 @@ class CapabilityGate
                         .contains(id)
             } == true
 
-            return isRegisteredOrLegacyAlias(id) && (
-                currentState.features.active.contains(id) ||
-                    (config != null && (
-                        enabledByRole ||
-                            config.experimentalCapabilityIds.contains(id) ||
-                            isLegacyEnabled(id, config)
-                    ))
-            )
+            if (!isRegisteredOrLegacyAlias(id)) return false
+
+            if (id.raw == "log") {
+                return currentState.features.active.contains(id)
+            }
+
+            return currentState.features.active.contains(id) ||
+                (config != null && (
+                    enabledByRole ||
+                        config.experimentalCapabilityIds.contains(id) ||
+                        isLegacyEnabled(id, config)
+                ))
         }
 
         private fun isRegisteredOrLegacyAlias(id: CapabilityId): Boolean {

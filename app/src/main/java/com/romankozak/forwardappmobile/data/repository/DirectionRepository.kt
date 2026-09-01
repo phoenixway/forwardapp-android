@@ -207,6 +207,15 @@ class DirectionRepository
                 targetWorkspaceIds = contextIds,
                 now = now,
             )
+
+        suspend fun deleteDirectionsOwnedByWorkspaces(
+            workspaceIds: Collection<String>,
+            now: Long = System.currentTimeMillis(),
+        ): Int =
+            canonicalDirectionRepository.tombstoneOwnedEntriesForWorkspaces(
+                workspaceIds = workspaceIds,
+                now = now,
+            )
     }
 
 private fun String?.normalizedId(): String? =

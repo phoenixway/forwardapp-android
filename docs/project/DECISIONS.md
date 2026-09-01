@@ -5,6 +5,36 @@ Status: CANONICAL
 Record decisions that future work could otherwise accidentally reopen or
 contradict.
 
+## 2026-09-01 - Legacy Note remains distinct from Note Document during BACKLOG cutover
+
+Decision:
+
+Legacy Backlog type `NOTE` maps losslessly to canonical BACKLOG target kind
+`LEGACY_NOTE`. It is not silently discarded and is not automatically converted
+to `NOTE_DOCUMENT` during the BACKLOG authority migration.
+
+`LegacyNoteEntity` (`notes`) and `NoteDocumentEntity` (`note_documents`) are
+different historical content identities. `NOTE_DOCUMENT` descends from the
+former `CUSTOM_LIST` model through schema 60 -> 61; it is not a rename of
+legacy `NOTE`. `JOURNAL_DOCUMENT` is a separate semantic document role even
+though it currently shares `NoteDocumentEntity` persistence.
+
+Reason:
+
+Legacy Notes can still exist in backups and retained Backlog history. Current
+runtime treats them as historical/read-only content, while delete and other
+compatibility operations still require stable typed identity. Converting them
+during placement cutover would mix BACKLOG placement migration with a separate
+content migration and could introduce id, attachment, lifecycle, and sync
+collisions.
+
+Consequence:
+
+The BACKLOG planner, resolver, compatibility reader, and validator preserve
+`NOTE` as `LEGACY_NOTE`. Any future conversion to `NOTE_DOCUMENT` must be an
+explicit content migration with its own accounting and must not be inferred
+from the BACKLOG placement cutover.
+
 ## 2026-08-24 - Canonical project memory lives in repository documentation
 
 Decision:

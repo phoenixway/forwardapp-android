@@ -7,6 +7,8 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextRoleProf
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextStructureItem
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDashboardCapabilityRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogRepository
 import com.romankozak.forwardappmobile.domain.structure.StructurePresetService
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -46,6 +48,8 @@ class ProjectStructureViewModel
         private val contextRepository: ContextRepository,
         private val structurePresetService: StructurePresetService,
         private val structurePresetDao: StructurePresetDao,
+        private val canonicalDashboardCapabilityRepository: CanonicalDashboardCapabilityRepository,
+        private val canonicalExecutionLogRepository: CanonicalExecutionLogRepository,
     ) : ViewModel() {
         private val autoLinkLabel = "Auto add child context in context hierarchy to direction front"
         private val projectId: String = checkNotNull(savedStateHandle["projectId"])
@@ -71,12 +75,14 @@ class ProjectStructureViewModel
             viewModelScope.launch {
                 contextStructureRepository.observeStructure(projectId).collect { structure ->
                     if (structure != null) {
+                        val dashboardEnabled = canonicalDashboardCapabilityRepository.isEnabled(projectId)
+                        val executionLogEnabled = canonicalExecutionLogRepository.isEnabled(projectId)
                         val flags =
                             mapOf(
                                 "Inbox" to (structure.structure.enableInbox ?: _uiState.value.featureFlags["Inbox"] ?: true),
-                                "Log" to (structure.structure.enableLog ?: _uiState.value.featureFlags["Log"] ?: true),
+                                "Log" to executionLogEnabled,
                                 "Artifact" to (structure.structure.enableArtifact ?: _uiState.value.featureFlags["Artifact"] ?: false),
-                                "Dashboard" to (structure.structure.enableDashboard ?: _uiState.value.featureFlags["Dashboard"] ?: true),
+                                "Dashboard" to dashboardEnabled,
                                 "Backlog" to (structure.structure.enableBacklog ?: _uiState.value.featureFlags["Backlog"] ?: true),
                                 "Connections" to
                                     (
@@ -106,7 +112,25 @@ class ProjectStructureViewModel
             viewModelScope.launch {
                 _uiState.update { it.copy(isLoading = true, message = null) }
                 structurePresetService.applyPresetToContext(projectId, code)
-                _uiState.update { it.copy(isLoading = false, basePresetCode = code) }
+                val applied = contextStructureRepository.getStructureByContext(projectId)
+                canonicalDashboardCapabilityRepository.setEnabled(
+                    workspaceId = projectId,
+                    enabled = applied?.enableDashboard == true,
+                )
+                canonicalExecutionLogRepository.setEnabled(
+                    workspaceId = projectId,
+                    enabled = applied?.enableLog == true,
+                )
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        basePresetCode = code,
+                        featureFlags =
+                            it.featureFlags +
+                                ("Dashboard" to (applied?.enableDashboard == true)) +
+                                ("Log" to (applied?.enableLog == true)),
+                    )
+                }
             }
         }
 
@@ -163,13 +187,23 @@ class ProjectStructureViewModel
                 val updatedFlags = _uiState.value.featureFlags + (key to enabled)
                 _uiState.update { it.copy(featureFlags = updatedFlags) }
                 val structure = contextStructureRepository.ensureStructure(projectId)
+                when (key) {
+                    "Dashboard" ->
+                        canonicalDashboardCapabilityRepository.setEnabled(
+                            workspaceId = projectId,
+                            enabled = enabled,
+                        )
+                    "Log" ->
+                        canonicalExecutionLogRepository.setEnabled(
+                            workspaceId = projectId,
+                            enabled = enabled,
+                        )
+                }
                 contextStructureRepository.updateStructure(
                     structure.copy(
                         enableInbox = updatedFlags["Inbox"],
-                        enableLog = updatedFlags["Log"],
                         enableArtifact = updatedFlags["Artifact"],
                         enableAdvanced = false,
-                        enableDashboard = updatedFlags["Dashboard"],
                         enableBacklog = updatedFlags["Backlog"],
                         enableAttachments = updatedFlags["Connections"] ?: updatedFlags["Attachments"],
                         enableAutoLinkSubprojects = updatedFlags[autoLinkLabel],

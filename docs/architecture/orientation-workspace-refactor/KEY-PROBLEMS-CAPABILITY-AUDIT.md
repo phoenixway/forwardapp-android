@@ -42,7 +42,8 @@ Accepted invariants:
 - `RESOLVED` and `CLOSED` are live statuses, not deletion;
 - update requires an existing live id; create is a separate command;
 - capability disable/archive/metadata-delete preserve Problems;
-- Workspace deletion eventually tombstones Workspace-owned Problems and refs;
+- Workspace deletion tombstones Workspace-owned Problems and refs in the same
+  owner-deletion transaction;
 - no generic relation graph or opaque canonical payload is introduced.
 
 ## Implemented source foundation

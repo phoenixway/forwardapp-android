@@ -1,8 +1,6 @@
 # INBOX_SORTING Capability Audit
 
-Status: `CURRENT` for the verified legacy boundary and implemented shared
-typed policy/configuration migration foundation; `PROPOSED` for persistence,
-command, and authority cutover.
+Status: `CURRENT / VERIFIED` on Android through schema 163.
 
 ## Purpose and boundary
 
@@ -10,10 +8,9 @@ command, and authority cutover.
 invoke ordering commands owned by other capabilities. It does not own Inbox,
 Backlog, Connection, Attachment, or order rows.
 
-This source-only slice deliberately does not change Room, DI, SnapshotBundle,
-runtime repositories, navigation, or UI. Current Context behavior remains
-authoritative until the target ordering owners are canonical and a separate
-hard cutover is accepted.
+The canonical capability instance is now the Android authority for policy
+configuration. Existing settings UI remains available through a compatibility
+text adapter; no UI redesign was introduced.
 
 ## Verified legacy implementation
 
@@ -68,6 +65,12 @@ The shared legacy planner:
 - reports source/update accounting and permits application only when every
   source is represented without diagnostics.
 
+Migration `162 -> 163` applies this planner atomically. It writes typed v1
+configuration to the stable capability instance, rejects incomplete or
+ambiguous legacy state, and clears legacy settings rows only after post-write
+verification. The physical table remains available as historical schema
+evidence and for the guarded pre-cutover full-backup fallback.
+
 ## Dependency and command ownership
 
 The old static `INBOX_SORTING -> INBOX` dependency is false: a policy may sort
@@ -83,7 +86,17 @@ Dependency validation belongs to the eventual apply command:
 | `CONNECTIONS` | `CONNECTIONS` | canonical Connection placement repository |
 
 The shared `requiredCapabilityForSorting` mapping expresses this command-time
-contract. It does not authorize mutation through current legacy repositories.
+contract. All three target repositories expose canonical reorder commands and
+the runtime service validates the active target capability before delegating
+the reorder transaction to its canonical owner.
+
+`CanonicalInboxSortingRepository` owns typed configuration authoring on the
+stable `INBOX_SORTING` capability instance. The shared capability-instance
+kernel validates the new payload, requires an active policy capability, bumps
+the instance version, clears `syncedAt`, and avoids an idempotent write. The
+bootstrapper no longer imposes the obsolete unconditional
+`INBOX_SORTING -> INBOX` dependency and seeds new policy instances with the
+typed v1 default. Existing policy configuration is preserved by bootstrap.
 
 ## Lifecycle and deletion
 
@@ -96,13 +109,12 @@ capability instance lifecycle is owned by the shared kernel:
 - deleting a target item remains the target capability's responsibility.
 
 There is no canonical policy-content collection and no reason to invent one.
-The eventual hard migration writes the typed configuration into the canonical
-capability instance and then removes the legacy settings row only after full
-accounting.
+Typed configuration is stored on the capability instance; legacy settings rows
+are compatibility evidence only and are not runtime or live-sync authority.
 
-## Cutover gates
+## Cutover result
 
-Authority cutover remains blocked until:
+The authority cutover is complete. The verified gates were:
 
 1. every allowed target has one canonical order owner;
 2. the apply command validates the selected target capability at command time;
@@ -115,9 +127,9 @@ Authority cutover remains blocked until:
 
 ## Verification
 
-Targeted shared JVM tests cover codec round-trip/defaults, strict schema and
-mode validation, legacy alias conversion, blank policy, malformed and
-ambiguous input, unresolved ownership, duplicate owners, archetype, and
-command-scoped dependencies.
+Targeted shared JVM and Android Room tests cover codec round-trip/defaults,
+strict schema and mode validation, legacy alias conversion, migration success
+and rollback, canonical repository lifecycle, compatibility text projection,
+service delegation, and canonical full-backup fallback behavior.
 
 No UI behavior was changed by this slice.

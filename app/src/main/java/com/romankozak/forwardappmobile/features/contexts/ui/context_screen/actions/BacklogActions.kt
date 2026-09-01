@@ -2,7 +2,7 @@ package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.acti
 
 import android.util.Log
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
-import com.romankozak.forwardappmobile.data.repository.ListItemRepository
+import com.romankozak.forwardappmobile.data.repository.BacklogPlacementCommands
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.domain.wifirestapi.FileDataRequest
 import com.romankozak.forwardappmobile.domain.wifirestapi.RetrofitClient
@@ -11,7 +11,7 @@ import retrofit2.HttpException
 import java.io.IOException
 
 class BacklogActions(
-    private val listItemRepository: ListItemRepository,
+    private val backlogPlacementCommands: BacklogPlacementCommands,
     private val settingsRepository: SettingsRepository,
 ) {
     companion object {
@@ -119,10 +119,8 @@ class BacklogActions(
     }
 
     suspend fun persistBacklogOrder(content: List<BacklogItemContent>) {
-        val reorderedBacklogItems =
-            content.mapIndexed { index, item ->
-                item.backlogItem.copy(order = index.toLong())
-            }
-        listItemRepository.updateListItemsOrder(reorderedBacklogItems)
+        backlogPlacementCommands.reorderContextBacked(
+            content.map { it.backlogItem },
+        )
     }
 }

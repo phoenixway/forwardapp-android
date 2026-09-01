@@ -12,22 +12,24 @@ import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface AttachmentDao {
+abstract class AttachmentDao {
     @Transaction
     @Query(
         """
-        SELECT a.*, link.context_id AS context_id, link.attachment_order AS attachment_order
+        SELECT a.*, w.sourceContextId AS context_id, c.connectionOrder AS attachment_order
         FROM attachments AS a
-        INNER JOIN context_attachment_cross_ref AS link
-            ON link.attachment_id = a.id
-        WHERE link.context_id = :contextId
-        ORDER BY link.attachment_order ASC, a.createdAt DESC
+        INNER JOIN workspace_connections AS c ON c.attachmentId = a.id
+        INNER JOIN workspaces AS w ON w.id = c.workspaceId
+        WHERE w.sourceContextId = :contextId
+          AND c.isDeleted = 0
+          AND a.isDeleted = 0
+        ORDER BY c.connectionOrder ASC, a.createdAt DESC
         """,
     )
-    fun getAttachmentsForContext(contextId: String): Flow<List<AttachmentWithContext>>
+    abstract fun getAttachmentsForContext(contextId: String): Flow<List<AttachmentWithContext>>
 
     @Query("SELECT * FROM attachments WHERE id = :attachmentId LIMIT 1")
-    suspend fun getAttachmentById(attachmentId: String): AttachmentEntity?
+    abstract suspend fun getAttachmentById(attachmentId: String): AttachmentEntity?
 
     @Query(
         """
@@ -37,77 +39,188 @@ interface AttachmentDao {
         LIMIT 1
         """,
     )
-    suspend fun findAttachmentByEntity(
+    abstract suspend fun findAttachmentByEntity(
         attachmentType: String,
         entityId: String,
     ): AttachmentEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAttachment(attachment: AttachmentEntity)
+    abstract suspend fun insertAttachment(attachment: AttachmentEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAttachments(attachments: List<AttachmentEntity>)
+    abstract suspend fun insertAttachments(attachments: List<AttachmentEntity>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertContextAttachmentLinks(links: List<ContextAttachmentCrossRef>)
+    @Transaction
+    open suspend fun insertContextAttachmentLinks(links: List<ContextAttachmentCrossRef>) {
+        links.forEach { insertContextAttachmentLink(it) }
+    }
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertContextAttachmentLink(link: ContextAttachmentCrossRef)
+    @Transaction
+    open suspend fun insertContextAttachmentLink(link: ContextAttachmentCrossRef) {
+        upsertContextAttachmentLink(
+            contextId = link.contextId,
+            attachmentId = link.attachmentId,
+            order = link.attachmentOrder,
+            updatedAt = link.updatedAt ?: System.currentTimeMillis(),
+            syncedAt = link.syncedAt,
+            isDeleted = link.isDeleted,
+            version = link.version,
+        )
+    }
 
     @Query(
         """
-        DELETE FROM context_attachment_cross_ref
-        WHERE context_id = :contextId AND attachment_id = :attachmentId
+        INSERT INTO workspace_connections (
+            id, workspaceId, capabilityInstanceId, attachmentId, connectionOrder,
+            createdAt, updatedAt, syncedAt, isDeleted, version
+        )
+        SELECT
+            'WORKSPACE_CONNECTION:' || length(cap.id) || ':' || cap.id || ':' ||
+                length(:attachmentId) || ':' || :attachmentId,
+            w.id,
+            cap.id,
+            :attachmentId,
+            :order,
+            0,
+            :updatedAt,
+            :syncedAt,
+            :isDeleted,
+            :version
+        FROM workspaces w
+        JOIN workspace_capability_instances cap
+          ON cap.workspaceId = w.id
+         AND cap.capabilityType = 'CONNECTIONS'
+         AND cap.instanceKey = 'default'
+         AND cap.isDeleted = 0
+        WHERE w.sourceContextId = :contextId
+          AND w.isDeleted = 0
+        ON CONFLICT(id) DO UPDATE SET
+            connectionOrder = excluded.connectionOrder,
+            updatedAt = excluded.updatedAt,
+            syncedAt = excluded.syncedAt,
+            isDeleted = excluded.isDeleted,
+            version = excluded.version
         """,
     )
-    suspend fun deleteContextAttachmentLink(
-        contextId: String,
-        attachmentId: String,
-    )
-
-    @Query("DELETE FROM context_attachment_cross_ref WHERE attachment_id = :attachmentId")
-    suspend fun deleteAllLinksForAttachment(attachmentId: String)
-
-    @Query("DELETE FROM attachments WHERE id = :attachmentId")
-    suspend fun deleteAttachment(attachmentId: String)
-
-    @Query("SELECT COUNT(*) FROM context_attachment_cross_ref WHERE attachment_id = :attachmentId")
-    suspend fun countLinksForAttachment(attachmentId: String): Int
-
-    @Query(
-        """
-        UPDATE context_attachment_cross_ref
-        SET attachment_order = :order
-        WHERE context_id = :contextId AND attachment_id = :attachmentId
-        """,
-    )
-    suspend fun updateAttachmentOrder(
+    protected abstract suspend fun upsertContextAttachmentLink(
         contextId: String,
         attachmentId: String,
         order: Long,
+        updatedAt: Long,
+        syncedAt: Long?,
+        isDeleted: Boolean,
+        version: Long,
     )
-
-    @Query("SELECT * FROM attachments")
-    fun getAllAttachmentsFlow(): Flow<List<AttachmentEntity>>
-
-    @Query("SELECT * FROM context_attachment_cross_ref")
-    fun getAllContextAttachmentLinksFlow(): Flow<List<ContextAttachmentCrossRef>>
-
-    @Query("SELECT * FROM attachments")
-    suspend fun getAll(): List<AttachmentEntity>
-
-    @Query("SELECT * FROM context_attachment_cross_ref")
-    suspend fun getAllContextAttachmentCrossRefs(): List<ContextAttachmentCrossRef>
-
-    @Query("DELETE FROM attachments")
-    suspend fun deleteAll()
-
-    @Query("DELETE FROM context_attachment_cross_ref")
-    suspend fun deleteAllContextAttachmentLinks()
 
     @Query(
         """
-        SELECT 
+        UPDATE workspace_connections
+        SET isDeleted = 1,
+            updatedAt = :now,
+            syncedAt = NULL,
+            version = version + 1
+        WHERE attachmentId = :attachmentId
+          AND workspaceId = (
+              SELECT id FROM workspaces WHERE sourceContextId = :contextId LIMIT 1
+          )
+          AND isDeleted = 0
+        """,
+    )
+    abstract suspend fun deleteContextAttachmentLink(
+        contextId: String,
+        attachmentId: String,
+        now: Long = System.currentTimeMillis(),
+    )
+
+    @Query(
+        """
+        UPDATE workspace_connections
+        SET isDeleted = 1,
+            updatedAt = :now,
+            syncedAt = NULL,
+            version = version + 1
+        WHERE attachmentId = :attachmentId AND isDeleted = 0
+        """,
+    )
+    abstract suspend fun deleteAllLinksForAttachment(
+        attachmentId: String,
+        now: Long = System.currentTimeMillis(),
+    )
+
+    @Query("DELETE FROM attachments WHERE id = :attachmentId")
+    abstract suspend fun deleteAttachment(attachmentId: String)
+
+    @Query("SELECT COUNT(*) FROM workspace_connections WHERE attachmentId = :attachmentId AND isDeleted = 0")
+    abstract suspend fun countLinksForAttachment(attachmentId: String): Int
+
+    @Query(
+        """
+        UPDATE workspace_connections
+        SET connectionOrder = :order,
+            updatedAt = :now,
+            syncedAt = NULL,
+            version = version + 1
+        WHERE attachmentId = :attachmentId
+          AND workspaceId = (
+              SELECT id FROM workspaces WHERE sourceContextId = :contextId LIMIT 1
+          )
+          AND isDeleted = 0
+        """,
+    )
+    abstract suspend fun updateAttachmentOrder(
+        contextId: String,
+        attachmentId: String,
+        order: Long,
+        now: Long = System.currentTimeMillis(),
+    )
+
+    @Query("SELECT * FROM attachments")
+    abstract fun getAllAttachmentsFlow(): Flow<List<AttachmentEntity>>
+
+    @Query(
+        """
+        SELECT w.sourceContextId AS context_id,
+               c.attachmentId AS attachment_id,
+               c.connectionOrder AS attachment_order,
+               c.updatedAt AS updatedAt,
+               c.syncedAt AS syncedAt,
+               c.isDeleted AS isDeleted,
+               c.version AS version
+        FROM workspace_connections c
+        JOIN workspaces w ON w.id = c.workspaceId
+        WHERE w.sourceContextId IS NOT NULL
+        """,
+    )
+    abstract fun getAllContextAttachmentLinksFlow(): Flow<List<ContextAttachmentCrossRef>>
+
+    @Query("SELECT * FROM attachments")
+    abstract suspend fun getAll(): List<AttachmentEntity>
+
+    @Query(
+        """
+        SELECT w.sourceContextId AS context_id,
+               c.attachmentId AS attachment_id,
+               c.connectionOrder AS attachment_order,
+               c.updatedAt AS updatedAt,
+               c.syncedAt AS syncedAt,
+               c.isDeleted AS isDeleted,
+               c.version AS version
+        FROM workspace_connections c
+        JOIN workspaces w ON w.id = c.workspaceId
+        WHERE w.sourceContextId IS NOT NULL
+        """,
+    )
+    abstract suspend fun getAllContextAttachmentCrossRefs(): List<ContextAttachmentCrossRef>
+
+    @Query("DELETE FROM attachments")
+    abstract suspend fun deleteAll()
+
+    @Query("DELETE FROM workspace_connections")
+    abstract suspend fun deleteAllContextAttachmentLinks()
+
+    @Query(
+        """
+        SELECT
             a.id AS id,
             a.attachment_type AS attachmentType,
             a.entity_id AS entityId,
@@ -124,13 +237,13 @@ interface AttachmentDao {
                 FROM checklist_items AS ci
                 WHERE ci.checklistId = c.id AND ci.isDeleted = 0
             ) AS checklistContent,
-            l.link_data AS linkDisplayName, 
+            l.link_data AS linkDisplayName,
             NULL as linkTarget,
             l.createdAt AS linkCreatedAt,
             s.name AS scriptName,
             s.description AS scriptDescription,
             s.content AS scriptContent,
-            linked_ctx.name AS contextName, 
+            linked_ctx.name AS contextName,
             linked_ctx.updatedAt AS contextUpdatedAt
         FROM attachments AS a
         LEFT JOIN note_documents AS n ON a.attachment_type IN ('NOTE_DOCUMENT', 'JOURNAL_DOCUMENT') AND a.entity_id = n.id
@@ -138,25 +251,41 @@ interface AttachmentDao {
         LEFT JOIN checklists AS c ON a.attachment_type = 'CHECKLIST' AND a.entity_id = c.id
         LEFT JOIN link_items AS l ON a.attachment_type = 'LINK_ITEM' AND a.entity_id = l.id
         LEFT JOIN scripts AS s ON a.attachment_type = 'SCRIPT' AND a.entity_id = s.id
-        LEFT JOIN context_attachment_cross_ref AS cross_ref ON a.id = cross_ref.attachment_id
-        LEFT JOIN contexts AS linked_ctx ON cross_ref.context_id = linked_ctx.id
+        LEFT JOIN workspace_connections AS connection ON a.id = connection.attachmentId AND connection.isDeleted = 0
+        LEFT JOIN workspaces AS workspace ON connection.workspaceId = workspace.id
+        LEFT JOIN contexts AS linked_ctx ON workspace.sourceContextId = linked_ctx.id
         GROUP BY a.id
-    """,
+        """,
     )
-    fun getLibraryItemsFlow(): Flow<List<AttachmentLibraryQueryResult>>
+    abstract fun getLibraryItemsFlow(): Flow<List<AttachmentLibraryQueryResult>>
 
     @Query("SELECT * FROM attachments WHERE owner_context_id = :contextId AND role_code = :roleCode LIMIT 1")
-    suspend fun findAttachmentByRole(
+    abstract suspend fun findAttachmentByRole(
         contextId: String,
         roleCode: String,
     ): AttachmentEntity?
 
     @Query("SELECT * FROM attachments")
-    suspend fun getAllRaw(): List<AttachmentEntity>
+    abstract suspend fun getAllRaw(): List<AttachmentEntity>
 
-    @Query("SELECT * FROM context_attachment_cross_ref")
-    suspend fun getAllContextAttachmentCrossRefsRaw(): List<ContextAttachmentCrossRef>
+    @Query(
+        """
+        SELECT w.sourceContextId AS context_id,
+               c.attachmentId AS attachment_id,
+               c.connectionOrder AS attachment_order,
+               c.updatedAt AS updatedAt,
+               c.syncedAt AS syncedAt,
+               c.isDeleted AS isDeleted,
+               c.version AS version
+        FROM workspace_connections c
+        JOIN workspaces w ON w.id = c.workspaceId
+        WHERE w.sourceContextId IS NOT NULL
+        """,
+    )
+    abstract suspend fun getAllContextAttachmentCrossRefsRaw(): List<ContextAttachmentCrossRef>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertContextAttachmentCrossRefs(links: List<ContextAttachmentCrossRef>)
+    @Transaction
+    open suspend fun insertContextAttachmentCrossRefs(links: List<ContextAttachmentCrossRef>) {
+        insertContextAttachmentLinks(links)
+    }
 }

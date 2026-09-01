@@ -4,12 +4,18 @@ import com.romankozak.forwardappmobile.core.data.models.sync.SnapshotBundle
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.context.CanonicalExecutionLogSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceConnectionSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceConnectionSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceProblemAttachmentRefSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceProblemAttachmentRefSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceProblemSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceProblemSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceProblemWorkspaceRefSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceProblemWorkspaceRefSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceInboxRecordSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceInboxRecordSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.CanonicalRecurringSeriesSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayThemeAssignmentDocumentSnapshot
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.day_management.DayThemeSnapshot
@@ -135,6 +141,24 @@ interface FullBackupLocalDataSource {
     suspend fun loadCanonicalWorkspaceProblemsChangedSince(timestamp: Long): CanonicalWorkspaceProblemSyncPayload
 
     suspend fun markCanonicalWorkspaceProblemsSynced(ack: CanonicalWorkspaceProblemSyncAck)
+
+    suspend fun loadUnsyncedCanonicalWorkspaceInbox(): List<WorkspaceInboxRecordSnapshot>
+
+    suspend fun loadCanonicalWorkspaceInboxChangedSince(timestamp: Long): List<WorkspaceInboxRecordSnapshot>
+
+    suspend fun markCanonicalWorkspaceInboxSynced(records: List<WorkspaceInboxRecordSyncVersion>)
+
+    suspend fun loadUnsyncedCanonicalWorkspaceConnections(): List<WorkspaceConnectionSnapshot>
+
+    suspend fun loadCanonicalWorkspaceConnectionsChangedSince(timestamp: Long): List<WorkspaceConnectionSnapshot>
+
+    suspend fun markCanonicalWorkspaceConnectionsSynced(connections: List<WorkspaceConnectionSyncVersion>)
+
+    suspend fun loadUnsyncedCanonicalWorkspaceBacklog(): List<WorkspaceBacklogEntrySnapshot>
+
+    suspend fun loadCanonicalWorkspaceBacklogChangedSince(timestamp: Long): List<WorkspaceBacklogEntrySnapshot>
+
+    suspend fun markCanonicalWorkspaceBacklogSynced(entries: List<WorkspaceBacklogEntrySyncVersion>)
 
     suspend fun restoreSettings(settings: Map<String, String>)
 

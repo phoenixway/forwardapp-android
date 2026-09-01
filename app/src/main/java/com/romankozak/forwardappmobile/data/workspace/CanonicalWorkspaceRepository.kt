@@ -2,11 +2,15 @@ package com.romankozak.forwardappmobile.data.workspace
 
 import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
-import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationGraphRepository
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDirectionRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalKeyProblemsRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalInboxRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalConnectionsRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalBacklogRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogRepository
 import com.romankozak.forwardappmobile.database.AppDatabase
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.validateSingleParentHierarchy
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubjectType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceBinding
@@ -24,7 +28,12 @@ class CanonicalWorkspaceRepository
         private val workspaceDao: WorkspaceDao,
         private val orientationDao: OrientationDao,
         private val graphRepository: CanonicalOrientationGraphRepository,
-        private val contextManagementDao: ContextManagementDao,
+        private val executionLogRepository: CanonicalExecutionLogRepository,
+        private val keyProblemsRepository: CanonicalKeyProblemsRepository,
+        private val directionRepository: CanonicalDirectionRepository,
+        private val inboxRepository: CanonicalInboxRepository,
+        private val connectionsRepository: CanonicalConnectionsRepository,
+        private val backlogRepository: CanonicalBacklogRepository,
     ) {
         suspend fun create(
             nameOverride: String,
@@ -137,6 +146,13 @@ class CanonicalWorkspaceRepository
                     movedChildren,
             )
 
+            directionRepository.tombstoneWorkspaceLinksTargeting(listOf(id), now)
+            directionRepository.tombstoneOwnedEntriesForWorkspaces(listOf(id), now)
+            keyProblemsRepository.tombstoneOwnedContentForWorkspaces(listOf(id), now)
+            inboxRepository.tombstoneOwnedContentForWorkspaces(listOf(id), now)
+            connectionsRepository.tombstoneOwnedContentForWorkspaces(listOf(id), now)
+            backlogRepository.tombstoneOwnedContentForWorkspaces(listOf(id), now)
+            executionLogRepository.tombstoneOwnedContentForWorkspaces(listOf(id), now)
             workspaceDao.upsert(movedChildren + current.bump(now).copy(isDeleted = true))
 
             orientationDao.upsertWorkspaceBindings(
@@ -164,13 +180,6 @@ class CanonicalWorkspaceRepository
                     },
             )
 
-            val liveExecutionLogs =
-                contextManagementDao.getLiveCanonicalExecutionLogsForWorkspace(id)
-            if (liveExecutionLogs.isNotEmpty()) {
-                contextManagementDao.insertLogs(
-                    liveExecutionLogs.map { it.softDelete(now) },
-                )
-            }
         }
 
         suspend fun ensureEmbodiedWorkspace(

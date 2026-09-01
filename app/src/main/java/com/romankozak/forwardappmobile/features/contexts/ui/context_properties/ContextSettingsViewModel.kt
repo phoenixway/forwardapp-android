@@ -23,6 +23,8 @@ import com.romankozak.forwardappmobile.data.repository.ContextStructureRepositor
 import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDashboardCapabilityRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogRepository
 import com.romankozak.forwardappmobile.domain.structure.StructurePresetService
 import com.romankozak.forwardappmobile.features.contexts.data.dao.StructurePresetDao
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
@@ -65,6 +67,8 @@ class ContextSettingsViewModel
         private val noteDocumentRepository: NoteDocumentRepository,
         private val musicNoteRepository: MusicNoteRepository,
         private val checklistRepository: ChecklistRepository,
+        private val canonicalDashboardCapabilityRepository: CanonicalDashboardCapabilityRepository,
+        private val canonicalExecutionLogRepository: CanonicalExecutionLogRepository,
     ) : ViewModel(), EvaluationTabActions, RemindersTabActions {
         private val projectId: String? = savedStateHandle["projectId"]
         private val allContexts =
@@ -137,7 +141,21 @@ class ContextSettingsViewModel
 
                 // 3. Формуємо мапу фіч через той самий resolver, що й runtime екрану контексту.
                 val resolvedConfig = structure ?: ContextConfiguration.default(project.id)
-                val enabledCapabilities = contextCapabilitiesResolver.resolve(resolvedConfig)
+                val legacyEnabledCapabilities = contextCapabilitiesResolver.resolve(resolvedConfig)
+                val dashboardCapability = CapabilityId("dashboard")
+                val executionLogCapability = CapabilityId("log")
+                val withCanonicalDashboard =
+                    if (canonicalDashboardCapabilityRepository.isEnabled(project.id)) {
+                        legacyEnabledCapabilities + dashboardCapability
+                    } else {
+                        legacyEnabledCapabilities - dashboardCapability
+                    }
+                val enabledCapabilities =
+                    if (canonicalExecutionLogRepository.isEnabled(project.id)) {
+                        withCanonicalDashboard + executionLogCapability
+                    } else {
+                        withCanonicalDashboard - executionLogCapability
+                    }
                 val allKnownCapabilities = ContextRoleRegistry.getAllKnownCapabilities() + enabledCapabilities
                 val structureFeatures =
                     allKnownCapabilities.associate { capId ->
@@ -416,10 +434,8 @@ class ContextSettingsViewModel
                         applyMode = APPLY_MODE_ADDITIVE,
                         // Оновлення legacy-прапорців
                         enableInbox = presetCapabilities.contains(CapabilityId("inbox")),
-                        enableLog = presetCapabilities.contains(CapabilityId("log")),
                         enableArtifact = preset?.enableArtifact ?: presetCapabilities.contains(CapabilityId("artifact")),
                         enableAdvanced = preset?.enableAdvanced,
-                        enableDashboard = true,
                         enableBacklog = presetCapabilities.contains(CapabilityId("backlog")),
                         enableAttachments =
                             presetCapabilities.contains(CapabilityId("connections")) ||
@@ -431,6 +447,14 @@ class ContextSettingsViewModel
                         experimentalCapabilityIds = experimentalIdsFromPreset,
                     )
                 contextStructureRepository.updateStructure(updatedStructure)
+                canonicalDashboardCapabilityRepository.setEnabled(
+                    workspaceId = pid,
+                    enabled = true,
+                )
+                canonicalExecutionLogRepository.setEnabled(
+                    workspaceId = pid,
+                    enabled = presetCapabilities.contains(CapabilityId("log")),
+                )
 
                 // 5. Перезавантажуємо дані, щоб UI оновився згідно зі змінами
                 loadExistingProject(pid)
@@ -516,10 +540,8 @@ class ContextSettingsViewModel
                     experimentalCapabilityIds = currentState.experimentalCapabilityIds,
                     // Підтримка legacy-колонок (для сумісності)
                     enableInbox = currentState.features["Inbox"] == true,
-                    enableLog = currentState.features["Log"] == true,
                     enableArtifact = currentState.features["Artifact"] == true,
                     enableAdvanced = currentState.isProjectManagementEnabled,
-                    enableDashboard = currentState.features["Dashboard"] == true,
                     enableBacklog = currentState.features["Backlog"] == true,
                     enableAttachments = currentState.features["Connections"] ?: currentState.features["Attachments"] == true,
                     // Керується окремою вкладкою Direction settings.
@@ -532,6 +554,14 @@ class ContextSettingsViewModel
 
             // 3. Записуємо в БД
             contextStructureRepository.updateStructure(updated)
+            canonicalDashboardCapabilityRepository.setEnabled(
+                workspaceId = pid,
+                enabled = currentState.features["Dashboard"] == true,
+            )
+            canonicalExecutionLogRepository.setEnabled(
+                workspaceId = pid,
+                enabled = currentState.features["Log"] == true,
+            )
 
             // 4. Оновлюємо внутрішній стан UI для миттєвої реакції екрана
             _uiState.update { state ->

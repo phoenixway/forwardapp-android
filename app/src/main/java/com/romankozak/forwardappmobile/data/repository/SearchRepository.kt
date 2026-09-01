@@ -2,6 +2,7 @@ package com.romankozak.forwardappmobile.data.repository
 
 import com.google.gson.Gson
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalAttachmentSearchResult
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalContextSearchRow
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalContextSearchResult
 import com.romankozak.forwardappmobile.core.data.models.entities.GlobalSearchResultItem
@@ -12,7 +13,6 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.InboxRecordDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.LinkItemDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
 import kotlinx.coroutines.flow.first
@@ -55,7 +55,7 @@ class SearchRepository
     constructor(
         private val goalDao: GoalDao,
         private val contextDao: ContextDao,
-        private val listItemDao: ListItemDao,
+        private val listItemRepository: ListItemRepository,
         private val linkItemDao: LinkItemDao,
         private val activityRepository: ActivityRepository,
         private val inboxRecordDao: InboxRecordDao,
@@ -109,7 +109,12 @@ class SearchRepository
 
         private suspend fun buildGoalResults(query: String): List<GlobalSearchResultItem.GoalItem> =
             goalDao.searchGoalsGlobal(query).mapNotNull { searchResult ->
-                val listItem = listItemDao.getListItemByEntityId(searchResult.goal.id)
+                val listItem =
+                    listItemRepository.getRuntimeItemForEntityInContext(
+                        entityId = searchResult.goal.id,
+                        itemType = BacklogItemTypeValues.GOAL,
+                        contextId = searchResult.contextId,
+                    )
                 listItem?.let {
                     GlobalSearchResultItem.GoalItem(
                         goal = searchResult.goal,

@@ -90,8 +90,7 @@ class BacklogItemActions(
             }
 
             is BacklogItemContent.LinkItem -> {
-                repositories.contextRepository.deleteAttachmentEverywhere(item.backlogItem.id)
-                repositories.listItemRepository.deleteItemByEntityId(item.link.id)
+                repositories.contextRepository.deleteLinkItemEverywhere(item.link.id)
                 "Посилання видалено"
             }
         }

@@ -168,19 +168,47 @@ class CanonicalDashboardCapabilityRepositoryRoomTest {
     }
 
     @Test
-    fun `context backed Workspace rejects Dashboard canonical commands`() = runBlocking {
+    fun `context backed Workspace accepts Dashboard commands after cutover`() = runBlocking {
         val database = database()
         try {
             database.workspaceDao().upsert(listOf(contextBackedWorkspace("legacy")))
             val repository = repository(database)
 
-            val failure =
-                runCatching {
-                    repository.enable("legacy", now = 10L)
-                }.exceptionOrNull()
+            val id = repository.enable("legacy", now = 10L)
+            repository.disable("legacy", now = 20L)
 
-            assertTrue(failure is IllegalArgumentException)
-            assertTrue(database.orientationDao().getAllWorkspaceCapabilities().isEmpty())
+            assertEquals(id, dashboard(database, "legacy").id)
+            assertEquals(WorkspaceCapabilityState.DISABLED.name, dashboard(database, "legacy").state)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `setEnabled is idempotent and isEnabled follows canonical state`() = runBlocking {
+        val database = database()
+        try {
+            val workspaceId = "canonical-toggle"
+            database.workspaceDao().upsert(listOf(canonicalWorkspace(workspaceId)))
+            val repository = repository(database)
+
+            repository.setEnabled(workspaceId, enabled = true, now = 10L)
+            assertTrue(repository.isEnabled(workspaceId))
+            val enabled = dashboard(database, workspaceId)
+            assertEquals(WorkspaceCapabilityState.ACTIVE.name, enabled.state)
+            assertEquals(1L, enabled.version)
+
+            repository.setEnabled(workspaceId, enabled = true, now = 20L)
+            assertEquals(1L, dashboard(database, workspaceId).version)
+
+            repository.setEnabled(workspaceId, enabled = false, now = 30L)
+            assertFalse(repository.isEnabled(workspaceId))
+            val disabled = dashboard(database, workspaceId)
+            assertEquals(WorkspaceCapabilityState.DISABLED.name, disabled.state)
+            assertEquals(2L, disabled.version)
+
+            repository.setEnabled(workspaceId, enabled = false, now = 40L)
+            assertEquals(2L, dashboard(database, workspaceId).version)
         } finally {
             database.close()
         }

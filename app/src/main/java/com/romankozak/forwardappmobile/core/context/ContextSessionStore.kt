@@ -20,6 +20,8 @@ sealed interface ContextCommand {
         val config: ContextConfiguration,
         val preferredViewName: String?,
         val currentView: ContextViewMode,
+        val dashboardEnabledOverride: Boolean? = null,
+        val executionLogEnabledOverride: Boolean? = null,
     ) : ContextCommand
 
     data class SelectView(
@@ -42,6 +44,8 @@ class ContextSessionStore(
                     config = command.config,
                     preferredViewName = command.preferredViewName,
                     currentView = command.currentView,
+                    dashboardEnabledOverride = command.dashboardEnabledOverride,
+                    executionLogEnabledOverride = command.executionLogEnabledOverride,
                 )
             is ContextCommand.SelectView -> {
                 val resolved = selectView(command.requested)
@@ -55,8 +59,13 @@ class ContextSessionStore(
         config: ContextConfiguration,
         preferredViewName: String?,
         currentView: ContextViewMode,
+        dashboardEnabledOverride: Boolean? = null,
+        executionLogEnabledOverride: Boolean? = null,
     ): ContextSessionState {
-        val enabled = capabilitiesResolver.resolve(config)
+        val enabled =
+            capabilitiesResolver.resolve(config)
+                .withDashboardOverride(dashboardEnabledOverride)
+                .withExecutionLogOverride(executionLogEnabledOverride)
         val availableViews = ContextViewPolicy.availableViews(enabled)
         val preferred = preferredViewName?.let(::parseViewMode)
         val resolved = ContextViewPolicy.resolveView(availableViews, preferred, currentView)
@@ -82,6 +91,18 @@ class ContextSessionStore(
             ),
         )
         return newState
+    }
+
+    private fun Set<CapabilityId>.withDashboardOverride(enabled: Boolean?): Set<CapabilityId> {
+        if (enabled == null) return this
+        val dashboard = CapabilityId("dashboard")
+        return if (enabled) this + dashboard else this - dashboard
+    }
+
+    private fun Set<CapabilityId>.withExecutionLogOverride(enabled: Boolean?): Set<CapabilityId> {
+        if (enabled == null) return this
+        val executionLog = CapabilityId("log")
+        return if (enabled) this + executionLog else this - executionLog
     }
 
     fun selectView(requested: ContextViewMode): ContextViewMode {

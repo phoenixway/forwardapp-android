@@ -32,9 +32,12 @@ interface ChecklistDao {
         FROM checklists AS c
         INNER JOIN attachments AS a
             ON a.entity_id = c.id AND a.attachment_type = :attachmentType
-        INNER JOIN context_attachment_cross_ref AS link
-            ON link.attachment_id = a.id
-        WHERE link.context_id = :contextId
+        INNER JOIN workspace_connections AS link
+            ON link.attachmentId = a.id AND link.isDeleted = 0
+        INNER JOIN workspaces AS w
+            ON w.id = link.workspaceId
+        WHERE w.sourceContextId = :contextId
+          AND a.isDeleted = 0
         ORDER BY c.name COLLATE NOCASE ASC
         """,
     )

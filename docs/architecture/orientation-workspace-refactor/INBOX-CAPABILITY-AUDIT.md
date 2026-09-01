@@ -1,30 +1,30 @@
 # INBOX Capability Audit and Source Contract
 
-Status: `CURRENT` for the verified legacy boundary and implemented shared
-model/config/planner foundation; `PROPOSED` for Room, SnapshotBundle,
-repository, and runtime authority cutover.
+Status: `CURRENT / VERIFIED` for the Android schema-158 canonical hard cutover.
 
-This source-only slice does not modify Android persistence, sync, DI, UI, or
-the concurrent DIRECTION cutover.
+The current UI remains unchanged through compatibility adapters. This document
+describes the canonical Android source boundary after the Room/runtime/sync
+cutover, not a Desktop parity claim.
 
-## Current boundary
+## Retired legacy boundary
 
-`InboxRecord` already has stable id, Context owner, text, creation/order data,
-version, acknowledgement timestamp, and tombstone. It is therefore a mature
-legacy content row, but ownership is still Context-scoped.
+Legacy `inbox_records` was removed in migration `157 -> 158`. `InboxRecord` is
+now a compatibility DTO projected from canonical `workspace_inbox_records`;
+legacy UI/runtime callers continue through `InboxRepository`, which delegates
+to `CanonicalInboxRepository`.
 
 `InboxRecordLink` is a local rebuildable hashtag projection. Canonical inputs
 are record text, Context/Workspace tags, and owner-visibility configuration.
 The link cache is neither content nor sync authority.
 
-`hideInOwnerInbox` is an obsolete per-row presentation field. Current Android
-writes reset it to false, while actual owner visibility is derived from
-`removeInboxEntryAfterTagAutocopy` plus foreign hashtag associations.
+The legacy `hideInOwnerInbox` field is retired. A live legacy true value blocks
+the `157 -> 158` migration so owner visibility cannot change silently. Current
+owner visibility lives in typed INBOX capability configuration.
 
 Promotion to Goal is a cross-capability command and cannot define Inbox content
-ownership or be migrated before Goal/Backlog authority is ready.
+ownership.
 
-## Accepted canonical shape
+## Canonical shape
 
 `INBOX` is an `OWNED_COLLECTION` of `WorkspaceInboxRecord` rows. Each row owns:
 
@@ -45,41 +45,33 @@ No association/cache rows and no per-record hide flag belong to canonical
 content. Capability disable/archive/metadata-delete preserve records. Explicit
 record deletion tombstones the record and removes/rebuilds local projections.
 
-## Implemented safe slice
+## Implemented cutover
 
-Shared code now provides:
+Android now provides:
 
 - `WorkspaceInboxRecord`;
 - typed INBOX config v1 and mapping to the existing shared visibility policy;
-- collection contract validation;
-- a pure migration planner preserving id, text, timestamps, sync metadata,
-  version, and tombstone;
+- schema-158 Room migration preserving id, text, timestamps, sync metadata,
+  version, tombstone, local association cache where valid, and visible order;
 - deterministic conversion from current descending legacy order to canonical
   zero-based order;
 - provenance-backed owner/capability resolution;
 - duplicate, unresolved owner, invalid version, and canonical collision
   diagnostics;
-- fail-closed handling of live legacy `hideInOwnerInbox=true` rows.
+- fail-closed handling of live legacy `hideInOwnerInbox=true` rows;
+- full backup/restore, changed-since delta, Wi-Fi dirty push, exact-version
+  ACK, and canonical merge/freshness rules;
+- Context and Workspace owner deletion cascade that tombstones live canonical
+  Inbox rows;
+- compatibility `InboxRecordDao`, `InboxRecordLinkDao`, and `InboxRepository`
+  preserving existing UI behavior without giving legacy rows write authority.
 
-A tombstoned row may discard the obsolete hide flag because it has no live
-presentation. A live true value blocks cutover so visibility cannot change
-silently.
+## Remaining boundaries
 
-## Deferred hard cutover
+Selective import drops canonical Inbox rows until Workspace-aware selection
+exists. Goal promotion remains a compatibility command until Goal/Backlog
+authority is canonical.
 
-After DIRECTION stabilizes schema and transport, the persistence slice must:
-
-1. introduce typed Room persistence and capability repository;
-2. migrate every live row and tombstone with exact accounting;
-3. move the effective owner-visibility setting into capability config;
-4. keep hashtag links local and rebuildable;
-5. introduce typed SnapshotBundle merge/delta/ACK;
-6. adapt current UI/runtime reads without changing UI;
-7. keep Goal promotion behind a compatibility command until Goal/Backlog
-   authority is canonical;
-8. remove legacy ownership only after verification.
-
-Focused shared tests cover config/visibility, metadata preservation, legacy
-order normalization, hide-flag handling, dependency/collision diagnostics, and
-contract validation. Together with capability-kernel and KEY_PROBLEMS coverage,
-the selected shared run is green with 16 tests.
+Focused verification covers repository lifecycle/content behavior, owner
+deletion cascade, schema-158 migration/fail-closed gates, canonical sync store
+merge/ACK/freshness invariants, and Wi-Fi canonical delta planning.

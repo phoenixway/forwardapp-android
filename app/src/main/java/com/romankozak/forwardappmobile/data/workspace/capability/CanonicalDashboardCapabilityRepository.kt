@@ -1,6 +1,7 @@
 package com.romankozak.forwardappmobile.data.workspace.capability
 
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.DashboardCapabilityConfigurationCodec
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityType
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -27,6 +28,41 @@ class CanonicalDashboardCapabilityRepository
             now: Long = System.currentTimeMillis(),
         ) = instanceStore.disable(SPEC, workspaceId, now)
 
+        suspend fun isEnabled(workspaceId: String): Boolean {
+            val current = instanceStore.findInstance(SPEC, workspaceId) ?: return false
+            return !current.isDeleted &&
+                current.state == WorkspaceCapabilityState.ACTIVE.name
+        }
+
+        suspend fun setEnabled(
+            workspaceId: String,
+            enabled: Boolean,
+            now: Long = System.currentTimeMillis(),
+        ) {
+            val current = instanceStore.findInstance(SPEC, workspaceId)
+
+            if (enabled) {
+                if (
+                    current != null &&
+                    !current.isDeleted &&
+                    current.state == WorkspaceCapabilityState.ACTIVE.name
+                ) {
+                    return
+                }
+                enable(workspaceId, now)
+                return
+            }
+
+            if (
+                current == null ||
+                current.isDeleted ||
+                current.state == WorkspaceCapabilityState.DISABLED.name
+            ) {
+                return
+            }
+            disable(workspaceId, now)
+        }
+
         suspend fun archive(
             workspaceId: String,
             now: Long = System.currentTimeMillis(),
@@ -47,6 +83,7 @@ class CanonicalDashboardCapabilityRepository
                 CanonicalCapabilityInstanceSpec(
                     type = WorkspaceCapabilityType.DASHBOARD,
                     configurationCodec = DashboardCapabilityConfigurationCodec,
+                    workspaceAuthority = CapabilityWorkspaceAuthority.ALL_ACTIVE_WORKSPACES_AFTER_CUTOVER,
                 )
         }
     }

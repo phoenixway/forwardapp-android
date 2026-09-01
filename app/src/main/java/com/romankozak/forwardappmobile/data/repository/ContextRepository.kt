@@ -28,6 +28,10 @@ import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
 import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalKeyProblemsRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalInboxRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalConnectionsRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalBacklogRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.*
 import com.romankozak.forwardappmobile.sync.AttachmentLibraryQueryResult
 import com.romankozak.forwardappmobile.sync.AttachmentsRepository
@@ -64,15 +68,20 @@ class ContextRepository
         private val contextTimeTrackingRepository: ContextTimeTrackingRepository,
         private val contextArtifactRepository: ContextArtifactRepository,
         private val listItemRepository: ListItemRepository,
+        private val backlogPlacementCommands: BacklogPlacementCommands,
         private val contextStructureDao: ContextStructureDao,
         private val structurePresetDao: StructurePresetDao,
         private val directionRepository: DirectionRepository,
-        private val backlogOrderRepository: BacklogOrderRepository,
         private val aiEventRepository: AiEventRepository,
         // ДОДАНО: Потрібен провайдер для уникнення циклічної залежності
         private val contextMarkerHandlerProvider: Provider<ContextMarkerHandler>,
         private val tagAssociationHandler: TagAssociationHandler,
         private val workspaceWriteThrough: ContextWorkspaceWriteThrough,
+        private val canonicalKeyProblemsRepository: CanonicalKeyProblemsRepository,
+        private val canonicalInboxRepository: CanonicalInboxRepository,
+        private val canonicalConnectionsRepository: CanonicalConnectionsRepository,
+        private val canonicalBacklogRepository: CanonicalBacklogRepository,
+        private val backlogPresentationLifecycle: BacklogPresentationLifecycle,
     ) {
         private val contextMarkerHandler: ContextMarkerHandler by lazy { contextMarkerHandlerProvider.get() }
 
@@ -137,7 +146,6 @@ class ContextRepository
         fun getContextContentStream(contextId: String): Flow<List<BacklogItemContent>> {
             return combine(
                 listItemRepository.getItemsForContextStream(contextId),
-                backlogOrderRepository.observeAll(),
                 reminderRepository.getAllReminders(),
                 goalRepository.getAllGoalsFlow(),
                 contextDao.getAllContexts(),
@@ -154,16 +162,16 @@ class ContextRepository
                         ListItemContentInput(
                             contextId = contextId,
                             items = array[0] as List<BacklogItem>,
-                            backlogOrders = array[1] as List<BacklogOrder>,
-                            attachments = array[10] as List<AttachmentWithContext>,
-                            reminders = array[2] as List<Reminder>,
-                            goals = array[3] as List<Goal>,
-                            contexts = array[4] as List<Context>,
-                            links = array[5] as List<LinkItemEntity>,
-                            notes = array[6] as List<LegacyNoteEntity>,
-                            noteDocuments = array[7] as List<NoteDocumentEntity>,
-                            musicNotes = array[8] as List<MusicNoteEntity>,
-                            checklists = array[9] as List<ChecklistEntity>,
+                            backlogOrders = emptyList(),
+                            attachments = array[9] as List<AttachmentWithContext>,
+                            reminders = array[1] as List<Reminder>,
+                            goals = array[2] as List<Goal>,
+                            contexts = array[3] as List<Context>,
+                            links = array[4] as List<LinkItemEntity>,
+                            notes = array[5] as List<LegacyNoteEntity>,
+                            noteDocuments = array[6] as List<NoteDocumentEntity>,
+                            musicNotes = array[7] as List<MusicNoteEntity>,
+                            checklists = array[8] as List<ChecklistEntity>,
                         ),
                 )
             }
@@ -300,14 +308,23 @@ class ContextRepository
         suspend fun deleteLinkByEntityIdAndContextId(
             eId: String,
             cId: String,
-        ) = listItemRepository.deleteLinkByEntityIdAndContextId(eId, cId)
+        ) = backlogPlacementCommands.setContextBackedTargetVisible(
+            contextId = cId,
+            itemType = BacklogItemTypeValues.SUBLIST,
+            entityId = eId,
+            visible = false,
+        )
 
         suspend fun addContextLinkToContext(
             cId: String,
             pId: String,
-        ) = listItemRepository.addContextLinkToContext(cId, pId)
+        ) = backlogPlacementCommands.addContextLinkToContextBacked(
+            targetContextId = cId,
+            currentContextId = pId,
+        )
 
-        suspend fun restoreListItems(items: List<BacklogItem>) = listItemRepository.restoreListItems(items)
+        suspend fun restoreListItems(items: List<BacklogItem>) =
+            backlogPresentationLifecycle.restore(items)
 
         suspend fun deleteGoal(id: String) = goalRepository.deleteGoal(id)
 
@@ -444,10 +461,15 @@ class ContextRepository
 
             val ids = contextsToDelete.map { it.id }
             rebindSharedAttachmentEntitiesBeforeContextDeletion(ids.toSet())
-            listItemRepository.deleteItemsForContexts(ids)
             val now = System.currentTimeMillis()
-            directionRepository.deleteWorkspaceLinksTargeting(ids, now)
             workspaceWriteThrough.mutate(now) {
+                directionRepository.deleteWorkspaceLinksTargeting(ids, now)
+                directionRepository.deleteDirectionsOwnedByWorkspaces(ids, now)
+                canonicalKeyProblemsRepository.tombstoneOwnedContentForWorkspaces(ids, now)
+                canonicalInboxRepository.tombstoneOwnedContentForWorkspaces(ids, now)
+                canonicalConnectionsRepository.tombstoneOwnedContentForWorkspaces(ids, now)
+                canonicalBacklogRepository.tombstoneOwnedContentForWorkspaces(ids, now)
+                contextLogRepository.tombstoneOwnedContentForWorkspaces(ids, now)
                 contextsToDelete.forEach { contextDao.insert(it.softDelete(now)) }
             }
         }
@@ -585,6 +607,26 @@ class ContextRepository
             }
         }
 
+        /**
+         * LinkItem identity is independent from both Attachment id and Backlog
+         * placement id. Remove every runtime presentation through the domain id.
+         */
+        suspend fun deleteLinkItemEverywhere(linkItemId: String) {
+            attachmentRepository
+                .findAttachmentByEntity(
+                    attachmentType = BacklogItemTypeValues.LINK_ITEM,
+                    entityId = linkItemId,
+                )
+                ?.let { attachment ->
+                    deleteAttachmentEverywhere(attachment.id)
+                }
+
+            backlogPlacementCommands.tombstoneContextBackedTarget(
+                itemType = BacklogItemTypeValues.LINK_ITEM,
+                entityId = linkItemId,
+            )
+        }
+
         suspend fun updateAttachmentOrders(
             contextId: String,
             updates: List<Pair<String, Long>>,
@@ -634,62 +676,9 @@ class ContextRepository
             return request.entityId
         }
 
-        /**
-         * Прибирає активні backlog rows, які більше не мають валідної user-facing сутності.
-         *
-         * SUBLIST, що дублює прямий hierarchy relation
-         * (targetContext.parentId == item.contextId), є legacy structural projection.
-         * Ієрархія належить Context.parentId/Context.order; такі rows мають бути tombstone,
-         * а explicit non-child SUBLIST залишається звичайним backlog reference.
-         */
-        suspend fun cleanupDanglingAndLegacyStructuralListItems(): Int {
-            val allListItems = listItemRepository.getAll()
-            val itemsToDelete =
-                allListItems
-                    .filterNot { it.isDeleted }
-                    .filter { item ->
-                        val entityId = item.entityId
-                        val itemType = item.itemType
-
-                        if (entityId == null || itemType == null) {
-                            true
-                        } else {
-                            when (itemType) {
-                                BacklogItemTypeValues.GOAL ->
-                                    goalRepository.getGoalById(entityId) == null
-
-                                BacklogItemTypeValues.SUBLIST -> {
-                                    val targetContext = contextDao.getContextById(entityId)
-                                    targetContext == null ||
-                                        targetContext.isDeleted ||
-                                        isDirectHierarchyChildContext(
-                                            item.contextId,
-                                            targetContext.parentId,
-                                        )
-                                }
-
-                                BacklogItemTypeValues.NOTE_DOCUMENT ->
-                                    noteDocumentRepository.getDocumentById(entityId) == null
-
-                                BacklogItemTypeValues.JOURNAL_DOCUMENT ->
-                                    noteDocumentRepository.getDocumentById(entityId) == null
-
-                                BacklogItemTypeValues.MUSIC_NOTE ->
-                                    musicNoteRepository.getById(entityId) == null
-
-                                BacklogItemTypeValues.CHECKLIST ->
-                                    checklistRepository.getChecklistById(entityId) == null
-
-                                else -> false
-                            }
-                        }
-                    }.map { it.id }
-
-            if (itemsToDelete.isNotEmpty()) {
-                listItemRepository.deleteListItems(itemsToDelete)
-            }
-            return itemsToDelete.size
-        }
+        /** Post-cutover startup repair. Retained legacy list_items are not runtime input. */
+        suspend fun cleanupDanglingAndLegacyStructuralListItems(): Int =
+            canonicalBacklogRepository.tombstoneDanglingAndStructuralEntries()
 
         fun getContextLogsStream(contextId: String): Flow<List<ContextLog>> = contextLogRepository.getContextLogsStream(contextId)
 
@@ -877,41 +866,11 @@ class ContextRepository
             attachmentRepository.unlinkAttachmentFromContext(attachmentId, contextId)
         }
 
-        /**
-         * Масове видалення елементів із беклогу контексту.
-         * Якщо елемент є вкладенням (нотатка/чекліст), видаляється сама сутність або лінк.
-         */
+        /** Removes presentations without deleting externally-owned target content. */
         suspend fun deleteListItemsFromContext(
             contextId: String,
             itemIds: List<String>,
-        ) {
-            if (itemIds.isEmpty()) return
-            val backlogIds = mutableListOf<String>()
-
-            for (itemId in itemIds) {
-                val attachment = attachmentRepository.getAttachmentById(itemId)
-                if (attachment != null) {
-                    when (attachment.attachmentType) {
-                        BacklogItemTypeValues.NOTE_DOCUMENT ->
-                            noteDocumentRepository.deleteDocument(attachment.entityId)
-                        BacklogItemTypeValues.JOURNAL_DOCUMENT ->
-                            noteDocumentRepository.deleteDocument(attachment.entityId)
-                        BacklogItemTypeValues.MUSIC_NOTE ->
-                            musicNoteRepository.delete(attachment.entityId)
-                        BacklogItemTypeValues.CHECKLIST ->
-                            checklistRepository.deleteChecklist(attachment.entityId)
-                        else ->
-                            attachmentRepository.unlinkAttachmentFromContext(attachment.id, contextId)
-                    }
-                } else {
-                    backlogIds += itemId
-                }
-            }
-
-            if (backlogIds.isNotEmpty()) {
-                listItemRepository.deleteListItems(backlogIds)
-            }
-        }
+        ) = backlogPresentationLifecycle.remove(contextId, itemIds)
 
         // У файлі ContextRepository.kt додайте:
         fun getSubprojectsByParentIdFlow(parentId: String): Flow<List<Context>> {

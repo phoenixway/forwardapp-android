@@ -137,9 +137,10 @@ interface ContextDao {
 
     @Query(
         """
-    SELECT c.* FROM contexts c
-    JOIN list_items li ON c.id = li.entityId
-    WHERE li.context_id = :parentId AND li.itemType = 'PROJECT'
+    SELECT * FROM contexts
+    WHERE parentId = :parentId
+      AND is_deleted = 0
+    ORDER BY goal_order ASC, id ASC
 """,
     )
     fun getSubprojectsByParentIdFlow(parentId: String): Flow<List<Context>>

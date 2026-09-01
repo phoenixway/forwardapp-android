@@ -11,7 +11,20 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ContextManagementDao {
-    @Query("SELECT * FROM context_execution_logs WHERE contextId = :contextId AND is_deleted = 0 ORDER BY timestamp DESC")
+    @Query(
+        """
+        SELECT log.*
+        FROM context_execution_logs AS log
+        INNER JOIN workspaces AS workspace
+            ON workspace.id = log.workspaceId
+        WHERE log.contextId IS NULL
+          AND log.is_deleted = 0
+          AND workspace.provenance = 'CONTEXT_BACKED'
+          AND workspace.sourceContextId = :contextId
+          AND workspace.isDeleted = 0
+        ORDER BY log.timestamp DESC, log.id
+        """,
+    )
     fun getLogsForContextStream(contextId: String): Flow<List<ContextLog>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

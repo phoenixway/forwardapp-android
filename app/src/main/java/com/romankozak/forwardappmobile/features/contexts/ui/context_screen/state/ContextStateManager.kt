@@ -2,6 +2,7 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state
 
 import com.romankozak.forwardappmobile.core.data.models.entities.*
+import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.navigation.NavTarget
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.capabilities.projectrealization.ContextManagementTab
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.inputpanel.InputMode
@@ -163,6 +164,8 @@ sealed class ContextData {
         val reminders: List<Reminder>,
         val recentItems: List<RecentItem>,
         val notes: List<LegacyNoteEntity>,
+        val enabledCapabilityOverrides: Set<CapabilityId>?,
+        val executionLogEnabledOverride: Boolean,
     ) : ContextData()
 }
 

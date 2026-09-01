@@ -101,9 +101,10 @@ class SessionModeRepository
                 mode = mode,
             )
             mode.systemContextId?.let { contextId ->
-                contextLogRepository.addContextComment(
+                contextLogRepository.addSystemContextLogEntry(
                     contextId = contextId,
-                    comment = "Підсумок сесії ${mode.title}: $trimmed",
+                    type = "COMMENT",
+                    description = "Підсумок сесії ${mode.title}: $trimmed",
                 )
             }
             activityRecordDao.deleteByTargetTypeKeepingNewest(
@@ -127,7 +128,7 @@ class SessionModeRepository
                 mode = mode,
             )
             mode.systemContextId?.let { contextId ->
-                contextLogRepository.addContextLogEntry(
+                contextLogRepository.addSystemContextLogEntry(
                     contextId = contextId,
                     type = "SESSION_REASON",
                     description = fullText,
@@ -150,7 +151,7 @@ class SessionModeRepository
                 mode = mode,
             )
             mode.systemContextId?.let { contextId ->
-                contextLogRepository.addContextLogEntry(
+                contextLogRepository.addSystemContextLogEntry(
                     contextId = contextId,
                     type = "SESSION_START",
                     description = text,
@@ -176,7 +177,7 @@ class SessionModeRepository
                 mode = mode,
             )
             mode.systemContextId?.let { contextId ->
-                contextLogRepository.addContextLogEntry(
+                contextLogRepository.addSystemContextLogEntry(
                     contextId = contextId,
                     type = "SESSION_END",
                     description = text,

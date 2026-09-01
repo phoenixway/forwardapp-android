@@ -44,6 +44,11 @@ class MergeRepository @Inject constructor(
 
     suspend fun createBackupDiff(incoming: SnapshotBundle): BackupDiff {
         val local = fullBackupLocalDataSource.loadFullSnapshotBundle()
+        val incomingExecutionLogs =
+            incoming.projectCanonicalExecutionLogsForSelectiveImportPreview()
+        val localExecutionLogs =
+            local.projectCanonicalExecutionLogsForSelectiveImportPreview()
+
         return BackupDiff(
             projects = logicHelper.diffEntities(incoming.contexts, local.contexts, { project -> project.id }, { project -> project.version }, { project -> project.updatedAt }),
             goals = logicHelper.diffEntities(incoming.goals, local.goals, { goal -> goal.id }, { goal -> goal.version }, { goal -> goal.updatedAt }),
@@ -51,6 +56,14 @@ class MergeRepository @Inject constructor(
             documents = logicHelper.diffEntities(incoming.documents, local.documents, { doc -> doc.id }, { doc -> doc.version }, { doc -> doc.updatedAt }),
             musicNotes = logicHelper.diffEntities(incoming.musicNotes, local.musicNotes, { note -> note.id }, { note -> note.version }, { note -> note.updatedAt }),
             attachments = logicHelper.diffEntities(incoming.attachments, local.attachments, { attachment -> attachment.id }, { attachment -> attachment.version }, { attachment -> attachment.updatedAt }),
+            contextLogs =
+                logicHelper.diffEntities(
+                    incomingExecutionLogs,
+                    localExecutionLogs,
+                    { log -> log.id },
+                    { log -> log.version },
+                    { log -> log.updatedAt },
+                ),
             // Legacy DayThemeDocuments are compatibility input only and are excluded from modern diff authority.
             contextAttachmentCrossRefs = logicHelper.diffEntities(incoming.crossRefs, local.crossRefs, { crossRef -> "${crossRef.contextId}-${crossRef.attachmentId}" }, { 0L }, { crossRef -> crossRef.updatedAt }),
             tacticalMissions = logicHelper.diffEntities(incoming.tacticalMissions, local.tacticalMissions, { it.id.toString() }, { it.version }, { it.updatedAt ?: it.createdAt }),

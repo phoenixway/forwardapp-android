@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistItemEntity
+import com.romankozak.forwardappmobile.data.repository.BacklogPlacementCommands
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
@@ -65,6 +66,7 @@ class ChecklistViewModel
         private val goalRepository: GoalRepository,
         private val inboxRepository: InboxRepository,
         private val listItemRepository: ListItemRepository,
+        private val backlogPlacementCommands: BacklogPlacementCommands,
         private val directionRepository: DirectionRepository,
         private val dayManagementRepository: DayManagementRepository,
         private val missionRepository: MissionRepository,
@@ -465,7 +467,9 @@ class ChecklistViewModel
                             checklistRepository.deleteItems(resolved.checklistItemIdsToDelete)
                         }
                         if (resolved.backlogItemIdsToDelete.isNotEmpty()) {
-                            listItemRepository.deleteListItems(resolved.backlogItemIdsToDelete)
+                            backlogPlacementCommands.tombstoneContextBacked(
+                                resolved.backlogItemIdsToDelete,
+                            )
                         }
                         if (resolved.directionItemIdsToDelete.isNotEmpty()) {
                             directionRepository.deleteDirectionItems(resolved.directionItemIdsToDelete)

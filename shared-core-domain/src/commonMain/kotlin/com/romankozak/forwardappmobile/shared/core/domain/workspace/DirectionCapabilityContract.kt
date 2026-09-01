@@ -37,7 +37,7 @@ object DirectionCapabilityConfigurationCodec : CapabilityConfigurationCodec {
     }
 
     private val V1_PATTERN =
-        Regex("""\{\s*"autoLinkChildWorkspaces"\s*:\s*(true|false)\s*}""")
+        Regex("""\{\s*"autoLinkChildWorkspaces"\s*:\s*(true|false)\s*\}""")
 }
 
 enum class LegacyDirectionRowKind {

@@ -1,50 +1,22 @@
 package com.romankozak.forwardappmobile.data.repository
 
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.ExecutionLogWorkspaceOwnershipBridge
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
-import io.mockk.slot
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ContextLogRepositoryTest {
     @Test
-    fun `retention turns overflow into syncable tombstone`() = runTest {
+    fun `user authored Context log routes to canonical authoring boundary`() = runTest {
         val dao = mockk<ContextManagementDao>(relaxed = true)
         val ownershipBridge = mockk<ExecutionLogWorkspaceOwnershipBridge>()
-        coEvery { ownershipBridge.resolveContextBackedWorkspaceId("context-1") } returns "context-1"
-        val repository = ContextLogRepository(dao, ownershipBridge)
-        val overflow =
-            ContextLog(
-                id = "old-log",
-                contextId = "context-1",
-                timestamp = 100L,
-                type = "AUTOMATIC",
-                description = "old",
-                details = null,
-                updatedAt = 200L,
-                syncedAt = 250L,
-                isDeleted = false,
-                version = 7L,
-            )
-
-        coEvery {
-            dao.getLogsForContextBeyondKeepCount(
-                contextId = "context-1",
-                keepCount = 40,
-            )
-        } returns listOf(overflow)
-
-        val retainedChanges = slot<List<ContextLog>>()
-        val insertedLog = slot<ContextLog>()
-        coEvery { dao.insertLogs(capture(retainedChanges)) } returns Unit
-        coEvery { dao.insertLog(capture(insertedLog)) } returns Unit
+        val canonicalRepository = mockk<CanonicalExecutionLogRepository>(relaxed = true)
+        coEvery { ownershipBridge.resolveContextBackedWorkspaceId("context-1") } returns "workspace-1"
+        val repository = ContextLogRepository(dao, ownershipBridge, canonicalRepository)
 
         repository.addContextLogEntry(
             contextId = "context-1",
@@ -52,19 +24,63 @@ class ContextLogRepositoryTest {
             description = "new",
         )
 
-        assertEquals("context-1", insertedLog.captured.workspaceId)
-        assertEquals(1, retainedChanges.captured.size)
-        val tombstone = retainedChanges.captured.single()
-        assertEquals(overflow.id, tombstone.id)
-        assertTrue(tombstone.isDeleted)
-        assertEquals(overflow.version + 1, tombstone.version)
-        assertNull(tombstone.syncedAt)
-        assertTrue((tombstone.updatedAt ?: 0L) > (overflow.updatedAt ?: 0L))
+        coVerify(exactly = 1) {
+            canonicalRepository.createLog(
+                workspaceId = "workspace-1",
+                type = "COMMENT",
+                description = "new",
+                details = null,
+                timestamp = any(),
+                now = any(),
+            )
+        }
+        coVerify(exactly = 0) { dao.insertLog(any()) }
+    }
+
+    @Test
+    fun `system Context log routes to canonical system audit boundary`() = runTest {
+        val dao = mockk<ContextManagementDao>(relaxed = true)
+        val ownershipBridge = mockk<ExecutionLogWorkspaceOwnershipBridge>()
+        val canonicalRepository = mockk<CanonicalExecutionLogRepository>(relaxed = true)
+        coEvery { ownershipBridge.resolveContextBackedWorkspaceId("context-1") } returns "workspace-1"
+        val repository = ContextLogRepository(dao, ownershipBridge, canonicalRepository)
+
+        repository.addSystemContextLogEntry(
+            contextId = "context-1",
+            type = "AUTOMATIC",
+            description = "audit",
+            details = "details",
+        )
 
         coVerify(exactly = 1) {
-            dao.getLogsForContextBeyondKeepCount(
-                contextId = "context-1",
-                keepCount = 40,
+            canonicalRepository.createSystemLog(
+                workspaceId = "workspace-1",
+                type = "AUTOMATIC",
+                description = "audit",
+                details = "details",
+                timestamp = any(),
+                now = any(),
+            )
+        }
+        coVerify(exactly = 0) { dao.insertLog(any()) }
+    }
+
+    @Test
+    fun `owner deletion routes through canonical content lifecycle`() = runTest {
+        val dao = mockk<ContextManagementDao>(relaxed = true)
+        val ownershipBridge = mockk<ExecutionLogWorkspaceOwnershipBridge>()
+        val canonicalRepository = mockk<CanonicalExecutionLogRepository>(relaxed = true)
+        val repository = ContextLogRepository(dao, ownershipBridge, canonicalRepository)
+
+        repository.tombstoneOwnedContentForWorkspaces(
+            workspaceIds = listOf("context-1", "context-2"),
+            now = 100L,
+        )
+
+        coVerify(exactly = 1) {
+            canonicalRepository.tombstoneOwnedContentForWorkspaces(
+                workspaceIds = listOf("context-1", "context-2"),
+                now = 100L,
             )
         }
     }

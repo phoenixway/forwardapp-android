@@ -7,6 +7,9 @@ package com.romankozak.forwardappmobile.core.sync
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalWorkspaceProblemSyncAck
 import com.romankozak.forwardappmobile.data.workspace.toCanonicalWorkspaceProblemSyncPayloadOrNull
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceProblemSyncStore
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceInboxSyncStore
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceConnectionSyncStore
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBacklogSyncStore
 
 import com.romankozak.forwardappmobile.data.logic.InboxAssociationCache
 import com.romankozak.forwardappmobile.core.context.normalizeLegacyStructuralContextBacklog
@@ -30,7 +33,9 @@ import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstra
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceDirectionEntrySyncStore
 import com.romankozak.forwardappmobile.data.workspace.ContextWorkspaceWriteThrough
 import com.romankozak.forwardappmobile.data.workspace.capability.ExecutionLogWorkspaceOwnershipBridge
+import com.romankozak.forwardappmobile.data.workspace.capability.InboxSortingLegacyFullBackupAdapter
 import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogSyncStore
+import com.romankozak.forwardappmobile.data.workspace.capability.BacklogMigrationDryRunAdapter
 import com.romankozak.forwardappmobile.data.daythemes.planLegacyDayThemeMerge
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.database.AppDatabase
@@ -50,6 +55,9 @@ import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncA
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncPayload
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalExecutionLogSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceConnectionSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceInboxRecordSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySyncVersion
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -63,7 +71,6 @@ class FullBackupLocalDataSourceImpl
         private val contextDao: ContextDao,
         private val contextParentLinkDao: ContextParentLinkDao,
         private val goalDao: GoalDao,
-        private val listItemDao: ListItemDao,
         private val noteDocumentDao: NoteDocumentDao,
         private val musicNoteDao: MusicNoteDao,
         private val legacyNoteDao: LegacyNoteDao,
@@ -100,7 +107,6 @@ class FullBackupLocalDataSourceImpl
         private val contextArtifactDao: ContextArtifactDao,
         private val contextLogDao: ContextManagementDao,
         private val scriptDao: ScriptDao,
-        private val inboxRecordDao: InboxRecordDao,
         private val contextManagementDao: ContextManagementDao,
         private val systemAppDao: SystemAppDao,
         private val activityRecordDao: ActivityRecordDao,
@@ -114,6 +120,11 @@ class FullBackupLocalDataSourceImpl
         private val contextStructureDao: ContextStructureDao,
         private val contextInboxSortingDao: ContextInboxSortingDao,
         private val canonicalWorkspaceProblemSyncStore: CanonicalWorkspaceProblemSyncStore,
+        private val canonicalWorkspaceInboxSyncStore: CanonicalWorkspaceInboxSyncStore,
+        private val canonicalWorkspaceConnectionSyncStore: CanonicalWorkspaceConnectionSyncStore,
+        private val canonicalWorkspaceBacklogSyncStore: CanonicalWorkspaceBacklogSyncStore,
+        private val backlogMigrationDryRunAdapter: BacklogMigrationDryRunAdapter,
+        private val inboxSortingLegacyFullBackupAdapter: InboxSortingLegacyFullBackupAdapter,
         private val focusContextIntervalDao: FocusContextIntervalDao,
         private val userStateIntervalDao: UserStateIntervalDao,
         private val inboxAssociationCache: InboxAssociationCache,
@@ -155,6 +166,42 @@ class FullBackupLocalDataSourceImpl
             ack: CanonicalWorkspaceProblemSyncAck,
         ) {
             canonicalWorkspaceProblemSyncStore.markSynced(ack)
+        }
+
+        override suspend fun loadUnsyncedCanonicalWorkspaceInbox() =
+            canonicalWorkspaceInboxSyncStore.loadUnsynced()
+
+        override suspend fun loadCanonicalWorkspaceInboxChangedSince(timestamp: Long) =
+            canonicalWorkspaceInboxSyncStore.loadChangedSince(timestamp)
+
+        override suspend fun markCanonicalWorkspaceInboxSynced(
+            records: List<WorkspaceInboxRecordSyncVersion>,
+        ) {
+            canonicalWorkspaceInboxSyncStore.markSynced(records)
+        }
+
+        override suspend fun loadUnsyncedCanonicalWorkspaceConnections() =
+            canonicalWorkspaceConnectionSyncStore.loadUnsynced()
+
+        override suspend fun loadCanonicalWorkspaceConnectionsChangedSince(timestamp: Long) =
+            canonicalWorkspaceConnectionSyncStore.loadChangedSince(timestamp)
+
+        override suspend fun markCanonicalWorkspaceConnectionsSynced(
+            connections: List<WorkspaceConnectionSyncVersion>,
+        ) {
+            canonicalWorkspaceConnectionSyncStore.markSynced(connections)
+        }
+
+        override suspend fun loadUnsyncedCanonicalWorkspaceBacklog() =
+            canonicalWorkspaceBacklogSyncStore.loadUnsynced()
+
+        override suspend fun loadCanonicalWorkspaceBacklogChangedSince(timestamp: Long) =
+            canonicalWorkspaceBacklogSyncStore.loadChangedSince(timestamp)
+
+        override suspend fun markCanonicalWorkspaceBacklogSynced(
+            entries: List<WorkspaceBacklogEntrySyncVersion>,
+        ) {
+            canonicalWorkspaceBacklogSyncStore.markSynced(entries)
         }
 
         override suspend fun markCanonicalOrientationsSynced(ack: CanonicalOrientationSyncAck) {
@@ -251,6 +298,7 @@ class FullBackupLocalDataSourceImpl
             canonicalDayThemeBootstrapper.ensureBootstrapped()
             canonicalOrientationBootstrapper.ensureBootstrapped()
             canonicalWorkspaceBootstrapper.ensureBootstrapped()
+            executionLogWorkspaceOwnershipBridge.repairUnresolved()
 
             val (canonicalThemeDefinitions, canonicalDayThemes, canonicalAssignmentDocuments) =
                 db.withTransaction {
@@ -271,15 +319,18 @@ class FullBackupLocalDataSourceImpl
                 contexts = contextDao.getAllRaw().map { it.toSnapshot() },
                 contextParentLinks = contextParentLinkDao.getAllRaw().map { it.toSnapshot() },
                 goals = goalDao.getAllRaw().map { it.toSnapshot() },
-                backlogItems = backlogItemDao.getAllRaw().map { it.toSnapshot() },
-                backlogOrders = backlogOrderDao.getAllRaw().map { it.toSnapshot() },
-                inbox = inboxRecordDao.getAllRaw().map { it.toSnapshot() },
-                logs = contextLogDao.getLegacyContextLogs().map { it.toSnapshot() },
+                backlogItems = emptyList(),
+                backlogOrders = emptyList(),
+                inbox = emptyList(),
+                logs = emptyList(),
                 canonicalExecutionLogs = canonicalExecutionLogSyncStore.loadAll(),
                 workspaceDirectionEntries = canonicalWorkspaceDirectionEntrySyncStore.loadAll(),
                 workspaceProblems = canonicalWorkspaceProblems.problems,
                 workspaceProblemWorkspaceRefs = canonicalWorkspaceProblems.workspaceRefs,
                 workspaceProblemAttachmentRefs = canonicalWorkspaceProblems.attachmentRefs,
+                workspaceInboxRecords = canonicalWorkspaceInboxSyncStore.loadAll(),
+                workspaceConnections = canonicalWorkspaceConnectionSyncStore.loadAll(),
+                workspaceBacklogEntries = canonicalWorkspaceBacklogSyncStore.loadAll(),
                 artifacts = contextArtifactDao.getAllRaw().map { it.toSnapshot() },
                 // Knowledge Base
                 documents = noteDocumentDao.getAllDocumentsRaw().map { it.toSnapshot() },
@@ -289,7 +340,7 @@ class FullBackupLocalDataSourceImpl
                 checklistItems = checklistDao.getAllChecklistItemsRaw().map { it.toSnapshot() },
                 scripts = scriptDao.getAllRaw().map { it.toSnapshot() },
                 attachments = attachmentDao.getAllRaw().map { it.toSnapshot() },
-                crossRefs = attachmentDao.getAllContextAttachmentCrossRefsRaw().map { it.toSnapshot() },
+                crossRefs = emptyList(),
                 // Activity & RPG
                 activityRecords = activityRecordDao.getAllRaw().map { it.toSnapshot() },
                 dayPlans = dayPlanDao.getAllPlansSync().map { it.toSnapshot() },
@@ -358,7 +409,7 @@ class FullBackupLocalDataSourceImpl
                 contextConfigurations = contextStructureDao.getAllSync().map { it.toSnapshot() },
                 // В ContextStructureDao є метод для отримання айтемів
                 projectStructureItems = contextStructureDao.getAllItemsSync().map { it.toSnapshot() },
-                contextInboxSortingRules = contextInboxSortingDao.getAllRaw().map { it.toSnapshot() },
+                contextInboxSortingRules = emptyList(),
                 focusContextIntervals = focusContextIntervalDao.getAllRaw().map { it.toSnapshot() },
                 userStateIntervals = userStateIntervalDao.getAllRaw().map { it.toSnapshot() },
             )
@@ -558,24 +609,30 @@ class FullBackupLocalDataSourceImpl
             Log.d("SyncV2", "Inserting LifeSystemStates: ${bundle.lifeSystemStates.size}")
             lifeSystemStateDao.insertAll(bundle.lifeSystemStates.map { it.toEntity() })
 
-            val normalizedContextBacklog =
-                normalizeLegacyStructuralContextBacklog(
-                    backlogItems = bundle.backlogItems.map { it.toEntity() },
-                    backlogOrders = bundle.backlogOrders.map { it.toEntity() },
-                    parentByContextId =
-                        contextDao.getAll().associate { it.id to it.parentId },
-                    now = System.currentTimeMillis(),
-                )
+            val legacyBacklogFallback =
+                if (bundle.workspaceBacklogEntries == null &&
+                    (bundle.backlogItems.isNotEmpty() || bundle.backlogOrders.isNotEmpty())
+                ) {
+                    normalizeLegacyStructuralContextBacklog(
+                        backlogItems = bundle.backlogItems.map { it.toEntity() },
+                        backlogOrders = bundle.backlogOrders.map { it.toEntity() },
+                        parentByContextId = contextDao.getAll().associate { it.id to it.parentId },
+                        now = System.currentTimeMillis(),
+                    )
+                } else {
+                    null
+                }
+            if (bundle.workspaceBacklogEntries != null &&
+                (bundle.backlogItems.isNotEmpty() || bundle.backlogOrders.isNotEmpty())
+            ) {
+                Log.d("SyncV2", "Ignoring legacy BACKLOG fields because canonical payload is present")
+            }
+            legacyBacklogFallback?.let { fallback ->
+                Log.d("SyncV2", "Staging ${fallback.backlogItems.size} legacy BACKLOG rows for frozen planner")
+                backlogItemDao.insertAll(fallback.backlogItems)
+            }
 
-            Log.d(
-                "SyncV2",
-                "Inserting BacklogItems: ${normalizedContextBacklog.backlogItems.size} " +
-                    "structuralTombstones=${normalizedContextBacklog.tombstonedItemCount}",
-            )
-            backlogItemDao.insertAll(normalizedContextBacklog.backlogItems)
-
-            Log.d("SyncV2", "Inserting InboxRecords: ${bundle.inbox.size}")
-            inboxRecordDao.insertAll(bundle.inbox.map { it.toEntity() })
+            Log.d("SyncV2", "Ignoring legacy InboxRecords: ${bundle.inbox.size}")
 
             Log.d("SyncV2", "Inserting LinkItems: ${bundle.linkItemEntities.size}")
             linkItemDao.insertAll(bundle.linkItemEntities.map { it.toEntity() })
@@ -631,8 +688,21 @@ class FullBackupLocalDataSourceImpl
             Log.d("SyncV2", "Inserting ProjectStructureItems: ${bundle.projectStructureItems.size}")
             contextStructureDao.insertAllItems(bundle.projectStructureItems.map { it.toEntity() }) // Depends on ContextConfiguration
 
-            Log.d("SyncV2", "Inserting ContextInboxSorting: ${bundle.contextInboxSortingRules.size}")
-            contextInboxSortingDao.insertAll(bundle.contextInboxSortingRules.map { it.toEntity() }) // Depends on Context
+            val legacyInboxSortingFallback =
+                bundle.workspaceCapabilityInstances == null &&
+                    bundle.contextInboxSortingRules.isNotEmpty()
+            if (legacyInboxSortingFallback) {
+                Log.d(
+                    "SyncV2",
+                    "Staging ${bundle.contextInboxSortingRules.size} legacy INBOX_SORTING rows for frozen planner",
+                )
+                contextInboxSortingDao.insertAll(bundle.contextInboxSortingRules.map { it.toEntity() })
+            } else if (bundle.contextInboxSortingRules.isNotEmpty()) {
+                Log.d(
+                    "SyncV2",
+                    "Ignoring legacy INBOX_SORTING fields because canonical capability payload is present",
+                )
+            }
 
             Log.d("SyncV2", "Inserting FocusContextIntervals: ${bundle.focusContextIntervals.size}")
             focusContextIntervalDao.insertAll(bundle.focusContextIntervals.map { it.toEntity() })
@@ -705,8 +775,18 @@ class FullBackupLocalDataSourceImpl
             Log.d("SyncV2", "Inserting ChatMessages: ${bundle.chatMessages.size}")
             chatDao.insertMessages(bundle.chatMessages.map { it.toEntity() }) // Depends on Conversation
 
-            Log.d("SyncV2", "Inserting ContextLogs: ${bundle.logs.size}")
-            contextLogDao.insertLogs(bundle.logs.map { it.toEntity() }) // Depends on Context
+            if (bundle.canonicalExecutionLogs == null) {
+                Log.d(
+                    "SyncV2",
+                    "Importing legacy ContextLogs from pre-cutover backup: ${bundle.logs.size}",
+                )
+                contextLogDao.insertLogs(bundle.logs.map { it.toEntity() }) // Depends on Context
+            } else {
+                Log.d(
+                    "SyncV2",
+                    "Ignoring legacy ContextLogs because canonical EXECUTION_LOG authority is present: ${bundle.logs.size}",
+                )
+            }
 
             Log.d("SyncV2", "Inserting ContextArtifacts: ${bundle.artifacts.size}")
             contextArtifactDao.insertAll(bundle.artifacts.map { it.toEntity() }) // Depends on Context
@@ -714,8 +794,7 @@ class FullBackupLocalDataSourceImpl
             Log.d("SyncV2", "Inserting DailyMetrics: ${bundle.dailyMetrics.size}")
             dailyMetricDao.insertMetrics(bundle.dailyMetrics.map { it.toEntity() }) // Depends on DayPlan
 
-            Log.d("SyncV2", "Inserting ContextAttachmentCrossRefs: ${bundle.crossRefs.size}")
-            attachmentDao.insertContextAttachmentCrossRefs(bundle.crossRefs.map { it.toEntity() }) // Depends on Context and Attachment
+            Log.d("SyncV2", "Ignoring legacy ContextAttachmentCrossRefs: ${bundle.crossRefs.size}")
 
             Log.d("SyncV2", "Inserting MainBeaconContextCrossRefs: ${bundle.mainBeaconContextCrossRefs.size}")
             mainBeaconDao.insertContextCrossRefs(bundle.mainBeaconContextCrossRefs.map { it.toEntity() })
@@ -742,8 +821,9 @@ class FullBackupLocalDataSourceImpl
             Log.d("SyncV2", "Inserting Reminders: ${bundle.reminders.size}")
             reminderDao.insertAll(bundle.reminders.map { it.toEntity() }) // Depends on Context
 
-            Log.d("SyncV2", "Inserting BacklogOrders: ${normalizedContextBacklog.backlogOrders.size}")
-            backlogOrderDao.insertAll(normalizedContextBacklog.backlogOrders) // Depends on BacklogItem
+            legacyBacklogFallback?.let { fallback ->
+                backlogOrderDao.insertAll(fallback.backlogOrders)
+            }
 
             Log.d("SyncV2", "Inserting RecentProjectEntries: ${bundle.recentProjectEntries.size}")
             recentItemDao.insertAllSync(bundle.recentProjectEntries.map { it.toEntity() }) // Depends on Context
@@ -755,11 +835,23 @@ class FullBackupLocalDataSourceImpl
             // Ensure system contexts exist after all other data is inserted.
             systemContextEnsurer.ensureAllSystemContextsExist()
             db.orientationDao().storeCanonicalPayload(bundle, merge = true, workspaceDao = db.workspaceDao())
+            if (legacyBacklogFallback != null) {
+                canonicalOrientationBootstrapper.ensureBootstrapped()
+                backlogMigrationDryRunAdapter.materializeLegacyFullBackup()
+            }
+            if (legacyInboxSortingFallback) {
+                canonicalOrientationBootstrapper.ensureBootstrapped()
+                canonicalWorkspaceBootstrapper.ensureBootstrapped()
+                inboxSortingLegacyFullBackupAdapter.materializeStagedEvidence()
+            }
             canonicalWorkspaceDirectionEntrySyncStore.mergeIncoming(bundle.workspaceDirectionEntries)
             bundle.toCanonicalWorkspaceProblemSyncPayloadOrNull()?.let {
                 canonicalWorkspaceProblemSyncStore.mergeIncoming(it)
             }
             canonicalExecutionLogSyncStore.mergeIncoming(bundle.canonicalExecutionLogs)
+            canonicalWorkspaceInboxSyncStore.mergeIncoming(bundle.workspaceInboxRecords)
+            canonicalWorkspaceConnectionSyncStore.mergeIncoming(bundle.workspaceConnections)
+            canonicalWorkspaceBacklogSyncStore.mergeIncoming(bundle.workspaceBacklogEntries)
         }
 
         override suspend fun applySnapshotBundle(bundle: SnapshotBundle) {

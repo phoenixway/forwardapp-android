@@ -61,8 +61,11 @@ class CanonicalExecutionLogSyncStore
                         "Canonical EXECUTION_LOG ${candidate.id} references missing Workspace ${candidate.workspaceId}"
                     }
 
-                require(workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name) {
-                    "Canonical EXECUTION_LOG ${candidate.id} must reference a canonical-only Workspace"
+                require(
+                    workspace.provenance == WorkspaceProvenance.CANONICAL_ONLY.name ||
+                        workspace.provenance == WorkspaceProvenance.CONTEXT_BACKED.name,
+                ) {
+                    "Canonical EXECUTION_LOG ${candidate.id} references unsupported Workspace provenance"
                 }
                 require(!workspace.isDeleted || candidate.isDeleted) {
                     "Live canonical EXECUTION_LOG ${candidate.id} cannot belong to a deleted Workspace"

@@ -67,6 +67,12 @@ being answered, why the inspection or change matters, the current
 hypothesis/interpretation when relevant, and the complete executable Bridge
 envelope.
 
+If removing the Bridge envelope would leave no substantive explanatory prose,
+precede the envelope with a brief 1-3 sentence summary or short paragraph.
+State what the block is intended to inspect or change, why that step matters,
+and what result or question it is meant to resolve. Do not leave the user with
+an otherwise unexplained command block.
+
 Do not put the explanation in one assistant message and the executable request
 in another. The user should be able to read one response and understand both
 what is being done and exactly what to execute.
@@ -92,6 +98,21 @@ sandbox, JDK, security-file, cache-lock, or similar environment constraints:
 
 This does not authorize unnecessary full builds. `AGENTS.md` remains
 authoritative for build scope and for avoiding redundant verification passes.
+
+### Android app test variants
+
+The `:app` module has separate debug unit-test tasks for its product flavors:
+
+* `:app:testProdDebugUnitTest`
+* `:app:testExpDebugUnitTest`
+
+Do not use `:app:testDebugUnitTest`; it is ambiguous in this project because
+both `prodDebug` and `expDebug` variants exist.
+
+When issuing a targeted host test command, always name the intended variant
+explicitly. If repository evidence or the current task does not establish
+which flavor is appropriate, inspect the relevant build/CI configuration
+instead of guessing.
 
 After issuing an AI CLI request, do not invent the result.
 

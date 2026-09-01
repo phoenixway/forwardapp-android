@@ -4,13 +4,14 @@ package com.romankozak.forwardappmobile.core.sync
 
 import com.romankozak.forwardappmobile.data.workspace.toCanonicalWorkspaceProblemSyncPayloadOrNull
 import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceProblemSyncStore
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceInboxSyncStore
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceConnectionSyncStore
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBacklogSyncStore
 
 import com.romankozak.forwardappmobile.data.logic.InboxAssociationCache
-import com.romankozak.forwardappmobile.core.context.normalizeLegacyStructuralContextBacklog
 
 import android.util.Log
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
@@ -57,7 +58,6 @@ class MergeLocalDataSourceImpl
         private val contextDao: ContextDao,
         private val contextParentLinkDao: ContextParentLinkDao,
         private val goalDao: GoalDao,
-        private val listItemDao: ListItemDao,
         private val attachmentDao: AttachmentDao,
         private val noteDocumentDao: NoteDocumentDao,
         private val musicNoteDao: MusicNoteDao,
@@ -83,11 +83,9 @@ class MergeLocalDataSourceImpl
         private val checklistDao: ChecklistDao,
         private val conversationFolderDao: ConversationFolderDao,
         private val canonicalRecurringSeriesDao: CanonicalRecurringSeriesDao,
-        private val backlogOrderDao: BacklogOrderDao,
         private val legacyNoteDao: LegacyNoteDao,
         private val contextArtifactDao: ContextArtifactDao,
         private val scriptDao: ScriptDao,
-        private val inboxRecordDao: InboxRecordDao,
         private val contextManagementDao: ContextManagementDao,
         private val systemAppDao: SystemAppDao,
         private val activityRecordDao: ActivityRecordDao,
@@ -100,8 +98,10 @@ class MergeLocalDataSourceImpl
         private val structurePresetDao: StructurePresetDao,
         private val structurePresetItemDao: StructurePresetItemDao,
         private val contextStructureDao: ContextStructureDao,
-        private val contextInboxSortingDao: ContextInboxSortingDao,
         private val canonicalWorkspaceProblemSyncStore: CanonicalWorkspaceProblemSyncStore,
+        private val canonicalWorkspaceInboxSyncStore: CanonicalWorkspaceInboxSyncStore,
+        private val canonicalWorkspaceConnectionSyncStore: CanonicalWorkspaceConnectionSyncStore,
+        private val canonicalWorkspaceBacklogSyncStore: CanonicalWorkspaceBacklogSyncStore,
         private val focusContextIntervalDao: FocusContextIntervalDao,
         private val userStateIntervalDao: UserStateIntervalDao,
         private val dayManagementRuntimeRepository: DayManagementRuntimeRepository,
@@ -120,18 +120,6 @@ class MergeLocalDataSourceImpl
 
         override suspend fun insertContextAttachmentLinks(links: List<ContextAttachmentCrossRef>) =
             attachmentDao.insertContextAttachmentLinks(links)
-
-        override suspend fun insertListItems(items: List<BacklogItem>) {
-            val normalized =
-                normalizeLegacyStructuralContextBacklog(
-                    backlogItems = items,
-                    backlogOrders = emptyList(),
-                    parentByContextId =
-                        contextDao.getAll().associate { it.id to it.parentId },
-                    now = System.currentTimeMillis(),
-                )
-            listItemDao.insertItems(normalized.backlogItems)
-        }
 
         override suspend fun applyChanges(changes: List<SyncChange>) {
             contextWorkspaceWriteThrough.mutate {
@@ -154,7 +142,6 @@ class MergeLocalDataSourceImpl
                 is Goal -> goalDao.insertGoal(entity)
                 is Context -> contextDao.insert(entity)
                 is AttachmentEntity -> attachmentDao.insertAttachment(entity)
-                is BacklogItem -> listItemDao.insertItem(entity)
             }
         }
 
@@ -173,14 +160,12 @@ class MergeLocalDataSourceImpl
         override suspend fun importSelectedData(
             projects: List<Context>,
             goals: List<Goal>,
-            listItems: List<BacklogItem>,
             attachments: List<AttachmentEntity>,
             crossRefs: List<ContextAttachmentCrossRef>,
         ) {
             contextWorkspaceWriteThrough.mutate {
                 if (projects.isNotEmpty()) contextDao.insertContexts(projects)
                 if (goals.isNotEmpty()) goalDao.insertGoals(goals)
-                if (listItems.isNotEmpty()) listItemDao.insertItems(listItems)
                 if (attachments.isNotEmpty()) attachmentDao.insertAttachments(attachments)
                 if (crossRefs.isNotEmpty()) attachmentDao.insertContextAttachmentLinks(crossRefs)
             }
@@ -412,7 +397,7 @@ class MergeLocalDataSourceImpl
 
                 // --- Consolidate and auto-link attachments and cross-refs ---
                 val finalAttachments = bundle.attachments.map { it.toEntity() }.toMutableList()
-                val finalCrossRefs = bundle.crossRefs.map { it.toEntity() }.toMutableList()
+                val finalCrossRefs = emptyList<ContextAttachmentCrossRef>()
 
                 Log.d("BackupImport", "Total attachments to insert: ${finalAttachments.size}")
                 attachmentDao.insertAttachments(finalAttachments)
@@ -471,47 +456,22 @@ class MergeLocalDataSourceImpl
                 tacticalActivitySlotDao.insertAll(bundle.tacticalActivitySlots)
                 arcQuestDao.insertAll(bundle.arcQuests)
 
-                val normalizedContextBacklog =
-                    normalizeLegacyStructuralContextBacklog(
-                        backlogItems = bundle.backlogItems.map { it.toEntity() },
-                        backlogOrders = bundle.backlogOrders.map { it.toEntity() },
-                        parentByContextId =
-                            contextDao.getAll().associate { it.id to it.parentId },
-                        now = System.currentTimeMillis(),
+                if (bundle.backlogItems.isNotEmpty() || bundle.backlogOrders.isNotEmpty()) {
+                    Log.d(
+                        "ForwardSync",
+                        "Ignoring legacy BACKLOG transport after canonical authority cutover",
                     )
-                listItemDao.insertItems(normalizedContextBacklog.backlogItems)
-                backlogOrderDao.insertAll(normalizedContextBacklog.backlogOrders)
+                }
                 checklistDao.insertItems(bundle.checklistItems.map { it.toEntity() })
                 contextArtifactDao.insertAll(bundle.artifacts.map { it.toEntity() })
                 scriptDao.insertAll(bundle.scripts.map { it.toEntity() })
-                inboxRecordDao.insertAll(bundle.inbox.map { it.toEntity() })
 
-                val localContextLogsById =
-                    contextManagementDao.getAllLogs().associateBy { log -> log.id }
-                val canonicalIncomingIds =
-                    bundle.canonicalExecutionLogs.orEmpty().mapTo(hashSetOf()) { it.id }
-
-                require(bundle.logs.none { it.id in canonicalIncomingIds }) {
-                    "EXECUTION_LOG payload contains the same id in legacy and canonical streams"
+                if (bundle.logs.isNotEmpty()) {
+                    Log.d(
+                        "ForwardSync",
+                        "Ignoring ${bundle.logs.size} legacy ContextLogs after EXECUTION_LOG authority cutover",
+                    )
                 }
-
-                contextManagementDao.insertLogs(
-                    bundle.logs
-                        .filter { incoming ->
-                            val local = localContextLogsById[incoming.id] ?: return@filter true
-                            require(local.contextId != null) {
-                                "EXECUTION_LOG id collision between legacy Context and canonical Workspace streams: ${incoming.id}"
-                            }
-                            val localUpdatedAt = local.updatedAt ?: Long.MIN_VALUE
-                            when {
-                                incoming.version != local.version -> incoming.version > local.version
-                                incoming.updatedAt != localUpdatedAt -> incoming.updatedAt > localUpdatedAt
-                                incoming.isDeleted != local.isDeleted -> incoming.isDeleted
-                                else -> false
-                            }
-                        }
-                        .map { it.toEntity() },
-                )
 
                 systemAppDao.insertAll(
                     bundle.systemApps.mapNotNull { app ->
@@ -570,7 +530,12 @@ class MergeLocalDataSourceImpl
                     },
                 )
                 contextStructureDao.insertAllItems(bundle.projectStructureItems.map { it.toEntity() })
-                contextInboxSortingDao.insertAll(bundle.contextInboxSortingRules.map { it.toEntity() })
+                if (bundle.contextInboxSortingRules.isNotEmpty()) {
+                    Log.d(
+                        "ForwardSync",
+                        "Ignoring legacy INBOX_SORTING transport after canonical authority cutover",
+                    )
+                }
                 focusContextIntervalDao.insertAll(bundle.focusContextIntervals.map { it.toEntity() })
                 userStateIntervalDao.insertAll(bundle.userStateIntervals.map { it.toEntity() })
                 mainBeaconDao.insertGroupMembers(bundle.mainBeaconGroupMembers.map { it.toEntity() })
@@ -584,6 +549,9 @@ class MergeLocalDataSourceImpl
                 }
                 canonicalWorkspaceDirectionEntrySyncStore.mergeIncoming(bundle.workspaceDirectionEntries)
                 canonicalExecutionLogSyncStore.mergeIncoming(bundle.canonicalExecutionLogs)
+                canonicalWorkspaceInboxSyncStore.mergeIncoming(bundle.workspaceInboxRecords)
+                canonicalWorkspaceConnectionSyncStore.mergeIncoming(bundle.workspaceConnections)
+                canonicalWorkspaceBacklogSyncStore.mergeIncoming(bundle.workspaceBacklogEntries)
             }
             executionLogWorkspaceOwnershipBridge.repairUnresolved()
             // InboxRecordLink is a local materialized cache only.

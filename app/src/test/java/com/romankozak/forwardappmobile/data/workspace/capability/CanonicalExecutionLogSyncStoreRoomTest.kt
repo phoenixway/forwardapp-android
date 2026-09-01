@@ -45,7 +45,7 @@ class CanonicalExecutionLogSyncStoreRoomTest {
     }
 
     @Test
-    fun `canonical ingress rejects Context backed Workspace and legacy id collision`() = runBlocking {
+    fun `canonical ingress accepts Context backed Workspace and rejects legacy id collision`() = runBlocking {
         val database = database()
         try {
             database.workspaceDao().upsert(
@@ -79,19 +79,17 @@ class CanonicalExecutionLogSyncStoreRoomTest {
                 ),
             )
 
-            val provenanceFailure =
-                runCatching {
-                    store.mergeIncoming(
-                        listOf(
-                            canonicalLog(
-                                id = "wrong-owner",
-                                workspaceId = "legacy-workspace",
-                            ),
-                        ),
-                    )
-                }.exceptionOrNull()
+            val contextBackedIncoming =
+                canonicalLog(
+                    id = "context-backed-log",
+                    workspaceId = "legacy-workspace",
+                )
+            store.mergeIncoming(listOf(contextBackedIncoming))
 
-            assertTrue(provenanceFailure is IllegalArgumentException)
+            val contextBackedPersisted =
+                requireNotNull(database.contextManagementDao().getLogById("context-backed-log"))
+            assertNull(contextBackedPersisted.contextId)
+            assertEquals("legacy-workspace", contextBackedPersisted.workspaceId)
 
             val collisionFailure =
                 runCatching {
@@ -107,7 +105,8 @@ class CanonicalExecutionLogSyncStoreRoomTest {
 
             assertTrue(collisionFailure is IllegalArgumentException)
 
-            val preserved = database.contextManagementDao().getAllLogs().single()
+            val preserved =
+                requireNotNull(database.contextManagementDao().getLogById("shared-id"))
             assertEquals("context", preserved.contextId)
             assertNull(preserved.workspaceId)
             assertEquals("Legacy row", preserved.description)

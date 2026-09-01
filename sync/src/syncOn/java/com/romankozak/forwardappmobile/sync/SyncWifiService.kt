@@ -19,10 +19,16 @@ import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncA
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncPayload
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalOrientationSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceBacklogEntrySyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceConnectionSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceConnectionSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceDirectionEntrySyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceProblemAttachmentRefSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceProblemSyncVersion
 import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceProblemWorkspaceRefSyncVersion
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceInboxRecordSnapshot
+import com.romankozak.forwardappmobile.core.data.models.sync.snapshots.workspace.WorkspaceInboxRecordSyncVersion
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalWorkspaceProblemSyncAck
 import com.romankozak.forwardappmobile.sync.datasource.CanonicalWorkspaceProblemSyncPayload
 import com.romankozak.forwardappmobile.sync.datasource.FullBackupLocalDataSource
@@ -48,7 +54,10 @@ internal data class CanonicalWifiPushPlan(
     val orientationsAck: CanonicalOrientationSyncAck,
     val executionLogsAck: List<CanonicalExecutionLogSyncVersion>,
     val directionEntriesAck: List<WorkspaceDirectionEntrySyncVersion>,
+    val workspaceConnectionsAck: List<WorkspaceConnectionSyncVersion>,
+    val workspaceBacklogAck: List<WorkspaceBacklogEntrySyncVersion>,
     val workspaceProblemsAck: CanonicalWorkspaceProblemSyncAck,
+    val workspaceInboxAck: List<WorkspaceInboxRecordSyncVersion>,
 )
 
 internal fun CanonicalDayThemeSyncPayload.hasChanges(): Boolean =
@@ -101,8 +110,11 @@ internal fun shouldPushCanonicalWifi(
     dirtyCanonicalOrientations: CanonicalOrientationSyncPayload = CanonicalOrientationSyncPayload(),
     dirtyCanonicalExecutionLogs: List<CanonicalExecutionLogSnapshot> = emptyList(),
     dirtyCanonicalDirectionEntries: List<WorkspaceDirectionEntrySnapshot> = emptyList(),
+    dirtyCanonicalWorkspaceConnections: List<WorkspaceConnectionSnapshot> = emptyList(),
+    dirtyCanonicalWorkspaceBacklog: List<WorkspaceBacklogEntrySnapshot> = emptyList(),
     dirtyCanonicalWorkspaceProblems: CanonicalWorkspaceProblemSyncPayload =
         CanonicalWorkspaceProblemSyncPayload(),
+    dirtyCanonicalWorkspaceInbox: List<WorkspaceInboxRecordSnapshot> = emptyList(),
 ): Boolean =
     !databaseIsEmpty ||
         dirtyCanonicalSeries.isNotEmpty() ||
@@ -110,7 +122,10 @@ internal fun shouldPushCanonicalWifi(
         dirtyCanonicalOrientations.hasChanges() ||
         dirtyCanonicalExecutionLogs.isNotEmpty() ||
         dirtyCanonicalDirectionEntries.isNotEmpty() ||
-        dirtyCanonicalWorkspaceProblems.hasChanges()
+        dirtyCanonicalWorkspaceConnections.isNotEmpty() ||
+        dirtyCanonicalWorkspaceBacklog.isNotEmpty() ||
+        dirtyCanonicalWorkspaceProblems.hasChanges() ||
+        dirtyCanonicalWorkspaceInbox.isNotEmpty()
 
 internal fun buildCanonicalWifiPushPlan(
     selection: LocalSyncSelection,
@@ -120,8 +135,11 @@ internal fun buildCanonicalWifiPushPlan(
     dirtyCanonicalOrientations: CanonicalOrientationSyncPayload = CanonicalOrientationSyncPayload(),
     dirtyCanonicalExecutionLogs: List<CanonicalExecutionLogSnapshot> = emptyList(),
     dirtyCanonicalDirectionEntries: List<WorkspaceDirectionEntrySnapshot> = emptyList(),
+    dirtyCanonicalWorkspaceConnections: List<WorkspaceConnectionSnapshot> = emptyList(),
+    dirtyCanonicalWorkspaceBacklog: List<WorkspaceBacklogEntrySnapshot> = emptyList(),
     dirtyCanonicalWorkspaceProblems: CanonicalWorkspaceProblemSyncPayload =
         CanonicalWorkspaceProblemSyncPayload(),
+    dirtyCanonicalWorkspaceInbox: List<WorkspaceInboxRecordSnapshot> = emptyList(),
 ): CanonicalWifiPushPlan =
     CanonicalWifiPushPlan(
         snapshotDelta =
@@ -134,7 +152,10 @@ internal fun buildCanonicalWifiPushPlan(
                 explicitCanonicalOrientations = dirtyCanonicalOrientations,
                 explicitCanonicalExecutionLogs = dirtyCanonicalExecutionLogs,
                 explicitCanonicalDirectionEntries = dirtyCanonicalDirectionEntries,
+                explicitCanonicalWorkspaceConnections = dirtyCanonicalWorkspaceConnections,
+                explicitCanonicalWorkspaceBacklog = dirtyCanonicalWorkspaceBacklog,
                 explicitCanonicalWorkspaceProblems = dirtyCanonicalWorkspaceProblems,
+                explicitCanonicalWorkspaceInbox = dirtyCanonicalWorkspaceInbox,
             ),
         recurringSeriesAck =
             dirtyCanonicalSeries.map { series ->
@@ -167,7 +188,17 @@ internal fun buildCanonicalWifiPushPlan(
             dirtyCanonicalDirectionEntries.map { entry ->
                 WorkspaceDirectionEntrySyncVersion(entry.id, entry.version)
             },
+        workspaceConnectionsAck =
+            dirtyCanonicalWorkspaceConnections.map { connection ->
+                WorkspaceConnectionSyncVersion(connection.id, connection.version)
+            },
+        workspaceBacklogAck =
+            dirtyCanonicalWorkspaceBacklog.map { entry ->
+                WorkspaceBacklogEntrySyncVersion(entry.id, entry.version)
+            },
         workspaceProblemsAck = dirtyCanonicalWorkspaceProblems.toAck(),
+        workspaceInboxAck =
+            dirtyCanonicalWorkspaceInbox.map { WorkspaceInboxRecordSyncVersion(it.id, it.version) },
     )
 
 
@@ -180,8 +211,6 @@ private fun buildSnapshotSelectionDelta(
 
     val contexts = ids(selection.contexts)
     val goals = ids(selection.goals)
-    val backlogItems = ids(selection.backlogItems)
-    val backlogOrders = ids(selection.backlogOrders)
     val notes = ids(selection.notes)
     val documents = ids(selection.documents)
     val musicNotes = ids(selection.musicNotes)
@@ -189,7 +218,6 @@ private fun buildSnapshotSelectionDelta(
     val checklistItems = ids(selection.checklistItems)
     val activity = ids(selection.activityRecords)
     val links = ids(selection.linkItemEntities)
-    val inbox = ids(selection.inbox)
     val logs = ids(selection.logs)
     val scripts = ids(selection.scripts)
     val attachments = ids(selection.attachments)
@@ -201,14 +229,12 @@ private fun buildSnapshotSelectionDelta(
     val streams = ids(selection.missionStreams)
     val slots = ids(selection.tacticalActivitySlots)
     val quests = ids(selection.arcQuests)
-    val crossRefs = selection.crossRefs
-        .mapTo(hashSetOf()) { "${it.contextId}\u0000${it.attachmentId}" }
 
     return full.copy(
         contexts = full.contexts.filter { it.id in contexts },
         goals = full.goals.filter { it.id in goals },
-        backlogItems = full.backlogItems.filter { it.id in backlogItems },
-        backlogOrders = full.backlogOrders.filter { it.id in backlogOrders },
+        backlogItems = emptyList(),
+        backlogOrders = emptyList(),
         notes = full.notes.filter { it.id in notes },
         documents = full.documents.filter { it.id in documents },
         musicNotes = full.musicNotes.filter { it.id in musicNotes },
@@ -216,13 +242,11 @@ private fun buildSnapshotSelectionDelta(
         checklistItems = full.checklistItems.filter { it.id in checklistItems },
         activityRecords = full.activityRecords.filter { it.id in activity },
         linkItemEntities = full.linkItemEntities.filter { it.id in links },
-        inbox = full.inbox.filter { it.id in inbox },
+        inbox = emptyList(),
         logs = full.logs.filter { it.id in logs },
         scripts = full.scripts.filter { it.id in scripts },
         attachments = full.attachments.filter { it.id in attachments },
-        crossRefs = full.crossRefs.filter {
-            "${it.contextId}\u0000${it.attachmentId}" in crossRefs
-        },
+        crossRefs = emptyList(),
         dayPlans = full.dayPlans.filter { it.id in plans },
         dayFocusItems = full.dayFocusItems.filter { it.id in focus },
         dayTasks = full.dayTasks.filter { it.id in tasks },
@@ -235,9 +259,12 @@ private fun buildSnapshotSelectionDelta(
         // Canonical streams are injected below by buildCanonicalSnapshotDelta().
         canonicalExecutionLogs = null,
         workspaceDirectionEntries = null,
+        workspaceConnections = null,
+        workspaceBacklogEntries = null,
         workspaceProblems = null,
         workspaceProblemWorkspaceRefs = null,
         workspaceProblemAttachmentRefs = null,
+        workspaceInboxRecords = null,
         themeDefinitions = null,
         dayThemes = null,
         dayThemeAssignmentDocuments = null,
@@ -270,8 +297,11 @@ internal fun buildCanonicalSnapshotDelta(
     explicitCanonicalOrientations: CanonicalOrientationSyncPayload = CanonicalOrientationSyncPayload(),
     explicitCanonicalExecutionLogs: List<CanonicalExecutionLogSnapshot> = emptyList(),
     explicitCanonicalDirectionEntries: List<WorkspaceDirectionEntrySnapshot> = emptyList(),
+    explicitCanonicalWorkspaceConnections: List<WorkspaceConnectionSnapshot> = emptyList(),
+    explicitCanonicalWorkspaceBacklog: List<WorkspaceBacklogEntrySnapshot> = emptyList(),
     explicitCanonicalWorkspaceProblems: CanonicalWorkspaceProblemSyncPayload =
         CanonicalWorkspaceProblemSyncPayload(),
+    explicitCanonicalWorkspaceInbox: List<WorkspaceInboxRecordSnapshot> = emptyList(),
 ): SnapshotBundle {
     val dayPlanIds = baseDelta.dayPlans.mapTo(hashSetOf()) { it.id }
     val dayFocusItemIds = baseDelta.dayFocusItems.mapTo(hashSetOf()) { it.id }
@@ -284,12 +314,18 @@ internal fun buildCanonicalSnapshotDelta(
     val includeCanonicalDayThemes = explicitCanonicalDayThemes.hasChanges()
     val includeCanonicalExecutionLogs = explicitCanonicalExecutionLogs.isNotEmpty()
     val includeCanonicalDirectionEntries = explicitCanonicalDirectionEntries.isNotEmpty()
+    val includeCanonicalWorkspaceConnections = explicitCanonicalWorkspaceConnections.isNotEmpty()
+    val includeCanonicalWorkspaceBacklog = explicitCanonicalWorkspaceBacklog.isNotEmpty()
     val includeCanonicalWorkspaceProblems = explicitCanonicalWorkspaceProblems.hasChanges()
+    val includeCanonicalWorkspaceInbox = explicitCanonicalWorkspaceInbox.isNotEmpty()
     val includeCanonicalOrientations =
         explicitCanonicalOrientations.hasChanges() ||
             includeCanonicalExecutionLogs ||
             includeCanonicalDirectionEntries ||
-            includeCanonicalWorkspaceProblems
+            includeCanonicalWorkspaceConnections ||
+            includeCanonicalWorkspaceBacklog ||
+            includeCanonicalWorkspaceProblems ||
+            includeCanonicalWorkspaceInbox
 
     fun <T> canonicalOrientationDependency(
         full: List<T>?,
@@ -300,7 +336,10 @@ internal fun buildCanonicalSnapshotDelta(
             !includeCanonicalOrientations -> null
             includeCanonicalExecutionLogs ||
                 includeCanonicalDirectionEntries ||
-                includeCanonicalWorkspaceProblems ->
+                includeCanonicalWorkspaceConnections ||
+                includeCanonicalWorkspaceBacklog ||
+                includeCanonicalWorkspaceProblems ||
+                includeCanonicalWorkspaceInbox ->
                 requireNotNull(full) {
                     "Local full snapshot must expose $fieldName before building a canonical capability-content delta."
                 }
@@ -387,11 +426,29 @@ internal fun buildCanonicalSnapshotDelta(
 
     val requiredProblemAttachmentIds =
         fullWorkspaceProblemAttachmentRefs.mapTo(hashSetOf()) { it.attachmentId }
+    val requiredConnectionAttachmentIds =
+        explicitCanonicalWorkspaceConnections.mapTo(hashSetOf()) { it.attachmentId }
+
+    val liveBacklogEntries = explicitCanonicalWorkspaceBacklog.filterNot { it.isDeleted }
+    fun backlogTargetIds(kind: String): Set<String> =
+        liveBacklogEntries
+            .filter { it.targetKind == kind }
+            .mapTo(hashSetOf()) { it.targetId }
+
+    val requiredBacklogLinkIds = backlogTargetIds("LINK_ITEM")
+    val requiredBacklogLegacyNoteIds = backlogTargetIds("LEGACY_NOTE")
+    val requiredBacklogDocumentIds =
+        backlogTargetIds("NOTE_DOCUMENT") + backlogTargetIds("JOURNAL_DOCUMENT")
+    val requiredBacklogChecklistIds = backlogTargetIds("CHECKLIST")
+    val requiredBacklogMusicNoteIds = backlogTargetIds("MUSIC_NOTE")
 
     val selectedAttachments =
-        if (includeCanonicalWorkspaceProblems) {
+        if (includeCanonicalWorkspaceProblems || includeCanonicalWorkspaceConnections) {
             (baseDelta.attachments +
-                fullSnapshot.attachments.filter { it.id in requiredProblemAttachmentIds })
+                fullSnapshot.attachments.filter {
+                    it.id in requiredProblemAttachmentIds ||
+                        it.id in requiredConnectionAttachmentIds
+                })
                 .associateBy { it.id }
                 .values
                 .toList()
@@ -399,8 +456,55 @@ internal fun buildCanonicalSnapshotDelta(
             baseDelta.attachments
         }
 
+    fun <T> mergeById(
+        base: List<T>,
+        dependencies: List<T>,
+        id: (T) -> String,
+    ): List<T> = (base + dependencies).associateBy(id).values.toList()
+
+    val selectedLegacyNotes =
+        mergeById(
+            baseDelta.notes,
+            fullSnapshot.notes.filter { it.id in requiredBacklogLegacyNoteIds },
+        ) { it.id }
+    val selectedDocuments =
+        mergeById(
+            baseDelta.documents,
+            fullSnapshot.documents.filter { it.id in requiredBacklogDocumentIds },
+        ) { it.id }
+    val selectedMusicNotes =
+        mergeById(
+            baseDelta.musicNotes,
+            fullSnapshot.musicNotes.filter { it.id in requiredBacklogMusicNoteIds },
+        ) { it.id }
+    val selectedChecklists =
+        mergeById(
+            baseDelta.checklists,
+            fullSnapshot.checklists.filter { it.id in requiredBacklogChecklistIds },
+        ) { it.id }
+    val selectedChecklistItems =
+        mergeById(
+            baseDelta.checklistItems,
+            fullSnapshot.checklistItems.filter { it.checklistId in requiredBacklogChecklistIds },
+        ) { it.id }
+    val selectedLinkItems =
+        mergeById(
+            baseDelta.linkItemEntities,
+            fullSnapshot.linkItemEntities.filter { it.id in requiredBacklogLinkIds },
+        ) { it.id }
+
     val result =
         baseDelta.copy(
+            backlogItems = emptyList(),
+            backlogOrders = emptyList(),
+            notes = selectedLegacyNotes,
+            documents = selectedDocuments,
+            musicNotes = selectedMusicNotes,
+            checklists = selectedChecklists,
+            checklistItems = selectedChecklistItems,
+            linkItemEntities = selectedLinkItems,
+            inbox = emptyList(),
+            crossRefs = emptyList(),
             attachments = selectedAttachments,
             dayPlans = fullSnapshot.dayPlans.filter { it.id in dayPlanIds },
             dayFocusItems = fullSnapshot.dayFocusItems.filter { it.id in dayFocusItemIds },
@@ -492,12 +596,18 @@ internal fun buildCanonicalSnapshotDelta(
                 explicitCanonicalExecutionLogs.takeIf { includeCanonicalExecutionLogs },
             workspaceDirectionEntries =
                 explicitCanonicalDirectionEntries.takeIf { includeCanonicalDirectionEntries },
+            workspaceConnections =
+                explicitCanonicalWorkspaceConnections.takeIf { includeCanonicalWorkspaceConnections },
+            workspaceBacklogEntries =
+                explicitCanonicalWorkspaceBacklog.takeIf { includeCanonicalWorkspaceBacklog },
             workspaceProblems =
                 fullWorkspaceProblems.takeIf { includeCanonicalWorkspaceProblems },
             workspaceProblemWorkspaceRefs =
                 fullWorkspaceProblemWorkspaceRefs.takeIf { includeCanonicalWorkspaceProblems },
             workspaceProblemAttachmentRefs =
                 fullWorkspaceProblemAttachmentRefs.takeIf { includeCanonicalWorkspaceProblems },
+            workspaceInboxRecords =
+                explicitCanonicalWorkspaceInbox.takeIf { includeCanonicalWorkspaceInbox },
         )
 
     if (includeCanonicalDayThemes) {
@@ -550,8 +660,14 @@ class SyncWifiService @Inject constructor(
                 fullBackupLocalDataSource.loadUnsyncedCanonicalExecutionLogs()
             val dirtyCanonicalDirectionEntries =
                 fullBackupLocalDataSource.loadUnsyncedCanonicalWorkspaceDirectionEntries()
+            val dirtyCanonicalWorkspaceConnections =
+                fullBackupLocalDataSource.loadUnsyncedCanonicalWorkspaceConnections()
+            val dirtyCanonicalWorkspaceBacklog =
+                fullBackupLocalDataSource.loadUnsyncedCanonicalWorkspaceBacklog()
             val dirtyCanonicalWorkspaceProblems =
                 fullBackupLocalDataSource.loadUnsyncedCanonicalWorkspaceProblems()
+            val dirtyCanonicalWorkspaceInbox =
+                fullBackupLocalDataSource.loadUnsyncedCanonicalWorkspaceInbox()
             val databaseIsEmpty = selection.isEmpty()
 
             if (
@@ -562,7 +678,10 @@ class SyncWifiService @Inject constructor(
                     dirtyCanonicalOrientations = dirtyCanonicalOrientations,
                     dirtyCanonicalExecutionLogs = dirtyCanonicalExecutionLogs,
                     dirtyCanonicalDirectionEntries = dirtyCanonicalDirectionEntries,
+                    dirtyCanonicalWorkspaceConnections = dirtyCanonicalWorkspaceConnections,
+                    dirtyCanonicalWorkspaceBacklog = dirtyCanonicalWorkspaceBacklog,
                     dirtyCanonicalWorkspaceProblems = dirtyCanonicalWorkspaceProblems,
+                    dirtyCanonicalWorkspaceInbox = dirtyCanonicalWorkspaceInbox,
                 )
             ) {
                 Result.success(Unit)
@@ -577,7 +696,10 @@ class SyncWifiService @Inject constructor(
                         dirtyCanonicalOrientations = dirtyCanonicalOrientations,
                         dirtyCanonicalExecutionLogs = dirtyCanonicalExecutionLogs,
                         dirtyCanonicalDirectionEntries = dirtyCanonicalDirectionEntries,
+                        dirtyCanonicalWorkspaceConnections = dirtyCanonicalWorkspaceConnections,
+                        dirtyCanonicalWorkspaceBacklog = dirtyCanonicalWorkspaceBacklog,
                         dirtyCanonicalWorkspaceProblems = dirtyCanonicalWorkspaceProblems,
+                        dirtyCanonicalWorkspaceInbox = dirtyCanonicalWorkspaceInbox,
                     )
                 val fullUrl = buildWifiUrl(address, "/import")
                 val backupWrapper =
@@ -607,8 +729,17 @@ class SyncWifiService @Inject constructor(
                     fullBackupLocalDataSource.markCanonicalWorkspaceDirectionEntriesSynced(
                         pushPlan.directionEntriesAck,
                     )
+                    fullBackupLocalDataSource.markCanonicalWorkspaceConnectionsSynced(
+                        pushPlan.workspaceConnectionsAck,
+                    )
+                    fullBackupLocalDataSource.markCanonicalWorkspaceBacklogSynced(
+                        pushPlan.workspaceBacklogAck,
+                    )
                     fullBackupLocalDataSource.markCanonicalWorkspaceProblemsSynced(
                         pushPlan.workspaceProblemsAck,
+                    )
+                    fullBackupLocalDataSource.markCanonicalWorkspaceInboxSynced(
+                        pushPlan.workspaceInboxAck,
                     )
                     Result.success(Unit)
                 } else {
@@ -647,8 +778,14 @@ class SyncWifiService @Inject constructor(
             fullBackupLocalDataSource.loadCanonicalExecutionLogsChangedSince(deltaSince)
         val changedCanonicalDirectionEntries =
             fullBackupLocalDataSource.loadCanonicalWorkspaceDirectionEntriesChangedSince(deltaSince)
+        val changedCanonicalWorkspaceConnections =
+            fullBackupLocalDataSource.loadCanonicalWorkspaceConnectionsChangedSince(deltaSince)
+        val changedCanonicalWorkspaceBacklog =
+            fullBackupLocalDataSource.loadCanonicalWorkspaceBacklogChangedSince(deltaSince)
         val changedCanonicalWorkspaceProblems =
             fullBackupLocalDataSource.loadCanonicalWorkspaceProblemsChangedSince(deltaSince)
+        val changedCanonicalWorkspaceInbox =
+            fullBackupLocalDataSource.loadCanonicalWorkspaceInboxChangedSince(deltaSince)
         val snapshotDelta =
             buildCanonicalSnapshotDelta(
                 baseDelta = changes,
@@ -658,7 +795,10 @@ class SyncWifiService @Inject constructor(
                 explicitCanonicalDayThemes = changedCanonicalDayThemes,
                 explicitCanonicalExecutionLogs = changedCanonicalExecutionLogs,
                 explicitCanonicalDirectionEntries = changedCanonicalDirectionEntries,
+                explicitCanonicalWorkspaceConnections = changedCanonicalWorkspaceConnections,
+                explicitCanonicalWorkspaceBacklog = changedCanonicalWorkspaceBacklog,
                 explicitCanonicalWorkspaceProblems = changedCanonicalWorkspaceProblems,
+                explicitCanonicalWorkspaceInbox = changedCanonicalWorkspaceInbox,
             )
         val deltaBackup = FullAppBackup(
             backupSchemaVersion = 2,

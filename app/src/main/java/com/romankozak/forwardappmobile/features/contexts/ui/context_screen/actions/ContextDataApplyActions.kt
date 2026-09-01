@@ -135,7 +135,12 @@ class ContextDataApplyActions(
         val contextId = context?.id ?: currentState.context?.id.orEmpty()
         val preferredViewName = context?.defaultViewModeName
         val configFingerprint = buildStableConfigFingerprint(config)
-        val syncKey = Triple(contextId, preferredViewName, configFingerprint)
+        val syncKey =
+            Triple(
+                contextId,
+                preferredViewName,
+                "$configFingerprint|dashboardOverride=${dashboardEnabledOverride()}|executionLogOverride=$executionLogEnabledOverride",
+            )
         if (lastSyncKey == syncKey) {
             contextSessionStore.state.value
         } else {
@@ -146,9 +151,16 @@ class ContextDataApplyActions(
                     config = config,
                     preferredViewName = preferredViewName,
                     currentView = currentState.currentViewMode,
+                    dashboardEnabledOverride = dashboardEnabledOverride(),
+                    executionLogEnabledOverride = executionLogEnabledOverride,
                 ),
             )
         }
+    }
+
+    private fun ContextData.Loaded.dashboardEnabledOverride(): Boolean? {
+        val overrides = enabledCapabilityOverrides ?: return null
+        return overrides.contains(CapabilityId("dashboard"))
     }
 
     private fun com.romankozak.forwardappmobile.core.context.ContextSessionState.toCapabilityState(): CapabilityState =

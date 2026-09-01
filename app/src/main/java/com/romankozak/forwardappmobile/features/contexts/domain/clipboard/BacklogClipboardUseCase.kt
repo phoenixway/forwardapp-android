@@ -8,6 +8,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.LinkType
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.MissionStatus
 import com.romankozak.forwardappmobile.core.data.models.entities.tactical.TacticalMission
+import com.romankozak.forwardappmobile.data.repository.BacklogPlacementCommands
 import com.romankozak.forwardappmobile.data.repository.ChecklistRepository
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.DayManagementRepository
@@ -87,6 +88,7 @@ class BacklogClipboardUseCase
         private val clipboardService: EntityClipboardService,
         private val goalRepository: GoalRepository,
         private val listItemRepository: ListItemRepository,
+        private val backlogPlacementCommands: BacklogPlacementCommands,
         private val directionRepository: DirectionRepository,
         private val contextRepository: ContextRepository,
         private val checklistRepository: ChecklistRepository,
@@ -747,7 +749,7 @@ class BacklogClipboardUseCase
             var moved = movedMissions
             if (payload.operation == ClipboardOperation.CUT && createdMissions > 0) {
                 if (backlogItemsToDelete.isNotEmpty()) {
-                    listItemRepository.deleteListItems(backlogItemsToDelete.distinct())
+                    backlogPlacementCommands.tombstoneContextBacked(backlogItemsToDelete.distinct())
                     moved += backlogItemsToDelete.distinct().size
                 }
                 if (directionItemsToDelete.isNotEmpty()) {
@@ -930,7 +932,7 @@ class BacklogClipboardUseCase
             contextLinkCopyResult: ContextLinkAttachmentCopyResult,
         ): Int {
             if (attachmentCopyResult.insertedSourceItemIds.isNotEmpty()) {
-                listItemRepository.deleteListItems(attachmentCopyResult.insertedSourceItemIds)
+                backlogPlacementCommands.tombstoneContextBacked(attachmentCopyResult.insertedSourceItemIds)
             }
             if (payload.sourceContextId.isNotBlank() && attachmentCopyResult.sourceAttachmentIdsForCut.isNotEmpty()) {
                 attachmentCopyResult.sourceAttachmentIdsForCut.forEach { attachmentId ->
@@ -1030,7 +1032,7 @@ class BacklogClipboardUseCase
             }
 
             contextIdsToLink.forEach { contextId ->
-                listItemRepository.addContextLinkToContext(
+                backlogPlacementCommands.addContextLinkToContextBacked(
                     targetContextId = contextId,
                     currentContextId = targetContextId,
                 )
@@ -1048,7 +1050,7 @@ class BacklogClipboardUseCase
                     if (isDuplicateLink) {
                         skippedDuplicates += 1
                     } else {
-                        listItemRepository.addContextLinkToContext(
+                        backlogPlacementCommands.addContextLinkToContextBacked(
                             targetContextId = linkedContextId,
                             currentContextId = targetContextId,
                         )
@@ -1171,7 +1173,7 @@ class BacklogClipboardUseCase
                 val contextDuplicates = sourceContextIds.size - contextIdsToLink.size
 
                 contextIdsToLink.forEach { contextId ->
-                    listItemRepository.addContextLinkToContext(
+                    backlogPlacementCommands.addContextLinkToContextBacked(
                         targetContextId = contextId,
                         currentContextId = targetContextId,
                     )
@@ -1189,14 +1191,19 @@ class BacklogClipboardUseCase
                     val items = requestedItemIds.mapNotNull(itemsById::get)
                     skippedInvalid += requestedItemIds.size - items.size
 
-                    val (movable, duplicateBlocked) =
-                        partitionMovableBacklogItems(
+                    val partition =
+                        partitionCanonicalBacklogMove(
                             items = items,
                             targetContextId = targetContextId,
+                            hasLivePlacement = backlogPlacementCommands::hasLiveContextBackedPlacement,
                         )
-                    listItemRepository.moveListItemsToContext(movable.map { it.id }, targetContextId)
-                    moved += movable.size
-                    skippedDuplicates += duplicateBlocked
+                    backlogPlacementCommands.moveContextBacked(
+                        partition.movable.map { it.id },
+                        targetContextId,
+                    )
+                    moved += partition.movable.size
+                    skippedDuplicates += partition.duplicateCount
+                    skippedInvalid += partition.invalidCount
                 }
             }
 
@@ -1215,7 +1222,7 @@ class BacklogClipboardUseCase
                         if (isDuplicateLink) {
                             skippedDuplicates += 1
                         } else {
-                            listItemRepository.addContextLinkToContext(
+                            backlogPlacementCommands.addContextLinkToContextBacked(
                                 targetContextId = linkedContextId,
                                 currentContextId = targetContextId,
                             )
@@ -1293,7 +1300,7 @@ class BacklogClipboardUseCase
                 skippedDuplicates += attachmentCopy.duplicates
                 skippedInvalid += attachmentCopy.invalid
                 if (attachmentCopy.insertedSourceItemIds.isNotEmpty()) {
-                    listItemRepository.deleteListItems(attachmentCopy.insertedSourceItemIds)
+                    backlogPlacementCommands.tombstoneContextBacked(attachmentCopy.insertedSourceItemIds)
                     moved += attachmentCopy.insertedSourceItemIds.size
                 }
                 if (sourceContextId.isNotBlank() && attachmentCopy.sourceAttachmentIdsForCut.isNotEmpty()) {
@@ -1643,7 +1650,7 @@ class BacklogClipboardUseCase
             }
 
             if (backlogItemsToDelete.isNotEmpty()) {
-                listItemRepository.deleteListItems(backlogItemsToDelete)
+                backlogPlacementCommands.tombstoneContextBacked(backlogItemsToDelete)
                 moved += backlogItemsToDelete.size
             }
 
@@ -1674,7 +1681,7 @@ class BacklogClipboardUseCase
                 skippedDuplicates += attachmentCopy.duplicates
                 skippedInvalid += attachmentCopy.invalid
                 if (attachmentCopy.insertedSourceItemIds.isNotEmpty()) {
-                    listItemRepository.deleteListItems(attachmentCopy.insertedSourceItemIds)
+                    backlogPlacementCommands.tombstoneContextBacked(attachmentCopy.insertedSourceItemIds)
                     moved += attachmentCopy.insertedSourceItemIds.size
                 }
                 if (sourceContextId.isNotBlank() && attachmentCopy.sourceAttachmentIdsForCut.isNotEmpty()) {
@@ -1707,23 +1714,6 @@ class BacklogClipboardUseCase
                 skippedDuplicates = skippedDuplicates,
                 skippedInvalid = skippedInvalid,
             )
-        }
-
-        private suspend fun partitionMovableBacklogItems(
-            items: List<BacklogItem>,
-            targetContextId: String,
-        ): Pair<List<BacklogItem>, Int> {
-            val movable = mutableListOf<BacklogItem>()
-            var duplicateBlocked = 0
-            for (item in items) {
-                val duplicateExists = listItemRepository.doesLinkExist(item.entityId, targetContextId)
-                if (duplicateExists) {
-                    duplicateBlocked += 1
-                } else {
-                    movable += item
-                }
-            }
-            return movable to duplicateBlocked
         }
 
         private data class AttachmentCopyResult(

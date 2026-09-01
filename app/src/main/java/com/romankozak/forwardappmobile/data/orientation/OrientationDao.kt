@@ -74,6 +74,9 @@ interface OrientationDao {
     @Query("SELECT * FROM workspace_capability_instances")
     suspend fun getAllWorkspaceCapabilities(): List<WorkspaceCapabilityInstanceEntity>
 
+    @Query("SELECT * FROM workspace_capability_instances WHERE workspaceId = :workspaceId")
+    fun observeWorkspaceCapabilities(workspaceId: String): Flow<List<WorkspaceCapabilityInstanceEntity>>
+
     @Query("SELECT * FROM saved_orientation_views")
     suspend fun getAllSavedViews(): List<SavedOrientationViewEntity>
 

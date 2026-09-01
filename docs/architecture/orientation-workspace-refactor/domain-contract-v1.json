@@ -113,7 +113,7 @@
     "registry": {
       "BACKLOG": {"legacyIds": ["backlog"], "activation": "MIGRATE_IF_ENABLED"},
       "INBOX": {"legacyIds": ["inbox"], "activation": "MIGRATE_IF_ENABLED"},
-      "INBOX_SORTING": {"legacyIds": ["inbox_sorting"], "activation": "MIGRATE_IF_ENABLED", "requires": ["INBOX"]},
+      "INBOX_SORTING": {"legacyIds": ["inbox_sorting"], "activation": "MIGRATE_IF_ENABLED"},
       "KEY_PROBLEMS": {"legacyIds": ["key_problems"], "activation": "MIGRATE_IF_ENABLED"},
       "DIRECTION": {"legacyIds": ["direction"], "activation": "MIGRATE_IF_ENABLED"},
       "ARTIFACT": {"legacyIds": ["artifact"], "activation": "MIGRATE_IF_ENABLED"},

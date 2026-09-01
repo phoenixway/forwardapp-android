@@ -1,6 +1,8 @@
 package com.romankozak.forwardappmobile.data.workspace.capability
 
+import androidx.room.withTransaction
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
+import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -20,32 +22,52 @@ data class ExecutionLogWorkspaceOwnershipRepairReport(
 class ExecutionLogWorkspaceOwnershipBridge
     @Inject
     constructor(
+        private val database: AppDatabase,
         private val workspaceDao: WorkspaceDao,
         private val contextManagementDao: ContextManagementDao,
     ) {
         suspend fun resolveContextBackedWorkspaceId(contextId: String): String? =
             workspaceDao.getContextBackedForContextId(contextId)?.id
 
-        suspend fun repairUnresolved(): ExecutionLogWorkspaceOwnershipRepairReport {
-            var assignedLogs = 0
-            var unresolvedContexts = 0
+        suspend fun repairUnresolved(): ExecutionLogWorkspaceOwnershipRepairReport =
+            database.withTransaction {
+                var canonicalizedLogs = 0
+                val unresolvedContextIds = linkedSetOf<String>()
 
-            contextManagementDao.getContextIdsWithoutWorkspaceOwner().forEach { contextId ->
-                val workspaceId = resolveContextBackedWorkspaceId(contextId)
-                if (workspaceId == null) {
-                    unresolvedContexts += 1
-                } else {
-                    assignedLogs +=
-                        contextManagementDao.assignWorkspaceOwnerForContext(
-                            contextId = contextId,
-                            workspaceId = workspaceId,
-                        )
+                contextManagementDao.getLegacyContextLogs().forEach { log ->
+                    val contextId = log.contextId ?: return@forEach
+                    val workspace = workspaceDao.getContextBackedForContextId(contextId)
+
+                    if (workspace == null) {
+                        unresolvedContextIds += contextId
+                        return@forEach
+                    }
+
+                    if (log.workspaceId != null && log.workspaceId != workspace.id) {
+                        unresolvedContextIds += contextId
+                        return@forEach
+                    }
+
+                    if (workspace.isDeleted && !log.isDeleted) {
+                        unresolvedContextIds += contextId
+                        return@forEach
+                    }
+
+                    contextManagementDao.insertLog(
+                        log.copy(
+                            contextId = null,
+                            workspaceId = workspace.id,
+                            updatedAt = log.updatedAt ?: log.timestamp,
+                            syncedAt = null,
+                        ),
+                    )
+                    canonicalizedLogs += 1
                 }
+
+                ExecutionLogWorkspaceOwnershipRepairReport(
+                    assignedLogs = canonicalizedLogs,
+                    unresolvedContexts = unresolvedContextIds.size,
+                )
             }
 
-            return ExecutionLogWorkspaceOwnershipRepairReport(
-                assignedLogs = assignedLogs,
-                unresolvedContexts = unresolvedContexts,
-            )
-        }
     }

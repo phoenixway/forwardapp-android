@@ -1,6 +1,13 @@
 package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentWithContext
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalConnectionsRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalBacklogRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalInboxRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalInboxSortingRepository
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.WorkspaceSortingMode
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.WorkspaceSortingTarget
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.effectiveSortingMode
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -10,8 +17,13 @@ class InboxSortingService
     @Inject
     constructor(
         private val listItemRepository: ListItemRepository,
+        private val backlogPlacementCommands: BacklogPlacementCommands,
         private val inboxRepository: InboxRepository,
         private val contextRepository: ContextRepository,
+        private val canonicalConnectionsRepository: CanonicalConnectionsRepository,
+        private val canonicalBacklogRepository: CanonicalBacklogRepository,
+        private val canonicalInboxRepository: CanonicalInboxRepository,
+        private val canonicalSortingRepository: CanonicalInboxSortingRepository,
     ) {
         enum class SortTarget {
             BACKLOG,
@@ -23,46 +35,62 @@ class InboxSortingService
             contextId: String,
             rulesText: String,
             target: SortTarget,
-        ): Int =
-            when (target) {
-                SortTarget.BACKLOG -> sortBacklog(contextId, rulesText)
-                SortTarget.INBOX_RECORDS -> sortInboxRecords(contextId, rulesText)
-                SortTarget.ATTACHMENTS -> sortAttachments(contextId, rulesText)
+        ): Int {
+            canonicalSortingRepository.requireActive(contextId)
+            val configuration = InboxSortingLegacyTextAdapter.decode(rulesText)
+            return when (target) {
+                SortTarget.BACKLOG -> {
+                    canonicalBacklogRepository.requireActive(contextId)
+                    sortBacklog(
+                        contextId,
+                        effectiveSortingMode(configuration, WorkspaceSortingTarget.BACKLOG),
+                    )
+                }
+                SortTarget.INBOX_RECORDS -> {
+                    canonicalInboxRepository.requireActive(contextId)
+                    sortInboxRecords(
+                        contextId,
+                        effectiveSortingMode(configuration, WorkspaceSortingTarget.INBOX),
+                    )
+                }
+                SortTarget.ATTACHMENTS -> {
+                    canonicalConnectionsRepository.requireActive(contextId)
+                    sortAttachments(
+                        contextId,
+                        effectiveSortingMode(configuration, WorkspaceSortingTarget.CONNECTIONS),
+                    )
+                }
             }
+        }
 
         private suspend fun sortBacklog(
             contextId: String,
-            rulesText: String,
+            mode: WorkspaceSortingMode,
         ): Int {
             val current = listItemRepository.getBacklogItemsForContext(contextId)
             if (current.isEmpty()) return 0
 
             val sorted =
-                when (resolveMode(rulesText, "backlog", default = "newest")) {
-                    "oldest" -> current.sortedByDescending { it.order }
+                when (mode) {
+                    WorkspaceSortingMode.OLDEST -> current.sortedByDescending { it.order }
                     else -> current.sortedBy { it.order } // newest first for negative-timestamp order model
                 }
 
-            val reordered =
-                sorted.mapIndexed { index, item ->
-                    val newOrder = (index + 1).toLong()
-                    if (item.order == newOrder) item else item.copy(order = newOrder)
-                }
-            listItemRepository.updateListItemsOrder(reordered)
-            return reordered.size
+            backlogPlacementCommands.reorderContextBacked(sorted)
+            return sorted.size
         }
 
         private suspend fun sortInboxRecords(
             contextId: String,
-            rulesText: String,
+            mode: WorkspaceSortingMode,
         ): Int {
             val current = inboxRepository.getInboxRecordsForContext(contextId)
             if (current.isEmpty()) return 0
 
             val sorted =
-                when (resolveMode(rulesText, "inbox", default = "newest")) {
-                    "oldest" -> current.sortedBy { it.createdAt }
-                    "alpha" -> current.sortedBy { it.text.lowercase() }
+                when (mode) {
+                    WorkspaceSortingMode.OLDEST -> current.sortedBy { it.createdAt }
+                    WorkspaceSortingMode.ALPHA -> current.sortedBy { it.text.lowercase() }
                     else -> current.sortedByDescending { it.createdAt }
                 }
 
@@ -75,22 +103,22 @@ class InboxSortingService
 
         private suspend fun sortAttachments(
             contextId: String,
-            rulesText: String,
+            mode: WorkspaceSortingMode,
         ): Int {
             val current = contextRepository.getAttachmentsForContextStream(contextId).first()
             if (current.isEmpty()) return 0
 
             val sorted =
-                when (resolveMode(rulesText, keys = listOf("connections", "attachments"), default = "newest")) {
-                    "oldest" -> current.sortedBy { it.attachment.createdAt }
-                    "type" -> current.sortedBy { it.attachment.attachmentType.lowercase() }
-                    "alpha" -> current.sortedBy { attachmentSortLabel(it).lowercase() }
+                when (mode) {
+                    WorkspaceSortingMode.OLDEST -> current.sortedBy { it.attachment.createdAt }
+                    WorkspaceSortingMode.TYPE -> current.sortedBy { it.attachment.attachmentType.lowercase() }
+                    WorkspaceSortingMode.ALPHA -> current.sortedBy { attachmentSortLabel(it).lowercase() }
                     else -> current.sortedByDescending { it.attachment.createdAt }
                 }
 
-            contextRepository.updateAttachmentOrders(
-                contextId = contextId,
-                updates = sorted.mapIndexed { index, item -> item.attachment.id to (index + 1).toLong() },
+            canonicalConnectionsRepository.reorder(
+                workspaceId = contextId,
+                orderedAttachmentIds = sorted.map { it.attachment.id },
             )
             return sorted.size
         }
@@ -98,30 +126,4 @@ class InboxSortingService
         private fun attachmentSortLabel(item: AttachmentWithContext): String =
             item.attachment.roleCode?.takeIf { it.isNotBlank() }
                 ?: item.attachment.attachmentType
-
-        private fun resolveMode(
-            rulesText: String,
-            key: String,
-            default: String,
-        ): String {
-            return resolveMode(rulesText, keys = listOf(key), default = default)
-        }
-
-        private fun resolveMode(
-            rulesText: String,
-            keys: List<String>,
-            default: String,
-        ): String {
-            if (rulesText.isBlank()) return default
-
-            var resolved: String? = null
-            keys.forEach { key ->
-                val pattern = Regex("""(?im)^\s*${Regex.escape(key)}\s*:\s*([a-z_]+)\s*$""")
-                val found = pattern.find(rulesText)?.groupValues?.getOrNull(1)?.trim()?.lowercase()
-                if (!found.isNullOrBlank() && resolved == null) {
-                    resolved = found
-                }
-            }
-            return resolved ?: default
-        }
     }

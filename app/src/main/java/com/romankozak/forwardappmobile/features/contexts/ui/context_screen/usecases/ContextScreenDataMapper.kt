@@ -1,5 +1,6 @@
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen.usecases
 
+import com.romankozak.forwardappmobile.core.capability.CapabilityId
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentWithContext
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemContent
@@ -16,7 +17,11 @@ import com.romankozak.forwardappmobile.core.data.models.entities.MusicNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.NoteDocumentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.RecentItem
 import com.romankozak.forwardappmobile.core.data.models.entities.Reminder
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextData
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.ExecutionLogCapabilityConfigurationCodec
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityType
 
 class ContextScreenDataMapper {
     fun map(
@@ -38,6 +43,8 @@ class ContextScreenDataMapper {
             reminders = snapshot.reminders,
             recentItems = snapshot.recentItems,
             notes = snapshot.notes,
+            enabledCapabilityOverrides = snapshot.enabledCapabilityOverrides(),
+            executionLogEnabledOverride = snapshot.executionLogEnabledOverride(),
         )
     }
 }
@@ -59,6 +66,7 @@ data class ContextScreenDataSnapshot(
     val notes: List<LegacyNoteEntity>,
     val goals: List<Goal>,
     val subprojects: List<Context>,
+    val workspaceCapabilities: List<WorkspaceCapabilityInstanceEntity>,
 ) {
     companion object {
         @Suppress("UNCHECKED_CAST")
@@ -80,9 +88,40 @@ data class ContextScreenDataSnapshot(
                 notes = args.itemsAt<LegacyNoteEntity>(NOTES_INDEX),
                 goals = args.itemsAt<Goal>(GOALS_INDEX),
                 subprojects = args.itemsAt<Context>(SUBPROJECTS_INDEX),
+                workspaceCapabilities = args.itemsAt<WorkspaceCapabilityInstanceEntity>(WORKSPACE_CAPABILITIES_INDEX),
             )
         }
     }
+}
+
+private fun ContextScreenDataSnapshot.enabledCapabilityOverrides(): Set<CapabilityId>? {
+    val dashboard =
+        workspaceCapabilities.singleOrNull {
+            it.capabilityType == WorkspaceCapabilityType.DASHBOARD.name &&
+                it.instanceKey == "default"
+        } ?: return null
+    val enabled =
+        !dashboard.isDeleted &&
+            dashboard.state == WorkspaceCapabilityState.ACTIVE.name
+    return if (enabled) setOf(CapabilityId("dashboard")) else emptySet()
+}
+
+private fun ContextScreenDataSnapshot.executionLogEnabledOverride(): Boolean {
+    val executionLog =
+        workspaceCapabilities.singleOrNull {
+            it.capabilityType == WorkspaceCapabilityType.EXECUTION_LOG.name &&
+                it.instanceKey == "default"
+        } ?: return false
+
+    if (executionLog.isDeleted) return false
+    if (executionLog.state != WorkspaceCapabilityState.ACTIVE.name) return false
+
+    return runCatching {
+        ExecutionLogCapabilityConfigurationCodec.validate(
+            executionLog.configurationVersion,
+            executionLog.configuration,
+        )
+    }.isSuccess
 }
 
 private inline fun <reified T> Array<Any?>.itemsAt(index: Int): List<T> {
@@ -91,6 +130,7 @@ private inline fun <reified T> Array<Any?>.itemsAt(index: Int): List<T> {
 
 private data class ContextScreenMappingSupport(
     val linkItemsById: Map<String, LinkItemEntity>,
+    val legacyNotesById: Map<String, LegacyNoteEntity>,
     val noteDocumentsById: Map<String, NoteDocumentEntity>,
     val musicNotesById: Map<String, MusicNoteEntity>,
     val checklistsById: Map<String, ChecklistEntity>,
@@ -103,6 +143,7 @@ private data class ContextScreenMappingSupport(
 private fun ContextScreenDataSnapshot.toMappingSupport(): ContextScreenMappingSupport {
     return ContextScreenMappingSupport(
         linkItemsById = linkItems.associateBy { it.id },
+        legacyNotesById = notes.associateBy { it.id },
         noteDocumentsById = noteDocuments.associateBy { it.id },
         musicNotesById = musicNotes.associateBy { it.id },
         checklistsById = checklists.associateBy { it.id },
@@ -131,6 +172,10 @@ private fun BacklogItem.toBacklogItemContent(
     return when (itemType) {
         BacklogItemTypeValues.GOAL -> toGoalItemContent(support, reminders)
         BacklogItemTypeValues.SUBLIST, PROJECT_ITEM_TYPE -> toContextLinkItemContent(support, reminders)
+        BacklogItemTypeValues.NOTE ->
+            support.legacyNotesById[entityId]?.let { note ->
+                BacklogItemContent.NoteItem(note, this)
+            }
         BacklogItemTypeValues.NOTE_DOCUMENT,
         BacklogItemTypeValues.JOURNAL_DOCUMENT,
         BacklogItemTypeValues.CHECKLIST,
@@ -286,6 +331,7 @@ private const val RECENT_ITEMS_INDEX = 12
 private const val NOTES_INDEX = 13
 private const val GOALS_INDEX = 14
 private const val SUBPROJECTS_INDEX = 15
+private const val WORKSPACE_CAPABILITIES_INDEX = 16
 private const val PROJECT_ITEM_TYPE = "PROJECT"
 private const val LEGACY_LINK_ITEM_TYPE = "LINK"
 private const val DEFAULT_CONTEXT_NAME = "Context"

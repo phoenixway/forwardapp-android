@@ -13,7 +13,6 @@ import com.romankozak.forwardappmobile.data.logic.TagAssociationHandler
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
@@ -27,12 +26,12 @@ class GoalRepository
     @Inject
     constructor(
         private val goalDao: GoalDao,
-        private val listItemDao: ListItemDao,
         private val reminderRepository: ReminderRepository,
         private val contextMarkerHandlerProvider: Provider<ContextMarkerHandler>,
         private val contextDao: ContextDao,
         private val tagAssociationHandler: TagAssociationHandler,
         private val contextStructureRepository: ContextStructureRepository,
+        private val backlogPlacementCommands: BacklogPlacementCommands,
     ) {
         private val contextMarkerHandler: ContextMarkerHandler by lazy { contextMarkerHandlerProvider.get() }
 
@@ -67,15 +66,12 @@ class GoalRepository
             // Тепер ContextTextAction буде знайдено
             syncContextMarker(goalToInsert.id, contextId, ContextTextAction.ADD)
 
-            val newBacklogItem =
-                BacklogItem(
-                    id = UUID.randomUUID().toString(),
+            val backlogItemId =
+                backlogPlacementCommands.addToContextBacked(
                     contextId = contextId,
                     itemType = BacklogItemTypeValues.GOAL,
                     entityId = goalToInsert.id,
-                    order = -(goalToInsert.updatedAt ?: goalToInsert.createdAt),
                 )
-            listItemDao.insertItem(newBacklogItem)
 
             val finalGoalState = goalDao.getGoalById(goalToInsert.id)!!
             contextMarkerHandler.handleContextsOnCreate(finalGoalState)
@@ -85,7 +81,7 @@ class GoalRepository
                 sourceContextId = contextId,
                 associatedContextIds = associatedContexts.keys,
             )
-            return newBacklogItem.id
+            return backlogItemId
         }
 
         @androidx.room.Transaction
@@ -106,15 +102,11 @@ class GoalRepository
                 )
             goalDao.insertGoal(newGoal)
 
-            val newBacklogItem =
-                BacklogItem(
-                    id = UUID.randomUUID().toString(),
-                    contextId = contextId,
-                    itemType = BacklogItemTypeValues.GOAL,
-                    entityId = newGoal.id,
-                    order = -currentTime,
-                )
-            listItemDao.insertItem(newBacklogItem)
+            backlogPlacementCommands.addToContextBacked(
+                contextId = contextId,
+                itemType = BacklogItemTypeValues.GOAL,
+                entityId = newGoal.id,
+            )
 
             reminderRepository.createReminder(newGoal.id, "GOAL", reminderTime)
 
@@ -138,10 +130,11 @@ class GoalRepository
             goalDao.updateGoal(updatedGoal)
             val resolvedSourceContextId =
                 sourceContextId?.takeIf { it.isNotBlank() }
-                    ?: listItemDao
-                        .getDirectItemsForEntity(updatedGoal.id, BacklogItemTypeValues.GOAL)
-                        .firstOrNull()
-                        ?.contextId
+                    ?: backlogPlacementCommands.findFirstContextBackedWorkspaceId(
+                        itemType = BacklogItemTypeValues.GOAL,
+                        entityId = updatedGoal.id,
+                    )
+                    ?: tagAssociationHandler.findGoalAssociationOwnerContextId(updatedGoal.id)
             val associatedContexts = tagAssociationHandler.syncGoalAssociations(updatedGoal, resolvedSourceContextId)
             if (resolvedSourceContextId != null) {
                 applyBacklogAutoMovePolicy(
@@ -210,17 +203,10 @@ class GoalRepository
                         )
                     }
 
-                val newItems =
-                    goalIds.map {
-                        BacklogItem(
-                            id = UUID.randomUUID().toString(),
-                            contextId = targetContextId,
-                            itemType = BacklogItemTypeValues.GOAL,
-                            entityId = it,
-                            order = -System.currentTimeMillis(),
-                        )
-                    }
-                listItemDao.insertItems(newItems)
+                backlogPlacementCommands.addManyToContextBacked(
+                    contextId = targetContextId,
+                    entries = goalIds.map { BacklogItemTypeValues.GOAL to it },
+                )
 
                 if (sourceContextLink != null) {
                     goalIds.forEach { goalId ->
@@ -252,15 +238,11 @@ class GoalRepository
                 val newGoal = original.copy(id = UUID.randomUUID().toString(), createdAt = now, updatedAt = now, syncedAt = null)
                 goalDao.insertGoal(newGoal)
 
-                val newItem =
-                    BacklogItem(
-                        id = UUID.randomUUID().toString(),
-                        contextId = targetContextId,
-                        itemType = BacklogItemTypeValues.GOAL,
-                        entityId = newGoal.id,
-                        order = -now,
-                    )
-                listItemDao.insertItem(newItem)
+                backlogPlacementCommands.addToContextBacked(
+                    contextId = targetContextId,
+                    itemType = BacklogItemTypeValues.GOAL,
+                    entityId = newGoal.id,
+                )
             }
         }
 
@@ -269,12 +251,19 @@ class GoalRepository
             goalDao.getGoalById(goalId)?.let { goal ->
                 goalDao.insertGoal(goal.softDelete(now))
             }
-            listItemDao.getListItemByEntityId(goalId)?.let { item ->
-                listItemDao.insertItem(item.softDelete(now))
-            }
+            tagAssociationHandler.removeGoalAssociations(goalId)
+            backlogPlacementCommands.tombstoneContextBackedTarget(
+                itemType = BacklogItemTypeValues.GOAL,
+                entityId = goalId,
+                now = now,
+            )
         }
 
-        suspend fun findContextIdForGoal(goalId: String): String? = listItemDao.findContextIdForGoal(goalId)
+        suspend fun findContextIdForGoal(goalId: String): String? =
+            backlogPlacementCommands.findFirstContextBackedWorkspaceId(
+                itemType = BacklogItemTypeValues.GOAL,
+                entityId = goalId,
+            )
 
         suspend fun getAllGoals(): List<Goal> = goalDao.getAll()
 
@@ -287,25 +276,24 @@ class GoalRepository
             sourceContextId: String,
             associatedContextIds: Set<String>,
         ) {
-            val sourceItem =
-                listItemDao.getDirectItemForEntityInContext(
-                    entityId = goalId,
-                    itemType = BacklogItemTypeValues.GOAL,
+            if (
+                !backlogPlacementCommands.hasContextBackedPlacementHistory(
                     contextId = sourceContextId,
-                ) ?: return
+                    itemType = BacklogItemTypeValues.GOAL,
+                    entityId = goalId,
+                )
+            ) {
+                return
+            }
             val shouldHide =
                 shouldRemoveBacklogAfterTagAutocopy(sourceContextId) &&
                     associatedContextIds.isNotEmpty()
-            if (sourceItem.isDeleted == shouldHide) return
-
-            val now = System.currentTimeMillis()
-            val updatedItem =
-                if (shouldHide) {
-                    sourceItem.softDelete(now)
-                } else {
-                    sourceItem.copy(isDeleted = false).bumpSync(now)
-                }
-            listItemDao.insertItem(updatedItem)
+            backlogPlacementCommands.setContextBackedPlacementVisible(
+                contextId = sourceContextId,
+                itemType = BacklogItemTypeValues.GOAL,
+                entityId = goalId,
+                visible = !shouldHide,
+            )
         }
 
         private suspend fun shouldRemoveBacklogAfterTagAutocopy(contextId: String): Boolean =

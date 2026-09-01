@@ -12,7 +12,7 @@ Android persistence and transport now use canonical
 > shadow materialization, or pre-cutover planning are retained as history, not
 > current architecture.
 
-## Conclusion
+## HISTORICAL pre-cutover conclusion
 
 `DIRECTION` is not one homogeneous content collection today. A
 `DirectionItemEntity` combines semantic content, ordered placement, and an
@@ -248,7 +248,7 @@ Before authority cutover, tests must cover:
 - capability disable/archive/delete do not destroy content;
 - no UI behavior changes before separate authorization.
 
-## Implemented Android-first authority cutover
+## HISTORICAL accepted Android-first cutover plan
 
 The accepted next authority phase is a hard Android-first cutover, not a
 long-lived dual-write phase.
@@ -371,6 +371,10 @@ shadow materialization/planning/repair, `DirectionItemSnapshot`,
 
 `DirectionItemEntity` remains only as the compatibility DTO for the existing
 UI/clipboard surface.
+
+Deleting an owning Workspace tombstones its live Direction placements;
+navigation placements targeting that Workspace are tombstoned in the same
+owner-deletion transaction.
 
 `SnapshotBundle.workspaceDirectionEntries` is the sole Android Direction
 placement transport through backup/restore, merge, Wi-Fi delta/dirty push, and

@@ -2,12 +2,10 @@ package com.romankozak.forwardappmobile.data.repository
 
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLogEntryTypeValues
-import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
-import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogRepository
 import com.romankozak.forwardappmobile.data.workspace.capability.ExecutionLogWorkspaceOwnershipBridge
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextManagementDao
 import kotlinx.coroutines.flow.Flow
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -17,10 +15,8 @@ class ContextLogRepository
     constructor(
         private val contextManagementDao: ContextManagementDao,
         private val workspaceOwnershipBridge: ExecutionLogWorkspaceOwnershipBridge,
+        private val canonicalExecutionLogRepository: CanonicalExecutionLogRepository,
     ) {
-        companion object {
-            private const val DEFAULT_CONTEXT_LOG_KEEP_COUNT = 40
-        }
 
         fun getContextLogsStream(contextId: String): Flow<List<ContextLog>> = contextManagementDao.getLogsForContextStream(contextId)
 
@@ -29,7 +25,7 @@ class ContextLogRepository
             isEnabled: Boolean,
         ) {
             val status = if (isEnabled) "активовано" else "деактивовано"
-            addContextLogEntry(
+            addSystemContextLogEntry(
                 contextId = contextId,
                 type = ContextLogEntryTypeValues.AUTOMATIC,
                 description = "Управління контекстом було $status.",
@@ -44,7 +40,7 @@ class ContextLogRepository
             val logDescription =
                 "Статус змінено на '$newStatus'." +
                     (statusText?.let { "\nКоментар: $it" } ?: "")
-            addContextLogEntry(
+            addSystemContextLogEntry(
                 contextId = contextId,
                 type = ContextLogEntryTypeValues.STATUS_CHANGE,
                 description = logDescription,
@@ -68,45 +64,73 @@ class ContextLogRepository
             description: String,
             details: String? = null,
         ) {
-            val now = System.currentTimeMillis()
-            val logEntry =
-                ContextLog(
-                    id = UUID.randomUUID().toString(),
-                    contextId = contextId,
-                    timestamp = now,
-                    type = type,
-                    description = description,
-                    details = details,
-                    updatedAt = now,
-                    syncedAt = null,
-                    version = 1,
-                    workspaceId = workspaceOwnershipBridge.resolveContextBackedWorkspaceId(contextId),
-                )
-            contextManagementDao.insertLog(logEntry)
-
-            val overflow =
-                contextManagementDao.getLogsForContextBeyondKeepCount(
-                    contextId = contextId,
-                    keepCount = DEFAULT_CONTEXT_LOG_KEEP_COUNT,
-                )
-            if (overflow.isNotEmpty()) {
-                contextManagementDao.insertLogs(
-                    overflow.map { log -> log.softDelete(now) },
-                )
-            }
+            val workspaceId = requireContextBackedWorkspace(contextId)
+            canonicalExecutionLogRepository.createLog(
+                workspaceId = workspaceId,
+                type = type,
+                description = description,
+                details = details,
+            )
         }
 
-        suspend fun updateContextExecutionLog(log: ContextLog) {
-            require(log.contextId != null) {
-                "ContextLogRepository cannot mutate a canonical-only EXECUTION_LOG row"
+        suspend fun addSystemContextLogEntry(
+            contextId: String,
+            type: String,
+            description: String,
+            details: String? = null,
+        ) {
+            val workspaceId = requireContextBackedWorkspace(contextId)
+            canonicalExecutionLogRepository.createSystemLog(
+                workspaceId = workspaceId,
+                type = type,
+                description = description,
+                details = details,
+            )
+        }
+
+        private suspend fun requireContextBackedWorkspace(contextId: String): String =
+            requireNotNull(workspaceOwnershipBridge.resolveContextBackedWorkspaceId(contextId)) {
+                "EXECUTION_LOG Context $contextId has no provenance-backed Workspace owner"
             }
-            contextManagementDao.updateLog(log.bumpSync())
+
+        suspend fun updateContextExecutionLog(log: ContextLog) {
+            val workspaceId =
+                requireNotNull(log.workspaceId) {
+                    "EXECUTION_LOG row has no Workspace owner"
+                }
+            require(log.contextId == null) {
+                "Legacy Context EXECUTION_LOG row must be canonicalized before mutation"
+            }
+            canonicalExecutionLogRepository.updateLog(
+                workspaceId = workspaceId,
+                logId = log.id,
+                type = log.type,
+                description = log.description,
+                details = log.details,
+                timestamp = log.timestamp,
+            )
         }
 
         suspend fun deleteContextExecutionLog(log: ContextLog) {
-            require(log.contextId != null) {
-                "ContextLogRepository cannot mutate a canonical-only EXECUTION_LOG row"
+            val workspaceId =
+                requireNotNull(log.workspaceId) {
+                    "EXECUTION_LOG row has no Workspace owner"
+                }
+            require(log.contextId == null) {
+                "Legacy Context EXECUTION_LOG row must be canonicalized before mutation"
             }
-            contextManagementDao.insertLog(log.softDelete())
+            canonicalExecutionLogRepository.deleteLog(
+                workspaceId = workspaceId,
+                logId = log.id,
+            )
         }
+
+        suspend fun tombstoneOwnedContentForWorkspaces(
+            workspaceIds: Collection<String>,
+            now: Long = System.currentTimeMillis(),
+        ): Int =
+            canonicalExecutionLogRepository.tombstoneOwnedContentForWorkspaces(
+                workspaceIds = workspaceIds,
+                now = now,
+            )
     }

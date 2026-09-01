@@ -30,13 +30,15 @@ class SnapshotBundleSelectiveImportFilter {
                     (checklist.contextId == null || checklist.contextId in validContextIds)
             }
         val filteredLinks = source.linkItemEntities.filter { link -> link.id in selection.selectedLinkItemIds }
-        val filteredInbox =
-            source.inbox.filter { record ->
-                record.id in selection.selectedInboxRecordIds && record.contextId in validContextIds
-            }
-        val filteredLogs =
-            source.logs.filter { log ->
-                log.id in selection.selectedContextLogIds && log.contextId in validContextIds
+        val executionLogOwnerContexts = source.contextBackedExecutionLogOwnerContexts()
+        val selectedExecutionLogWorkspaceIds =
+            executionLogOwnerContexts
+                .filterValues { contextId -> contextId in validContextIds }
+                .keys
+        val filteredCanonicalExecutionLogs =
+            source.canonicalExecutionLogs?.filter { log ->
+                log.id in selection.selectedContextLogIds &&
+                    log.workspaceId in selectedExecutionLogWorkspaceIds
             }
         val filteredScripts = source.scripts.filter { script -> script.id in selection.selectedScriptIds }
         val filteredAttachments = source.attachments.filter { attachment -> attachment.id in selection.selectedAttachmentIds }
@@ -61,19 +63,15 @@ class SnapshotBundleSelectiveImportFilter {
                     item.checklistId in selection.selectedChecklistIds
                 },
             linkItemEntities = filteredLinks,
-            inbox = filteredInbox,
-            logs = filteredLogs,
-            // Selective-import UI currently selects legacy Context logs only.
-            // Canonical Workspace-owned EXECUTION_LOG requires a separate
-            // Workspace-aware selection contract before it can participate.
-            canonicalExecutionLogs = null,
+            inbox = emptyList(),
+            // Legacy Context logs are not an authority after EXECUTION_LOG cutover.
+            // selectedContextLogIds are presentation-level stable row ids only.
+            logs = emptyList(),
+            canonicalExecutionLogs = filteredCanonicalExecutionLogs,
             workspaceDirectionEntries = null,
             scripts = filteredScripts,
             attachments = filteredAttachments,
-            crossRefs =
-                source.crossRefs.filter { crossRef ->
-                    crossRef.contextId in validContextIds && crossRef.attachmentId in validAttachmentIds
-                },
+            crossRefs = emptyList(),
             dayPlans = filteredDayPlans,
             dayFocusItems =
                 source.dayFocusItems.filter { item ->
@@ -133,6 +131,11 @@ class SnapshotBundleSelectiveImportFilter {
             workspaceProblems = null,
             workspaceProblemWorkspaceRefs = null,
             workspaceProblemAttachmentRefs = null,
+            workspaceInboxRecords = null,
+            workspaceConnections = null,
+            // Canonical BACKLOG selection requires Workspace + typed-target closure.
+            // Keep it absent until the selective-import contract can express that selection.
+            workspaceBacklogEntries = null,
             focusContextIntervals = emptyList(),
             userStateIntervals = emptyList(),
         )

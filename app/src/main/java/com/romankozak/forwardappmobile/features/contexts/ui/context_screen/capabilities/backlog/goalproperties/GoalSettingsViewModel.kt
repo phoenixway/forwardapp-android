@@ -22,7 +22,6 @@ import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.features.contexts.ui.context_properties.ContextSettingsEvent
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.components.utils.TagUtils
 import com.romankozak.forwardappmobile.features.missions.presentation.AttachmentOption
@@ -60,7 +59,6 @@ class GoalSettingsViewModel
         private val musicNoteRepository: MusicNoteRepository,
         private val checklistRepository: ChecklistRepository,
         private val settingsRepository: SettingsRepository,
-        private val listItemDao: ListItemDao,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel(), EvaluationTabActions, RemindersTabActions {
         private val goalId: String? = savedStateHandle["goalId"]
@@ -486,7 +484,8 @@ class GoalSettingsViewModel
             }
         }
 
-        private suspend fun resolveOwnerContextId(): String? = initialProjectId ?: goalId?.let { listItemDao.findContextIdForGoal(it) }
+        private suspend fun resolveOwnerContextId(): String? =
+            initialProjectId ?: goalId?.let { contextRepository.findContextIdForGoal(it) }
 
         private fun addRelatedLink(link: RelatedLink) {
             _uiState.update { state ->

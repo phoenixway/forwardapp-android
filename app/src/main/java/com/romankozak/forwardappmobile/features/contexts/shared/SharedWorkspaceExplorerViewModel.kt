@@ -5,6 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstrapper
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDashboardCapabilityRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogRepository
 import com.romankozak.forwardappmobile.shared.application.contexts.WorkspaceExplorerIntent
 import com.romankozak.forwardappmobile.shared.application.contexts.WorkspaceExplorerState
 import com.romankozak.forwardappmobile.shared.application.contexts.WorkspaceExplorerStore
@@ -28,12 +31,18 @@ class SharedWorkspaceExplorerViewModel
         contextRepository: ContextRepository,
         goalRepository: GoalRepository,
         contextStructureRepository: ContextStructureRepository,
+        canonicalWorkspaceBootstrapper: CanonicalWorkspaceBootstrapper,
+        canonicalDashboardCapabilityRepository: CanonicalDashboardCapabilityRepository,
+        canonicalExecutionLogRepository: CanonicalExecutionLogRepository,
     ) : ViewModel() {
         private val adapter =
             AndroidWorkspaceRepositoryAdapter(
                 contextRepository = contextRepository,
                 goalRepository = goalRepository,
                 contextStructureRepository = contextStructureRepository,
+                canonicalWorkspaceBootstrapper = canonicalWorkspaceBootstrapper,
+                canonicalDashboardCapabilityRepository = canonicalDashboardCapabilityRepository,
+                canonicalExecutionLogRepository = canonicalExecutionLogRepository,
             )
 
         private val store =

@@ -54,19 +54,40 @@ interface GoalDao {
     @Transaction
     @Query(
         """
-WITH RECURSIVE path_cte(id, name, path) AS (
-    SELECT id, name, name as path FROM contexts WHERE parentId IS NULL
-    UNION ALL
-    SELECT p.id, p.name, pct.path || ' / ' || p.name
-    FROM contexts p JOIN path_cte pct ON p.parentId = pct.id
-)
-SELECT DISTINCT g.*, p.id as contextId, p.name as contextName, pc.path as pathSegments
-FROM goals g
-JOIN list_items li ON g.id = li.entityId AND li.itemType = 'GOAL'
-JOIN contexts p ON li.context_id = p.id
-JOIN path_cte pc ON p.id = pc.id
-WHERE (g.text LIKE :query OR g.description LIKE :query) AND g.is_deleted = 0
-""",
+        WITH RECURSIVE path_cte(id, name, path) AS (
+            SELECT id, name, name as path FROM contexts WHERE parentId IS NULL
+            UNION ALL
+            SELECT p.id, p.name, pct.path || ' / ' || p.name
+            FROM contexts p JOIN path_cte pct ON p.parentId = pct.id
+        ),
+        goal_contexts(goalId, contextId) AS (
+            SELECT mapping.sourceId, entry.workspaceId
+            FROM workspace_backlog_entries entry
+            JOIN legacy_subject_mappings mapping
+              ON mapping.subjectId = entry.targetId
+            WHERE entry.targetKind = 'ORIENTATION'
+              AND entry.isDeleted = 0
+              AND mapping.sourceType = 'GOAL'
+              AND mapping.state = 'CUT_OVER'
+              AND mapping.isDeleted = 0
+
+            UNION
+
+            SELECT bg.goal_id, bg.context_id
+            FROM backlog_goal_association_links bg
+        )
+        SELECT DISTINCT
+            g.*,
+            p.id as contextId,
+            p.name as contextName,
+            pc.path as pathSegments
+        FROM goals g
+        JOIN goal_contexts gc ON gc.goalId = g.id
+        JOIN contexts p ON gc.contextId = p.id
+        JOIN path_cte pc ON p.id = pc.id
+        WHERE (g.text LIKE :query OR g.description LIKE :query)
+          AND g.is_deleted = 0
+        """,
     )
     suspend fun searchGoalsGlobal(query: String): List<GlobalGoalSearchResult>
 
@@ -90,12 +111,31 @@ WHERE (g.text LIKE :query OR g.description LIKE :query) AND g.is_deleted = 0
 
     @Query(
         """
-    SELECT g.* FROM goals g
-    JOIN list_items li ON g.id = li.entityId
-    WHERE li.context_id = :contextId 
-      AND li.itemType = 'GOAL' 
-      AND g.is_deleted = 0
-""",
+        SELECT DISTINCT g.*
+        FROM goals g
+        WHERE g.is_deleted = 0
+          AND (
+            EXISTS (
+                SELECT 1
+                FROM workspace_backlog_entries entry
+                JOIN legacy_subject_mappings mapping
+                  ON mapping.subjectId = entry.targetId
+                WHERE entry.workspaceId = :contextId
+                  AND entry.targetKind = 'ORIENTATION'
+                  AND entry.isDeleted = 0
+                  AND mapping.sourceType = 'GOAL'
+                  AND mapping.sourceId = g.id
+                  AND mapping.state = 'CUT_OVER'
+                  AND mapping.isDeleted = 0
+            )
+            OR EXISTS (
+                SELECT 1
+                FROM backlog_goal_association_links bg
+                WHERE bg.goal_id = g.id
+                  AND bg.context_id = :contextId
+            )
+          )
+        """,
     )
     fun getGoalsByContextIdFlow(contextId: String): Flow<List<Goal>>
 }

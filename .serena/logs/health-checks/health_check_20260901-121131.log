@@ -1,0 +1,68 @@
+INFO  2026-09-01 12:11:31,938 serena.cli:health_check:949 - Starting health check for project: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android
+INFO  2026-09-01 12:11:31,938 serena.cli:health_check:953 - Creating SerenaAgent with disabled dashboard...
+INFO  2026-09-01 12:11:31,938 serena.util.file_system:_load_gitignore_files:165 - Processing .gitignore file: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/ktlint-rules/.gitignore
+INFO  2026-09-01 12:11:31,939 serena.util.file_system:_load_gitignore_files:165 - Processing .gitignore file: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/.gitignore
+INFO  2026-09-01 12:11:31,940 serena.util.file_system:_load_gitignore_files:165 - Processing .gitignore file: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/.pytest_cache/.gitignore
+INFO  2026-09-01 12:11:31,942 serena.agent:__init__:631 - Will record tool usage statistics with token count estimator: CHAR_COUNT.
+INFO  2026-09-01 12:11:31,943 serena.util.file_system:_load_gitignore_files:165 - Processing .gitignore file: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/.serena/.gitignore
+INFO  2026-09-01 12:11:31,944 serena.agent:__init__:635 - Starting Serena server (version=1.7.0, process id=691386, parent process id=528703; language backend=LSP); Python version=3.13.11, platform=Linux-7.1.5-201.fc44.x86_64-x86_64-with-glibc2.43
+INFO  2026-09-01 12:11:31,944 serena.agent:__init__:639 - Configuration file: /home/romankozak/.serena/serena_config.yml
+INFO  2026-09-01 12:11:31,944 serena.agent:__init__:640 - Available projects: forwardapp-android
+INFO  2026-09-01 12:11:31,944 serena.agent:__init__:641 - Loaded tools (52): create_text_file, replace_content, replace_in_files, delete_lines, replace_lines, insert_at_line, replace_symbol_body, insert_after_symbol, insert_before_symbol, read_file, list_dir, find_file, search_for_pattern, restart_language_server, get_symbols_overview, find_symbol, find_referencing_symbols, find_implementations, find_declaration, get_diagnostics_for_file, get_diagnostics_for_symbol, rename_symbol, safe_delete_symbol, write_memory, read_memory, list_memories, delete_memory, rename_memory, edit_memory, execute_shell_command, open_dashboard, activate_project, remove_project, get_current_config, onboarding, initial_instructions, serena_info, jet_brains_find_symbol, jet_brains_move, jet_brains_safe_delete, jet_brains_inline_symbol, jet_brains_find_referencing_symbols, jet_brains_get_symbols_overview, jet_brains_type_hierarchy, jet_brains_find_declaration, jet_brains_find_implementations, jet_brains_rename, jet_brains_debug, jet_brains_run_inspections, jet_brains_list_inspections, list_queryable_projects, query_project
+INFO  2026-09-01 12:11:31,944 serena.config.serena_config:determine_language_backend:1449 - Using language backend as configured in project: LSP
+INFO  2026-09-01 12:11:31,959 serena.config.serena_config:start:329 - Loading project instance for RegisteredProject[project_root=/home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android, project_config=ProjectConfig[project_name=forwardapp-android]] starting ...
+INFO  2026-09-01 12:11:31,959 serena.project:__init__:46 - Serena project data folder: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/.serena
+INFO  2026-09-01 12:11:31,960 serena.project:start:329 - Gathering ignore spec for project forwardapp-android starting ...
+INFO  2026-09-01 12:11:31,960 serena.config.serena_config:stop:336 - Loading project instance for RegisteredProject[project_root=/home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android, project_config=ProjectConfig[project_name=forwardapp-android]] completed in 0.000 seconds
+INFO  2026-09-01 12:11:31,960 serena.project:_gather_ignorespec:89 - Using 3 ignored paths from the project configuration.
+INFO  2026-09-01 12:11:31,960 serena.agent:activate_project_from_path_or_name:1351 - Found registered project 'forwardapp-android' at path /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android
+INFO  2026-09-01 12:11:31,960 serena.util.file_system:start:329 - Loading of .gitignore files starting ...
+INFO  2026-09-01 12:11:31,960 serena.agent:_activate_project:1219 - Activating forwardapp-android at /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android
+INFO  2026-09-01 12:11:31,960 serena.task_executor:issue_task:217 - Scheduling Task-1:init_project_services
+INFO  2026-09-01 12:11:31,960 serena.agent:_update_active_modes:1127 - Active modes (2): editing, interactive
+INFO  2026-09-01 12:11:31,961 serena.util.file_system:_load_gitignore_files:165 - Processing .gitignore file: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/.gitignore
+INFO  2026-09-01 12:11:31,963 serena.agent:_create_base_toolset:813 - Number of exposed tools: 29
+INFO  2026-09-01 12:11:32,019 serena.agent:__init__:681 - Number of exposed tools: 29. Exposed tools: ['activate_project', 'create_text_file', 'delete_memory', 'edit_memory', 'execute_shell_command', 'find_declaration', 'find_file', 'find_implementations', 'find_referencing_symbols', 'find_symbol', 'get_current_config', 'get_diagnostics_for_file', 'get_symbols_overview', 'initial_instructions', 'insert_after_symbol', 'insert_before_symbol', 'list_dir', 'list_memories', 'onboarding', 'read_file', 'read_memory', 'rename_memory', 'rename_symbol', 'replace_content', 'replace_in_files', 'replace_symbol_body', 'safe_delete_symbol', 'search_for_pattern', 'write_memory']
+INFO  2026-09-01 12:11:32,020 serena.agent:_update_active_tools:1145 - Active tools (29): activate_project, create_text_file, delete_memory, edit_memory, execute_shell_command, find_declaration, find_file, find_implementations, find_referencing_symbols, find_symbol, get_current_config, get_diagnostics_for_file, get_symbols_overview, initial_instructions, insert_after_symbol, insert_before_symbol, list_dir, list_memories, onboarding, read_file, read_memory, rename_memory, rename_symbol, replace_content, replace_in_files, replace_symbol_body, safe_delete_symbol, search_for_pattern, write_memory
+INFO  2026-09-01 12:11:32,020 serena.util.file_system:_load_gitignore_files:165 - Processing .gitignore file: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/ktlint-rules/.gitignore
+INFO  2026-09-01 12:11:32,021 serena.util.file_system:_load_gitignore_files:165 - Processing .gitignore file: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/app/.gitignore
+INFO  2026-09-01 12:11:32,024 serena.util.file_system:_load_gitignore_files:165 - Processing .gitignore file: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/.pytest_cache/.gitignore
+INFO  2026-09-01 12:11:32,026 serena.util.file_system:_load_gitignore_files:165 - Processing .gitignore file: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/.serena/.gitignore
+INFO  2026-09-01 12:11:32,045 serena.task_executor:_process_task_queue:139 - Starting execution of Task-1:init_project_services
+INFO  2026-09-01 12:11:32,045 serena.task_executor:start:329 - Task-1:init_project_services starting ...
+INFO  2026-09-01 12:11:32,045 serena.agent:start:329 - Language server initialization starting ...
+INFO  2026-09-01 12:11:32,045 serena.project:create_language_server_manager:517 - Creating language server manager for /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android
+INFO  2026-09-01 12:11:32,046 serena.project:_ignored_patterns:203 - Waiting for ignored patterns to become available ...
+INFO  2026-09-01 12:11:32,113 serena.util.file_system:stop:336 - Loading of .gitignore files completed in 0.153 seconds
+INFO  2026-09-01 12:11:32,113 serena.project:stop:336 - Gathering ignore spec for project forwardapp-android completed in 0.153 seconds
+INFO  2026-09-01 12:11:32,113 serena.project:_ignored_patterns:206 - Ignored patterns are now available for project; proceeding
+INFO  2026-09-01 12:11:32,114 sensai.util.logging:start:329 - Language server startup (language=kotlin) starting ...
+INFO  2026-09-01 12:11:32,114 serena.ls_manager:create_language_server:58 - Creating language server instance for /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android, language=kotlin.
+INFO  2026-09-01 12:11:32,114 serena.util.file_system:stop:336 - Loading of .gitignore files completed in 0.180 seconds
+INFO  2026-09-01 12:11:32,114 serena.project:stop:336 - Gathering ignore spec for project forwardapp-android completed in 0.181 seconds
+INFO  2026-09-01 12:11:32,132 solidlsp.settings:get:74 - Using custom LS setting 262.9593.0 for key 'kotlin_lsp_version'
+INFO  2026-09-01 12:11:32,132 solidlsp.language_servers.kotlin_language_server:_get_or_install_core_dependency:216 - Using Kotlin Language Server script at /home/romankozak/.serena/language_servers/static/KotlinLanguageServer/kotlin_language_server-262.9593.0/kotlin-server-262.9593.0/bin/intellij-server
+INFO  2026-09-01 12:11:32,134 solidlsp.settings:get:74 - Using custom LS setting -Xmx2G for key 'jvm_options'
+INFO  2026-09-01 12:11:32,135 solidlsp.ls:start:3180 - Starting language server kotlin for /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android
+INFO  2026-09-01 12:11:32,135 solidlsp.language_servers.kotlin_language_server:_start_server:567 - Starting Kotlin server process
+INFO  2026-09-01 12:11:32,135 solidlsp.ls_process:_start:519 - Starting language server process via command: ['/home/romankozak/.serena/language_servers/static/KotlinLanguageServer/kotlin_language_server-262.9593.0/kotlin-server-262.9593.0/bin/intellij-server', '--stdio', '--system-path', '/home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/.serena/cache/kotlin/kotlin-lsp-system']
+INFO  2026-09-01 12:11:32,145 solidlsp.initialize_params:_apply_updates:61 - Workspace folders: ['/home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android']
+INFO  2026-09-01 12:11:32,146 solidlsp.language_servers.kotlin_language_server:_start_server:571 - Sending initialize request from LSP client to LSP server and awaiting response
+INFO  2026-09-01 12:11:32,149 solidlsp.ls_process:_read_ls_process_stderr:645 - Picked up JAVA_TOOL_OPTIONS: -Xmx2G
+
+INFO  2026-09-01 12:11:32,347 serena.cli:health_check:956 - SerenaAgent created successfully
+INFO  2026-09-01 12:11:32,347 serena.cli:health_check:959 - Searching for analyzable files...
+INFO  2026-09-01 12:11:32,438 solidlsp.ls_process:_read_ls_process_stderr:645 - IJ_JAVA_OPTIONS=
+
+INFO  2026-09-01 12:11:32,446 solidlsp.ls_process:_read_ls_process_stderr:645 - idea.config.path=/home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/.serena/cache/kotlin/kotlin-lsp-system/config
+
+INFO  2026-09-01 12:11:32,446 solidlsp.ls_process:_read_ls_process_stderr:645 - idea.system.path=/home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/.serena/cache/kotlin/kotlin-lsp-system/system
+
+INFO  2026-09-01 12:11:32,446 solidlsp.ls_process:_read_ls_process_stderr:645 - Log file: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/.serena/cache/kotlin/kotlin-lsp-system/system/log/intellij-server.log
+
+INFO  2026-09-01 12:11:32,557 serena.cli:health_check:968 - Found analyzable file: build.gradle.kts
+INFO  2026-09-01 12:11:32,557 serena.cli:health_check:982 - Testing GetSymbolsOverviewTool on file: build.gradle.kts
+INFO  2026-09-01 12:11:32,557 serena.task_executor:issue_task:217 - Scheduling Task-2:<lambda>
+INFO  2026-09-01 12:11:32,921 solidlsp.language_servers.kotlin_language_server:window_log_message:499 - LSP: window/logMessage: {'type': 3, 'message': 'Process stared with\nLspServerRunConfig(protocolConfig=Stdio, systemPath=/home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/.serena/cache/kotlin/kotlin-lsp-system, defaultLogLevel=INFO, logCategories={}, unitTestMode=false)'}
+INFO  2026-09-01 12:11:32,923 solidlsp.language_servers.kotlin_language_server:window_log_message:499 - LSP: window/logMessage: {'type': 3, 'message': 'System Info\n  os.name: Linux\n  os.version: 7.1.5-201.fc44.x86_64\n  cpu.arch: X86_64\n  cpu.number: 12\n  java.home: /home/romankozak/.serena/language_servers/static/KotlinLanguageServer/kotlin_language_server-262.9593.0/kotlin-server-262.9593.0/jbr\n  java.version: = 25.0.2+10-b432.48\n  java.vm.vendor: JetBrains s.r.o.\n  ram.xmx: 2048MB\n'}
+INFO  2026-09-01 12:11:32,923 solidlsp.language_servers.kotlin_language_server:window_log_message:499 - LSP: window/logMessage: {'type': 3, 'message': 'Log file: /home/romankozak/studio/public/it/forwardapp-suit/forwardapp-android/.serena/cache/kotlin/kotlin-lsp-system/system/log/intellij-server.log'}

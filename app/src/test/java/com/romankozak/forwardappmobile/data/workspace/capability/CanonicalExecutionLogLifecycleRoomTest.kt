@@ -11,6 +11,7 @@ import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceC
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -67,7 +68,7 @@ class CanonicalExecutionLogLifecycleRoomTest {
     }
 
     @Test
-    fun `canonical lifecycle rejects Context backed workspace and unknown configuration`() = runBlocking {
+    fun `canonical lifecycle accepts Context backed workspace and rejects unknown configuration`() = runBlocking {
         val database = database()
         try {
             database.workspaceDao().upsert(
@@ -78,9 +79,11 @@ class CanonicalExecutionLogLifecycleRoomTest {
             )
             val repository = repository(database)
 
-            val legacyFailure =
-                runCatching { repository.enable("legacy", now = 10L) }.exceptionOrNull()
-            assertTrue(legacyFailure is IllegalArgumentException)
+            val legacyId = repository.enable("legacy", now = 10L)
+            val legacy = capability(database, "legacy")
+            assertEquals(legacyId, legacy.id)
+            assertEquals(WorkspaceCapabilityState.ACTIVE.name, legacy.state)
+            assertTrue(!legacy.isDeleted)
 
             repository.enable("canonical", now = 20L)
             val current = capability(database, "canonical")
@@ -106,6 +109,57 @@ class CanonicalExecutionLogLifecycleRoomTest {
                 """{"future":true}""",
                 capability(database, "canonical").configuration,
             )
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `setEnabled is idempotent and isEnabled reflects canonical lifecycle`() = runBlocking {
+        val database = database()
+        try {
+            database.workspaceDao().upsert(listOf(canonicalWorkspace("canonical")))
+            val repository = repository(database)
+
+            repository.enable("canonical", now = 10L)
+            assertTrue(repository.isEnabled("canonical"))
+
+            repository.setEnabled(
+                workspaceId = "canonical",
+                enabled = false,
+                now = 20L,
+            )
+            val disabled = capability(database, "canonical")
+            assertFalse(repository.isEnabled("canonical"))
+            assertEquals(WorkspaceCapabilityState.DISABLED.name, disabled.state)
+
+            repository.setEnabled(
+                workspaceId = "canonical",
+                enabled = false,
+                now = 30L,
+            )
+            val stillDisabled = capability(database, "canonical")
+            assertEquals(disabled.version, stillDisabled.version)
+            assertEquals(disabled.updatedAt, stillDisabled.updatedAt)
+
+            repository.setEnabled(
+                workspaceId = "canonical",
+                enabled = true,
+                now = 40L,
+            )
+            val active = capability(database, "canonical")
+            assertTrue(repository.isEnabled("canonical"))
+            assertEquals(WorkspaceCapabilityState.ACTIVE.name, active.state)
+            assertEquals(disabled.version + 1L, active.version)
+
+            repository.setEnabled(
+                workspaceId = "canonical",
+                enabled = true,
+                now = 50L,
+            )
+            val stillActive = capability(database, "canonical")
+            assertEquals(active.version, stillActive.version)
+            assertEquals(active.updatedAt, stillActive.updatedAt)
         } finally {
             database.close()
         }

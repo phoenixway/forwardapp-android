@@ -3,7 +3,6 @@ package com.romankozak.forwardappmobile.core.data.models.entities
 import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
-import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.google.gson.annotations.SerializedName
@@ -32,27 +31,6 @@ data class AttachmentEntity(
     @SerializedName("version") val version: Long = 0,
 )
 
-@Entity(
-    tableName = "context_attachment_cross_ref",
-    primaryKeys = ["context_id", "attachment_id"],
-    foreignKeys = [
-        ForeignKey(
-            entity = Context::class,
-            parentColumns = ["id"],
-            childColumns = ["context_id"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-        ForeignKey(
-            entity = AttachmentEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["attachment_id"],
-            onDelete = ForeignKey.CASCADE,
-        ),
-    ],
-    indices = [
-        Index(value = ["attachment_id"]),
-    ],
-)
 data class ContextAttachmentCrossRef(
     @ColumnInfo(name = "context_id") @SerializedName(value = "contextId", alternate = ["a", "projectId"]) val contextId: String = "",
     @ColumnInfo(name = "attachment_id") @SerializedName(value = "attachmentId", alternate = ["b"]) val attachmentId: String,

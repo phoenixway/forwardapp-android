@@ -2,6 +2,7 @@
 
 package com.romankozak.forwardappmobile.features.contexts.ui.context_screen
 
+import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
@@ -19,6 +20,7 @@ import com.romankozak.forwardappmobile.core.navigation.ClearAndNavigateHomeUseCa
 import com.romankozak.forwardappmobile.core.navigation.capability.actions.CapabilityViewActionRegistry
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
 import com.romankozak.forwardappmobile.data.repository.ActivityRepository
+import com.romankozak.forwardappmobile.data.repository.BacklogPlacementCommands
 import com.romankozak.forwardappmobile.data.repository.ContextArtifactRepository
 import com.romankozak.forwardappmobile.data.repository.ContextKeyProblemsRepository
 import com.romankozak.forwardappmobile.data.repository.ContextLogRepository
@@ -88,6 +90,8 @@ class ContextScreenViewModelNavigationTest {
         val contextRepository = mockk<ContextRepository>(relaxed = true)
         val config = createConfig()
         stubFlows(contextRepository, config)
+        val orientationDao = mockk<OrientationDao>(relaxed = true)
+        every { orientationDao.observeWorkspaceCapabilities(contextId) } returns flowOf(emptyList())
         val missionStreamRepository = mockk<MissionStreamRepository>(relaxed = true)
         every { missionStreamRepository.observeActiveStreams() } returns flowOf(emptyList())
 
@@ -112,6 +116,7 @@ class ContextScreenViewModelNavigationTest {
                 missionRepository = mockk<MissionRepository>(relaxed = true),
                 missionStreamRepository = missionStreamRepository,
                 listItemRepository = listItemRepository,
+                backlogPlacementCommands = mockk<BacklogPlacementCommands>(relaxed = true),
                 noteDocumentRepository = noteDocumentRepository,
                 musicNoteRepository = mockk<MusicNoteRepository>(relaxed = true),
                 checklistRepository = checklistRepository,
@@ -129,6 +134,7 @@ class ContextScreenViewModelNavigationTest {
                 contextSessionStore = contextSessionStore,
                 backlogClipboardUseCase = mockk<BacklogClipboardUseCase>(relaxed = true),
                 capabilityViewActionRegistry = mockk<CapabilityViewActionRegistry>(relaxed = true),
+                orientationDao = orientationDao,
             )
         return Fixture(viewModel, contextSessionStore, contextRepository)
     }

@@ -12,6 +12,7 @@ import com.romankozak.forwardappmobile.data.repository.MusicNoteRepository
 import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.RecentItemsRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
+import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.features.contexts.ui.context_screen.state.ContextData
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -50,6 +51,7 @@ class ContextScreenDataObserver(
                     dependencies.noteRepository.getNotesForContext(contextId),
                     dependencies.goalRepository.getGoalsByContextIdFlow(contextId),
                     dependencies.contextRepository.getSubprojectsByParentIdFlow(contextId),
+                    dependencies.orientationDao.observeWorkspaceCapabilities(contextId),
                 ) { args: Array<Any?> ->
                     mapper.map(
                         contextId = contextId,
@@ -76,4 +78,5 @@ data class ContextScreenDataObserverDependencies(
     val recentItemsRepository: RecentItemsRepository,
     val noteRepository: LegacyNoteRepository,
     val goalRepository: GoalRepository,
+    val orientationDao: OrientationDao,
 )

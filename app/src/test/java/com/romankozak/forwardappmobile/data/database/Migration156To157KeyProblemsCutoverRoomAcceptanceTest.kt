@@ -71,14 +71,14 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
 
         val room =
             Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(MIGRATION_156_157)
+                .addMigrations(MIGRATION_156_157, MIGRATION_157_158, MIGRATION_158_159)
                 .allowMainThreadQueries()
                 .build()
 
         try {
             val db = room.openHelper.writableDatabase
 
-            assertEquals(157L, scalarLong(db, "PRAGMA user_version"))
+            assertEquals(159L, scalarLong(db, "PRAGMA user_version"))
             assertFalse(tableExists(db, "context_key_problems"))
 
             assertEquals(2L, scalarLong(db, "SELECT COUNT(*) FROM workspace_problems"))
@@ -203,7 +203,7 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
 
         val room =
             Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(MIGRATION_156_157)
+                .addMigrations(MIGRATION_156_157, MIGRATION_157_158, MIGRATION_158_159)
                 .allowMainThreadQueries()
                 .build()
 
@@ -292,7 +292,7 @@ class Migration156To157KeyProblemsCutoverRoomAcceptanceTest {
     ) {
         val room =
             Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .addMigrations(MIGRATION_156_157)
+                .addMigrations(MIGRATION_156_157, MIGRATION_157_158)
                 .allowMainThreadQueries()
                 .build()
 

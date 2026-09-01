@@ -15,7 +15,14 @@ import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextStructureDao
 import com.romankozak.forwardappmobile.shared.core.domain.orientation.orientationCapabilityRegistry
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.DirectionCapabilityConfigurationCodec
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.BacklogCapabilityConfigurationCodec
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.DirectionCapabilityConfigurationV1
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.DashboardCapabilityConfigurationCodec
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.ExecutionLogCapabilityConfigurationCodec
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.InboxCapabilityConfigurationCodec
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.InboxCapabilityConfigurationV1
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.InboxOwnerVisibility
+import com.romankozak.forwardappmobile.shared.core.domain.workspace.InboxSortingCapabilityConfigurationCodec
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
@@ -38,8 +45,8 @@ data class WorkspaceBootstrapReport(
 )
 
 /**
- * Maintains a read-only canonical shadow of Context identity and effective capabilities.
- * Context remains runtime/write authority until an explicit later cutover.
+ * Maintains the Context-backed Workspace projection during incremental capability cutovers.
+ * Context remains authority only for capabilities that have not crossed their explicit cutover boundary.
  */
 @Singleton
 class CanonicalWorkspaceBootstrapper
@@ -268,10 +275,33 @@ class CanonicalWorkspaceBootstrapper
                             now,
                         )
                 }
-                if (WorkspaceCapabilityType.INBOX_SORTING in mapped && WorkspaceCapabilityType.INBOX !in mapped) {
-                    mapped -= WorkspaceCapabilityType.INBOX_SORTING
-                    issues += issue(context.id, "MISSING_CAPABILITY_DEPENDENCY", "INBOX_SORTING requires INBOX", now)
-                }
+                seedDashboardAfterCutover(
+                    context = context,
+                    mapped = mapped,
+                    existingByLogical = existingByLogical,
+                    desiredKeys = desiredKeys,
+                    changes = changes,
+                    now = now,
+                )
+                seedExecutionLogAfterCutover(
+                    context = context,
+                    mapped = mapped,
+                    existingByLogical = existingByLogical,
+                    desiredKeys = desiredKeys,
+                    changes = changes,
+                    now = now,
+                )
+                seedBacklogAfterCutover(
+                    context = context,
+                    mapped = mapped,
+                    existingByLogical = existingByLogical,
+                    desiredKeys = desiredKeys,
+                    changes = changes,
+                    now = now,
+                )
+                mapped -= WorkspaceCapabilityType.DASHBOARD
+                mapped -= WorkspaceCapabilityType.EXECUTION_LOG
+                mapped -= WorkspaceCapabilityType.BACKLOG
                 mapped.sortedBy { capabilityOrder.getValue(it) }.forEach { type ->
                     val key = Triple(context.id, type.name, DEFAULT_INSTANCE_KEY)
                     desiredKeys += key
@@ -280,8 +310,47 @@ class CanonicalWorkspaceBootstrapper
                     if (current == null || !current.sameProjection(desired)) changes += desired
                 }
             }
+            val liveContextBackedOwnerIds =
+                contexts
+                    .filterNot { it.isDeleted || it.id in blockedContextIds }
+                    .mapTo(hashSetOf()) { it.id }
+
             existing.filter {
                 it.instanceKey == DEFAULT_INSTANCE_KEY &&
+                    it.capabilityType == WorkspaceCapabilityType.EXECUTION_LOG.name &&
+                    !it.isDeleted &&
+                    it.workspaceId in contextBackedWorkspaceIds &&
+                    it.workspaceId !in liveContextBackedOwnerIds
+            }.forEach { current ->
+                changes +=
+                    current.copy(
+                        updatedAt = now,
+                        syncedAt = null,
+                        isDeleted = true,
+                        version = current.version + 1L,
+                    )
+            }
+
+            existing.filter {
+                it.instanceKey == DEFAULT_INSTANCE_KEY &&
+                    it.capabilityType == WorkspaceCapabilityType.DASHBOARD.name &&
+                    !it.isDeleted &&
+                    it.workspaceId in contextBackedWorkspaceIds &&
+                    it.workspaceId !in liveContextBackedOwnerIds
+            }.forEach { current ->
+                changes +=
+                    current.copy(
+                        updatedAt = now,
+                        syncedAt = null,
+                        isDeleted = true,
+                        version = current.version + 1L,
+                    )
+            }
+
+            existing.filter {
+                it.instanceKey == DEFAULT_INSTANCE_KEY &&
+                    it.capabilityType != WorkspaceCapabilityType.DASHBOARD.name &&
+                    it.capabilityType != WorkspaceCapabilityType.EXECUTION_LOG.name &&
                     !it.isDeleted &&
                     Triple(it.workspaceId, it.capabilityType, it.instanceKey) !in desiredKeys &&
                     it.workspaceId in contextBackedWorkspaceIds
@@ -297,6 +366,138 @@ class CanonicalWorkspaceBootstrapper
             return changes
         }
 
+        private fun seedDashboardAfterCutover(
+            context: Context,
+            mapped: Set<WorkspaceCapabilityType>,
+            existingByLogical: Map<Triple<String, String, String>, WorkspaceCapabilityInstanceEntity>,
+            desiredKeys: MutableSet<Triple<String, String, String>>,
+            changes: MutableList<WorkspaceCapabilityInstanceEntity>,
+            now: Long,
+        ) {
+            val key = Triple(context.id, WorkspaceCapabilityType.DASHBOARD.name, DEFAULT_INSTANCE_KEY)
+            val current = existingByLogical[key]
+            if (current != null) {
+                desiredKeys += key
+                return
+            }
+
+            desiredKeys += key
+            changes +=
+                WorkspaceCapabilityInstanceEntity(
+                    id = stableId("CAPABILITY:${context.id}:${WorkspaceCapabilityType.DASHBOARD.name}:$DEFAULT_INSTANCE_KEY"),
+                    workspaceId = context.id,
+                    capabilityType = WorkspaceCapabilityType.DASHBOARD.name,
+                    instanceKey = DEFAULT_INSTANCE_KEY,
+                    capabilityOrder = capabilityOrder.getValue(WorkspaceCapabilityType.DASHBOARD).toLong(),
+                    state =
+                        if (WorkspaceCapabilityType.DASHBOARD in mapped) {
+                            WorkspaceCapabilityState.ACTIVE.name
+                        } else {
+                            WorkspaceCapabilityState.DISABLED.name
+                        },
+                    configurationVersion = DashboardCapabilityConfigurationCodec.CURRENT_VERSION,
+                    configuration = DashboardCapabilityConfigurationCodec.encodeDefault(),
+                    createdAt = context.createdAt,
+                    updatedAt = now,
+                    syncedAt = null,
+                    isDeleted = false,
+                    version = 1L,
+                )
+        }
+
+        private fun seedExecutionLogAfterCutover(
+            context: Context,
+            mapped: Set<WorkspaceCapabilityType>,
+            existingByLogical: Map<Triple<String, String, String>, WorkspaceCapabilityInstanceEntity>,
+            desiredKeys: MutableSet<Triple<String, String, String>>,
+            changes: MutableList<WorkspaceCapabilityInstanceEntity>,
+            now: Long,
+        ) {
+            val key = Triple(context.id, WorkspaceCapabilityType.EXECUTION_LOG.name, DEFAULT_INSTANCE_KEY)
+            val current = existingByLogical[key]
+
+            if (current != null) {
+                desiredKeys += key
+                return
+            }
+
+            desiredKeys += key
+            changes +=
+                WorkspaceCapabilityInstanceEntity(
+                    id =
+                        stableId(
+                            "CAPABILITY:${context.id}:${WorkspaceCapabilityType.EXECUTION_LOG.name}:$DEFAULT_INSTANCE_KEY",
+                        ),
+                    workspaceId = context.id,
+                    capabilityType = WorkspaceCapabilityType.EXECUTION_LOG.name,
+                    instanceKey = DEFAULT_INSTANCE_KEY,
+                    capabilityOrder = capabilityOrder.getValue(WorkspaceCapabilityType.EXECUTION_LOG).toLong(),
+                    state =
+                        if (WorkspaceCapabilityType.EXECUTION_LOG in mapped) {
+                            WorkspaceCapabilityState.ACTIVE.name
+                        } else {
+                            WorkspaceCapabilityState.DISABLED.name
+                        },
+                    configurationVersion = ExecutionLogCapabilityConfigurationCodec.CURRENT_VERSION,
+                    configuration = ExecutionLogCapabilityConfigurationCodec.encodeDefault(),
+                    createdAt = context.createdAt,
+                    updatedAt = now,
+                    syncedAt = null,
+                    isDeleted = false,
+                    version = 1L,
+                )
+        }
+
+        private fun seedBacklogAfterCutover(
+            context: Context,
+            mapped: Set<WorkspaceCapabilityType>,
+            existingByLogical: Map<Triple<String, String, String>, WorkspaceCapabilityInstanceEntity>,
+            desiredKeys: MutableSet<Triple<String, String, String>>,
+            changes: MutableList<WorkspaceCapabilityInstanceEntity>,
+            now: Long,
+        ) {
+            val key = Triple(context.id, WorkspaceCapabilityType.BACKLOG.name, DEFAULT_INSTANCE_KEY)
+            val current = existingByLogical[key]
+            val desiredOrder = capabilityOrder.getValue(WorkspaceCapabilityType.BACKLOG).toLong()
+
+            if (current != null) {
+                desiredKeys += key
+                if (current.capabilityOrder != desiredOrder) {
+                    changes +=
+                        current.copy(
+                            capabilityOrder = desiredOrder,
+                            updatedAt = now,
+                            syncedAt = null,
+                            version = current.version + 1L,
+                        )
+                }
+                return
+            }
+
+            desiredKeys += key
+            changes +=
+                WorkspaceCapabilityInstanceEntity(
+                    id = stableId("CAPABILITY:${context.id}:${WorkspaceCapabilityType.BACKLOG.name}:$DEFAULT_INSTANCE_KEY"),
+                    workspaceId = context.id,
+                    capabilityType = WorkspaceCapabilityType.BACKLOG.name,
+                    instanceKey = DEFAULT_INSTANCE_KEY,
+                    capabilityOrder = desiredOrder,
+                    state =
+                        if (WorkspaceCapabilityType.BACKLOG in mapped) {
+                            WorkspaceCapabilityState.ACTIVE.name
+                        } else {
+                            WorkspaceCapabilityState.DISABLED.name
+                        },
+                    configurationVersion = BacklogCapabilityConfigurationCodec.CURRENT_VERSION,
+                    configuration = BacklogCapabilityConfigurationCodec.encodeDefault(),
+                    createdAt = context.createdAt,
+                    updatedAt = now,
+                    syncedAt = null,
+                    isDeleted = false,
+                    version = 1L,
+                )
+        }
+
         private fun desiredCapability(
             context: Context,
             contextConfiguration: ContextConfiguration,
@@ -306,18 +507,46 @@ class CanonicalWorkspaceBootstrapper
         ): WorkspaceCapabilityInstanceEntity {
             val configurationVersion: Int
             val configuration: String
-            if (type == WorkspaceCapabilityType.DIRECTION) {
-                configurationVersion = DirectionCapabilityConfigurationCodec.CURRENT_VERSION
-                configuration =
-                    DirectionCapabilityConfigurationCodec.encode(
-                        DirectionCapabilityConfigurationV1(
-                            autoLinkChildWorkspaces =
-                                contextConfiguration.enableAutoLinkSubprojects ?: true,
-                        ),
-                    )
-            } else {
-                configurationVersion = 1
-                configuration = "{}"
+            when (type) {
+                WorkspaceCapabilityType.DIRECTION -> {
+                    configurationVersion = DirectionCapabilityConfigurationCodec.CURRENT_VERSION
+                    configuration =
+                        DirectionCapabilityConfigurationCodec.encode(
+                            DirectionCapabilityConfigurationV1(
+                                autoLinkChildWorkspaces =
+                                    contextConfiguration.enableAutoLinkSubprojects ?: true,
+                            ),
+                        )
+                }
+
+                WorkspaceCapabilityType.INBOX -> {
+                    configurationVersion = InboxCapabilityConfigurationCodec.CURRENT_VERSION
+                    configuration =
+                        InboxCapabilityConfigurationCodec.encode(
+                            InboxCapabilityConfigurationV1(
+                                ownerVisibility =
+                                    if (contextConfiguration.removeInboxEntryAfterTagAutocopy == true) {
+                                        InboxOwnerVisibility.HIDE_WHEN_ASSOCIATED
+                                    } else {
+                                        InboxOwnerVisibility.KEEP_VISIBLE
+                                    },
+                            ),
+                        )
+                }
+
+                WorkspaceCapabilityType.INBOX_SORTING -> {
+                    configurationVersion =
+                        current?.configurationVersion
+                            ?: InboxSortingCapabilityConfigurationCodec.CURRENT_VERSION
+                    configuration =
+                        current?.configuration
+                            ?: InboxSortingCapabilityConfigurationCodec.encodeDefault()
+                }
+
+                else -> {
+                    configurationVersion = 1
+                    configuration = "{}"
+                }
             }
             return WorkspaceCapabilityInstanceEntity(
                 id = current?.id ?: stableId("CAPABILITY:${context.id}:${type.name}:$DEFAULT_INSTANCE_KEY"),

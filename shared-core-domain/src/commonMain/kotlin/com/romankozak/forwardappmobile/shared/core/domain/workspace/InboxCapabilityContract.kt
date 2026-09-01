@@ -14,7 +14,7 @@ data class InboxCapabilityConfigurationV1(
 
 object InboxCapabilityConfigurationCodec : CapabilityConfigurationCodec {
     const val CURRENT_VERSION: Int = 1
-    private val pattern = Regex("""\{\s*"ownerVisibility"\s*:\s*"([A-Z_]+)"\s*}""")
+    private val pattern = Regex("""\{\s*"ownerVisibility"\s*:\s*"([A-Z_]+)"\s*\}""")
 
     override val currentVersion: Int = CURRENT_VERSION
 

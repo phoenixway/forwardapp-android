@@ -10,6 +10,9 @@ import com.romankozak.forwardappmobile.core.data.models.entities.GoalStatusValue
 import com.romankozak.forwardappmobile.data.repository.ContextRepository
 import com.romankozak.forwardappmobile.data.repository.ContextStructureRepository
 import com.romankozak.forwardappmobile.data.repository.GoalRepository
+import com.romankozak.forwardappmobile.data.workspace.CanonicalWorkspaceBootstrapper
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDashboardCapabilityRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogRepository
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogItem
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogItemKind
 import com.romankozak.forwardappmobile.shared.contracts.contexts.SharedBacklogPriority
@@ -25,17 +28,24 @@ class AndroidWorkspaceRepositoryAdapter(
     private val contextRepository: ContextRepository,
     private val goalRepository: GoalRepository,
     private val contextStructureRepository: ContextStructureRepository,
+    private val canonicalWorkspaceBootstrapper: CanonicalWorkspaceBootstrapper,
+    private val canonicalDashboardCapabilityRepository: CanonicalDashboardCapabilityRepository,
+    private val canonicalExecutionLogRepository: CanonicalExecutionLogRepository,
 ) : DesktopWorkspaceRepository {
-    override suspend fun getContexts(): List<SharedContextSummary> =
-        contextRepository.getAllContextsFlow()
+    override suspend fun getContexts(): List<SharedContextSummary> {
+        canonicalWorkspaceBootstrapper.ensureBootstrapped()
+        return contextRepository.getAllContextsFlow()
             .first()
             .filterNot { context -> context.isDeleted }
             .sortedBy { context -> context.order }
             .map { context ->
                 context.toSharedSummary(
                     configuration = contextStructureRepository.getStructureByContext(context.id),
+                    dashboardEnabled = canonicalDashboardCapabilityRepository.isEnabled(context.id),
+                    executionLogEnabled = canonicalExecutionLogRepository.isEnabled(context.id),
                 )
             }
+    }
 
     override suspend fun createContext(
         parentId: String?,
@@ -68,7 +78,25 @@ class AndroidWorkspaceRepositoryAdapter(
                 enabledCapabilityIds = enabledCapabilityIds,
                 experimentalCapabilityIds = experimentalCapabilityIds,
             )
-        return requireNotNull(contextRepository.getContextById(contextId)).toSharedSummary(configuration)
+        val requestedCapabilities =
+            requestedCapabilityIds(
+                defaultView = defaultView,
+                enabledCapabilityIds = enabledCapabilityIds,
+                experimentalCapabilityIds = experimentalCapabilityIds,
+            )
+        canonicalDashboardCapabilityRepository.setEnabled(
+            workspaceId = contextId,
+            enabled = requestedCapabilities.contains("dashboard"),
+        )
+        canonicalExecutionLogRepository.setEnabled(
+            workspaceId = contextId,
+            enabled = requestedCapabilities.contains("log"),
+        )
+        return requireNotNull(contextRepository.getContextById(contextId)).toSharedSummary(
+            configuration = configuration,
+            dashboardEnabled = canonicalDashboardCapabilityRepository.isEnabled(contextId),
+            executionLogEnabled = canonicalExecutionLogRepository.isEnabled(contextId),
+        )
     }
 
     override suspend fun updateContext(
@@ -97,7 +125,25 @@ class AndroidWorkspaceRepositoryAdapter(
                 enabledCapabilityIds = enabledCapabilityIds,
                 experimentalCapabilityIds = experimentalCapabilityIds,
             )
-        return contextRepository.getContextById(contextId)?.toSharedSummary(configuration)
+        val requestedCapabilities =
+            requestedCapabilityIds(
+                defaultView = defaultView,
+                enabledCapabilityIds = enabledCapabilityIds,
+                experimentalCapabilityIds = experimentalCapabilityIds,
+            )
+        canonicalDashboardCapabilityRepository.setEnabled(
+            workspaceId = contextId,
+            enabled = requestedCapabilities.contains("dashboard"),
+        )
+        canonicalExecutionLogRepository.setEnabled(
+            workspaceId = contextId,
+            enabled = requestedCapabilities.contains("log"),
+        )
+        return contextRepository.getContextById(contextId)?.toSharedSummary(
+            configuration = configuration,
+            dashboardEnabled = canonicalDashboardCapabilityRepository.isEnabled(contextId),
+            executionLogEnabled = canonicalExecutionLogRepository.isEnabled(contextId),
+        )
     }
 
     override suspend fun deleteContext(contextId: String): Boolean {
@@ -182,18 +228,16 @@ class AndroidWorkspaceRepositoryAdapter(
         experimentalCapabilityIds: List<String>,
     ): ContextConfiguration {
         val capabilityIds =
-            SharedContextCapabilityCatalog.normalizeCapabilityIds(
-                enabledCapabilityIds +
-                    experimentalCapabilityIds +
-                    SharedContextCapabilityCatalog.defaultCapabilityIdsFor(defaultView),
+            requestedCapabilityIds(
+                defaultView = defaultView,
+                enabledCapabilityIds = enabledCapabilityIds,
+                experimentalCapabilityIds = experimentalCapabilityIds,
             )
         val current = contextStructureRepository.getStructureByContext(contextId) ?: ContextConfiguration.default(contextId)
         val updated =
             current.copy(
                 enableInbox = capabilityIds.contains("inbox"),
-                enableLog = capabilityIds.contains("log"),
                 enableArtifact = capabilityIds.contains("artifact"),
-                enableDashboard = capabilityIds.contains("dashboard"),
                 enableBacklog = capabilityIds.contains("backlog"),
                 enableAttachments = capabilityIds.contains("connections"),
                 experimentalCapabilityIds =
@@ -209,7 +253,11 @@ class AndroidWorkspaceRepositoryAdapter(
     }
 }
 
-private fun Context.toSharedSummary(configuration: ContextConfiguration?): SharedContextSummary {
+private fun Context.toSharedSummary(
+    configuration: ContextConfiguration?,
+    dashboardEnabled: Boolean,
+    executionLogEnabled: Boolean,
+): SharedContextSummary {
     val defaultView = defaultViewModeName.toSharedView()
     return SharedContextSummary(
         id = id,
@@ -220,13 +268,22 @@ private fun Context.toSharedSummary(configuration: ContextConfiguration?): Share
         defaultView = defaultView,
         score = displayScore,
         isCompleted = isCompleted,
-        enabledCapabilityIds = configuration.enabledCapabilityIds(defaultView),
+        enabledCapabilityIds =
+            configuration.enabledCapabilityIds(
+                defaultView = defaultView,
+                dashboardEnabled = dashboardEnabled,
+                executionLogEnabled = executionLogEnabled,
+            ),
         experimentalCapabilityIds = configuration.experimentalCapabilityIds(),
     )
 }
 
-private fun ContextConfiguration?.enabledCapabilityIds(defaultView: SharedContextView): List<String> {
-    val explicitIds =
+private fun ContextConfiguration?.enabledCapabilityIds(
+    defaultView: SharedContextView,
+    dashboardEnabled: Boolean,
+    executionLogEnabled: Boolean,
+): List<String> {
+    val legacyExplicitIds =
         buildList {
             if (this@enabledCapabilityIds?.enableInbox == true) add("inbox")
             if (this@enabledCapabilityIds?.enableLog == true) add("log")
@@ -236,15 +293,42 @@ private fun ContextConfiguration?.enabledCapabilityIds(defaultView: SharedContex
             if (this@enabledCapabilityIds?.enableAttachments == true) add("connections")
         }
     val fallbackIds =
-        if (explicitIds.isEmpty()) {
+        if (legacyExplicitIds.isEmpty()) {
             SharedContextCapabilityCatalog.defaultCapabilityIdsFor(defaultView)
         } else {
             emptyList()
         }
-    return SharedContextCapabilityCatalog.normalizeCapabilityIds(
-        explicitIds + fallbackIds + SharedContextCapabilityCatalog.capabilityIdFor(defaultView),
-    )
+    val withoutCanonicalDashboardOrExecutionLog =
+        SharedContextCapabilityCatalog.normalizeCapabilityIds(
+            legacyExplicitIds.filterNot { capabilityId ->
+                capabilityId == "dashboard" || capabilityId == "log"
+            } +
+                fallbackIds +
+                SharedContextCapabilityCatalog.capabilityIdFor(defaultView),
+        ).filterNot { capabilityId ->
+            capabilityId == "dashboard" || capabilityId == "log"
+        }
+
+    val canonicalCapabilityIds =
+        buildList {
+            addAll(withoutCanonicalDashboardOrExecutionLog)
+            if (dashboardEnabled) add("dashboard")
+            if (executionLogEnabled) add("log")
+        }
+
+    return SharedContextCapabilityCatalog.normalizeCapabilityIds(canonicalCapabilityIds)
 }
+
+private fun requestedCapabilityIds(
+    defaultView: SharedContextView,
+    enabledCapabilityIds: List<String>,
+    experimentalCapabilityIds: List<String>,
+): List<String> =
+    SharedContextCapabilityCatalog.normalizeCapabilityIds(
+        enabledCapabilityIds +
+            experimentalCapabilityIds +
+            SharedContextCapabilityCatalog.defaultCapabilityIdsFor(defaultView),
+    )
 
 private fun ContextConfiguration?.experimentalCapabilityIds(): List<String> =
     SharedContextCapabilityCatalog.normalizeCapabilityIds(

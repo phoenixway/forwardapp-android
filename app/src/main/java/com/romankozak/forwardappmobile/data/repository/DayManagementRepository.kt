@@ -55,7 +55,7 @@ class DayManagementRepository
         private val goalDao: com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao,
         private val contextDao: com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao,
         private val canonicalRecurrenceMaterializationAdapter: com.romankozak.forwardappmobile.data.recurrence.CanonicalRecurrenceMaterializationAdapter,
-        private val listItemDao: com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao,
+        private val backlogPlacementCommands: BacklogPlacementCommands,
         private val activityRepository: ActivityRepository,
         private val taskExecutionTimingCalculator: TaskExecutionTimingCalculator,
         private val taskExecutionAlarmCoordinator: TaskExecutionAlarmCoordinator,
@@ -250,7 +250,10 @@ class DayManagementRepository
         ): DayTask =
             withContext(ioDispatcher) {
                 val projectId =
-                    listItemDao.findContextIdForGoal(goalId)
+                    backlogPlacementCommands.findFirstContextBackedWorkspaceId(
+                        itemType = BacklogItemTypeValues.GOAL,
+                        entityId = goalId,
+                    )
                         ?: throw IllegalStateException("Goal $goalId is not associated with any project.")
 
                 val goal =
@@ -723,7 +726,10 @@ class DayManagementRepository
 
         suspend fun findProjectIdForGoal(goalId: String): String? {
             return withContext(ioDispatcher) {
-                listItemDao.findContextIdForGoal(goalId)
+                backlogPlacementCommands.findFirstContextBackedWorkspaceId(
+                        itemType = BacklogItemTypeValues.GOAL,
+                        entityId = goalId,
+                    )
             }
         }
 

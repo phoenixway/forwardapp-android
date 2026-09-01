@@ -72,6 +72,43 @@ class CanonicalKeyProblemsRepository
             now: Long = System.currentTimeMillis(),
         ) = instanceStore.delete(SPEC, workspaceId, now)
 
+        /**
+         * Tombstones all live KEY_PROBLEMS content owned by deleted Workspaces.
+         *
+         * Owner deletion is independent from capability active state, so this
+         * intentionally does not use the normal authoring guard.
+         */
+        suspend fun tombstoneOwnedContentForWorkspaces(
+            workspaceIds: Collection<String>,
+            now: Long = System.currentTimeMillis(),
+        ): Int =
+            database.withTransaction {
+                val ownerIds = workspaceIds.map(String::trim).filter(String::isNotEmpty).toSet()
+                if (ownerIds.isEmpty()) return@withTransaction 0
+
+                val problems = ownerIds.flatMap { problemDao.getLiveProblems(it) }
+                if (problems.isEmpty()) return@withTransaction 0
+
+                val workspaceRefs =
+                    problems.flatMap { problem ->
+                        problemDao.getWorkspaceRefs(problem.id)
+                            .filterNot { it.isDeleted }
+                            .map { it.bump(now).copy(isDeleted = true) }
+                    }
+                val attachmentRefs =
+                    problems.flatMap { problem ->
+                        problemDao.getAttachmentRefs(problem.id)
+                            .filterNot { it.isDeleted }
+                            .map { it.bump(now).copy(isDeleted = true) }
+                    }
+
+                problemDao.upsertProblems(problems.map { it.bump(now).copy(isDeleted = true) })
+                if (workspaceRefs.isNotEmpty()) problemDao.upsertWorkspaceRefs(workspaceRefs)
+                if (attachmentRefs.isNotEmpty()) problemDao.upsertAttachmentRefs(attachmentRefs)
+                validatePersistedContract()
+                problems.size
+            }
+
         fun observeItems(workspaceId: String): Flow<List<CanonicalWorkspaceProblemItem>> =
             combine(
                 problemDao.observeLiveProblems(workspaceId),

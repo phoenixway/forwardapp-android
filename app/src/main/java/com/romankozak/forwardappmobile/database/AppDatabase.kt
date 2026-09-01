@@ -8,6 +8,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ActivityRecordF
 import com.romankozak.forwardappmobile.core.data.models.entities.ArcQuestEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.AttachmentEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
+import com.romankozak.forwardappmobile.core.data.models.entities.BacklogGoalAssociationLink
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogOrder
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ChecklistItemEntity
@@ -15,7 +16,6 @@ import com.romankozak.forwardappmobile.core.data.models.entities.Context
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextTagRef
 import com.romankozak.forwardappmobile.core.data.models.entities.InboxRecordLink
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextArtifact
-import com.romankozak.forwardappmobile.core.data.models.entities.ContextAttachmentCrossRef
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfiguration
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextInboxSortingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ContextLog
@@ -59,6 +59,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Ori
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.SavedOrientationViewEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBindingEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
+import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceConnectionEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.AiEventEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.AiInsightEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.ai.ChatMessageEntity
@@ -121,6 +122,8 @@ import com.romankozak.forwardappmobile.features.missions.data.TacticalIterationD
 import com.romankozak.forwardappmobile.features.missions.data.MissionStreamDao
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceConnectionDao
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
 
 @Database(
     entities = [
@@ -141,8 +144,11 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
         MainBeaconAttachmentCrossRef::class,
         MainBeaconLevelStatus::class,
         AttachmentEntity::class,
-        InboxRecord::class,
+        com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceInboxRecordEntity::class,
+        WorkspaceConnectionEntity::class,
+        com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceBacklogEntryEntity::class,
         InboxRecordLink::class,
+        BacklogGoalAssociationLink::class,
         ChatMessageEntity::class,
         ContextLog::class,
         ContextParentLink::class,
@@ -172,7 +178,6 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
         com.romankozak.forwardappmobile.core.data.models.entities.day_management.CanonicalRecurringSeriesEntity::class,
         Reminder::class,
         ContextArtifact::class,
-        ContextAttachmentCrossRef::class,
         SystemAppEntity::class,
         TacticalMission::class,
         TacticalMissionAttachmentCrossRef::class,
@@ -210,7 +215,7 @@ import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
         ActivityRecordFts::class,
         LegacyNoteFts::class,
     ],
-    version = 157,
+    version = 163,
     exportSchema = true,
 )
 @TypeConverters(Converters::class, DailyPlanConverters::class)
@@ -235,6 +240,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun inboxRecordDao(): InboxRecordDao
 
     abstract fun inboxRecordLinkDao(): InboxRecordLinkDao
+
+    abstract fun backlogGoalAssociationLinkDao(): com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogGoalAssociationLinkDao
 
     abstract fun contextManagementDao(): ContextManagementDao
 
@@ -313,5 +320,11 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun workspaceDirectionEntryDao(): com.romankozak.forwardappmobile.data.workspace.WorkspaceDirectionEntryDao
 
+    abstract fun workspaceConnectionDao(): WorkspaceConnectionDao
+
+    abstract fun workspaceBacklogEntryDao(): WorkspaceBacklogEntryDao
+
     abstract fun workspaceProblemDao(): com.romankozak.forwardappmobile.data.workspace.capability.WorkspaceProblemDao
+
+    abstract fun workspaceInboxRecordDao(): com.romankozak.forwardappmobile.data.workspace.capability.WorkspaceInboxRecordDao
 }

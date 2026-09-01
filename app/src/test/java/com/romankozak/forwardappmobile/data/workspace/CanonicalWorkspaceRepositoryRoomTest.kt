@@ -8,6 +8,10 @@ import com.romankozak.forwardappmobile.core.data.models.entities.orientation.Ori
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceCapabilityInstanceEntity
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationGraphRepository
+import com.romankozak.forwardappmobile.data.orientation.CanonicalOrientationRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalCapabilityInstanceStore
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalDirectionRepository
+import com.romankozak.forwardappmobile.data.workspace.capability.CanonicalKeyProblemsRepository
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.models.orientation.ManagedSubjectType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceBindingType
@@ -205,6 +209,100 @@ class CanonicalWorkspaceRepositoryRoomTest {
         }
     }
 
+    @Test
+    fun `workspace tombstone also tombstones owned canonical Backlog placements`() = runBlocking {
+        val database = database()
+        try {
+            val workspaceRepository = repository(database)
+            val ownerId = workspaceRepository.create("Owner", now = 10L)
+            val targetId = workspaceRepository.create("Target", now = 11L)
+            val backlogRepository = backlogRepository(database)
+            backlogRepository.enable(ownerId, now = 12L)
+            val entryId =
+                backlogRepository.addEntry(
+                    workspaceId = ownerId,
+                    target =
+                        com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetRef(
+                            com.romankozak.forwardappmobile.shared.core.models.workspace.WorkspaceBacklogTargetKind.WORKSPACE,
+                            targetId,
+                        ),
+                    now = 13L,
+                )
+
+            workspaceRepository.tombstone(ownerId, now = 20L)
+
+            assertTrue(requireNotNull(backlogRepository.getEntry(entryId)).isDeleted)
+            assertFalse(requireNotNull(database.workspaceDao().getById(targetId)).isDeleted)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `workspace tombstone also tombstones owned KEY_PROBLEMS content`() = runBlocking {
+        val database = database()
+        try {
+            val workspaceRepository = repository(database)
+            val workspaceId = workspaceRepository.create("Operations", now = 10L)
+            val keyProblemsRepository = keyProblemsRepository(database)
+            keyProblemsRepository.enable(workspaceId, now = 11L)
+            val problemId =
+                keyProblemsRepository.createProblem(
+                    workspaceId = workspaceId,
+                    title = "Owned problem",
+                    now = 12L,
+                )
+
+            workspaceRepository.tombstone(workspaceId, now = 40L)
+
+            val problem = requireNotNull(database.workspaceProblemDao().getProblem(problemId))
+            assertTrue(problem.isDeleted)
+            assertEquals(2L, problem.version)
+            assertEquals(40L, problem.updatedAt)
+            assertNull(problem.syncedAt)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `workspace tombstone closes owned and targeting DIRECTION placements`() = runBlocking {
+        val database = database()
+        try {
+            val workspaceRepository = repository(database)
+            val ownerId = workspaceRepository.create("Owner", now = 10L)
+            val otherId = workspaceRepository.create("Other", now = 11L)
+            val directionRepository = directionRepository(database)
+            directionRepository.enable(ownerId, now = 12L)
+            directionRepository.enable(otherId, now = 13L)
+            val ownedEntry =
+                directionRepository.createSemanticDirection(
+                    workspaceId = ownerId,
+                    title = "Owned direction",
+                    now = 14L,
+                )
+            val targetingEntry =
+                directionRepository.createWorkspaceLink(
+                    workspaceId = otherId,
+                    targetWorkspaceId = ownerId,
+                    label = "Owner link",
+                    now = 15L,
+                )
+
+            workspaceRepository.tombstone(ownerId, now = 40L)
+
+            listOf(ownedEntry, targetingEntry).forEach { entryId ->
+                val entry = requireNotNull(database.workspaceDirectionEntryDao().getById(entryId))
+                assertTrue(entry.isDeleted)
+                assertEquals(2L, entry.version)
+                assertEquals(40L, entry.updatedAt)
+                assertNull(entry.syncedAt)
+            }
+        } finally {
+            database.close()
+        }
+    }
+
     private fun repository(database: AppDatabase) =
         CanonicalWorkspaceRepository(
             database = database,
@@ -216,7 +314,96 @@ class CanonicalWorkspaceRepositoryRoomTest {
                     database.orientationDao(),
                     database.workspaceDao(),
                 ),
+            executionLogRepository = executionLogRepository(database),
+            keyProblemsRepository = keyProblemsRepository(database),
+            directionRepository = directionRepository(database),
+            inboxRepository = inboxRepository(database),
+            connectionsRepository = connectionsRepository(database),
+            backlogRepository = backlogRepository(database),
+        )
+
+    private fun backlogRepository(database: AppDatabase) =
+        com.romankozak.forwardappmobile.data.workspace.capability.CanonicalBacklogRepository(
+            database = database,
+            instanceStore =
+                CanonicalCapabilityInstanceStore(
+                    database = database,
+                    workspaceDao = database.workspaceDao(),
+                    orientationDao = database.orientationDao(),
+                ),
+            entryDao = database.workspaceBacklogEntryDao(),
+            targetValidator =
+                com.romankozak.forwardappmobile.data.workspace.capability.CanonicalBacklogTargetValidator(database),
+        )
+
+    private fun executionLogRepository(database: AppDatabase) =
+        com.romankozak.forwardappmobile.data.workspace.capability.CanonicalExecutionLogRepository(
+            database = database,
+            workspaceDao = database.workspaceDao(),
             contextManagementDao = database.contextManagementDao(),
+            instanceStore =
+                CanonicalCapabilityInstanceStore(
+                    database = database,
+                    workspaceDao = database.workspaceDao(),
+                    orientationDao = database.orientationDao(),
+                ),
+        )
+
+    private fun connectionsRepository(database: AppDatabase) =
+        com.romankozak.forwardappmobile.data.workspace.capability.CanonicalConnectionsRepository(
+            database = database,
+            instanceStore =
+                CanonicalCapabilityInstanceStore(
+                    database = database,
+                    workspaceDao = database.workspaceDao(),
+                    orientationDao = database.orientationDao(),
+                ),
+            connectionDao = database.workspaceConnectionDao(),
+        )
+
+    private fun inboxRepository(database: AppDatabase) =
+        com.romankozak.forwardappmobile.data.workspace.capability.CanonicalInboxRepository(
+            database = database,
+            instanceStore =
+                CanonicalCapabilityInstanceStore(
+                    database = database,
+                    workspaceDao = database.workspaceDao(),
+                    orientationDao = database.orientationDao(),
+                ),
+            recordDao = database.workspaceInboxRecordDao(),
+        )
+
+    private fun keyProblemsRepository(database: AppDatabase) =
+        CanonicalKeyProblemsRepository(
+            database = database,
+            instanceStore =
+                CanonicalCapabilityInstanceStore(
+                    database = database,
+                    workspaceDao = database.workspaceDao(),
+                    orientationDao = database.orientationDao(),
+                ),
+            problemDao = database.workspaceProblemDao(),
+            workspaceDao = database.workspaceDao(),
+            attachmentDao = database.attachmentDao(),
+        )
+
+    private fun directionRepository(database: AppDatabase) =
+        CanonicalDirectionRepository(
+            database = database,
+            instanceStore =
+                CanonicalCapabilityInstanceStore(
+                    database = database,
+                    workspaceDao = database.workspaceDao(),
+                    orientationDao = database.orientationDao(),
+                ),
+            entryDao = database.workspaceDirectionEntryDao(),
+            orientationDao = database.orientationDao(),
+            workspaceDao = database.workspaceDao(),
+            orientationRepository =
+                CanonicalOrientationRepository(
+                    database = database,
+                    dao = database.orientationDao(),
+                ),
         )
 
     private fun database() =

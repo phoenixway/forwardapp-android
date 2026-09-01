@@ -179,7 +179,10 @@ class ItemActionHandler
                         item is BacklogItemContent.MusicNoteItem ||
                         item is BacklogItemContent.ChecklistItem
                 if (isAttachment) {
-                    contextRepository.unlinkAttachmentFromContext(currentProjectId, item.backlogItem.id)
+                    contextRepository.deleteListItemsFromContext(
+                        currentProjectId,
+                        listOf(item.backlogItem.id),
+                    )
                     resultListener.forceRefresh()
                     resultListener.showSnackbar("Вкладення видалено з проєкту", null)
                 } else {
@@ -315,6 +318,14 @@ class ItemActionHandler
         }
 
         fun onTransportCutRequested(item: BacklogItemContent?) {
+            if (item?.backlogItem?.associationOwnerContextId != null) {
+                resultListener.showSnackbar(
+                    "Автоматичну появу за хештегом не можна вирізати як елемент беклогу",
+                    null,
+                )
+                return
+            }
+
             val backlogItemId = item?.backlogItem?.id
             if (backlogItemId.isNullOrBlank()) {
                 resultListener.showSnackbar("Для вирізання вибери ціль або посилання на контекст", null)

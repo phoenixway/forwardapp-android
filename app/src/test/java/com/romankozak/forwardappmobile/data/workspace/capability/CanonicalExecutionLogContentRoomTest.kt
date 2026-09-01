@@ -82,6 +82,91 @@ class CanonicalExecutionLogContentRoomTest {
     }
 
     @Test
+    fun `Context backed Workspace uses canonical rows and system audit survives disabled capability`() = runBlocking {
+        val database = database()
+        try {
+            database.workspaceDao().upsert(listOf(contextBackedWorkspace("context-backed")))
+            val repository = repository(database)
+            repository.enable("context-backed", now = 10L)
+
+            val authoredId =
+                repository.createLog(
+                    workspaceId = "context-backed",
+                    type = "COMMENT",
+                    description = "User",
+                    timestamp = 20L,
+                    now = 20L,
+                )
+            val authored = database.contextManagementDao().getLogById(authoredId)!!
+            assertNull(authored.contextId)
+            assertEquals("context-backed", authored.workspaceId)
+
+            repository.disable("context-backed", now = 30L)
+
+            val userFailure =
+                runCatching {
+                    repository.createLog(
+                        workspaceId = "context-backed",
+                        type = "COMMENT",
+                        description = "Blocked user write",
+                        timestamp = 31L,
+                        now = 31L,
+                    )
+                }.exceptionOrNull()
+            assertTrue(userFailure is IllegalArgumentException)
+
+            val systemId =
+                repository.createSystemLog(
+                    workspaceId = "context-backed",
+                    type = "AUTOMATIC",
+                    description = "System audit",
+                    timestamp = 32L,
+                    now = 32L,
+                )
+            val system = database.contextManagementDao().getLogById(systemId)!!
+            assertNull(system.contextId)
+            assertEquals("context-backed", system.workspaceId)
+            assertEquals("System audit", system.description)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `owner deletion cascade tombstones live logs without active capability guard`() = runBlocking {
+        val database = database()
+        try {
+            database.workspaceDao().upsert(listOf(contextBackedWorkspace("context-backed")))
+            val repository = repository(database)
+            repository.enable("context-backed", now = 10L)
+            val logId =
+                repository.createLog(
+                    workspaceId = "context-backed",
+                    type = "COMMENT",
+                    description = "Owned log",
+                    timestamp = 20L,
+                    now = 20L,
+                )
+            repository.disable("context-backed", now = 30L)
+
+            val changed =
+                repository.tombstoneOwnedContentForWorkspaces(
+                    workspaceIds = listOf("context-backed"),
+                    now = 40L,
+                )
+
+            assertEquals(1, changed)
+            val tombstone = requireNotNull(database.contextManagementDao().getLogById(logId))
+            assertTrue(tombstone.isDeleted)
+            assertEquals(2L, tombstone.version)
+            assertEquals(40L, tombstone.updatedAt)
+            assertNull(tombstone.syncedAt)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
     fun `authoring requires active capability and cannot mutate legacy row`() = runBlocking {
         val database = database()
         try {
@@ -167,6 +252,13 @@ class CanonicalExecutionLogContentRoomTest {
         Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
             .build()
+
+    private fun contextBackedWorkspace(id: String) =
+        canonicalWorkspace(id).copy(
+            nameOverride = "Context-backed",
+            provenance = WorkspaceProvenance.CONTEXT_BACKED.name,
+            sourceContextId = id,
+        )
 
     private fun canonicalWorkspace(id: String) =
         WorkspaceEntity(

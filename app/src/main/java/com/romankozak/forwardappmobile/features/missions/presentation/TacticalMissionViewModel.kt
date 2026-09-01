@@ -26,7 +26,6 @@ import com.romankozak.forwardappmobile.data.repository.NoteDocumentRepository
 import com.romankozak.forwardappmobile.data.repository.ReminderRepository
 import com.romankozak.forwardappmobile.data.repository.SettingsRepository
 import com.romankozak.forwardappmobile.features.contexts.data.dao.GoalDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import com.romankozak.forwardappmobile.features.contexts.domain.clipboard.BacklogClipboardUseCase
 import com.romankozak.forwardappmobile.features.mainscreen.arc.ArcQuestRepository
 import com.romankozak.forwardappmobile.features.missions.domain.repository.TacticalActivitySlotRepository
@@ -105,7 +104,7 @@ class TacticalMissionViewModel
 	        private val tacticalIterationRepository: TacticalIterationRepository,
 	        private val missionStreamRepository: MissionStreamRepository,
 	        private val tacticsWorkspaceStateRepository: TacticsWorkspaceStateRepository,
-	        private val listItemDao: ListItemDao,
+	        private val listItemRepository: com.romankozak.forwardappmobile.data.repository.ListItemRepository,
 	        private val goalDao: GoalDao,
 	    ) : ViewModel() {
         companion object {
@@ -232,7 +231,7 @@ class TacticalMissionViewModel
                     if (contextId == null) {
                         flowOf(contextId to emptyList<BacklogItem>())
                     } else {
-                        listItemDao.getItemsForContextStream(contextId).map { items -> contextId to items }
+                        listItemRepository.getItemsForContextStream(contextId).map { items -> contextId to items }
                     }
                 },
                 goalDao.getAllVisibleGoalsFlow(),

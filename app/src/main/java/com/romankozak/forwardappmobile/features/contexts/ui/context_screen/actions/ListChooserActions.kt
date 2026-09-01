@@ -97,9 +97,9 @@ class ListChooserActions(
                 val newItemId =
                     if (goalIds.isNotEmpty()) {
                         val subprojectToLinkId = goalIds.first()
-                        listItemRepository.addContextLinkToContext(subprojectToLinkId, targetContextId)
+                        contextRepository.addContextLinkToContext(subprojectToLinkId, targetContextId)
                     } else {
-                        listItemRepository.addContextLinkToContext(targetContextId, currentContextId)
+                        contextRepository.addContextLinkToContext(targetContextId, currentContextId)
                     }
                 PendingActionResult(newlyAddedItemId = newItemId)
             }

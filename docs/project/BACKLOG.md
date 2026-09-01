@@ -18,14 +18,21 @@ still relevant to the current implementation.
 - Documentation corpus still contains mixed historical/current material that
   requires gradual classification.
 
+- Remove the orphaned legacy Attachments ViewModels and the mixed
+  `ContextRepository.getContextContentStream()` path after confirming no
+  reflection/generated navigation integration depends on them. They are not
+  part of the current Context Backlog or Attachments Library runtime, but keep
+  obsolete mixed Backlog/CONNECTIONS semantics alive in source. Cost: `small`.
+
 ## DEFERRED
 
 - Define explicit deletion semantics for timestamp-only cross-client collections
   that currently support update freshness but cannot always represent physical
-  deletion in an Android delta: `contextArtifacts`, `contextKeyProblems`,
-  `mainBeaconParentLinks`, and `mainBeaconLevelStatuses`. Prefer an explicit
-  owner-scoped authoritative-set contract where valid; otherwise add durable
-  deletion metadata/versioning deliberately rather than inferring absence.
+  deletion in an Android delta: `contextArtifacts`, `mainBeaconParentLinks`, and
+  `mainBeaconLevelStatuses`. Prefer an explicit owner-scoped authoritative-set
+  contract where valid; otherwise add durable deletion metadata/versioning
+  deliberately rather than inferring absence. `contextKeyProblems` no longer
+  belongs to this debt after the schema-157 typed/tombstoned canonical cutover.
 
 - Remove legacy persisted `InboxRecord.hideInOwnerInbox` after the current
   cross-client Inbox policy has remained stable long enough to perform the

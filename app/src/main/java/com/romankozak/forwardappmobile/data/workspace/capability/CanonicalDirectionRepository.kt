@@ -36,6 +36,16 @@ class CanonicalDirectionRepository
         private val orientationDao: OrientationDao,
         private val orientationRepository: CanonicalOrientationRepository,
     ) {
+        private val entryEditor =
+            CanonicalDirectionEntryEditor(
+                database = database,
+                entryDao = entryDao,
+                workspaceDao = workspaceDao,
+                orientationDao = orientationDao,
+                orientationRepository = orientationRepository,
+            )
+        private val entryLifecycle = CanonicalDirectionEntryLifecycle(database, entryDao)
+
         suspend fun enable(
             workspaceId: String,
             now: Long = System.currentTimeMillis(),
@@ -240,7 +250,7 @@ class CanonicalDirectionRepository
 
                 val shifted =
                     current.map { entry ->
-                        entry.bump(now).copy(entryOrder = entry.entryOrder + 1L)
+                        entry.bumpDirectionVersion(now).copy(entryOrder = entry.entryOrder + 1L)
                     }
                 if (shifted.isNotEmpty()) {
                     entryDao.upsert(shifted)
@@ -277,98 +287,13 @@ class CanonicalDirectionRepository
             entryId: String,
             targetWorkspaceId: String,
             now: Long = System.currentTimeMillis(),
-        ) {
-            database.withTransaction {
-                require(targetWorkspaceId.isNotBlank()) { "Target Workspace id must not be blank" }
-
-                val entry = requireMutableCanonicalEntry(entryId)
-                require(entry.orientationId == null && entry.targetWorkspaceId != null) {
-                    "Only a Workspace link can be retargeted"
-                }
-                require(entry.workspaceId != targetWorkspaceId) {
-                    "Direction cannot target its owning Workspace"
-                }
-
-                val target =
-                    requireNotNull(workspaceDao.getById(targetWorkspaceId)) {
-                        "Target Workspace does not exist"
-                    }
-                require(!target.isDeleted) { "Target Workspace is deleted" }
-
-                if (entry.targetWorkspaceId != targetWorkspaceId) {
-                    entryDao.upsert(
-                        listOf(
-                            entry.bump(now).copy(
-                                targetWorkspaceId = targetWorkspaceId,
-                            ),
-                        ),
-                    )
-                }
-            }
-        }
-
+        ) = entryEditor.retargetWorkspaceLink(entryId, targetWorkspaceId, now)
 
         suspend fun rename(
             entryId: String,
             text: String,
             now: Long = System.currentTimeMillis(),
-        ) {
-            database.withTransaction {
-                val normalized = text.trim()
-                require(normalized.isNotEmpty()) { "Direction text must not be blank" }
-
-                val entry = requireMutableCanonicalEntry(entryId)
-
-                when {
-                    entry.orientationId != null && entry.targetWorkspaceId == null -> {
-                        val orientationId = requireNotNull(entry.orientationId)
-                        val subject =
-                            requireNotNull(orientationDao.getManagedSubject(orientationId)) {
-                                "Direction Orientation subject does not exist"
-                            }
-                        require(
-                            subject.subjectType == ManagedSubjectType.ORIENTATION.name &&
-                                !subject.isDeleted,
-                        ) {
-                            "Direction Orientation subject is not active"
-                        }
-                        require(
-                            orientationDao.getAllOrientations().any {
-                                it.subjectId == orientationId &&
-                                    it.kind == OrientationKind.DIRECTION.name
-                            },
-                        ) {
-                            "Direction entry does not reference a DIRECTION Orientation"
-                        }
-
-                        if (subject.title != normalized) {
-                            orientationDao.upsertManagedSubjects(
-                                listOf(
-                                    subject.copy(
-                                        title = normalized,
-                                        updatedAt = now,
-                                        syncedAt = null,
-                                        version = subject.version + 1L,
-                                    ),
-                                ),
-                            )
-                        }
-                    }
-
-                    entry.orientationId == null && entry.targetWorkspaceId != null -> {
-                        if (entry.labelOverride != normalized) {
-                            entryDao.upsert(
-                                listOf(
-                                    entry.bump(now).copy(labelOverride = normalized),
-                                ),
-                            )
-                        }
-                    }
-
-                    else -> error("Direction entry has invalid target shape")
-                }
-            }
-        }
+        ) = entryEditor.rename(entryId, text, now)
 
         suspend fun reorder(
             workspaceId: String,
@@ -399,7 +324,7 @@ class CanonicalDirectionRepository
                         if (entry.entryOrder == newOrder) {
                             null
                         } else {
-                            entry.bump(now).copy(entryOrder = newOrder)
+                            entry.bumpDirectionVersion(now).copy(entryOrder = newOrder)
                         }
                     }
 
@@ -420,61 +345,7 @@ class CanonicalDirectionRepository
             entryId: String,
             targetWorkspaceId: String,
             now: Long = System.currentTimeMillis(),
-        ) {
-            database.withTransaction {
-                require(targetWorkspaceId.isNotBlank()) { "Target Workspace id must not be blank" }
-
-                val entry = requireMutableCanonicalEntry(entryId)
-                require(entry.orientationId != null && entry.targetWorkspaceId == null) {
-                    "Only a semantic Direction can be converted to a Workspace link"
-                }
-                require(entry.workspaceId != targetWorkspaceId) {
-                    "Direction cannot target its owning Workspace"
-                }
-
-                val orientationId = requireNotNull(entry.orientationId)
-                val subject =
-                    requireNotNull(orientationDao.getManagedSubject(orientationId)) {
-                        "Direction Orientation subject does not exist"
-                    }
-                require(
-                    subject.subjectType == ManagedSubjectType.ORIENTATION.name &&
-                        !subject.isDeleted,
-                ) {
-                    "Direction Orientation subject is not active"
-                }
-                require(
-                    orientationDao.getAllOrientations().any {
-                        it.subjectId == orientationId &&
-                            it.kind == OrientationKind.DIRECTION.name
-                    },
-                ) {
-                    "Direction Orientation has invalid kind"
-                }
-
-                val target =
-                    requireNotNull(workspaceDao.getById(targetWorkspaceId)) {
-                        "Target Workspace does not exist"
-                    }
-                require(!target.isDeleted) { "Target Workspace is deleted" }
-
-                val label = subject.title.trim()
-                require(label.isNotEmpty()) { "Direction title must not be blank" }
-
-                entryDao.upsert(
-                    listOf(
-                        entry.copy(
-                            orientationId = null,
-                            targetWorkspaceId = targetWorkspaceId,
-                            labelOverride = label,
-                            updatedAt = now,
-                            syncedAt = null,
-                            version = entry.version + 1L,
-                        ),
-                    ),
-                )
-            }
-        }
+        ) = entryEditor.convertSemanticToWorkspaceLink(entryId, targetWorkspaceId, now)
 
         /**
          * Converts one Workspace-navigation placement back into a semantic Direction.
@@ -485,116 +356,23 @@ class CanonicalDirectionRepository
         suspend fun convertWorkspaceLinkToSemantic(
             entryId: String,
             now: Long = System.currentTimeMillis(),
-        ) {
-            database.withTransaction {
-                val entry = requireMutableCanonicalEntry(entryId)
-                require(entry.orientationId == null && entry.targetWorkspaceId != null) {
-                    "Only a Workspace link can be converted to a semantic Direction"
-                }
-
-                val title = entry.labelOverride?.trim().orEmpty()
-                require(title.isNotEmpty()) { "Direction link label must not be blank" }
-
-                val assessment = emptyApplicableAssessment()
-                val orientationId = UUID.randomUUID().toString()
-
-                orientationRepository.saveOrientation(
-                    subject =
-                        ManagedSubject(
-                            id = orientationId,
-                            createdAt = now,
-                            updatedAt = now,
-                            syncedAt = null,
-                            isDeleted = false,
-                            version = 1L,
-                            subjectType = ManagedSubjectType.ORIENTATION,
-                            title = title,
-                            description = null,
-                        ),
-                    orientation =
-                        OrientationNode(
-                            subjectId = orientationId,
-                            kind = OrientationKind.DIRECTION,
-                            lifecycle = null,
-                            lifecycleOrigin = ValueOrigin.UNSET,
-                            assessment = assessment,
-                        ),
-                    revision =
-                        OrientationAssessmentRevision(
-                            id = UUID.randomUUID().toString(),
-                            createdAt = now,
-                            updatedAt = now,
-                            syncedAt = null,
-                            isDeleted = false,
-                            version = 1L,
-                            orientationId = orientationId,
-                            effectiveFrom = now,
-                            recordedAt = now,
-                            source = AssessmentRevisionSource.USER,
-                            reason = "Converted from DIRECTION Workspace link",
-                            assessment = assessment,
-                        ),
-                )
-
-                entryDao.upsert(
-                    listOf(
-                        entry.copy(
-                            orientationId = orientationId,
-                            targetWorkspaceId = null,
-                            labelOverride = null,
-                            updatedAt = now,
-                            syncedAt = null,
-                            version = entry.version + 1L,
-                        ),
-                    ),
-                )
-            }
-        }
+        ) = entryEditor.convertWorkspaceLinkToSemantic(entryId, now)
 
         suspend fun tombstone(
             entryId: String,
             now: Long = System.currentTimeMillis(),
-        ) {
-            database.withTransaction {
-                val entry = requireMutableCanonicalEntry(entryId)
-                entryDao.upsert(
-                    listOf(
-                        entry.bump(now).copy(isDeleted = true),
-                    ),
-                )
-            }
-        }
+        ) = entryLifecycle.tombstone(entryId, now)
 
         suspend fun tombstoneMany(
             entryIds: List<String>,
             now: Long = System.currentTimeMillis(),
-        ) {
-            if (entryIds.isEmpty()) return
+        ) = entryLifecycle.tombstoneMany(entryIds, now)
 
-            database.withTransaction {
-                val requestedIds = entryIds.distinct()
-                val entries = entryDao.getByIds(requestedIds).associateBy { it.id }
-
-                val changes =
-                    requestedIds.mapNotNull { id ->
-                        val entry = entries[id] ?: return@mapNotNull null
-                        if (entry.isDeleted) {
-                            null
-                        } else {
-                            require(
-                                entry.hasCanonicalDirectionProvenance(),
-                            ) {
-                                "Direction entry has unsupported provenance"
-                            }
-                            entry.bump(now).copy(isDeleted = true)
-                        }
-                    }
-
-                if (changes.isNotEmpty()) {
-                    entryDao.upsert(changes)
-                }
-            }
-        }
+        /** Owner deletion bypasses the normal active-capability authoring guard. */
+        suspend fun tombstoneOwnedEntriesForWorkspaces(
+            workspaceIds: Collection<String>,
+            now: Long = System.currentTimeMillis(),
+        ): Int = entryLifecycle.tombstoneOwnedEntriesForWorkspaces(workspaceIds, now)
 
         /**
          * Tombstones live Workspace-navigation Directions that target any supplied Workspace.
@@ -605,65 +383,7 @@ class CanonicalDirectionRepository
         suspend fun tombstoneWorkspaceLinksTargeting(
             targetWorkspaceIds: Collection<String>,
             now: Long = System.currentTimeMillis(),
-        ): Int {
-            val targets =
-                targetWorkspaceIds
-                    .asSequence()
-                    .map(String::trim)
-                    .filter(String::isNotEmpty)
-                    .toSet()
-            if (targets.isEmpty()) return 0
-
-            return database.withTransaction {
-                val matches =
-                    entryDao.getAll().filter { entry ->
-                        !entry.isDeleted &&
-                            entry.orientationId == null &&
-                            entry.targetWorkspaceId in targets
-                    }
-
-                require(
-                    matches.all {
-                        it.hasCanonicalDirectionProvenance()
-                    },
-                ) {
-                    "Direction entries contain unsupported provenance"
-                }
-
-                if (matches.isNotEmpty()) {
-                    entryDao.upsert(
-                        matches.map { entry ->
-                            entry.bump(now).copy(isDeleted = true)
-                        },
-                    )
-                }
-                matches.size
-            }
-        }
-
-
-        private suspend fun requireMutableCanonicalEntry(
-            entryId: String,
-        ): WorkspaceDirectionEntryEntity {
-            val entry =
-                requireNotNull(entryDao.getById(entryId)) {
-                    "Direction entry does not exist"
-                }
-            require(!entry.isDeleted) { "Direction entry is deleted" }
-            require(
-                entry.hasCanonicalDirectionProvenance(),
-            ) {
-                "Direction entry has unsupported provenance"
-            }
-            return entry
-        }
-
-        private fun WorkspaceDirectionEntryEntity.bump(now: Long) =
-            copy(
-                updatedAt = now,
-                syncedAt = null,
-                version = version + 1L,
-            )
+        ): Int = entryLifecycle.tombstoneWorkspaceLinksTargeting(targetWorkspaceIds, now)
 
         private companion object {
             val SPEC =
@@ -745,8 +465,3 @@ data class CanonicalDirectionItem(
     val order: Long,
     val version: Long,
 )
-
-
-private fun WorkspaceDirectionEntryEntity.hasCanonicalDirectionProvenance(): Boolean =
-    provenance == WorkspaceDirectionEntryProvenance.LEGACY_DIRECTION_ITEM.name ||
-        provenance == WorkspaceDirectionEntryProvenance.CANONICAL_ONLY.name

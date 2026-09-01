@@ -9,6 +9,7 @@ import com.romankozak.forwardappmobile.core.data.models.entities.ContextConfigur
 import com.romankozak.forwardappmobile.core.data.models.entities.orientation.WorkspaceEntity
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.shared.core.domain.workspace.DirectionCapabilityConfigurationCodec
+import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityState
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceCapabilityType
 import com.romankozak.forwardappmobile.shared.core.models.orientation.WorkspaceProvenance
 import kotlinx.coroutines.runBlocking
@@ -50,11 +51,17 @@ class CanonicalWorkspaceBootstrapperRoomTest {
             assertEquals(child.name, database.workspaceDao().getById(child.id)?.nameOverride)
             val capabilities =
                 database.orientationDao().getAllWorkspaceCapabilities()
-                    .filterNot { it.isDeleted }
+                    .filter {
+                        !it.isDeleted &&
+                            it.state == WorkspaceCapabilityState.ACTIVE.name
+                    }
                     .groupBy { it.workspaceId }
                     .mapValues { (_, values) -> values.map { it.capabilityType }.toSet() }
             assertEquals(
-                setOf(WorkspaceCapabilityType.BACKLOG.name, WorkspaceCapabilityType.INBOX.name),
+                setOf(
+                    WorkspaceCapabilityType.BACKLOG.name,
+                    WorkspaceCapabilityType.INBOX.name,
+                ),
                 capabilities.getValue(parent.id),
             )
             assertEquals(
@@ -184,7 +191,14 @@ class CanonicalWorkspaceBootstrapperRoomTest {
                     .filter { it.workspaceId == context.id && !it.isDeleted }
                     .map { it.capabilityType }
                     .toSet()
-            assertEquals(setOf(WorkspaceCapabilityType.BACKLOG.name), capabilities)
+            assertEquals(
+                setOf(
+                    WorkspaceCapabilityType.BACKLOG.name,
+                    WorkspaceCapabilityType.DASHBOARD.name,
+                    WorkspaceCapabilityType.EXECUTION_LOG.name,
+                ),
+                capabilities,
+            )
 
             runCatching {
                 writeThrough.mutate(now = 200L) {
@@ -194,6 +208,107 @@ class CanonicalWorkspaceBootstrapperRoomTest {
             }
             assertEquals("Immediate", database.contextDao().getContextById(context.id)?.name)
             assertEquals("Immediate", database.workspaceDao().getById(context.id)?.nameOverride)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `Dashboard disabled seed blocks later legacy resurrection`() = runBlocking {
+        val database = database()
+        try {
+            val source =
+                contextEntity(
+                    "dashboard-disabled-owner",
+                    "Dashboard disabled",
+                    null,
+                    "default",
+                )
+            database.contextDao().insert(source)
+            database.contextStructureDao().insertStructure(
+                ContextConfiguration.default(source.id).copy(
+                    enableDashboard = false,
+                    updatedAt = 90L,
+                ),
+            )
+            val bootstrapper = bootstrapper(database)
+
+            bootstrapper.ensureBootstrapped(now = 100L)
+
+            val initial =
+                database.orientationDao().getAllWorkspaceCapabilities().single {
+                    it.workspaceId == source.id &&
+                        it.capabilityType == WorkspaceCapabilityType.DASHBOARD.name
+                }
+
+            assertEquals(WorkspaceCapabilityState.DISABLED.name, initial.state)
+            assertEquals(1L, initial.version)
+            assertFalse(initial.isDeleted)
+
+            database.contextStructureDao().insertStructure(
+                ContextConfiguration.default(source.id).copy(
+                    enableDashboard = true,
+                    updatedAt = 130L,
+                ),
+            )
+
+            bootstrapper.ensureBootstrapped(now = 200L)
+
+            val preserved =
+                database.orientationDao().getAllWorkspaceCapabilities().single {
+                    it.workspaceId == source.id &&
+                        it.capabilityType == WorkspaceCapabilityType.DASHBOARD.name
+                }
+
+            assertEquals(WorkspaceCapabilityState.DISABLED.name, preserved.state)
+            assertEquals(1L, preserved.version)
+            assertFalse(preserved.isDeleted)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `Dashboard canonical instance is not overwritten by legacy Context config after cutover`() = runBlocking {
+        val database = database()
+        try {
+            val source = contextEntity("dashboard-owner", "Dashboard owner", null, "default")
+            database.contextDao().insert(source)
+            val bootstrapper = bootstrapper(database)
+
+            bootstrapper.ensureBootstrapped(now = 100L)
+            val initial =
+                database.orientationDao().getAllWorkspaceCapabilities().single {
+                    it.workspaceId == source.id &&
+                        it.capabilityType == WorkspaceCapabilityType.DASHBOARD.name
+                }
+            database.orientationDao().upsertWorkspaceCapabilities(
+                listOf(
+                    initial.copy(
+                        state = "DISABLED",
+                        updatedAt = 120L,
+                        syncedAt = null,
+                        version = initial.version + 1L,
+                    ),
+                ),
+            )
+            database.contextStructureDao().insertStructure(
+                ContextConfiguration.default(source.id).copy(
+                    enableDashboard = true,
+                    updatedAt = 130L,
+                ),
+            )
+
+            bootstrapper.ensureBootstrapped(now = 200L)
+
+            val preserved =
+                database.orientationDao().getAllWorkspaceCapabilities().single {
+                    it.workspaceId == source.id &&
+                        it.capabilityType == WorkspaceCapabilityType.DASHBOARD.name
+                }
+            assertEquals("DISABLED", preserved.state)
+            assertFalse(preserved.isDeleted)
+            assertEquals(initial.version + 1L, preserved.version)
         } finally {
             database.close()
         }
@@ -358,6 +473,57 @@ class CanonicalWorkspaceBootstrapperRoomTest {
                 "Canonical parent",
                 database.workspaceDao().getById(parentId)?.nameOverride,
             )
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun `EXECUTION_LOG disabled canonical state survives later legacy enableLog change`() = runBlocking {
+        val database = database()
+        try {
+            val source = contextEntity("execution-log-owner", "Execution log owner", null, "development")
+            database.contextDao().insert(source)
+            database.contextStructureDao().insertStructure(
+                ContextConfiguration.default(source.id).copy(
+                    applyMode = "OVERRIDE",
+                    enableLog = false,
+                    updatedAt = 90L,
+                ),
+            )
+
+            val bootstrapper = bootstrapper(database)
+            bootstrapper.ensureBootstrapped(now = 100L)
+
+            val initial =
+                database.orientationDao().getAllWorkspaceCapabilities().single {
+                    it.workspaceId == source.id &&
+                        it.capabilityType == WorkspaceCapabilityType.EXECUTION_LOG.name
+                }
+
+            assertEquals("DISABLED", initial.state)
+            assertFalse(initial.isDeleted)
+            assertEquals(1L, initial.version)
+
+            database.contextStructureDao().insertStructure(
+                ContextConfiguration.default(source.id).copy(
+                    applyMode = "OVERRIDE",
+                    enableLog = true,
+                    updatedAt = 130L,
+                ),
+            )
+
+            bootstrapper.ensureBootstrapped(now = 200L)
+
+            val preserved =
+                database.orientationDao().getAllWorkspaceCapabilities().single {
+                    it.workspaceId == source.id &&
+                        it.capabilityType == WorkspaceCapabilityType.EXECUTION_LOG.name
+                }
+
+            assertEquals("DISABLED", preserved.state)
+            assertFalse(preserved.isDeleted)
+            assertEquals(1L, preserved.version)
         } finally {
             database.close()
         }

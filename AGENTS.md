@@ -108,3 +108,36 @@ When code and documentation disagree, investigate the discrepancy instead of sil
 For `apps/day-goals-desktop`, keep detailed desktop-specific documentation close to that subproject when it is not a cross-project concern.
 
 Cross-client contracts, canonical ownership and shared sync architecture belong in project-level documentation under `docs/`.
+
+<!-- SERENA_TOKEN_POLICY_BEGIN -->
+## Token-efficient code navigation
+
+Use Serena MCP as the primary code-navigation layer for source code.
+
+For source-code exploration, prefer Serena symbolic tools:
+- `get_symbols_overview`
+- `find_symbol`
+- `find_referencing_symbols`
+- `find_implementations`
+- `find_declaration`
+- `get_diagnostics_for_file`
+
+Before reading source code broadly, first use Serena to identify the relevant symbols and relationships.
+
+Prefer Serena over `cat`, `sed`, `rg`, or whole-file reads when symbolic navigation can answer the question.
+
+Use `rg`/RTK when it is genuinely better suited:
+- documentation and configuration;
+- literal or arbitrary text searches;
+- repository-wide censuses;
+- generated files or unsupported languages;
+- fallback when Serena cannot answer reliably.
+
+Do not read entire source files merely to discover structure, definitions, implementations, or references.
+
+For edits, prefer Serena symbol-level operations when the change maps cleanly to symbols. Use normal patch/edit operations when they are simpler or safer.
+
+Use RTK for supported shell commands to reduce tool-output tokens.
+
+Goal: minimize context/token usage without sacrificing correctness. Choose the smallest reliable retrieval method for each step.
+<!-- SERENA_TOKEN_POLICY_END -->

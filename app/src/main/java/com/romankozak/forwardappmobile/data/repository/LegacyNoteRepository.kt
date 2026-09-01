@@ -1,14 +1,11 @@
 package com.romankozak.forwardappmobile.data.repository
 
-import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItem
 import com.romankozak.forwardappmobile.core.data.models.entities.BacklogItemTypeValues
 import com.romankozak.forwardappmobile.core.data.models.entities.LegacyNoteEntity
 import com.romankozak.forwardappmobile.core.data.models.sync.bumpSync
 import com.romankozak.forwardappmobile.core.data.models.sync.softDelete
 import com.romankozak.forwardappmobile.data.dao.LegacyNoteDao
-import com.romankozak.forwardappmobile.features.contexts.data.dao.ListItemDao
 import kotlinx.coroutines.flow.Flow
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -17,8 +14,8 @@ class LegacyNoteRepository
     @Inject
     constructor(
         private val legacyNoteDao: LegacyNoteDao,
-        private val listItemDao: ListItemDao,
         private val recentItemsRepository: RecentItemsRepository,
+        private val backlogPlacementCommands: BacklogPlacementCommands,
     ) {
         suspend fun getNoteById(noteId: String): LegacyNoteEntity? = legacyNoteDao.getNoteById(noteId)
 
@@ -34,18 +31,11 @@ class LegacyNoteRepository
                 val newNote = note.bumpSync(now)
                 legacyNoteDao.insert(newNote)
 
-                val newBacklogItem =
-                    BacklogItem(
-                        id = UUID.randomUUID().toString(),
-                        contextId = note.contextId,
-                        itemType = BacklogItemTypeValues.NOTE,
-                        entityId = note.id,
-                        order = -now,
-                        updatedAt = now,
-                        syncedAt = null,
-                        version = 1,
-                    )
-                listItemDao.insertItem(newBacklogItem)
+                backlogPlacementCommands.addToContextBacked(
+                    contextId = note.contextId,
+                    itemType = BacklogItemTypeValues.NOTE,
+                    entityId = note.id,
+                )
             } else {
                 val now = System.currentTimeMillis()
                 val bumped =
@@ -70,10 +60,10 @@ class LegacyNoteRepository
             } else {
                 legacyNoteDao.deleteNoteById(noteId)
             }
-            listItemDao.getListItemByEntityId(noteId)?.let { listItem ->
-                listItemDao.insertItem(
-                    listItem.softDelete(now),
-                )
-            } ?: listItemDao.deleteItemByEntityId(noteId)
+            backlogPlacementCommands.tombstoneContextBackedTarget(
+                itemType = BacklogItemTypeValues.NOTE,
+                entityId = noteId,
+                now = now,
+            )
         }
     }

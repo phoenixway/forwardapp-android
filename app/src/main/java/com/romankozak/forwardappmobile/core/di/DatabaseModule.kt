@@ -9,12 +9,16 @@ import com.romankozak.forwardappmobile.data.dao.ScriptDao
 import com.romankozak.forwardappmobile.data.database.ALL_MIGRATIONS
 import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDao
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceConnectionDao
 import com.romankozak.forwardappmobile.data.workspace.WorkspaceDirectionEntryDao
 import com.romankozak.forwardappmobile.data.workspace.capability.WorkspaceProblemDao
+import com.romankozak.forwardappmobile.data.workspace.capability.WorkspaceInboxRecordDao
 import com.romankozak.forwardappmobile.database.AppDatabase
 import com.romankozak.forwardappmobile.features.ai.data.dao.AiInsightDao
 import com.romankozak.forwardappmobile.features.attachments.data.AttachmentDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogOrderDao
+import com.romankozak.forwardappmobile.features.contexts.data.dao.BacklogGoalAssociationLinkDao
+import com.romankozak.forwardappmobile.data.workspace.WorkspaceBacklogEntryDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ChecklistDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextArtifactDao
 import com.romankozak.forwardappmobile.features.contexts.data.dao.ContextDao
@@ -69,6 +73,12 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideContextTagRefDao(appDatabase: AppDatabase): ContextTagRefDao = appDatabase.contextTagRefDao()
+
+    @Provides
+    @Singleton
+    fun provideBacklogGoalAssociationLinkDao(
+        appDatabase: AppDatabase,
+    ): BacklogGoalAssociationLinkDao = appDatabase.backlogGoalAssociationLinkDao()
 
     @Provides
     @Singleton
@@ -202,6 +212,16 @@ object DatabaseModule {
 
     @Provides
     @Singleton
+    fun provideWorkspaceConnectionDao(appDatabase: AppDatabase): WorkspaceConnectionDao =
+        appDatabase.workspaceConnectionDao()
+
+    @Provides
+    @Singleton
+    fun provideWorkspaceBacklogEntryDao(appDatabase: AppDatabase): WorkspaceBacklogEntryDao =
+        appDatabase.workspaceBacklogEntryDao()
+
+    @Provides
+    @Singleton
     fun provideDailyMetricDao(appDatabase: AppDatabase) = appDatabase.dailyMetricDao()
 
     @Provides
@@ -259,5 +279,10 @@ object DatabaseModule {
     @Singleton
     fun provideWorkspaceProblemDao(appDatabase: AppDatabase): WorkspaceProblemDao =
         appDatabase.workspaceProblemDao()
+
+    @Provides
+    @Singleton
+    fun provideWorkspaceInboxRecordDao(appDatabase: AppDatabase): WorkspaceInboxRecordDao =
+        appDatabase.workspaceInboxRecordDao()
 
 }

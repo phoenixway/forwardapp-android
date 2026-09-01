@@ -343,7 +343,7 @@ that retirement explicitly.
 | --- | --- |
 | `BACKLOG` | `backlog` |
 | `INBOX` | `inbox` |
-| `INBOX_SORTING` | `inbox_sorting`; requires Inbox |
+| `INBOX_SORTING` | `inbox_sorting`; command-scoped dependencies on the selected target |
 | `KEY_PROBLEMS` | `key_problems` |
 | `DIRECTION` | `direction` |
 | `ARTIFACT` | `artifact` |

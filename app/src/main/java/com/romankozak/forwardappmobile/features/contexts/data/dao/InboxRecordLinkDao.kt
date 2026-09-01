@@ -26,21 +26,17 @@ interface InboxRecordLinkDao {
 
     @Query(
         """
-        SELECT ir.*
-        FROM inbox_records ir
-        WHERE ir.contextId = :contextId
-          AND ir.is_deleted = 0
+        SELECT ir.id, COALESCE(w.sourceContextId, ir.workspaceId) AS contextId,
+               ir.text, ir.createdAt, ir.recordOrder AS item_order,
+               ir.updatedAt, ir.syncedAt AS synced_at, ir.isDeleted AS is_deleted,
+               0 AS hide_in_owner_inbox, ir.version
+        FROM workspace_inbox_records ir
+        LEFT JOIN workspaces w ON w.id = ir.workspaceId
+        JOIN workspace_capability_instances ci ON ci.id = ir.capabilityInstanceId
+        WHERE ir.workspaceId = :contextId
+          AND ir.isDeleted = 0
           AND (
-            COALESCE(
-              (
-                SELECT cs.remove_inbox_entry_after_tag_autocopy
-                FROM context_structures cs
-                WHERE cs.contextId = ir.contextId
-                  AND cs.isDeleted = 0
-                LIMIT 1
-              ),
-              0
-            ) = 0
+            ci.configuration != '{"ownerVisibility":"HIDE_WHEN_ASSOCIATED"}'
             OR NOT EXISTS (
               SELECT 1
               FROM inbox_record_links owner_links
@@ -48,33 +44,33 @@ interface InboxRecordLinkDao {
             )
           )
         UNION
-        SELECT ir.*
-        FROM inbox_records ir
+        SELECT ir.id, COALESCE(w.sourceContextId, ir.workspaceId) AS contextId,
+               ir.text, ir.createdAt, ir.recordOrder AS item_order,
+               ir.updatedAt, ir.syncedAt AS synced_at, ir.isDeleted AS is_deleted,
+               0 AS hide_in_owner_inbox, ir.version
+        FROM workspace_inbox_records ir
+        LEFT JOIN workspaces w ON w.id = ir.workspaceId
         JOIN inbox_record_links irl ON irl.record_id = ir.id
         WHERE irl.context_id = :contextId
-          AND ir.is_deleted = 0
-        ORDER BY item_order DESC
+          AND ir.isDeleted = 0
+        ORDER BY item_order
         """,
     )
     fun getRecordsForContextStream(contextId: String): kotlinx.coroutines.flow.Flow<List<InboxRecord>>
 
     @Query(
         """
-        SELECT ir.*
-        FROM inbox_records ir
-        WHERE ir.contextId = :contextId
-          AND ir.is_deleted = 0
+        SELECT ir.id, COALESCE(w.sourceContextId, ir.workspaceId) AS contextId,
+               ir.text, ir.createdAt, ir.recordOrder AS item_order,
+               ir.updatedAt, ir.syncedAt AS synced_at, ir.isDeleted AS is_deleted,
+               0 AS hide_in_owner_inbox, ir.version
+        FROM workspace_inbox_records ir
+        LEFT JOIN workspaces w ON w.id = ir.workspaceId
+        JOIN workspace_capability_instances ci ON ci.id = ir.capabilityInstanceId
+        WHERE ir.workspaceId = :contextId
+          AND ir.isDeleted = 0
           AND (
-            COALESCE(
-              (
-                SELECT cs.remove_inbox_entry_after_tag_autocopy
-                FROM context_structures cs
-                WHERE cs.contextId = ir.contextId
-                  AND cs.isDeleted = 0
-                LIMIT 1
-              ),
-              0
-            ) = 0
+            ci.configuration != '{"ownerVisibility":"HIDE_WHEN_ASSOCIATED"}'
             OR NOT EXISTS (
               SELECT 1
               FROM inbox_record_links owner_links
@@ -82,12 +78,16 @@ interface InboxRecordLinkDao {
             )
           )
         UNION
-        SELECT ir.*
-        FROM inbox_records ir
+        SELECT ir.id, COALESCE(w.sourceContextId, ir.workspaceId) AS contextId,
+               ir.text, ir.createdAt, ir.recordOrder AS item_order,
+               ir.updatedAt, ir.syncedAt AS synced_at, ir.isDeleted AS is_deleted,
+               0 AS hide_in_owner_inbox, ir.version
+        FROM workspace_inbox_records ir
+        LEFT JOIN workspaces w ON w.id = ir.workspaceId
         JOIN inbox_record_links irl ON irl.record_id = ir.id
         WHERE irl.context_id = :contextId
-          AND ir.is_deleted = 0
-        ORDER BY item_order DESC
+          AND ir.isDeleted = 0
+        ORDER BY item_order
         """,
     )
     suspend fun getRecordsForContext(contextId: String): List<InboxRecord>

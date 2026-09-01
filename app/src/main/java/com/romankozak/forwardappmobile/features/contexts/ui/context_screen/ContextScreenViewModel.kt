@@ -22,10 +22,12 @@ import com.romankozak.forwardappmobile.core.data.models.entities.*
 import com.romankozak.forwardappmobile.core.data.models.entities.RelatedLink
 import com.romankozak.forwardappmobile.core.di.IoDispatcher
 import com.romankozak.forwardappmobile.core.navigation.*
+import com.romankozak.forwardappmobile.data.orientation.OrientationDao
 import com.romankozak.forwardappmobile.core.navigation.capability.actions.CapabilityViewActionDescriptor
 import com.romankozak.forwardappmobile.core.navigation.capability.actions.CapabilityViewActionIds
 import com.romankozak.forwardappmobile.core.navigation.capability.actions.CapabilityViewActionRegistry
 import com.romankozak.forwardappmobile.data.logic.ContextMarkerHandler
+import com.romankozak.forwardappmobile.data.repository.BacklogPlacementCommands
 import com.romankozak.forwardappmobile.data.repository.*
 import com.romankozak.forwardappmobile.domain.ner.NerManager
 import com.romankozak.forwardappmobile.domain.ner.ReminderParser
@@ -129,6 +131,7 @@ class ContextScreenViewModel
         private val missionRepository: MissionRepository,
         private val missionStreamRepository: MissionStreamRepository,
         private val listItemRepository: ListItemRepository,
+        private val backlogPlacementCommands: BacklogPlacementCommands,
         private val noteDocumentRepository: NoteDocumentRepository,
         private val musicNoteRepository: MusicNoteRepository,
         private val checklistRepository: ChecklistRepository,
@@ -146,6 +149,7 @@ class ContextScreenViewModel
         private val contextSessionStore: ContextSessionStore,
         private val backlogClipboardUseCase: BacklogClipboardUseCase,
         private val capabilityViewActionRegistry: CapabilityViewActionRegistry,
+        private val orientationDao: OrientationDao,
     ) : ViewModel(),
         ItemActionHandler.ResultListener,
         InputHandler.ResultListener,
@@ -260,7 +264,7 @@ class ContextScreenViewModel
         private val clipboardActions by lazy { ClipboardActions(application) }
         private val backlogActions by lazy {
             BacklogActions(
-                listItemRepository = listItemRepository,
+                backlogPlacementCommands = backlogPlacementCommands,
                 settingsRepository = settingsRepository,
             )
         }
@@ -506,6 +510,7 @@ class ContextScreenViewModel
                         recentItemsRepository = recentItemsRepository,
                         noteRepository = noteRepository,
                         goalRepository = goalRepository,
+                        orientationDao = orientationDao,
                     ),
                 mapper = contextScreenDataMapper,
             )
